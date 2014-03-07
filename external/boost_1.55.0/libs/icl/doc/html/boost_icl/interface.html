@@ -1,0 +1,1209 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Interface</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="semantics/concept_induction.html" title="Concept Induction">
+<link rel="next" href="interface/required_concepts.html" title="Required Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="semantics/concept_induction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interface/required_concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_interface" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.interface"></a><a class="link" href="interface.html" title="Interface">Interface</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="interface.html#boost_icl.interface.class_templates">Class templates</a></span></dt>
+<dt><span class="section"><a href="interface/required_concepts.html">Required Concepts</a></span></dt>
+<dt><span class="section"><a href="interface/associated_types.html">Associated Types</a></span></dt>
+<dt><span class="section"><a href="interface/function_synopsis.html">Function Synopsis</a></span></dt>
+</dl></div>
+<p>
+      Section <span class="bold"><strong>Interface</strong></span> outlines types and functions
+      of the <span class="bold"><strong>Icl</strong></span>. Synoptical tables allow to review
+      the overall structure of the libraries design and to focus on structural equalities
+      and differences with the corresponding containers of the standard template
+      library.
+    </p>
+<div class="section boost_icl_interface_class_templates" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.interface.class_templates"></a><a class="link" href="interface.html#boost_icl.interface.class_templates" title="Class templates">Class templates</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="interface.html#boost_icl.interface.class_templates.intervals">Intervals</a></span></dt>
+<dt><span class="section"><a href="interface.html#boost_icl.interface.class_templates.sets">Sets</a></span></dt>
+<dt><span class="section"><a href="interface.html#boost_icl.interface.class_templates.maps">Maps</a></span></dt>
+</dl></div>
+<div class="section boost_icl_interface_class_templates_intervals" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.interface.class_templates.intervals"></a><a class="link" href="interface.html#boost_icl.interface.class_templates.intervals" title="Intervals">Intervals</a>
+</h4></div></div></div>
+<p>
+          In the <span class="bold"><strong>icl</strong></span> we have two groups of interval
+          types. There are <span class="emphasis"><em><span class="bold"><strong>statically bounded</strong></span></em></span>
+          intervals, <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>,
+          <code class="computeroutput"><a class="link" href="../boost/icl/left_open_interval.html" title="Class template left_open_interval">left_open_interval</a></code>,
+          <code class="computeroutput"><a class="link" href="../boost/icl/closed_interval.html" title="Class template closed_interval">closed_interval</a></code>,
+          <code class="computeroutput"><a class="link" href="../boost/icl/open_interval.html" title="Class template open_interval">open_interval</a></code>, that
+          always have the the same kind of interval borders and <span class="emphasis"><em><span class="bold"><strong>dynamically bounded</strong></span></em></span> intervals, <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>, <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code> which
+          can have one of the four possible bound types at runtime.
+        </p>
+<div class="table">
+<a name="id1134894"></a><p class="title"><b>Table&#160;1.6.&#160;Interval class templates</b></p>
+<div class="table-contents"><table class="table" summary="Interval class templates">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                group
+              </p>
+              </th>
+<th>
+              <p>
+                form
+              </p>
+              </th>
+<th>
+              <p>
+                template
+              </p>
+              </th>
+<th>
+              <p>
+                instance parameters
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                statically bounded
+              </p>
+              </td>
+<td>
+              <p>
+                asymmetric
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="keyword">class</span>
+                <span class="identifier">DomainT</span><span class="special">,</span>
+                <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Compare</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/left_open_interval.html" title="Class template left_open_interval">left_open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;...</span><span class="identifier">same</span>
+                <span class="keyword">for</span> <span class="identifier">all</span>
+                <span class="identifier">interval</span> <span class="keyword">class</span>
+                <span class="identifier">templates</span><span class="special">...&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                symmetric
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/closed_interval.html" title="Class template closed_interval">closed_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/open_interval.html" title="Class template open_interval">open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                dynamically bounded
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          Not every class template works with all domain types. Use interval class
+          templates according the next table.
+        </p>
+<div class="table">
+<a name="id1135248"></a><p class="title"><b>Table&#160;1.7.&#160;Usability of interval class templates for discrete
+        or continuous domain types</b></p>
+<div class="table-contents"><table class="table" summary="Usability of interval class templates for discrete
+        or continuous domain types">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                group
+              </p>
+              </th>
+<th>
+              <p>
+                form
+              </p>
+              </th>
+<th>
+              <p>
+                template
+              </p>
+              </th>
+<th>
+              <p>
+                discrete
+              </p>
+              </th>
+<th>
+              <p>
+                continuous
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                statically bounded
+              </p>
+              </td>
+<td>
+              <p>
+                asymmetric
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/left_open_interval.html" title="Class template left_open_interval">left_open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                symmetric
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/closed_interval.html" title="Class template closed_interval">closed_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/open_interval.html" title="Class template open_interval">open_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                dynamically bounded
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                yes
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          From a pragmatical point of view, the most important interval class template
+          of the <span class="emphasis"><em>statically bounded</em></span> group is <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>.
+          For discrete domain types also closed intervals might be convenient. Asymmetric
+          intervals can be used with continuous domain types but <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+          is the only class template that allows to represent a singleton interval
+          that contains only one element.
+        </p>
+<p>
+          Use <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>,
+          if you work with interval containers of countinuous domain types and you
+          want to be able to handle single values:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">IdentifiersT</span><span class="special">;</span>
+<span class="identifier">IdentifiersT</span> <span class="identifier">identifiers</span><span class="special">,</span> <span class="identifier">excluded</span><span class="special">;</span>
+<span class="identifier">identifiers</span> <span class="special">+=</span> <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="string">"a"</span><span class="special">,</span> <span class="string">"c"</span><span class="special">);</span>
+
+<span class="comment">// special identifiers shall be excluded
+</span><span class="identifier">identifiers</span> <span class="special">-=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"boost"</span><span class="special">);</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"identifiers: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">identifiers</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">excluded</span> <span class="special">=</span> <span class="identifier">IdentifiersT</span><span class="special">(</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">hull</span><span class="special">(</span><span class="identifier">identifiers</span><span class="special">))</span> <span class="special">-</span> <span class="identifier">identifiers</span><span class="special">;</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"excluded   : "</span> <span class="special">&lt;&lt;</span> <span class="identifier">excluded</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+<span class="comment">//------ Program output: --------
+</span><span class="identifier">identifiers</span><span class="special">:</span> <span class="special">{[</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">boost</span><span class="special">)(</span><span class="identifier">boost</span><span class="special">,</span><span class="identifier">c</span><span class="special">)}</span>
+<span class="identifier">excluded</span>   <span class="special">:</span> <span class="special">{[</span><span class="identifier">boost</span><span class="special">,</span><span class="identifier">boost</span><span class="special">]}</span>
+</pre>
+<p>
+        </p>
+<a name="boost_icl.interface.class_templates.intervals.library_defaults_and_class_template__code__phrase_role__identifier__interval__phrase___code_"></a><h5>
+<a name="id1135992"></a>
+          <a class="link" href="interface.html#boost_icl.interface.class_templates.intervals.library_defaults_and_class_template__code__phrase_role__identifier__interval__phrase___code_">Library
+          defaults and class template <code class="computeroutput"><span class="identifier">interval</span></code></a>
+        </h5>
+<p>
+          As shown in the example above, you can choose an interval type by instantiating
+          the interval container template with the desired type.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">IdentifiersT</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          But you can work with the library default for interval template parameters
+          as well, which is <code class="computeroutput"><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                </p>
+                </th>
+<th>
+                <p>
+                  interval bounds
+                </p>
+                </th>
+<th>
+                <p>
+                  domain_type
+                </p>
+                </th>
+<th>
+                <p>
+                  interval_default
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#ifdef</span></code> BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS
+                </p>
+                </td>
+<td>
+                <p>
+                  static
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#else</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  dynamic
+                </p>
+                </td>
+<td>
+                <p>
+                  discrete
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  continuous
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          So, if you are always happy with the library default for the interval type,
+          just use 
+</p>
+<pre class="programlisting"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">MyDomainT</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">myInterval</span><span class="special">;</span>
+</pre>
+<p>
+          as you standard way of declaring intervals and default parameters for interval
+          containers: 
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">IdentifiersT</span><span class="special">;</span>
+<span class="identifier">IdentifiersT</span> <span class="identifier">identifiers</span><span class="special">,</span> <span class="identifier">excluded</span><span class="special">;</span>
+<span class="identifier">identifiers</span> <span class="special">+=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="string">"a"</span><span class="special">,</span> <span class="string">"c"</span><span class="special">);</span>
+<span class="special">.</span> <span class="special">.</span> <span class="special">.</span>
+</pre>
+<p>
+        </p>
+<p>
+          So class template <code class="computeroutput"><a class="link" href="../boost/icl/interval.html" title="Struct template interval">interval</a></code>
+          provides a standard way to work with the library default for intervals.
+          Via <code class="computeroutput"><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+          you can declare a default interval. In addition four static functions 
+</p>
+<pre class="programlisting"><span class="identifier">T</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;);</span>
+<span class="identifier">T</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">left_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;);</span>
+<span class="identifier">T</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;);</span>
+<span class="identifier">T</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">D</span><span class="special">&amp;);</span>
+</pre>
+<p>
+          allow to construct intervals of the library default <code class="computeroutput"><span class="identifier">T</span>
+          <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+<p>
+          If you 
+</p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS</span>
+</pre>
+<p>
+          the library uses only statically bounded <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+          as default interval type. In this case, the four static functions above
+          are also available, but they only move interval borders consistently, if
+          their domain type is discrete, and create an appropriate <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+          finally: 
+</p>
+<pre class="programlisting"><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">[</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span>  <span class="special">-&gt;</span>  <span class="special">[</span><span class="identifier">a</span>  <span class="special">,</span> <span class="identifier">b</span>  <span class="special">)</span>
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span> <span class="identifier">left_open</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">]</span>  <span class="special">-&gt;</span>  <span class="special">[</span><span class="identifier">a</span><span class="special">++,</span> <span class="identifier">b</span><span class="special">++)</span>
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span>    <span class="identifier">closed</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">[</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">]</span>  <span class="special">-&gt;</span>  <span class="special">[</span><span class="identifier">a</span>  <span class="special">,</span> <span class="identifier">b</span><span class="special">++)</span>
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span>      <span class="identifier">open</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span>  <span class="special">-&gt;</span>  <span class="special">[</span><span class="identifier">a</span><span class="special">++,</span> <span class="identifier">b</span>  <span class="special">)</span>
+</pre>
+<p>
+        </p>
+<p>
+          For continuous domain types only the first of the four functions is applicable
+          that matches the library default for statically bounded intervals: <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>.
+          The other three functions can not perform an appropriate tranformation
+          and will not compile.
+        </p>
+</div>
+<div class="section boost_icl_interface_class_templates_sets" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.interface.class_templates.sets"></a><a class="link" href="interface.html#boost_icl.interface.class_templates.sets" title="Sets">Sets</a>
+</h4></div></div></div>
+<p>
+          The next two tables give an overview over <span class="emphasis"><em><span class="bold"><strong>set
+          class templates</strong></span></em></span> of the icl.
+        </p>
+<div class="table">
+<a name="id1137249"></a><p class="title"><b>Table&#160;1.8.&#160;Set class templates</b></p>
+<div class="table-contents"><table class="table" summary="Set class templates">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                group
+              </p>
+              </th>
+<th>
+              <p>
+                template
+              </p>
+              </th>
+<th>
+              <p>
+                instance parameters
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">IntervalT</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">IntervalT</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">IntervalT</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          Templates and template parameters, given in the preceding table are described
+          in detail below. <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_set.html" title="Class template interval_base_set">Interval_sets</a></code>
+          represent three class templates <code class="computeroutput"><a class="link" href="../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>,
+          <code class="computeroutput"><a class="link" href="../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+          and <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+          that all have equal template parameters.
+        </p>
+<div class="table">
+<a name="id1137531"></a><p class="title"><b>Table&#160;1.9.&#160;Parameters of set class templates</b></p>
+<div class="table-contents"><table class="table" summary="Parameters of set class templates">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+              </p>
+              </th>
+<th>
+              <p>
+                type of elements
+              </p>
+              </th>
+<th>
+              <p>
+                order of elements
+              </p>
+              </th>
+<th>
+              <p>
+                type of intervals
+              </p>
+              </th>
+<th>
+              <p>
+                memory allocation
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                template parameter
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval.html" title="Struct template interval">interval</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IntervalT</span> <span class="special">=</span>
+                <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Alloc</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">alloc</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section boost_icl_interface_class_templates_maps" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.interface.class_templates.maps"></a><a class="link" href="interface.html#boost_icl.interface.class_templates.maps" title="Maps">Maps</a>
+</h4></div></div></div>
+<p>
+          The next two tables give an overview over <span class="emphasis"><em><span class="bold"><strong>map
+          class templates</strong></span></em></span> of the icl.
+        </p>
+<div class="table">
+<a name="id1137910"></a><p class="title"><b>Table&#160;1.10.&#160;map class templates</b></p>
+<div class="table-contents"><table class="table" summary="map class templates">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                group
+              </p>
+              </th>
+<th>
+              <p>
+                template
+              </p>
+              </th>
+<th>
+              <p>
+                instance parameters
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Traits</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Combine</span><span class="special">,</span><span class="identifier">Section</span><span class="special">,</span><span class="identifier">IntervalT</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Traits</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Combine</span><span class="special">,</span><span class="identifier">Section</span><span class="special">,</span><span class="identifier">IntervalT</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Traits</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Combine</span><span class="special">,</span><span class="identifier">Section</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          Templates and template parameters, given in the preceding table are described
+          in detail below. <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_map.html" title="Class template interval_base_map">Interval_maps</a></code>
+          represent two class templates <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+          and <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+          that all have equal template parameters.
+        </p>
+<div class="table">
+<a name="id1138271"></a><p class="title"><b>Table&#160;1.11.&#160;Parameters of map class templates</b></p>
+<div class="table-contents"><table class="table" summary="Parameters of map class templates">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+              </p>
+              </th>
+<th>
+              <p>
+                elements
+              </p>
+              </th>
+<th>
+              <p>
+                mapped values
+              </p>
+              </th>
+<th>
+              <p>
+                traits
+              </p>
+              </th>
+<th>
+              <p>
+                order of elements
+              </p>
+              </th>
+<th>
+              <p>
+                aggregation propagation
+              </p>
+              </th>
+<th>
+              <p>
+                intersection propagation
+              </p>
+              </th>
+<th>
+              <p>
+                type of intervals
+              </p>
+              </th>
+<th>
+              <p>
+                memory allocation
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                template parameter
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">class</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Traits</span> <span class="special">=</span>
+                <span class="identifier">identity_absorber</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Combine</span> <span class="special">=</span>
+                <span class="identifier">inplace_plus</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Section</span> <span class="special">=</span>
+                <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_et</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IntervalT</span> <span class="special">=</span>
+                <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Alloc</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">alloc</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Traits</span> <span class="special">=</span>
+                <span class="identifier">identity_absorber</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Combine</span> <span class="special">=</span>
+                <span class="identifier">inplace_plus</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Section</span> <span class="special">=</span>
+                <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_et</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Alloc</span> <span class="special">=</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">alloc</span></code>
+              </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          Using the following placeholders,
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="identifier">D</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">DomainT</span><span class="special">,</span>
+<span class="identifier">C</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">CodomainT</span><span class="special">,</span>
+<span class="identifier">T</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span>
+<span class="identifier">cp</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">D</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Compare</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span>
+<span class="identifier">cb</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">C</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Combine</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_plus</span><span class="special">,</span>
+<span class="identifier">s</span>  <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">C</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Section</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_et</span><span class="special">,</span>
+<span class="identifier">I</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">IntervalT</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">a</span>  <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Alloc</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span>
+</pre>
+<p>
+        </p>
+<p>
+          we arrive at a final synoptical matrix of class templates and their parameters.
+        </p>
+<pre class="programlisting">interval     &lt;D,       cp,             &gt;
+interval_sets&lt;D,       cp,        I, a &gt;
+interval_maps&lt;D, C, T, cp, cb, s, I, a &gt;
+icl::map     &lt;D, C, T, cp, cb, s,    a &gt;
+</pre>
+<p>
+          The choice of parameters and their positions follow the std::containers
+          as close a possible, so that usage of interval sets and maps does only
+          require minimal additional knowledge.
+        </p>
+<p>
+          Additional knowledge is required when instantiating a comparison parameter
+          <code class="computeroutput"><span class="identifier">Compare</span></code> or an allocation
+          parameter <code class="computeroutput"><span class="identifier">Alloc</span></code>. In contrast
+          to std::containers these have to be instantiated as templates, like e.g.
+          
+</p>
+<pre class="programlisting"><span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">german_compare</span><span class="special">&gt;</span>      <span class="identifier">sections</span><span class="special">;</span> <span class="comment">// 2nd parameter is a template
+</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">german_compare</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">words</span><span class="special">;</span>    <span class="comment">// 2nd parameter is a type
+</span></pre>
+<p>
+        </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="semantics/concept_induction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interface/required_concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

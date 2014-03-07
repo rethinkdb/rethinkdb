@@ -1,0 +1,163 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Erasure ===================================================================]
+[section Erasure]
+
+[section Synopsis][/ Erasure]
+
+[table
+[[['*Erasure*]]                 [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]  ]
+[[`T& T::erase(const P&)`]              [__ei ]   [__ei __bp]     [__e]      [__bp]     ]
+[[`T& erase(T&, const P&)`]             [__eiS]  [__eiS __bpM]    [__es]     [__bm]     ]
+[[`void T::erase(iterator)`]               [1]        [1]         [1]        [1]        ]
+[[`void T::erase(iterator,iterator)`]      [1]        [1]         [1]        [1]        ]
+]
+
+[h5 Erasure]
+
+The effects of ['*erasure*] implemented by `erase` and ['*subtraction*]
+implemented by `subtract` and `operator -=` are identical for all Set-types of
+the *icl*.
+
+For Map-types, `erase` provides the *stl* semantics of erasure in
+contrast to `subtract` and `operator -=`, that implement a generalized subtraction,
+that performs inverse aggregations if key values collide or key intervals overlap.
+
+Using iterators it is possible to erase objects or ranges of 
+objects the iterator is pointing at from icl Sets and Maps.
+
+[endsect][/ Synopsis Erasure]
+
+
+[section Erasure of Objects]
+
+
+``
+/* overload table for */       T\P| e i b p 
+T& T::erase(const P&)          ---+--------
+T& erase(T&, const P&)          s | s
+                                m |     m
+                                S | S S     
+                                M |     M M    
+``
+
+The next table contains complexity characteristics for the `erase` function on elements and segments.
+
+[table Time Complexity for erasure of elements and segments on icl containers
+[[`T& T::erase(const P&)`\n
+  `T& erase(T&, const P&)`] [__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__]]
+[[__icl_set__]                 [__Olgn__]   []            []           []          ]
+[[__icl_map__]                 [__Olgn__]   []            [__Olgn__]   []          ]
+[[__itv_sets__]                [__Olgn__]   [__a_Olgn__]  []           []          ]
+[[__itv_maps__]                [__Olgn__]   [__On__]      [__Olgn__]   [__On__]    ]
+]
+
+
+As presented in the overload tables for inplace function `erase` below,
+more type combinations are available for /erasure/ than for
+/insertion/. 
+
+``
+// overload tables for function    element containers:     interval containers: 
+T& erase(T&, const P&)             T\P| e b s m            T\P| e i b p S M  
+                                   ---+--------            ---+------------  
+                                    s | s   s               S | S S     S    
+                                    m | m m m m             M | M M M M M M  
+``
+We can split up these overloads in two groups.
+The first group can be called /reverse insertion/.
+``
+/* (1) Reverse insertion */        T\P| e b s m            T\P| e i b p S M  
+                                   ---+--------            ---+------------  
+                                    s | s   s               S | S S     S    
+                                    m |   m   m             M |     M M   M  
+``
+The second group can be viewed as an /erasure by key objects/
+``
+/* (2) Erasure by key objects */   T\P| e b s m            T\P| e i b p S M
+                                   ---+--------            ---+------------
+                                    s | s   s               S | S S     S  
+                                    m | m   m               M | M M     M  
+``
+
+On Maps ['*reverse insertion (1)*] is different from
+*stl's* erase semantics, because value pairs are deleted only,
+if key ['*and*] data values are found. Only 
+['*erasure by key objects (2)*] works like the erase function
+on *stl's* std::maps, that passes a ['*key value*] as argument.
+
+On Sets both function groups fall together
+as ['*set difference*].
+
+
+Complexity characteristics for inplace erasure operations are 
+given by the next tables where 
+``
+n = iterative_size(y);
+m = iterative_size(x); //if P is a container type
+``
+
+[table Time Complexity for inplace erasure on element containers
+[[`T& erase(T& y, const P& x)`][__ch_dom_t__][__ch_dom_mp_t__][__ch_icl_set__][__ch_icl_map__]]
+[[__icl_set__]                    [__Olgn__]    []               [__Omlgn__]     []              ]
+[[__icl_map__]                    [__Olgn__]    [__Olgn__]       [__Omlgn__]     [__Omlgn__]     ]
+]
+
+
+[table Time Complexity for inplace erasure on interval containers
+[[`T& erase(T& y, const P& x)`][__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[interval_sets]                  [__Olgn__]    [__a_Olgn__]  []               []               [__Omlgnpm__]    []               ]
+[[interval_maps]                  [__Olgn__]    [__a_Olgn__]  [__Olgn__]       [__On__]         [__Omlgnpm__]    [__Omlgnpm__]    ]
+]
+
+[endsect][/ Erasure of Objects]
+
+[section Erasure by Iterators]
+
+The next table shows the *icl* containers that erasure with iterators is
+available for. Erase on iterators erases always one `value` of `value_type`
+for an iterator pointing to it.
+So we erase
+
+* elements from __icl_sets__
+* element-value pairs from __icl_maps__
+* intervals from __itv_sets__ and
+* interval-value-pairs from __itv_maps__
+
+[table
+[[['*Erasure by iterators*]]                [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]  ]
+[[`void T::erase(iterator pos)`]                   [__aO1__]   [__aO1__]    [__aO1__]   [__aO1__]   ]
+[[`void T::erase(iterator first, iterator past)`]  [__Ok__]    [__Ok__]     [__Ok__]    [__Ok__]    ]
+]
+
+Erasing by a single iterator need only ['*amortized constant time*].
+Erasing via a range of iterators `[first, past)` is of ['*linear time*]
+in the number `k` of iterators in range `[first, past)`.
+
+[endsect][/ Erasure by Iterators]
+
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.insertion   ['*Insertion*]]      ]]
+[[[link boost_icl.function_reference.subtraction ['*Subtraction*]]    ]]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]] ]]
+[[[link boost_icl.interface ['*Interface*]]             ]]
+]
+
+[endsect][/ Erasure]
+
+

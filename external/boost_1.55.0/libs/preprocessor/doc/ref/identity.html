@@ -1,0 +1,57 @@
+<html>
+<head>
+	<title>BOOST_PP_IDENTITY</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_IDENTITY</b> macro expands to its argument when invoked.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_IDENTITY</b>(<i>item</i>)()
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>item</dt>
+			<dd>
+				The result of the expansion.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is designed to be used with <b>BOOST_PP_IF</b> and <b>BOOST_PP_IIF</b> when only one of the clauses needs to be invoked.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="if.html">BOOST_PP_IF</a></li>
+			<li><a href="iif.html">BOOST_PP_IIF</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/facilities/identity.html">&lt;boost/preprocessor/facilities/identity.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/control/if.html">boost/preprocessor/control/if.hpp</a>&gt;
+#include &lt;<a href="../headers/facilities/empty.html">boost/preprocessor/facilities/empty.hpp</a>&gt;
+#include &lt;<a href="../headers/facilities/identity.html">boost/preprocessor/facilities/identity.hpp</a>&gt;
+
+#define MACRO(n) <a href="if.html">BOOST_PP_IF</a>(n, <a href="identity.html">BOOST_PP_IDENTITY</a>(x), <a href="empty.html">BOOST_PP_EMPTY</a>)()
+
+MACRO(0) // expands to nothing
+MACRO(1) // expands to x
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

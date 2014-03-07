@@ -1,0 +1,74 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:find_end find_end]
+
+[heading Prototype]
+
+``
+template<class ForwardRange1, class ForwardRange2>
+typename range_iterator<ForwardRange1>::type
+find_end(ForwardRange1& rng1, const ForwardRange2& rng2);
+
+template<
+    class ForwardRange1,
+    class ForwardRange2,
+    class BinaryPredicate
+    >
+typename range_iterator<ForwardRange1>::type
+find_end(ForwardRange1& rng1, const ForwardRange2& rng2, BinaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange1,
+    class ForwardRange2
+    >
+typename range_return<ForwardRange1, re>::type
+find_end(ForwardRange1& rng1, const ForwardRange2& rng2);
+
+template<
+    range_return_value re,
+    class ForwardRange1,
+    class ForwardRange2,
+    class BinaryPredicate
+    >
+typename range_return<ForwardRange1, re>::type
+find_end(ForwardRange1& rng1, const ForwardRange2& rng2, BinaryPredicate pred);
+``
+
+[heading Description]
+
+The versions of `find_end` that return an iterator, return an iterator to the beginning of the last sub-sequence equal to `rng2` within `rng1`.
+Equality is determined by `operator==` for non-predicate versions of `find_end`, and by satisfying `pred` in the predicate versions. The versions of `find_end` that return a `range_return`, defines `found` in the same manner as the returned iterator described above.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/find_end.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `ForwardRange1` is a model of the __forward_range__ Concept.
+* `ForwardRange2` is a model of the __forward_range__ Concept.
+* `ForwardRange1`'s value type is a model of the `EqualityComparableConcept`.
+* `ForwardRange2`'s value type is a model of the `EqualityComparableConcept`.
+* Objects of `ForwardRange1`'s value type can be compared for equality with objects of `ForwardRange2`'s value type.
+
+[*For the predicate versions:]
+
+* `ForwardRange1` is a model of the __forward_range__ Concept.
+* `ForwardRange2` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `ForwardRange1`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `ForwardRange2`'s value type is convertible to `BinaryPredicate`'s second argument type.
+
+[heading Complexity]
+
+The number of comparisons is proportional to `distance(rng1) * distance(rng2)`. If both `ForwardRange1` and `ForwardRange2` are models of `BidirectionalRangeConcept` then the average complexity is linear and the worst case is `distance(rng1) * distance(rng2)`.
+
+[endsect]
+
+

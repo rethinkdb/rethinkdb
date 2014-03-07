@@ -1,0 +1,195 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template linear_slist_algorithms</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.linear_slist_algorithms_hpp" title="Header &lt;boost/intrusive/linear_slist_algorithms.hpp&gt;">
+<link rel="prev" href="make_hashtable.html" title="Struct template make_hashtable">
+<link rel="next" href="link_mode_type.html" title="Type link_mode_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_hashtable.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.linear_slist_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="link_mode_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.linear_slist_algorithms"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template linear_slist_algorithms</span></h2>
+<p>boost::intrusive::linear_slist_algorithms</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.linear_slist_algorithms_hpp" title="Header &lt;boost/intrusive/linear_slist_algorithms.hpp&gt;">boost/intrusive/linear_slist_algorithms.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodeTraits<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="linear_slist_algorithms.html" title="Class template linear_slist_algorithms">linear_slist_algorithms</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">node</span>           <a name="boost.intrusive.linear_slist_algorithms.node"></a><span class="identifier">node</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">node_ptr</span>       <a name="boost.intrusive.linear_slist_algorithms.node_ptr"></a><span class="identifier">node_ptr</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">const_node_ptr</span> <a name="boost.intrusive.linear_slist_algorithms.const_node_ptr"></a><span class="identifier">const_node_ptr</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span>                 <a name="boost.intrusive.linear_slist_algorithms.node_traits"></a><span class="identifier">node_traits</span><span class="special">;</span>   
+
+  <span class="comment">// <a class="link" href="linear_slist_algorithms.html#idp33542216-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33542424-bb"><span class="identifier">init</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="linear_slist_algorithms.html#idp33544792-bb"><span class="identifier">unique</span></a><span class="special">(</span><span class="identifier">const_node_ptr</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="linear_slist_algorithms.html#idp33547720-bb"><span class="identifier">inited</span></a><span class="special">(</span><span class="identifier">const_node_ptr</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33549912-bb"><span class="identifier">unlink_after</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33552568-bb"><span class="identifier">unlink_after</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33555608-bb"><span class="identifier">link_after</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33558584-bb"><span class="identifier">transfer_after</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33562040-bb"><span class="identifier">init_header</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="linear_slist_algorithms.html#idp33564504-bb"><span class="identifier">get_previous_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="linear_slist_algorithms.html#idp33567704-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="linear_slist_algorithms.html#idp33570408-bb"><span class="identifier">swap_trailing_nodes</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="linear_slist_algorithms.html#idp33573480-bb"><span class="identifier">reverse</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+  <a class="link" href="linear_slist_algorithms.html#idp33576136-bb"><span class="identifier">move_first_n_backwards</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+  <a class="link" href="linear_slist_algorithms.html#idp33579304-bb"><span class="identifier">move_first_n_forward</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp133968392"></a><h2>Description</h2>
+<p><a class="link" href="linear_slist_algorithms.html" title="Class template linear_slist_algorithms">linear_slist_algorithms</a> provides basic algorithms to manipulate nodes forming a linear singly linked list.</p>
+<p><a class="link" href="linear_slist_algorithms.html" title="Class template linear_slist_algorithms">linear_slist_algorithms</a> is configured with a NodeTraits class, which encapsulates the information about the node to be manipulated. NodeTraits must support the following interface:</p>
+<p><span class="bold"><strong>Typedefs</strong></span>:</p>
+<p><code class="computeroutput">node</code>: The type of the node that forms the linear list</p>
+<p><code class="computeroutput">node_ptr</code>: A pointer to a node</p>
+<p><code class="computeroutput">const_node_ptr</code>: A pointer to a const node</p>
+<p><span class="bold"><strong>Static functions</strong></span>:</p>
+<p><code class="computeroutput">static node_ptr get_next(const_node_ptr n);</code></p>
+<p><code class="computeroutput">static void set_next(node_ptr n, node_ptr next);</code> </p>
+<div class="refsect2">
+<a name="idp133972904"></a><h3>
+<a name="idp33542216-bb"></a><code class="computeroutput">linear_slist_algorithms</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33542424-bb"></a><span class="identifier">init</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs an non-used list element, putting the next pointer to null: <code class="computeroutput">NodeTraits::get_next(this_node) == node_ptr()</code></p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp33544792-bb"></a><span class="identifier">unique</span><span class="special">(</span><span class="identifier">const_node_ptr</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: this_node must be in a circular list or be an empty circular list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true is "this_node" is the only node of a circular list: or it's a not inserted node: <code class="computeroutput">return node_ptr() == NodeTraits::get_next(this_node) || NodeTraits::get_next(this_node) == this_node</code></p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp33547720-bb"></a><span class="identifier">inited</span><span class="special">(</span><span class="identifier">const_node_ptr</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true is "this_node" has the same state as if it was inited using "init(node_ptr)"</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33549912-bb"></a><span class="identifier">unlink_after</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> prev_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: prev_node must be in a circular list or be an empty circular list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Unlinks the next node of prev_node from the circular list.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33552568-bb"></a><span class="identifier">unlink_after</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> prev_node<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> last_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: prev_node and last_node must be in a circular list or be an empty circular list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Unlinks the range (prev_node, last_node) from the linear list.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33555608-bb"></a><span class="identifier">link_after</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> prev_node<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: prev_node must be a node of a linear list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Links this_node after prev_node in the linear list.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33558584-bb"></a><span class="identifier">transfer_after</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> p<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> b<span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: b and e must be nodes of the same linear list or an empty range. and p must be a node of a different linear list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Removes the nodes from (b, e] range from their linear list and inserts them after p in p's linear list.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33562040-bb"></a><span class="identifier">init_header</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs an empty list, making this_node the only node of the circular list: <code class="computeroutput">NodeTraits::get_next(this_node) == this_node</code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+<a name="idp33564504-bb"></a><span class="identifier">get_previous_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> prev_init_node<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: this_node and prev_init_node must be in the same linear list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the previous node of this_node in the linear list starting. the search from prev_init_node. The first node checked for equality is NodeTraits::get_next(prev_init_node).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements between prev_init_node and this_node.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a name="idp33567704-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: this_node must be in a linear list or be an empty linear list.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of nodes in a linear list. If the linear list is empty, returns 1.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp33570408-bb"></a><span class="identifier">swap_trailing_nodes</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> this_node<span class="special">,</span> 
+                                <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> other_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: this_node and other_node must be nodes inserted in linear lists or be empty linear lists.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Moves all the nodes previously chained after this_node after other_node and vice-versa.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp33573480-bb"></a><span class="identifier">reverse</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Reverses the order of elements in the list.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The new first node of the list.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: This function is linear to the contained elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+<a name="idp33576136-bb"></a><span class="identifier">move_first_n_backwards</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> p<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Moves the first n nodes starting at p to the end of the list.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A pair containing the new first and last node of the list or if there has been any movement, a null pair if n leads to no movement.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements plus the number moved positions. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+<a name="idp33579304-bb"></a><span class="identifier">move_first_n_forward</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> p<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Moves the first n nodes starting at p to the beginning of the list.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A pair containing the new first and last node of the list or if there has been any movement, a null pair if n leads to no movement.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements plus the number moved positions. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_hashtable.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.linear_slist_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="link_mode_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

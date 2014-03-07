@@ -1,0 +1,49 @@
+<html>
+<head>
+	<title>BOOST_PP_ARRAY_PUSH_FRONT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ARRAY_PUSH_FRONT</b> macro appends an element to the beginning of an <i>array</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ARRAY_PUSH_FRONT</b>(<i>array</i>, <i>elem</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>array</dt>
+			<dd>
+				The <i>array</i> to append an element to.
+			</dd>
+			<dt>elem</dt>
+			<dd>
+				The element to append.
+			</dd>
+		</dl>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/array/push_front.html">&lt;boost/preprocessor/array/push_front.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/array/push_front.html">boost/preprocessor/array/push_front.hpp</a>&gt;
+
+#define ARRAY (3, (b, c, d))
+
+<a href="array_push_front.html">BOOST_PP_ARRAY_PUSH_FRONT</a>(ARRAY, a) // expands to (4, (a, b, c, d))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

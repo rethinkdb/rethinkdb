@@ -1,0 +1,328 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:extending Extending the library]
+
+[section:method_1 Method 1: provide member functions and nested types]
+
+This procedure assumes that you have control over the types that should be made conformant to a Range concept. If not, see [link range.reference.extending.method_2 method 2].
+
+The primary templates in this library are implemented such that standard containers will work automatically and so will __boost_array__. Below is given an overview of which member functions and member types a class must specify to be useable as a certain Range concept.
+
+[table
+  [[Member function] [Related concept      ]]
+  [[`begin()`      ] [__single_pass_range__]]
+  [[`end()`        ] [__single_pass_range__]]
+]
+
+Notice that `rbegin()` and `rend()` member functions are not needed even though the container can support bidirectional iteration.
+
+The required member types are:
+
+[table
+  [[Member type     ] [Related concept      ]]
+  [[`iterator`      ] [__single_pass_range__]]
+  [[`const_iterator`] [__single_pass_range__]]
+]
+
+Again one should notice that member types `reverse_iterator` and `const_reverse_iterator` are not needed.
+
+[endsect]
+
+[section:method_2 Method 2: provide free-standing functions and specialize metafunctions]
+
+This procedure assumes that you cannot (or do not wish to) change the types that should be made conformant to a Range concept. If this is not true, see [link range.reference.extending.method_1 method 1].
+
+The primary templates in this library are implemented such that certain functions are found via argument-dependent-lookup (ADL). Below is given an overview of which free-standing functions a class must specify to be useable as a certain Range concept. Let `x` be a variable (`const` or `mutable`) of the class in question.
+
+[table
+  [[Function              ] [Related concept      ]]
+  [[`range_begin(x)`] [__single_pass_range__]]
+  [[`range_end(x)`  ] [__single_pass_range__]]
+  [[`range_calculate_size(x)`] [ Optional. This can be used to specify a mechanism for constant-time computation of the size of a range. The default behaviour is to return `boost::end(x) - boost::begin(x)` for random access ranges, and to return `x.size()` for ranges with lesser traversal capability. This behaviour can be changed by implementing `range_calculate_size` in a manner that will be found via ADL. The ability to calculate size in O(1) is often possible even with ranges with traversal categories less than random access.]]
+]
+
+`range_begin()` and `range_end()` must be overloaded for both `const` and `mutable` reference arguments.
+
+You must also specialize two metafunctions for your type `X`:
+
+[table
+  [[Metafunction                 ] [Related concept      ]]
+  [[`boost::range_mutable_iterator`] [__single_pass_range__]]
+  [[`boost::range_const_iterator`] [__single_pass_range__]]
+]
+
+A complete example is given here:
+
+``
+    #include <boost/range.hpp>
+    #include <iterator>         // for std::iterator_traits, std::distance()
+
+    namespace Foo
+    {
+        //
+        // Our sample UDT. A 'Pair'
+        // will work as a range when the stored
+        // elements are iterators.
+        //
+        template< class T >
+        struct Pair
+        {
+            T first, last;
+        };
+
+    } // namespace 'Foo'
+
+    namespace boost
+    {
+        //
+        // Specialize metafunctions. We must include the range.hpp header.
+        // We must open the 'boost' namespace.
+        //
+
+    	template< class T >
+    	struct range_mutable_iterator< Foo::Pair<T> >
+    	{
+    		typedef T type;
+    	};
+
+    	template< class T >
+    	struct range_const_iterator< Foo::Pair<T> >
+    	{
+    		//
+    		// Remark: this is defined similar to 'range_iterator'
+    		//         because the 'Pair' type does not distinguish
+    		//         between an iterator and a const_iterator.
+    		//
+    		typedef T type;
+    	};
+
+    } // namespace 'boost'
+
+    namespace Foo
+    {
+    	//
+    	// The required functions. These should be defined in
+    	// the same namespace as 'Pair', in this case
+    	// in namespace 'Foo'.
+    	//
+
+    	template< class T >
+    	inline T range_begin( Pair<T>& x )
+    	{
+    		return x.first;
+    	}
+
+    	template< class T >
+    	inline T range_begin( const Pair<T>& x )
+    	{
+    		return x.first;
+    	}
+
+    	template< class T >
+    	inline T range_end( Pair<T>& x )
+    	{
+    		return x.last;
+    	}
+
+    	template< class T >
+    	inline T range_end( const Pair<T>& x )
+    	{
+    		return x.last;
+    	}
+
+    } // namespace 'Foo'
+
+    #include <vector>
+
+    int main(int argc, const char* argv[])
+    {
+    	typedef std::vector<int>::iterator  iter;
+    	std::vector<int>                    vec;
+    	Foo::Pair<iter>                     pair = { vec.begin(), vec.end() };
+    	const Foo::Pair<iter>&              cpair = pair;
+    	//
+    	// Notice that we call 'begin' etc with qualification.
+    	//
+    	iter i = boost::begin( pair );
+    	iter e = boost::end( pair );
+    	i      = boost::begin( cpair );
+    	e      = boost::end( cpair );
+    	boost::range_difference< Foo::Pair<iter> >::type s = boost::size( pair );
+    	s      = boost::size( cpair );
+    	boost::range_reverse_iterator< const Foo::Pair<iter> >::type
+    	ri     = boost::rbegin( cpair ),
+    	re     = boost::rend( cpair );
+
+    	return 0;
+    }
+``
+
+[endsect]
+
+[section:method_3 Method 3: provide range adaptor implementations]
+
+[section:method_3_1 Method 3.1: Implement a Range Adaptor without arguments]
+
+To implement a Range Adaptor without arguments (e.g. reversed) you need to:
+
+# Provide a range for your return type, for example:
+``
+#include <boost/range/iterator_range.hpp>
+#include <boost/iterator/reverse_iterator.hpp>
+
+template< typename R >
+struct reverse_range :
+    boost::iterator_range<
+        boost::reverse_iterator<
+            typename boost::range_iterator<R>::type> >
+{
+private:
+    typedef boost::iterator_range<
+        boost::reverse_iterator<
+            typename boost::range_iterator<R>::type> > base;
+
+public:
+    typedef boost::reverse_iterator<
+        typename boost::range_iterator<R>::type > iterator;
+
+    reverse_range(R& r)
+        : base(iterator(boost::end(r)), iterator(boost::begin(r)))
+    { }
+};
+``
+
+# Provide a tag to uniquely identify your adaptor in the `operator|` function overload set
+``
+namespace detail {
+    struct reverse_forwarder {};
+}
+``
+
+# Implement `operator|`
+``
+template< class BidirectionalRng >
+inline reverse_range<BidirectionalRng>
+operator|( BidirectionalRng& r, detail::reverse_forwarder )
+{
+	return reverse_range<BidirectionalRng>( r );
+}
+
+template< class BidirectionalRng >
+inline reverse_range<const BidirectionalRng>
+operator|( const BidirectionalRng& r, detail::reverse_forwarder )
+{
+	return reverse_range<const BidirectionalRng>( r );
+}
+``
+
+# Declare the adaptor itself (it is a variable of the tag type).
+``
+namespace
+{
+    const detail::reverse_forwarder reversed = detail::reverse_forwarder();
+}
+``
+
+[endsect]
+
+[section:method_3_2 Method 3.2: Implement a Range Adaptor with arguments]
+
+# Provide a range for your return type, for example:
+``
+#include <boost/range/adaptor/argument_fwd.hpp>
+#include <boost/range/iterator_range.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+
+template<typename Value>
+class replace_value
+{
+public:
+    typedef const Value& result_type;
+    typedef const Value& argument_type;
+
+    replace_value(const Value& from, const Value& to)
+        : m_from(from), m_to(to)
+    {
+    }
+
+    const Value& operator()(const Value& x) const
+    {
+        return (x == m_from) ? m_to : x;
+    }
+private:
+    Value m_from;
+    Value m_to;
+};
+
+template<typename Range>
+class replace_range
+: public boost::iterator_range<
+    boost::transform_iterator<
+        replace_value<typename boost::range_value<Range>::type>,
+        typename boost::range_iterator<Range>::type> >
+{
+private:
+    typedef typename boost::range_value<Range>::type value_type;
+    typedef typename boost::range_iterator<Range>::type iterator_base;
+    typedef replace_value<value_type> Fn;
+    typedef boost::transform_iterator<Fn, iterator_base> replaced_iterator;
+    typedef boost::iterator_range<replaced_iterator> base_t;
+
+public:
+    replace_range(Range& rng, value_type from, value_type to)
+        : base_t(replaced_iterator(boost::begin(rng), Fn(from,to)),
+                 replaced_iterator(boost::end(rng), Fn(from,to)))
+     {
+     }
+ };
+``
+
+# Implement a holder class to hold the arguments required to construct the RangeAdaptor.
+The holder combines multiple parameters into one that can be passed as the right operand of `operator|()`.
+``
+template<typename T>
+class replace_holder : public boost::range_detail::holder2<T>
+{
+public:
+    replace_holder(const T& from, const T& to)
+        : boost::range_detail::holder2<T>(from, to)
+    { }
+private:
+    void operator=(const replace_holder&);
+};
+``
+
+# Define an instance of the holder with the name of the adaptor
+``
+static boost::range_detail::forwarder2<replace_holder>
+replaced = boost::range_detail::forwarder2<replace_holder>();
+``
+
+# Define `operator|`
+``
+template<typename SinglePassRange>
+inline replace_range<SinglePassRange>
+operator|(SinglePassRange& rng,
+          const replace_holder<typename boost::range_value<SinglePassRange>::type>& f)
+{
+    return replace_range<SinglePassRange>(rng, f.val1, f.val2);
+}
+
+template<typename SinglePassRange>
+inline replace_range<const SinglePassRange>
+operator|(const SinglePassRange& rng,
+          const replace_holder<typename boost::range_value<SinglePassRange>::type>& f)
+{
+    return replace_range<const SinglePassRange>(rng, f.val1, f.val2);
+}
+``
+
+[endsect]
+
+[endsect]
+
+[endsect]
+

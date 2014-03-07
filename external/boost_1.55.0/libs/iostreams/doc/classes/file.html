@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>File Wrappers</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">File Wrappers</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A>
+    <UL>
+      <LI CLASS="square"><A href="#file_source">Class template <CODE>basic_file_source</CODE></A></LI>
+      <LI CLASS="square"><A href="#file_sink">Class template <CODE>basic_file_sink</CODE></A></LI>
+      <LI CLASS="square"><A href="#file">Class template <CODE>basic_file</CODE></A></LI>
+    </UL>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The class templates <CODE>basic_file_source</CODE>, <CODE>basic_file_sink</CODE> and <CODE>basic_file</CODE> are wrappers for <CODE>std::basic_filebuf</CODE> which are <A HREF="http://www.boost.org/libs/utility/CopyConstructible.html"  TARGET="_top">CopyConstructible</A> and <A HREF="http://www.boost.org/libs/utility/Assignable.html">Assignable</A>. They are useful whenever one wants to access a file without managing the lifetime of a standard file stream or stream buffer. This is because when a stream or stream buffer is added to a <A HREF="filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> or <A HREF="filtering_stream.html"><CODE>filtering_stream</CODE></A> it is stored as a reference which must remain valid until that stream or stream buffer is removed from the chain.
+</P>
+<P> 
+    The most common specializations are accessible via the typedefs <CODE>file_source</CODE>, <CODE>file_sink</CODE>, <CODE>file</CODE>, <CODE>wfile_source</CODE>, <CODE>wfile_sink</CODE> and <CODE>wfile</CODE>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/device/file.hpp"><CODE>&lt;boost/iostreams/device/file.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="file_source"></A>
+<H3>Class template <CODE>basic_file_source</CODE></H3>
+
+<H4>Description</H4>
+
+<P>
+    <A HREF="http://www.boost.org/libs/utility/CopyConstructible.html" TARGET="_top">CopyConstructible</A> and <A HREF="http://www.boost.org/libs/utility/Assignable.html">Assignable</A> wrapper for a <CODE>std::basic_filebuf</CODE> opened in read-only mode.
+<P>
+
+<A NAME="file_source_synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#basic_file_source_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#basic_file_source_params">basic_file_source</A> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                      char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  category;
+    <A CLASS="documented" HREF="#basic_file_source_constructor">basic_file_source</A>( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                       std::ios_base::openmode mode =
+                           std::ios_base::in );
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#basic_file_source_is_open">is_open</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_file_source&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS="defined">file_source</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_file_source&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS="defined">wfile_source</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::iostreams</SPAN></PRE>
+
+<A NAME="basic_file_source_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD></TR>
+<TR>
+</TABLE>
+
+<A NAME="basic_file_source_constructor"></A>
+<H4><CODE>basic_file_source::basic_file_source</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_file_source( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                       std::ios_base::openmode mode );</PRE>
+    
+<P>
+    Constructs a <CODE>basic_file_source</CODE> which wraps a <CODE>std::basic_filebuf</CODE> <CODE>buf</CODE> opened as follows:
+    <PRE CLASS="broken_ie">    mode |= std::ios_base::in;
+    mode &amp;= ~std::ios_base::out;
+    buf.open(path.c_str(), mode);</PRE>
+</P>
+
+<A NAME="basic_file_source_is_open"></A>
+<H4><CODE>basic_file_source::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> is_open() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if the underlying instance of <CODE>basic_filebuf</CODE> was opened successfully.</P>
+
+<A NAME="file_sink"></A>
+<H3>Class template <CODE>basic_file_sink</CODE></H3>
+
+<H4>Description</H4>
+
+<P>
+    <A HREF="http://www.boost.org/libs/utility/CopyConstructible.html" TARGET="_top">CopyConstructible</A> and <A HREF="http://www.boost.org/libs/utility/Assignable.html">Assignable</A> wrapper for a <CODE>std::basic_filebuf</CODE> opened in write-only mode.
+<P>
+
+<A NAME="file_sink_synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#basic_file_sink_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#basic_file_sink_params">basic_file_sink</A> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                      char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  category;
+    <A CLASS="documented" HREF="#basic_file_sink_constructor">basic_file_sink</A>( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                     std::ios_base::openmode mode =
+                         std::ios_base::out );
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#basic_file_sink_is_open">is_open</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_file_sink&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS="defined">file_sink</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_file_sink&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS="defined">wfile_sink</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::iostreams</SPAN></PRE>
+
+<A NAME="basic_file_sink_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD></TR>
+<TR>
+</TABLE>
+
+<A NAME="basic_file_sink_constructor"></A>
+<H4><CODE>basic_file_sink::basic_file_sink</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_file_sink( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                     std::ios_base::openmode mode );</PRE>
+    
+<P>
+    Constructs a <CODE>basic_file_sink</CODE> which wraps a <CODE>std::basic_filebuf</CODE> <CODE>buf</CODE> opened as follows:
+    <PRE CLASS="broken_ie">    mode |= std::ios_base::out;
+    mode &amp;= ~std::ios_base::in;
+    buf.open(path.c_str(), mode);</PRE>
+</P>
+
+<A NAME="basic_file_sink_is_open"></A>
+<H4><CODE>basic_file_sink::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> is_open() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if the underlying instance of <CODE>basic_filebuf</CODE> was opened successfully.</P>
+
+<A NAME="file"></A>
+<H3>Class template <CODE>basic_file</CODE></H3>
+
+<H4>Description</H4>
+
+<P><A HREF="http://www.boost.org/libs/utility/CopyConstructible.html"  TARGET="_top">CopyConstructible</A> and <A HREF="http://www.boost.org/libs/utility/Assignable.html">Assignable</A> wrapper for a <CODE>std::basic_filebuf</CODE> opened in read-write mode by default.
+
+<A NAME="file_synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#basic_file_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#basic_file_params">basic_file</A> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                      char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  category;
+    <A CLASS="documented" HREF="#basic_file_constructor">basic_file</A>( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                std::ios_base::openmode mode =
+                    std::ios_base::in | std::ios_base::out );
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#basic_file_is_open">is_open</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_file&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS="defined">file</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_file&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS="defined">wfile</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::iostreams</SPAN></PRE>
+
+<A NAME="basic_file_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD></TR>
+<TR>
+</TABLE>
+
+<A NAME="basic_file_constructor"></A>
+<H4><CODE>basic_file_::basic_file</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_file( <SPAN CLASS="keyword">const</SPAN> std::string&amp; path,
+                std::ios_base::openmode mode );</PRE>
+    
+<P>
+    Constructs a <CODE>basic_file</CODE> which wraps a <CODE>std::basic_filebuf</CODE> <CODE>buf</CODE> opened as follows:
+    <PRE CLASS="broken_ie">    mode |= std::ios_base::in | std::ios_base::out;
+    buf.open(path.c_str(), mode);</PRE>
+</P> 
+
+<A NAME="basic_file_is_open"></A>
+<H4><CODE>basic_file::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> is_open() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if the underlying instance of <CODE>basic_filebuf</CODE> was opened successfully.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

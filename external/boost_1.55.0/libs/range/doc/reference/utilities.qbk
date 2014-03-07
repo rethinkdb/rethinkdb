@@ -1,0 +1,307 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:utilities Utilities]
+
+Having an abstraction that encapsulates a pair of iterators is very useful. The standard library uses `std::pair` in some circumstances, but that class is cumbersome to use because we need to specify two template arguments, and for all range algorithm purposes we must enforce the two template arguments to be the same. Moreover, `std::pair<iterator,iterator>` is hardly self-documenting whereas more domain specific class names are. Therefore these two classes are provided:
+
+* Class `iterator_range`
+* Class `sub_range`
+* Function `join`
+
+The `iterator_range` class is templated on an __forward_traversal_iterator__ and should be used whenever fairly general code is needed. The `sub_range` class is templated on an __forward_range__ and it is less general, but a bit easier to use since its template argument is easier to specify. The biggest difference is, however, that a `sub_range` can propagate constness because it knows what a corresponding `const_iterator` is.
+
+Both classes can be used as ranges since they implement the __minimal_interface__ required for this to work automatically.
+
+[section:iterator_range Class `iterator_range`]
+
+The intention of the `iterator_range` class is to encapsulate two iterators so they fulfill the __forward_range__ concept. A few other functions are also provided for convenience.
+
+If the template argument is not a model of __forward_traversal_iterator__, one can still use a subset of the interface. In particular, `size()` requires Random Access Traversal Iterators whereas `empty()` only requires Single Pass Iterators.
+
+Recall that many default constructed iterators are [*/singular/] and hence can only be assigned, but not compared or incremented or anything. However, if one creates a default constructed `iterator_range`, then one can still call all its member functions. This design decision avoids the `iterator_range` imposing limitations upon ranges of iterators that are not singular. Any singularity limitation is simply propagated from the underlying iterator type.
+
+
+[h4 Synopsis]
+
+``
+namespace boost
+{
+    template< class ForwardTraversalIterator >
+    class iterator_range
+    {
+    public: // Forward Range types
+        typedef ForwardTraversalIterator   iterator;
+        typedef ForwardTraversalIterator   const_iterator;
+        typedef iterator_difference<iterator>::type difference_type;
+
+    public: // construction, assignment
+        template< class ForwardTraversalIterator2 >
+        iterator_range( ForwardTraversalIterator2 Begin, ForwardTraversalIterator2 End );
+
+        template< class ForwardRange >
+        iterator_range( ForwardRange& r );
+
+        template< class ForwardRange >
+        iterator_range( const ForwardRange& r );
+
+        template< class ForwardRange >
+        iterator_range& operator=( ForwardRange& r );
+
+        template< class ForwardRange >
+        iterator_range& operator=( const ForwardRange& r );
+
+    public: // Forward Range functions
+        iterator  begin() const;
+        iterator  end() const;
+
+    public: // convenience
+        operator    unspecified_bool_type() const;
+        bool        equal( const iterator_range& ) const;
+        value_type& front() const;
+        value_type& back() const;
+        iterator_range& advance_begin(difference_type n);
+        iterator_range& advance_end(difference_type n);
+        bool      empty() const;
+        // for Random Access Range only:
+        reference operator[]( difference_type at ) const;
+        value_type operator()( difference_type at ) const;
+        size_type size() const;
+    };
+
+    // stream output
+    template< class ForwardTraversalIterator, class T, class Traits >
+    std::basic_ostream<T,Traits>&
+    operator<<( std::basic_ostream<T,Traits>& Os,
+                const iterator_range<ForwardTraversalIterator>& r );
+
+    // comparison
+    template< class ForwardTraversalIterator, class ForwardTraversalIterator2 >
+    bool operator==( const iterator_range<ForwardTraversalIterator>& l,
+                     const iterator_range<ForwardTraversalIterator2>& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator==( const iterator_range<ForwardTraversalIterator>& l,
+                     const ForwardRange& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator==( const ForwardRange& l,
+                     const iterator_range<ForwardTraversalIterator>& r );
+
+    template< class ForwardTraversalIterator, class ForwardTraversalIterator2 >
+    bool operator!=( const iterator_range<ForwardTraversalIterator>& l,
+                     const iterator_range<ForwardTraversalIterator2>& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator!=( const iterator_range<ForwardTraversalIterator>& l,
+                     const ForwardRange& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator!=( const ForwardRange& l,
+                     const iterator_range<ForwardTraversalIterator>& r );
+
+    template< class ForwardTraversalIterator, class ForwardTraversalIterator2 >
+    bool operator<( const iterator_range<ForwardTraversalIterator>& l,
+                    const iterator_range<ForwardTraversalIterator2>& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator<( const iterator_range<ForwardTraversalIterator>& l,
+                    const ForwardRange& r );
+
+    template< class ForwardTraversalIterator, class ForwardRange >
+    bool operator<( const ForwardRange& l,
+                    const iterator_range<ForwardTraversalIterator>& r );
+
+    // external construction
+    template< class ForwardTraversalIterator >
+    iterator_range< ForwardTraversalIterator >
+    make_iterator_range( ForwardTraversalIterator Begin,
+                         ForwardTraversalIterator End );
+
+    template< class ForwardRange >
+    iterator_range< typename range_iterator<ForwardRange>::type >
+    make_iterator_range( ForwardRange& r );
+
+    template< class ForwardRange >
+    iterator_range< typename range_iterator<const ForwardRange>::type >
+    make_iterator_range( const ForwardRange& r );
+
+    template< class Range >
+    iterator_range< typename range_iterator<Range>::type >
+    make_iterator_range( Range& r,
+                         typename range_difference<Range>::type advance_begin,
+                         typename range_difference<Range>::type advance_end );
+
+    template< class Range >
+    iterator_range< typename range_iterator<const Range>::type >
+    make_iterator_range( const Range& r,
+                         typename range_difference<const Range>::type advance_begin,
+                         typename range_difference<const Range>::type advance_end );
+
+    // convenience
+    template< class Sequence, class ForwardRange >
+    Sequence copy_range( const ForwardRange& r );
+
+} // namespace 'boost'
+``
+
+If an instance of `iterator_range` is constructed by a client with two iterators, the client must ensure that the two iterators delimit a valid closed-open range [begin,end).
+
+It is worth noticing that the templated constructors and assignment operators allow conversion from `iterator_range<iterator>` to `iterator_range<const_iterator>`. Similarly, since the comparison operators have two template arguments, we can compare ranges whenever the iterators are comparable; for example when we are dealing with const and non-const iterators from the same container.
+
+[h4 Details member functions]
+
+`operator unspecified_bool_type() const;`
+
+[:['[*Returns]] `!empty();`]
+
+`bool equal( iterator_range& r ) const;`
+
+[:['[*Returns]] `begin() == r.begin() && end() == r.end();`]
+
+[h4 Details functions]
+
+`bool operator==( const ForwardRange1& l, const ForwardRange2& r );`
+
+[:['[*Returns]] `size(l) != size(r) ? false : std::equal( begin(l), end(l), begin(r) );`]
+
+`bool operator!=( const ForwardRange1& l, const ForwardRange2& r );`
+
+[:['[*Returns]] `!( l == r );`]
+
+`bool operator<( const ForwardRange1& l, const ForwardRange2& r );`
+
+[:['[*Returns]] `std::lexicographical_compare( begin(l), end(l), begin(r), end(r) );`]
+
+``
+iterator_range make_iterator_range( Range& r,
+                                    typename range_difference<Range>::type advance_begin,
+                                    typename range_difference<Range>::type advance_end );
+``
+
+[:['[*Effects:]]]
+
+``
+    iterator new_begin = begin( r ),
+    iterator new_end   = end( r );
+    std::advance( new_begin, advance_begin );
+    std::advance( new_end, advance_end );
+    return make_iterator_range( new_begin, new_end );
+``
+
+`Sequence copy_range( const ForwardRange& r );`
+
+[:['[*Returns]] `Sequence( begin(r), end(r) );`]
+
+[endsect]
+
+[section:sub_range Class `sub_range`]
+
+The `sub_range` class inherits all its functionality from the __iterator_range__ class. The `sub_range` class is often easier to use because one must specify the __forward_range__ template argument instead of an iterator. Moreover, the `sub_range` class can propagate constness since it knows what a corresponding `const_iterator` is.
+
+[h4 Synopsis]
+
+``
+namespace boost
+{
+    template< class ForwardRange >
+    class sub_range : public iterator_range< typename range_iterator<ForwardRange>::type >
+    {
+    public:
+        typedef typename range_iterator<ForwardRange>::type iterator;
+        typedef typename range_iterator<const ForwardRange>::type  const_iterator;
+        typedef typename iterator_difference<iterator>::type difference_type;
+
+    public: // construction, assignment
+        template< class ForwardTraversalIterator >
+        sub_range( ForwardTraversalIterator Begin, ForwardTraversalIterator End );
+
+        template< class ForwardRange2 >
+        sub_range( ForwardRange2& r );
+
+        template< class ForwardRange2 >
+        sub_range( const Range2& r );
+
+        template< class ForwardRange2 >
+        sub_range& operator=( ForwardRange2& r );
+
+        template< class ForwardRange2 >
+        sub_range& operator=( const ForwardRange2& r );
+
+    public:  // Forward Range functions
+        iterator        begin();
+        const_iterator  begin() const;
+        iterator        end();
+        const_iterator  end() const;
+
+    public: // convenience
+        value_type&       front();
+        const value_type& front() const;
+        value_type&       back();
+        const value_type& back() const;
+        // for Random Access Range only:
+        value_type&       operator[]( size_type at );
+        const value_type& operator[]( size_type at ) const;
+
+    public:
+        // rest of interface inherited from iterator_range
+    };
+
+} // namespace 'boost'
+``
+
+The class should be trivial to use as seen below. Imagine that we have an algorithm that searches for a sub-string in a string. The result is an iterator_range, that delimits the match. We need to store the result from this algorithm. Here is an example of how we can do it with and without `sub_range`
+
+``
+std::string str("hello");
+iterator_range<std::string::iterator> ir = find_first( str, "ll" );
+sub_range<std::string>               sub = find_first( str, "ll" );
+``
+
+[endsect]
+
+[section:join Function join]
+
+The intention of the `join` function is to join two ranges into one longer range.
+
+The resultant range will have the lowest common traversal of the two ranges supplied as parameters.
+
+Note that the joined range incurs a performance cost due to the need to check if the end of a range has been reached internally during traversal.
+
+[h4 Synposis]
+
+``
+template<typename SinglePassRange1, typename SinglePassRange2>
+joined_range<const SinglePassRange1, const SinglePassRange2>
+join(const SinglePassRange1& rng1, const SinglePassRange2& rng2)
+
+template<typename SinglePassRange1, typename SinglePassRange2>
+joined_range<SinglePassRange1, SinglePassRange2>
+join(SinglePassRange1& rng1, SinglePassRange2& rng2);
+``
+
+For the const version:
+
+* [*Precondition:] The `range_value<SinglePassRange2>::type` must be convertible to `range_value<SinglePassRange1>::type`. The `range_reference<const SinglePassRange2>::type` must be convertible to `range_reference<const SinglePassRange1>::type`.
+* [*Range Category:] Both `rng1` and `rng2` must be a model of __single_pass_range__ or better.
+* [*Range Return Type:] `joined_range<const SinglePassRange1, const SinglePassRange2>` which is a model of the lesser of the two range concepts passed.
+* [*Returned Range Category:] The minimum of the range category of `rng1` and `rng2`.
+
+For the mutable version:
+
+* [*Precondition:] The `range_value<SinglePassRange2>::type` must be convertible to `range_value<SinglePassRange1>::type`. The `range_reference<SinglePassRange2>::type` must be convertible to `range_reference<SinglePassRange1>::type`.
+* [*Range Category:] Both `rng1` and `rng2` must be a model of __single_pass_range__ or better.
+* [*Range Return Type:] `joined_range<SinglePassRange1, SinglePassRange2>` which is a model of the lesser of the two range concepts passed.
+* [*Returned Range Category:] The minimum of the range category of `rng1` and `rng2`.
+
+[h4 Example]
+
+The expression `join(irange(0,5), irange(5,10))` would evaluate to a range representing an integer range `[0,10)`
+
+
+[endsect]
+
+[endsect]
+

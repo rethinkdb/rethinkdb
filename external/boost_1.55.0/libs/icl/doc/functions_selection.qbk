@@ -1,0 +1,72 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Selection ===================================================================]
+[section Selection]
+
+[table
+[[['*Selection*]]                          [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]     [condition]            ]
+[[`iterator T::find(const domain_type&)`]                [ ]        [ ]         [__Olgn__]  [__Olgn__] []                     ]
+[[`const_iterator T::find(const domain_type&)const`]     [__Olgn__] [__Olgn__]  [__Olgn__]  [__Olgn__] []                     ]
+[[`const_iterator find(T&, const domain_type&)`]         [__Olgn__] [__Olgn__]  [ ]         [ ]        []                     ]
+[[`const_iterator T::find(const interval_type&)const`]   [__Olgn__] [__Olgn__]  [ ]         [ ]        []                     ]
+[[`const_iterator find(T&, const interval_type&)`]       [__Olgn__] [__Olgn__]  [ ]         [ ]        []                     ]
+[[`codomain_type& operator[] (const domain_type&)`]      [ ]        [ ]         [ ]         [__Olgn__] []                     ]
+[[`codomain_type operator() (const domain_type&)const`]  [ ]        [__Olgn__]  [ ]         [__Olgn__] [`is_total<T>::value`] ]
+]
+
+* All time *complexities* are ['*logarithmic*] in the containers `iterative_size()`.
+* `operator()` is available for total maps only.
+* `interval_type` is also the interval container's `key_type`
+
+    
+
+[table
+[[['*Selection*]]                              [Types]     [Description]                                        ]
+[[`iterator T::find(const domain_type& x)`]    [__s __m]   [Searches the container for the element `x` and return an iterator to it, if `x` is found. 
+                                                            Otherwise `find` returns iterator `end()`.] ]
+[[`const_iterator T::find`\n
+  `(const domain_type& x)const`]               [__s __m]   [Const version of `find` above.] ]
+[[`const_iterator T::find`\n
+  `(const domain_type& x)const`\n\n
+  `const_iterator find`\n
+  `(T&, const domain_type& x)`]                [__S __M]   
+                                                           [For interval containers `c`, `c.find(x)` or `icl::find(c,x)` searches a key element `x` and
+                                                            returns an iterator to the interval containing the element `x`.] ]
+[[`const_iterator T::find`\n
+  `(const interval_type& x)const`\n\n
+  `const_iterator find`\n
+  `(T&, const interval_type& x)`]   
+                                               [__S __M]   [For interval containers `c`, `c.find(y)` or `icl::find(c,y)` searches an interval `y` 
+                                                            and returns an iterator to the first interval in `c` that overlaps with `y`.] ]
+                                                            
+[[`codomain_type& operator[]`\n
+  `(const domain_type& x)`]                    [__m ]      [For the key element `x` the operator returns a reference to the mapped value.
+                                                            A pair `std::pair(x,codomain_type())` will be inserted, of `x` is not found in the map.] ]
+[[`codomain_type operator()`\n
+  `(const domain_type& x)const`]               [__M __m ]  [Returns the mapped value for a key `x`. The operator is only available for ['*total*] maps. ] ]
+]
+
+
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.intersection ['*Intersection*]] ]]
+]
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Selection]
+
+

@@ -1,0 +1,212 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[def __multi-index-short__ [@boost:/libs/multi_index/doc/index.html
+    Boost.MultiIndex]]
+
+[section:tutorial Tutorial]
+
+When using a hash index with __multi-index-short__, you don't need to do
+anything to use [classref boost::hash] as it uses it by default.
+To find out how to use a user-defined type, read the
+[link hash.custom section on extending boost::hash for a custom data type].
+
+If your standard library supplies its own implementation of the unordered
+associative containers and you wish to use
+[classref boost::hash], just use an extra template parameter:
+
+    std::unordered_multiset<int, ``[classref boost::hash]``<int> >
+            set_of_ints;
+
+    std::unordered_set<std::pair<int, int>, ``[classref boost::hash]``<std::pair<int, int> >
+            set_of_pairs;
+
+    std::unordered_map<int, std::string, ``[classref boost::hash]``<int> > map_int_to_string;
+
+To use [classref boost::hash] directly, create an instance and call it as a function:
+
+    #include <``[headerref boost/functional/hash.hpp]``>
+
+    int main()
+    {
+        ``[classref boost::hash]``<std::string> string_hash;
+
+        std::size_t h = string_hash("Hash me");
+    }
+
+For an example of generic use, here is a function to generate a vector
+containing the hashes of the elements of a container:
+
+    template <class Container>
+    std::vector<std::size_t> get_hashes(Container const& x)
+    {
+        std::vector<std::size_t> hashes;
+        std::transform(x.begin(), x.end(), std::insert_iterator(hashes),
+            ``[classref boost::hash]``<typename Container::value_type>());
+
+        return hashes;
+    }
+
+[endsect]
+
+[section:custom Extending boost::hash for a custom data type]
+
+[classref boost::hash] is implemented by calling the function
+[funcref boost::hash_value hash_value].
+The namespace isn't specified so that it can detect overloads via argument
+dependant lookup. So if there is a free function `hash_value` in the same
+namespace as a custom type, it will get called.
+
+If you have a structure `library::book`, where each `book` is uniquely
+defined by it's member `id`:
+
+    namespace library
+    {
+        struct book
+        {
+            int id;
+            std::string author;
+            std::string title;
+
+            // ....
+        };
+
+        bool operator==(book const& a, book const& b)
+        {
+            return a.id == b.id;
+        }
+    }
+
+Then all you would need to do is write the function `library::hash_value`:
+
+    namespace library
+    {
+        std::size_t hash_value(book const& b)
+        {
+            ``[classref boost::hash]``<int> hasher;
+            return hasher(b.id);
+        }
+    }
+
+And you can now use [classref boost::hash] with book:
+
+    library::book knife(3458, "Zane Grey", "The Hash Knife Outfit");
+    library::book dandelion(1354, "Paul J. Shanley",
+        "Hash & Dandelion Greens");
+
+    ``[classref boost::hash]``<library::book> book_hasher;
+    std::size_t knife_hash_value = book_hasher(knife);
+
+    // If std::unordered_set is available:
+    std::unordered_set<library::book, ``[classref boost::hash]``<library::book> > books;
+    books.insert(knife);
+    books.insert(library::book(2443, "Lindgren, Torgny", "Hash"));
+    books.insert(library::book(1953, "Snyder, Bernadette M.",
+        "Heavenly Hash: A Tasty Mix of a Mother's Meditations"));
+
+    assert(books.find(knife) != books.end());
+    assert(books.find(dandelion) == books.end());
+
+The full example can be found in:
+[@boost:/libs/functional/hash/examples/books.hpp /libs/functional/hash/examples/books.hpp]
+and
+[@boost:/libs/functional/hash/examples/books.cpp /libs/functional/hash/examples/books.cpp].
+
+[tip
+When writing a hash function, first look at how the equality function works.
+Objects that are equal must generate the same hash value.
+When objects are not equal they should generate different hash values.
+In this object equality was based just on the id so the hash function
+only hashes the id. If it was based on the object's name and author
+then the hash function should take them into account
+(how to do this is discussed in the next section).
+]
+
+[endsect]
+
+[section:combine Combining hash values]
+
+Say you have a point class, representing a two dimensional location:
+
+    class point
+    {
+        int x;
+        int y;
+    public:
+        point() : x(0), y(0) {}
+        point(int x, int y) : x(x), y(y) {}
+
+        bool operator==(point const& other) const
+        {
+            return x == other.x && y == other.y;
+        }
+    };
+
+and you wish to use it as the key for an `unordered_map`. You need to
+customise the hash for this structure. To do this we need to combine
+the hash values for `x` and `y`. The function
+[funcref boost::hash_combine] is supplied for this purpose:
+
+    class point
+    {
+        ...
+
+        friend std::size_t hash_value(point const& p)
+        {
+            std::size_t seed = 0;
+            ``[funcref boost::hash_combine]``(seed, p.x);
+            ``[funcref boost::hash_combine]``(seed, p.y);
+
+            return seed;
+        }
+
+        ...
+    };
+
+Calls to hash_combine incrementally build the hash from the different members
+of point, it can be repeatedly called for any number of elements. It calls
+[funcref boost::hash_value hash_value] on the supplied element, and combines it with the seed.
+
+Full code for this example is at
+[@boost:/libs/functional/hash/examples/point.cpp /libs/functional/hash/examples/point.cpp].
+
+[note
+When using [funcref boost::hash_combine] the order of the
+calls matters.
+'''
+<programlisting>
+    std::size_t seed = 0;
+    boost::hash_combine(seed, 1);
+    boost::hash_combine(seed, 2);
+</programlisting>
+results in a different seed to:
+<programlisting>
+    std::size_t seed = 0;
+    boost::hash_combine(seed, 2);
+    boost::hash_combine(seed, 1);
+</programlisting>
+'''
+If you are calculating a hash value for data where the order of the data
+doesn't matter in comparisons (e.g. a set) you will have to ensure that the
+data is always supplied in the same order.
+]
+
+To calculate the hash of an iterator range you can use [funcref boost::hash_range]:
+
+    std::vector<std::string> some_strings;
+    std::size_t hash = ``[funcref boost::hash_range]``(some_strings.begin(), some_strings.end());
+
+Note that when writing template classes, you might not want to include the main
+hash header as it's quite an expensive include that brings in a lot of other
+headers, so instead you can include the `<boost/functional/hash_fwd.hpp>`
+header which forward declares [classref boost::hash],
+[funcref boost::hash_range] and [funcref boost::hash_combine]. You'll need to
+include the main header before instantiating [classref boost::hash]. When using
+a container that uses [classref boost::hash] it should do that for you, so your
+type will work fine with the boost hash containers. There's an example of this
+in [@boost:/libs/functional/hash/examples/template.hpp template.hpp] and
+[@boost:/libs/functional/hash/examples/template.cpp template.cpp].
+
+[endsect]

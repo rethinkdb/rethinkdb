@@ -1,0 +1,10 @@
+[article Template should contain balanced sections
+    [quickbook 1.5]
+]
+
+[template end_before_begin[]
+[endsect]
+[section Test]
+]
+
+[end_before_begin]

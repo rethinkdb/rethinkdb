@@ -1,0 +1,75 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: sk_sk_FONIPA.txt
+# Generated from CLDR 
+#
+$soften = [ptťkcčsš$] ;
+:: NFC () ;
+:: Lower () ;
+ch → x ;
+dž } $soften → t \u0361 ʃ ;  # affricate indicated by ligature tie
+dz } $soften → t \u0361 s ;
+dž → d \u0361 ʒ ;
+dz → d \u0361 z ;
+a → a ;
+á → aː ;
+ä → ɛ ;
+b } $soften → p ;
+b → b ;
+c → t \u0361 s;  # affricate indicated by ligature tie
+č → t \u0361 ʃ;  # affricate indicated by ligature tie
+d } [ie] → ɟ ;
+d } $soften → t ;
+d → d ;
+ď } $soften → c ;
+ď → ɟ ;
+e → e ;
+é → eː ;
+f → f ;
+g } $soften → k ;
+g → ɡ ;
+h } $soften → x ;
+h → ɦ ;
+i → ɪ ;
+í → iː ;
+j → j ;
+k → k ;
+l → l ;
+ĺ → l\u0329ː ;
+ľ → ʎ ;
+m } [fv] → ɱ ;
+m → m ;
+n } [kg] → ŋ ;
+n } [ie] → ɲ ;
+n → n ;
+ň → ɲ ;
+o → ɔ ;
+ó → ɔː ;
+ô → u\u032Fo ;
+p → p ;
+q → kv ;
+r → r ;
+ŕ → r\u0329ː ;
+s → s ;
+š → ʃ ;
+t } [ie] → c ;
+t → t ;
+ť → c ;
+u → u ;
+ú → uː ;
+vz } $soften → fs ;
+v } $soften → f ;
+[ $] { v } ' ' $soften → f ;  # v as preposition
+v → v ;
+w → v ;
+x → ks ;
+y → ɪ ;
+ý → iː ;
+z } $soften → s ;
+z → z ;
+ž } $soften → ʃ ;
+ž → ʒ ;

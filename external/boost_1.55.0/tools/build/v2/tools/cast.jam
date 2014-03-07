@@ -1,0 +1,91 @@
+# Copyright 2005 Vladimir Prus.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Defines main target 'cast', used to change type for target. For example, in Qt
+# library one wants two kinds of CPP files -- those that just compiled and those
+# that are passed via the MOC tool.
+#
+# This is done with:
+#
+#    exe main : main.cpp [ cast _ moccable-cpp : widget.cpp ] ;
+#
+# Boost.Build will assign target type CPP to both main.cpp and widget.cpp. Then,
+# the cast rule will change target type of widget.cpp to MOCCABLE-CPP, and Qt
+# support will run the MOC tool as part of the build process.
+#
+# At the moment, the 'cast' rule only works for non-derived (source) targets.
+#
+# TODO: The following comment is unclear or incorrect. Clean it up.
+# > Another solution would be to add a separate main target 'moc-them' that
+# > would moc all the passed sources, no matter what their type is, but I prefer
+# > cast, as defining a new target type + generator for that type is somewhat
+# > simpler than defining a main target rule.
+
+import "class" : new ;
+import project ;
+import property-set ;
+import targets ;
+import type ;
+
+
+class cast-target-class : typed-target
+{
+    import type ;
+
+    rule __init__ ( name : project : type : sources * : requirements * :
+        default-build * : usage-requirements * )
+    {
+        typed-target.__init__ $(name) : $(project) : $(type) : $(sources) :
+            $(requirements) : $(default-build) : $(usage-requirements) ;
+    }
+
+    rule construct ( name : source-targets * : property-set )
+    {
+        local result ;
+        for local s in $(source-targets)
+        {
+            if ! [ class.is-a $(s) : file-target ]
+            {
+                import errors : user-error : errors.user-error ;
+                errors.user-error Source to the 'cast' rule is not a file! ;
+            }
+            if [ $(s).action ]
+            {
+                import errors : user-error : errors.user-error ;
+                errors.user-error Only non-derived target are allowed for
+                    'cast'. : when building [ full-name ] ;
+            }
+            local r = [ $(s).clone-with-different-type $(self.type) ] ;
+            result += [ virtual-target.register $(r) ] ;
+        }
+        return [ property-set.empty ] $(result) ;
+    }
+}
+
+
+rule cast ( name type : sources * : requirements * : default-build * :
+    usage-requirements * )
+{
+    local project = [ project.current ] ;
+
+    local real-type = [ type.type-from-rule-name $(type) ] ;
+    if ! $(real-type)
+    {
+        import errors ;
+        errors.user-error No type corresponds to the main target rule name
+            '$(type)' : "Hint: try a lowercase name" ;
+    }
+
+    targets.main-target-alternative [ new cast-target-class $(name) : $(project)
+        : $(real-type)
+        : [ targets.main-target-sources $(sources) : $(name) ]
+        : [ targets.main-target-requirements $(requirements) : $(project) ]
+        : [ targets.main-target-default-build $(default-build) : $(project) ]
+        : [ targets.main-target-usage-requirements $(usage-requirements) :
+            $(project) ] ] ;
+}
+
+
+IMPORT $(__name__) : cast : : cast ;

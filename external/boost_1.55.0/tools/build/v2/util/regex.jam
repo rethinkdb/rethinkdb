@@ -1,0 +1,203 @@
+# Copyright 2001, 2002 Dave Abrahams
+# Copyright 2003 Douglas Gregor
+# Copyright 2003 Rene Rivera
+# Copyright 2002, 2003, 2004, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#
+#   Returns a list of the following substrings:
+#   1) from beginning till the first occurrence of 'separator' or till the end,
+#   2) between each occurrence of 'separator' and the next occurrence,
+#   3) from the last occurrence of 'separator' till the end.
+#   If no separator is present, the result will contain only one element.
+#
+
+rule split ( string separator )
+{
+    local result ;
+    local s = $(string) ;
+
+    # Break pieaces off 's' until it has no separators left.
+    local match = 1 ;
+    while $(match)
+    {
+        match = [ MATCH ^(.*)($(separator))(.*) : $(s) ] ;
+        if $(match)
+        {
+            match += "" ;  # in case 3rd item was empty - works around MATCH bug
+            result = $(match[3]) $(result) ;
+            s = $(match[1]) ;
+        }
+    }
+    # Combine the remaining part at the beginning, which does not have
+    # separators, with the pieces broken off. Note that the rule's signature
+    # does not allow the initial s to be empty.
+    return $(s) $(result) ;
+}
+
+if [ HAS_NATIVE_RULE regex : split : 1 ]
+{
+    NATIVE_RULE regex : split ;
+}
+
+# Returns the concatenated results of Applying regex.split to every element of
+# the list using the separator pattern.
+#
+rule split-list ( list * : separator )
+{
+    local result ;
+    for s in $(list)
+    {
+        result += [ split $(s) $(separator) ] ;
+    }
+    return $(result) ;
+}
+
+
+# Match string against pattern, and return the elements indicated by indices.
+#
+rule match ( pattern : string : indices * )
+{
+    indices ?= 1 2 3 4 5 6 7 8 9 ;
+    local x = [ MATCH $(pattern) : $(string) ] ;
+    return $(x[$(indices)]) ;
+}
+
+
+# Matches all elements of 'list' agains the 'pattern' and returns a list of
+# elements indicated by indices of all successful matches. If 'indices' is
+# omitted returns a list of first parenthesised groups of all successful
+# matches.
+#
+rule transform ( list * : pattern : indices * )
+{
+    indices ?= 1 ;
+    local result ;
+    for local e in $(list)
+    {
+        local m = [ MATCH $(pattern) : $(e) ] ;
+        if $(m)
+        {
+            result += $(m[$(indices)]) ;
+        }
+    }
+    return $(result) ;
+}
+
+NATIVE_RULE regex : transform ;
+
+
+# Escapes all of the characters in symbols using the escape symbol escape-symbol
+# for the given string, and returns the escaped string.
+#
+rule escape ( string : symbols : escape-symbol )
+{
+    local result = "" ;
+    local m = 1 ;
+    while $(m)
+    {
+        m = [ MATCH ^([^$(symbols)]*)([$(symbols)])(.*) : $(string) ] ;
+        if $(m)
+        {
+            m += "" ;  # Supposedly a bug fix; borrowed from regex.split
+            result = "$(result)$(m[1])$(escape-symbol)$(m[2])" ;
+            string = $(m[3]) ;
+        }
+    }
+    string ?= "" ;
+    result = "$(result)$(string)" ;
+    return $(result) ;
+}
+
+
+# Replaces occurrences of a match string in a given string and returns the new
+# string. The match string can be a regex expression.
+#
+rule replace (
+    string  # The string to modify.
+    match  # The characters to replace.
+    replacement  # The string to replace with.
+    )
+{
+    local result = "" ;
+    local parts = 1 ;
+    while $(parts)
+    {
+        parts = [ MATCH ^(.*)($(match))(.*) : $(string) ] ;
+        if $(parts)
+        {
+            parts += "" ;
+            result = "$(replacement)$(parts[3])$(result)" ;
+            string = $(parts[1]) ;
+        }
+    }
+    string ?= "" ;
+    result = "$(string)$(result)" ;
+    return $(result) ;
+}
+
+if [ HAS_NATIVE_RULE regex : replace : 1 ]
+{
+    NATIVE_RULE regex : replace ;
+}
+
+
+# Replaces occurrences of a match string in a given list of strings and returns
+# a list of new strings. The match string can be a regex expression.
+#
+# list        - the list of strings to modify.
+# match       - the search expression.
+# replacement - the string to replace with.
+#
+rule replace-list ( list * : match : replacement )
+{
+    local result ;
+    for local e in $(list)
+    {
+        result += [ replace $(e) $(match) $(replacement) ] ;
+    }
+    return $(result) ;
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+
+    assert.result a b c : split "a/b/c" / ;
+    assert.result "" a b c : split "/a/b/c" / ;
+    assert.result "" "" a b c : split "//a/b/c" / ;
+    assert.result "" a "" b c : split "/a//b/c" / ;
+    assert.result "" a "" b c "" : split "/a//b/c/" / ;
+    assert.result "" a "" b c "" "" : split "/a//b/c//" / ;
+
+    assert.result a c b d
+        : match (.)(.)(.)(.) : abcd : 1 3 2 4 ;
+
+    assert.result a b c d
+        : match (.)(.)(.)(.) : abcd ;
+
+    assert.result ababab cddc
+        : match ((ab)*)([cd]+) : abababcddc : 1 3 ;
+
+    assert.result a.h c.h
+        : transform <a.h> \"b.h\" <c.h> : <(.*)> ;
+
+    assert.result a.h b.h c.h
+        : transform <a.h> \"b.h\" <c.h> : <([^>]*)>|\"([^\"]*)\" : 1 2 ;
+
+    assert.result "^<?xml version=\"1.0\"^>"
+        : escape "<?xml version=\"1.0\">" : "&|()<>^" : "^" ;
+
+    assert.result "<?xml version=\\\"1.0\\\">"
+        : escape "<?xml version=\"1.0\">" : "\\\"" : "\\" ;
+
+    assert.result "string&nbsp;string&nbsp;" : replace "string string " " " "&nbsp;" ;
+    assert.result "&nbsp;string&nbsp;string" : replace " string string" " " "&nbsp;" ;
+    assert.result "string&nbsp;&nbsp;string" : replace "string  string" " " "&nbsp;" ;
+    assert.result "-" : replace "&" "&" "-" ;
+
+    assert.result "-" "a-b" : replace-list "&" "a&b" : "&" : "-" ;
+}

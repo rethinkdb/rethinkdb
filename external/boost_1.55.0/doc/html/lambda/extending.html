@@ -1,0 +1,434 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Extending return type deduction system</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="le_in_details.html" title="Lambda expressions in details">
+<link rel="next" href="s07.html" title="Practical considerations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="le_in_details.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s07.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lambda.extending"></a>Extending return type deduction system</h2></div></div></div>
+<p>
+
+
+In this section, we explain  how to extend the return type deduction system 
+to cover user defined operators. 
+
+In many cases this is not necessary, 
+as the BLL defines default return types for operators.
+
+For example, the default return type for all comparison operators is 
+<code class="literal">bool</code>, and as long as the user defined comparison operators 
+have a bool return type, there is no need to write new specializations 
+for the return type deduction classes.
+
+Sometimes this cannot be avoided, though.
+
+</p>
+<p>
+The overloadable user defined operators are either unary or binary. 
+
+For each arity, there are two traits templates that define the 
+return types of the different operators.
+
+Hence, the return type system can be extended by providing more 
+specializations for these templates.
+
+The templates for unary functors are
+
+<code class="literal">
+plain_return_type_1&lt;Action, A&gt;
+</code>
+
+and 
+
+<code class="literal">
+return_type_1&lt;Action, A&gt;
+</code>, and 
+
+<code class="literal">
+plain_return_type_2&lt;Action, A, B&gt;
+</code>
+
+and 
+
+<code class="literal">
+return_type_2&lt;Action, A, B&gt;
+</code>
+
+respectively for binary functors.
+
+</p>
+<p>
+The first parameter (<code class="literal">Action</code>) to all these templates 
+is the <span class="emphasis"><em>action</em></span> class, which specifies the operator. 
+
+Operators with similar return type rules are grouped together into 
+<span class="emphasis"><em>action groups</em></span>, 
+and only the action class and action group together define the operator 
+unambiguously. 
+
+As an example, the action type 
+<code class="literal">arithmetic_action&lt;plus_action&gt;</code> stands for 
+<code class="literal">operator+</code>. 
+
+The complete listing of different action types is shown in 
+<a class="xref" href="extending.html#table:actions" title="Table&#160;16.2.&#160;Action types">Table&#160;16.2, &#8220;Action types&#8221;</a>. 
+</p>
+<p>
+The latter parameters, <code class="literal">A</code> in the unary case, 
+or <code class="literal">A</code> and <code class="literal">B</code> in the binary case, 
+stand for the argument types of the operator call. 
+
+The two sets of templates, 
+<code class="literal">plain_return_type_<em class="parameter"><code>n</code></em></code> and 
+<code class="literal">return_type_<em class="parameter"><code>n</code></em></code> 
+(<em class="parameter"><code>n</code></em> is 1 or 2) differ in the way how parameter types 
+are presented to them.
+
+For the former templates, the parameter types are always provided as 
+non-reference types, and do not have const or volatile qualifiers.
+
+This makes specializing easy, as commonly one specialization for each 
+user defined operator, or operator group, is enough.
+
+On the other hand, if a particular operator is overloaded for different 
+cv-qualifications of the same argument types, 
+and the return types of these overloaded versions differ, a more fine-grained control is needed.
+
+Hence, for the latter templates, the parameter types preserve the 
+cv-qualifiers, and are non-reference types as well. 
+ 
+The downside is, that for an overloaded set of operators of the 
+kind described above, one may end up needing up to 
+16 <code class="literal">return_type_2</code> specializations.
+</p>
+<p>
+Suppose the user has overloaded the following operators for some user defined 
+types <code class="literal">X</code>, <code class="literal">Y</code> and <code class="literal">Z</code>:
+
+</p>
+<pre class="programlisting">
+Z operator+(const X&amp;, const Y&amp;);
+Z operator-(const X&amp;, const Y&amp;);
+</pre>
+<p>
+
+Now, one can add a specialization stating, that if the left hand argument 
+is of type <code class="literal">X</code>, and the right hand one of type 
+<code class="literal">Y</code>, the return type of all such binary arithmetic 
+operators is <code class="literal">Z</code>:
+
+</p>
+<pre class="programlisting">
+namespace boost { 
+namespace lambda {
+  
+template&lt;class Act&gt; 
+struct plain_return_type_2&lt;arithmetic_action&lt;Act&gt;, X, Y&gt; {
+  typedef Z type;
+};
+
+}
+}
+</pre>
+<p>
+
+Having this specialization defined, BLL is capable of correctly 
+deducing the return type of the above two operators.
+
+Note, that the specializations must be in the same namespace, 
+<code class="literal">::boost::lambda</code>, with the primary template. 
+
+For brevity, we do not show the namespace definitions in the examples below.
+</p>
+<p>
+It is possible to specialize on the level of an individual operator as well, 
+in addition to providing a specialization for a group of operators. 
+Say, we add a new arithmetic operator for argument types <code class="literal">X</code> 
+and <code class="literal">Y</code>:
+
+</p>
+<pre class="programlisting">
+X operator*(const X&amp;, const Y&amp;);
+</pre>
+<p>
+
+Our first rule for all arithmetic operators specifies that the return 
+type of this operator is <code class="literal">Z</code>, 
+which obviously is not the case.
+Hence, we provide a new rule for the multiplication operator:
+
+</p>
+<pre class="programlisting">
+template&lt;&gt; 
+struct plain_return_type_2&lt;arithmetic_action&lt;multiply_action&gt;, X, Y&gt; {
+  typedef X type;
+};
+</pre>
+<p>
+</p>
+<p>
+The specializations can define arbitrary mappings from the argument types 
+to the return type. 
+
+Suppose we have some mathematical vector type, templated on the element type:
+
+</p>
+<pre class="programlisting">
+template &lt;class T&gt; class my_vector;
+</pre>
+<p>
+
+Suppose the addition operator is defined between any two 
+<code class="literal">my_vector</code> instantiations, 
+as long as the addition operator is defined between their element types. 
+
+Furthermore, the element type of the resulting <code class="literal">my_vector</code> 
+is the same as the result type of the addition between the element types.
+
+E.g., adding <code class="literal">my_vector&lt;int&gt;</code> and 
+<code class="literal">my_vector&lt;double&gt;</code> results in 
+<code class="literal">my_vector&lt;double&gt;</code>.
+
+The BLL has traits classes to perform the implicit built-in and standard 
+type conversions between integral, floating point, and complex classes.
+
+Using BLL tools, the addition operator described above can be defined as:
+
+</p>
+<pre class="programlisting">
+template&lt;class A, class B&gt; 
+my_vector&lt;typename return_type_2&lt;arithmetic_action&lt;plus_action&gt;, A, B&gt;::type&gt;
+operator+(const my_vector&lt;A&gt;&amp; a, const my_vector&lt;B&gt;&amp; b)
+{
+  typedef typename 
+    return_type_2&lt;arithmetic_action&lt;plus_action&gt;, A, B&gt;::type res_type;
+  return my_vector&lt;res_type&gt;();
+}
+</pre>
+<p>
+</p>
+<p>
+To allow BLL to deduce the type of <code class="literal">my_vector</code> 
+additions correctly, we can define:
+
+</p>
+<pre class="programlisting">
+template&lt;class A, class B&gt; 
+class plain_return_type_2&lt;arithmetic_action&lt;plus_action&gt;, 
+                           my_vector&lt;A&gt;, my_vector&lt;B&gt; &gt; {
+  typedef typename 
+    return_type_2&lt;arithmetic_action&lt;plus_action&gt;, A, B&gt;::type res_type;
+public:
+  typedef my_vector&lt;res_type&gt; type;
+};
+</pre>
+<p>
+Note, that we are reusing the existing specializations for the 
+BLL <code class="literal">return_type_2</code> template, 
+which require that the argument types are references. 
+</p>
+<div class="table">
+<a name="table:actions"></a><p class="title"><b>Table&#160;16.2.&#160;Action types</b></p>
+<div class="table-contents"><table class="table" summary="Action types">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><code class="literal">+</code></td>
+<td><code class="literal">arithmetic_action&lt;plus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">-</code></td>
+<td><code class="literal">arithmetic_action&lt;minus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">*</code></td>
+<td><code class="literal">arithmetic_action&lt;multiply_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">/</code></td>
+<td><code class="literal">arithmetic_action&lt;divide_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">%</code></td>
+<td><code class="literal">arithmetic_action&lt;remainder_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">+</code></td>
+<td><code class="literal">unary_arithmetic_action&lt;plus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">-</code></td>
+<td><code class="literal">unary_arithmetic_action&lt;minus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&amp;</code></td>
+<td><code class="literal">bitwise_action&lt;and_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">|</code></td>
+<td><code class="literal">bitwise_action&lt;or_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">~</code></td>
+<td><code class="literal">bitwise_action&lt;not_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">^</code></td>
+<td><code class="literal">bitwise_action&lt;xor_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&lt;&lt;</code></td>
+<td><code class="literal">bitwise_action&lt;leftshift_action_no_stream&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&gt;&gt;</code></td>
+<td><code class="literal">bitwise_action&lt;rightshift_action_no_stream&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&amp;&amp;</code></td>
+<td><code class="literal">logical_action&lt;and_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">||</code></td>
+<td><code class="literal">logical_action&lt;or_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">!</code></td>
+<td><code class="literal">logical_action&lt;not_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&lt;</code></td>
+<td><code class="literal">relational_action&lt;less_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&gt;</code></td>
+<td><code class="literal">relational_action&lt;greater_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&lt;=</code></td>
+<td><code class="literal">relational_action&lt;lessorequal_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&gt;=</code></td>
+<td><code class="literal">relational_action&lt;greaterorequal_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">==</code></td>
+<td><code class="literal">relational_action&lt;equal_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">!=</code></td>
+<td><code class="literal">relational_action&lt;notequal_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">+=</code></td>
+<td><code class="literal">arithmetic_assignment_action&lt;plus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">-=</code></td>
+<td><code class="literal">arithmetic_assignment_action&lt;minus_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">*=</code></td>
+<td><code class="literal">arithmetic_assignment_action&lt;multiply_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">/=</code></td>
+<td><code class="literal">arithmetic_assignment_action&lt;divide_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">%=</code></td>
+<td><code class="literal">arithmetic_assignment_action&lt;remainder_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&amp;=</code></td>
+<td><code class="literal">bitwise_assignment_action&lt;and_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">=|</code></td>
+<td><code class="literal">bitwise_assignment_action&lt;or_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">^=</code></td>
+<td><code class="literal">bitwise_assignment_action&lt;xor_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&lt;&lt;=</code></td>
+<td><code class="literal">bitwise_assignment_action&lt;leftshift_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&gt;&gt;=</code></td>
+<td><code class="literal">bitwise_assignment_action&lt;rightshift_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">++</code></td>
+<td><code class="literal">pre_increment_decrement_action&lt;increment_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">--</code></td>
+<td><code class="literal">pre_increment_decrement_action&lt;decrement_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">++</code></td>
+<td><code class="literal">post_increment_decrement_action&lt;increment_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">--</code></td>
+<td><code class="literal">post_increment_decrement_action&lt;decrement_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">&amp;</code></td>
+<td><code class="literal">other_action&lt;address_of_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">*</code></td>
+<td><code class="literal">other_action&lt;contents_of_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">,</code></td>
+<td><code class="literal">other_action&lt;comma_action&gt;</code></td>
+</tr>
+<tr>
+<td><code class="literal">-&gt;*</code></td>
+<td><code class="literal">other_action&lt;member_pointer_action&gt;</code></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="le_in_details.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s07.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

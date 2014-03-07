@@ -1,0 +1,144 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Depth-First Visit</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H2><A NAME="sec:dfs"></A>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>depth_first_visit</TT>
+</H2>
+
+
+<P>
+<PRE>
+template &lt;class <a href="./IncidenceGraph.html">IncidenceGraph</a>, class <a href="./DFSVisitor.html">DFSVisitor</a>, class ColorMap&gt;
+void depth_first_visit(IncidenceGraph& g,
+  typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s, 
+  DFSVisitor&amp; vis, ColorMap color)
+
+template &lt;class <a href="./IncidenceGraph.html">IncidenceGraph</a>, class <a href="./DFSVisitor.html">DFSVisitor</a>, class ColorMap, 
+          class TerminatorFunc&gt;
+void depth_first_visit(IncidenceGraph& g,
+  typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s, 
+  DFSVisitor&amp; vis, ColorMap color, TerminatorFunc func = TerminatorFunc())
+</PRE>
+
+<P>
+This function visits all of the vertices in the same connected
+component as the source vertex <tt>s</tt>, using the <a
+href="./graph_theory_review.html#sec:dfs-algorithm">depth-first
+pattern</a>. The main purpose of the function is for the
+implementation of <TT>depth_first_search()</TT> though sometimes it is
+useful on its own. 
+
+<p>
+The <tt>DFSVisitor</tt> supplied by the user determines what
+actions are taken at each event-point within the algorithm.
+
+<p>
+The <tt>ColorMap</tt> is used by the algorithm to keep track
+of which vertices have been visited.
+
+<p>The second variant can be used, for example, to find all marked vertices
+reachable from a start vertex by a path which does not contain any another
+marked vertices.
+
+
+<P>
+
+<h3>Where Defined:</h3>
+
+<a href="../../../boost/graph/depth_first_search.hpp"><TT>boost/graph/depth_first_search.hpp</TT></a>
+
+
+<h3>Parameters</h3>
+
+IN <tt>IncidenceGraph&amp; g</tt>
+<blockquote>
+A directed or undirected graph. The graph's type must be a model of
+<a href="./IncidenceGraph.html">Incidence Graph</a>.<br>
+
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>vertex_descriptor s</tt>
+<blockquote>
+  The source vertex from which to start the search.<br>
+
+  <b>Python</b>: The parameter is named <tt>root_vertex</tt>.
+</blockquote>
+
+IN: <tt>DFSVisitor visitor</tt>
+<blockquote>
+  A visitor object that is invoked inside the algorithm at the
+  event-points specified by the <a href="./DFSVisitor.html">DFS
+  Visitor</a> concept. The visitor object is passed by value <a
+  href="#1">[1]</a>.<br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a href="DFSVisitor.html#python"><tt>DFSVisitor</tt></a> type of
+  the graph.
+</blockquote>
+
+UTIL: <tt>ColorMap color</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map map must model
+  <a href="./ColorValue.html">Color Value</a>.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+IN: <tt>TerminatorFunc func</tt>
+<blockquote>
+A function object callable with two parameters - the descriptor of
+vertex and the graph instance - and returning bool. The call is made
+immediately after call to 'discover_vertex' visitor
+event. If <tt>true</tt> is returned, the out edges of the vertex are
+not examined, as if they don't exist.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+<P>
+
+<h3>Complexity</h3>
+
+Time complexity is <i>O(E)</i>.
+
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

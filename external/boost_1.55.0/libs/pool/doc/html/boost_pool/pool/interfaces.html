@@ -1,0 +1,580 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost Pool Interfaces - What interfaces are provided and when to use each one.</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.Pool">
+<link rel="up" href="../pool.html" title="Introduction and Overview">
+<link rel="prev" href="testing.html" title="Building the Test Programs">
+<link rel="next" href="pooling.html" title="Pool in More Depth">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="testing.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pooling.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_pool.pool.interfaces"></a><a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Boost Pool Interfaces - What
+      interfaces are provided and when to use each one.</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces">Pool Interfaces</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool">pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.object_pool">Object_pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.singleton_pool">Singleton_pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool_allocator">pool_allocator</a></span></dt>
+</dl></dd>
+</dl></div>
+<a name="boost_pool.pool.interfaces.introduction"></a><h5>
+<a name="boost_pool.pool.interfaces.introduction-heading"></a>
+        <a class="link" href="interfaces.html#boost_pool.pool.interfaces.introduction">Introduction</a>
+      </h5>
+<p>
+        There are several interfaces provided which allow users great flexibility
+        in how they want to use Pools. Review the <a class="link" href="pooling.html#boost_pool.pool.pooling.concepts" title="Basic ideas behind pooling">concepts</a>
+        document to get the basic understanding of how the various pools work.
+      </p>
+<a name="boost_pool.pool.interfaces.terminology_and_tradeoffs"></a><h4>
+<a name="boost_pool.pool.interfaces.terminology_and_tradeoffs-heading"></a>
+        <a class="link" href="interfaces.html#boost_pool.pool.interfaces.terminology_and_tradeoffs">Terminology
+        and Tradeoffs</a>
+      </h4>
+<a name="boost_pool.pool.interfaces.object_usage_vs__singleton_usage"></a><h6>
+<a name="boost_pool.pool.interfaces.object_usage_vs__singleton_usage-heading"></a>
+        <a class="link" href="interfaces.html#boost_pool.pool.interfaces.object_usage_vs__singleton_usage">Object
+        Usage vs. Singleton Usage</a>
+      </h6>
+<p>
+        Object Usage is the method where each Pool is an object that may be created
+        and destroyed. Destroying a Pool implicitly frees all chunks that have been
+        allocated from it.
+      </p>
+<p>
+        Singleton Usage is the method where each Pool is an object with static duration;
+        that is, it will not be destroyed until program exit. Pool objects with Singleton
+        Usage may be shared; thus, Singleton Usage implies thread-safety as well.
+        System memory allocated by Pool objects with Singleton Usage may be freed
+        through release_memory or purge_memory.
+      </p>
+<a name="boost_pool.pool.interfaces.out_of_memory_conditions__exceptions_vs__null_return"></a><h6>
+<a name="boost_pool.pool.interfaces.out_of_memory_conditions__exceptions_vs__null_return-heading"></a>
+        <a class="link" href="interfaces.html#boost_pool.pool.interfaces.out_of_memory_conditions__exceptions_vs__null_return">Out-of-Memory
+        Conditions: Exceptions vs. Null Return</a>
+      </h6>
+<p>
+        Some Pool interfaces throw exceptions when out-of-memory; others will <code class="computeroutput"><span class="keyword">return</span> <span class="number">0</span></code>. In
+        general, unless mandated by the Standard, Pool interfaces will always prefer
+        to <code class="computeroutput"><span class="keyword">return</span> <span class="number">0</span></code>
+        instead of throwing an exception.
+      </p>
+<a name="boost_pool.pool.interfaces.ordered_versus_unordered"></a><h6>
+<a name="boost_pool.pool.interfaces.ordered_versus_unordered-heading"></a>
+        <a class="link" href="interfaces.html#boost_pool.pool.interfaces.ordered_versus_unordered">Ordered
+        versus unordered</a>
+      </h6>
+<p>
+        An ordered pool maintains it's free list in order of the address of each
+        free block - this is the most efficient way if you're likely to allocate
+        arrays of objects. However, freeing an object can be O(N) in the number of
+        currently free blocks which can be prohibitively expensive in some situations.
+      </p>
+<p>
+        An unordered pool does not maintain it's free list in any particular order,
+        as a result allocation and freeing single objects is very fast, but allocating
+        arrays may be slow (and in particular the pool may not be aware that it contains
+        enough free memory for the allocation request, and unnecessarily allocate
+        more memory).
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.interfaces.interfaces"></a><a class="link" href="interfaces.html#boost_pool.pool.interfaces.interfaces" title="Pool Interfaces">Pool Interfaces</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool">pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.object_pool">Object_pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.singleton_pool">Singleton_pool</a></span></dt>
+<dt><span class="section"><a href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool_allocator">pool_allocator</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_pool.pool.interfaces.interfaces.pool"></a><a class="link" href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool" title="pool">pool</a>
+</h5></div></div></div>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/pool.html" title="Class template pool">pool</a></code> interface is a simple
+            Object Usage interface with Null Return.
+          </p>
+<p>
+            <code class="computeroutput"><a class="link" href="../../boost/pool.html" title="Class template pool">pool</a></code> is a fast memory allocator,
+            and guarantees proper alignment of all allocated chunks.
+          </p>
+<p>
+            <code class="computeroutput"><a class="link" href="../../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">pool.hpp</a></code> provides
+            two <a class="link" href="pooling.html#boost_pool.pool.pooling.user_allocator" title="The UserAllocator Concept">UserAllocator</a>
+            classes and a <code class="computeroutput"><a class="link" href="../../boost/pool.html" title="Class template pool">template class pool</a></code>,
+            which extends and generalizes the framework provided by the <a class="link" href="pooling.html#boost_pool.pool.pooling.simple" title="Simple Segregated Storage">Simple
+            Segregated Storage</a> solution. For information on other pool-based
+            interfaces, see the other <a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Pool
+            Interfaces</a>.
+          </p>
+<p>
+            <span class="bold"><strong>Synopsis</strong></span>
+          </p>
+<p>
+            There are two <a class="link" href="pooling.html#boost_pool.pool.pooling.user_allocator" title="The UserAllocator Concept">UserAllocator</a>
+            classes provided. Both of them are in <code class="computeroutput"><a class="link" href="../../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">pool.hpp</a></code>.
+          </p>
+<p>
+            The default value for the template parameter <a class="link" href="pooling.html#boost_pool.pool.pooling.user_allocator" title="The UserAllocator Concept">UserAllocator</a>
+            is always <code class="computeroutput"><span class="identifier">default_user_allocator_new_delete</span></code>.
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">default_user_allocator_new_delete</span>
+<span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+  <span class="keyword">static</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">malloc</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> <span class="identifier">bytes</span><span class="special">)</span>
+  <span class="special">{</span> <span class="keyword">return</span> <span class="keyword">new</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow</span><span class="special">)</span> <span class="keyword">char</span><span class="special">[</span><span class="identifier">bytes</span><span class="special">];</span> <span class="special">}</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span> <span class="keyword">const</span> <span class="identifier">block</span><span class="special">)</span>
+  <span class="special">{</span> <span class="keyword">delete</span> <span class="special">[]</span> <span class="identifier">block</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">default_user_allocator_malloc_free</span>
+<span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+  <span class="keyword">static</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">malloc</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> <span class="identifier">bytes</span><span class="special">)</span>
+  <span class="special">{</span> <span class="keyword">return</span> <span class="keyword">reinterpret_cast</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="special">*&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">malloc</span><span class="special">(</span><span class="identifier">bytes</span><span class="special">));</span> <span class="special">}</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span> <span class="keyword">const</span> <span class="identifier">block</span><span class="special">)</span>
+  <span class="special">{</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">free</span><span class="special">(</span><span class="identifier">block</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">UserAllocator</span> <span class="special">=</span> <span class="identifier">default_user_allocator_new_delete</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">pool</span>
+<span class="special">{</span>
+  <span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">pool</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pool</span> <span class="special">&amp;);</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">pool</span> <span class="special">&amp;);</span>
+
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span> <span class="identifier">user_allocator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">UserAllocator</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">UserAllocator</span><span class="special">::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="keyword">explicit</span> <span class="identifier">pool</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">requested_size</span><span class="special">);</span>
+    <span class="special">~</span><span class="identifier">pool</span><span class="special">();</span>
+
+    <span class="keyword">bool</span> <span class="identifier">release_memory</span><span class="special">();</span>
+    <span class="keyword">bool</span> <span class="identifier">purge_memory</span><span class="special">();</span>
+
+    <span class="keyword">bool</span> <span class="identifier">is_from</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">chunk</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">get_requested_size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">malloc</span><span class="special">();</span>
+    <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ordered_malloc</span><span class="special">();</span>
+    <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ordered_malloc</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">chunk</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">chunk</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">chunks</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">chunks</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span> 
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">func</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">pool</span><span class="special">&lt;&gt;</span> <span class="identifier">p</span><span class="special">(</span><span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">int</span><span class="special">));</span>
+  <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10000</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">int</span> <span class="special">*</span> <span class="keyword">const</span> <span class="identifier">t</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">malloc</span><span class="special">();</span>
+    <span class="special">...</span> <span class="comment">// Do something with t; don't take the time to free() it.</span>
+  <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// on function exit, p is destroyed, and all malloc()'ed ints are implicitly freed.</span>
+</pre>
+<p>
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_pool.pool.interfaces.interfaces.object_pool"></a><a class="link" href="interfaces.html#boost_pool.pool.interfaces.interfaces.object_pool" title="Object_pool">Object_pool</a>
+</h5></div></div></div>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/object_pool.html" title="Class template object_pool">template class object_pool</a></code>
+            interface is an Object Usage interface with Null Return, but is aware
+            of the type of the object for which it is allocating chunks. On destruction,
+            any chunks that have been allocated from that <code class="computeroutput"><span class="identifier">object_pool</span></code>
+            will have their destructors called.
+          </p>
+<p>
+            <code class="computeroutput"><a class="link" href="../../header/boost/pool/object_pool_hpp.html" title="Header &lt;boost/pool/object_pool.hpp&gt;">object_pool.hpp</a></code>
+            provides a template type that can be used for fast and efficient memory
+            allocation. It also provides automatic destruction of non-deallocated
+            objects.
+          </p>
+<p>
+            For information on other pool-based interfaces, see the other <a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Pool
+            Interfaces</a>.
+          </p>
+<p>
+            <span class="bold"><strong>Synopsis</strong></span>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">ElementType</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">UserAllocator</span> <span class="special">=</span> <span class="identifier">default_user_allocator_new_delete</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">object_pool</span>
+<span class="special">{</span>
+  <span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">object_pool</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">object_pool</span> <span class="special">&amp;);</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">object_pool</span> <span class="special">&amp;);</span>
+
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">ElementType</span> <span class="identifier">element_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span> <span class="identifier">user_allocator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="identifier">object_pool</span><span class="special">();</span>
+    <span class="special">~</span><span class="identifier">object_pool</span><span class="special">();</span>
+
+    <span class="identifier">element_type</span> <span class="special">*</span> <span class="identifier">malloc</span><span class="special">();</span>
+    <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="identifier">element_type</span> <span class="special">*</span> <span class="identifier">p</span><span class="special">);</span>
+    <span class="keyword">bool</span> <span class="identifier">is_from</span><span class="special">(</span><span class="identifier">element_type</span> <span class="special">*</span> <span class="identifier">p</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">element_type</span> <span class="special">*</span> <span class="identifier">construct</span><span class="special">();</span>
+    <span class="comment">// other construct() functions</span>
+    <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">element_type</span> <span class="special">*</span> <span class="identifier">p</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+            <span class="bold"><strong>Template Parameters</strong></span>
+          </p>
+<p>
+            <span class="emphasis"><em>ElementType</em></span>
+          </p>
+<p>
+            The template parameter is the type of object to allocate/deallocate.
+            It must have a non-throwing destructor.
+          </p>
+<p>
+            <span class="emphasis"><em>UserAllocator</em></span>
+          </p>
+<p>
+            Defines the method that the underlying Pool will use to allocate memory
+            from the system. Default is default_user_allocator_new_delete. See __<a class="link" href="pooling.html#boost_pool.pool.pooling.user_allocator" title="The UserAllocator Concept">UserAllocator</a>
+            for details.
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span> struct X { ... }; // has destructor
+            with side-effects.
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">func</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">object_pool</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">;</span>
+  <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10000</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">X</span> <span class="special">*</span> <span class="keyword">const</span> <span class="identifier">t</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">malloc</span><span class="special">();</span>
+    <span class="special">...</span> <span class="comment">// Do something with t; don't take the time to free() it.</span>
+  <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// on function exit, p is destroyed, and all destructors for the X objects are called.</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_pool.pool.interfaces.interfaces.singleton_pool"></a><a class="link" href="interfaces.html#boost_pool.pool.interfaces.interfaces.singleton_pool" title="Singleton_pool">Singleton_pool</a>
+</h5></div></div></div>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/singleton_pool.html" title="Class template singleton_pool">singleton_pool interface</a></code>
+            at <code class="computeroutput"><a class="link" href="../../header/boost/pool/singleton_pool_hpp.html" title="Header &lt;boost/pool/singleton_pool.hpp&gt;">singleton_pool.hpp</a></code>
+            is a Singleton Usage interface with Null Return. It's just the same as
+            the pool interface but with Singleton Usage instead.
+          </p>
+<p>
+            <span class="bold"><strong>Synopsis</strong></span>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">RequestedSize</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">UserAllocator</span> <span class="special">=</span> <span class="identifier">default_user_allocator_new_delete</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">singleton_pool</span>
+<span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">Tag</span> <span class="identifier">tag</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span> <span class="identifier">user_allocator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="identifier">requested_size</span> <span class="special">=</span> <span class="identifier">RequestedSize</span><span class="special">;</span>
+
+  <span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">static</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">size_type</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">;</span> <span class="comment">// exposition only!</span>
+
+    <span class="identifier">singleton_pool</span><span class="special">();</span>
+
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">is_from</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ptr</span><span class="special">);</span>
+
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">malloc</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ordered_malloc</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ordered_malloc</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ptr</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ptr</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+
+    <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">release_memory</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">purge_memory</span><span class="special">();</span>
+<span class="special">};</span>
+</pre>
+<p>
+            <span class="bold"><strong>Notes</strong></span>
+          </p>
+<p>
+            The underlying pool <code class="computeroutput"><span class="identifier">p</span></code>
+            referenced by the static functions in <code class="computeroutput"><span class="identifier">singleton_pool</span></code>
+            is actually declared in a way so that it is:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                Thread-safe if there is only one thread running before <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>
+                begins and after <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code> ends. All of the static functions
+                of singleton_pool synchronize their access to <code class="computeroutput"><span class="identifier">p</span></code>.
+              </li>
+<li class="listitem">
+                Guaranteed to be constructed before it is used, so that the simple
+                static object in the synopsis above would actually be an incorrect
+                implementation. The actual implementation to guarantee this is considerably
+                more complicated.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>Note</strong></span> that a different underlying pool
+            <code class="computeroutput"><span class="identifier">p</span></code> exists for each different
+            set of template parameters, including implementation-specific ones.
+          </p>
+<p>
+            <span class="bold"><strong>Template Parameters</strong></span>
+          </p>
+<p>
+            <span class="emphasis"><em>Tag</em></span>
+          </p>
+<p>
+            The <span class="emphasis"><em>Tag</em></span> template parameter allows different unbounded
+            sets of singleton pools to exist. For example, the pool allocators use
+            two tag classes to ensure that the two different allocator types never
+            share the same underlying singleton pool.
+          </p>
+<p>
+            <span class="emphasis"><em>Tag</em></span> is never actually used by <code class="computeroutput"><span class="identifier">singleton_pool</span></code>.
+          </p>
+<p>
+            <span class="emphasis"><em>RequestedSize</em></span> The requested size of memory chunks
+            to allocate. This is passed as a constructor parameter to the underlying
+            pool. Must be greater than 0.
+          </p>
+<p>
+            <span class="emphasis"><em>UserAllocator</em></span>
+          </p>
+<p>
+            Defines the method that the underlying pool will use to allocate memory
+            from the system. See User Allocators for details.
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span> struct MyPoolTag { };
+          </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">singleton_pool</span><span class="special">&lt;</span><span class="identifier">MyPoolTag</span><span class="special">,</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">int</span><span class="special">)&gt;</span> <span class="identifier">my_pool</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">func</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10000</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">int</span> <span class="special">*</span> <span class="keyword">const</span> <span class="identifier">t</span> <span class="special">=</span> <span class="identifier">my_pool</span><span class="special">::</span><span class="identifier">malloc</span><span class="special">();</span>
+    <span class="special">...</span> <span class="comment">// Do something with t; don't take the time to free() it.</span>
+  <span class="special">}</span>
+  <span class="comment">// Explicitly free all malloc()'ed ints.</span>
+  <span class="identifier">my_pool</span><span class="special">::</span><span class="identifier">purge_memory</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_pool.pool.interfaces.interfaces.pool_allocator"></a><a class="link" href="interfaces.html#boost_pool.pool.interfaces.interfaces.pool_allocator" title="pool_allocator">pool_allocator</a>
+</h5></div></div></div>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/pool_allocator.html" title="Class template pool_allocator">pool_allocator interface</a></code>
+            is a Singleton Usage interface with Exceptions. It is built on the singleton_pool
+            interface, and provides a Standard Allocator-compliant class (for use
+            in containers, etc.).
+          </p>
+<p>
+            <span class="bold"><strong>Introduction</strong></span>
+          </p>
+<p>
+            <code class="computeroutput"><a class="link" href="../../header/boost/pool/pool_alloc_hpp.html" title="Header &lt;boost/pool/pool_alloc.hpp&gt;">pool_alloc.hpp</a></code>
+          </p>
+<p>
+            Provides two template types that can be used for fast and efficient memory
+            allocation. These types both satisfy the Standard Allocator requirements
+            [20.1.5] and the additional requirements in [20.1.5/4], so they can be
+            used with Standard or user-supplied containers.
+          </p>
+<p>
+            For information on other pool-based interfaces, see the other <a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Pool
+            Interfaces</a>.
+          </p>
+<p>
+            <span class="bold"><strong>Synopsis</strong></span>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">pool_allocator_tag</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">UserAllocator</span> <span class="special">=</span> <span class="identifier">default_user_allocator_new_delete</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">pool_allocator</span>
+<span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span> <span class="identifier">user_allocator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">*</span> <span class="identifier">pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">*</span> <span class="identifier">const_pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">const_reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllcoator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">rebind</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">pool_allocator</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">&gt;</span> <span class="identifier">other</span><span class="special">;</span> <span class="special">};</span>
+
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">pool_allocator</span><span class="special">();</span>
+    <span class="identifier">pool_allocator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pool_allocator</span> <span class="special">&amp;);</span>
+    <span class="comment">// The following is not explicit, mimicking std::allocator [20.4.1]</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="identifier">pool_allocator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pool_allocator</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">&gt;</span> <span class="special">&amp;);</span>
+    <span class="identifier">pool_allocator</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">pool_allocator</span> <span class="special">&amp;);</span>
+    <span class="special">~</span><span class="identifier">pool_allocator</span><span class="special">();</span>
+
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">address</span><span class="special">(</span><span class="identifier">reference</span> <span class="identifier">r</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">const_pointer</span> <span class="identifier">address</span><span class="special">(</span><span class="identifier">const_reference</span> <span class="identifier">s</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">construct</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">pool_allocator</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="keyword">const</span> <span class="identifier">pool_allocator</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="identifier">pointer</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">fast_pool_allocator_tag</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span>
+    <span class="keyword">typename</span> <span class="identifier">UserAllocator</span> <span class="special">=</span> <span class="identifier">default_user_allocator_new_delete</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">fast_pool_allocator</span>
+<span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span> <span class="identifier">user_allocator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">*</span> <span class="identifier">pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">*</span> <span class="identifier">const_pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">const_reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">pool</span><span class="special">&lt;</span><span class="identifier">UserAllocator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">rebind</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">fast_pool_allocator</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">&gt;</span> <span class="identifier">other</span><span class="special">;</span> <span class="special">};</span>
+
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">fast_pool_allocator</span><span class="special">();</span>
+    <span class="identifier">fast_pool_allocator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">fast_pool_allocator</span> <span class="special">&amp;);</span>
+    <span class="comment">// The following is not explicit, mimicking std::allocator [20.4.1]</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="identifier">fast_pool_allocator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">fast_pool_allocator</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">&gt;</span> <span class="special">&amp;);</span>
+    <span class="identifier">fast_pool_allocator</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">fast_pool_allocator</span> <span class="special">&amp;);</span>
+    <span class="special">~</span><span class="identifier">fast_pool_allocator</span><span class="special">();</span>
+
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">address</span><span class="special">(</span><span class="identifier">reference</span> <span class="identifier">r</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">const_pointer</span> <span class="identifier">address</span><span class="special">(</span><span class="identifier">const_reference</span> <span class="identifier">s</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">construct</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">fast_pool_allocator</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="keyword">const</span> <span class="identifier">fast_pool_allocator</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="identifier">pointer</span><span class="special">);</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+
+    <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">allocate</span><span class="special">();</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ptr</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+            <span class="bold"><strong>Template Parameters</strong></span>
+          </p>
+<p>
+            <span class="emphasis"><em>T</em></span> The first template parameter is the type of object
+            to allocate/deallocate.
+          </p>
+<p>
+            <span class="emphasis"><em>UserAllocator</em></span> Defines the method that the underlying
+            Pool will use to allocate memory from the system. See User Allocators
+            for details.
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span>
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">func</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">pool_allocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+  <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10000</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+    <span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">13</span><span class="special">);</span>
+<span class="special">}</span> <span class="comment">// Exiting the function does NOT free the system memory allocated by the pool allocator.</span>
+  <span class="comment">// You must call</span>
+  <span class="comment">//  boost::singleton_pool&lt;boost::pool_allocator_tag, sizeof(int)&gt;::release_memory();</span>
+  <span class="comment">// in order to force freeing the system memory.</span>
+</pre>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="testing.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pooling.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

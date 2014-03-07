@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>UNIX Domain Sockets</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../posix.html" title="POSIX-Specific Functionality">
+<link rel="prev" href="../posix.html" title="POSIX-Specific Functionality">
+<link rel="next" href="stream_descriptor.html" title="Stream-Oriented File Descriptors">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../posix.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../posix.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stream_descriptor.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.posix.local"></a><a class="link" href="local.html" title="UNIX Domain Sockets">UNIX Domain Sockets</a>
+</h4></div></div></div>
+<p>
+          Boost.Asio provides basic support UNIX domain sockets (also known as local
+          sockets). The simplest use involves creating a pair of connected sockets.
+          The following code:
+        </p>
+<pre class="programlisting"><span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket1</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket2</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">connect_pair</span><span class="special">(</span><span class="identifier">socket1</span><span class="special">,</span> <span class="identifier">socket2</span><span class="special">);</span>
+</pre>
+<p>
+          will create a pair of stream-oriented sockets. To do the same for datagram-oriented
+          sockets, use:
+        </p>
+<pre class="programlisting"><span class="identifier">local</span><span class="special">::</span><span class="identifier">datagram_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket1</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">datagram_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket2</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">connect_pair</span><span class="special">(</span><span class="identifier">socket1</span><span class="special">,</span> <span class="identifier">socket2</span><span class="special">);</span>
+</pre>
+<p>
+          A UNIX domain socket server may be created by binding an acceptor to an
+          endpoint, in much the same way as one does for a TCP server:
+        </p>
+<pre class="programlisting"><span class="special">::</span><span class="identifier">unlink</span><span class="special">(</span><span class="string">"/tmp/foobar"</span><span class="special">);</span> <span class="comment">// Remove previous binding.</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">ep</span><span class="special">(</span><span class="string">"/tmp/foobar"</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">acceptor</span> <span class="identifier">acceptor</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">,</span> <span class="identifier">ep</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">acceptor</span><span class="special">.</span><span class="identifier">accept</span><span class="special">(</span><span class="identifier">socket</span><span class="special">);</span>
+</pre>
+<p>
+          A client that connects to this server might look like:
+        </p>
+<pre class="programlisting"><span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">ep</span><span class="special">(</span><span class="string">"/tmp/foobar"</span><span class="special">);</span>
+<span class="identifier">local</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">socket</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">ep</span><span class="special">);</span>
+</pre>
+<p>
+          Transmission of file descriptors or credentials across UNIX domain sockets
+          is not directly supported within Boost.Asio, but may be achieved by accessing
+          the socket's underlying descriptor using the <a class="link" href="../../reference/basic_socket/native_handle.html" title="basic_socket::native_handle">native_handle()</a>
+          member function.
+        </p>
+<h6>
+<a name="boost_asio.overview.posix.local.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.posix.local.see_also"></a></span><a class="link" href="local.html#boost_asio.overview.posix.local.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/local__connect_pair.html" title="local::connect_pair">local::connect_pair</a>,
+          <a class="link" href="../../reference/local__datagram_protocol.html" title="local::datagram_protocol">local::datagram_protocol</a>,
+          <a class="link" href="../../reference/local__datagram_protocol/endpoint.html" title="local::datagram_protocol::endpoint">local::datagram_protocol::endpoint</a>,
+          <a class="link" href="../../reference/local__datagram_protocol/socket.html" title="local::datagram_protocol::socket">local::datagram_protocol::socket</a>,
+          <a class="link" href="../../reference/local__stream_protocol.html" title="local::stream_protocol">local::stream_protocol</a>,
+          <a class="link" href="../../reference/local__stream_protocol/acceptor.html" title="local::stream_protocol::acceptor">local::stream_protocol::acceptor</a>,
+          <a class="link" href="../../reference/local__stream_protocol/endpoint.html" title="local::stream_protocol::endpoint">local::stream_protocol::endpoint</a>,
+          <a class="link" href="../../reference/local__stream_protocol/iostream.html" title="local::stream_protocol::iostream">local::stream_protocol::iostream</a>,
+          <a class="link" href="../../reference/local__stream_protocol/socket.html" title="local::stream_protocol::socket">local::stream_protocol::socket</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.unix_domain_sockets">UNIX
+          domain sockets examples</a>.
+        </p>
+<h6>
+<a name="boost_asio.overview.posix.local.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.posix.local.notes"></a></span><a class="link" href="local.html#boost_asio.overview.posix.local.notes">Notes</a>
+        </h6>
+<p>
+          UNIX domain sockets are only available at compile time if supported by
+          the target operating system. A program may test for the macro <code class="computeroutput"><span class="identifier">BOOST_ASIO_HAS_LOCAL_SOCKETS</span></code> to determine
+          whether they are supported.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../posix.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../posix.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stream_descriptor.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

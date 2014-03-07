@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Implementing Multiplication</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./implementing-addition-and.html" class="navigation-link">Prev</a>&nbsp;<a href="./implementing-division.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./implementing-addition-and.html" class="navigation-link">Back</a>&nbsp;<a href="./implementing-division.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./dimensional-analysis.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./dimensional-analysis.html" class="navigation-link">Dimensional Analysis</a> / <a href="./implementing.html" class="navigation-link">Implementing Multiplication</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="implementing">
+<h1><a class="toc-backref" href="./dimensional-analysis.html#id45" name="implementing">Implementing Multiplication</a></h1>
+<p>Multiplication is a bit more complicated than addition and
+subtraction.  So far, the dimensions of the arguments and results have
+all been identical, but when multiplying, the result will usually
+have different dimensions from either of the arguments.  For
+multiplication, the relation:</p>
+<blockquote>
+(<em>x</em><sup>a</sup>)(<em>x</em><sup>b</sup>) == <em>x</em> <sup>(a + b)</sup></blockquote>
+<!-- @litre_translator.line_offset -= 7 -->
+<p>implies that the exponents of the result dimensions should be the
+sum of corresponding exponents from the argument
+dimensions. Division is similar, except that the sum is replaced by
+a difference.</p>
+<p>To combine corresponding elements from two sequences, we'll use
+MPL's <tt class="literal"><span class="pre">transform</span></tt> algorithm.  <tt class="literal"><span class="pre">transform</span></tt> is a metafunction
+that iterates through two input sequences in parallel, passing an
+element from each sequence to an arbitrary binary metafunction, and
+placing the result in an output sequence.</p>
+<pre class="literal-block">
+template &lt;class Sequence1, class Sequence2, class BinaryOperation&gt;
+struct transform;  // returns a Sequence
+</pre>
+<p>The signature above should look familiar if you're acquainted with the
+STL <tt class="literal"><span class="pre">transform</span></tt> algorithm that accepts two <em>runtime</em> sequences
+as inputs:</p>
+<pre class="literal-block">
+template &lt;
+    class InputIterator1, class InputIterator2
+  , class OutputIterator, class BinaryOperation
+&gt;
+void transform(
+    InputIterator1 start1, InputIterator2 finish1
+  , InputIterator2 start2
+  , OutputIterator result, BinaryOperation func);
+</pre>
+<!-- @ example.wrap('namespace shield{','}')
+compile() -->
+<p>Now we just need to pass a <tt class="literal"><span class="pre">BinaryOperation</span></tt> that adds or
+subtracts in order to multiply or divide dimensions with
+<tt class="literal"><span class="pre">mpl::transform</span></tt>.  If you look through the <a class="reference" href="./reference-manual.html">the MPL reference manual</a>, you'll
+come across <tt class="literal"><span class="pre">plus</span></tt> and <tt class="literal"><span class="pre">minus</span></tt> metafunctions that do just what
+you'd expect:</p>
+<pre class="literal-block">
+#include &lt;boost/static_assert.hpp&gt;
+#include &lt;boost/mpl/plus.hpp&gt;
+#include &lt;boost/mpl/int.hpp&gt;
+namespace mpl = boost::mpl;
+
+BOOST_STATIC_ASSERT(( 
+    mpl::plus&lt;
+        mpl::int_&lt;2&gt;
+      , mpl::int_&lt;3&gt;
+    &gt;::type::value == 5
+));
+</pre>
+<!-- @ compile(pop = None) -->
+<div class="sidebar">
+<p class="sidebar-title first"><tt class="literal"><span class="pre">BOOST_STATIC_ASSERT</span></tt></p>
+<p>is a macro that causes a compilation error if its argument is
+false.  The double parentheses are required because the C++
+preprocessor can't parse templates: it would otherwise be
+fooled by the comma into treating the condition as two separate
+macro arguments.  Unlike its runtime analogue <tt class="literal"><span class="pre">assert(...)</span></tt>,
+<tt class="literal"><span class="pre">BOOST_STATIC_ASSERT</span></tt> can also be used at class scope,
+allowing us to put assertions in our metafunctions.  See
+Chapter <a class="reference" href="./resources.html">8</a> for an in-depth discussion.</p>
+</div>
+<!-- @prefix.append('#include <boost/static_assert.hpp>') -->
+<p>At this point it might seem as though we have a solution, but we're
+not quite there yet.  A naive attempt to apply the <tt class="literal"><span class="pre">transform</span></tt>
+algorithm in the implementation of <tt class="literal"><span class="pre">operator*</span></tt> yields a compiler
+error:</p>
+<pre class="literal-block">
+#include &lt;boost/mpl/transform.hpp&gt;
+
+template &lt;class T, class D1, class D2&gt;
+quantity&lt; 
+    T
+  , typename mpl::transform&lt;D1,D2,mpl::plus&gt;::type
+&gt;
+operator*(quantity&lt;T,D1&gt; x, quantity&lt;T,D2&gt; y) { ... }
+</pre>
+<!-- @ example.replace('{ ... }',';')
+compile('all', pop = 1, expect_error = True)
+prefix +=['#include <boost/mpl/transform.hpp>'] -->
+<!-- @litre_translator.line_offset -= 7 -->
+<p>It fails because the protocol says that metafunction arguments
+must be types, and <tt class="literal"><span class="pre">plus</span></tt> is not a type, but a class template.
+Somehow we need to make metafunctions like <tt class="literal"><span class="pre">plus</span></tt> fit the
+metadata mold.</p>
+<p>One natural way to introduce polymorphism between metafunctions and
+metadata is to employ the wrapper idiom that gave us polymorphism
+between types and integral constants.  Instead of a nested integral
+constant, we can use a class template nested within a
+<strong>metafunction class</strong>:</p>
+<pre class="literal-block">
+struct plus_f
+{
+    template &lt;class T1, class T2&gt;
+    struct apply
+    {
+       typedef typename mpl::plus&lt;T1,T2&gt;::type type;
+    };
+};
+</pre>
+<div class="admonition-definition admonition">
+<p class="admonition-title first">Definition</p>
+<p>A <strong>Metafunction Class</strong> is a class with a publicly accessible
+nested metafunction called <tt class="literal"><span class="pre">apply</span></tt>.</p>
+</div>
+<p>Whereas a metafunction is a template but not a type, a
+metafunction class wraps that template within an ordinary
+non-templated class, which <em>is</em> a type.  Since metafunctions
+operate on and return types, a metafunction class can be passed as
+an argument to, or returned from, another metafunction.</p>
+<p>Finally, we have a <tt class="literal"><span class="pre">BinaryOperation</span></tt> type that we can pass to
+<tt class="literal"><span class="pre">transform</span></tt> without causing a compilation error:</p>
+<pre class="literal-block">
+template &lt;class T, class D1, class D2&gt;
+quantity&lt; 
+    T
+  , typename mpl::transform&lt;D1,D2,<strong>plus_f</strong>&gt;::type  // new dimensions
+&gt;
+operator*(quantity&lt;T,D1&gt; x, quantity&lt;T,D2&gt; y)
+{
+    typedef typename mpl::transform&lt;D1,D2,<strong>plus_f</strong>&gt;::type dim;
+    return quantity&lt;T,dim&gt;( x.value() * y.value() );
+}
+</pre>
+<p>Now, if we want to compute the force exterted by gravity on a 5 kilogram
+laptop computer, that's just the acceleration due to gravity (9.8
+m/sec<sup>2</sup>) times the mass of the laptop:</p>
+<pre class="literal-block">
+quantity&lt;float,mass&gt; m(5.0f);
+quantity&lt;float,acceleration&gt; a(9.8f);
+std::cout &lt;&lt; &quot;force = &quot; &lt;&lt; (m * a).value();
+</pre>
+<!-- @example.wrap('#include <iostream>\nvoid ff() {', '}')
+
+compile('all', pop = 1) -->
+<p>Our <tt class="literal"><span class="pre">operator*</span></tt> multiplies the runtime values (resulting in
+6.0f), and our metaprogram code uses <tt class="literal"><span class="pre">transform</span></tt> to sum the
+meta-sequences of fundamental dimension exponents, so that the
+result type contains a representation of a new list of exponents,
+something like:</p>
+<pre class="literal-block">
+mpl::vector_c&lt;int,1,1,-2,0,0,0,0&gt;
+</pre>
+<!-- @example.wrap('''
+    #include <boost/mpl/vector_c.hpp>
+    typedef''', 'xxxx;')
+compile() -->
+<!-- @litre_translator.line_offset -= 7 -->
+<p>However, if we try to write:</p>
+<pre class="literal-block">
+quantity&lt;float,force&gt; f = m * a;
+</pre>
+<!-- @ ma_function_args = '(quantity<float,mass> m, quantity<float,acceleration> a)'
+
+example.wrap('void bogus%s {' % ma_function_args, '}')
+compile('all', pop = 1, expect_error = True) -->
+<!-- @litre_translator.line_offset -= 7 -->
+<p>we'll run into a little problem.  Although the result of
+<tt class="literal"><span class="pre">m</span> <span class="pre">*</span> <span class="pre">a</span></tt> does indeed represent a force with exponents of mass,
+length, and time 1, 1, and -2 respectively, the type returned by
+<tt class="literal"><span class="pre">transform</span></tt> isn't a specialization of <tt class="literal"><span class="pre">vector_c</span></tt>.  Instead,
+<tt class="literal"><span class="pre">transform</span></tt> works generically on the elements of its inputs and
+builds a new sequence with the appropriate elements: a type with
+many of the same sequence properties as
+<tt class="literal"><span class="pre">mpl::vector_c&lt;int,1,1,-2,0,0,0,0&gt;</span></tt>, but with a different C++ type
+altogether.  If you want to see the type's full name, you can try
+to compile the example yourself and look at the error message, but
+the exact details aren't important.  The point is that
+<tt class="literal"><span class="pre">force</span></tt> names a different type, so the assignment above will fail.</p>
+<p>In order to resolve the problem, we can add an implicit conversion
+from the multiplication's result type to <tt class="literal"><span class="pre">quantity&lt;float,force&gt;</span></tt>.
+Since we can't predict the exact types of the dimensions involved
+in any computation, this conversion will have to be templated,
+something like:</p>
+<pre class="literal-block">
+template &lt;class T, class Dimensions&gt;
+struct quantity
+{
+    // converting constructor
+    template &lt;class OtherDimensions&gt;
+    quantity(quantity&lt;T,OtherDimensions&gt; const&amp; rhs)
+      : m_value(rhs.value())
+    {
+    }
+    ...
+</pre>
+<!-- @ example.append("""
+      explicit quantity(T x)
+         : m_value(x)
+      {}
+
+      T value() const { return m_value; }
+   private:
+      T m_value;
+  };""")
+
+stack[quantity_declaration] = example
+ignore()  -->
+<p>Unfortunately, such a general conversion undermines our whole
+purpose, allowing nonsense such as:</p>
+<pre class="literal-block">
+// Should yield a force, not a mass!
+quantity&lt;float,mass&gt; bogus = m * a;
+</pre>
+<!-- @ example.wrap('void bogus2%s {' % ma_function_args, '}')
+bogus_example = example
+compile('all', pop = 1) -->
+<p>We can correct that problem using another MPL algorithm,
+<tt class="literal"><span class="pre">equal</span></tt>, which tests that two sequences have the same elements:</p>
+<pre class="literal-block">
+template &lt;class OtherDimensions&gt;
+quantity(quantity&lt;T,OtherDimensions&gt; const&amp; rhs)
+  : m_value(rhs.value())
+{
+    BOOST_STATIC_ASSERT((
+       mpl::equal&lt;Dimensions,OtherDimensions&gt;::type::value
+    ));
+}
+</pre>
+<!-- @ example.wrap('''
+   #include <boost/mpl/equal.hpp>
+
+   template <class T, class Dimensions>
+   struct quantity
+   {
+       explicit quantity(T x)
+          : m_value(x)
+       {}
+
+       T value() const { return m_value; }
+   ''','''
+    private:
+       T m_value;
+   };''')
+
+stack[quantity_declaration] = example
+stack[-1] = bogus_example
+compile('all', pop = 1, expect_error = True) -->
+<p>Now, if the dimensions of the two quantities fail to match, the
+assertion will cause a compilation error.</p>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./implementing-addition-and.html" class="navigation-link">Prev</a>&nbsp;<a href="./implementing-division.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./implementing-addition-and.html" class="navigation-link">Back</a>&nbsp;<a href="./implementing-division.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./dimensional-analysis.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

@@ -1,0 +1,76 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template c_ascii_pattern_replacer</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/c_decorator.hpp&gt;">
+<link rel="prev" href="../swap_idp25059784.html" title="Function template swap">
+<link rel="next" href="c_decor.html" title="Global c_decor">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../swap_idp25059784.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="c_decor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.expressions.c_ascii_pattern_replacer"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template c_ascii_pattern_replacer</span></h2>
+<p>boost::log::expressions::c_ascii_pattern_replacer</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/c_decorator.hpp&gt;">boost/log/expressions/formatters/c_decorator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="c_ascii_pattern_replacer.html" title="Class template c_ascii_pattern_replacer">c_ascii_pattern_replacer</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">log</span><span class="special">::</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">pattern_replacer</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.log.expressions.c_ascii_pattern_replacer.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>  <span class="comment">// Result type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">char_type</span>   <a name="boost.log.expressions.c_ascii_pattern_replacer.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>    <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">string_type</span> <a name="boost.log.expressions.c_ascii_pattern_replacer.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>  <span class="comment">// String type. </span>
+
+  <span class="comment">// <a class="link" href="c_ascii_pattern_replacer.html#boost.log.expressions.c_ascii_pattern_replacerconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="c_ascii_pattern_replacer.html#idp25039688-bb"><span class="identifier">c_ascii_pattern_replacer</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="c_ascii_pattern_replacer.html#idp25037976-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="c_ascii_pattern_replacer.html#idp25038184-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">string_type</span><span class="special">::</span><span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp58241736"></a><h2>Description</h2>
+<p>A character decorator implementation that escapes all non-prontable and non-ASCII characters in the output with C-style escape sequences. </p>
+<div class="refsect2">
+<a name="idp58242216"></a><h3>
+<a name="boost.log.expressions.c_ascii_pattern_replacerconstruct-copy-destruct"></a><code class="computeroutput">c_ascii_pattern_replacer</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp25039688-bb"></a><span class="identifier">c_ascii_pattern_replacer</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Default constructor. </li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp58245336"></a><h3>
+<a name="idp25037976-bb"></a><code class="computeroutput">c_ascii_pattern_replacer</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp25038184-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">string_type</span> <span class="special">&amp;</span> str<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">string_type</span><span class="special">::</span><span class="identifier">size_type</span> start_pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Applies string replacements starting from the specified position. </li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../swap_idp25059784.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="c_decor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

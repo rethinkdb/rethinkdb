@@ -1,0 +1,35 @@
+################################################################################
+#
+# (C) Copyright 2010 Bryce Lelbach
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+################################################################################
+
+project bsl-xml-benchmark ;
+
+exe int4_test      : int4_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe int16_test     : int16_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe int64_test     : int64_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe int256_test    : int256_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe string4_test   : string4_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe string16_test  : string16_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe string64_test  : string64_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;
+
+exe string256_test : string256_test.cpp  
+                   : <toolset>gcc:<linkflags>"-lrt -lboost_serialization" ;

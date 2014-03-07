@@ -1,0 +1,2861 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/traits.hpp">
+  <para>
+    Contains definitions for various expression traits and utilities like
+    <computeroutput><classname alt="boost::proto::tag_of">proto::tag_of</classname>&lt;&gt;</computeroutput> and
+    <computeroutput><classname alt="boost::proto::arity_of">proto::arity_of</classname>&lt;&gt;</computeroutput>;
+    the functions
+    <computeroutput><functionname alt="boost::proto::value">proto::value</functionname>()</computeroutput>,
+    <computeroutput><functionname alt="boost::proto::left">proto::left</functionname>()</computeroutput> and
+    <computeroutput><functionname alt="boost::proto::right">proto::right</functionname>()</computeroutput>;
+    <computeroutput><functionname alt="boost::proto::child">proto::child</functionname>()</computeroutput>,
+    <computeroutput><functionname alt="boost::proto::child_c">proto::child_c</functionname>()</computeroutput>,
+    <computeroutput><functionname alt="boost::proto::as_expr">proto::as_expr</functionname>()</computeroutput>,
+    <computeroutput><functionname alt="boost::proto::as_child">proto::as_child</functionname>()</computeroutput>,
+    and assorted helpers.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <struct name="is_callable">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>Boolean metafunction which tells whether a type is a callable
+          <conceptname>PolymorphicFunctionObject</conceptname> or not.</purpose>
+        <description>
+          <para>
+            <computeroutput>proto::is_callable&lt;&gt;</computeroutput> is used by the
+            <computeroutput><classname alt="proto::when">proto::when&lt;&gt;</classname></computeroutput>
+            transform to determine whether a function type <computeroutput>R(A<subscript>1</subscript>,...A<subscript>n</subscript>)</computeroutput>
+            is a <conceptname>CallableTransform</conceptname> or an <conceptname>ObjectTransform</conceptname>.
+            The former are evaluated using <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput>
+            and the later with <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput>.
+            If <computeroutput>proto::is_callable&lt;R&gt;::value</computeroutput> is <computeroutput>true</computeroutput>,
+            the function type is a <conceptname>CallableTransform</conceptname>; otherwise, it is an <conceptname>ObjectTransform</conceptname>.
+          </para>
+          <para>
+            Unless specialized for a type
+            <computeroutput>T</computeroutput>, <computeroutput>proto::is_callable&lt;T&gt;::value</computeroutput>
+            is computed as follows:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  If <computeroutput>T</computeroutput> is a template type
+                  <computeroutput>X&lt;Y<subscript>0</subscript>,...Y<subscript>n</subscript>&gt;</computeroutput>,
+                  where all <computeroutput>Y<subscript>x</subscript></computeroutput> are types for
+                  <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>,
+                  <computeroutput>proto::is_callable&lt;T&gt;::value</computeroutput> is
+                  <computeroutput>boost::is_same&lt;Y<subscript>n</subscript>, <classname>proto::callable</classname>&gt;::value</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  If <computeroutput>T</computeroutput> is derived from <computeroutput><classname>proto::callable</classname></computeroutput>,
+                  <computeroutput>proto::is_callable&lt;T&gt;::value</computeroutput> is <computeroutput>true</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  Otherwise, <computeroutput>proto::is_callable&lt;T&gt;::value</computeroutput>
+                  is <computeroutput>false</computeroutput>.
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+        <inherit><type>mpl::bool_&lt;<replaceable>true-or-false</replaceable>&gt;</type></inherit>
+      </struct>
+
+      <struct name="is_transform">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>Boolean metafunction which tells whether a type is a
+          <conceptname>PrimitiveTransform</conceptname> or not.</purpose>
+        <description>
+          <para>
+            <computeroutput>proto::is_transform&lt;&gt;</computeroutput> is used by the
+            <computeroutput><classname alt="proto::make">proto::make&lt;&gt;</classname></computeroutput>
+            transform to determine whether a type <computeroutput>R</computeroutput> represents a
+            <conceptname>PrimitiveTransform</conceptname> to apply, or whether it merely represents itself.
+          </para>
+          <para>
+            It is also used by the 
+            <computeroutput><classname alt="proto::call">proto::call&lt;&gt;</classname></computeroutput>
+            transform to determine whether the function types <computeroutput>R()</computeroutput>,
+            <computeroutput>R(A1)</computeroutput>, and <computeroutput>R(A1, A2)</computeroutput> should
+            be passed the expression, state and data parameters (as needed).
+          </para>
+          <para>
+            Unless specialized for a type
+            <computeroutput>T</computeroutput>, <computeroutput>proto::is_transform&lt;T&gt;::value</computeroutput>
+            is computed as follows:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  If <computeroutput>T</computeroutput> is a class type that inherits directly or indirectly from
+                  an instantiation of
+                  <computeroutput><classname alt="proto::transform">proto::transform&lt;&gt;</classname></computeroutput>,
+                  <computeroutput>proto::is_transform&lt;T&gt;::value</computeroutput> is <computeroutput>true</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  Otherwise, <computeroutput>proto::is_transform&lt;T&gt;::value</computeroutput>
+                  is <computeroutput>false</computeroutput>.
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+        <inherit><type>mpl::bool_&lt;<replaceable>true-or-false</replaceable>&gt;</type></inherit>
+      </struct>
+
+      <struct name="is_aggregate">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>A Boolean metafunction that indicates whether a type requires aggregate initialization. </purpose>
+        <description>
+          <para>
+            <computeroutput>proto::is_aggregate&lt;&gt;</computeroutput> is used by the
+            <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> transform to determine how
+            to construct an object of some type <computeroutput>T</computeroutput>, given some initialization arguments
+            <computeroutput>a<subscript>0</subscript>,...a<subscript>n</subscript></computeroutput>.
+            If <computeroutput>proto::is_aggregate&lt;T&gt;::value</computeroutput> is <computeroutput>true</computeroutput>,
+            then an object of type <computeroutput>T</computeroutput> will be initialized as
+            <computeroutput>T t = {a<subscript>0</subscript>,...a<subscript>n</subscript>};</computeroutput>.
+            Otherwise, it will be initialized as
+            <computeroutput>T t(a<subscript>0</subscript>,...a<subscript>n</subscript>)</computeroutput>.
+          </para>
+          <para>
+            Note: <computeroutput><classname>proto::expr&lt;&gt;</classname></computeroutput> and
+            <computeroutput><classname>proto::basic_expr&lt;&gt;</classname></computeroutput>are aggregates.
+          </para>
+        </description>
+        <inherit><type>mpl::bool_&lt;<replaceable>true-or-false</replaceable>&gt;</type></inherit>
+      </struct>
+
+      <namespace name="functional">
+        <struct name="as_expr">
+          <template>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::default_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::as_expr">proto::as_expr()</functionname></computeroutput> function.
+          </purpose>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="T"/>
+            </template>
+            <specialization>
+              <template-arg>This(T)</template-arg>
+            </specialization>
+            <inherit><type><classname>proto::result_of::as_expr</classname>&lt; typename remove_reference&lt; T &gt;::type, Domain &gt;</type></inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::as_expr</classname>&lt; T, Domain &gt;::type</type>
+              <template>
+                <template-type-parameter name="T"/>
+              </template>
+              <parameter name="t">
+                <paramtype>T &amp;</paramtype>
+                <description>
+                  <para>The object to wrap. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Wrap an object in a Proto terminal if it isn't a Proto expression already.
+                </para>
+              </description>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::as_expr</functionname>&lt;Domain&gt;(t)</computeroutput>
+                </para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::as_expr</classname>&lt; T const, Domain &gt;::type</type>
+              <template>
+                <template-type-parameter name="T"/>
+              </template>
+              <parameter name="t">
+                <paramtype>T const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+        
+        <struct name="as_child">
+          <template>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::default_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>
+            A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::as_child">proto::as_child()</functionname></computeroutput> function.
+          </purpose>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="T"/>
+            </template>
+            <specialization>
+              <template-arg>This(T)</template-arg>
+            </specialization>
+            <inherit><type><classname>proto::result_of::as_child</classname>&lt; typename remove_reference&lt; T &gt;::type, Domain &gt;</type></inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::as_child</classname>&lt; T, Domain &gt;::type</type>
+              <template>
+                <template-type-parameter name="T"/>
+              </template>
+              <parameter name="t">
+                <paramtype>T &amp;</paramtype>
+                <description>
+                  <para>The object to wrap. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Wrap an object in a Proto terminal if it isn't a Proto expression already.
+                </para>
+              </description>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::as_child</functionname>&lt;Domain&gt;(t)</computeroutput>
+                </para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::as_child</classname>&lt; T const, Domain &gt;::type</type>
+              <template>
+                <template-type-parameter name="T"/>
+              </template>
+              <parameter name="t">
+                <paramtype>T const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+        
+        <struct name="child_c">
+          <template>
+            <template-nontype-parameter name="N">
+              <type>long</type>
+            </template-nontype-parameter>
+          </template>
+          <purpose>
+            A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::child_c">proto::child_c()</functionname></computeroutput> function.
+          </purpose>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit><type><classname>proto::result_of::child_c</classname>&lt; Expr, N &gt;</type></inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::child_c</classname>&lt; Expr &amp;, N &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The expression node. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Return the <replaceable>N</replaceable><superscript>th</superscript> child of the given expression.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+                  <computeroutput>true</computeroutput>
+                </para>
+                <para>
+                  <computeroutput>N &lt; Expr::proto_arity::value</computeroutput>
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::child_c</functionname>&lt;N&gt;(expr)</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::child_c</classname>&lt; Expr const &amp;, N &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <struct name="child">
+          <template>
+            <template-type-parameter name="N">
+              <default>mpl::long_&lt;0&gt;</default>
+            </template-type-parameter>
+          </template>
+          <purpose>A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::child">proto::child()</functionname></computeroutput> function.</purpose>
+          <description>
+            <para>
+              A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+              <computeroutput><functionname alt="proto::child">proto::child()</functionname></computeroutput>
+              function. <computeroutput>N</computeroutput> is required to be an MPL Integral Constant.
+            </para>
+          </description>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>proto::result_of::child</classname>&lt; Expr, N &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::child</classname>&lt; Expr &amp;, N &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The expression node. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Return the <replaceable>N</replaceable><superscript>th</superscript> child of the given expression.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+                  <computeroutput>true</computeroutput>
+                </para>
+                <para>
+                  <computeroutput>N::value &lt; Expr::proto_arity::value</computeroutput>
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::child</functionname>&lt;N&gt;(expr)</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::child</classname>&lt; Expr const &amp;, N &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <struct name="value">
+          <purpose>
+            A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::value">proto::value()</functionname></computeroutput> function.
+          </purpose>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>proto::result_of::value</classname>&lt; Expr &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::value</classname>&lt; Expr &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The terminal expression node. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Return the value of the given terminal expression.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+                  <computeroutput>true</computeroutput>
+                </para>
+                <para>
+                  <computeroutput>0 == Expr::proto_arity::value</computeroutput>
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::value</functionname>(expr)</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::value</classname>&lt; Expr const &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+        
+        <struct name="left">
+          <purpose>A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::left">proto::left()</functionname></computeroutput> function.</purpose>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>proto::result_of::left</classname>&lt; Expr &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::left</classname>&lt; Expr &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The expression node. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Return the left child of the given binary expression.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+                  <computeroutput>true</computeroutput>
+                </para>
+                <para>
+                  <computeroutput>2 == Expr::proto_arity::value</computeroutput>
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::left</functionname>(expr)</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::left</classname>&lt; Expr const &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <struct name="right">
+          <purpose>A callable <conceptname>PolymorphicFunctionObject</conceptname> that is equivalent to the
+            <computeroutput><functionname alt="proto::right">proto::right()</functionname></computeroutput> function.</purpose>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>proto::result_of::right</classname>&lt; Expr &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::right</classname>&lt; Expr &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The expression node. </para>
+                </description>
+              </parameter>
+              <description>
+                <para>Return the right child of the given binary expression.</para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is <computeroutput>true</computeroutput>
+                </para>
+                <para>
+                  <computeroutput>2 == Expr::proto_arity::value</computeroutput>
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::right</functionname>(expr)</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::right</classname>&lt; Expr const &amp; &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+            </method>
+          </method-group>
+        </struct>
+      </namespace>
+
+      <struct name="terminal">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; terminal&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating terminal expression types, a grammar element for matching
+          terminal expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that returns the current expression unchanged. </purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</inherit>
+          <typedef name="result_type">
+            <type>Expr</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>Expr</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::matches</classname>&lt;Expr, proto::terminal&lt;T&gt; &gt;::value</computeroutput> is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput>expr</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::terminal</classname>, <classname>proto::term</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::terminal</classname>, <classname>proto::term</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="if_else_">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+          <template-type-parameter name="V"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; if_else_&lt;T, U, V&gt; &gt;</inherit>
+        <purpose>A metafunction for generating ternary conditional expression types, a grammar element for
+          matching ternary conditional expressions, and
+          a <conceptname>PrimitiveTransform</conceptname>
+          that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;if_else_&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::if_else_</classname>, <classname alt="proto::listN">proto::list3</classname>&lt; T, U, V &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::if_else_</classname>, <classname alt="proto::listN">proto::list3</classname>&lt; T, U, V &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="unary_plus">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; unary_plus&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating unary plus expression types,
+          a grammar element for matching unary plus expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;unary_plus&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::unary_plus</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::unary_plus</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="negate">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; negate&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating unary minus expression types, 
+          a grammar element for matching unary minus expressions, and 
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput> 
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;negate&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::negate</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::negate</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="dereference">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; dereference&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating defereference expression types, 
+          a grammar element for matching dereference expressions, and 
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;dereference&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::dereference</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::dereference</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="complement">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; complement&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating complement expression types, 
+          a grammar element for matching complement expressions, and 
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;complement&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::complement</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::complement</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="address_of">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; address_of&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating address_of expression types, 
+          a grammar element for matching address_of expressions, and 
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;address_of&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::address_of</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::address_of</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="logical_not">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; logical_not&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating logical_not expression types, 
+          a grammar element for matching logical_not expressions, and 
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;logical_not&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::logical_not</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::logical_not</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="pre_inc">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; pre_inc&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating pre-increment expression types,
+          a grammar element for matching pre-increment expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;pre_inc&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::pre_inc</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::pre_inc</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="pre_dec">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; pre_dec&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating pre-decrement expression types,
+          a grammar element for matching pre-decrement expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;pre_dec&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::pre_dec</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::pre_dec</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="post_inc">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; post_inc&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating post-increment expression types,
+          a grammar element for matching post-increment expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;post_inc&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::post_inc</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::post_inc</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="post_dec">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; post_dec&lt;T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating post-decrement expression types,
+          a grammar element for matching post-decrement expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;post_dec&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::post_dec</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type>
+            <classname>proto::basic_expr</classname>&lt; <classname>proto::tag::post_dec</classname>, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;
+          </type>
+        </typedef>
+      </struct>
+
+      <struct name="shift_left">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; shift_left&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating left-shift expression types,
+          a grammar element for matching left-shift expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;shift_left&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::shift_left</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::shift_left</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="shift_right">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; shift_right&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating right-shift expression types,
+          a grammar element for matching right-shift expressions, and a
+          <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;shift_right&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::shift_right</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::shift_right</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="multiplies">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; multiplies&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating multiplies expression types,
+          a grammar element for matching multiplies expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;multiplies&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::multiplies</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::multiplies</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="divides">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; divides&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating divides expression types,
+          a grammar element for matching divides expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the 
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;divides&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::divides</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::divides</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="modulus">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; modulus&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating modulus expression types,
+          a grammar element for matching modulus expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;modulus&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::modulus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::modulus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="plus">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; plus&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating binary plus expression types,
+          a grammar element for matching binary plus expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;plus&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::plus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::plus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="minus">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; minus&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating binary minus expression types,
+          a grammar element for matching binary minus expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;minus&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::minus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::minus</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="less">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; less&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating less expression types,
+          a grammar element for matching less expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;less&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::less</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::less</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="greater">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; greater&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating greater expression types,
+          a grammar element for matching greater expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;greater&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::greater</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::greater</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="less_equal">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; less_equal&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating less-or-equal expression types,
+          a grammar element for matching less-or-equal expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;less_equal&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::less_equal</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::less_equal</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="greater_equal">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; greater_equal&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating greater-or-equal expression types,
+          a grammar element for matching greater-or-equal expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;greater_equal&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::greater_equal</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::greater_equal</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="equal_to">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; equal_to&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating equal-to expression types,
+          a grammar element for matching equal-to expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;equal_to&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::equal_to</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::equal_to</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="not_equal_to">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; not_equal_to&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating not-equal-to expression types,
+          a grammar element for matching not-equal-to expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;mot_equal_to&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::not_equal_to</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::not_equal_to</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="logical_or">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; logical_or&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating logical-or expression types,
+          a grammar element for matching logical-or expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;logical_or&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::logical_or</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::logical_or</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="logical_and">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; logical_and&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating logical-and expression types,
+          a grammar element for matching logical-and expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;logical_and&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::logical_and</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::logical_and</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_and">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_and&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-and expression types,
+          a grammar element for matching bitwise-and expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_and&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_and</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_and</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_or">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_or&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-or expression types,
+          a grammar element for matching bitwise-or expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_or&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_or</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_or</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_xor">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_xor&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-xor expression types,
+          a grammar element for matching bitwise-xor expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_xor&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_xor</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_xor</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="comma">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; comma&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating comma expression types,
+          a grammar element for matching comma expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;comma&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::comma</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::comma</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="mem_ptr">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; mem_ptr&lt;T, U&gt; &gt;</inherit>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;mem_ptr&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::mem_ptr</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::mem_ptr</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating assignment expression types,
+          a grammar element for matching assignment expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="shift_left_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; shift_left_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating left-shift-assign expression types,
+          a grammar element for matching left-shift-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;shift_left_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::shift_left_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::shift_left_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="shift_right_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; shift_right_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating right-shift-assign expression types,
+          a grammar element for matching right-shift-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;shift_right_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::shift_right_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::shift_right_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="multiplies_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; multiplies_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating multiplies-assign expression types,
+          a grammar element for matching multiplies-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;multiplies_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::multiplies_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::multiplies_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="divides_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; divides_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating divides-assign expression types,
+          a grammar element for matching divides-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;divides_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::divides_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::divides_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="modulus_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; modulus_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating modulus-assign expression types,
+          a grammar element for matching modulus-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;modulus_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::modulus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::modulus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="plus_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; plus_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating plus-assign expression types,
+          a grammar element for matching plus-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;plus_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::plus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::plus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="minus_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; minus_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating minus-assign expression types,
+          a grammar element for matching minus-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;minus_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::minus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::minus_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_and_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_and_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-and-assign expression types,
+          a grammar element for matching bitwise-and-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_and_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_and_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_and_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_or_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_or_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-or-assign expression types,
+          a grammar element for matching bitwise-or-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_or_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_or_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_or_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="bitwise_xor_assign">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; bitwise_xor_assign&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating bitwise-xor-assign expression types,
+          a grammar element for matching bitwise-xor-assign expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;bitwise_xor_assign&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::bitwise_xor_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::bitwise_xor_assign</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="subscript">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; subscript&lt;T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating subscript expression types,
+          a grammar element for matching subscript expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;subscript&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::subscript</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::subscript</classname>, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="function">
+        <template>
+          <template-type-parameter name="A" pack="1"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; function&lt;A...&gt; &gt;</inherit>
+        <purpose>A metafunction for generating function-call expression types, a grammar element for
+          matching function-call expressions, and
+          a <conceptname>PrimitiveTransform</conceptname>
+          that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;function&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; <classname>proto::tag::function</classname>, <classname alt="proto::listN">proto::list<replaceable>N</replaceable></classname>&lt; A... &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; <classname>proto::tag::function</classname>, <classname alt="proto::listN">proto::list<replaceable>N</replaceable></classname>&lt; A... &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="nullary_expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; nullary_expr&lt;Tag, T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating nullary expression types, a grammar element for matching
+          nullary expressions, and
+          a <conceptname>PrimitiveTransform</conceptname> that returns the current expression unchanged. </purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::nullary_expr&lt;<classname>proto::_</classname>, <classname>proto::_</classname>&gt;</computeroutput>
+            as a grammar element to match any nullary expression.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</inherit>
+          <typedef name="result_type">
+            <type>Expr</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>Expr</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::matches</classname>&lt;Expr, proto::nullary_expr&lt;Tag, T&gt; &gt;::value</computeroutput> is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput>expr</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; Tag, <classname>proto::term</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; Tag, <classname>proto::term</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="unary_expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; unary_expr&lt;Tag, T&gt; &gt;</inherit>
+        <purpose>A metafunction for generating unary expression types with a specified tag type,
+          a grammar element for matching unary expressions, and
+          a <conceptname>PrimitiveTransform</conceptname>
+          that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::unary_expr&lt;<classname>proto::_</classname>, <classname>proto::_</classname>&gt;</computeroutput>
+            as a grammar element to match any unary expression.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;unary_expr&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list1</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+      </struct>
+      
+      <struct name="binary_expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="U"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; binary_expr&lt;Tag, T, U&gt; &gt;</inherit>
+        <purpose>A metafunction for generating binary expression types with a specified tag type,
+          a grammar element for matching binary expressions, and
+          a <conceptname>PrimitiveTransform</conceptname>
+          that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::binary_expr&lt;<classname>proto::_</classname>, <classname>proto::_</classname>, <classname>proto::_</classname>&gt;</computeroutput> as a grammar element to match any binary expression.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;binary_expr&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list2</classname>&lt; T, U &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="nary_expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="A" pack="1"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; nary_expr&lt;Tag, A...&gt; &gt;</inherit>
+        <purpose>A metafunction for generating n-ary expression types with a specified tag type,
+          a grammar element for matching n-ary expressions, and
+          a <conceptname>PrimitiveTransform</conceptname>
+          that dispatches to the
+          <computeroutput><classname alt="proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+          transform.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::nary_expr&lt;<classname>proto::_</classname>, <classname>proto::vararg</classname>&lt;<classname>proto::_</classname>&gt; &gt;</computeroutput>
+            as a grammar element to match any n-ary expression; that is, any non-terminal.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit>
+            <type><classname>proto::pass_through</classname>&lt;nary_expr&gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="type">
+          <type><classname>proto::expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list<replaceable>N</replaceable></classname>&lt; A... &gt; &gt;</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; Tag, <classname alt="proto::listN">proto::list<replaceable>N</replaceable></classname>&lt; A... &gt; &gt;</type>
+        </typedef>
+      </struct>
+
+      <struct name="is_expr">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><type>mpl::bool_&lt;<replaceable>true-or-false</replaceable>&gt;</type></inherit>
+        <purpose>A Boolean metafunction that indicates whether a given type <computeroutput>T</computeroutput>
+          is a Proto expression type.</purpose>
+        <description>
+          <para>
+            If <computeroutput>T</computeroutput> is an instantiation of 
+            <computeroutput><classname alt="proto::expr">proto::expr&lt;&gt;</classname></computeroutput> or
+            <computeroutput><classname alt="proto::basic_expr">proto::basic_expr&lt;&gt;</classname></computeroutput> or is an extension
+            (via <classname alt="proto::extends">proto::extends&lt;&gt;</classname> or
+            <macroname>BOOST_PROTO_EXTENDS</macroname>()) of such an instantiation, 
+            <computeroutput><classname>proto::is_expr</classname>&lt;T&gt;::value</computeroutput>
+            is <computeroutput>true</computeroutput>. 
+            Otherwise, <computeroutput><classname>proto::is_expr</classname>&lt;T&gt;::value</computeroutput>
+            is <computeroutput>false</computeroutput>.
+          </para>
+        </description>
+      </struct>
+
+      <struct name="tag_of">
+        <template>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <purpose>A metafunction that returns the tag type of a Proto expression. </purpose>
+        <typedef name="type">
+          <type>typename Expr::proto_tag</type>
+        </typedef>
+      </struct>
+
+      <struct name="arity_of">
+        <template>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <purpose>A metafunction that returns the arity of a Proto expression. </purpose>
+        <inherit><type>Expr::proto_arity</type></inherit>
+      </struct>
+
+      <namespace name="result_of">
+        <struct name="as_expr">
+          <template>
+            <template-type-parameter name="T"/>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::default_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>A metafunction that computes the return type of the
+            <computeroutput><functionname>proto::as_expr</functionname>()</computeroutput> function.</purpose>
+          <description>
+            <para>
+              The <computeroutput>proto::result_of::as_expr&lt;&gt;</computeroutput> metafunction turns types
+              into Proto expression types, if they are not already, in a domain-specific way. It is intended
+              for use to compute the type of a local variable that can hold the result of the
+              <computeroutput><functionname>proto::as_expr</functionname>()</computeroutput> function.
+            </para>
+            <para>
+              See <computeroutput><classname>proto::domain::as_expr</classname>&lt;&gt;</computeroutput>
+              for a complete description of the default behavior.
+            </para>
+          </description>
+          <typedef name="type">
+            <type>typename Domain::template as_expr&lt; T &gt;::result_type</type>
+          </typedef>
+        </struct>
+
+        <struct name="as_child">
+          <template>
+            <template-type-parameter name="T"/>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::default_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>A metafunction that computes the return type of the
+            <computeroutput><functionname>proto::as_child</functionname>()</computeroutput> function.</purpose>
+          <description>
+            <para>
+              The <computeroutput>proto::result_of::as_child&lt;&gt;</computeroutput> metafunction turns types
+              into Proto expression types, if they are not already, in a domain-specific way. It is used by Proto
+              to compute the type of an object to store as a child in another expression node.
+            </para>
+            <para>
+              See <computeroutput><classname>proto::domain::as_child</classname>&lt;&gt;</computeroutput>
+              for a complete description of the default behavior.
+            </para>
+          </description>
+          <typedef name="type">
+            <type>typename Domain::template as_child&lt; T &gt;::result_type</type>
+          </typedef>
+        </struct>
+
+        <struct name="child">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="N">
+              <default>mpl::long_&lt;0&gt;</default>
+            </template-type-parameter>
+          </template>
+          <inherit><type><classname>proto::result_of::child_c</classname>&lt;Expr, N::value&gt;</type></inherit>
+          <purpose>A metafunction that returns the type of the <replaceable>N</replaceable><superscript>th</superscript>
+            child of a Proto expression, where N is an MPL Integral Constant. </purpose>
+          <description>
+            <para>
+              <computeroutput>proto::result_of::child&lt;Expr, N&gt;</computeroutput> is equivalent to
+              <computeroutput><classname>proto::result_of::child_c</classname>&lt;Expr, N::value&gt;</computeroutput>.
+            </para>
+          </description>
+        </struct>
+
+        <struct name="value">
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <purpose>A metafunction that returns the type of the value of a terminal Proto expression. </purpose>
+          <typedef name="value_type">
+            <description>
+              <para>
+                The raw type of the value as it is
+                stored within <computeroutput>Expr</computeroutput>. This may be a value or a reference.
+              </para>
+            </description>
+            <type>typename Expr::proto_child0</type>
+          </typedef>
+          <typedef name="type">
+            <description>
+              <para>
+                If <computeroutput>Expr</computeroutput> is not a reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const(&amp;)[N]</computeroutput> becomes <computeroutput>T[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T[N]</computeroutput> becomes <computeroutput>T[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T(&amp;)[N]</computeroutput> becomes <computeroutput>T[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>R(&amp;)(A...)</computeroutput> becomes <computeroutput>R(&amp;)(A...)</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                If <computeroutput>Expr</computeroutput> is a non-const reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const(&amp;)[N]</computeroutput> becomes <computeroutput>T const(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T[N]</computeroutput> becomes <computeroutput>T(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T(&amp;)[N]</computeroutput> becomes <computeroutput>T(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>R(&amp;)(A...)</computeroutput> becomes <computeroutput>R(&amp;)(A...)</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                If <computeroutput>Expr</computeroutput> is a const reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const(&amp;)[N]</computeroutput> becomes <computeroutput>T const(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T[N]</computeroutput> becomes <computeroutput>T const(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T(&amp;)[N]</computeroutput> becomes <computeroutput>T(&amp;)[N]</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>R(&amp;)(A...)</computeroutput> becomes <computeroutput>R(&amp;)(A...)</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </description>
+            <type><replaceable>see-below</replaceable></type>
+          </typedef>
+        </struct>
+
+        <struct name="left">
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <inherit>proto::result_of::child_c&lt; Expr, 0 &gt;</inherit>
+          <purpose>A metafunction that returns the type of the left child of a binary Proto expression. </purpose>
+          <description>
+            <para>
+              <computeroutput>proto::result_of::left&lt;Expr&gt;</computeroutput> is equivalent to
+              <computeroutput><classname>proto::result_of::child_c</classname>&lt;Expr, 0&gt;</computeroutput>.
+            </para>
+          </description>
+        </struct>
+
+        <struct name="right">
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <inherit>proto::result_of::child_c&lt; Expr, 1 &gt;</inherit>
+          <purpose>A metafunction that returns the type of the right child of a binary Proto expression. </purpose>
+          <description>
+            <para>
+              <computeroutput>proto::result_of::right&lt;Expr&gt;</computeroutput> is equivalent to
+              <computeroutput><classname>proto::result_of::child_c</classname>&lt;Expr, 1&gt;</computeroutput>.
+            </para>
+          </description>
+        </struct>
+
+        <struct name="child_c">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-nontype-parameter name="N">
+              <type>long</type>
+            </template-nontype-parameter>
+          </template>
+          <purpose>A metafunction that returns the type of the <replaceable>N</replaceable><superscript>th</superscript>
+            child of a Proto expression. </purpose>
+          <description>
+            <para>
+              A metafunction that returns the type of the <replaceable>N</replaceable><superscript>th</superscript>
+              child of a Proto expression. <computeroutput>N</computeroutput> must be 0 or less than
+              <computeroutput>Expr::proto_arity::value</computeroutput>.
+            </para>
+          </description>
+          <typedef name="value_type">
+            <description>
+              <para>
+                The raw type of the <replaceable>N</replaceable><superscript>th</superscript> child as it is stored
+                within <computeroutput>Expr</computeroutput>. This may be a value or a reference.
+              </para>
+            </description>
+            <type>typename Expr::proto_child0</type>
+          </typedef>
+          <typedef name="type">
+            <description>
+              <para>
+                If <computeroutput>Expr</computeroutput> is not a reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                If <computeroutput>Expr</computeroutput> is a non-const reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                If <computeroutput>Expr</computeroutput> is a const reference type, <computeroutput>type</computeroutput>
+                is computed as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      <computeroutput>T const &amp;</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T &amp;</computeroutput> becomes <computeroutput>T &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      <computeroutput>T</computeroutput> becomes <computeroutput>T const &amp;</computeroutput>
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </description>
+            <type><replaceable>see-below</replaceable></type>
+          </typedef>
+        </struct>
+
+      </namespace>
+
+      <overloaded-function name="as_expr">
+        <signature>
+          <type>typename <classname>proto::result_of::as_expr</classname>&lt; T &gt;::type</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_expr</classname>&lt; T const &gt;::type</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_expr</classname>&lt; T, Domain &gt;::type</type>
+          <template>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_expr</classname>&lt; T const, Domain &gt;::type</type>
+          <template>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>A function that wraps non-Proto expression types in Proto terminals and leaves Proto
+          expression types alone.</purpose>
+        <description>
+          <para>
+            The <computeroutput>proto::as_expr()</computeroutput> function returns Proto expression
+            objects that are suitable for storage in a local variable. It turns non-Proto objects
+            into Proto terminals. Its behavior is domain-specific. By default, 
+            non-Proto types are wrapped by value (if possible) in a new Proto terminal expression,
+            and objects that are already Proto expressions are returned by value.
+          </para>
+          <para>
+            If <computeroutput>Domain</computeroutput> is not explicitly specified, it is assumed to
+            be <computeroutput><classname>proto::default_domain</classname></computeroutput>.
+          </para>
+          <para>
+            See <computeroutput><classname>proto::domain::as_expr</classname>&lt;&gt;</computeroutput>
+            for a complete description of this function's default behavior.
+          </para>
+        </description>
+        <returns>
+          <computeroutput>typename Domain::template as_expr&lt; T &gt;()(t)</computeroutput>
+        </returns>
+      </overloaded-function>
+      
+      <overloaded-function name="as_child">
+        <signature>
+          <type>typename <classname>proto::result_of::as_child</classname>&lt; T &gt;::type</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_child</classname>&lt; T const &gt;::type</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_child</classname>&lt; T, Domain &gt;::type</type>
+          <template>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::as_child</classname>&lt; T const, Domain &gt;::type</type>
+          <template>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>A function that wraps non-Proto objects in Proto terminals (by reference) and leaves
+          Proto expression types alone.</purpose>
+        <description>
+          <para>
+            The <computeroutput>proto::as_child()</computeroutput> function returns Proto expression
+            objects that are suitable for storage as child nodes in an expression tree. It turns
+            non-Proto objects into Proto terminals. Its behavior is domain-specific. By default,
+            non-Proto types are held wrapped by reference in a new Proto terminal expression, and
+            objects that are already Proto expressions are simply returned by reference.
+          </para>
+          <para>
+            If <computeroutput>Domain</computeroutput> is not explicitly specified, it is assumed to
+            be <computeroutput><classname>proto::default_domain</classname></computeroutput>.
+          </para>
+          <para>
+            See <computeroutput><classname>proto::domain::as_child</classname>&lt;&gt;</computeroutput>
+            for a complete description of this function's default behavior.
+          </para>
+        </description>
+        <returns>
+          <computeroutput>typename Domain::template as_child&lt; T &gt;()(t)</computeroutput>
+        </returns>
+      </overloaded-function>
+
+      <overloaded-function name="child">
+        <signature>
+          <type>typename <classname>proto::result_of::child</classname>&lt; Expr &amp;, N &gt;::type</type>
+          <template>
+            <template-type-parameter name="N"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+            <description>
+              <para>The Proto expression. </para>
+            </description>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::child</classname>&lt; Expr const &amp;, N &gt;::type</type>
+          <template>
+            <template-type-parameter name="N"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::child</classname>&lt; Expr &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::child</classname>&lt; Expr const &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Return the <replaceable>N</replaceable><superscript>th</superscript> child of the specified Proto expression. </purpose>
+        <description>
+          <para>
+            Return the <replaceable>N</replaceable><superscript>th</superscript> child of the specified Proto expression.
+            If <computeroutput>N</computeroutput> is not specified, as in <computeroutput>proto::child(expr)</computeroutput>,
+            then <computeroutput>N</computeroutput> is assumed to be <computeroutput>mpl::long_&lt;0&gt;</computeroutput>.
+            The child is returned by reference.
+          </para>
+        </description>
+        <requires>
+          <para>
+            <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+            <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            <computeroutput>N</computeroutput> is an MPL Integral Constant.
+          </para>
+          <para>
+            <computeroutput>N::value &lt; Expr::proto_arity::value</computeroutput>
+          </para>
+        </requires>
+        <returns>
+          <para>A reference to the <replaceable>N</replaceable><superscript>th</superscript> child
+          of <computeroutput>expr</computeroutput>.</para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+      </overloaded-function>
+
+      <overloaded-function name="child_c">
+        <signature>
+          <type>typename <classname>proto::result_of::child_c</classname>&lt; Expr &amp;, N &gt;::type</type>
+          <template>
+            <template-nontype-parameter name="N">
+              <type>long</type>
+            </template-nontype-parameter>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::child_c</classname>&lt; Expr const &amp;, N &gt;::type</type>
+          <template>
+            <template-nontype-parameter name="N">
+              <type>long</type>
+            </template-nontype-parameter>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Return the <replaceable>N</replaceable><superscript>th</superscript> child of the specified
+          Proto expression. </purpose>
+        <description>
+          <para>
+            Return the <replaceable>N</replaceable><superscript>th</superscript> child of the specified Proto
+            expression. The child is returned by reference.
+          </para>
+        </description>
+        <requires>
+          <para>
+            <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+            <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            <computeroutput>N &lt; Expr::proto_arity::value</computeroutput>
+          </para>
+        </requires>
+        <returns>
+          <para>A reference to the <replaceable>N</replaceable><superscript>th</superscript> child
+            of <computeroutput>expr</computeroutput>.</para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+      </overloaded-function>
+
+      <overloaded-function name="value">
+        <signature>
+          <type>typename <classname>proto::result_of::value</classname>&lt; Expr &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::value</classname>&lt; Expr const &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Return the value stored within the specified Proto terminal expression. </purpose>
+        <description>
+          <para>
+            Return the the value stored within the specified Proto terminal expression. The value is
+            returned by reference.
+          </para>
+        </description>
+        <requires>
+          <para>
+            <computeroutput>0 == Expr::proto_arity::value</computeroutput>
+          </para>
+        </requires>
+        <returns>
+          <para>A reference to the terminal's value </para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+      </overloaded-function>
+
+      <overloaded-function name="left">
+        <signature>
+          <type>typename <classname>proto::result_of::left</classname>&lt; Expr &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::left</classname>&lt; Expr const &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Return the left child of the specified binary Proto expression. </purpose>
+        <description>
+          <para>Return the left child of the specified binary Proto expression. The child is returned by reference.</para>
+        </description>
+        <requires>
+          <para>
+            <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+            <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            <computeroutput>2 == Expr::proto_arity::value</computeroutput>
+          </para>
+        </requires>
+        <returns>
+          <para>A reference to the left child of <computeroutput>expr</computeroutput>.
+        </para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+      </overloaded-function>
+
+      <overloaded-function name="right">
+        <signature>
+          <type>typename <classname>proto::result_of::right</classname>&lt; Expr &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+            <description>
+              <para>The Proto expression. </para>
+            </description>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::right</classname>&lt; Expr const &amp; &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Return the right child of the specified binary Proto expression. </purpose>
+        <description>
+          <para>Return the right child of the specified binary Proto expression. The child is returned by reference.</para>
+        </description>
+        <requires>
+          <para>
+            <computeroutput><classname>proto::is_expr</classname>&lt;Expr&gt;::value</computeroutput> is
+            <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            <computeroutput>2 == Expr::proto_arity::value</computeroutput>
+          </para>
+        </requires>
+        <returns>
+          <para>
+            A reference to the right child of <computeroutput>expr</computeroutput>.
+          </para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+      </overloaded-function>
+    </namespace>
+  </namespace>
+</header>

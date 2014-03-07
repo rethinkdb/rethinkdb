@@ -1,0 +1,53 @@
+
+# Copyright (C) 2006-2009, 2012 Alexander Nasonov
+# Copyright (C) 2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/scope_exit
+
+import testing ;
+
+rule run-vaseq ( command target )
+{
+    # Sun does not automatically detect type-of emulation mode (force it).
+    run $(target).cpp : : : <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+    run $(target)_seq.cpp : : : <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+    run $(target)_seq_nova.cpp : : :
+            <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+}
+
+rule run-typeof ( native_target emulation_target )
+{
+    run $(native_target).cpp : : : <define>BOOST_TYPEOF_NATIVE ;
+    run $(native_target).cpp : : : <define>BOOST_TYPEOF_EMULATION :
+            $(emulation_target) : ;
+}
+
+rule compile-fail-typeof ( native_target emulation_target )
+{
+    compile-fail $(native_target).cpp : <define>BOOST_TYPEOF_NATIVE ;
+    compile-fail $(native_target).cpp : <define>BOOST_TYPEOF_EMULATION :
+            $(emulation_target) : ;
+}
+
+run-vaseq run same_line ;
+run-vaseq run world ;
+run-vaseq run world_checkpoint ;
+run-vaseq run world_checkpoint_all ;
+run-vaseq run world_this ;
+run-vaseq run world_tpl ;
+run world_void.cpp ;
+run world_void_nova.cpp ;
+
+run-typeof native emulation ;
+run-typeof native_tpl emulation_tpl ;
+run-typeof native_this emulation_this ;
+run-typeof native_this_tpl emulation_this_tpl ;
+compile-fail-typeof native_const_error emulation_const_error ;
+compile-fail-typeof native_cv_error emulation_cv_error ;
+run native_tu_test.cpp native_tu1.cpp native_tu2.cpp : : :
+        <define>BOOST_TYPEOF_NATIVE ;
+run native_tu_test.cpp native_tu1.cpp native_tu2.cpp : : :
+        <define>BOOST_TYPEOF_EMULATION : emulation_tu_test : ;
+

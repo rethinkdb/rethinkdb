@@ -1,0 +1,310 @@
+# $Id: Jamfile.v2 85666 2013-09-14 14:22:45Z viboes $
+# Copyright 2006-2007 Roland Schwarz.
+# Copyright 2007 Anthony Williams
+# Copyright 2011-2012 Vicente J.Botet Escriba.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#########################################################################
+# The boost threading library can be built on top of different API's
+# Currently this is the win32 API and the pthreads API.
+# Pthread is native on unix variants.
+# To get pthread on windows you need the pthread win32 library
+# http://sourceware.org/pthreads-win32 which is available under LGPL.
+#
+# You need to provide the include path and lib path in the variables
+# PTW32_INCLUDE and PTW32_LIB respectively. You can specify these
+# paths in site-config.jam, user-config.jam or in the environment.
+# A new feature is provided to request a specific API:
+# <threadapi>win32 and <threadapi)pthread.
+#
+# The naming of the resulting libraries is mostly the same for the
+# variant native to the build platform, i.e.
+# boost_thread and the boost specific tagging.
+# For the library variant that is not native on the build platform
+# an additional tag is applied:
+# boost_thread_pthread for the pthread variant on windows, and
+# boost_thread_win32 for the win32 variant (likely when built on cygwin).
+#
+# To request the pthread variant on windows, from boost root you would
+# say e.g:
+# bjam msvc-8.0 --with-thread install threadapi=pthread
+#########################################################################
+
+import os ;
+import feature ;
+import indirect ;
+import path ;
+import configure ; 
+
+project boost/thread
+    : source-location ../src
+    : requirements <threading>multi
+      #<link>static:<define>BOOST_THREAD_STATIC_LINK=1
+      #<link>shared:<define>BOOST_THREAD_DYN_LINK=1
+      <link>static:<define>BOOST_THREAD_BUILD_LIB=1
+      <link>shared:<define>BOOST_THREAD_BUILD_DLL=1
+      -<tag>@$(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag
+      <tag>@$(__name__).tag
+      <toolset>gcc:<cxxflags>-Wno-long-long
+      #<define>BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+      #<define>BOOST_SYSTEM_NO_DEPRECATED
+      #<define>BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS
+
+      <library>/boost/system//boost_system
+       #-pedantic -ansi -std=gnu++0x -Wextra -fpermissive
+        <warnings>all
+        <toolset>gcc:<cxxflags>-Wextra
+        <toolset>gcc:<cxxflags>-pedantic
+        <toolset>gcc:<cxxflags>-Wno-long-long
+        #<toolset>gcc:<cxxflags>-ansi
+        #<toolset>gcc:<cxxflags>-fpermissive
+        <toolset>gcc:<cxxflags>-Wno-variadic-macros
+        #<toolset>gcc:<cxxflags>-Wunused-local-typedefs
+        <toolset>gcc:<cxxflags>-Wunused-function
+
+        <toolset>darwin:<cxxflags>-Wextra
+        <toolset>darwin:<cxxflags>-pedantic
+        #<toolset>darwin:<cxxflags>-ansi
+        <toolset>darwin:<cxxflags>-fpermissive
+        <toolset>darwin:<cxxflags>-Wno-long-long
+        <toolset>darwin:<cxxflags>-Wno-variadic-macros
+        #<toolset>darwin:<cxxflags>-Wunused-local-typedefs
+        <toolset>darwin:<cxxflags>-Wunused-function
+
+        #<toolset>pathscale:<cxxflags>-Wextra
+        <toolset>pathscale:<cxxflags>-Wno-long-long
+        <toolset>pathscale:<cxxflags>-pedantic
+
+        <toolset>clang:<cxxflags>-Wextra
+        <toolset>clang:<cxxflags>-pedantic
+        #<toolset>clang:<cxxflags>-ansi
+        #<toolset>clang:<cxxflags>-fpermissive
+        <toolset>clang:<cxxflags>-Wno-long-long
+        <toolset>clang:<cxxflags>-Wunused-function
+        <toolset>clang:<cxxflags>-Wno-variadic-macros
+
+        <toolset>gcc-mingw-4.4.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.5.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.6.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.6.3:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.7.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.8.0:<cxxflags>-fdiagnostics-show-option
+        #<toolset>gcc:<cxxflags>-Wno-missing-field-initializers
+
+        <toolset>darwin-4.6.2:<cxxflags>-Wno-delete-non-virtual-dtor
+        <toolset>darwin-4.7.0:<cxxflags>-Wno-delete-non-virtual-dtor
+
+        #<toolset>clang-2.8:<cxxflags>-Wno-delete-non-virtual-dtor
+        #<toolset>clang-2.8:<cxxflags>-Wno-unused-function
+        #<toolset>clang-2.9:<cxxflags>-Wno-delete-non-virtual-dtor
+        #<toolset>clang-2.9:<cxxflags>-Wno-unused-function
+        <toolset>clang-3.0:<cxxflags>-Wno-delete-non-virtual-dtor
+        #<toolset>clang-3.0:<cxxflags>-Wno-unused-function
+        #<toolset>clang-3.0:<cxxflags>-Wno-unused-variable
+
+# Note: Some of the remarks from the Intel compiler are disabled
+# remark #193: zero used for undefined preprocessing identifier "XXX"
+# remark #304: access control not specified ("public" by default)
+# remark #593: variable "XXX" was set but never used
+# remark #1418: external function definition with no prior declaration
+# remark #2415: variable "XXX" of static storage duration was declared but never referenced
+
+        <toolset>intel:<cxxflags>-wd193,304,383,444
+        <toolset>intel:<cxxflags>-wd593,981
+        <toolset>intel:<cxxflags>-wd1418
+        <toolset>intel:<cxxflags>-wd2415
+
+        <toolset>msvc:<cxxflags>/wd4512
+
+
+    # : default-build <threading>multi
+    : usage-requirements  # pass these requirement to dependents (i.e. users)
+      #<link>static:<define>BOOST_THREAD_STATIC_LINK=1
+      #<link>shared:<define>BOOST_THREAD_DYN_LINK=1
+      <link>static:<define>BOOST_THREAD_BUILD_LIB=1
+      <link>shared:<define>BOOST_THREAD_BUILD_DLL=1
+      #<define>BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+      #<define>BOOST_SYSTEM_NO_DEPRECATED
+      #<define>BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS
+      <library>/boost/system//boost_system
+    ;
+
+local rule default_threadapi ( )
+{
+    local api = pthread ;
+    if [ os.name ] = "NT" { api = win32 ; }
+    return $(api) ;
+}
+
+feature.feature threadapi : pthread win32 : propagated ;
+feature.set-default threadapi : [ default_threadapi ] ;
+
+exe has_atomic_flag_lockfree : ../build/has_atomic_flag_lockfree_test.cpp ; 
+
+rule tag ( name : type ? : property-set )
+{
+    local result = $(name) ;
+
+    if $(type) in STATIC_LIB SHARED_LIB IMPORT_LIB
+    {
+        local api = [ $(property-set).get <threadapi> ] ;
+
+        # non native api gets additional tag
+        if $(api) != [ default_threadapi ] {
+            result = $(result)_$(api) ;
+        }
+    }
+
+    # forward to the boost tagging rule
+    return  [ indirect.call $(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag
+                $(result) : $(type) : $(property-set) ] ;
+}
+
+rule win32_pthread_paths ( properties * )
+{
+    local result ;
+    local PTW32_INCLUDE ;
+    local PTW32_LIB ;
+    PTW32_INCLUDE  = [ modules.peek             : PTW32_INCLUDE ] ;
+    PTW32_LIB      = [ modules.peek             : PTW32_LIB     ] ;
+    PTW32_INCLUDE ?= [ modules.peek user-config : PTW32_INCLUDE ] ;
+    PTW32_LIB     ?= [ modules.peek user-config : PTW32_LIB     ] ;
+    PTW32_INCLUDE ?= [ modules.peek site-config : PTW32_INCLUDE ] ;
+    PTW32_LIB     ?= [ modules.peek site-config : PTW32_LIB     ] ;
+
+    if ! ( $(PTW32_INCLUDE) && $(PTW32_LIB) )
+    {
+        if  ! $(.notified)
+        {
+            echo "************************************************************" ;
+            echo "Trying to build Boost.Thread with pthread support."           ;
+            echo "If you need pthread you should specify the paths."            ;
+            echo "You can specify them in site-config.jam, user-config.jam"     ;
+            echo "or in the environment."                                       ;
+            echo "For example:"                                                 ;
+            echo "PTW32_INCLUDE=C:\\Program Files\\ptw32\\Pre-built2\\include"  ;
+            echo "PTW32_LIB=C:\\Program Files\\ptw32\\Pre-built2\\lib"          ;
+            echo "************************************************************" ;
+            .notified = true ;
+        }
+    }
+    else
+    {
+        local include_path = [ path.make $(PTW32_INCLUDE) ] ;
+        local lib_path = [ path.make $(PTW32_LIB) ] ;
+        local libname = pthread ;
+        if <toolset>msvc in $(properties)
+        {
+            libname = $(libname)VC2.lib ;
+        }
+        if <toolset>gcc in $(properties)
+        {
+            libname = lib$(libname)GC2.a ;
+        }
+        lib_path = [ path.glob $(lib_path) : $(libname) ] ;
+        if ! $(lib_path)
+        {
+            if  ! $(.notified)
+            {
+                echo "************************************************************" ;
+                echo "Trying to build Boost.Thread with pthread support."           ;
+                echo "But the library" $(libname) "could not be found in path"      ;
+                echo $(PTW32_LIB)                                                   ;
+                echo "************************************************************" ;
+                .notified = true ;
+            }
+        }
+        else
+        {
+            result += <include>$(include_path) ;
+            result += <library>$(lib_path) ;
+        }
+    }
+    return $(result) ;
+}
+
+rule usage-requirements ( properties * )
+{
+    local result ;
+    if <threadapi>pthread in $(properties)
+    {
+        result += <define>BOOST_THREAD_POSIX ;
+        if <target-os>windows in $(properties)
+        {
+            result += [ win32_pthread_paths $(properties) ] ;
+            # TODO: What is for static linking? Is the <library> also needed
+            # in that case?
+        }
+    }
+
+    #if ! <toolset>vacpp in $(properties) || <toolset-vacpp:version>11.1 in $(properties) || <toolset-vacpp:version>12.1.0.1 in $(properties)  || <toolset-vacpp:version>12.1 in $(properties)
+    #{
+      result += <library>/boost/chrono//boost_chrono ;
+    #}
+
+    return $(result) ;
+}
+
+rule requirements ( properties * )
+{
+    local result ;
+
+    if <threadapi>pthread in $(properties)
+    {
+        result += <define>BOOST_THREAD_POSIX ;
+        if <target-os>windows in $(properties)
+        {
+            local paths = [ win32_pthread_paths $(properties) ] ;
+            if $(paths)
+            {
+                result += $(paths) ;
+            }
+            else
+            {
+                result = <build>no ;
+            }
+        }
+        result += <define>BOOST_THREAD_DONT_USE_CHRONO ;
+        if ! [ configure.builds has_atomic_flag_lockfree 
+            : $(properties) : "lockfree boost::atomic_flag" ]  { 
+           result += <library>/boost/atomic//boost_atomic ; 
+        } 
+    } else {
+        result += <define>BOOST_THREAD_USES_CHRONO ;
+        result += <library>/boost/chrono//boost_chrono ;
+    }
+
+    return $(result) ;
+}
+
+alias thread_sources
+    : ## win32 sources ##
+      win32/thread.cpp
+      win32/tss_dll.cpp
+      win32/tss_pe.cpp
+      future.cpp
+    : ## requirements ##
+      <threadapi>win32
+    ;
+
+alias thread_sources
+    : ## pthread sources ##
+      pthread/thread.cpp
+      pthread/once.cpp
+      future.cpp
+    : ## requirements ##
+      <threadapi>pthread
+    ;
+
+explicit thread_sources ;
+
+lib boost_thread
+    : thread_sources
+    : <conditional>@requirements
+    :
+    : <link>shared:<define>BOOST_THREAD_USE_DLL=1
+      <link>static:<define>BOOST_THREAD_USE_LIB=1
+      <conditional>@usage-requirements
+    ;

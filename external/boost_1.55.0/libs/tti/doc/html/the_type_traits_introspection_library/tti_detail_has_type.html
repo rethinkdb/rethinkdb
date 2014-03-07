@@ -1,0 +1,248 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introspecting an inner type</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_detail.html" title="Macro Metafunctions">
+<link rel="next" href="tti_detail_has_template.html" title="Introspecting an inner class template">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_template.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_detail_has_type"></a><a class="link" href="tti_detail_has_type.html" title="Introspecting an inner type">Introspecting
+    an inner type</a>
+</h2></div></div></div>
+<p>
+      The TTI macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_HAS_TYPE.html" title="Macro BOOST_TTI_HAS_TYPE">BOOST_TTI_HAS_TYPE</a></code>
+      introspects a nested type of a class.
+    </p>
+<p>
+      The BOOST_TTI_HAS_TYPE macro takes a single parameter which is the name of
+      an inner type whose existence the programmer wants to check. The macro generates
+      a metafunction called 'has_type_'name_of_inner_type'.
+    </p>
+<p>
+      The main purpose of the generated metafunction is to check for the existence
+      by name of the inner type. The metafunction can also be used to invoke an MPL
+      lambda expression which is passed the inner type. One of the most common usages
+      of the added functionality is to check whether or not the inner type is a typedef
+      for another type.
+    </p>
+<p>
+      The metafunction is invoked by passing it the enclosing type to introspect.
+      A second type may be passed to the metafunction, an MPL lambda expression taking
+      the inner type and returning a boolean constant.
+    </p>
+<p>
+      The metafunction returns a single type called 'type', which is a boost::mpl::bool_.
+      As a convenience the metafunction returns the value of this type directly as
+      a compile time bool constant called 'value'. This value is true or false depending
+      on whether the inner type exists or not.
+    </p>
+<p>
+      If a second optional type is passed, this type must be an MPL lambda expression
+      and the expression will be invoked only if the inner type exists. In that case
+      the metafunction returns true or false depending on whether the lambda expression
+      returns true or false. If the inner type does not exist, the lambda expression,
+      even if specified, is never invoked and the metafunction returns false.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.generating_the_metafunction"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.generating_the_metafunction">Generating
+      the metafunction</a>
+    </h4>
+<p>
+      You generate the metafunction by invoking the macro with the name of an inner
+      type:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">AType</span><span class="special">)</span>
+</pre>
+<p>
+      generates a metafunction called 'has_type_AType' in the current scope.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h1"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.invoking_the_metafunction"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.invoking_the_metafunction">Invoking
+      the metafunction</a>
+    </h4>
+<p>
+      You invoke the metafunction by instantiating the template with an enclosing
+      type to introspect and, optionally, an MPL lambda expression. A return value
+      called 'value' is a compile time bool constant.
+    </p>
+<pre class="programlisting"><span class="identifier">has_type_AType</span><span class="special">&lt;</span><span class="identifier">Enclosing_Type</span><span class="special">&gt;::</span><span class="identifier">value</span>
+<span class="identifier">has_type_AType</span><span class="special">&lt;</span><span class="identifier">Enclosing_Type</span><span class="special">,</span><span class="identifier">ALambdaExpression</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h2"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.examples"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.examples">Examples</a>
+    </h4>
+<p>
+      First we generate metafunctions for various inner type names:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">MyTypeDef</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">AType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">ATypeDef</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">MyType</span><span class="special">)</span>
+</pre>
+<p>
+      Next let us create some user-defined types we want to introspect.
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">Top</span>
+  <span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">MyTypeDef</span><span class="special">;</span>
+  <span class="keyword">struct</span> <span class="identifier">AType</span> <span class="special">{</span> <span class="special">};</span>
+  <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">Top2</span>
+  <span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="keyword">long</span> <span class="identifier">ATypeDef</span><span class="special">;</span>
+  <span class="keyword">struct</span> <span class="identifier">MyType</span> <span class="special">{</span> <span class="special">};</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      Finally we invoke our metafunction and return our value.
+    </p>
+<pre class="programlisting"><span class="identifier">has_type_MyTypeDef</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>  <span class="comment">// true</span>
+<span class="identifier">has_type_MyTypeDef</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_type_AType</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>  <span class="comment">// true</span>
+<span class="identifier">has_type_AType</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_type_ATypeDef</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>  <span class="comment">// false</span>
+<span class="identifier">has_type_ATypeDef</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+
+<span class="identifier">has_type_MyType</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>  <span class="comment">// false</span>
+<span class="identifier">has_type_MyType</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h3"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.examples___using_lambda_expressions"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.examples___using_lambda_expressions">Examples
+      - using lambda expressions</a>
+    </h4>
+<p>
+      We can further invoke our metafunction with a second type, which is an MPL
+      lambda expression.
+    </p>
+<p>
+      An MPL lambda expression, an extremely useful technique in template metaprogramming,
+      allows us to pass a metafunction to other metafunctions. The metafunction we
+      pass can be in the form of a placeholder expression or a metafunction class.
+      In our case the metafunction passed to our has_type_'name_of_inner_type' metafunction
+      as a lambda expression must return a boolean constant expression.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h4"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.example___using_a_lambda_expression_with_a_placeholder_expression"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.example___using_a_lambda_expression_with_a_placeholder_expression">Example
+      - using a lambda expression with a placeholder expression</a>
+    </h4>
+<p>
+      We will first illustrate the use of a lambda expression in the form of a placeholder
+      expression being passed as the second template parameter to our has_type_'name_of_inner_type'
+      metafunction. A popular and simple placeholder expression we can use is 'boost::is_same&lt;_1,SomeType&gt;'
+      to check if the inner type found is a particular type. This is particularly
+      useful when the inner type is a typedef for some other type.
+    </p>
+<p>
+      First we include some more header files and a using declaration for convenience.
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">/</span><span class="identifier">placeholders</span><span class="special">.</span><span class="identifier">hpp</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_same</span><span class="special">.</span><span class="identifier">hpp</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">;</span>
+</pre>
+<p>
+      Next we invoke our metafunction:
+    </p>
+<pre class="programlisting"><span class="identifier">has_type_MyTypeDef</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">_1</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_type_MyTypeDef</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">_1</span><span class="special">,</span><span class="keyword">long</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_type_ATypeDef</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">_1</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_type_ATypeDef</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">_1</span><span class="special">,</span><span class="keyword">long</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h5"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.example___using_a_lambda_expression_with_a_metafunction_class"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.example___using_a_lambda_expression_with_a_metafunction_class">Example
+      - using a lambda expression with a metafunction class</a>
+    </h4>
+<p>
+      We will next illustrate the use of a lambda expression in the form of a metafunction
+      class being passed as the second template parameter to our has_type_'name_of_inner_type'
+      metafunction.
+    </p>
+<p>
+      A metafunction class is a type which has a nested class template called 'apply'.
+      For our metafunction class example we will check if the inner type is a built-in
+      integer type. First let us write out metafunction class:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_integral</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">OurMetafunctionClass</span>
+  <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">apply</span> <span class="special">:</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_integral</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+      <span class="special">{</span>
+      <span class="special">};</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      Now we can invoke our metafunction:
+    </p>
+<pre class="programlisting"><span class="identifier">has_type_MyTypeDef</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">OurMetafunctionClass</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_type_AType</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">OurMetafunctionClass</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_type_ATypeDef</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">OurMetafunctionClass</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_type_MyType</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">OurMetafunctionClass</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_type.h6"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_type.metafunction_re_use"></a></span><a class="link" href="tti_detail_has_type.html#the_type_traits_introspection_library.tti_detail_has_type.metafunction_re_use">Metafunction
+      re-use</a>
+    </h4>
+<p>
+      The macro encodes only the name of the inner type for which we are searching
+      and the fact that we are introspecting for an inner type within an enclosing
+      type.
+    </p>
+<p>
+      Because of this, once we create our metafunction for introspecting an inner
+      type by name, we can reuse the metafunction for introspecting any enclosing
+      type, having any inner type, for that name.
+    </p>
+<p>
+      Furthermore since we have only encoded the name of the inner type for which
+      we are introspecting, we can not only introspect for that inner type by name
+      but add different lambda expressions to inspect that inner type for whatever
+      we want to find out about it using the same metafunction.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_template.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

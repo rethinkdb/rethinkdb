@@ -1,0 +1,196 @@
+#  Copyright (c) 2003      Michael Stevens
+#  Copyright (c) 2010-2011 Bryce Lelbach (blelbach@cct.lsu.edu, maintainer)
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import toolset ;
+import feature ;
+import toolset : flags ;
+
+import clang ;
+import gcc ;
+import common ;
+import errors ;
+import generators ;
+import type ;
+import numbers ;
+
+feature.extend-subfeature toolset clang : platform : linux ;
+
+toolset.inherit-generators clang-linux 
+    <toolset>clang <toolset-clang:platform>linux : gcc
+  : gcc.mingw.link gcc.mingw.link.dll gcc.cygwin.link gcc.cygwin.link.dll ;
+generators.override clang-linux.prebuilt : builtin.lib-generator ;
+generators.override clang-linux.prebuilt : builtin.prebuilt ;
+generators.override clang-linux.searched-lib-generator : searched-lib-generator ;
+
+# Override default do-nothing generators.
+generators.override clang-linux.compile.c.pch   : pch.default-c-pch-generator   ;
+generators.override clang-linux.compile.c++.pch : pch.default-cpp-pch-generator ;
+ 
+type.set-generated-target-suffix PCH
+  : <toolset>clang <toolset-clang:platform>linux : pth ;
+
+toolset.inherit-rules clang-linux : gcc ;
+toolset.inherit-flags clang-linux : gcc 
+  : <inlining>off <inlining>on <inlining>full
+    <optimization>space <optimization>speed
+    <warnings>off <warnings>all <warnings>on ;
+        
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ] {
+  .debug-configuration = true ;
+}
+                       
+rule init ( version ? :  command * : options * ) {
+  command = [ common.get-invocation-command clang-linux : clang++ 
+    : $(command) ] ;
+                
+  # Determine the version
+  local command-string = $(command:J=" ") ;
+
+  if $(command) {    
+    version ?= [ MATCH "version ([0-9.]+)"
+      : [ SHELL "$(command-string) --version" ] ] ;
+  }
+
+  local condition = [ common.check-init-parameters clang-linux
+    : version $(version) ] ;
+    
+  common.handle-options clang-linux : $(condition) : $(command) : $(options) ;
+
+  gcc.init-link-flags clang-linux gnu $(condition) ;
+}
+
+###############################################################################
+# Flags
+
+toolset.flags clang-linux.compile OPTIONS <cflags> ;
+toolset.flags clang-linux.compile.c++ OPTIONS <cxxflags> ;
+
+toolset.flags clang-linux.compile OPTIONS <optimization>off   : ;
+toolset.flags clang-linux.compile OPTIONS <optimization>speed : -O3 ;
+toolset.flags clang-linux.compile OPTIONS <optimization>space : -Os ;
+
+# note: clang silently ignores some of these inlining options
+toolset.flags clang-linux.compile OPTIONS <inlining>off  : -fno-inline ;
+toolset.flags clang-linux.compile OPTIONS <inlining>on   : -Wno-inline ;
+toolset.flags clang-linux.compile OPTIONS <inlining>full : -finline-functions -Wno-inline ;
+
+toolset.flags clang-linux.compile OPTIONS <warnings>off : -w ;
+toolset.flags clang-linux.compile OPTIONS <warnings>on  : -Wall ;
+toolset.flags clang-linux.compile OPTIONS <warnings>all : -Wall -pedantic ;
+toolset.flags clang-linux.compile OPTIONS <warnings-as-errors>on : -Werror ;
+
+toolset.flags clang-linux.compile OPTIONS <debug-symbols>on : -g ;
+toolset.flags clang-linux.compile OPTIONS <profiling>on : -pg ;
+toolset.flags clang-linux.compile OPTIONS <rtti>off : -fno-rtti ;
+
+###############################################################################
+# C and C++ compilation
+
+rule compile.c++ ( targets * : sources * : properties * ) {
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;
+
+  local pth-file = [ on $(<) return $(PCH_FILE) ] ;
+
+  if $(pth-file) {
+    DEPENDS $(<) : $(pth-file) ;
+    clang-linux.compile.c++.with-pch $(targets) : $(sources) ;
+  }
+  else {
+    clang-linux.compile.c++.without-pth $(targets) : $(sources) ;
+  }
+}
+
+actions compile.c++.without-pth {
+  "$(CONFIG_COMMAND)" -c -x c++ $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o "$(<)" "$(>)"
+}
+
+actions compile.c++.with-pch bind PCH_FILE
+{
+  "$(CONFIG_COMMAND)" -c -x c++ $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -Xclang -include-pth -Xclang "$(PCH_FILE)" -o "$(<)" "$(>)"
+}
+
+rule compile.c ( targets * : sources * : properties * )
+{
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+
+  local pth-file = [ on $(<) return $(PCH_FILE) ] ;
+
+  if $(pth-file) {
+    DEPENDS $(<) : $(pth-file) ;
+    clang-linux.compile.c.with-pch $(targets) : $(sources) ;
+  }
+  else {
+    clang-linux.compile.c.without-pth $(targets) : $(sources) ;
+  }
+}
+
+actions compile.c.without-pth
+{
+  "$(CONFIG_COMMAND)" -c -x c $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c.with-pch bind PCH_FILE
+{
+  "$(CONFIG_COMMAND)" -c -x c $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -Xclang -include-pth -Xclang "$(PCH_FILE)" -c -o "$(<)" "$(>)"
+}
+
+###############################################################################
+# PCH emission
+
+rule compile.c++.pch ( targets * : sources * : properties * ) {
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+}
+
+actions compile.c++.pch {
+  rm -f "$(<)" && "$(CONFIG_COMMAND)" -x c++-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -Xclang -emit-pth -o "$(<)" "$(>)"
+}
+
+rule compile.c.pch ( targets * : sources * : properties * ) {
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+}
+
+actions compile.c.pch
+{
+  rm -f "$(<)" && "$(CONFIG_COMMAND)" -x c-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -Xclang -emit-pth -o "$(<)" "$(>)"
+}
+
+###############################################################################
+# Linking
+
+SPACE = " " ;
+
+rule link ( targets * : sources * : properties * ) {
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+  SPACE on $(targets) = " " ;
+  JAM_SEMAPHORE on $(targets) = <s>clang-linux-link-semaphore ;
+}
+
+actions link bind LIBRARIES {
+  "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS) $(USER_OPTIONS)
+}
+
+rule link.dll ( targets * : sources * : properties * ) {
+  gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+  gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+  SPACE on $(targets) = " " ;
+  JAM_SEMAPHORE on $(targets) = <s>clang-linux-link-semaphore ;
+}
+
+# Differ from 'link' above only by -shared.
+actions link.dll bind LIBRARIES {
+  "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -o "$(<)" -Wl,-soname$(SPACE)-Wl,$(<[1]:D=) -shared "$(>)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS) $(USER_OPTIONS)
+}
+

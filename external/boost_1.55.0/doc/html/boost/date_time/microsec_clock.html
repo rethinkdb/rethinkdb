@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template microsec_clock</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.microsec_time_clock_hpp" title="Header &lt;boost/date_time/microsec_time_clock.hpp&gt;">
+<link rel="prev" href="acst_dst_trait.html" title="Struct template acst_dst_trait">
+<link rel="next" href="ymd_order_spec.html" title="Type ymd_order_spec">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acst_dst_trait.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.microsec_time_clock_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ymd_order_spec.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.microsec_clock"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template microsec_clock</span></h2>
+<p>boost::date_time::microsec_clock &#8212; A clock providing microsecond level resolution. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.microsec_time_clock_hpp" title="Header &lt;boost/date_time/microsec_time_clock.hpp&gt;">boost/date_time/microsec_time_clock.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_type<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="microsec_clock.html" title="Class template microsec_clock">microsec_clock</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span>          <a name="boost.date_time.microsec_clock.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">time_duration_type</span> <a name="boost.date_time.microsec_clock.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">time_duration_type</span><span class="special">::</span><span class="identifier">rep_type</span>  <a name="boost.date_time.microsec_clock.resolution_traits_type"></a><span class="identifier">resolution_traits_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="microsec_clock.html#idp54156680-bb">public static functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_zone_type<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">time_type</span> <a class="link" href="microsec_clock.html#idp54156888-bb"><span class="identifier">local_time</span></a><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_type</span> <span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_type</span> <a class="link" href="microsec_clock.html#idp35475688-bb"><span class="identifier">local_time</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_type</span> <a class="link" href="microsec_clock.html#idp19884200-bb"><span class="identifier">universal_time</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="microsec_clock.html#idp19430360-bb">private static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">time_type</span> <a class="link" href="microsec_clock.html#idp19430520-bb"><span class="identifier">create_time</span></a><span class="special">(</span><span class="identifier">time_converter</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp88315960"></a><h2>Description</h2>
+<p>A high precision clock that measures the local time at a resolution up to microseconds and adjusts to the resolution of the time system. For example, for the a library configuration with nano second resolution, the last 3 places of the fractional seconds will always be 000 since there are 1000 nano-seconds in a micro second. </p>
+<div class="refsect2">
+<a name="idp88316632"></a><h3>
+<a name="idp54156680-bb"></a><code class="computeroutput">microsec_clock</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_zone_type<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">time_type</span> <a name="idp54156888-bb"></a><span class="identifier">local_time</span><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_type</span> <span class="special">&gt;</span> tz_ptr<span class="special">)</span><span class="special">;</span></pre>return a local time object for the given zone, based on computer clock </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_type</span> <a name="idp35475688-bb"></a><span class="identifier">local_time</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Returns the local time based on computer clock settings. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_type</span> <a name="idp19884200-bb"></a><span class="identifier">universal_time</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Returns the UTC time based on computer settings. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp88327912"></a><h3>
+<a name="idp19430360-bb"></a><code class="computeroutput">microsec_clock</code> private static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_type</span> <a name="idp19430520-bb"></a><span class="identifier">create_time</span><span class="special">(</span><span class="identifier">time_converter</span> converter<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acst_dst_trait.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.microsec_time_clock_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ymd_order_spec.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

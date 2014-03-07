@@ -1,0 +1,145 @@
+#  Copyright Noel Belcourt 2007.
+#  Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import property ;
+import generators ;
+import os ;
+import toolset : flags ;
+import feature ;
+import fortran ;
+import type ;
+import common ;
+
+feature.extend toolset : mipspro ;
+toolset.inherit mipspro : unix ;
+generators.override mipspro.prebuilt : builtin.lib-generator ;
+generators.override mipspro.searched-lib-generator : searched-lib-generator ;
+
+#  Documentation and toolchain description located
+#  http://www.sgi.com/products/software/irix/tools/
+
+rule init ( version ? : command * : options * ) 
+{
+  local condition = [ 
+    common.check-init-parameters mipspro : version $(version) ] ;
+
+  command = [ common.get-invocation-command mipspro : CC : $(command) ] ;
+
+  common.handle-options mipspro : $(condition) : $(command) : $(options) ;
+    
+  command_c = $(command_c[1--2]) $(command[-1]:B=cc) ;
+
+  toolset.flags mipspro CONFIG_C_COMMAND $(condition) : $(command_c) ;
+
+  # fortran support
+  local command = [ 
+    common.get-invocation-command mipspro : f77 : $(command) : $(install_dir) ] ;
+
+  command_f = $(command_f[1--2]) $(command[-1]:B=f77) ;
+  toolset.flags mipspro CONFIG_F_COMMAND $(condition) : $(command_f) ;
+
+  # set link flags
+  flags mipspro.link FINDLIBS-ST : [ 
+    feature.get-values <find-static-library> : $(options) ] : unchecked ;
+
+  flags mipspro.link FINDLIBS-SA : [ 
+    feature.get-values <find-shared-library> : $(options) ] : unchecked ;
+}
+
+# Declare generators
+generators.register-c-compiler mipspro.compile.c : C : OBJ : <toolset>mipspro ;
+generators.register-c-compiler mipspro.compile.c++ : CPP : OBJ : <toolset>mipspro ;
+generators.register-fortran-compiler mipspro.compile.fortran : FORTRAN : OBJ : <toolset>mipspro ;
+
+cpu-arch-32 =
+  <architecture>/<address-model>
+  <architecture>/<address-model>32 ;
+
+cpu-arch-64 =
+  <architecture>/<address-model>64 ;
+
+flags mipspro.compile OPTIONS $(cpu-arch-32) : -n32 ;
+flags mipspro.compile OPTIONS $(cpu-arch-64) : -64 ;
+
+# Declare flags and actions for compilation
+flags mipspro.compile OPTIONS <debug-symbols>on : -g ; 
+# flags mipspro.compile OPTIONS <profiling>on : -xprofile=tcov ;
+flags mipspro.compile OPTIONS <warnings>off : -w ;
+flags mipspro.compile OPTIONS <warnings>on : -ansiW -diag_suppress 1429 ; # suppress long long is nonstandard warning
+flags mipspro.compile OPTIONS <warnings>all : -fullwarn ;
+flags mipspro.compile OPTIONS <optimization>speed : -Ofast ;
+flags mipspro.compile OPTIONS <optimization>space : -O2 ;
+flags mipspro.compile OPTIONS <cflags> : -LANG:std ;
+flags mipspro.compile.c++ OPTIONS <inlining>off : -INLINE:none ;
+flags mipspro.compile.c++ OPTIONS <cxxflags> ;
+flags mipspro.compile DEFINES <define> ;
+flags mipspro.compile INCLUDES <include> ;
+
+
+flags mipspro.compile.fortran OPTIONS <fflags> ;
+
+actions compile.c
+{
+    "$(CONFIG_C_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" -FE:template_in_elf_section -ptused $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.fortran
+{
+    "$(CONFIG_F_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+# Declare flags and actions for linking
+flags mipspro.link OPTIONS <debug-symbols>on : -g ;
+# Strip the binary when no debugging is needed
+# flags mipspro.link OPTIONS <debug-symbols>off : -s ;
+# flags mipspro.link OPTIONS <profiling>on : -xprofile=tcov ;
+# flags mipspro.link OPTIONS <threading>multi : -mt ;
+
+flags mipspro.link OPTIONS $(cpu-arch-32) : -n32 ;
+flags mipspro.link OPTIONS $(cpu-arch-64) : -64 ;
+
+flags mipspro.link OPTIONS <optimization>speed : -Ofast ;
+flags mipspro.link OPTIONS <optimization>space : -O2 ;
+flags mipspro.link OPTIONS <linkflags> ;
+flags mipspro.link LINKPATH <library-path> ;
+flags mipspro.link FINDLIBS-ST <find-static-library> ;
+flags mipspro.link FINDLIBS-SA <find-shared-library> ;
+flags mipspro.link FINDLIBS-SA <threading>multi : pthread ;
+flags mipspro.link LIBRARIES <library-file> ;
+flags mipspro.link LINK-RUNTIME <runtime-link>static : static ;
+flags mipspro.link LINK-RUNTIME <runtime-link>shared : dynamic ;
+flags mipspro.link RPATH <dll-path> ;
+
+rule link ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -FE:template_in_elf_section -ptused $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME) -lm
+}
+
+# Slight mods for dlls
+rule link.dll ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+}
+
+# Declare action for creating static libraries
+actions piecemeal archive
+{
+    ar -cr "$(<)" "$(>)"
+}

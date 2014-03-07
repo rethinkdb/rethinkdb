@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="354.33069"
+   height="354.33069"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.45.1"
+   version="1.0"
+   sodipodi:docbase="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images"
+   sodipodi:docname="geometries.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="50"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="4.5659491"
+     inkscape:cx="138.5704"
+     inkscape:cy="88.308109"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     width="10cm"
+     height="10cm"
+     showgrid="true"
+     gridspacingx="1mm"
+     gridspacingy="1mm"
+     gridanglex="8.4666669mm"
+     gridanglez="8.4666669mm"
+     grid_units="mm"
+     inkscape:grid-bbox="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="774"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     units="cm" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-38.639912,-633.95635)">
+    <path
+       style="opacity:0.56687897;fill:#fff900;fill-opacity:1;stroke:#121518;stroke-width:0.77897316;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 120.33185,903.34589 L 99.405785,929.4846 L 108.61325,939.64965 L 99.405785,949.81471 L 81.701116,934.17232 L 69.855741,936.8116 L 58.366285,947.02038 L 85.176065,962.88406 L 143.76904,959.97976 L 157.99877,949.81471 L 156.32468,913.51094 L 120.33185,903.34589 z M 128.70228,923.676 L 141.25791,931.66282 L 122.84298,944.73218 L 116.98368,928.75852 L 128.70228,923.676 z "
+       id="polygon"
+       sodipodi:nodetypes="ccccccccccccccccc"
+       inkscape:export-xdpi="358.51999"
+       inkscape:export-ydpi="358.51999"
+       inkscape:label="#polygon" />
+    <path
+       style="opacity:0.6;fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:0.76607335px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 53.850036,887.0878 L 94.600989,861.69708 L 112.27324,837.06735 L 164.80444,887.24214 L 112.43027,866.82717"
+       id="linestring"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="321.54922"
+       inkscape:export-ydpi="321.54922" />
+    <path
+       id="multi_polygon"
+       style="opacity:0.6;fill:#ffff00;fill-opacity:1;stroke:#121518;stroke-width:0.77897316;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1"
+       d="M 227.42894,904.22244 L 251.55526,915.99743 L 250.31718,936.58397 L 259.52464,946.74903 L 277.22931,931.10664 L 295.42604,931.11777 L 300.56414,943.9547 L 273.75436,959.81838 L 221.29374,959.98026 L 200.93166,946.74903 L 202.60575,910.44526 L 227.42894,904.22244 z M 230.22815,920.61032 L 214.16832,934.29147 L 227.75604,934.69379 L 232.58325,947.36083 L 241.0707,929.63507 L 230.22815,920.61032 z M 273.76878,929.18869 L 255.59973,916.5631 L 253.60434,933.88422 L 261.16939,941.08381 L 273.76878,929.18869 z "
+       sodipodi:nodetypes="ccccccccccccccccccccccc"
+       inkscape:export-xdpi="358.51999"
+       inkscape:export-ydpi="358.51999" />
+  </g>
+</svg>

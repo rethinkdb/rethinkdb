@@ -1,0 +1,367 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <meta http-equiv="Content-Type" content=
+    "text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - February 2002 Progress Report</title>
+<style type="text/css">
+ :link { color: #0000ff }
+ :visited { color: #800080 }
+ p.c3 {font-style: italic}
+ h2.c2 {text-align: center}
+ h1.c1 {text-align: center}
+</style>
+
+    <table border="0" cellpadding="7" cellspacing="0" width=
+    "100%" summary="header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+
+        <td valign="top">
+          <h1 class="c1"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 class="c2">February 2002 Progress Report</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="index">
+      <dt><a href="#Python10">Python10 Conference Report</a>
+
+      <dt><a href="#progress">Boost.Python v2 Progress</a>
+
+      <dd>
+        <dl class="index">
+          <dt><a href="#documentation">Documentation</a>
+
+          <dt><a href="#conversion">Overhaul of
+          <code>to_python</code>/<code>from_python</code>
+          conversion mechanism</a>
+
+          <dt><a href="#miscellaneous">Miscellaneous</a>
+        </dl>
+    </dl>
+
+    <h2><a name="Python10">Python10 Conference Report</a></h2>
+    I spent the first week of February at the Python10 conference
+    in Alexandria, VA. I&#39;m including this experience report
+    for two reasons: firstly, it documents where my time was
+    used. Secondly, a public presence for Boost.Python and
+    interaction between the Python and C++ communities is
+    important to the future of Boost.Python, which in turn is
+    important to the Kull Project. 
+
+    <p>Andy Koenig, of all people, was the keynote speaker of
+    this year&#39;s opening plenary session. He presented his
+    &quot;impressions of a polyglot outsider&quot;, which
+    studiously avoided any mention of C++ until the end of his
+    talk, when he was asked about standardization. I was
+    surprised to learn that the C++ community at large wanted a
+    few more years before beginning but when ANSI accepted
+    HP&#39;s request for a standard, the process was forced to
+    start: it was a matter of participating or having
+    standardization proceed without one&#39;s input. Andy managed
+    to highlight very effectively the balance of strengths in
+    Python, one of the most important being its support for
+    extension via libraries. In many ways that makes Python a
+    good analogue for C++ in the interpreted world
+
+    <p>There were several kind mentions of the Boost.Python
+    library from people who found it indispensable. I was
+    particularly happy that Karl MacMillan, Michael Droettboom,
+    and Ichiro Fujinaga from Johns Hopkins is using it to do OCR
+    on a vast library of music notation, since in a previous life
+    I was an author of music notation software. These guys are
+    also drawing on Ullrich Koethe&#39;s VIGRA library for image
+    manipulation (Ullrich has been a major contributor to
+    Boost.Python). They also have a system for writing the
+    Boost.Python wrapper code in C++ comments, which allows them
+    to keep all of the code in one place. I&#39;ve asked them to
+    send me some information on that.
+
+    <p>The development of Swig has been gaining momentum again
+    (the basic description at
+    www.boost.org/libs/python/doc/comparisons.html still
+    applies). The talk given about it by David Beazly was very
+    well-attended, and they appear to have quite a few users.
+    Swig&#39;s strengths (coverage of many langauages) and
+    weaknesses (incomplete C++ language support) haven&#39;t
+    changed, although the C++ support seems to have improved
+    considerably - they now claim to have a complete model of the
+    C++ type system. It seems to be mostly geared at wrapping
+    what Walter Landry calls &quot;C-Tran&quot;: C++ code which
+    traffics in built-in types with little use of abstraction.
+    I&#39;m not knocking that, either: I&#39;m sure a lot of that
+    code exists, so it&#39;s a valuable service. One feature Swig
+    has which I&#39;d like to steal is the ability to unwrap a
+    single Python argument into multiple C++ arguments, for
+    example, by converting a Python string into a pointer and
+    length. When his talk was over, David approached me about a
+    possible joint workshop on language binding, which sounds
+    like a fun idea to me.
+
+    <p>I spent some considerable time talking with Steven Knight,
+    the leader of the Scons build tool effort. We had a lot to
+    share with one another, and I gained a much better
+    appreciation for many of the Scons design decisions. Scons
+    seems to be concentrating on being the ultimate build system
+    substrate, and Steve seemed to think that we were on the
+    right track with our high-level design. We both hope that the
+    Boost.Build V2 high-level architecture can eventually be
+    ported to run on top of Scons.
+
+    <p>They also have a highly-refined and successful development
+    procedure which I&#39;d like to emulate for Boost.Build V2.
+    Among many other things they do, their source-control system
+    automatically ensures that when you check in a new test, it
+    is automatically run on the currently checked-in state of the
+    code, and is expected to fail -- a relatively obvious good
+    idea which I&#39;ve never heard before.
+
+    <p>Guido Van Rossum&#39;s &quot;State of the Python
+    Union&quot; address was full of questions for the community
+    about what should be done next, but the one idea Guido seemed
+    to stress was that core language stability and continuing
+    library development would be a good idea (sound familiar?) I
+    mentioned the Boost model as a counterpoint to the idea of
+    something like CPAN (the massive Perl library archives), and
+    it seemed to generate some significant interest. I&#39;ve
+    offered to work with anyone from the Python community who
+    wants to set up something like Boost.
+
+    <p>There was some discussion of &quot;string
+    interpolation&quot; (variable substitution in strings), and
+    Guido mentioned that he had some thoughts about the
+    strengths/weaknesses of Python&#39;s formatting interface. It
+    might be useful for those working on formatting for boost to
+    contact him and find out what he has to say.
+
+    <p>Ka-Ping Yee demoed a Mailman discussion thread weaver.
+    This tool weaves the various messages in a discussion thread
+    into a single document so you can follow the entire
+    conversation. Since we&#39;re looking very seriously at
+    moving Boost to Mailman, this could be a really useful thing
+    for us to have. If we do this, we&#39;ll move the yahoogroups
+    discussions into the mailman archive so old discussions can
+    be easily accessed in the same fashion.
+
+    <p>And, just because it&#39;s cool, though perhaps not
+    relevant: http://homepages.ulb.ac.be/~arigo/psyco/ is a
+    promising effort to accelerate the execution of Python code
+    to speeds approaching those of compiled languages. It
+    reminded me a lot of Todd Veldhuizen&#39;s research into
+    moving parts of C++ template compilation to runtime, only
+    coming from the opposite end of things.
+
+    <h2><a name="progress">Boost.Python v2 Progress</a></h2>
+    Here&#39;s what actually got accomplished. 
+
+    <h3><a name="documentation">Documentation</a></h3>
+
+    <p>My first priority upon returning from Python10 was to get
+    some documentation in place. After wasting an unfortunate
+    amount of time looking at automatic documentation tools which
+    don&#39;t quite work, I settled down to use Bill Kempf&#39;s
+    HTML templates designed to be a boost standard. While they
+    are working well, it is highly labor-intensive.
+
+    <p>I decided to begin with the high-level reference material,
+    as opposed to tutorial, narrative, or nitty-gritty details of
+    the framework. It seemed more important to have a precise
+    description of the way the commonly-used components work than
+    to have examples in HTML (since we already have some test
+    modules), and since the low-level details are much
+    less-frequently needed by users it made sense for me to
+    simply respond to support requests for the time being.
+
+    <p>After completing approximately 60% of the high-level docs
+    (currently checked in to libs/python/doc/v2), I found myself
+    ready to start documenting the mechanisms for creating
+    to-/from-python converters. This caused a dilemma: I had
+    realized during the previous week that a much simpler,
+    more-efficient, and easier-to-use implementation was
+    possible, but I hadn&#39;t planned on implementing it right
+    away, since what was already in place worked adequately. I
+    had also received my first query on the C++-sig about how to
+    write such a converter
+
+    <p>Given the labor-intensive nature of documentation writing,
+    I decided it would be a bad idea to document the conversion
+    mechanism if I was just going to rewrite it. Often the best
+    impetus for simplifying a design is the realization that
+    understandably documenting its current state would be too
+    difficult, and this was no exception.
+
+    <h3><a name="conversion">Overhaul of
+    <code>to_python</code>/<code>from_python</code> conversion
+    mechanism</a></h3>
+
+    <p>There were two basic realizations involved here:
+
+    <ol>
+      <li><code>to_python</code> conversion could be a one-step
+      process, once an appropriate conversion function is found.
+      This allows elimination of the separate indirect
+      convertibility check
+
+      <li>There are basically two categories of from_python
+      conversions: those which lvalues stored within or held by
+      the Python object (essentially extractions), like what
+      happens when an instance of a C++ class exposed with class_
+      is used as the target of a wrapped member function), and
+      those in which a new rvalue gets created, as when a Python
+      Float is converted to a C++
+      <code>complex&lt;double&gt;</code> or a Python tuple is
+      converted to a C++ <code>std::vector&lt;&gt;</code>. From
+      the client side, there are two corresponding categories of
+      conversion: those which demand an lvalue conversion and
+      those which can accept an lvalue or an rvalue conversion.
+    </ol>
+    The latter realization allowed the following collapse, which
+    considerably simplified things: 
+
+    <blockquote>
+      <table border="1" summary="Conversion protocol">
+        <tr>
+          <th>Target Type
+
+          <th>Eligible Converters
+
+        <tr>
+          <td><code>T</code> 
+
+          <td rowspan="5"><code>T</code> rvalue or lvalue
+
+        <tr>
+          <td><code>T const</code> 
+
+        <tr>
+          <td><code>T volatile</code> 
+
+        <tr>
+          <td><code>T const volatile</code> 
+
+        <tr>
+          <td><code>T const&amp;</code> 
+
+        <tr>
+          <td><code>T const*</code> 
+
+          <td rowspan="9"><code>T</code> lvalue
+
+        <tr>
+          <td><code>T volatile*</code> 
+
+        <tr>
+          <td><code>T const volatile*</code> 
+
+        <tr>
+          <td><code>T&amp;</code> 
+
+        <tr>
+          <td><code>T volatile&amp;</code> 
+
+        <tr>
+          <td><code>T const volatile&amp;</code> 
+
+        <tr>
+          <td><code>T* const&amp;</code> 
+
+        <tr>
+          <td><code>T const* const&amp;</code> 
+
+        <tr>
+          <td><code>T volatile*const&amp;</code> 
+
+        <tr>
+          <td><code>T const volatile*const&amp;</code> 
+      </table>
+    </blockquote>
+    This job included the following additional enhancements: 
+
+    <ul>
+      <li>Elimination of virtual functions, which cause object
+      code bloat
+
+      <li>Registration of a single converter function for all
+      lvalue conversions, two for all rvalue conversions
+
+      <li>Killed lots of unneeded code
+
+      <li>Increased opacity of registry interface
+
+      <li>Eliminated all need for decorated runtime type
+      identifiers
+
+      <li>Updated test modules to reflect new interface
+
+      <li>Eliminated the need for users to worry about converter
+      lifetime issues Additional Builtin Conversion Enhancements
+
+      <li>Support for complex&lt;float&gt;,
+      complex&lt;double&gt;, and complex&lt;long double&gt;
+      conversions
+
+      <li>Support for bool conversions
+
+      <li>NULL pointers representable by None in Python
+
+      <li>Support for conversion of Python classic classes to
+      numeric types
+    </ul>
+
+    <h3><a name="miscellaneous">Miscellaneous</a></h3>
+    These don&#39;t fit easily under a large heading: 
+
+    <ul>
+      <li>Support CallPolicies for class member functions
+
+      <li>from_python_data.hpp: revamped type alignment
+      metaprogram so that it&#39;s fast enough for KCC
+
+      <li>classfwd.hpp header forward-declares class_&lt;T&gt;
+
+      <li>indirect_traits.hpp:
+
+      <li>added is_pointer_to_reference
+
+      <li>fixed bugs
+
+      <li>Reduced recompilation dependencies
+
+      <li>msvc_typeinfo works around broken MS/Intel typeid()
+      implementation
+
+      <li>Many fixes and improvements to the type_traits library
+      in order to work around compiler bugs and suppress warnings
+
+      <li>Eliminated the need for explicit acquisition of
+      converter registrations
+
+      <li>Expanded constructor support to 6 arguments
+
+      <li>Implemented generalized pointer lifetime support
+
+      <li>Updated code generation for returning.hpp
+
+      <li>Tracked down and fixed cycle GC bugs
+
+      <li>Added comprehensive unit tests for destroy_reference,
+      pointer_type_id, select_from_python, complex&lt;T&gt;,
+      bool, and classic class instance conversions
+    </ul>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+
+  <p class="c3">&copy; Copyright <a href=
+  "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002. Distributed
+  under the Boost Software License, Version 1.0. (See accompanying file
+  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</p>
+

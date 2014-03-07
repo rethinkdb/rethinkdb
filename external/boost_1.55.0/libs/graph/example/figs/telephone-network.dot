@@ -1,0 +1,42 @@
+graph G {
+  size="5,5.3"
+  ratio="fill"
+  edge[style="bold"]
+  Nobel
+  McKellar
+  "Parry Sound"
+  "Horseshoe Lake"
+  Rosseau
+  Mactier
+  "Bent River"
+  Dunchurch
+  Magnetawan
+  Kearny
+  "Glen Orchard"
+  Sprucedale
+  Novar
+  Huntsville
+  Bracebridge
+
+  Nobel -- McKellar[label="9", weight="9"]
+  Nobel -- "Parry Sound"[label="3", weight="3"]
+  McKellar -- Dunchurch[label="11", weight="11"]
+  Dunchurch -- Magnetawan[label="12", weight="12"]
+  McKellar -- Magnetawan[label="30", weight="30"]
+  Magnetawan -- Kearny[label="20", weight="20"]
+  Magnetawan -- Sprucedale[label="20", weight="20"]
+  Kearny -- Sprucedale[label="13", weight="13"]
+  Sprucedale -- Novar[label="18", weight="18"]
+  Sprucedale -- Huntsville[label="15", weight="15"]
+  Kearny -- Novar[label="8", weight="11"]
+  Novar -- Huntsville[label="5", weight="5"]
+  Huntsville -- Bracebridge[label="30", weight="30"]
+  Huntsville -- "Bent River"[label="30", weight="30"] 
+  Rosseau -- "Bent River"[label="8", weight="8"] 
+  Rosseau -- "Horseshoe Lake"[label="8", weight="8"] 
+  Mactier -- "Horseshoe Lake"[label="14", weight="14"] 
+  "Parry Sound" -- "Horseshoe Lake"[label="10", weight="10"] 
+  "Parry Sound" -- Dunchurch[label="20", weight="20"] 
+  Mactier -- "Glen Orchard"[label="9", weight="9"] 
+  "Glen Orchard" -- Bracebridge[label="15", weight="15"] 
+}

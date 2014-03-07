@@ -1,0 +1,367 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>buffered_read_stream</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="buffer_size/overload5.html" title="buffer_size (5 of 5 overloads)">
+<link rel="next" href="buffered_read_stream/async_fill.html" title="buffered_read_stream::async_fill">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer_size/overload5.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffered_read_stream/async_fill.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.buffered_read_stream"></a><a class="link" href="buffered_read_stream.html" title="buffered_read_stream">buffered_read_stream</a>
+</h3></div></div></div>
+<p>
+        Adds buffering to the read-related operations of a stream.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Stream</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">buffered_read_stream</span> <span class="special">:</span>
+  <span class="identifier">noncopyable</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.buffered_read_stream.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffered_read_stream.types"></a></span><a class="link" href="buffered_read_stream.html#boost_asio.reference.buffered_read_stream.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/lowest_layer_type.html" title="buffered_read_stream::lowest_layer_type"><span class="bold"><strong>lowest_layer_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/next_layer_type.html" title="buffered_read_stream::next_layer_type"><span class="bold"><strong>next_layer_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the next layer.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.buffered_read_stream.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffered_read_stream.member_functions"></a></span><a class="link" href="buffered_read_stream.html#boost_asio.reference.buffered_read_stream.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/async_fill.html" title="buffered_read_stream::async_fill"><span class="bold"><strong>async_fill</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous fill.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/async_read_some.html" title="buffered_read_stream::async_read_some"><span class="bold"><strong>async_read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous read. The buffer into which the data will
+                  be read must be valid for the lifetime of the asynchronous operation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/async_write_some.html" title="buffered_read_stream::async_write_some"><span class="bold"><strong>async_write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous write. The data being written must be valid
+                  for the lifetime of the asynchronous operation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/buffered_read_stream.html" title="buffered_read_stream::buffered_read_stream"><span class="bold"><strong>buffered_read_stream</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct, passing the specified argument to initialise the next
+                  layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/close.html" title="buffered_read_stream::close"><span class="bold"><strong>close</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Close the stream.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/fill.html" title="buffered_read_stream::fill"><span class="bold"><strong>fill</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Fill the buffer with some data. Returns the number of bytes placed
+                  in the buffer as a result of the operation. Throws an exception
+                  on failure.
+                </p>
+                <p>
+                  Fill the buffer with some data. Returns the number of bytes placed
+                  in the buffer as a result of the operation, or 0 if an error occurred.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/get_io_service.html" title="buffered_read_stream::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the io_service associated with the object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/in_avail.html" title="buffered_read_stream::in_avail"><span class="bold"><strong>in_avail</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine the amount of data that may be read without blocking.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/lowest_layer.html" title="buffered_read_stream::lowest_layer"><span class="bold"><strong>lowest_layer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get a reference to the lowest layer.
+                </p>
+                <p>
+                  Get a const reference to the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/next_layer.html" title="buffered_read_stream::next_layer"><span class="bold"><strong>next_layer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get a reference to the next layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/peek.html" title="buffered_read_stream::peek"><span class="bold"><strong>peek</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Peek at the incoming data on the stream. Returns the number of
+                  bytes read. Throws an exception on failure.
+                </p>
+                <p>
+                  Peek at the incoming data on the stream. Returns the number of
+                  bytes read, or 0 if an error occurred.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/read_some.html" title="buffered_read_stream::read_some"><span class="bold"><strong>read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Read some data from the stream. Returns the number of bytes read.
+                  Throws an exception on failure.
+                </p>
+                <p>
+                  Read some data from the stream. Returns the number of bytes read
+                  or 0 if an error occurred.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/write_some.html" title="buffered_read_stream::write_some"><span class="bold"><strong>write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Write the given data to the stream. Returns the number of bytes
+                  written. Throws an exception on failure.
+                </p>
+                <p>
+                  Write the given data to the stream. Returns the number of bytes
+                  written, or 0 if an error occurred.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.buffered_read_stream.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffered_read_stream.data_members"></a></span><a class="link" href="buffered_read_stream.html#boost_asio.reference.buffered_read_stream.data_members">Data Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="buffered_read_stream/default_buffer_size.html" title="buffered_read_stream::default_buffer_size"><span class="bold"><strong>default_buffer_size</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The default buffer size.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<p>
+        The <a class="link" href="buffered_read_stream.html" title="buffered_read_stream"><code class="computeroutput"><span class="identifier">buffered_read_stream</span></code></a> class template
+        can be used to add buffering to the synchronous and asynchronous read operations
+        of a stream.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffered_read_stream.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffered_read_stream.thread_safety"></a></span><a class="link" href="buffered_read_stream.html#boost_asio.reference.buffered_read_stream.thread_safety">Thread
+        Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffered_read_stream.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffered_read_stream.requirements"></a></span><a class="link" href="buffered_read_stream.html#boost_asio.reference.buffered_read_stream.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/buffered_read_stream.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer_size/overload5.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffered_read_stream/async_fill.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

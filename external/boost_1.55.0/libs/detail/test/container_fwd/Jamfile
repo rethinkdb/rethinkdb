@@ -1,0 +1,29 @@
+
+# Copyright 2011 Daniel James.
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project detail/test/container_fwd
+  : requirements
+        <warnings>all
+        <toolset>intel:<warnings>on
+        <toolset>gcc:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion"
+        <toolset>darwin:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion"
+        <toolset>clang:<cxxflags>"-pedantic -Wextra -Wmismatched-tags"
+        <warnings-as-errors>on
+  ;
+
+run container_no_fwd_test.cpp ;
+run container_fwd_test.cpp : : : : container_fwd ;
+run container_fwd_test.cpp : :
+    : <define>_STLP_DEBUG <define>_GLIBCXX_DEBUG
+    : container_fwd_debug ;
+
+compile-fail correctly_disable_fail.cpp
+    : <warnings-as-errors>off
+    : correctly_disable ;
+compile-fail correctly_disable_fail.cpp
+    : <warnings-as-errors>off <define>_STLP_DEBUG <define>_GLIBCXX_DEBUG
+    : correctly_disable_debug ;

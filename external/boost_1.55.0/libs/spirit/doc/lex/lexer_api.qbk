@@ -1,0 +1,190 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section:lexer_api Lexer API]
+
+[heading Description]
+
+The library provides a couple of free functions to make using the lexer a snap.
+These functions have three forms. The first form, `tokenize`, simplifies the
+usage of a stand alone lexer (without parsing). The second form, 
+`tokenize_and_parse`, combines a lexer step with parsing on
+the token level (without a skipper). The third, `tokenize_and_phrase_parse`, 
+works on the token level as well, but additionally employs a skip parser. The 
+latter two versions can take in attributes by reference that will hold the 
+parsed values on a successful parse.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/lex/tokenize_and_parse.hpp>
+    #include <boost/spirit/include/lex_tokenize_and_parse.hpp>
+
+For variadic attributes:
+
+    // forwards to <boost/spirit/home/lex/tokenize_and_parse_attr.hpp>
+    #include <boost/spirit/include/lex_tokenize_and_parse_attr.hpp>
+
+The variadic attributes version of the API allows one or more
+attributes to be passed into the API functions. The functions taking two 
+or more attributes are usable when the parser expression is a 
+__qi_sequence__ only. In this case each of the
+attributes passed have to match the corresponding part of the sequence.
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lex::tokenize` ]]
+    [[`boost::spirit::lex::tokenize_and_parse` ]]
+    [[`boost::spirit::lex::tokenize_and_phrase_parse` ]]
+    [[`boost::spirit::qi::skip_flag::postskip` ]]
+    [[`boost::spirit::qi::skip_flag::dont_postskip` ]]
+]
+
+[heading Synopsis]
+
+The `tokenize` function is one of the main lexer API functions. It 
+simplifies using a lexer to tokenize a given input sequence. It's main
+purpose is to use the lexer to tokenize all the input. 
+
+Both functions take a pair of iterators spanning the underlying input 
+stream to scan, the lexer object (built from the token definitions),
+and an (optional) functor being called for each of the generated tokens. If no
+function object `f` is given, the generated tokens will be discarded.
+
+The functions return `true` if the scanning of the input succeeded (the 
+given input sequence has been successfully matched by the given 
+token definitions).
+
+The argument `f` is expected to be a function (callable) object taking a single 
+argument of the token type and returning a bool, indicating whether
+the tokenization should be canceled. If it returns `false` the function 
+`tokenize` will return `false` as well.
+
+The `initial_state` argument forces lexing to start with the given lexer state.
+If this is omitted lexing starts in the `"INITIAL"` state.
+
+    template <typename Iterator, typename Lexer>
+    inline bool
+    tokenize(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , typename Lexer::char_type const* initial_state = 0);
+
+    template <typename Iterator, typename Lexer, typename F>
+    inline bool
+    tokenize(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , F f
+      , typename Lexer::char_type const* initial_state = 0);
+
+The `tokenize_and_parse` function is one of the main lexer API 
+functions. It simplifies using a lexer as the underlying token source
+while parsing a given input sequence.
+
+The functions take a pair of iterators spanning the underlying input 
+stream to parse, the lexer object (built from the token definitions) 
+and a parser object (built from the parser grammar definition). Additionally
+they may take the attributes for the parser step.
+
+The function returns `true` if the parsing succeeded (the given input
+sequence has been successfully matched by the given grammar).
+
+    template <typename Iterator, typename Lexer, typename ParserExpr>
+    inline bool
+    tokenize_and_parse(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , ParserExpr const& expr)
+
+    template <typename Iterator, typename Lexer, typename ParserExpr
+      , typename Attr1, typename Attr2, ..., typename AttrN>
+    inline bool
+    tokenize_and_parse(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , ParserExpr const& expr
+      , Attr1 const& attr1, Attr2 const& attr2, ..., AttrN const& attrN);
+
+The functions `tokenize_and_phrase_parse` take a pair of iterators spanning 
+the underlying input stream to parse, the lexer object (built from the token 
+definitions) and a parser object (built from the parser grammar definition). 
+The additional skipper parameter will be used as the skip parser during
+the parsing process. Additionally they may take the attributes for the parser 
+step.
+
+The function returns `true` if the parsing succeeded (the given input
+sequence has been successfully matched by the given grammar).
+
+    template <typename Iterator, typename Lexer, typename ParserExpr
+      , typename Skipper>
+    inline bool
+    tokenize_and_phrase_parse(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , ParserExpr const& expr
+      , Skipper const& skipper
+      , BOOST_SCOPED_ENUM(skip_flag) post_skip = skip_flag::postskip);
+
+    template <typename Iterator, typename Lexer, typename ParserExpr
+      , typename Skipper, typename Attr1, typename Attr2, ..., typename AttrN>
+    inline bool
+    tokenize_and_phrase_parse(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , ParserExpr const& expr
+      , Skipper const& skipper
+      , Attr1 const& attr1, Attr2 const& attr2, ..., AttrN const& attrN);
+
+    template <typename Iterator, typename Lexer, typename ParserExpr
+      , typename Skipper, typename Attr1, typename Attr2, ..., typename AttrN>
+    inline bool
+    tokenize_and_phrase_parse(
+        Iterator& first
+      , Iterator last
+      , Lexer const& lex
+      , ParserExpr const& expr
+      , Skipper const& skipper
+      , BOOST_SCOPED_ENUM(skip_flag) post_skip
+      , Attr1 const& attr1, Attr2 const& attr2, ..., AttrN const& attrN);
+
+The maximum number of supported arguments is limited by the preprocessor 
+constant `SPIRIT_ARGUMENTS_LIMIT`. This constant defaults to the value defined
+by the preprocessor constant `PHOENIX_LIMIT` (which in turn defaults to `10`). 
+
+[note The variadic function with two or more attributes internally combine 
+      references to all passed attributes into a `fusion::vector` and forward 
+      this as a combined attribute to the corresponding one attribute function.]
+
+The `tokenize_and_phrase_parse` functions not taking an explicit `skip_flag` 
+as one of their arguments invoke the passed skipper after a successful match 
+of the parser expression. This can be inhibited by using the other versions of 
+that function while passing `skip_flag::dont_postskip` to the corresponding 
+argument.
+
+[heading Template parameters]
+
+[table
+    [[Parameter]                    [Description]]
+    [[`Iterator`]                   [__fwditer__ pointing to the underlying input sequence to parse.]]
+    [[`Lexer`]                      [A lexer (token definition) object.]]
+    [[`F`]                          [A function object called for each generated token.]]
+    [[`ParserExpr`]                 [An expression that can be converted to a Qi parser.]]
+    [[`Skipper`]                    [Parser used to skip white spaces.]]
+    [[`Attr1`, `Attr2`, ..., `AttrN`][One or more attributes.]]
+]
+
+[endsect]

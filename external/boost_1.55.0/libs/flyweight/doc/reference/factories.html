@@ -1,0 +1,583 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Factories reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="tags.html">
+<link rel="up" href="index.html">
+<link rel="next" href="holders.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+Factories reference</h1>
+
+<div class="prev_link"><a href="tags.html"><img src="../prev.gif" alt="tags" border="0"><br>
+Tags
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="holders.html"><img src="../next.gif" alt="holders" border="0"><br>
+Holders
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#factory">Factories and factory specifiers</a></li>
+  <li><a href="#factory_tag_synopsis">Header
+    <code>"boost/flyweight/factory_tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#is_factory">Class template <code>is_factory</code></a></li>
+      <li><a href="#factory_construct">Class template <code>factory</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#hashed_factory_fwd_synopsis">Header
+    <code>"boost/flyweight/hashed_factory_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#hashed_factory_synopsis">Header
+    <code>"boost/flyweight/hashed_factory.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#hashed_factory_class">Class template <code>hashed_factory_class</code></a></li>
+      <li><a href="#hashed_factory">Class template <code>hashed_factory</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#set_factory_fwd_synopsis">Header
+    <code>"boost/flyweight/set_factory_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#set_factory_synopsis">Header
+    <code>"boost/flyweight/set_factory.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#set_factory_class">Class template <code>set_factory_class</code></a></li>
+      <li><a href="#set_factory">Class template <code>set_factory</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#assoc_container_factory_fwd_synopsis">Header
+    <code>"boost/flyweight/assoc_container_factory_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#assoc_container_factory_synopsis">Header
+    <code>"boost/flyweight/assoc_container_factory.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#assoc_container_factory_class">Class template <code>assoc_container_factory_class</code></a></li>
+      <li><a href="#assoc_container_factory">Class template <code>assoc_container_factory</code></a></li>
+    </ul>    
+  </li>
+</ul>
+
+<h2><a name="factory">Factories and factory specifiers</a></h2>
+
+<p>
+Given a type <code>Key</code> and an
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+type <code>Entry</code> implicitly convertible to <code>const Key&amp;</code>, a
+<i>factory of <code>Entry</code> elements</i> (implicitly associated to
+<code>Key</code>) is a
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html"><code>Default
+Constructible</code></a> entity able to store and retrieve immutable elements of
+type <code>Entry</code>. A factory is governed by an associated equivalence
+relation defined on <code>Key</code> so that no two
+<code>Entry</code> objects convertible to equivalent <code>Key</code>s
+can be stored simultaneously in the factory. Different factory types can
+use different equivalence relations.
+</p>
+
+<p>
+In the following table, <code>Factory</code> is a factory of elements
+of type <code>Entry</code>, <code>f</code> denotes an object of type <code>Factory</code>,
+<code>x</code> is an object of type <code>Entry</code> and <code>h</code> is a
+value of <code>Factory::handle_type</code>.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Factory requirements.</b></caption>
+<tr>
+  <th align="center">expression</th>
+  <th align="center">return type</th>
+  <th align="center">assertion/note<br>pre/post-condition</th>
+</tr>
+<tr>
+  <td><code>Factory::handle_type</code></td>
+  <td>handle to elements of type <code>T</code><br>
+    stored in the factory
+  </td>
+  <td><code>handle_type</code> is
+    <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+    and its copy and<br>
+    assignment operations never throw an exception.
+  </td>
+</tr>
+<tr class="odd_tr">
+  <td><code>f.insert(x);</code></td>
+  <td><code>handle_type</code></td>
+  <td>Inserts a copy of <code>x</code> if there is no equivalent entry in <code>f</code>;<br>
+    returns a handle to the inserted or equivalent element.
+  </td>
+</tr>
+<tr>
+  <td><code>f.erase(h);</code></td>
+  <td><code>void</code></td>
+  <td>Erases the element associated to <code>h</code>.<br>
+   This operation does not throw.
+  </td>
+</tr>
+<tr class="odd_tr">
+  <td><code>f.entry(h);</code></td>
+  <td><code>const Entry&amp;</code></td>
+  <td>Returns a reference to the element associated to <code>h</code>.<br>
+    This operation does not throw.
+  </td>
+</tr>
+</table>
+</p>
+
+<p>
+Additionally to the basic thread safety guarantee which is implicitly assumed
+for most classes including the majority of components of the
+C++ standard library, it is required that the member function <code>entry</code>
+can be invoked simultaneously from different threads, even in the presence
+of concurrent accesses to <code>insert</code> and <code>erase</code> (as long
+as the entry returned by <code>entry</code> is not the one which is being
+erased).
+</p>
+
+<p>
+A type <code>S</code> is said to be a <i>factory specifier</i> if:
+<ol>
+  <li>One of the following conditions is satisfied:
+    <ol type="a">
+      <li><a href="#is_factory"><code>is_factory&lt;S&gt;::type</code></a> is
+      <a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>,</li>
+      <li><code>S</code> is of the form <a href="#factory_construct"><code>factory&lt;S'&gt;</code></a>.</li>
+    </ol>
+  </li>
+  <li><code>S</code>, or <code>S'</code> if (b) applies, is an
+    <a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>MPL Lambda
+    Expression</code></a> such that invoking it with types (<code>Entry</code>,
+    <code>Key</code>) resolves to a factory type of <code>Entry</code> elements
+    (implicitly associated to <code>Key</code>).
+  </li>
+</ol>
+</p>
+
+<h2><a name="factory_tag_synopsis">Header
+<a href="../../../../boost/flyweight/factory_tag.hpp"><code>"boost/flyweight/factory_tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>factory_marker</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>is_factory</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>factory</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="is_factory">Class template <code>is_factory</code></a></h3>
+
+<p>
+Unless specialized by the user, <code>is_factory&lt;T&gt;::type</code> is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>
+if <code>T</code> is derived from <code>factory_marker</code>, and it is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::false_</code></a>
+otherwise.
+</p>
+
+<h3><a name="factory_construct">Class template <code>factory</code></a></h3>
+
+<p>
+<code>factory&lt;T&gt;</code> is a syntactic construct meant to indicate
+that <code>T</code> is a factory specifier without resorting to the
+mechanisms provided by the <code>is_factory</code> class template.
+</p>
+
+<h2><a name="hashed_factory_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/hashed_factory_fwd.hpp"><code>"boost/flyweight/hashed_factory_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>=</span><b>implementation defined</b>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>hashed_factory_class</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>=</span><b>implementation defined</b>
+<span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_factory</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>hashed_factory_fwd.hpp</code> forward declares the class templates
+<a href="#hashed_factory_class"><code>hashed_factory_class</code></a>
+and <a href="#hashed_factory"><code>hashed_factory</code></a>.
+</p>
+
+<h2><a name="hashed_factory_synopsis">Header
+<a href="../../../../boost/flyweight/hashed_factory.hpp"><code>"boost/flyweight/hashed_factory.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="hashed_factory_class">Class template <code>hashed_factory_class</code></a></h3>
+
+<p>
+<code>hashed_factory_class</code> is a <a href="#factory"><code>Factory</code></a>
+implemented with a hashed container.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Allocator</span>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>hashed_factory_class</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <b>implementation defined</b> <span class=identifier>handle_type</span><span class=special>;</span>
+  
+  <span class=identifier>handle_type</span>  <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>         <span class=identifier>erase</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+  <span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>entry</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+<code>Hash</code> is a
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html"><code>Default
+Constructible</code></a>
+<a href="http://www.sgi.com/tech/stl/UnaryFunction.html"><code>Unary Function</code></a>
+taking a single argument of type <code>Key</code> and returning a
+value of type <code>std::size_t</code> in the range
+<code>[0, std::numeric_limits&lt;std::size_t&gt;::max())</code>.
+<code>Pred</code> is a
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html"><code>Default
+Constructible</code></a> 
+<a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">
+<code>Binary Predicate</code></a> inducing an equivalence relation
+on elements of <code>Key</code>. It is required that
+a <code>Hash</code> object return the same value for objects
+equivalent under <code>Pred</code>.
+The equivalence relation on <code>Key</code> associated to the factory is
+that induced by <code>Pred</code>.
+The default arguments for <code>Hash</code> and <code>Pred</code> are
+<a href="../../../functional/hash/index.html"><code>boost::hash&lt;Key&gt;</code></a>
+and <code>std::equal_to&lt;Key&gt;</code>, respectively. 
+<code>Allocator</code> must be an allocator of <code>Entry</code> objects
+satisfying the associated C++ requirements at <b>[lib.allocator.requirements]</b>. 
+The default argument is <code>std::allocator&lt;Entry&gt;</code>. The internal
+hashed container upon which <code>hashed_factory_class</code> is based is
+constructed with default initialized objects of type <code>Hash</code>,
+<code>Pred</code> and <code>Allocator</code>.
+</p>
+
+<h3><a name="hashed_factory">Class template <code>hashed_factory</code></a></h3>
+
+<p>
+<a href="#factory"><code>Factory Specifier</code></a> for <a href="#hashed_factory_class"><code>hashed_factory_class</code></a>.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_factory</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>hashed_factory&lt;Hash,Pred,Allocator&gt;</code> is an
+<a href="../../../mpl/doc/refmanual/metafunction-class.html"><code>MPL Metafunction
+Class</code></a> such that the type
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>apply</span><span class=special>&lt;</span>
+  <span class=identifier>hashed_factory</span><span class=special>&lt;</span><span class=identifier>Hash</span><span class=special>,</span><span class=identifier>Pred</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;,</span>
+  <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span>
+<span class=special>&gt;::</span><span class=identifier>type</span>
+</pre></blockquote>
+
+<p>
+is the same as
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>apply</span><span class=special>&lt;</span>
+  <span class=identifier>hashed_factory_class</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>,</span><span class=identifier>Hash</span><span class=special>,</span><span class=identifier>Pred</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;,</span>
+  <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span>
+<span class=special>&gt;::</span><span class=identifier>type</span>
+</pre></blockquote>
+
+<p>
+This implies that <code>Hash</code>, <code>Pred</code> and <code>Allocator</code>
+can be 
+<a href="../../../mpl/doc/refmanual/placeholder-expression.html"><code>MPL
+Placeholder Expressions</code></a> resolving to the actual types used by
+<code>hashed_factory_class</code>.
+</p>
+
+<h2><a name="set_factory_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/set_factory_fwd.hpp"><code>"boost/flyweight/set_factory_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>=</span><b>implementation defined</b>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>set_factory_class</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>=</span><b>implementation defined</b>
+<span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>set_factory</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>set_factory_fwd.hpp</code> forward declares the class templates
+<a href="#set_factory_class"><code>set_factory_class</code></a>
+and <a href="#set_factory"><code>set_factory</code></a>.
+</p>
+
+<h2><a name="set_factory_synopsis">Header
+<a href="../../../../boost/flyweight/set_factory.hpp"><code>"boost/flyweight/set_factory.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="set_factory_class">Class template <code>set_factory_class</code></a></h3>
+
+<p>
+<code>set_factory_class</code> is a <a href="#factory"><code>Factory</code></a>
+implemented on top of an orderded associative container.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Allocator</span>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>set_factory_class</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <b>implementation defined</b> <span class=identifier>handle_type</span><span class=special>;</span>
+  
+  <span class=identifier>handle_type</span>  <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>         <span class=identifier>erase</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+  <span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>entry</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+<code>Compare</code> is a 
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html"><code>Default
+Constructible</code></a>
+<a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html">
+<code>Strict Weak Ordering</code></a> on <code>Key</code>. Two <code>Key</code>s
+<code>x</code> and <code>y</code> are considered equivalent if
+<code>!c(x,y)&amp;&amp;!c(y,x)</code> for <code>c</code> of type <code>Compare</code>.
+The default argument of <code>Compare</code> is <code>std::less&lt;Key&gt;</code>
+<code>Allocator</code> must be an allocator of <code>Entry</code> objects
+satisfying the associated C++ requirements at <b>[lib.allocator.requirements]</b>. 
+The default argument is <code>std::allocator&lt;Entry&gt;</code>. The internal
+container upon which <code>set_factory_class</code> is based is
+constructed with default initialized objects of type <code>Compare</code>
+and <code>Allocator</code>.
+</p>
+
+<h3><a name="set_factory">Class template <code>set_factory</code></a></h3>
+
+<p>
+<a href="#factory"><code>Factory Specifier</code></a> for <a href="#set_factory_class"><code>set_factory_class</code></a>.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>set_factory</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>set_factory&lt;Compare,Allocator&gt;</code> is an
+<a href="../../../mpl/doc/refmanual/metafunction-class.html"><code>MPL Metafunction
+Class</code></a> such that the type
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>apply</span><span class=special>&lt;</span>
+  <span class=identifier>set_factory</span><span class=special>&lt;</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;,</span>
+  <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span>
+<span class=special>&gt;::</span><span class=identifier>type</span>
+</pre></blockquote>
+
+<p>
+is the same as
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>apply</span><span class=special>&lt;</span>
+  <span class=identifier>set_factory_class</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>,</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;,</span>
+  <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span>
+<span class=special>&gt;::</span><span class=identifier>type</span>
+</pre></blockquote>
+
+<p>
+This implies that <code>Compare</code> and <code>Allocator</code>
+can be 
+<a href="../../../mpl/doc/refmanual/placeholder-expression.html"><code>MPL
+Placeholder Expressions</code></a> resolving to the actual types used by
+<code>set_factory_class</code>.
+</p>
+
+<h2><a name="assoc_container_factory_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/assoc_container_factory_fwd.hpp"><code>"boost/flyweight/assoc_container_factory_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Container</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>assoc_container_factory_class</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>ContainerSpecifier</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>assoc_container_factory</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>assoc_container_factory_fwd.hpp</code> forward declares the class templates
+<a href="#assoc_container_factory_class"><code>assoc_container_factory_class</code></a>
+and <a href="#assoc_container_factory"><code>assoc_container_factory</code></a>.
+</p>
+
+<h2><a name="assoc_container_factory_synopsis">Header
+<a href="../../../../boost/flyweight/assoc_container_factory.hpp"><code>"boost/flyweight/assoc_container_factory.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="assoc_container_factory_class">Class template <code>assoc_container_factory_class</code></a></h3>
+
+<p>
+<code>assoc_container_factory_class</code> wraps a suitable associative container
+to provide a <a href="#factory"><code>Factory</code></a> interface.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Container</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>assoc_container_factory_class</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>Container</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>handle_type</span><span class=special>;</span>
+  
+  <span class=identifier>handle_type</span> <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=keyword>typename</span> <span class=identifier>Container</span><span class=special>::</span><span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>        <span class=identifier>erase</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+  <span class=keyword>const</span> <span class=keyword>typename</span> <span class=identifier>Container</span><span class=special>::</span><span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>entry</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+<code>Container</code> must be an (ordered or unordered) associative container
+such that
+<ol>
+  <li><code>Container::key_type</code> is the same as
+    <code>Container::value_type</code> (which is the entry type associated to
+    the factory).
+  </li>
+  <li>Unique keys (rather than equivalent keys) are supported.</li>
+  <li><code>Container</code> is <i>stable</i>, i.e. its iterators are not
+    invalidated upon insert or erase operations.</li>
+</ol>
+The equivalence relation associated to <code>assoc_container_factory_class</code>
+is the one induced by <code>Container</code>. If equivalence of elements
+of <code>Container::value_type</code> is determined solely on the basis of a
+type <code>value_type'</code> to which <code>value_type</code> is
+implicitly convertible, then <code>assoc_container_factory_class</code> is
+a factory of entries of type <code>value_type</code> implicitly associated to
+<code>value_type'</code>. For example, the instantiation
+</p>
+
+<blockquote><pre>
+<span class=identifier>assoc_container_factory_class</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=identifier>derived</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>base</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=comment>// derived inherits from base</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+is a factory of <code>derived</code> elements implicitly associated to
+<code>base</code>.
+</p>
+
+<h3><a name="assoc_container_factory">Class template <code>assoc_container_factory</code></a></h3>
+
+<p>
+<a href="#factory"><code>Factory Specifier</code></a> for <a href="#assoc_container_factory_class"><code>assoc_container_factory_class</code></a>.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>ContainerSpecifier</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>assoc_container_factory</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>ContainerSpecifier</code> must be an 
+<a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>MPL Lambda
+Expression</code></a> resolving, when invoked with (<code>Entry</code>,
+<code>Key</code>), to a type <code>Container</code> such that
+<code>assoc_container_factory_class&lt;Container&gt;</code> is a factory
+of <code>Entry</code> elements implicitly associated to <code>Key</code>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="tags.html"><img src="../prev.gif" alt="tags" border="0"><br>
+Tags
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="holders.html"><img src="../next.gif" alt="holders" border="0"><br>
+Holders
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised August 13th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

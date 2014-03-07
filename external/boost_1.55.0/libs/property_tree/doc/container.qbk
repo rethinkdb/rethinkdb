@@ -1,0 +1,33 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section:container Property Tree as a Container]
+[/ __ptree_*__ macros expected from property_tree.qbk]
+Every property tree node models the ReversibleSequence concept, providing
+access to its immediate children. This means that iterating over a __ptree__
+(which is the same as its root node - every __ptree__ node is also the
+subtree it starts) iterates only a single level of the hierarchy. There is no
+way to iterate over the entire tree.
+
+It is very important to remember that the property sequence is *not* ordered by
+the key. It preserves the order of insertion. It closely resembles a std::list.
+Fast access to children by name is provided via a separate lookup structure. Do
+not attempt to use algorithms that expect an ordered sequence (like
+binary_search) on a node's children.
+
+The property tree exposes a second container-like interface, called the
+associative view. Its iterator type is the nested type assoc_iterator (and its
+const counterpart const_assoc_iterator). You can get an ordered view of all
+children by using ordered_begin() and ordered_end(). 
+
+The associative view also provides find() and equal_range() members, which
+return assoc_iterators, but otherwise have the same semantics as the members
+of std::map of the same name.
+
+You can get a normal iterator from an assoc_iterator by using the to_iterator()
+member function. Converting the other way is not possible.
+[endsect] [/container]

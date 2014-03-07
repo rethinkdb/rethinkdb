@@ -1,0 +1,502 @@
+[/
+  (C) Copyright 2008-9 Anthony Williams.
+  (C) Copyright 12 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:ScopedThreads Scoped Threads]
+
+[heading Synopsis]
+
+  //#include <boost/thread/scoped_thread.hpp>
+
+  struct detach;
+  struct join_if_joinable;
+  struct interrupt_and_join_if_joinable;
+  template <class CallableThread = join_if_joinable>
+  class strict_scoped_thread;
+  template <class CallableThread = join_if_joinable>
+  class scoped_thread;
+  void swap(scoped_thread& lhs,scoped_thread& rhs) noexcept;
+
+[section:motovation Motivation]
+Based on the scoped_thread class defined in C++ Concurrency in Action Boost.Thread defines a thread wrapper class that instead of calling terminate if the thread is joinable on destruction, call a specific action given as template parameter.
+
+While the scoped_thread class defined in C++ Concurrency in Action is closer to strict_scoped_thread class that doesn't allows any change in the wrapped thread, Boost.Thread provides a class scoped_thread that provides the same non-deprecated interface than __thread.
+
+[endsect]
+
+[section:tutorial Tutorial]
+
+Scoped Threads are wrappers around a thread that allows the user to state what to do at destruction time. One of the common uses is to join the thread at destruction time so this is the default behavior. This is the single difference respect to a thread. While thread call std::terminate() on the destructor is the thread is joinable, strict_scoped_thread<> or scoped_thread<> join the thread if joinable.
+
+The difference between strict_scoped_thread and scoped_thread is that the strict_scoped_thread hides completely the owned thread and so the user can do nothing with the owned thread other than the specific action given as parameter, while scoped_thread provide the same interface than __thread and forwards all the operations.   
+
+  boost::strict_scoped_thread<> t1((boost::thread(F)));
+  boost::strict_scoped_thread<> t2((boost::thread(F)));
+  t2.interrupt();
+
+[endsect]
+
+[section:thread_functors Free Thread Functors]
+
+  //#include <boost/thread/scoped_thread.hpp>
+
+  struct detach;
+  struct join_if_joinable;
+  struct interrupt_and_join_if_joinable;
+
+
+[section:detach Functor `detach`]
+
+  struct detach
+  {
+    void operator()(thread& t)
+    {
+      t.detach();
+    }
+  };
+[endsect]
+[section:join_if_joinable Functor `join_if_joinable`]
+
+  struct join_if_joinable
+  {
+    void operator()(thread& t)
+    {
+      if (t.joinable())
+      {
+        t.join();
+      }
+    }
+  };
+
+[endsect]
+
+[section:interrupt_and_join_if_joinable Functor `interrupt_and_join_if_joinable`]
+
+  struct interrupt_and_join_if_joinable
+  {
+    void operator()(thread& t)
+    {
+      t.interrupt();
+      if (t.joinable())
+      {
+        t.join();
+      }
+    }
+  };
+[endsect]
+
+[endsect]
+
+[section:strict_scoped_thread Class `strict_scoped_thread`]
+
+  // #include <boost/thread/scoped_thread.hpp>
+
+  template <class CallableThread = join_if_joinable>
+  class strict_scoped_thread
+  {
+    thread t_; // for exposition purposes only
+  public:
+
+    strict_scoped_thread(strict_scoped_thread const&) = delete;
+    strict_scoped_thread& operator=(strict_scoped_thread const&) = delete;
+
+    explicit strict_scoped_thread(thread&& t) noexcept;
+    template <typename F&&, typename ...Args>
+    explicit strict_scoped_thread(F&&, Args&&...);
+
+    ~strict_scoped_thread();
+
+  };
+
+
+RAI __thread wrapper adding a specific destroyer allowing to master what can be done at destruction time.
+
+CallableThread: A callable `void(thread&)`.
+
+The default is a `join_if_joinable`.
+
+
+`std/boost::thread` destructor terminates the program if the __thread is not joinable.
+This wrapper can be used to join the thread before destroying it seems a natural need.
+
+[heading Example]
+
+  boost::strict_scoped_thread<> t((boost::thread(F)));
+
+[section:default_constructor Constructor from a __thread]
+
+    explicit strict_scoped_thread(thread&& t) noexcept;
+
+[variablelist
+
+[[Effects:] [move the thread to own `t_`]]
+
+[[Throws:] [Nothing]]
+
+]
+
+[endsect]
+
+
+[section:call_constructor Move Constructor from a Callable]
+
+        template <typename F&&, typename ...Args>
+        explicit strict_scoped_thread(F&&, Args&&...);
+
+[variablelist
+
+[[Effects:] [Construct a internal thread in place.]]
+
+[[Postconditions:] [`*this.t_` refers to the newly created thread of execution and `this->get_id()!=thread::id()`.]]
+
+[[Throws:] [Any exception the thread construction can throw.]]
+
+]
+
+[endsect]
+
+[section:destructor Destructor]
+
+    ~strict_scoped_thread();
+
+[variablelist
+
+[[Effects:] [Equivalent to `CallableThread()(t_)`.  ]]
+
+[[Throws:] [Nothing: The `CallableThread()(t_)` should not throw when joining the thread as the scoped variable is on a scope outside the thread function.]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[section:scoped_thread Class `scoped_thread`]
+
+    #include <boost/thread/scoped_thread.hpp>
+
+    template <class CallableThread>
+    class scoped_thread
+    {
+      thread t_; // for exposition purposes only
+    public:
+        scoped_thread() noexcept;
+        scoped_thread(const scoped_thread&) = delete;
+        scoped_thread& operator=(const scoped_thread&) = delete;
+
+        explicit scoped_thread(thread&& th) noexcept;
+        template <typename F&&, typename ...Args>
+        explicit scoped_thread(F&&, Args&&...);
+
+        ~scoped_thread();
+
+        // move support
+        scoped_thread(scoped_thread && x) noexcept;
+        scoped_thread& operator=(scoped_thread && x) noexcept;
+
+        void swap(scoped_thread& x) noexcept;
+
+        typedef thread::id id;
+
+        id get_id() const noexcept;
+
+        bool joinable() const noexcept;
+        void join();
+    #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_join_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_join_until(const chrono::time_point<Clock, Duration>& t);
+    #endif
+
+        void detach();
+
+        static unsigned hardware_concurrency() noexcept;
+
+        typedef thread::native_handle_type native_handle_type;
+        native_handle_type native_handle();
+
+    #if defined BOOST_THREAD_PROVIDES_INTERRUPTIONS
+        void interrupt();
+        bool interruption_requested() const noexcept;
+    #endif
+
+
+    };
+
+    void swap(scoped_thread& lhs,scoped_thread& rhs) noexcept;
+
+
+RAI __thread wrapper adding a specific destroyer allowing to master what can be done at destruction time.
+
+CallableThread: A callable void(thread&).
+The default is join_if_joinable.
+
+thread std::thread destructor terminates the program if the thread is not joinable.
+Having a wrapper that can join the thread before destroying it seems a natural need.
+
+Remark: `scoped_thread` is not a __thread as __thread is not designed to be derived from as a polymorphic type.
+
+Anyway `scoped_thread` can be used in most of the contexts a __thread could be used as it has the
+same non-deprecated interface with the exception of the construction.
+
+[heading Example]
+
+  boost::scoped_thread<> t((boost::thread(F)));
+  t.interrupt();
+
+
+[section:default_constructor Default Constructor]
+
+    scoped_thread() noexcept;
+
+[variablelist
+
+[[Effects:] [Constructs a scoped_thread instance that wraps to __not_a_thread__.]]
+
+[[Postconditions:] [`this->get_id()==thread::id()`]]
+
+[[Throws:] [Nothing]]
+
+]
+
+[endsect]
+
+[section:move_constructor Move Constructor]
+
+    scoped_thread(scoped_thread&& other) noexcept;
+
+[variablelist
+
+[[Effects:] [Transfers ownership of the scoped_thread managed by `other` (if any) to the newly constructed scoped_thread instance.]]
+
+[[Postconditions:] [`other.get_id()==thread::id()` and `get_id()` returns the value of `other.get_id()` prior to the construction]]
+
+[[Throws:] [Nothing]]
+
+]
+
+[endsect]
+
+[section:move_assignment Move assignment operator]
+
+    scoped_thread& operator=(scoped_thread&& other) noexcept;
+
+[variablelist
+
+[[Effects:] [Transfers ownership of the scoped_thread managed by `other` (if
+any) to `*this`. 
+
+- if defined `BOOST_THREAD_DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE`: If there was a `scoped_thread` previously associated with `*this` then that `scoped_thread` is detached, DEPRECATED
+
+- if defined `BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE`: If the `scoped_thread` is joinable calls to std::terminate.
+]]
+
+[[Postconditions:] [`other->get_id()==thread::id()` and `get_id()` returns the value of `other.get_id()` prior to the assignment.]]
+
+[[Throws:] [Nothing]]
+
+]
+
+[endsect]
+
+[section:thread_constructor Move Constructor from a __thread]
+
+    scoped_thread(thread&& t);
+
+[variablelist
+
+[[Effects:] [move the thread to own `t_`.]]
+
+[[Postconditions:] [`*this.t_` refers to the newly created thread of execution and `this->get_id()!=thread::id()`.]]
+
+[[Throws:] [Nothing]]
+
+]
+
+[endsect]
+
+[section:call_constructor Move Constructor from a Callable]
+
+        template <typename F&&, typename ...Args>
+        explicit scoped_thread(F&&, Args&&...);
+
+[variablelist
+
+[[Effects:] [Construct a internal thread in place.]]
+
+[[Postconditions:] [`*this.t_` refers to the newly created thread of execution and `this->get_id()!=thread::id()`.]]
+
+[[Throws:] [Any exception the thread construction can throw.]]
+
+]
+
+[endsect]
+
+
+[section:destructor Destructor]
+
+    ~scoped_thread();
+
+[variablelist
+
+[[Effects:] [Equivalent to `CallableThread()(t_)`.  ]]
+
+[[Throws:] [Nothing: The `CallableThread()(t_)` should not throw when joining the thread as the scoped variable is on a scope outside the thread function.]]
+
+]
+
+[endsect]
+
+
+[section:joinable Member function `joinable()`]
+
+    bool joinable() const noexcept;
+
+[variablelist
+
+[[Returns:] [Equivalent to return t_.joinable().]]
+
+[[Throws:] [Nothing]]
+
+]
+
+
+[endsect]
+
+[section:join Member function `join()`]
+
+    void join();
+
+[variablelist
+
+[[Effects:] [Equivalent to t_.join().]]
+
+]
+
+[endsect]
+
+[section:try_join_for Member function `try_join_for()`]
+
+        template <class Rep, class Period>
+        bool try_join_for(const chrono::duration<Rep, Period>& rel_time);
+
+[variablelist
+
+[[Effects:] [Equivalent to return `t_.try_join_for(rel_time)`.]]
+
+]
+
+[endsect]
+
+[section:try_join_until Member function `try_join_until()`]
+
+        template <class Clock, class Duration>
+        bool try_join_until(const chrono::time_point<Clock, Duration>& abs_time);
+
+[variablelist
+
+[[Effects:] [Equivalent to return `t_.try_join_until(abs_time)`.]]
+
+]
+
+[endsect]
+
+
+
+[section:detach Member function `detach()`]
+
+    void detach();
+
+[variablelist
+
+[[Effects:] [Equivalent to `t_.detach()`.]]
+
+]
+
+[endsect]
+
+
+[section:get_id Member function `get_id()`]
+
+    thread::id get_id() const noexcept;
+
+[variablelist
+
+[[Effects:] [Equivalent to return `t_.get_id()`.]]
+
+]
+
+[endsect]
+
+[section:interrupt Member function `interrupt()`]
+
+    void interrupt();
+
+[variablelist
+
+[[Effects:] [Equivalent to `t_.interrupt()`.]]
+
+]
+        
+
+[endsect]
+
+[section:hardware_concurrency Static member function `hardware_concurrency()`]
+
+    unsigned hardware_concurrency() noexecpt;
+
+[variablelist
+
+[[Effects:] [Equivalent to return `thread::hardware_concurrency()`.]]
+
+]
+
+[endsect]
+
+[section:nativehandle Member function `native_handle()`]
+
+    typedef thread::native_handle_type native_handle_type;
+    native_handle_type native_handle();
+
+[variablelist
+
+[[Effects:] [Equivalent to return `t_.native_handle()`.]]
+
+]
+
+[endsect]
+
+[section:swap Member function `swap()`]
+
+    void swap(scoped_thread& other) noexcept;
+
+[variablelist
+
+[[Effects:] [Equivalent `t_.swap(other.t_)`.]]
+
+]
+
+[endsect]
+
+
+
+[endsect]
+[section:non_member_swap Non-member function `swap(scoped_thread&,scoped_thread&)`]
+
+    #include <boost/thread/scoped_thread.hpp>
+
+    void swap(scoped_thread& lhs,scoped_thread& rhs) noexcept;
+
+[variablelist
+
+[[Effects:] [`lhs.swap(rhs)`.]]
+
+]
+
+[endsect]
+[endsect]

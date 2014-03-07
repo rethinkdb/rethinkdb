@@ -1,0 +1,89 @@
+[/ File any_of.qbk]
+
+[section:any_of any_of]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'boost/algorithm/cxx11/any_of.hpp' contains four variants of a single algorithm, `any_of`. The algorithm tests the elements of a sequence and returns true if any of the elements has a  particular property.
+
+The routine `any_of` takes a sequence and a predicate. It will return true if the predicate returns true for any element in the sequence. 
+
+The routine `any_of_equal` takes a sequence and a value. It will return true if any element in the sequence compares equal to the passed in value.
+
+Both routines come in two forms; the first one takes two iterators to define the range. The second form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading interface]
+
+The function `any_of` returns true if the predicate returns true any item in the sequence.  There are two versions; one takes two iterators, and the other takes a range.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename Predicate>
+	bool any_of ( InputIterator first, InputIterator last, Predicate p );
+template<typename Range, typename Predicate> 
+	bool any_of ( const Range &r, Predicate p );
+}}
+``
+
+The function `any_of_equal` is similar to `any_of`, but instead of taking a predicate to test the elements of the sequence, it takes a value to compare against.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename V>
+	bool any_of_equal ( InputIterator first, InputIterator last, V const &val );
+template<typename Range, typename V> 
+	bool any_of_equal ( const Range &r, V const &val );
+}}
+``
+
+[heading Examples]
+
+Given the container `c` containing `{ 0, 1, 2, 3, 14, 15 }`, then
+``
+bool isOdd ( int i ) { return i % 2 == 1; }
+bool lessThan10 ( int i ) { return i < 10; }
+
+using boost::algorithm;
+any_of ( c, isOdd ) --> true
+any_of ( c.begin (), c.end (), lessThan10 ) --> true
+any_of ( c.begin () + 4, c.end (), lessThan10 ) --> false
+any_of ( c.end (), c.end (), isOdd ) --> false  // empty range
+any_of_equal ( c, 3 ) --> true
+any_of_equal ( c.begin (), c.begin () + 3, 3 ) --> false
+any_of_equal ( c.begin (), c.begin (), 99 ) --> false  // empty range
+``
+
+[heading Iterator Requirements]
+
+`any_of` and `any_of_equal` work on all iterators except output iterators.
+
+[heading Complexity]
+
+All of the variants of `any_of` and `any_of_equal` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If any of the comparisons succeed, the algorithm will terminate immediately, without examining the remaining members of the sequence.
+
+[heading Exception Safety]
+
+All of the variants of `any_of` and `any_of_equal` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The routine `any_of` is part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* `any_of` and `any_of_equal` both return false for empty ranges, no matter what is passed to test against. 
+
+* The second parameter to `any_of_value` is a template parameter, rather than deduced from the first parameter (`std::iterator_traits<InputIterator>::value_type`) because that allows more flexibility for callers, and takes advantage of built-in comparisons for the type that is pointed to by the iterator.  The function is defined to return true if, for any element in the sequence, the expression `*iter == val` evaluates to true (where `iter` is an iterator to each element in the sequence)
+
+[endsect]
+
+[/ File any_of.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Buffer Sizes</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<STYLE> 
+    DT A { /*text-decoration:none*/ } 
+    LI A { /*text-decoration:none;*/ font: 80% Verdana, Tahoma, Arial, Helvetica, sans-serif }
+</STYLE>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Buffer Sizes</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#synopsis">Synopsis</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The macros <CODE>BOOST_IOSTREAMS_DEFAULT_DEVICE_BUFFER_SIZE</CODE>, <CODE>BOOST_IOSTREAMS_DEFAULT_FILTER_BUFFER_SIZE</CODE> and <CODE>BOOST_IOSTREAMS_DEFAULT_PBACK_BUFFER_SIZE</CODE> can be used to configure the default sizes of buffers allocated by the Iostreams library when a <A HREF="../concepts/filter.html">Filter</A> or <A HREF="../concepts/device.html">Device</A> is attached to a <A HREF="../guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> or <A HREF="../guide/generic_streams.html#stream"><CODE>stream</CODE></A>, or when it is added to a <A HREF="../classes/chain.html">chain</A>.
+</P>
+
+<P>The default values are subject to change in future versions of the Iostreams library.</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/constants.hpp"><CODE>&lt;boost/iostreams/constants.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="synopsis"></A>
+<H2>Synopsis</H2>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> BOOST_IOSTREAMS_DEFAULT_DEVICE_BUFFER_SIZE  4096
+<SPAN CLASS='preprocessor'>#define</SPAN> BOOST_IOSTREAMS_DEFAULT_FILTER_BUFFER_SIZE  128
+<SPAN CLASS='preprocessor'>#define</SPAN> BOOST_IOSTREAMS_DEFAULT_PBACK_BUFFER_SIZE   4</PRE>
+
+<!-- Begin Footer -->
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a><br/>Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,247 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/af.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/af.xml
+ */
+af{
+    Countries{
+        AD{"Andorra"}
+        AE{"Verenigde Arabiese Emirate"}
+        AF{"Afganistan"}
+        AG{"Antigua en Barbuda"}
+        AI{"Anguilla"}
+        AL{"Albanië"}
+        AM{"Armenië"}
+        AN{"Nederlands-Antille"}
+        AO{"Angola"}
+        AQ{"Antarktika"}
+        AR{"Argentinië"}
+        AS{"Amerikaans Samoa"}
+        AT{"Oostenryk"}
+        AU{"Australië"}
+        AW{"Aruba"}
+        AZ{"Aserbeidjan"}
+        BA{"Bosnië en Herzegowina"}
+        BB{"Barbados"}
+        BD{"Bangladesj"}
+        BE{"België"}
+        BF{"Boerkina Fasso"}
+        BG{"Bulgarye"}
+        BH{"Bahrein"}
+        BI{"Burundi"}
+        BJ{"Benin"}
+        BM{"Bermuda"}
+        BN{"Broenei"}
+        BO{"Bolivië"}
+        BR{"Brasilië"}
+        BS{"Bahamas"}
+        BT{"Bhoetan"}
+        BW{"Botswana"}
+        BY{"Wit-Rusland"}
+        BZ{"Belize"}
+        CA{"Kanada"}
+        CD{"Demokratiese Republiek van die Kongo"}
+        CF{"Sentraal-Afrikaanse Republiek"}
+        CG{"Kongo"}
+        CH{"Switserland"}
+        CI{"Ivoorkus"}
+        CK{"Cookeilande"}
+        CL{"Chili"}
+        CM{"Kameroen"}
+        CN{"Sjina"}
+        CO{"Kolombië"}
+        CR{"Costa Rica"}
+        CS{"Serwië en Montenegro"}
+        CU{"Kuba"}
+        CV{"Kaap Verde"}
+        CY{"Ciprus"}
+        CZ{"Tjeggiese Republiek"}
+        DE{"Duitsland"}
+        DJ{"Djiboeti"}
+        DK{"Denemarke"}
+        DM{"Dominika"}
+        DO{"Dominikaanse Republiek"}
+        DZ{"Algerië"}
+        EC{"Ecuador"}
+        EE{"Estland"}
+        EG{"Egipte"}
+        EH{"Wes-Sahara"}
+        ER{"Eritrea"}
+        ES{"Spanje"}
+        ET{"Ethiopië"}
+        FI{"Finland"}
+        FJ{"Fidji"}
+        FK{"Falklandeilande"}
+        FM{"Mikronesië"}
+        FO{"Faroëreilande"}
+        FR{"Frankryk"}
+        GA{"Gaboen"}
+        GB{"Groot-Brittanje"}
+        GD{"Grenada"}
+        GE{"Georgië"}
+        GF{"Frans-Guyana"}
+        GH{"Ghana"}
+        GI{"Gibraltar"}
+        GL{"Groenland"}
+        GM{"Gambië"}
+        GN{"Guinee"}
+        GP{"Guadeloupe"}
+        GQ{"Ekwatoriaal-Guinee"}
+        GR{"Griekeland"}
+        GT{"Guatemala"}
+        GU{"Guam"}
+        GW{"Guinee-Bissau"}
+        GY{"Guyana"}
+        HK{"Hongkong"}
+        HN{"Honduras"}
+        HR{"Kroasië"}
+        HT{"Haïti"}
+        HU{"Hongarye"}
+        ID{"Indonesië"}
+        IE{"Ierland"}
+        IL{"Israel"}
+        IN{"Indië"}
+        IO{"Britse Indiese Oseaan Gebied"}
+        IQ{"Irak"}
+        IR{"Iran"}
+        IS{"Ysland"}
+        IT{"Italië"}
+        JM{"Jamaika"}
+        JO{"Jordanië"}
+        JP{"Japan"}
+        KE{"Kenia"}
+        KG{"Kirgisië"}
+        KH{"Kambodja"}
+        KI{"Kiribati"}
+        KM{"Comore"}
+        KN{"Saint Kitts en Nevis"}
+        KP{"Noord-Korea"}
+        KR{"Suid-Korea"}
+        KW{"Koeweit"}
+        KY{"Kaaimanseilande"}
+        KZ{"Kasakstan"}
+        LA{"Laos"}
+        LB{"Libanon"}
+        LC{"Sint Lucia"}
+        LI{"Liechtenstein"}
+        LK{"Sri Lanka"}
+        LR{"Liberië"}
+        LS{"Lesotho"}
+        LT{"Litaue"}
+        LU{"Luxemburg"}
+        LV{"Letland"}
+        LY{"Libië"}
+        MA{"Marokko"}
+        MC{"Monaco"}
+        MD{"Moldova"}
+        MG{"Madagaskar"}
+        MH{"Marshall-eilande"}
+        MK{"Macedonië"}
+        ML{"Mali"}
+        MM{"Mianmar"}
+        MN{"Mongolië"}
+        MP{"Noordelike Marianaeilande"}
+        MQ{"Martinique"}
+        MR{"Mouritanië"}
+        MS{"Montserrat"}
+        MT{"Malta"}
+        MU{"Mauritius"}
+        MV{"Maledive"}
+        MW{"Malawi"}
+        MX{"Meksiko"}
+        MY{"Maleisië"}
+        MZ{"Mosambiek"}
+        NA{"Namibië"}
+        NC{"Nieu-Kaledonië"}
+        NE{"Niger"}
+        NF{"Norfolk-eiland"}
+        NG{"Nigerië"}
+        NI{"Nicaragua"}
+        NL{"Nederland"}
+        NO{"Noorweë"}
+        NP{"Nepal"}
+        NR{"Naoeroe"}
+        NU{"Niue"}
+        NZ{"Nieu-Seeland"}
+        OM{"Oman"}
+        PA{"Panama"}
+        PE{"Peru"}
+        PF{"Frans-Polinesië"}
+        PG{"Papoea Nieu-Guinee"}
+        PH{"Filippyne"}
+        PK{"Pakistan"}
+        PL{"Pole"}
+        PM{"Sint-Pierre en Miquelon"}
+        PN{"Pitcairn"}
+        PR{"Puerto Rico"}
+        PS{"Palestina"}
+        PT{"Portugal"}
+        PW{"Palau"}
+        PY{"Paraguay"}
+        QA{"Katar"}
+        RE{"Réunion"}
+        RO{"Roemenië"}
+        RU{"Rusland"}
+        RW{"Rwanda"}
+        SA{"Saoedi-Arabië"}
+        SB{"Solomon Eilande"}
+        SC{"Seychelle"}
+        SD{"Soedan"}
+        SE{"Swede"}
+        SG{"Singapoer"}
+        SH{"Sint Helena"}
+        SI{"Slowenië"}
+        SK{"Slowakye"}
+        SL{"Sierra Leone"}
+        SM{"San Marino"}
+        SN{"Senegal"}
+        SO{"Somalië"}
+        SR{"Suriname"}
+        ST{"Sao Tome en Principe"}
+        SV{"Salvador"}
+        SY{"Sirië"}
+        SZ{"Swaziland"}
+        TC{"Turks en Caicos Eilande"}
+        TD{"Tsjaad"}
+        TG{"Togo"}
+        TH{"Thailand"}
+        TJ{"Tadjikistan"}
+        TK{"Tokelau"}
+        TL{"Oos-Timor"}
+        TM{"Turkmenië"}
+        TN{"Tunisië"}
+        TO{"Tonga"}
+        TR{"Turkye"}
+        TT{"Trinidad en Tobago"}
+        TV{"Tuvalu"}
+        TW{"Taiwan"}
+        TZ{"Tanzanië"}
+        UA{"Oekraine"}
+        UG{"Uganda"}
+        US{"Verenigde State van Amerika"}
+        UY{"Uruguay"}
+        UZ{"Oesbekistan"}
+        VA{"Vatikaan"}
+        VC{"Saint Vincent en die Grenadine"}
+        VE{"Venezuela"}
+        VG{"Britse Maagde-eilande"}
+        VI{"V.S. Maagde-eilande"}
+        VN{"Viëtnam"}
+        VU{"Vanuatu"}
+        WF{"Wallis en Futuna"}
+        WS{"Samoa"}
+        YE{"Jemen"}
+        YT{"Mayotte"}
+        ZA{"Suid-Afrika"}
+        ZM{"Zambië"}
+        ZW{"Zimbabwe"}
+        ZZ{"onbekend gebied"}
+    }
+    Version{"2.0.47.68"}
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Numbers Requirements</title>
+</head>
+
+<body lang="en">
+  <h1>Numbers Requirements</h1>
+
+  <p>What we call "number" is the base type of the <code>interval</code>
+  class. The interval library expect a lot of properties from this base type
+  in order to respect the inclusion property. All these properties are
+  already detailed in the other sections of this documentation; but we will
+  try to summarize them here.</p>
+
+  <h3>Ordering</h3>
+
+  <p>The numbers need to be supplied with an ordering. This ordering
+  expresses itself by the operators <code>&lt; &lt;= =&gt; &gt; == !=</code>.
+  It must be a total order (reflexivity, antisymmetry, transitivity, and each
+  pair of numbers is ordered). So <code>complex&lt;T&gt;</code> will not be a
+  good candidate for the base type; if you need the inclusion property of
+  interval property, you should use <code>complex&lt; interval&lt;T&gt;
+  &gt;</code> in place of <code>interval&lt; complex&lt;T&gt; &gt;</code>
+  (but unfortunately, <code>complex</code> only provides specialization).</p>
+
+  <p>Please note that invalid numbers are not concerned by the order; it can
+  even be conceptually better if a comparison with these invalid numbers is
+  always <code>false</code> (except for <code>!=</code>). If your checking
+  policy uses <code>interval_lib::checking_base</code> and your base type
+  contains invalid numbers, then this property is needed:
+  <code>nan!=nan</code> (here <code>nan</code> is an invalid number). If this
+  property is not present, then you should not use <code>checking_base</code>
+  directly.</p>
+
+  <p>Interval arithmetic involves a lot of comparison to zero. By default,
+  they are done by comparing the numbers to
+  <code>static_cast&lt;T&gt;(0)</code>. However, if the format of the numbers
+  allows some faster comparisons when dealing with zero, the template
+  functions in the <code>interval_lib::user</code> namespace can be
+  specialized:</p>
+  <pre>
+namespace user {
+template&lt;class T&gt; inline bool is_zero(T const &amp;v) { return v == static_cast&lt;T&gt;(0); }
+template&lt;class T&gt; inline bool is_neg (T const &amp;v) { return v &lt;  static_cast&lt;T&gt;(0); }
+template&lt;class T&gt; inline bool is_pos (T const &amp;v) { return v &gt;  static_cast&lt;T&gt;(0); }
+}
+</pre>
+
+  <h3>Numeric limits</h3>
+
+  <p>Another remark about the checking policy. It normally is powerful enough
+  to handle the exceptional behavior that the basic type could induce; in
+  particular infinite and invalid numbers (thanks to the four functions
+  <code>pos_inf</code>, <code>neg_inf</code>, <code>nan</code> and
+  <code>is_nan</code>). However, if you use
+  <code>interval_lib::checking_base</code> (and the default checking policy
+  uses it), your base type should have a correctly specialized
+  <code>std::numeric_limits&lt;T&gt;</code>. In particular, the values
+  <code>has_infinity</code> and <code>has_quiet_NaN</code>, and the functions
+  <code>infinity</code> and <code>quiet_NaN</code> should be accordingly
+  defined.</p>
+
+  <p>So, to summarize, if you do not rely on the default policy and do not
+  use <code>interval_lib::checking_base</code>, it is not necessary to have a
+  specialization of the numeric limits for your base type.</p>
+
+  <h3>Mathematical properties</h3>
+
+  <p>Ensuring the numbers are correctly ordered is not enough. The basic
+  operators should also respect some properties depending on the order. Here
+  they are:</p>
+
+  <ul>
+    <li>0 &le; <i>x</i> &rArr; -<i>x</i> &le; 0</li>
+
+    <li><i>x</i> &le; <i>y</i> &rArr; -<i>y</i> &le; -<i>x</i></li>
+
+    <li><i>x</i> &le; <i>y</i> &rArr; <i>x</i>+<i>z</i> &le;
+    <i>y</i>+<i>z</i></li>
+
+    <li><i>x</i> &le; <i>y</i> and <i>z</i> &ge; 0 &rArr;
+    <i>x</i>&times;<i>z</i> &le; <i>y</i>&times;<i>z</i></li>
+
+    <li>0 &lt; <i>x</i> &le; <i>y</i> &rArr; 0 &lt; 1/<i>y</i> &le;
+    1/<i>x</i></li>
+  </ul>
+
+  <p>The previous properties are also used (and enough) for <code>abs</code>,
+  <code>square</code> and <code>pow</code>. For all the transcendental
+  functions (including <code>sqrt</code>), other properties are needed. These
+  functions should have the same properties than the corresponding real
+  functions. For example, the expected properties for <code>cos</code>
+  are:</p>
+
+  <ul>
+    <li><code>cos</code> is defined for all the valid numbers;</li>
+
+    <li>it is 2&pi;-periodic;</li>
+
+    <li><code>cos</code>(2&pi;-<i>x</i>) is equal to
+    <code>cos</code>(<i>x</i>);</li>
+
+    <li><code>cos</code> is a decreasing function on [0,2&pi;].</li>
+  </ul>
+
+  <h3>Rounding</h3>
+
+  <p>If you work with a base type and no inexact result is ever computed, you
+  can skip the rest of this paragraph. You can also skip it if you are not
+  interested in the inclusion property (if approximate results are enough).
+  If you are still reading, it is probably because you want to know the basic
+  properties the rounding policy should validate.</p>
+
+  <p>Whichever operation or function you consider, the following property
+  should be respected: <code>f_down(x,y) &lt;= f(x,y) &lt;= f_up(x,y)</code>.
+  Here, <code>f</code> denotes the infinitely precise function computed and
+  <code>f_down</code> and <code>f_up</code> are functions which return
+  possibly inexact values but of the correct type (the base type). If
+  possible, they should try to return the nearest representable value, but it
+  is not always easy.</p>
+
+  <h3>Constants</h3>
+
+  <p>In order for the trigonometric functions to correctly work, the library
+  need to know the value of the &pi; constant (and also &pi;/2 and 2&pi;).
+  Since these constants may not be representable in the base type, the
+  library does not have to know the exact value: a lower bound and an upper
+  bound are enough. If these values are not provided by the user, the default
+  values will be used: they are integer values (so &pi; is bounded by 3 and
+  4).</p>
+
+  <h3>Operators and conversions</h3>
+
+  <p>As explained at the beginning, the comparison operators should be
+  defined for the base type. The rounding policy defines a lot of functions
+  used by the interval library. So the arithmetic operators do not need to be
+  defined for the base type (unless required by one of the predefined
+  classes). However, there is an exception: the unary minus need to be
+  defined. Moreover, this operator should only provide exact results; it is
+  the reason why the rounding policy does not provide some negation
+  functions.</p>
+
+  <p>The conversion from <code>int</code> to the base type needs to be
+  defined (only a few values need to be available: -1, 0, 1, 2). The
+  conversion the other way around is provided by the rounding policy
+  (<code>int_down</code> and <code>int_up</code> members); and no other
+  conversion is strictly needed. However, it may be valuable to provide as
+  much conversions as possible in the rounding policy (<code>conv_down</code>
+  and <code>conv_up</code> members) in order to benefit from interval
+  conversions.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2004 Guillaume Melquiond</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

@@ -1,0 +1,38 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:insert insert]
+
+[heading Prototype]
+
+``
+template<
+    class Container,
+    class SinglePassRange
+    >
+Container& insert(Container& target,
+                  typename Container::iterator before,
+                  const SinglePassRange& from);
+``
+
+[heading Description]
+
+`insert` all of the elements in the range `from` before the `before` iterator into `target`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/insert.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `Container` supports insert at a specified position.
+# `SinglePassRange`'s value type is convertible to `Container`'s value type.
+
+[heading Complexity]
+
+Linear. `distance(from)` assignments are performed.
+
+[endsect]

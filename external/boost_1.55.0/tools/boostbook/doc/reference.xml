@@ -1,0 +1,2951 @@
+<?xml version="1.0" standalone="yes"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<chapter id="reference">
+  <title>Reference</title>
+  <para>Elements:<itemizedlist spacing="compact"><listitem><simpara><link linkend="boostbook.dtd.access">Element <sgmltag>access</sgmltag> - Declares an access specification for class members</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.boostbook">Element <sgmltag>boostbook</sgmltag> - Defines a BoostBook book</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.class">Element <sgmltag>class</sgmltag> - Declares a class or class template</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.class-specialization">Element <sgmltag>class-specialization</sgmltag> - A specialization (partial or full) of a class template</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.code">Element <sgmltag>code</sgmltag> - Mimics the <sgmltag>code</sgmltag> tag in HTML</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.compile-fail-test">Element <sgmltag>compile-fail-test</sgmltag> - A testcase that should fail to compile</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.compile-test">Element <sgmltag>compile-test</sgmltag> - A testcase that should compile correctly</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.complexity">Element <sgmltag>complexity</sgmltag> - The time/space/etc. complexity of a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.constructor">Element <sgmltag>constructor</sgmltag> - Declares a constructor of the enclosing class</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.copy-assignment">Element <sgmltag>copy-assignment</sgmltag> - Declares a copy-assignment operator</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.data-member">Element <sgmltag>data-member</sgmltag> - Declares a data member of a class</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.default">Element <sgmltag>default</sgmltag> - The default value of a function or template parameter</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.description">Element <sgmltag>description</sgmltag> - Detailed description of a construct</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.destructor">Element <sgmltag>destructor</sgmltag> - Declares a destructor for the enclosing class</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.effects">Element <sgmltag>effects</sgmltag> - Declares the side effects of a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.enum">Element <sgmltag>enum</sgmltag> - Declares an enumeration type</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.enumname">Element <sgmltag>enumname</sgmltag> - References an enumeration type with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.enumvalue">Element <sgmltag>enumvalue</sgmltag> - A single value of an enumeration</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.free-function-group">Element <sgmltag>free-function-group</sgmltag> - A set of functions that are grouped together under one name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.function">Element <sgmltag>function</sgmltag> - Declares a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.functionname">Element <sgmltag>functionname</sgmltag> - References a function with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.globalname">Element <sgmltag>globalname</sgmltag> - References a global with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.header">Element <sgmltag>header</sgmltag> - Declares a C++ header with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.headername">Element <sgmltag>headername</sgmltag> - References a C++ header with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.if-fails">Element <sgmltag>if-fails</sgmltag> - What it means when a testcase fails</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.inherit">Element <sgmltag>inherit</sgmltag> - Declares a base class of the enclosing class or struct</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.lib">Element <sgmltag>lib</sgmltag> - A library dependency</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.library">Element <sgmltag>library</sgmltag> - Top-level element for a library</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.library-reference">Element <sgmltag>library-reference</sgmltag> - Declares the reference material for a library</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.librarycategory">Element <sgmltag>librarycategory</sgmltag> - Declares that the enclosing library is in this category</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.librarycategorydef">Element <sgmltag>librarycategorydef</sgmltag> - Defines a new library category</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.librarycategorylist">Element <sgmltag>librarycategorylist</sgmltag> - Categorized listing of libraries</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.libraryinfo">Element <sgmltag>libraryinfo</sgmltag> - Provides information about a library</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.librarylist">Element <sgmltag>librarylist</sgmltag> - Placeholder for an alphabetical list of libraries</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.libraryname">Element <sgmltag>libraryname</sgmltag> - References a library of the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.librarypurpose">Element <sgmltag>librarypurpose</sgmltag> - Describes in one short sentence or phrase the purpose of a library</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.link-fail-test">Element <sgmltag>link-fail-test</sgmltag> - Declares a test that should compile but fail to link</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.link-test">Element <sgmltag>link-test</sgmltag> - Declares a test that should compile and link</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.macroname">Element <sgmltag>macroname</sgmltag> - References a macro with the given name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.method">Element <sgmltag>method</sgmltag> - Declares a method, i.e., a member function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.method-group">Element <sgmltag>method-group</sgmltag> - A set of methods that are grouped together under one name</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.namespace">Element <sgmltag>namespace</sgmltag> - Declares a namespace</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.notes">Element <sgmltag>notes</sgmltag> - Non-normative notes about a function's semantics</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.overloaded-function">Element <sgmltag>overloaded-function</sgmltag> - An overloaded function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.overloaded-method">Element <sgmltag>overloaded-method</sgmltag> - An overloaded method</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.parameter">Element <sgmltag>parameter</sgmltag> - A function parameter</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.paramtype">Element <sgmltag>paramtype</sgmltag> - The type of a function parameter</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.postconditions">Element <sgmltag>postconditions</sgmltag> - Conditions that must hold after the function returns</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.precondition">Element <sgmltag>precondition</sgmltag> - Conditions that must be met prior to executing a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.programlisting">Element <sgmltag>programlisting</sgmltag> - A sample of program code</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.purpose">Element <sgmltag>purpose</sgmltag> - A short description of an entity's use</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.rationale">Element <sgmltag>rationale</sgmltag> - Describes the rationale for a particular function's design</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.requirement">Element <sgmltag>requirement</sgmltag> - A requirement/property in the Jamfile for a testcase</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.requires">Element <sgmltag>requires</sgmltag> - Declares the requirements of a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.returns">Element <sgmltag>returns</sgmltag> - Description of the return value of a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.run-fail-test">Element <sgmltag>run-fail-test</sgmltag> - A testcase that should compile and link, but fail on execution</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.run-test">Element <sgmltag>run-test</sgmltag> - A testcase that should compile, link, and execute</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.signature">Element <sgmltag>signature</sgmltag> - One signature of an overloaded function or method</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.snippet">Element <sgmltag>snippet</sgmltag> - Pulls in a code snippet from a <sgmltag>programlisting</sgmltag> element</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.source">Element <sgmltag>source</sgmltag> - Defines source code for a test</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.specialization">Element <sgmltag>specialization</sgmltag> - Defines the specialization arguments for a class specialization</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.static-constant">Element <sgmltag>static-constant</sgmltag> - Declares a static constant, e.g., <code>const int foo = 5;</code>.</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.struct">Element <sgmltag>struct</sgmltag> - Declares a C++ struct</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.struct-specialization">Element <sgmltag>struct-specialization</sgmltag> - A specialization (full or partial) of a struct template</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.template">Element <sgmltag>template</sgmltag> - Declares the template parameters of a class or function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.template-arg">Element <sgmltag>template-arg</sgmltag> - A template argument in a specialization</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.template-nontype-parameter">Element <sgmltag>template-nontype-parameter</sgmltag> - A nontype template parameter</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.template-type-parameter">Element <sgmltag>template-type-parameter</sgmltag> - Declares a template type parameter</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.template-varargs">Element <sgmltag>template-varargs</sgmltag> - Declares a variable-length list of template parameters</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.testsuite">Element <sgmltag>testsuite</sgmltag> - Describes a library testsuite</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.throws">Element <sgmltag>throws</sgmltag> - Description of the exceptions thrown by a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.type">Element <sgmltag>type</sgmltag> - The type of an element or return type of a function</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.typedef">Element <sgmltag>typedef</sgmltag> - Declares a typedef</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.union">Element <sgmltag>union</sgmltag> - Declares a C++ union or union template</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.union-specialization">Element <sgmltag>union-specialization</sgmltag> - A specialization (full or partial) of a union template</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.using-class">Element <sgmltag>using-class</sgmltag> - Injects the method and function names of a class into the local scope</link></simpara></listitem><listitem><simpara><link linkend="boostbook.dtd.using-namespace">Element <sgmltag>using-namespace</sgmltag> - Injects the declared names from a namespace into the local scope</link></simpara></listitem></itemizedlist></para>
+  <refentry id="boostbook.dtd.class-specialization">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>class-specialization</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>class-specialization</refname>
+      <refpurpose>A specialization (partial or full) of a class template</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>class-specialization ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.specialization">specialization</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.link-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>link-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>link-test</refname>
+      <refpurpose>Declares a test that should compile and link</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>link-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.link-fail-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>link-fail-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>link-fail-test</refname>
+      <refpurpose>Declares a test that should compile but fail to link</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>link-fail-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.typedef">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>typedef</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>typedef</refname>
+      <refpurpose>Declares a typedef</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>typedef ::= 
+  (<link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.static-constant">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>static-constant</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>static-constant</refname>
+      <refpurpose>Declares a static constant, e.g., <code>const int foo = 5;</code>.</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>static-constant ::= 
+  (<link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.default">default</link>, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.code">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>code</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>code</refname>
+      <refpurpose>Mimics the <sgmltag>code</sgmltag> tag in HTML</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>code ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Text within a <sgmltag>code</sgmltag> tag is generally typeset
+  in a different, monospaced font so that it stands out as code. The
+  <sgmltag>code</sgmltag> tag in BoostBook is transformed directly
+  into the <sgmltag>computeroutput</sgmltag> tag in DocBook.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.destructor">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>destructor</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>destructor</refname>
+      <refpurpose>Declares a destructor for the enclosing class</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>destructor ::= 
+  (<link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.template-type-parameter">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>template-type-parameter</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>template-type-parameter</refname>
+      <refpurpose>Declares a template type parameter</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>template-type-parameter ::= 
+  (<link linkend="boostbook.dtd.default">default</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>pack</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to '1' if the parameter is a parameter pack.</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.description">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>description</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>description</refname>
+      <refpurpose>Detailed description of a construct</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>description ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Although the context model for this element is
+  <code>ANY</code>, detailed descriptions should contain structured
+  DocBook elements that occur within sections, e.g., paragraphs
+  (<sgmltag>para</sgmltag>, <sgmltag>simpara</sgmltag>), lists
+  (<sgmltag>orderedlist</sgmltag>, <sgmltag>itemizedlist</sgmltag>),
+  tables (<sgmltag>informaltable</sgmltag>, <sgmltag>table</sgmltag>),
+  etc.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.librarylist">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>librarylist</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>librarylist</refname>
+      <refpurpose>Placeholder for an alphabetical list of libraries</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>librarylist ::= 
+  EMPTY
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Developers aren't generally expected to use this element. Its existence is mainly as a placeholder in <filename>boost.xml</filename> for the alphabetical list of libraries.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.library-reference">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>library-reference</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>library-reference</refname>
+      <refpurpose>Declares the reference material for a library</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>library-reference ::= 
+  (title?, section*, (<link linkend="boostbook.dtd.header">header</link>| <link linkend="boostbook.dtd.library-reference">library-reference</link>)*)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Reference documentation for a library is contained with a
+  &lt;library-reference&gt; element. The &lt;library-reference&gt;
+  element has no attributes, and contains as children only
+  &lt;header&gt; elements.</para>
+
+  <para>The &lt;header&gt; element defines a C++ header file. Within
+  each C++ header file lie the definitions of C++ constructs to be
+  documented. The <code>name</code> attribute of the &lt;header&gt;
+  element gives the name of the header, as one would specify when
+  including the header. For instance, the &lt;library-reference&gt;
+  for the <libraryname>Any</libraryname> library may look like
+  this:</para>
+
+  <programlisting>&lt;library-reference&gt;
+  &lt;header name="boost/any.hpp"&gt;
+    &lt;!-- C++ constructs in this header --&gt;
+  &lt;/header&gt;
+&lt;/library-reference&gt;</programlisting>
+
+  <para>If the <libraryname>Any</libraryname> library contained
+  multiple headers, we would list them all as children of the
+  &lt;library-reference&gt; element.</para>
+
+  <para><sgmltag>library-reference</sgmltag> elements can be nested,
+  so that reference material can be divided into separate sections
+  that each contain different headers.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.boostbook">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>boostbook</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>boostbook</refname>
+      <refpurpose>Defines a BoostBook book</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>boostbook ::= 
+  (title, (chapter| <link linkend="boostbook.dtd.library">library</link>)*)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <simpara>This element is the topmost level defined by
+  <filename>boost.xml</filename> for all Boost documentation. It will
+  not generally be used by developers.</simpara>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.union">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>union</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>union</refname>
+      <refpurpose>Declares a C++ union or union template</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>union ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.inherit">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>inherit</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>inherit</refname>
+      <refpurpose>Declares a base class of the enclosing class or struct</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>inherit ::= 
+  (<link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.purpose">purpose</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>This element contains the type of the class inherited.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>access</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The access specifier ("public", "private", or "protected") of the inheritance.</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>pack</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to '1' if this is a pack exapansion.</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.template-varargs">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>template-varargs</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>template-varargs</refname>
+      <refpurpose>Declares a variable-length list of template parameters</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>template-varargs ::= 
+  EMPTY
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Variable-length template parameter lists are not allowed in
+  C++, but because they are sometimes needed in documentation they are
+  allowed in BoostBook. This element generally expands to "..." and
+  can be used anywhere any other template parameter can be
+  used.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.source">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>source</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>source</refname>
+      <refpurpose>Defines source code for a test</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>source ::= 
+  (#PCDATA| <link linkend="boostbook.dtd.snippet">snippet</link>)*
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>This element will contain the source code for a testcase that
+  will be generated from the documentation. To reduce the amount of escaping in the text, it is recommended to use CDATA sections, which look like this:
+
+    <programlisting>&lt;![CDATA[
+&lt;your program text here: no escaping needed!&gt;
+]]&gt;</programlisting>
+  </para>
+
+  <para>In addition to CDATA sections, code snippets can be pulled in
+  from <sgmltag>programlisting</sgmltag> elements using the <link linkend="boostbook.dtd.snippet"><sgmltag>snippet</sgmltag></link>
+  element.</para>
+</refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.function">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>function</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>function</refname>
+      <refpurpose>Declares a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>function ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.parameter">parameter</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>BoostBook functions are documented by specifying the
+  function's interface (e.g., its C++ signature) and its
+  behavior. Constructors, destructors, member functions, and free
+  functions all use the same documentation method, although the
+  top-level tags differ.</para>
+
+  <para>The behavior of functions in BoostBook is documenting using a
+  style similar to that of the C++ standard, with clauses describing
+  the requirements, effects, postconditions, exception behavior, and
+  return values of functions.</para>
+
+  <para>The following example illustrates some constructors and a
+  destructor for <classname>boost::any</classname>. Note that one of
+  the constructors takes a single parameter whose name is "other" and
+  whose type, <code>const any&amp;</code> is contained in the
+  &lt;paramtype&gt; element; any number of parameters may be specified
+  in this way.</para>
+
+  <programlisting>&lt;class name="any"&gt;
+  &lt;constructor&gt;
+    &lt;postconditions&gt;&lt;para&gt;&lt;this-&gt;empty()&gt;&lt;/para&gt;&lt;/postconditions&gt;
+  &lt;/constructor&gt;
+
+  &lt;constructor&gt;
+    &lt;parameter name="other"&gt;
+      &lt;paramtype&gt;const &lt;classname&gt;any&lt;/classname&gt;&amp;amp;&lt;/paramtype&gt;
+    &lt;/parameter&gt;
+
+    &lt;effects&gt;
+      &lt;simpara&gt; Copy constructor that copies
+        content of &lt;code&gt;other&lt;/code&gt; into the new instance,
+        so that any content is equivalent in both type and value to the
+        content of &lt;code&gt;other&lt;/code&gt;, or empty if
+        &lt;code&gt;other&lt;/code&gt; is
+        empty.
+      &lt;/simpara&gt;
+    &lt;/effects&gt;
+
+    &lt;throws&gt;
+      &lt;simpara&gt;May fail with a
+        &lt;classname&gt;std::bad_alloc&lt;/classname&gt; exception or any
+        exceptions arising from the copy constructor of the
+        contained type.
+      &lt;/simpara&gt;
+    &lt;/throws&gt;
+  &lt;/constructor&gt;
+
+  &lt;destructor&gt;
+     &lt;effects&gt;&lt;simpara&gt;Releases any and all resources used in
+     management of instance.&lt;/simpara&gt;&lt;/effects&gt;
+
+     &lt;throws&gt;&lt;simpara&gt;Nothing.&lt;/simpara&gt;&lt;/throws&gt;
+  &lt;/destructor&gt;
+&lt;/class&gt;</programlisting>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.macroname">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>macroname</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>macroname</refname>
+      <refpurpose/>
+    </refnamediv>
+    <refsynopsisdiv>macroname ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>alt</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.postconditions">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>postconditions</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>postconditions</refname>
+      <refpurpose>Conditions that must hold after the function returns</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>postconditions ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.compile-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>compile-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>compile-test</refname>
+      <refpurpose>A testcase that should compile correctly</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>compile-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.method">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>method</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>method</refname>
+      <refpurpose>Declares a method, i.e., a member function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>method ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.parameter">parameter</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>cv</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>cv-qualifiers for this method, e.g., const volatile</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.snippet">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>snippet</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>snippet</refname>
+      <refpurpose>Pulls in a code snippet from a <sgmltag>programlisting</sgmltag> element</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>snippet ::= 
+  EMPTY
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the <sgmltag>programlisting</sgmltag> element to insert</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.constructor">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>constructor</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>constructor</refname>
+      <refpurpose>Declares a constructor of the enclosing class</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>constructor ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.parameter">parameter</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.namespace">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>namespace</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>namespace</refname>
+      <refpurpose>Declares a namespace</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>namespace ::= 
+  (<link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.namespace">namespace</link>)*
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>BoostBook namespaces are declared via the &lt;namespace&gt;
+  element. As in C++, namespaces can be nested and contain other C++
+  constructs, such as classes or functions. The <code>name</code>
+  attribute of a &lt;namespace&gt; element gives the namespace name
+  (e.g., "boost"). The <libraryname>Any</libraryname> library is
+  defined entirely within namespace boost by:</para>
+
+  <programlisting>&lt;library-reference&gt;
+  &lt;header name="boost/any.hpp"&gt;
+    &lt;namespace name="boost"&gt;
+      &lt;!-- C++ constructs in the boost namespace --&gt;
+    &lt;/namespace&gt;
+  &lt;/header&gt;
+&lt;/library-reference&gt;</programlisting>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.if-fails">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>if-fails</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>if-fails</refname>
+      <refpurpose>What it means when a testcase fails</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>if-fails ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>
+    Describes to the user the effect a certain failing testcase will
+    have on the usefulness of a library. This field is useful in cases
+    where a failed testcase does not mean that the library won't be
+    useful, but may mean that certain library features will not be
+    available.
+  </para>
+</refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.headername">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>headername</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>headername</refname>
+      <refpurpose/>
+    </refnamediv>
+    <refsynopsisdiv>headername ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>alt</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.free-function-group">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>free-function-group</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>free-function-group</refname>
+      <refpurpose>A set of functions that are grouped together under one name</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>free-function-group ::= 
+  (<link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>)*
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.functionname">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>functionname</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>functionname</refname>
+      <refpurpose>References a function with the given name</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>functionname ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>If a function (or overloaded function) with the given,
+  possibly-qualified name is found, this generates a link to that
+  function. Lookups obey currently-active <link linkend="boostbook.dtd.using-class"><sgmltag>using-class</sgmltag></link>
+  and <link linkend="boostbook.dtd.using-namespace"><sgmltag>using-namespace</sgmltag></link>
+  directives to aid in the search, along with searching within the
+  current scope.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>alt</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.librarycategory">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>librarycategory</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>librarycategory</refname>
+      <refpurpose>Declares that the enclosing library is in this category</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>librarycategory ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.notes">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>notes</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>notes</refname>
+      <refpurpose>Non-normative notes about a function's semantics</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>notes ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.data-member">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>data-member</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>data-member</refname>
+      <refpurpose>Declares a data member of a class</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>data-member ::= 
+  (<link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.specialization">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>specialization</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>specialization</refname>
+      <refpurpose>Defines the specialization arguments for a class specialization</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>specialization ::= 
+  (<link linkend="boostbook.dtd.template-arg">template-arg</link>)*
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.union-specialization">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>union-specialization</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>union-specialization</refname>
+      <refpurpose>A specialization (full or partial) of a union template</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>union-specialization ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.specialization">specialization</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.throws">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>throws</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>throws</refname>
+      <refpurpose>Description of the exceptions thrown by a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>throws ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.template-arg">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>template-arg</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>template-arg</refname>
+      <refpurpose>A template argument in a specialization</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>template-arg ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>pack</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to '1' if this is a pack exapansion.</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.globalname">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>globalname</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>globalname</refname>
+      <refpurpose/>
+    </refnamediv>
+    <refsynopsisdiv>globalname ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>alt</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.method-group">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>method-group</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>method-group</refname>
+      <refpurpose>A set of methods that are grouped together under one name</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>method-group ::= 
+  (<link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>)*
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.requirement">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>requirement</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>requirement</refname>
+      <refpurpose>A requirement/property in the Jamfile for a testcase</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>requirement ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>A requirement is part of the dependencies of a target in a
+  Jamfile. The <code>name</code> attribute of a requirement element
+  gives the name of the Boost.Build feature and the content of the
+  requirement gives the value of that feature. A requirement such as
+  <code>&lt;includes&gt;foo.hpp</code> would be encoded as
+  <code>&lt;requirement
+  name="includes"&gt;foo.hpp&lt;/requirement&gt;</code>.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.precondition">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>precondition</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>precondition</refname>
+      <refpurpose>Conditions that must be met prior to executing a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>precondition ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.paramtype">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>paramtype</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>paramtype</refname>
+      <refpurpose>The type of a function parameter</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>paramtype ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.using-class">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>using-class</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>using-class</refname>
+      <refpurpose>Injects the method and function names of a class into the local scope</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>using-class ::= 
+  EMPTY
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.run-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>run-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>run-test</refname>
+      <refpurpose>A testcase that should compile, link, and execute</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>run-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.librarypurpose">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>librarypurpose</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>librarypurpose</refname>
+      <refpurpose>Describes in one short sentence or phrase the purpose of a library</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>librarypurpose ::= 
+  (#PCDATA| <link linkend="boostbook.dtd.code">code</link>| ulink| <link linkend="boostbook.dtd.functionname">functionname</link>| methodname| classname| <link linkend="boostbook.dtd.macroname">macroname</link>| <link linkend="boostbook.dtd.headername">headername</link>| <link linkend="boostbook.dtd.enumname">enumname</link>| <link linkend="boostbook.dtd.globalname">globalname</link>)*
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.copy-assignment">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>copy-assignment</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>copy-assignment</refname>
+      <refpurpose>Declares a copy-assignment operator</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>copy-assignment ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.type">type</link>?, <link linkend="boostbook.dtd.parameter">parameter</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>The return type of the copy-assignment operator does not need
+  to be specified. If left unspecified, it will default to an
+  unqualified reference to the enclosing class type.</para>
+
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>cv</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>cv-qualifiers for this method, e.g., const volatile</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.run-fail-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>run-fail-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>run-fail-test</refname>
+      <refpurpose>A testcase that should compile and link, but fail on execution</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>run-fail-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.template">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>template</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>template</refname>
+      <refpurpose>Declares the template parameters of a class or function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>template ::= 
+  (<link linkend="boostbook.dtd.template-type-parameter">template-type-parameter</link>| <link linkend="boostbook.dtd.template-nontype-parameter">template-nontype-parameter</link>| <link linkend="boostbook.dtd.template-varargs">template-varargs</link>)*
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.compile-fail-test">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>compile-fail-test</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>compile-fail-test</refname>
+      <refpurpose>A testcase that should fail to compile</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>compile-fail-test ::= 
+  (<link linkend="boostbook.dtd.source">source</link>*, <link linkend="boostbook.dtd.lib">lib</link>*, <link linkend="boostbook.dtd.requirement">requirement</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>, <link linkend="boostbook.dtd.if-fails">if-fails</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>filename</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the file associated with this element</entry></row>
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.returns">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>returns</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>returns</refname>
+      <refpurpose>Description of the return value of a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>returns ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.default">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>default</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>default</refname>
+      <refpurpose>The default value of a function or template parameter</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>default ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.parameter">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>parameter</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>parameter</refname>
+      <refpurpose>A function parameter</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>parameter ::= 
+  (<link linkend="boostbook.dtd.paramtype">paramtype</link>, <link linkend="boostbook.dtd.default">default</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>pack</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to '1' if the parameter is a parameter pack.</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.signature">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>signature</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>signature</refname>
+      <refpurpose>One signature of an overloaded function or method</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>signature ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.parameter">parameter</link>*)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>
+    A signature refers to one declaration of an overloaded function or
+    method. The signature itself has no name, because the name of the
+    overloaded function or method is used. An overloaded function or
+    method will have several signatures that will generally be typeset
+    together.
+  </para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>cv</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>cv-qualifiers for this method, e.g., const volatile</entry></row>
+<row><entry>specifiers</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The specifiers for this function, e.g., inline, static, etc.</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.overloaded-function">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>overloaded-function</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>overloaded-function</refname>
+      <refpurpose>An overloaded function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>overloaded-function ::= 
+  (<link linkend="boostbook.dtd.signature">signature</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.access">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>access</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>access</refname>
+      <refpurpose>Declares an access specification for class members</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>access ::= 
+  (<link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)+
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+    <para>The access specifications of class members (public, private, or protected) may be determined by enclosing them in an &lt;access&gt; element.</para>
+  </refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the access specification, e.g. "public", "private", or "protected".</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.class">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>class</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>class</refname>
+      <refpurpose>Declares a class or class template</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>class ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>C++ classes and class templates are described via the
+  &lt;class&gt; element. Each class has a name (e.g., "any") given by
+  the <code>name</code> attribute, a purpose given by the
+  &lt;purpose&gt; element, documentation, and a set of types,
+  functions, base classes, and data members. Here is a minimal
+  definition of the <classname>boost::any</classname> class:</para>
+
+  <programlisting>&lt;namespace name="boost"&gt;
+  &lt;class name="any"&gt;
+    &lt;purpose&gt;
+      A class whose instances can hold instances of any type that satisfies
+      ValueType requirements.
+    &lt;/purpose&gt;
+  &lt;/class&gt;
+&lt;/namespace&gt;</programlisting>
+
+  <para>Additional class documentation can be contained in a
+  <sgmltag>description</sgmltag> element following the &lt;purpose&gt;
+  element. This documentation will be typeset prior to documentation
+  for specific elements in the class (e.g., constructors or
+  methods).</para>
+
+  <para>Class inheritance is described via the &lt;inherit&gt;
+  element. The &lt;inherit&gt; element requires an <code>access</code>
+  attribute which must be one of <emphasis>public</emphasis>,
+  <emphasis>protected</emphasis>, or <emphasis>private</emphasis>. The
+  content of the &lt;inherited&gt; element in C++ code that names the
+  class inherited, and may contain markup to link to the class. The
+  following description of the class
+  <classname>boost::bad_any_cast</classname> describes public
+  inheritance from the class <classname>std::bad_cast</classname>. It
+  also defines the &lt;purpose&gt; element, which contains a short
+  description of the use of the class.</para>
+
+  <programlisting>&lt;class name="bad_any_cast"&gt;
+  &lt;inherit access="public"&gt;&lt;classname&gt;std::bad_cast&lt;/classname&gt;&lt;/inherit&gt;
+  &lt;purpose&gt;&lt;para&gt;The exception thrown in the event of a failed
+  &lt;functionname&gt;any_cast&lt;/functionname&gt; of an
+  &lt;classname&gt;any&lt;/classname&gt; value.&lt;/para&gt;&lt;/purpose&gt;
+&lt;/class&gt;</programlisting>
+
+  <para>Class templates are defined by &lt;class&gt; elements with a
+  &lt;template&gt; child element at the beginning.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.librarycategorydef">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>librarycategorydef</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>librarycategorydef</refname>
+      <refpurpose>Defines a new library category</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>librarycategorydef ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>All library category definitions should be in <filename>doc/src/boost.xml</filename>, and the names of categories must be prefixed with "<code>category:</code>".</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.type">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>type</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>type</refname>
+      <refpurpose>The type of an element or return type of a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>type ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.enumvalue">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>enumvalue</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>enumvalue</refname>
+      <refpurpose>A single value of an enumeration</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>enumvalue ::= 
+  (<link linkend="boostbook.dtd.default">default</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.overloaded-method">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>overloaded-method</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>overloaded-method</refname>
+      <refpurpose>An overloaded method</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>overloaded-method ::= 
+  (<link linkend="boostbook.dtd.signature">signature</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, <link linkend="boostbook.dtd.requires">requires</link>?, <link linkend="boostbook.dtd.effects">effects</link>?, <link linkend="boostbook.dtd.postconditions">postconditions</link>?, <link linkend="boostbook.dtd.returns">returns</link>?, <link linkend="boostbook.dtd.throws">throws</link>?, <link linkend="boostbook.dtd.complexity">complexity</link>?, <link linkend="boostbook.dtd.notes">notes</link>?, <link linkend="boostbook.dtd.rationale">rationale</link>?)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.programlisting">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>programlisting</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>programlisting</refname>
+      <refpurpose>A sample of program code</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>programlisting ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>name</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.complexity">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>complexity</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>complexity</refname>
+      <refpurpose>The time/space/etc. complexity of a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>complexity ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.purpose">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>purpose</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>purpose</refname>
+      <refpurpose>A short description of an entity's use</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>purpose ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.template-nontype-parameter">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>template-nontype-parameter</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>template-nontype-parameter</refname>
+      <refpurpose>A nontype template parameter</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>template-nontype-parameter ::= 
+  (<link linkend="boostbook.dtd.type">type</link>, <link linkend="boostbook.dtd.default">default</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>pack</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to '1' if the parameter is a parameter pack.</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.library">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>library</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>library</refname>
+      <refpurpose>Top-level element for a library</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>library ::= 
+  (<link linkend="boostbook.dtd.libraryinfo">libraryinfo</link>, (title, ((section| <link linkend="boostbook.dtd.library-reference">library-reference</link>| <link linkend="boostbook.dtd.testsuite">testsuite</link>))+)?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>dirname</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>url</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+<row><entry>html-only</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.librarycategorylist">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>librarycategorylist</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>librarycategorylist</refname>
+      <refpurpose>Categorized listing of libraries</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>librarycategorylist ::= 
+  (<link linkend="boostbook.dtd.librarycategorydef">librarycategorydef</link>)*
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>This element is not intended for use by developers, but is
+  used by <filename>doc/src/boost.xml</filename> as a
+  placeholder.</para>
+</refsection>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.using-namespace">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>using-namespace</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>using-namespace</refname>
+      <refpurpose>Injects the declared names from a namespace into the local scope</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>using-namespace ::= 
+  EMPTY
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.enumname">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>enumname</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>enumname</refname>
+      <refpurpose/>
+    </refnamediv>
+    <refsynopsisdiv>enumname ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>alt</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry/></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.struct-specialization">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>struct-specialization</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>struct-specialization</refname>
+      <refpurpose>A specialization (full or partial) of a struct template</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>struct-specialization ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.specialization">specialization</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>?, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.struct">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>struct</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>struct</refname>
+      <refpurpose>Declares a C++ struct</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>struct ::= 
+  (<link linkend="boostbook.dtd.template">template</link>?, <link linkend="boostbook.dtd.inherit">inherit</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?, (<link linkend="boostbook.dtd.access">access</link>| <link linkend="boostbook.dtd.static-constant">static-constant</link>| <link linkend="boostbook.dtd.typedef">typedef</link>| <link linkend="boostbook.dtd.enum">enum</link>| <link linkend="boostbook.dtd.copy-assignment">copy-assignment</link>| <link linkend="boostbook.dtd.constructor">constructor</link>| <link linkend="boostbook.dtd.destructor">destructor</link>| <link linkend="boostbook.dtd.method-group">method-group</link>| <link linkend="boostbook.dtd.free-function-group">free-function-group</link>| <link linkend="boostbook.dtd.function">function</link>| <link linkend="boostbook.dtd.method">method</link>| <link linkend="boostbook.dtd.overloaded-function">overloaded-function</link>| <link linkend="boostbook.dtd.overloaded-method">overloaded-method</link>| <link linkend="boostbook.dtd.data-member">data-member</link>| <link linkend="boostbook.dtd.class">class</link>| <link linkend="boostbook.dtd.class-specialization">class-specialization</link>| <link linkend="boostbook.dtd.struct">struct</link>| <link linkend="boostbook.dtd.struct-specialization">struct-specialization</link>| <link linkend="boostbook.dtd.union">union</link>| <link linkend="boostbook.dtd.union-specialization">union-specialization</link>)*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.lib">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>lib</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>lib</refname>
+      <refpurpose>A library dependency</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>lib ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection><title>Description</title>
+  <para>Declares a library dependency on the library named by the content of this element, to be emitted in a Jamfile.</para>
+</refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.enum">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>enum</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>enum</refname>
+      <refpurpose>Declares an enumeration type</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>enum ::= 
+  (<link linkend="boostbook.dtd.enumvalue">enumvalue</link>*, <link linkend="boostbook.dtd.purpose">purpose</link>?, <link linkend="boostbook.dtd.description">description</link>?)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.requires">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>requires</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>requires</refname>
+      <refpurpose>Declares the requirements of a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>requires ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.effects">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>effects</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>effects</refname>
+      <refpurpose>Declares the side effects of a function</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>effects ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.libraryname">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>libraryname</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>libraryname</refname>
+      <refpurpose>References a library of the given name</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>libraryname ::= 
+  (#PCDATA)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.libraryinfo">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>libraryinfo</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>libraryinfo</refname>
+      <refpurpose>Provides information about a library</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>libraryinfo ::= 
+  (author+, copyright*, legalnotice*, <link linkend="boostbook.dtd.librarypurpose">librarypurpose</link>, <link linkend="boostbook.dtd.librarycategory">librarycategory</link>*)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.testsuite">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>testsuite</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>testsuite</refname>
+      <refpurpose>Describes a library testsuite</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>testsuite ::= 
+  ((<link linkend="boostbook.dtd.compile-test">compile-test</link>| <link linkend="boostbook.dtd.link-test">link-test</link>| <link linkend="boostbook.dtd.run-test">run-test</link>| <link linkend="boostbook.dtd.compile-fail-test">compile-fail-test</link>| <link linkend="boostbook.dtd.link-fail-test">link-fail-test</link>| <link linkend="boostbook.dtd.run-fail-test">run-fail-test</link>)+)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.header">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>header</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>header</refname>
+      <refpurpose>Declares a C++ header with the given name</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>header ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>name</entry><entry>#REQUIRED</entry><entry>CDATA</entry><entry>The name of the element being declared to referenced</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+  <refentry id="boostbook.dtd.rationale">
+    <refmeta>
+      <refentrytitle>
+          BoostBook element <sgmltag>rationale</sgmltag></refentrytitle>
+      <manvolnum>9</manvolnum>
+    </refmeta>
+    <refnamediv>
+      <refname>rationale</refname>
+      <refpurpose>Describes the rationale for a particular function's design</refpurpose>
+    </refnamediv>
+    <refsynopsisdiv>rationale ::= 
+  (ANY)
+</refsynopsisdiv>
+    <refsection>
+      <title>Attributes</title>
+      <informaltable>
+        <tgroup cols="4">
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Type</entry>
+              <entry>Value</entry>
+              <entry>Purpose</entry>
+            </row>
+          </thead>
+          <tbody>
+
+<row><entry>last-revision</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Set to $Date: 2009-10-10 07:53:46 -0700 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</entry></row>
+<row><entry>id</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>A global identifier for this element</entry></row>
+<row><entry>xml:base</entry><entry>#IMPLIED</entry><entry>CDATA</entry><entry>Implementation detail used by XIncludes</entry></row>
+</tbody>
+        </tgroup>
+      </informaltable>
+    </refsection>
+  </refentry>
+</chapter>
+

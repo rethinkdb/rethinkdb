@@ -1,0 +1,130 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fr_CA.xml
+// *
+// ***************************************************************************
+fr_CA{
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤;(#,##0.00 ¤)"}
+            }
+        }
+    }
+    PaperSize:intvector{
+        279,
+        216,
+    }
+    Version{"2.0.45.82"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                1,
+                4,
+            }
+            DateTimePatterns{
+                "HH 'h' mm 'min' ss 's' zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "yyyy-MM-dd",
+                "yy-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MEd{"EEE M-d"}
+                MMd{"MM-d"}
+                MMdd{"MM-dd"}
+                Md{"M-d"}
+                yM{"yyyy-MM"}
+                yMEd{"EEE yyyy-MM-dd"}
+                yyMM{"yy-MM"}
+            }
+            intervalFormats{
+                H{
+                    H{"HH–HH"}
+                }
+                Hm{
+                    H{"HH:mm–HH:mm"}
+                    m{"HH:mm–HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm–HH:mm v"}
+                    m{"HH:mm–HH:mm v"}
+                }
+                Hv{
+                    H{"HH–HH v"}
+                }
+                MEd{
+                    M{"E MM-dd – E MM-dd"}
+                    d{"E MM-dd – E MM-dd"}
+                }
+                MMMM{
+                    M{"LLLL-LLLL"}
+                }
+                Md{
+                    M{"MM-dd – MM-dd"}
+                    d{"MM-dd – MM-dd"}
+                }
+                d{
+                    d{"d–d"}
+                }
+                h{
+                    h{"h–h a"}
+                }
+                hm{
+                    h{"h:mm–h:mm a"}
+                    m{"h:mm–h:mm a"}
+                }
+                hmv{
+                    h{"h:mm–h:mm a v"}
+                    m{"h:mm–h:mm a v"}
+                }
+                hv{
+                    h{"h–h a v"}
+                }
+                y{
+                    y{"y–y"}
+                }
+                yM{
+                    M{"yy-MM – yy-MM"}
+                    y{"yy-MM – yy-MM"}
+                }
+                yMEd{
+                    M{"'du' E yy-MM-dd 'au' E yy-MM-dd"}
+                    d{"'du' E yy-MM-dd 'au' E yy-MM-dd"}
+                    y{"'du' E yy-MM-dd 'au' E yy-MM-dd"}
+                }
+                yMMM{
+                    y{"'de' MMM y 'à' MMM y"}
+                }
+                yMMMEd{
+                    M{"'du' E d MMM 'au' E d MMM y"}
+                    d{"'du' E d 'au' E d MMM y"}
+                    y{"'du' E d MMM y 'au' E d MMM y"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM y"}
+                }
+                yMMMd{
+                    M{"'du' d MMM 'au' d MMM y"}
+                    y{"'du' d MMM y 'au' d MMM y"}
+                }
+                yMd{
+                    M{"yy-MM-dd – yy-MM-dd"}
+                    d{"yy-MM-dd – yy-MM-dd"}
+                    y{"yy-MM-dd – yy-MM-dd"}
+                }
+            }
+        }
+    }
+}

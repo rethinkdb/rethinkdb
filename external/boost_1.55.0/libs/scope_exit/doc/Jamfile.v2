@@ -1,0 +1,30 @@
+
+# Copyright (C) 2006-2009, 2012 Alexander Nasonov
+# Copyright (C) 2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/scope_exit
+
+import quickbook ;
+using boostbook ;
+
+doxygen reference
+    :   ../../../boost/scope_exit.hpp
+    :   <reftitle>"Reference"
+        <doxygen:param>PREDEFINED="DOXYGEN"
+        <doxygen:param>QUIET=YES
+        <doxygen:param>WARN_IF_UNDOCUMENTED=NO
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>HIDE_UNDOC_CLASSES=YES
+        <doxygen:param>ALIASES=" Params=\"<b>Parameters:</b> <table border="0">\" Param{2}=\"<tr><td><b><tt>\\1</tt></b></td><td>\\2</td></tr>\" EndParams=\"</table>\" Returns=\"<b>Returns:</b>\" Note=\"<b>Note:</b>\" Warning=\"<b>Warning:</b>\" See=\"<b>See:</b>\" RefSect{2}=\"\\xmlonly<link linkend='scope_exit.\\1'>\\2</link>\\endxmlonly\" RefClass{1}=\"\\xmlonly<computeroutput><classname alt='\\1'>\\1</classname></computeroutput>\\endxmlonly\" RefFunc{1}=\"\\xmlonly<computeroutput><functionname alt='\\1'>\\1</functionname></computeroutput>\\endxmlonly\" RefMacro{1}=\"\\xmlonly<computeroutput><macroname alt='\\1'>\\1</macroname></computeroutput>\\endxmlonly\" "
+    ;
+
+xml qbk : scope_exit.qbk : <dependency>reference ;
+
+boostbook doc : qbk
+    :   <xsl:param>boost.root=../../../..
+        <xsl:param>boost.defaults=Boost
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/scope_exit/doc/html
+    ;
+

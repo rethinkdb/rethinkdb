@@ -1,0 +1,40 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fr_CA.xml
+// *
+// ***************************************************************************
+fr_CA{
+    Version{"2.0.45.82"}
+    zoneStrings{
+        "meta:Alaska"{
+            cu:int{1}
+        }
+        "meta:America_Central"{
+            cu:int{1}
+        }
+        "meta:America_Eastern"{
+            cu:int{1}
+        }
+        "meta:America_Mountain"{
+            cu:int{1}
+        }
+        "meta:America_Pacific"{
+            cu:int{1}
+        }
+        "meta:Atlantic"{
+            cu:int{1}
+        }
+        "meta:Europe_Central"{
+            cu:int{0}
+        }
+        "meta:Europe_Eastern"{
+            cu:int{0}
+        }
+        "meta:Newfoundland"{
+            cu:int{1}
+        }
+    }
+}

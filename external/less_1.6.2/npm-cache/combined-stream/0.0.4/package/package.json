@@ -1,0 +1,21 @@
+{
+  "author": "Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)",
+  "name": "combined-stream",
+  "description": "A stream that emits multiple other streams one after another.",
+  "version": "0.0.4",
+  "homepage": "https://github.com/felixge/node-combined-stream",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/felixge/node-combined-stream.git"
+  },
+  "main": "./lib/combined_stream",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "delayed-stream": "0.0.5"
+  },
+  "devDependencies": {
+    "far": "0.0.1"
+  }
+}

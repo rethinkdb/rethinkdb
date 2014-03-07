@@ -1,0 +1,107 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2011 Thomas Bernard
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:keyword_list Keyword List  Operator]
+
+[heading Description]
+
+The keyword list operator, `kwd("k1")[a] / kwd("k2")[b]`,  works tightly with the kwd, ikwd directives
+to effeciently match keyword lists. As long as one of the keywords specified through the kwd or ikwd directive 
+matches, the keyword will be immediatly followed by the the keyword's associated subject parser. 
+The parser will continue parsing input as long as the one of the keywords and it's associated parser succeed.
+Writing :
+(kwd("k1")[a] / kwd("k2")[b] / ... ) 
+is equivalent to:
+*( "k1" > a | "k2" > b ... ).
+    
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/operator/keywords.hpp>
+    #include <boost/spirit/repository/include/qi_keywords.hpp>
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`kwd(k1)[a] / kwd(k2)[b]`]         [Match `lit(k1) > a` or `lit(k2) > b`, equivalent to `lit(k1) > a | lit(k2) > b`]]
+]
+
+[heading Attributes]
+
+
+[table
+    [[Expression]       [Attribute]]
+    [[`kwd("k1")[a] / kwd("k2")[b]`]
+[``a: A, b: B --> (kwd(k1)[a] / kwd(k2)[b]): tuple<A, B>
+a: A, b: Unused --> (kwd(k1)[a] / kwd(k2)[b]): optional<A>
+a: Unused, b: B --> (kwd("k1")[a] / kwd(k2)[b]): optional<B>
+a: Unused, b: Unused --> (kwd(k1)[a] / kwd(k2)[b]): Unused
+
+a: A, b: A -->(kwd(k1)[a] / kwd(k2)[b]): tuple<A, A>``]]
+]
+
+[note The keyword list parser works tightly with the kwd and ikwd directives
+      and can't be used without it. A compile time error will warn you
+      of any mistakes. This parser collects all the kwd directives and 
+      extracts the keyword literals from the directives to internaly
+      build a Ternary Search Tree (TST) to effectively parse the keywords.
+      Because you we can't mix character types inside a TST you must take
+      care not to mix wide strings with normal strings in the keyword you supply
+      to a keyword list. Should it happen the compiler will trap the mistake for you.]
+
+[note The kwd directive also works a bit like the repeat directive 
+      and can be used to formulate additional contraints on the number of
+      times a keyword can occur while parsing a keyword list.]
+      
+[note The kwd and ikwd directives can be mixed inside a keyword list. This has
+      however a small overhead and should be avoided when possible.]
+
+[heading Complexity]
+
+[:The overall complexity of the keyword list parser is defined by the
+sum of the complexities of its elements. The complexity of the
+keyword list itself is determined by the complexity of the internal TST contents :
+
+O(log n+k)
+
+Where k is the length of the string to be searched in a TST with n strings.]
+
+[heading Example]
+
+[import ../example/qi/keywords.cpp]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Declare a small data structure representing a person:
+
+[reference_keyword_list_test_data_structure]
+
+Some using declarations:
+
+[reference_using_declarations_keyword_list]
+
+Now let's declare a keyword parser:
+
+[reference_keyword_list_no_constraint_rule]
+
+A couple of input string variations run on the same parser:
+
+[reference_keyword_list]
+
+Now let's delcare a parser with some occurence constraints:
+
+[reference_keyword_list_constraint_rule]
+
+And see how it works in these two cases:
+
+[reference_keyword_list_constraints]
+
+[endsect] [/ Keyword list]

@@ -1,0 +1,64 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:Handler Handlers]
+
+A handler must meet the requirements of `CopyConstructible` types (C++ Std,
+20.1.3).
+
+In the table below, `X` denotes a handler class, `h` denotes a value of `X`,
+`p` denotes a pointer to a block of allocated memory of type `void*`, `s`
+denotes the size for a block of allocated memory, and `f` denotes a function
+object taking no arguments.
+
+[table Handler requirements
+  [[expression] [return type] [assertion/note\npre/post-conditions]]
+  [
+    [``
+      using boost::asio::asio_handler_allocate;
+      asio_handler_allocate(s, &h);
+    ``]
+    [`void*`]
+    [
+      Returns a pointer to a block of memory of size `s`. The pointer must
+      satisfy the same alignment requirements as a pointer returned by
+      `::operator new()`. Throws `bad_alloc` on failure.\n\n The
+      `asio_handler_allocate()` function is located using argument-dependent
+      lookup. The function `boost::asio::asio_handler_allocate()` serves as a
+      default if no user-supplied function is available.
+    ]
+  ]
+  [
+    [``
+      using boost::asio::asio_handler_deallocate;
+      asio_handler_deallocate(p, s, &h);
+    ``]
+    []
+    [
+      Frees a block of memory associated with a pointer `p`, of at least size
+      `s`, that was previously allocated using `asio_handler_allocate()`.\n\n The
+      `asio_handler_deallocate()` function is located using argument-dependent
+      lookup. The function `boost::asio::asio_handler_deallocate()` serves as a
+      default if no user-supplied function is available.
+    ]
+  ]
+  [
+    [``
+      using boost::asio::asio_handler_invoke;
+      asio_handler_invoke(f, &h);
+    ``]
+    []
+    [
+      Causes the function object `f` to be executed as if by calling `f()`.\n\n
+      The `asio_handler_invoke()` function is located using argument-dependent
+      lookup. The function `boost::asio::asio_handler_invoke()` serves as a
+      default if no user-supplied function is available.
+    ]
+  ]
+]
+
+[endsect]

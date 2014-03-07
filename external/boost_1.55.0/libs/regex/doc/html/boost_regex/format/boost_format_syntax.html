@@ -1,0 +1,561 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost-Extended Format String Syntax</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../format.html" title="Search and Replace Format String Syntax">
+<link rel="prev" href="perl_format.html" title="Perl Format String Syntax">
+<link rel="next" href="../ref.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="perl_format.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../format.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_format_boost_format_syntax">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.format.boost_format_syntax"></a><a class="link" href="boost_format_syntax.html" title="Boost-Extended Format String Syntax">Boost-Extended
+      Format String Syntax</a>
+</h3></div></div></div>
+<p>
+        Boost-Extended format strings treat all characters as literals except for
+        '$', '\', '(', ')', '?', and ':'.
+      </p>
+<h5>
+<a name="boost_regex.format.boost_format_syntax.h0"></a>
+        <span class="phrase"><a name="boost_regex.format.boost_format_syntax.grouping"></a></span><a class="link" href="boost_format_syntax.html#boost_regex.format.boost_format_syntax.grouping">Grouping</a>
+      </h5>
+<p>
+        The characters '(' and ')' perform lexical grouping, so use \( and \) if
+        you want a to output literal parenthesis.
+      </p>
+<h5>
+<a name="boost_regex.format.boost_format_syntax.h1"></a>
+        <span class="phrase"><a name="boost_regex.format.boost_format_syntax.conditionals"></a></span><a class="link" href="boost_format_syntax.html#boost_regex.format.boost_format_syntax.conditionals">Conditionals</a>
+      </h5>
+<p>
+        The character '?' begins a conditional expression, the general form is:
+      </p>
+<p>
+        ?Ntrue-expression:false-expression
+      </p>
+<p>
+        where N is decimal digit.
+      </p>
+<p>
+        If sub-expression N was matched, then true-expression is evaluated and sent
+        to output, otherwise false-expression is evaluated and sent to output.
+      </p>
+<p>
+        You will normally need to surround a conditional-expression with parenthesis
+        in order to prevent ambiguities.
+      </p>
+<p>
+        For example, the format string "(?1foo:bar)" will replace each
+        match found with "foo" if the sub-expression $1 was matched, and
+        with "bar" otherwise.
+      </p>
+<p>
+        For sub-expressions with an index greater than 9, or for access to named
+        sub-expressions use:
+      </p>
+<p>
+        ?{INDEX}true-expression:false-expression
+      </p>
+<p>
+        or
+      </p>
+<p>
+        ?{NAME}true-expression:false-expression
+      </p>
+<h5>
+<a name="boost_regex.format.boost_format_syntax.h2"></a>
+        <span class="phrase"><a name="boost_regex.format.boost_format_syntax.placeholder_sequences"></a></span><a class="link" href="boost_format_syntax.html#boost_regex.format.boost_format_syntax.placeholder_sequences">Placeholder
+        Sequences</a>
+      </h5>
+<p>
+        Placeholder sequences specify that some part of what matched the regular
+        expression should be sent to output as follows:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Placeholder
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  $&amp;
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs what matched the whole expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $MATCH
+                </p>
+              </td>
+<td>
+                <p>
+                  As $&amp;
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  ${^MATCH}
+                </p>
+              </td>
+<td>
+                <p>
+                  As $&amp;
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $`
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the text between the end of the last match found (or the
+                  start of the text if no previous match was found), and the start
+                  of the current match.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $PREMATCH
+                </p>
+              </td>
+<td>
+                <p>
+                  As $`
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  ${^PREMATCH}
+                </p>
+              </td>
+<td>
+                <p>
+                  As $`
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $'
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs all the text following the end of the current match.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $POSTMATCH
+                </p>
+              </td>
+<td>
+                <p>
+                  As $'
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  ${^POSTMATCH}
+                </p>
+              </td>
+<td>
+                <p>
+                  As $'
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $+
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs what matched the last marked sub-expression in the regular
+                  expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $LAST_PAREN_MATCH
+                </p>
+              </td>
+<td>
+                <p>
+                  As $+
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $LAST_SUBMATCH_RESULT
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs what matched the last sub-expression to be actually matched.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $^N
+                </p>
+              </td>
+<td>
+                <p>
+                  As $LAST_SUBMATCH_RESULT
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $$
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a literal '$'
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $n
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs what matched the n'th sub-expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  ${n}
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs what matched the n'th sub-expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  $+{NAME}
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs whatever matched the sub-expression named "NAME".
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Any $-placeholder sequence not listed above, results in '$' being treated
+        as a literal.
+      </p>
+<h5>
+<a name="boost_regex.format.boost_format_syntax.h3"></a>
+        <span class="phrase"><a name="boost_regex.format.boost_format_syntax.escape_sequences"></a></span><a class="link" href="boost_format_syntax.html#boost_regex.format.boost_format_syntax.escape_sequences">Escape
+        Sequences</a>
+      </h5>
+<p>
+        An escape character followed by any character x, outputs that character unless
+        x is one of the escape sequences shown below.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  \a
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the bell character: '\a'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \e
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the ANSI escape character (code point 27).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \f
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a form feed character: '\f'
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \n
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a newline character: '\n'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \r
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a carriage return character: '\r'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \t
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a tab character: '\t'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \v
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs a vertical tab character: '\v'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \xDD
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the character whose hexadecimal code point is 0xDD
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \x{DDDD}
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the character whose hexadecimal code point is 0xDDDDD
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \cX
+                </p>
+              </td>
+<td>
+                <p>
+                  Outputs the ANSI escape sequence "escape-X".
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \D
+                </p>
+              </td>
+<td>
+                <p>
+                  If D is a decimal digit in the range 1-9, then outputs the text
+                  that matched sub-expression D.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \l
+                </p>
+              </td>
+<td>
+                <p>
+                  Causes the next character to be outputted, to be output in lower
+                  case.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \u
+                </p>
+              </td>
+<td>
+                <p>
+                  Causes the next character to be outputted, to be output in upper
+                  case.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \L
+                </p>
+              </td>
+<td>
+                <p>
+                  Causes all subsequent characters to be output in lower case, until
+                  a \E is found.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \U
+                </p>
+              </td>
+<td>
+                <p>
+                  Causes all subsequent characters to be output in upper case, until
+                  a \E is found.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \E
+                </p>
+              </td>
+<td>
+                <p>
+                  Terminates a \L or \U sequence.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="perl_format.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../format.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:primitives Token definition Primitives]
+
+This module includes different primitives allowing you to create token definitions.
+It includes `char_`, character literals, `string`, and string literals.
+
+[heading Module Headers]
+
+    // forwards to <boost/spirit/home/lex/primitives.hpp>
+    #include <boost/spirit/include/lex_primitives.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:char_tokendef Tokens Matching Single Characters]
+
+[heading Description]
+
+The character based token definitions described in this section are:
+
+The `char_` creates token definitions matching single characters. The `char_` 
+token definition is associated `standard` encoding namespace. This is 
+needed when doing basic operations such as forcing lower or upper case and 
+dealing with character ranges.
+
+[heading Header]
+
+[heading Module Headers]
+
+    // forwards to <boost/spirit/home/lex/lexer/char_token_def.hpp>
+    #include <boost/spirit/include/lex_char_token_def.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`lex::char_`]]
+]
+
+[heading Model of]
+
+[:__primitive_lexer_concept__]
+
+[variablelist Notation
+    [[`ch`]       [Character-class specific character from `standard` character 
+                   set.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __primitive_lexer_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`ch`]                 [Create a token definition matching the character 
+                             literal `ch`. ]]
+    [[`lex::char_(ch)`]     [Create a token definition matching the character 
+                             `ch`.]]
+]
+
+[heading Example]
+
+
+[endsect] [/ char]
+
+[endsect] [/ Module]

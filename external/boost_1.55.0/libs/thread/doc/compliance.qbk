@@ -1,0 +1,247 @@
+[/
+  (C) Copyright 2011-12 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:compliance Conformance and Extension]
+
+[section:cpp11 C++11 standard Thread library]
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3376.html C++11 standard]]
+
+
+[table C++11 standard Conformance
+    [[Section]        [Description]  [Status] [Comments] [Ticket]]
+    [[30]        [Thread support library]  [Yes] [-] [-]]
+    [[30.1]        [General]  [-] [-] [-]]
+    [[30.2]        [Requirements]  [-] [-] [-]]
+    [[30.2.1]        [Template parameter names]  [-] [-] [-]]
+    [[30.2.2]        [Exceptions]  [Yes] [-] [-]]
+    [[30.2.3]        [Native handles]  [Yes] [-] [-]]
+    [[30.2.4]        [Timing specifications]  [Yes] [-] [-]]
+    [[30.2.5]        [Requirements for Lockable types]  [Yes] [-] [-]]
+    [[30.2.5.1]        [In general]  [-] [-] [-]]
+    [[30.2.5.2]        [BasicLockable requirements]  [Yes] [-] [-]]
+    [[30.2.5.3]        [Lockable requirements]  [yes] [-] [-]]
+    [[30.2.5.4]        [TimedLockable requirements]  [Yes] [-] [-]]
+    [[30.2.6]        [decay_copy]  [-] [-] [-]]
+    [[30.3]        [Threads]  [Yes] [-] [-]]
+    [[30.3.1]        [Class thread]  [Yes] [-] [-]]
+    [[30.3.1.1]        [Class thread::id]  [Yes] [-] [-]]
+    [[30.3.1.2]        [thread constructors]  [Partial] [-] [-]]
+    [[30.3.1.3]        [thread destructor]  [Yes] [-] [-]]
+    [[30.3.1.4]        [thread assignment]  [Yes] [-] [-]]
+    [[30.3.1.5]        [thread members]  [Yes] [-] [-]]
+    [[30.3.1.6]        [thread static members]  [Yes] [-] [-]]
+    [[30.3.1.7]        [thread specialized algorithms]  [Yes] [-] [-]]
+
+    [[30.3.2]        [Namespace this_thread]  [Yes] [-] [-]]
+    [[30.4]        [Mutual exclusion]  [Partial] [-] [-]]
+    [[30.4.1]        [Mutex requirements]  [Yes] [-] [-]]
+    [[30.4.1.1]        [In general]  [Yes] [-] [-]]
+    [[30.4.1.2]        [Mutex types]  [Yes] [-] [-]]
+    [[30.4.1.2.1]        [Class mutex]  [Yes] [-] [-]]
+    [[30.4.1.2.2]        [Class recursive_mutex]  [Yes] [-] [-]]
+    [[30.4.1.3]        [Timed mutex types]  [Yes] [-] [-]]
+    [[30.4.1.3.1]        [Class timed_mutex]  [Yes] [-] [-]]
+    [[30.4.1.3.1]        [Class recursive_timed_mutex]  [Yes] [-] [-]]
+    [[30.4.2]        [Locks]  [Yes] [-] [-]]
+    [[30.4.2.1]        [Class template lock_guard]  [Yes] [-] [-]]
+    [[30.4.2.2]        [Class template unique_lock]  [Yes] [-] [-]]
+    [[30.4.2.2.1]        [unique_lock constructors, destructor, and assignment] [Yes]  [-]  [-]]
+    [[30.4.2.2.2]        [unique_lock locking]  [Yes] [-] [-]]
+    [[30.4.2.2.3]        [unique_lock modifiers]  [Yes] [-] [-]]
+    [[30.4.2.2.4]        [unique_lock observers]  [Yes] [ - ] [-]]
+    [[30.4.3]        [Generic locking algorithms]  [Partial] [variadic] [#6227]]
+    [[30.4.4]        [Call once]  [Yes] [-] [-]]
+    [[30.4.4.1]        [Struct once_flag] [Yes] [-] [-]]
+    [[30.4.4.2]        [Function call_once] [Yes] [-] [-]]
+    [[30.5]        [Condition variables]  [Yes] [-] [-]]
+    [[30.5.1]        [Class condition_variable]  [Yes] [-] [-]]
+    [[30.5.2]        [Class condition_variable_any]  [Yes] [-] [-]]
+    [[30.6]        [Futures]  [Yes] [-] [-]]
+    [[30.6.1]        [Overview]  [Partial] [-] [-]]
+    [[30.6.2]        [Error handling]  [Yes] [-] [-]]
+    [[30.6.3]        [Class future_error]  [-] [-] [-]]
+    [[30.6.4]        [Shared state]  [-] [-] [-]]
+    [[30.6.5]        [Class template promise]  [Yes] [-] [-]]
+    [[30.6.6]        [Class template future]  [Yes] [-] [-]]
+    [[30.6.7]        [Class template shared_future]  [Yes] [-] [-]]
+    [[30.6.8]        [Function template async]  [Yes] [-] [-]]
+    [[30.6.9]        [Class template packaged_task]  [Yes] [-] [-]]
+]
+
+[/
+[table Extension
+    [[Section]     [Description]   [Comments]]
+    [[30.3.1.5.x]        [interrupt]   [-]]
+    [[30.3.2.x]        [Interruption]  [-]]
+    [[30.3.2.y]        [at_thread_exit]  [-]]
+    [[30.4.3.x]        [Generic locking algorithms begin/end]  [-]]
+    [[30.x]        [Barriers]  [-]]
+    [[30.y]        [Thread Local Storage]  [-]]
+    [[30.z]        [Class thread_group]  [-]]
+]
+]
+[endsect]
+
+
+[section:cxx14 C++14 standard Thread library - accepted changes]
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3485.html C++14 on-going standard]]
+
+
+[table [@http://isocpp.org/files/papers/N3659.html N3659 Shared locking in C++ revision 2] Conformance
+    [[Section]  [Description]  [Status] [Comments]]
+    [[30.4.1.4]      [Shared Lockables Types]  [Yes] [ - ]]
+    [[30.4.1.4.1]      [shared_mutex class]  [Yes] [ - ]]
+    [[30.4.2.3]      [Class template shared_lock]  [Yes] [-]]
+]
+
+[endsect]
+
+[section:cxx1y C++1y TS Concurrency - On going proposals]
+
+[section:latch C++ Latches and Barriers]
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3600.html N3659 C++ Latches and Barriers]]
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3666.html N3659 C++ Latches and Barriers]]
+
+[table C++ Latches and Barriers Conformance
+    [[Section]  [Description]  [Status] [Comments]]
+    [[X.1]      [Class latch]  [Partial] [ A new class latch has been added. The interface is a super set of the one of the proposal, taking some of the functions of the class barrier.]]
+    [[X.2]      [Class barrier]  [No] [ Even if Boost.Thread has a class boost:barrier it doesn't provides the same kind of services. There is an experimental completion_latch that could be used instead. ]]
+]
+
+[endsect]
+[section:queue C++ Concurrent Queues]
+
+[note [@ http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3533.html N3533 C++ Concurrent Queues]]
+
+[table C++ Concurrent Queues Conformance
+    [[Section]  [Description]  [Status] [Comments]]
+    [[X.1]      [Conceptual interface]  [Partial] [ The interface provided has some differences respect to this proposal. All the functions having a queue_op_status are not provided. No lock-free concrete classes ]]
+    [[X.1.1]      [Basic Operations]  [Partial] [ - ]]
+    [[X.1.1.1]      [push]  [yes] [ - ]]
+    [[X.1.1.2]      [value_pop]  [no] [ renamed pull with two flavors + a ptr_pull that returns a sharted_ptr<>. ]]
+    [[X.1.2]      [Non-waiting operations]  [ - ] [ - ]]
+    [[X.1.2.1]      [try_push]  [Partial] [ return bool instead ]]
+    [[X.1.2.2]      [try_pop]  [Partial] [ renamed try_pull, returns null ]]
+    [[X.1.3]      [Non-blocking operations]  [ - ] [ - ]]
+    [[X.1.3.1]      [nonblocking_push]  [Partial] [ renamed try_push(no_block,  ]]
+    [[X.1.3.2]      [nonblocking_pop]  [Partial] [ renamed try_pop(no_block,  ]]
+    [[X.1.4]      [Push-front operations]  [No] [ - ]]
+    [[X.1.5]      [Closed queues]  [Partial] [ - ]]
+    [[X.1.5.1]      [close]  [Yes] [ - ]]
+    [[X.1.5.2]      [is_closed]  [Yes] [ - ]]
+    [[X.1.5.3]      [wait_push]  [Partial] [ - ]]
+    [[X.1.5.4]      [wait_pop]  [Partial] [ - ]]
+    [[X.1.5.5]      [wait_push_front]  [no] [ - ]]
+    [[X.1.5.6]      [wait_pop]  [Partial] [ - ]]
+    [[X.1.5.6]      [open]  [no] [ - ]]
+    [[X.1.6]      [Empty and Full Queues]  [Yes] [ - ]]
+    [[X.1.6.1]      [is_empty]  [Yes] [ - ]]
+    [[X.1.6.2]      [is_full]  [Yes] [ Added capacity ]]
+    [[X.1.7]      [Queue Names]  [No] [ Not considere a must for the time been. ]]
+    [[X.1.8]      [Element Type Requirements]  [Yes?] [ - ]]
+    [[X.1.9]      [Exception Handling]  [Yes?] [ - ]]
+    [[X.1.10]      [Queue Ordering]  [Yes?] [ - ]]
+    [[X.1.11]      [Lock-Free Implementations]  [No] [ waiting to stabilize the lock-based interface. Will use Boost.LockFree once it is Move aware. ]]
+    [[X.2]      [Concrete queues]  [Partial] [ - ]]
+    [[X.2.1]      [Locking Buffer Queue]  [Partial] [ classes sync_queue and a sync_bounded_queue. ]]
+    [[X.2.1]      [Lock-Free Buffer Queue]  [No] [ - ]]
+    [[X.3]      [Additional Conceptual Tools]  [No] [ - ]]
+    [[X.3.1]      [Fronts and Backs]  [No] [ - ]]
+    [[X.3.2]      [Streaming Iterators]  [No] [ - ]]
+    [[X.3.3]      [Storage Iterators]  [No] [ - ]]
+    [[X.3.4]      [Binary Interfaces]  [No] [ - ]]
+    [[X.3.4]      [Managed Indirection]  [No] [ - ]]
+]
+[endsect]
+
+
+[section:executors Asynchronous Executors]
+
+While Boost.Thread implementation of executors would not use dynamic polymorphism, it is worth comparing with the current trend on the standard.
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3378.pdf N3378 A preliminary proposal for work executors]]
+
+
+[table Asynchronous Executors
+    [[Section]  [Description]  [Status] [Comments]]
+    [[30.X.1]      [Class executor]  [No] [ - ]]
+    [[30.X.1.1]      [add]  [No] [ renamed with a function template submit   ]]
+    [[30.X.1.1]      [num_of_pendin_closures]  [??] [    ]]
+    [[30.X.2]      [Class sceduled_executor]  [No] [ - ]]
+    [[30.X.2.1]      [add_at]  [No] [ renamed with a function template submit_at   ]]
+    [[30.X.2.2]      [add_after]  [No] [ renamed with a function template submit_after   ]]
+    [[30.X.3]      [Executor utilities functions]  [No] [ - ]]
+    [[30.X.3.1]      [default_executor]  [No] [ - ]]
+    [[30.X.3.2]      [set_default_executor]  [No] [ - ]]
+    [[30.X.3.3]      [singleton_inline_executor]  [No] [ - ]]
+    [[30.X.4]      [Concrete executor classes]  [No] [ - ]]
+    [[30.X.4.1]      [loop_executor]  [No] [ - ]]
+    [[30.X.4.1]      [serial_executor]  [No] [ - ]]
+    [[30.X.4.1]      [thread_pool]  [No] [ #8513 ]]
+]
+
+[endsect]
+
+
+[section:async A Standardized Representation of Asynchronous Operations]
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3558.pdf N3558 A Standardized Representation of Asynchronous Operations]]
+[note These functions are based on the [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3634.pdf [*N3634 - Improvements to std::future<T> and related APIs]] C++1y proposal by N. Gustafsson, A. Laksberg, H. Sutter, S. Mithani.]
+
+[table Improvements to std::future<T> and related APIs]
+    [[Section]  [Description]  [Status] [Comments]]
+    [[30.6.6]      [Class template future]  [Partial] [ - ]]
+    [[30.6.6.1]      [then]  [Partial] [ executor interface missing #8516  ]]
+    [[30.6.6.2]      [unwrap]  [Yes] [ - ]]
+    [[30.6.6.3]      [ready]  [Partial] [ is_ready  ]]
+    [[30.6.7]      [Class template shared_future]  [Partial] [ - ]]
+    [[30.6.7.1]      [then]  [Yes] [ executor interface missing #8516 ]]
+    [[30.6.7.2]      [unwrap]  [No] [ #XXXX ]]
+    [[30.6.7.3]      [ready]  [Partial] [ is_ready  ]]
+    [[30.6.X]      [Function template when_any]  [No] [ #7446  ]]
+    [[30.6.X]      [Function template when_all]  [No] [ #7447  ]]
+    [[30.6.X]      [Function template make_ready_future]  [Yes] [ - ]]
+    [[30.6.8]      [Function template async ]  [No] [ executor interface missing #7448    ]]
+]
+
+[endsect]
+
+[section:stream_mutex	C++ Stream Mutexes - C++ Stream Guards]
+
+While Boost.Thread implementation of stream mutexes differ in the approach, it is worth comparing with the current trend on the standard.
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3535.html N3535 - C++ Stream Mutexes]. This has been replaced already by N3678 - C++ Stream Guards.]
+
+[table C++ C++ Stream MutexesConformance
+    [[Section]  [Description]  [Status] [Comments]]
+    [[X.1]      [Class template stream_mutex]  [Partial] [ externally_locked_stream<> ]]
+    [[X.2.1]      [constructor]  [Partial] [ externally_locked_stream needs a mutex in addition as argumement. ]]
+    [[X.2.2]      [lock]  [yes] [ - ]]
+    [[X.2.3]      [unlock]  [yes] [ - ]]
+    [[X.2.4]      [try_lock]  [yes] [ - ]]
+    [[X.2.5]      [hold]  [Yes] [ - ]]
+    [[X.2.6]      [bypass]  [Yes] [ - ]]
+    [[X.2]      [Class template stream_guard]  [Yes] [ - ]]
+    [[X.2.1]      [stream_guard]  [Yes] [ - ]]
+    [[X.2.2]      [~stream_guard]  [Yes] [ - ]]
+    [[X.2.3]      [bypass]  [Yes] [ - ]]
+    [[X.3]      [Stream Operators]  [Yes] [.]]
+    [[X.4]      [Predefined Objects]  [No] [.]]
+]
+
+[note [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3678.html N3678 - C++ Stream Guards]]
+
+
+[endsect]
+
+
+[endsect]
+
+[endsect]

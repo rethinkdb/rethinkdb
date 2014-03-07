@@ -1,0 +1,5 @@
+> example
+Running 3 test cases...
+test.cpp(12): error in "my_test<unsigned char>": check sizeof(T) == 4 failed [1 != 4]
+
+*** 1 failure detected in test suite "example"

@@ -1,0 +1,53 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Quick Start]
+
+[heading Spirit.Karma - what's that?]
+
+Throughout the description of __karma__ we will try to align ourselves very 
+much with the documentation for __qi__. The reasons are many fold:
+
+* __karma__ is the counterpart to __qi__. Some people say it's the Yin to 
+  __qi__'s Yang. __karma__ is generating byte sequences from internal data 
+  structures as __qi__ is parsing byte sequences into those (very same) internal 
+  data structures.
+* Both libraries have an almost identical structure, very similar semantics,
+  and are both built using identical tools. Both libraries implement a language
+  casting the specifics of their domain (parsing and generating) into a simple
+  interface.
+
+Why should you use a generator library for such a simple thing as output 
+generation? Programmers have been using `printf`, `std::stream` formatting, or 
+`boost::format` for quite some time. The answer is - yes, for simple output 
+formatting tasks those familiar tools might be a quick solution. But experience 
+shows: as soon as the formatting requirements are becoming more complex output
+generation is getting more and more challenging in terms of readability, 
+maintainability, and flexibility of the code. Last, but not least, it turns out
+that code using __karma__ runs much faster than equivalent code using either
+of the 'straight' methods mentioned above (see here for some numbers: 
+__sec_karma_numeric_performance__)
+
+You might argue that more complex tasks require more complex tools. But this 
+turns out not to be the case! The whole Spirit library is designed to be simple 
+to use, while being scalable from trivial to very complicated applications.
+
+In terms of development simplicity and ease in deployment, the same is true for 
+__karma__ as has been described elsewhere in this documentation for __qi__: the
+entire library consists of only header files, with no libraries to link against
+or build. Just put the spirit distribution in your include path, compile and
+run. Code size? Very tight, essentially comparable to hand written code.
+
+The __karma__ tutorials are built in a walk through style, starting with 
+elementary things growing step by step in complexity. And again: keep in mind
+output generation is the exact opposite of parsing. Everything you already 
+learnt about parsing using __qi__ is applicable to generating formatted output
+using __karma__. All you have to do is to look at __karma__ as being a 
+mirror image of __qi__.
+
+[endsect] [/Quick Start]

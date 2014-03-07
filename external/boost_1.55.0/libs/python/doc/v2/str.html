@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/str.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/str.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#str-spec">Class <code>str</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#str-spec-synopsis">Class <code>str</code>
+              synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes a <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> for the Python
+    <a href=
+    "http://www.python.org/dev/doc/devel/lib/string-methods.html">str</a>
+    type.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="str-spec"></a>Class <code>str</code></h3>
+
+    <p>Exposes the <a href=
+    "http://www.python.org/dev/doc/devel/lib/string-methods.html">string
+    methods</a> of Python's built-in <code>str</code> type. The
+    semantics of the constructors and member functions defined below,
+    except for the two-argument constructors which construct str
+    objects from a range of characters, can be fully understood by
+    reading the <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> concept
+    definition. Since <code>str</code> is publicly derived from
+    <code><a href="object.html#object-spec">object</a></code>, the
+    public object interface applies to <code>str</code> instances as
+    well.</p>
+
+    <h4><a name="str-spec-synopsis"></a>Class <code>str</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  class str : public object
+  {
+   public:
+      str(); // new str
+
+      str(char const* s); // new str
+
+      str(char const* start, char const* finish); // new str
+      str(char const* start, std::size_t length); // new str
+
+      template &lt;class T&gt;
+      explicit str(T const&amp; other);
+
+      str capitalize() const;
+
+      template &lt;class T&gt;
+      str center(T const&amp; width) const;
+
+      template&lt;class T&gt;
+      long count(T const&amp; sub) const;
+      template&lt;class T1, class T2&gt;
+      long count(T1 const&amp; sub,T2 const&amp; start) const;
+      template&lt;class T1, class T2, class T3&gt;
+      long count(T1 const&amp; sub,T2 const&amp; start, T3 const&amp; end) const;
+
+      object decode() const;
+      template&lt;class T&gt;
+      object decode(T const&amp; encoding) const;
+      template&lt;class T1, class T2&gt;
+      object decode(T1 const&amp; encoding, T2 const&amp; errors) const;
+
+      object encode() const;
+      template &lt;class T&gt;
+      object encode(T const&amp; encoding) const;
+      template &lt;class T1, class T2&gt;
+      object encode(T1 const&amp; encoding, T2 const&amp; errors) const;
+
+      template &lt;class T&gt;
+      bool endswith(T const&amp; suffix) const;
+      template &lt;class T1, class T2&gt;
+      bool endswith(T1 const&amp; suffix, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      bool endswith(T1 const&amp; suffix, T2 const&amp; start, T3 const&amp; end) const;
+
+      str expandtabs() const;
+      template &lt;class T&gt;
+      str expandtabs(T const&amp; tabsize) const;
+
+      template &lt;class T&gt;
+      long find(T const&amp; sub) const;
+      template &lt;class T1, class T2&gt;
+      long find(T1 const&amp; sub, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      long find(T1 const&amp; sub, T2 const&amp; start, T3 const&amp; end) const;
+
+      template &lt;class T&gt;
+      long index(T const&amp; sub) const;
+      template &lt;class T1, class T2&gt;
+      long index(T1 const&amp; sub, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      long index(T1 const&amp; sub, T2 const&amp; start, T3 const&amp; end) const;
+
+      bool isalnum() const;
+      bool isalpha() const;
+      bool isdigit() const;
+      bool islower() const;
+      bool isspace() const;
+      bool istitle() const;
+      bool isupper() const;
+
+      template &lt;class T&gt;
+      str join(T const&amp; sequence) const;
+
+      template &lt;class T&gt;
+      str ljust(T const&amp; width) const;
+
+      str lower() const;
+      str lstrip() const;
+
+      template &lt;class T1, class T2&gt;
+      str replace(T1 const&amp; old, T2 const&amp; new_) const;
+      template &lt;class T1, class T2, class T3&gt;
+      str replace(T1 const&amp; old, T2 const&amp; new_, T3 const&amp; maxsplit) const;
+
+      template &lt;class T&gt;
+      long rfind(T const&amp; sub) const;
+      template &lt;class T1, class T2&gt;
+      long rfind(T1 const&amp; sub, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      long rfind(T1 const&amp; sub, T2 const&amp; start, T3 const&amp; end) const;
+
+      template &lt;class T&gt;
+      long rindex(T const&amp; sub) const;
+      template &lt;class T1, class T2&gt;
+      long rindex(T1 const&amp; sub, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      long rindex(T1 const&amp; sub, T2 const&amp; start, T3 const&amp; end) const;
+
+      template &lt;class T&gt;
+      str rjust(T const&amp; width) const;
+
+      str rstrip() const;
+
+      list split() const; 
+      template &lt;class T&gt;
+      list split(T const&amp; sep) const;
+      template &lt;class T1, class T2&gt;
+      list split(T1 const&amp; sep, T2 const&amp; maxsplit) const;
+
+      list splitlines() const;
+      template &lt;class T&gt;
+      list splitlines(T const&amp; keepends) const;
+
+      template &lt;class T&gt;
+      bool startswith(T const&amp; prefix) const;
+      template &lt;class T1, class T2&gt;
+      bool startswidth(T1 const&amp; prefix, T2 const&amp; start) const;
+      template &lt;class T1, class T2, class T3&gt;
+      bool startswidth(T1 const&amp; prefix, T2 const&amp; start, T3 const&amp; end) const;
+
+      str strip() const;
+      str swapcase() const;
+      str title() const;
+
+      template &lt;class T&gt;
+      str translate(T const&amp; table) const;
+      template &lt;class T1, class T2&gt;
+      str translate(T1 const&amp; table, T2 const&amp; deletechars) const;
+
+      str upper() const;
+  };
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+using namespace boost::python;
+str remove_angle_brackets(str x)
+{
+  return x.strip('&lt;').strip('&gt;');
+}
+</pre>
+
+    <p>Revised 3 October, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

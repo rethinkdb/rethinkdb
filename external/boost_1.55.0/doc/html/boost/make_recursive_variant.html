@@ -1,0 +1,98 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template make_recursive_variant</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../variant/reference.html#header.boost.variant.recursive_variant_hpp" title="Header &lt;boost/variant/recursive_variant.hpp&gt;">
+<link rel="prev" href="make_variant_over.html" title="Class template make_variant_over">
+<link rel="next" href="make_recursiv_idp160888872.html" title="Class template make_recursive_variant_over">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_variant_over.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant/reference.html#header.boost.variant.recursive_variant_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_recursiv_idp160888872.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.make_recursive_variant"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template make_recursive_variant</span></h2>
+<p>boost::make_recursive_variant &#8212; Simplifies declaration of recursive <code class="computeroutput">variant</code> types.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../variant/reference.html#header.boost.variant.recursive_variant_hpp" title="Header &lt;boost/variant/recursive_variant.hpp&gt;">boost/variant/recursive_variant.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2 <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+         <span class="keyword">typename</span> TN <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="make_recursive_variant.html" title="Class template make_recursive_variant">make_recursive_variant</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="variant.html" title="Class template variant">boost::variant</a><span class="special">&lt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">&gt;</span> <a name="boost.make_recursive_variant.type"></a><span class="identifier">type</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp250079752"></a><h2>Description</h2>
+<p><code class="computeroutput">type</code> has behavior equivalent in every respect to
+          some <code class="computeroutput">variant&lt; U1, U2, ..., UN &gt;</code>, where each type
+          <code class="computeroutput">U<span class="emphasis"><em>i</em></span></code> is the result of the
+          corresponding type <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> undergone a
+          transformation function. The following pseudo-code specifies the
+          behavior of this transformation (call it <code class="computeroutput">substitute</code>):
+
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">If <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> is
+              <code class="computeroutput">boost::recursive_variant_</code> then:
+              <code class="computeroutput">variant&lt; U1, U2, ..., UN &gt;</code>;</li>
+<li class="listitem">Else if <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> is of the
+              form <code class="computeroutput">X *</code> then:
+              <code class="computeroutput">substitute(X) *</code>;</li>
+<li class="listitem">Else if <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> is of the
+              form <code class="computeroutput">X &amp;</code> then:
+              <code class="computeroutput">substitute(X) &amp;</code>;</li>
+<li class="listitem">Else if <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> is of the
+              form <code class="computeroutput">R (*)( X1, X2, ..., XN )</code> then:
+              <code class="computeroutput">substitute(R) (*)( substitute(X1), substitute(X2), ..., substitute(XN) )</code>;</li>
+<li class="listitem">Else if <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code> is of the
+              form <code class="computeroutput">F &lt; X1, X2, ..., XN &gt;</code> then:
+              <code class="computeroutput">F&lt; substitute(X1), substitute(X2), ..., substitute(XN) &gt;</code>;</li>
+<li class="listitem">Else: <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code>.</li>
+</ul></div>
+<p>
+        </p>
+<p>Note that cv-qualifiers are preserved and that the actual
+          process is generally a bit more complicated. However, the above does
+          convey the essential idea as well as describe the extent of the
+          substititions.</p>
+<p>Use of <code class="computeroutput">make_recursive_variant</code> is demonstrated in
+          <a class="xref" href="../variant/tutorial.html#variant.tutorial.recursive.recursive-variant" title="Recursive types with make_recursive_variant">the section called &#8220;Recursive types with <code class="computeroutput">make_recursive_variant</code>&#8221;</a>.</p>
+<p><span class="bold"><strong>Portability</strong></span>: Due to standard
+          conformance issues in several compilers,
+          <code class="computeroutput">make_recursive_variant</code> is not universally supported. On
+          these compilers the library indicates its lack of support via the
+          definition of the preprocessor symbol
+          <code class="computeroutput"><a class="link" href="../BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT.html" title="Macro BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT">BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT</a></code>.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman<p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_variant_over.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant/reference.html#header.boost.variant.recursive_variant_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_recursiv_idp160888872.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

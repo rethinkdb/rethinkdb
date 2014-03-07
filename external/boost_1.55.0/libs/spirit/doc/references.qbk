@@ -1,0 +1,91 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section References]
+
+[table
+[[ ]   [Authors]                    [Title, Publisher/link, Date Published]]
+[[1.]  [Todd Veldhuizen]            [[@http://www.extreme.indiana.edu/%7Etveldhui/papers/Expression-Templates/exprtmpl.html
+                                    "Expression Templates"]. C++ Report, June 1995.]]
+[[2.]  [Peter Naur (ed.)]           [[@http://www.masswerk.at/algol60/report.htm
+                                    "Report on the Algorithmic Language ALGOL 60"]. CACM, May 1960.]]
+[[3.]  [ISO/IEC]                    [[@http://www.cl.cam.ac.uk/%7Emgk25/iso-14977.pdf "ISO-EBNF"],
+                                     ISO/IEC 14977: 1996(E).]]
+[[4.]  [Richard J.Botting, Ph.D.]   [[@http://www.csci.csusb.edu/dick/maths/intro_ebnf.html
+                                    "XBNF"] (citing Leu-Weiner, 1973).
+                                    California State University, San Bernardino, 1998.]]
+[[5.]  [James Coplien.]             ["Curiously Recurring Template Pattern".
+                                    C++ Report, Feb. 1995.]]
+[[6.]  [Thierry Geraud and
+       Alexandre Duret-Lutz]        [[@http://www.coldewey.com/europlop2000/papers/geraud%2Bduret.zip
+                                    Generic Programming Redesign of Patterns]
+                                    Proceedings of the 5th European Conference on Pattern Languages
+                                    of Programs(EuroPLoP'2000) Irsee, Germany, July 2000.]]
+[[7.]  [Geoffrey Furnish]           [[@http://www.adtmag.com/joop/carticle.aspx?ID=627
+                                    "Disambiguated Glommable Expression Templates Reintroduced"]
+                                    C++ Report, May 2000]]
+[[8.]  [Erich Gamma,
+        Richard Helm,
+        Ralph Jhonson,
+        and John Vlissides]         [Design Patterns, Elements of Reusable Object-Oriented Software.
+                                    Addison-Wesley, 1995.]]
+[[9.]  [Alfred V. Aho,
+        Revi Sethi,
+        Feffrey D. Ulman]           [Compilers, Principles, Techniques and Tools
+                                    Addison-Wesley, June 1987.]]
+[[10.] [Dick Grune and
+        Ceriel Jacobs]              [[@http://www.cs.vu.nl/%7Edick/PTAPG.html
+                                    Parsing Techniques: A Practical Guide.]
+                                    Ellis Horwood Ltd.: West Sussex, England, 1990.
+                                    (electronic copy, 1998).]]
+[[11.] [T. J. Parr,
+        H. G. Dietz, and
+        W. E. Cohen]                [[@http://citeseer.ist.psu.edu/6885.html
+                                    PCCTS Reference Manual (Version 1.00)].
+                                    School of Electrical Engineering, Purdue University,
+                                    West Lafayette, August 1991.]]
+[[12.] [Adrian Johnstone and
+        Elizabeth Scott.]           [[@ftp://ftp.cs.rhul.ac.uk/pub/rdp
+                                    RDP, A Recursive Descent Compiler Compiler].
+                                    Technical Report CSD TR 97 25, Dept. of Computer Science,
+                                    Egham, Surrey, England, Dec. 20, 1997.]]
+[[13.] [Adrian Johnstone]           [[@http://www.cs.rhul.ac.uk/research/languages/projects/lookahead_backtrack.shtml
+                                    Languages and Architectures,
+                                    Parser generators with backtrack or extended lookahead capability]
+                                    Department of Computer Science, Royal Holloway, University of London,
+                                    Egham, Surrey, England]]
+[[14.] [Damian Conway]              [[@http://www.csse.monash.edu.au/%7Edamian/papers/#Embedded_Input_Parsing_for_C
+                                    Parsing with C++ Classes].
+                                    ACM SIGPLAN Notices, 29:1, 1994.]]
+[[15.] [Joel de Guzman]             [[@http://spirit.sourceforge.net/distrib/spirit_1_8_5/libs/spirit/index.html
+                                    "Spirit Version 1.8"], 1998-2003.]]
+[[16.] [S. Doaitse Swierstra and
+        Luc Duponcheel]             [[@http://citeseer.ist.psu.edu/448665.html
+                                    Deterministic, Error-Correcting Combinator Parsers]
+                                    Dept. of Computer Science, Utrecht University P.O.Box 80.089,
+                                     3508 TB Utrecht, The Netherland]]
+[[17.] [Bjarne Stroustrup]          [[@http://www.research.att.com/%7Ebs/whitespace98.pdf
+                                    Generalizing Overloading for C++2000]
+                                    Overload, Issue 25. April 1, 1998.]]
+[[18.] [Dr. John Maddock]           [[@http://www.boost.org/libs/regex/index.html
+                                    Regex++ Documentation]
+                                    http://www.boost.org/libs/regex/index.htm]]
+[[19.] [Anonymous
+        Edited by Graham Hutton]    [[@http://www.cs.nott.ac.uk/~gmh//faq.html
+                                    Frequently Asked Questions for comp.lang.functional].
+                                    Edited by Graham Hutton, University of Nottingham.]]
+[[20.] [Hewlett-Packard]            [[@http://www.sgi.com/tech/stl/
+                                    Standard Template Library Programmer's Guide.], Hewlett-Packard Company, 1994]]
+[[21.] [Boost Libraries]            [[@http://boost.org/libs/libraries.htm
+                                    Boost Libraries Documentation].]]
+[[22.] [Brian McNamara and
+        Yannis Smaragdakis]         [[@http://www.cc.gatech.edu/~yannis/fc++/ FC++:Functional Programming in C++].]]
+[[23.] [Todd Veldhuizen]            [[@ftp://ftp.cs.indiana.edu/pub/techreports/TR542.pdf Techniques for Scientific C++.]]]
+]
+
+[endsect]

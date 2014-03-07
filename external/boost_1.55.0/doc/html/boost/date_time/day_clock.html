@@ -1,0 +1,88 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template day_clock</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_clock_device_hpp" title="Header &lt;boost/date_time/date_clock_device.hpp&gt;">
+<link rel="prev" href="date.html" title="Class template date">
+<link rel="next" href="date_duration.html" title="Class template date_duration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_clock_device_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_duration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.day_clock"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template day_clock</span></h2>
+<p>boost::date_time::day_clock &#8212; A clock providing day level services based on C time_t capabilities. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_clock_device_hpp" title="Header &lt;boost/date_time/date_clock_device.hpp&gt;">boost/date_time/date_clock_device.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="day_clock.html" title="Class template day_clock">day_clock</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">ymd_type</span> <a name="boost.date_time.day_clock.ymd_type"></a><span class="identifier">ymd_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="day_clock.html#idp20595560-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="day_clock.html#idp20595768-bb"><span class="identifier">local_day</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">ymd_type</span> <a class="link" href="day_clock.html#idp21360360-bb"><span class="identifier">local_day_ymd</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">ymd_type</span> <a class="link" href="day_clock.html#idp53288152-bb"><span class="identifier">universal_day_ymd</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="day_clock.html#idp53288840-bb"><span class="identifier">universal_day</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="day_clock.html#idp35362264-bb">private static functions</a></span>
+  <span class="keyword">static</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">*</span> <a class="link" href="day_clock.html#idp51703992-bb"><span class="identifier">get_local_time</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">*</span> <a class="link" href="day_clock.html#idp51704792-bb"><span class="identifier">get_universal_time</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp83132664"></a><h2>Description</h2>
+<p>This clock uses Posix interfaces as its implementation and hence uses the timezone settings of the operating system. Incorrect user settings will result in incorrect results for the calls to local_day. </p>
+<div class="refsect2">
+<a name="idp83133208"></a><h3>
+<a name="idp20595560-bb"></a><code class="computeroutput">day_clock</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp20595768-bb"></a><span class="identifier">local_day</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Get the local day as a date type. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">ymd_type</span> <a name="idp21360360-bb"></a><span class="identifier">local_day_ymd</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Get the local day as a ymd_type. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">ymd_type</span> <a name="idp53288152-bb"></a><span class="identifier">universal_day_ymd</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Get the current day in universal date as a ymd_type. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp53288840-bb"></a><span class="identifier">universal_day</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Get the UTC day as a date type. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp83145496"></a><h3>
+<a name="idp35362264-bb"></a><code class="computeroutput">day_clock</code> private static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">*</span> <a name="idp51703992-bb"></a><span class="identifier">get_local_time</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">&amp;</span> result<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">*</span> <a name="idp51704792-bb"></a><span class="identifier">get_universal_time</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">tm</span> <span class="special">&amp;</span> result<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_clock_device_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_duration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

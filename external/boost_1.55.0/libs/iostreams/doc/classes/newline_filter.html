@@ -1,0 +1,311 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Newline Filters</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Newline Filters</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#synopsis">Synopsis</A></DT>
+  <DT><A HREF="#reference">Reference</A>
+    <DL class="page-index">
+      <DT>1. <A HREF="#constants">namespace <CODE>boost::iostreams::newline</CODE></A></DT>
+      <DT>2. <A HREF="#newline_filter">Class <CODE>newline_filter</CODE></A></DT>
+      <DT>3. <A HREF="#newline_checker">Class <CODE>newline_checker</CODE></A></DT>
+      <DT>4. <A HREF="#newline_error">Class <CODE>newline_error</CODE></A></DT>
+    </DL>
+  </DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    Boost.Iostreams provides two components for working with line-ending conventions: the class template <A HREF="#newline_filter"><CODE>newline_filter</CODE></A> translates between line-ending conventions, and the class template <A HREF="#newline_checker"><CODE>newline_checker</CODE></A> verifies that a character sequence conforms to a given line-ending convention.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/newline.hpp"><CODE>&lt;boost/iostreams/filter/newline.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A name="synopsis"></A>
+<H2>Synopsis</H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">namespace</SPAN> <A CLASS="documented" HREF="#constants">newline</A> {
+                    
+<SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#posix'>posix</A>             = 1;    <SPAN CLASS='comment'>// Use CR as line separator.</SPAN>
+<SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS="documented" HREF="#mac">mac</A>               = 2;    <SPAN CLASS='comment'>// Use LF as line separator.</SPAN>
+<SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS="documented" HREF="#dos">dos</A>               = 4;    <SPAN CLASS='comment'>// Use CRLF as line separator.</SPAN>
+<SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS="documented" HREF="#mixed">mixed</A>             = 8;    <SPAN CLASS='comment'>// Mixed line endings.</SPAN>
+<SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS="documented" HREF="#final_newline">final_newline</A>     = 16;
+
+}   <SPAN CLASS="comment">// End namespace boost::iostreams::newline</SPAN>
+
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#newline_filter">newline_filter</A>;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#newline_checker">newline_checker</A>;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#newline_error">newline_error</A>;
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A name="reference"></A>
+<H2>Reference</H2>
+
+<A name="constants"></A>
+<H3>1. Namespace <CODE>boost::iostreams::newline</CODE></H3>
+
+<P>The namespace <CODE>boost::iostreams::newline</CODE> contains integral constants used to configure <CODE>newline_filter</CODE>, <CODE>newline_checker</CODE> and to report errors. The constants have the following interpretations.</P>
+
+<TABLE STYLE="margin-left:2em; margin-bottom:2em" BORDER=1 CELLPADDING=4>
+<TR><TH>Constant</TH><TH>Interpretation</TH></TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="posix"></A><CODE>posix</CODE></TD>
+        <TD>
+            Used to indicate POSIX line-ending conventions.
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="dos"></A><CODE>dos</CODE></TD>
+        <TD>
+            Used to indicate DOS line-ending conventions.
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="mac"></A><CODE>mac</CODE></TD>
+        <TD>
+            Used to indicate classic Mac line-ending conventions.
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="mixed"></A><CODE>mixed</CODE></TD>
+        <TD>
+            Used to describe a document with mixed line endings.
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="final_newline"></A><CODE>final_newline</CODE></TD>
+        <TD>
+            Used to indicate that a document ends in a newline sequence.
+        </TD>
+    </TR>
+</TABLE>
+
+<A name="newline_filter"></A>
+<H3>2. Class <CODE>newline_filter</CODE></H3>
+
+<H4>Description</H4>
+
+<P>
+    <A HREF="../concepts/dual_use_filter.html">DualUseFilter</A> which converts between the line-ending conventions used by various operating systems. Its sole constructor takes an integral parameter used to specify the target format.
+</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">newline_filter</SPAN> {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>typedef</SPAN> char                      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS="documented" HREF="#newline_filter_ctor">newline_filter</A>(<SPAN CLASS='keyword'>int</SPAN> target);
+};</PRE>
+
+<A name="newline_filter_ctor"></A>
+<H4><CODE>newline_filter::newline_filter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> newline_filter(<SPAN CLASS='keyword'>int</SPAN> target);</PRE>
+
+<P>Constructs a newline_filter for converting to the specified format. The parameter target must be <A HREF='#posix'><CODE>newline::posix</CODE></A>, <A HREF='#dos'><CODE>newline::dos</CODE></A> or <A HREF='#mac'><CODE>newline::mac</CODE></A>.</P>
+
+<A name="newline_checker"></A>
+<H3>3. Class <CODE>newline_checker</CODE></H3>
+
+<H4>Description</H4>
+
+<P>
+    <A HREF="../concepts/dual_use_filter.html">DualUseFilter</A> used to verify that a character sequence conforms to a given line-ending convention. 
+</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">newline_checker</SPAN> {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>typedef</SPAN> char                      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS="documented" HREF="#newline_filter_ctor">newline_checker</A>(<SPAN CLASS='keyword'>int</SPAN> target = <SPAN CLASS='omitted'>default_value</SPAN> );
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS='documented' HREF='#newline_checker_is_posix'>is_posix</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_dos">is_dos</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_mac">is_mac</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_mixed_posix">is_mixed_posix</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_mixed_dos">is_mixed_dos</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_mixed_mac">is_mixed_mac</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_is_mixed">is_mixed</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_checker_has_final_newline">has_final_newline</A>() <SPAN CLASS='keyword'>const</SPAN>;
+};</PRE>
+
+<A name="newline_checker::newline_checker_ctor"></A>
+<H4><CODE>newline_checker::newline_checker</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> newline_checker(<SPAN CLASS='keyword'>int</SPAN> target = <SPAN CLASS='omitted'>default_value</SPAN> );</PRE>
+
+<P>Constructs a newline_checker. If a target is specified, a newline_error will be thrown as soon as a line-ending sequence is encountered which does not conform to the target. The value target must be be <A HREF='#posix'><CODE>newline::posix</CODE></A>, <A HREF='#dos'><CODE>newline::dos</CODE></A> or <A HREF='#mac'><CODE>newline::mac</CODE></A> or the bitwise OR of one of these values with <A HREF='#mac'><CODE>newline::final_newline</CODE></A>.</P>
+
+<P><B>Note:</B> If a <CODE>newline_checker</CODE> is being used to perform output, the failure of a character sequence to end with a newline sequence may be discovered only when the newline_checker is <A HREF='../functions/close.html'>closed</A>. There are certain circumstances in which exceptions thrown by <A HREF='../functions/close.html'><CODE>close</CODE></A> are caught and ignored by the Iostreams library. Consequently, when performing output specifying <CODE>newline::final_newline</CODE> as part of <CODE>target</CODE> may have no effect. To check whether a character sequence ends with a newline sequence, call <A HREF='#newline_checker_has_final_newline'><CODE>has_final_newline</CODE></A> after the <CODE>newline_checker</CODE> has been closed.
+
+<A name="newline_checker_is_posix"></A>
+<H4><CODE>newline_checker::is_posix</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_posix() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one POSIX line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_checker_is_dos"></A>
+<H4><CODE>newline_checker::is_dos</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_dos() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one DOS line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_checker_is_mac"></A>
+<H4><CODE>newline_checker::is_mac</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mac() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one classic Mac line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_checker_is_mixed_posix"></A>
+<H4><CODE>newline_checker::is_mixed_posix</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_posix() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one POSIX line-ending sequence.</P>
+
+<A name="newline_checker_is_mixed_dos"></A>
+<H4><CODE>newline_checker::is_mixed_dos</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_dos() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one DOS line-ending sequence.</P>
+
+<A name="newline_checker_is_mixed_mac"></A>
+<H4><CODE>newline_checker::is_mixed_mac</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_mac() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained at least one classic Mac line-ending sequence.</P>
+
+<A name="newline_checker_is_mixed"></A>
+<H4><CODE>newline_checker::is_mixed</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined so far contained line-ending sequences of more than one type.</P>
+
+<A name="newline_checker_has_final_newline"></A>
+<H4><CODE>newline_checker::has_final_newline</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> has_final_newline() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns <CODE>true</CODE> if this <CODE>newline_checker</CODE> has either been closed or has reached end-of-stream, and if the examined character sequence ended with a newline sequence.</P>
+
+<A name="newline_error"></A>
+<H3>4. Class template <CODE>newline_error</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Used by <A HREF='#newline_checker'><CODE>newline_checker</CODE></A> to report errors.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">newline_error</SPAN> : <SPAN CLASS="keyword">public</SPAN> std::ios_base::failure {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS='documented' HREF='#newline_error_is_posix'>is_posix</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_dos">is_dos</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_mac">is_mac</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_mixed_posix">is_mixed_posix</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_mixed_dos">is_mixed_dos</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_mixed_mac">is_mixed_mac</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_is_mixed">is_mixed</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#newline_error_has_final_newline">has_final_newline</A>() <SPAN CLASS='keyword'>const</SPAN>;
+};</PRE>
+
+<A name="newline_error_is_posix"></A>
+<H4><CODE>newline_error::is_posix</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_posix() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one POSIX line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_error_is_dos"></A>
+<H4><CODE>newline_error::is_dos</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_dos() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one DOS line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_error_is_mac"></A>
+<H4><CODE>newline_error::is_mac</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mac() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one classic Mac line-ending sequence and no line-ending sequences of any other type.</P>
+
+<A name="newline_error_is_mixed_posix"></A>
+<H4><CODE>newline_error::is_mixed_posix</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_posix() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one POSIX line-ending sequence.</P>
+
+<A name="newline_error_is_mixed_dos"></A>
+<H4><CODE>newline_error::is_mixed_dos</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_dos() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one DOS line-ending sequence.</P>
+
+<A name="newline_error_is_mixed_mac"></A>
+<H4><CODE>newline_error::is_mixed_mac</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed_mac() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained at least one classic Mac line-ending sequence.</P>
+
+<A name="newline_error_is_mixed"></A>
+<H4><CODE>newline_error::is_mixed</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_mixed() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns true if the characters examined by the <CODE>newline_checker</CODE> which threw this exception contained line-ending sequences of more than one type.</P>
+
+<A name="newline_error_has_final_newline"></A>
+<H4><CODE>newline_error::has_final_newline</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> has_final_newline() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns <CODE>true</CODE> if the <CODE>newline_checker</CODE> which threw this exception was either closed or had reached end-of-stream and if the examined character sequence ended with a newline sequence.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

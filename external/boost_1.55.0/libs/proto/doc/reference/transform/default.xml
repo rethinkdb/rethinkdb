@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/default.hpp">
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="_default">
+        <template>
+          <template-type-parameter name="Grammar">
+            <default><replaceable>unspecified</replaceable></default>
+          </template-type-parameter>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; _default&lt;Grammar&gt; &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that gives expressions their
+          usual C++ behavior</purpose>
+        <description>
+          <para>
+            For the complete description of the behavior of the <computeroutput>proto::_default</computeroutput>
+            transform, see the documentation for the nested <computeroutput>
+              <classname>proto::_default::impl&lt;&gt;</classname>
+            </computeroutput> class template.
+          </para>
+          <para>
+            When used without specifying a <computeroutput>Grammar</computeroutput> parameter,
+            <computeroutput>proto::_default</computeroutput> behaves as if the parameter were
+            <computeroutput>proto::_default&lt;&gt;</computeroutput>.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt;Expr, State, Data&gt;</type></inherit>
+          <typedef name="Tag">
+            <purpose>For exposition only</purpose>
+            <type>typename Expr::tag_type</type>
+          </typedef>
+          <data-member name="s_expr" specifiers="static">
+            <purpose>For exposition only</purpose>
+            <type>Expr</type>
+          </data-member>
+          <data-member name="s_state" specifiers="static">
+            <purpose>For exposition only</purpose>
+            <type>State</type>
+          </data-member>
+          <data-member name="s_data" specifiers="static">
+            <purpose>For exposition only</purpose>
+            <type>Data</type>
+          </data-member>
+          <typedef name="result_type">
+            <type><emphasis>see-below</emphasis></type>
+            <description>
+              <itemizedlist>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary prefix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  OP Grammar()(<functionname>proto::child</functionname>(s_expr), s_state, s_data)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary postfix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  Grammar()(<functionname>proto::child</functionname>(s_expr), s_state, s_data) OP
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a binary infix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  Grammar()(<functionname>proto::left</functionname>(s_expr), s_state, s_data) OP
+  Grammar()(<functionname>proto::right</functionname>(s_expr), s_state, s_data)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                <para>
+                  If <computeroutput>Tag</computeroutput> is <computeroutput>
+                    <classname>proto::tag::subscript</classname>
+                  </computeroutput>,
+                  then the result type is
+                  <programlisting>decltype(
+  Grammar()(<functionname>proto::left</functionname>(s_expr), s_state, s_data) [
+  Grammar()(<functionname>proto::right</functionname>(s_expr), s_state, s_data) ]
+)</programlisting>
+                </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::if_else_</classname>
+                    </computeroutput>,
+                    then the result type is
+                    <programlisting>decltype(
+  Grammar()(<functionname>proto::child_c</functionname>&lt;0&gt;(s_expr), s_state, s_data) ?
+  Grammar()(<functionname>proto::child_c</functionname>&lt;1&gt;(s_expr), s_state, s_data) :
+  Grammar()(<functionname>proto::child_c</functionname>&lt;2&gt;(s_expr), s_state, s_data)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::function</classname>
+                    </computeroutput>,
+                    then the result type is
+                    <programlisting>decltype(
+  Grammar()(<functionname>proto::child_c</functionname>&lt;0&gt;(s_expr), s_state, s_data) (
+  Grammar()(<functionname>proto::child_c</functionname>&lt;1&gt;(s_expr), s_state, s_data),
+  ...
+  Grammar()(<functionname>proto::child_c</functionname>&lt;N&gt;(s_expr), s_state, s_data) )
+)</programlisting>
+                  </para>
+                </listitem>
+              </itemizedlist>
+            </description>
+          </typedef>
+          <description>
+            <para>
+              Let <computeroutput><computeroutput>OP</computeroutput></computeroutput> be the C++ operator
+              corresponding to <computeroutput>Expr::proto_tag</computeroutput>. (For example, if
+              <computeroutput>Tag</computeroutput> is <computeroutput>
+              <classname>proto::tag::plus</classname></computeroutput>, let <computeroutput>
+              <computeroutput>OP</computeroutput></computeroutput> be <computeroutput>+</computeroutput>.)
+            </para>
+          </description>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+            <description>
+              <computeroutput>
+                <classname>proto::_default</classname>&lt;Grammar&gt;::impl&lt;Expr, State, Data&gt;::operator()
+              </computeroutput> returns the following:
+              <itemizedlist>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary prefix operator,
+                    then return
+                    <programlisting>OP Grammar()(<functionname>proto::child</functionname>(expr), state, data)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary postfix operator,
+                    then return
+                    <programlisting>Grammar()(<functionname>proto::child</functionname>(expr), state, data) OP</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a binary infix operator,
+                    then return
+                    <programlisting>Grammar()(<functionname>proto::left</functionname>(expr), state, data) OP
+Grammar()(<functionname>proto::right</functionname>(expr), state, data)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                <para>
+                  If <computeroutput>Tag</computeroutput> is <computeroutput>
+                    <classname>proto::tag::subscript</classname>
+                  </computeroutput>,
+                  then return
+                  <programlisting>Grammar()(<functionname>proto::left</functionname>(expr), state, data) [
+Grammar()(<functionname>proto::right</functionname>(expr), state, data) ]</programlisting>
+                </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::if_else_</classname>
+                    </computeroutput>,
+                    then return
+                    <programlisting>Grammar()(<functionname>proto::child_c</functionname>&lt;0&gt;(expr), state, data) ?
+Grammar()(<functionname>proto::child_c</functionname>&lt;1&gt;(expr), state, data) :
+Grammar()(<functionname>proto::child_c</functionname>&lt;2&gt;(expr), state, data)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::function</classname>
+                    </computeroutput>,
+                    then return
+                    <programlisting>Grammar()(<functionname>proto::child_c</functionname>&lt;0&gt;(expr), state, data) (
+Grammar()(<functionname>proto::child_c</functionname>&lt;1&gt;(expr), state, data),
+...
+Grammar()(<functionname>proto::child_c</functionname>&lt;N&gt;(expr), state, data) )</programlisting>
+                  </para>
+                </listitem>
+              </itemizedlist>
+            </description>
+            </method>
+          </method-group>
+          <description>
+            <para>
+              The behavior of this class is specified in terms of the C++0x <computeroutput>decltype</computeroutput>
+              keyword. In systems where this keyword is not available, Proto uses the Boost.Typeof library to
+              approximate the behavior.
+            </para>
+          </description>
+        </struct>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,260 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Qi Seek Parser Directive</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit Repository 0.2">
+<link rel="up" href="../directives.html" title="Qi Parser Directives">
+<link rel="prev" href="kwd.html" title="Qi Keyword Parser Directive">
+<link rel="next" href="../nonterminal.html" title="Qi Parser Non-terminals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="kwd.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit_repository.qi_components.directives.seek"></a><a class="link" href="seek.html" title="Qi Seek Parser Directive">Qi
+        Seek Parser Directive </a>
+</h4></div></div></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h0"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.description"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.description">Description</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">seek</span><span class="special">[]</span></code>
+          parser-directive skips all input until the subject parser matches. On failure,
+          the current position is the end of the input.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h1"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.header"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/repository/home/qi/directive/seek.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_seek</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a href="../../../../../../doc/html/spirit/structure/include.html" target="_top">Include
+          Structure</a>.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h2"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.namespace"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">seek</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h3"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.model_of"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.model_of">Model
+          of</a>
+        </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            <a href="../../../../../../doc/html/spirit/qi/reference/parser_concepts/unaryparser.html" target="_top"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+          </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                A <a href="../../../../../../doc/html/spirit/qi/reference/parser_concepts/parser.html" target="_top"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h4"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.expression_semantics"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<p>
+          Semantics of an expression is defined only where it differs from, or is
+          not defined in <a href="../../../../../../doc/html/spirit/qi/reference/parser_concepts/unaryparser.html" target="_top"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">seek</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Advances until the parser <code class="computeroutput"><span class="identifier">a</span></code>
+                    matches.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h5"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.attributes"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.attributes">Attributes</a>
+        </h6>
+<p>
+          See <a href="../../../../../../doc/html/spirit/qi/quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation" target="_top">Compound
+          Attribute Notation</a>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Attribute
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">seek</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">seek</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">seek</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h6"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.complexity"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.complexity">Complexity</a>
+        </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            The overall complexity is defined by the complexity of its subject parser.
+            The complexity of <code class="computeroutput"><span class="identifier">seek</span></code>
+            itself is O(N), where N is the number of unsuccessful matches.
+          </p></blockquote></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            <span class="bold"><strong>seeking sequence with skipping</strong></span>
+          </p>
+<p>
+            Using <code class="computeroutput"><span class="identifier">seek</span><span class="special">[</span><span class="identifier">a</span> <span class="special">&gt;&gt;</span>
+            <span class="identifier">b</span><span class="special">]</span></code>
+            with skipping is inefficient, because when sequence fails, the backtracked
+            position is non-skipped. The solution is to ensure the input will always
+            be pre-skipped, for example:
+</p>
+<pre class="programlisting"><span class="identifier">seek</span><span class="special">[</span><span class="identifier">lexeme</span><span class="special">[</span><span class="identifier">skip</span><span class="special">[</span><span class="identifier">a</span> <span class="special">&gt;&gt;</span> <span class="identifier">b</span><span class="special">]]]</span>
+</pre>
+<p>
+            does the trick.
+          </p>
+</td></tr>
+</table></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.seek.h7"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.seek.example"></a></span><a class="link" href="seek.html#spirit_repository.qi_components.directives.seek.example">Example</a>
+        </h6>
+<p>
+          The following example shows a simple use case of the <code class="computeroutput"><span class="identifier">seek</span><span class="special">[]</span></code> directive, parsing C-style comment. (For
+          the full source of the example, see <a href="../../../../../example/qi/seek.cpp" target="_top">seek.cpp</a>)
+        </p>
+<p>
+          Some namespace aliases:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">repo</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          The input string and its iterators:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"/*C-style comment*/"</span><span class="special">);</span>
+<span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="identifier">iterator</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+</pre>
+<p>
+        </p>
+<p>
+          Parsing and showing the result:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">if</span> <span class="special">(</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">end</span><span class="special">,</span> <span class="string">"/*"</span> <span class="special">&gt;&gt;</span> <span class="identifier">repo</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">seek</span><span class="special">[</span><span class="string">"*/"</span><span class="special">]))</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------------- \n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing succeeded.\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"---------------------------------\n"</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">else</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------------- \n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Unterminated /* comment.\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------------- \n"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="kwd.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,844 @@
+[/
+ / Copyright (c) 2008-2010 Ion Gaztanaga
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[library Boost.Move
+    [quickbook 1.5]
+    [authors [Gaztanaga, Ion]]
+    [copyright 2008-2012 Ion Gaztanaga]
+    [id move]
+    [dirname move]
+    [purpose Move semantics]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[important To be able to use containers of movable-only  values you will need to use containers
+supporting move semantics, like [*Boost.Container] containers]
+
+[note Tested compilers: MSVC-7.1, 8.0, 9.0, GCC 4.3-MinGW in C++03 and C++0x modes, Intel 10.1]
+
+[section:what_is_boost_move What is Boost.Move?]
+
+Rvalue references are a major C++0x feature, enabling move semantics for C++ values. However, we
+don't need C++0x compilers to take advantage of move semanatics. [*Boost.Move] emulates C++0x
+move semantics in C++03 compilers and allows writing portable code that works optimally in C++03 
+and C++0x compilers.
+
+[endsect]
+
+[section:introduction Introduction]
+
+[note
+
+  The first 3 chapters are the adapted from the article
+ [@http://www.artima.com/cppsource/rvalue.html ['A Brief Introduction to Rvalue References]]
+ by Howard E. Hinnant, Bjarne Stroustrup, and Bronek Kozicki
+
+]
+
+Copying can be expensive. For example, for vectors `v2=v1` typically involves a function call,
+a memory allocation, and a loop. This is of course acceptable where we actually need two copies of
+a vector, but in many cases, we don't: We often copy a `vector` from one place to another, just to
+proceed to overwrite the old copy. Consider: 
+
+[c++]
+
+   template <class T> void swap(T& a, T& b)
+   {
+      T tmp(a);   // now we have two copies of a
+      a = b;      // now we have two copies of b
+      b = tmp;    // now we have two copies of tmp (aka a)
+   }
+
+But, we didn't want to have any copies of a or b, we just wanted to swap them. Let's try again: 
+
+[c++]
+
+   template <class T> void swap(T& a, T& b)
+   {
+      T tmp(::boost::move(a));
+      a = ::boost::move(b);   
+      b = ::boost::move(tmp);
+   }
+
+This `move()` gives its target the value of its argument, but is not obliged to preserve the value
+of its source. So, for a `vector`, `move()` could reasonably be expected to leave its argument as
+a zero-capacity vector to avoid having to copy all the elements. In other words, [*move is a potentially
+destructive copy].
+
+In this particular case, we could have optimized swap by a specialization. However, we can't
+specialize every function that copies a large object just before it deletes or overwrites it. That
+would be unmanageable. 
+
+In C++0x, move semantics are implemented with the introduction of rvalue references. They allow us to
+implement `move()` without verbosity or runtime overhead. [*Boost.Move] is a library that offers tools
+to implement those move semantics not only in compilers with `rvalue references` but also in compilers
+conforming to C++03.
+
+[endsect]
+
+[section:implementing_movable_classes Implementing copyable and movable classes]
+
+[import ../example/doc_clone_ptr.cpp]
+
+[section:copyable_and_movable_cpp0x Copyable and movable classes in C++0x]
+
+Consider a simple handle class that owns a resource and also provides copy semantics
+(copy constructor and assignment). For example a `clone_ptr` might own a pointer, and call
+`clone()` on it for copying purposes: 
+
+[c++]
+
+   template <class T>
+   class clone_ptr
+   {
+      private:
+      T* ptr;
+
+      public:
+      // construction
+      explicit clone_ptr(T* p = 0) : ptr(p) {}
+
+      // destruction
+      ~clone_ptr() { delete ptr; }
+
+      // copy semantics
+      clone_ptr(const clone_ptr& p)
+         : ptr(p.ptr ? p.ptr->clone() : 0) {}
+
+      clone_ptr& operator=(const clone_ptr& p)
+      {
+         if (this != &p)
+         {
+            T *p = p.ptr ? p.ptr->clone() : 0;
+            delete ptr;
+            ptr = p;
+         }
+         return *this;
+      }
+
+      // move semantics
+      clone_ptr(clone_ptr&& p)
+         : ptr(p.ptr) { p.ptr = 0; }
+
+      clone_ptr& operator=(clone_ptr&& p)
+      {
+         if(this != &p)
+         {
+            std::swap(ptr, p.ptr);
+            delete p.ptr;
+            p.ptr = 0;
+         }
+         return *this;
+      }
+
+      // Other operations...
+   };
+
+`clone_ptr` has expected copy constructor and assignment semantics, duplicating resources when copying.
+Note that copy constructing or assigning a `clone_ptr` is a relatively expensive operation: 
+
+[copy_clone_ptr]
+
+`clone_ptr` is code that you might find in today's books on C++, except for the part marked as
+`move semantics`. That part is implemented in terms of C++0x `rvalue references`. You can find
+some good introduction and tutorials on rvalue references in these papers:
+
+*  [@http://www.artima.com/cppsource/rvalue.html ['A Brief Introduction to Rvalue References]]
+*  [@http://blogs.msdn.com/vcblog/archive/2009/02/03/rvalue-references-c-0x-features-in-vc10-part-2.aspx ['Rvalue References: C++0x Features in VC10, Part 2]]
+
+When the source of the copy is known to be an `rvalue` (e.g.: a temporary object), one can avoid the
+potentially expensive `clone()` operation by pilfering source's pointer (no one will notice!). The move
+constructor above does exactly that, leaving the rvalue in a default constructed state. The move assignment
+operator simply does the same freeing old resources.
+
+Now when code tries to copy an rvalue `clone_ptr`, or if that code explicitly gives permission to
+consider the source of the copy an rvalue (using `boost::move`), the operation will execute much faster. 
+
+[move_clone_ptr]
+
+[endsect]
+
+[section:copyable_and_movable_cpp03 Copyable and movable classes in portable syntax for both C++03 and C++0x compilers]
+
+Many aspects of move semantics can be emulated for compilers not supporting `rvalue references`
+and [*Boost.Move] offers tools for that purpose. With [*Boost.Move] we can write `clone_ptr`
+so that it will work both in compilers with rvalue references and those who conform to C++03.
+You just need to follow these simple steps:
+
+* Put the following macro in the [*private] section:
+  [macroref BOOST_COPYABLE_AND_MOVABLE BOOST_COPYABLE_AND_MOVABLE(classname)]
+* Leave copy constructor as is.
+* Write a copy assignment taking the parameter as
+  [macroref BOOST_COPY_ASSIGN_REF BOOST_COPY_ASSIGN_REF(classname)]
+* Write a move constructor and a move assignment taking the parameter as
+  [macroref BOOST_RV_REF BOOST_RV_REF(classname)]
+
+Let's see how are applied to `clone_ptr`:
+
+[clone_ptr_def]
+
+[endsect]
+
+[*Question]: What about types that don't own resources? (E.g. `std::complex`?) 
+
+No work needs to be done in that case. The copy constructor is already optimal.
+
+[endsect]
+
+[section:composition_inheritance Composition or inheritance]
+
+For classes made up of other classes (via either composition or inheritance), the move constructor
+and move assignment can be easily coded using the `boost::move` function:
+
+[clone_ptr_base_derived]
+
+[important Due to limitations in the emulation code, a cast to `Base &` is needed before moving the base part in the move
+constructor and call Base's move constructor instead of the copy constructor.]
+
+Each subobject will now be treated individually, calling move to bind to the subobject's move
+constructors and move assignment operators. `Member` has move operations coded (just like
+our earlier `clone_ptr` example) which will completely avoid the tremendously more expensive
+copy operations:
+
+[clone_ptr_move_derived]
+
+Note above that the argument x is treated as a lvalue reference. That's why it is necessary to
+say `move(x)` instead of just x when passing down to the base class. This is a key safety feature of move
+semantics designed to prevent accidently moving twice from some named variable. All moves from 
+lvalues occur explicitly.
+
+[endsect]
+
+[section:movable_only_classes Movable but Non-Copyable Types]
+
+Some types are not amenable to copy semantics but can still be made movable. For example: 
+
+*  `unique_ptr` (non-shared, non-copyable ownership) 
+*  A type representing a thread of execution
+*  A type representing a file descriptor
+
+By making such types movable (though still non-copyable) their utility is tremendously
+increased. Movable but non-copyable types can be returned by value from factory functions:
+
+[c++]
+
+   file_descriptor create_file(/* ... */);
+   //...
+   file_descriptor data_file;
+   //...
+   data_file = create_file(/* ... */);  // No copies!
+
+In the above example, the underlying file handle is passed from object to object, as long
+as the source `file_descriptor` is an rvalue. At all times, there is still only one underlying file
+handle, and only one `file_descriptor` owns it at a time.
+
+To write a movable but not copyable type in portable syntax, you need to follow these simple steps:
+
+* Put the following macro in the [*private] section:
+  [macroref BOOST_MOVABLE_BUT_NOT_COPYABLE BOOST_MOVABLE_BUT_NOT_COPYABLE(classname)]
+* Write a move constructor and a move assignment taking the parameter as
+  [macroref BOOST_RV_REF BOOST_RV_REF(classname)]
+
+Here's the definition of `file descriptor` using portable syntax:
+
+[import ../example/doc_file_descriptor.cpp]
+[file_descriptor_def]
+
+[/
+ /Many standard algorithms benefit from moving elements of the sequence as opposed to
+ /copying them. This not only provides better performance (like the improved `swap`
+ /implementation described above), but also allows these algorithms to operate on movable
+ /but non-copyable types. For example the following code sorts a `vector<unique_ptr<T>>`
+ /based on comparing the pointed-to types: 
+ /
+ /[c++]
+ /
+ /   struct indirect_less
+ /   {
+ /      template <class T>
+ /      bool operator()(const T& x, const T& y)
+ /         {return *x < *y;}
+ /   };
+ /   ...
+ /   std::vector<std::unique_ptr<A>> v;
+ /   ...
+ /   std::sort(v.begin(), v.end(), indirect_less());
+ /
+ /
+ /As sort moves the unique_ptr's around, it will use swap (which no longer requires Copyability)
+ /or move construction / move assignment. Thus during the entire algorithm, the invariant that
+ /each item is owned and referenced by one and only one smart pointer is maintained. If the
+ /algorithm were to attempt a copy (say by programming mistake) a compile time error would result. 
+ /]
+
+[endsect]
+
+[section:move_and_containers Containers and move semantics]
+
+Movable but non-copyable types can be safely inserted into containers and
+movable and copyable types are more efficiently handled if those containers
+internally use move semantics instead of copy semantics.
+If the container needs to "change the location" of an element
+internally (e.g. vector reallocation) it will move the element instead of copying it.
+[*Boost.Container] containers are move-aware so you can write the following:
+
+[file_descriptor_example]
+
+[endsect]
+
+[section:construct_forwarding Constructor Forwarding]
+
+Consider writing a generic factory function that returns an object for a newly
+constructed generic type. Factory functions such as this are valuable for encapsulating
+and localizing the allocation of resources. Obviously, the factory function must accept
+exactly the same sets of arguments as the constructors of the type of objects constructed:
+
+[c++]
+
+   template<class T> T* factory_new()
+   {  return new T();  }
+
+   template<class T> T* factory_new(a1)
+   {  return new T(a1);  }
+
+   template<class T> T* factory_new(a1, a2)
+   {  return new T(a1, a2);  }
+
+Unfortunately, in C++03 the much bigger issue with this approach is that the N-argument case
+would require 2^N overloads, immediately discounting this as a general solution. Fortunately,
+most constructors take arguments by value, by const-reference or by rvalue reference. If these
+limitations are accepted, the forwarding emulation of a N-argument case requires just N overloads.
+This library makes this emulation easy with the help of `BOOST_FWD_REF` and
+`boost::forward`:
+
+[import ../example/doc_construct_forward.cpp]
+[construct_forward_example]
+
+Constructor forwarding comes in handy to implement placement insertion in containers with
+just N overloads if the implementor accepts the limitations of this type of forwarding for
+C++03 compilers. In compilers with rvalue references perfect forwarding is achieved.
+
+[endsect]
+
+[/[section:perfect_forwarding Perfect Forwarding]
+ /
+ /Consider writing a generic factory function that returns a std::shared_ptr for a newly
+ /constructed generic type. Factory functions such as this are valuable for encapsulating
+ /and localizing the allocation of resources. Obviously, the factory function must accept
+ /exactly the same sets of arguments as the constructors of the type of objects constructed.
+ /Today this might be coded as: 
+ /
+ /[c++]
+ /
+ /   template <class T>
+ /   std::shared_ptr<T>
+ /   factory()   // no argument version
+ /   {
+ /      return std::shared_ptr<T>(new T);
+ /   }
+ /
+ /   template <class T, class A1>
+ /   std::shared_ptr<T>
+ /   factory(const A1& a1)   // one argument version
+ /   {
+ /      return std::shared_ptr<T>(new T(a1));
+ /   }
+ /
+ /   // all the other versions
+ /
+ /
+ /In the interest of brevity, we will focus on just the one-parameter version. For example: 
+ /
+ / [c++]
+ /
+ /    std::shared_ptr<A> p = factory<A>(5);
+ /
+ /
+ / [*Question]: What if T's constructor takes a parameter by non-const reference? 
+ /
+ / In that case, we get a compile-time error as the const-qualifed argument of the factory
+ / function will not bind to the non-const parameter of T's constructor. 
+ /
+ / To solve that problem, we could use non-const parameters in our factory functions: 
+ /
+ / [c++]
+ /
+ /    template <class T, class A1>
+ /    std::shared_ptr<T>
+ /    factory(A1& a1)
+ /    {
+ /       return std::shared_ptr<T>(new T(a1));
+ /    }
+ /
+ /
+ / This is much better. If a const-qualified type is passed to the factory, the const will
+ / be deduced into the template parameter (A1 for example) and then properly forwarded to
+ / T's constructor. Similarly, if a non-const argument is given to factory, it will be
+ / correctly forwarded to T's constructor as a non-const. Indeed, this is precisely how
+ /forwarding applications are coded today (e.g. `std::bind`). 
+ /
+ /However, consider: 
+ /
+ /[c++]
+ /
+ /   std::shared_ptr<A> p = factory<A>(5);	// error
+ /   A* q = new A(5);	                // ok
+ /
+ /
+ /This example worked with our first version of factory, but now it's broken: The "5"
+ /causesthe factory template argument to be deduced as int& and subsequently will not
+ /bind to the rvalue "5". Neither solution so far is right. Each breaks reasonable and
+ /common code. 
+ /
+ /[*Question]: What about overloading on every combination of AI& and const AI&? 
+ /
+ /This would allow use to handle all examples, but at a cost of an exponential explosion:
+ /For our two-parameter case, this would require 4 overloads. For a three-parameter factory
+ /we would need 8 additional overloads. For a four-parameter factory we would need 16, and
+ /so on. This is not a scalable solution. 
+ /
+ /Rvalue references offer a simple, scalable solution to this problem: 
+ /
+ /[c++]
+ /
+ /  template <class T, class A1>
+ /  std::shared_ptr<T>
+ /  factory(A1&& a1)
+ /  {
+ /     return std::shared_ptr<T>(new T(std::forward<A1>(a1)));
+ /  }
+ /
+ / Now rvalue arguments can bind to the factory parameters. If the argument is const, that
+ / fact gets deduced into the factory template parameter type. 
+ /
+ / [*Question]: What is that forward function in our solution? 
+ /
+ / Like move, forward is a simple standard library function used to express our intent
+ / directly and explicitly, rather than through potentially cryptic uses of references.
+ / We want to forward the argument a1, so we simply say so. 
+ /
+ / Here, forward preserves the lvalue/rvalue-ness of the argument that was passed to factory.
+ / If an rvalue is passed to factory, then an rvalue will be passed to T's constructor with
+ / the help of the forward function. Similarly, if an lvalue is passed to factory, it is
+ / forwarded to T's constructor as an lvalue. 
+ /
+ / The definition of forward looks like this: 
+ /
+ / [c++]
+ /
+ /    template <class T>
+ /   struct identity
+ /   {
+ /      typedef T type;
+ /   };
+ /
+ /   template <class T>
+ /   T&& forward(typename identity<T>::type&& a)
+ /   {
+ /      return a;
+ /   }
+ /
+ /[endsect]
+ /
+ /]
+
+[section:move_iterator Move iterators]
+
+[c++]
+
+   template<class Iterator>
+   class move_iterator;
+
+   template<class It>
+   move_iterator<It> make_move_iterator(const It &it);
+
+[classref boost::move_iterator move_iterator] is an iterator adaptor with the
+same behavior as the underlying iterator
+except that its dereference operator implicitly converts the value returned by the
+underlying iterator's dereference operator to an rvalue reference: `boost::move(*underlying_iterator)`
+It is a read-once iterator, but can have up to random access traversal characteristics.
+
+`move_iterator` is very useful because some generic algorithms and container insertion functions
+can be called with move iterators to replace copying with moving. For example:
+
+[import ../example/movable.hpp]
+[movable_definition]
+
+`movable` objects can be moved from one container to another using move iterators and insertion
+and assignment operations.w
+
+[import ../example/doc_move_iterator.cpp]
+[move_iterator_example]
+
+[endsect]
+
+[section:move_inserters Move inserters]
+
+Similar to standard insert iterators, it's possible to deal with move insertion in the same way
+as writing into an array. A special kind of iterator adaptors, called move insert iterators, are
+provided with this library. With regular iterator classes,
+
+[c++]
+
+   while (first != last) *result++ = *first++;
+
+causes a range [first,last) to be copied into a range starting with result. The same code with
+result being an move insert iterator will move insert corresponding elements into the container.
+This device allows all of the copying algorithms in the library to work in the move insert mode
+instead of the regular overwrite mode. This library offers 3 move insert iterators and their
+helper functions:
+
+[c++]
+
+   // Note: C models Container
+   template <typename C> 
+   class back_move_insert_iterator;
+
+   template <typename C>
+   back_move_insert_iterator<C> back_move_inserter(C& x);
+
+   template <typename C>
+   class front_move_insert_iterator;
+
+   template <typename C>
+   front_move_insert_iterator<C> front_move_inserter(C& x);
+
+   template <typename C>
+   class move_insert_iterator;
+
+   template <typename C>
+   move_insert_iterator<C> move_inserter(C& x, typename C::iterator it);
+
+
+A move insert iterator is constructed from a container and possibly one of its iterators pointing
+to where insertion takes place if it is neither at the beginning nor at the end of the container.
+Insert iterators satisfy the requirements of output iterators. `operator*` returns the move insert
+iterator itself. The assignment `operator=(T& x)` is defined on insert iterators to allow writing
+into them, it inserts x right before where the insert iterator is pointing. In other words, an
+`insert iterator` is like a cursor pointing into the container where the insertion takes place.
+`back_move_iterator` move inserts elements at the end of a container, `front_insert_iterator`
+move inserts elements at the beginning of a container, and `move_insert_iterator` move inserts
+elements where the iterator points to in a container. `back_move_inserter`, `front_move_inserter`,
+and `move_inserter` are three functions making the insert iterators out of a container. Here's
+an example of how to use them:
+
+[import ../example/doc_move_inserter.cpp]
+[move_inserter_example]
+
+[endsect]
+
+[section:move_algorithms Move algorithms]
+
+The standard library offers several copy-based algorithms. Some of them, like `std::copy` or
+`std::uninitialized_copy` are basic building blocks for containers and other data structures.
+This library offers move-based functions for those purposes:
+
+[c++]
+
+  template<typename I, typename O> O move(I, I, O);
+  template<typename I, typename O> O move_backward(I, I, O);
+  template<typename I, typename F> F uninitialized_move(I, I, F);
+  template<typename I, typename F> F uninitialized_copy_or_move(I, I, F);
+
+
+The first 3 are move variations of their equivalent copy algorithms, but copy assignment and
+copy construction are replaced with move assignment and construction. The last one has the
+same behaviour as `std::uninitialized_copy` but since several standand library implementations
+don't play very well with `move_iterator`s, this version is a portable version for those
+willing to use move iterators.
+
+[import ../example/doc_move_algorithms.cpp]
+[move_algorithms_example]
+
+[endsect]
+
+[section:emulation_limitations Emulation limitations]
+
+Like any emulation effort, the library has some limitations users should take in
+care to achieve portable and efficient code when using the library with C++03 conformant compilers:
+
+[section:emulation_limitations_base Initializing base classes]
+
+When initializing base classes in move constructors, users must
+cast the reference to a base class reference before moving it. Example:
+
+[c++]
+
+   //Portable and efficient
+   Derived(BOOST_RV_REF(Derived) x)             // Move ctor
+      : Base(boost::move(static_cast<Base&>(x))), 
+        mem_(boost::move(x.mem_)) { }
+
+
+If casting is not performed the emulation will not move construct
+the base class, because no conversion is available from `BOOST_RV_REF(Derived)` 
+to `BOOST_RV_REF(Base)`. Without the cast we might obtain a compilation
+error (for non-copyable types) or a less-efficient move constructor (for copyable types):
+
+[c++]
+
+   //If Derived is copyable, then Base is copy-constructed.
+   //If not, a compilation error is issued
+   Derived(BOOST_RV_REF(Derived) x)             // Move ctor
+      : Base(boost::move(x)),
+        mem_(boost::move(x.mem_)) { } 
+
+[endsect]
+
+[section:template_parameters Template parameters for perfect forwarding]
+
+The emulation can't deal with C++0x reference collapsing rules that allow perfect forwarding:
+
+[c++]
+   
+   //C++0x
+   template<class T>
+   void forward_function(T &&t)
+   {  inner_function(std::forward<T>(t); }
+
+   //Wrong C++03 emulation
+   template<class T>
+   void forward_function(BOOST_RV_REF<T> t)
+   {  inner_function(boost::forward<T>(t); }
+
+In C++03 emulation BOOST_RV_REF doesn't catch any const rlvalues. For more details on
+forwarding see [link move.construct_forwarding Constructor Forwarding] chapter.
+
+[endsect]
+
+[section:emulation_limitations_binding Binding of rvalue references to lvalues]
+
+The 
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1690.html first rvalue reference]
+proposal allowed the binding of rvalue references to lvalues:
+
+[c++]
+
+   func(Type &&t);
+   //....
+   
+   Type t;  //Allowed
+   func(t)
+
+
+Later, as explained in
+[@http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2008/n2812.html ['Fixing a Safety Problem with Rvalue References]]
+this behaviour was considered dangerous and eliminated this binding so that rvalue references adhere to the
+principle of type-safe overloading: ['Every function must be type-safe in isolation, without regard to how it has been overloaded]
+
+[*Boost.Move] can't emulate this type-safe overloading principle for C++03 compilers:
+
+[c++]
+
+   //Allowed by move emulation
+   movable m;
+   BOOST_RV_REF(movable) r = m;
+
+[endsect]
+
+[section:assignment_operator Assignment operator in classes derived from or holding copyable and movable types]
+
+The macro [macroref BOOST_COPYABLE_AND_MOVABLE BOOST_COPYABLE_AND_MOVABLE] needs to
+define a copy constructor for `copyable_and_movable` taking a non-const parameter in C++03 compilers:
+
+[c++]
+
+   //Generated by BOOST_COPYABLE_AND_MOVABLE
+   copyable_and_movable &operator=(copyable_and_movable&){/**/}
+
+Since the non-const overload of the copy constructor is generated, compiler-generated
+assignment operators for classes containing `copyable_and_movable`
+will get the non-const copy constructor overload, which will surely surprise users:
+
+[c++]
+
+   class holder
+   {
+      copyable_and_movable c;
+   };
+
+   void func(const holder& h)
+   {
+      holder copy_h(h); //<--- ERROR: can't convert 'const holder&' to 'holder&'
+      //Compiler-generated copy constructor is non-const:
+      // holder& operator(holder &)
+      //!!!
+   }
+
+This limitation forces the user to define a const version of the copy assignment,
+in all classes holding copyable and movable classes which might annoying in some cases.
+
+An alternative is to implement a single `operator =()` for copyable and movable  classes
+[@http://cpp-next.com/archive/2009/08/want-speed-pass-by-value/ using "pass by value" semantics]:
+
+[c++]
+
+   T& operator=(T x)    // x is a copy of the source; hard work already done
+   {
+      swap(*this, x);  // trade our resources for x's
+      return *this;    // our (old) resources get destroyed with x
+   }
+
+However, "pass by value" is not optimal for classes (like containers, strings, etc.) that reuse resources
+(like previously allocated memory) when x is assigned from a lvalue.
+
+[endsect]
+
+[endsect]
+
+[section:how_the_library_works How the library works]
+
+[*Boost.Move] is based on macros that are expanded to true rvalue references in C++0x compilers
+and emulated rvalue reference classes and conversion operators in C++03 compilers.
+
+In C++03 compilers [*Boost.Move] defines a class named `::boost::rv`:
+
+[c++]
+
+   template <class T>
+   class rv : public T
+   {
+      rv();
+      ~rv();
+      rv(rv const&);
+      void operator=(rv const&);
+   };
+
+which is convertible to the movable base class (usual C++ derived to base conversion). When users mark
+their classes as [macroref BOOST_MOVABLE_BUT_NOT_COPYABLE BOOST_MOVABLE_BUT_NOT_COPYABLE] or
+[macroref BOOST_COPYABLE_AND_MOVABLE BOOST_COPYABLE_AND_MOVABLE], these macros define conversion
+operators to references to `::boost::rv`:
+
+[c++]
+
+   #define BOOST_MOVABLE_BUT_NOT_COPYABLE(TYPE)\
+      public:\
+      operator ::boost::rv<TYPE>&() \
+      {  return *static_cast< ::boost::rv<TYPE>* >(this);  }\
+      operator const ::boost::rv<TYPE>&() const \
+      {  return static_cast<const ::boost::rv<TYPE>* >(this);  }\
+      private:\
+      //More stuff...
+
+[macroref BOOST_MOVABLE_BUT_NOT_COPYABLE BOOST_MOVABLE_BUT_NOT_COPYABLE] also declares a
+private copy constructor and assignment. [macroref BOOST_COPYABLE_AND_MOVABLE BOOST_COPYABLE_AND_MOVABLE]
+defines a non-const copy constructor `TYPE &operator=(TYPE&)` that forwards to a const version:
+
+   #define BOOST_COPYABLE_AND_MOVABLE(TYPE)\
+      public:\
+      TYPE& operator=(TYPE &t)\
+      {  this->operator=(static_cast<const ::boost::rv<TYPE> &>(const_cast<const TYPE &>(t))); return *this;}\
+      //More stuff...
+
+In C++0x compilers `BOOST_COPYABLE_AND_MOVABLE` expands to nothing and `BOOST_MOVABLE_BUT_NOT_COPYABLE`
+declares copy constructor and assigment operator private.
+
+When users define the [macroref BOOST_RV_REF BOOST_RV_REF] overload of a copy constructor/assignment, in
+C++0x compilers it is expanded to a rvalue reference (`T&&`) overload and in C++03 compilers it is expanded
+to a `::boost::rv<T> &` overload:
+
+[c++]
+
+   #define BOOST_RV_REF(TYPE) ::boost::rv< TYPE >& \
+
+When users define the [macroref BOOST_COPY_ASSIGN_REF BOOST_COPY_ASSIGN_REF] overload,
+it is expanded to a usual copy assignment (`const T &`) overload in C++0x compilers and
+to a `const ::boost::rv &` overload in C++03 compilers:
+
+[c++]
+
+   #define BOOST_COPY_ASSIGN_REF(TYPE) const ::boost::rv< TYPE >&
+   
+As seen, in [*Boost.Move] generates efficient and clean code for C++0x move
+semantics, without modifying any resolution overload. For C++03 compilers
+when overload resolution is performed these are the bindings:
+
+* a) non-const rvalues (e.g.: temporaries), bind to `::boost::rv< TYPE >&`
+* b) const rvalue and lvalues, bind to `const ::boost::rv< TYPE >&`
+* c) non-const lvalues (e.g. non-const references) bind to `TYPE&`
+
+The library does not define the equivalent of
+[macroref BOOST_COPY_ASSIGN_REF BOOST_COPY_ASSIGN_REF] for copy construction (say, `BOOST_COPY_CTOR_REF`)
+because nearly all modern compilers implement RVO and this is much more efficient than any move emulation.
+[funcref boost::move move] just casts `TYPE &` into `::boost::rv<TYPE> &`.
+
+Here's an example that demostrates how different rlvalue objects bind to `::boost::rv` references in the
+presence of three overloads and the conversion operators in C++03 compilers:
+
+[import ../example/doc_how_works.cpp]
+[how_works_example]
+
+[endsect]
+
+
+[section:thanks_to Thanks and credits]
+
+Thanks to all that developed ideas for move emulation: the first emulation was based on Howard Hinnant
+emulation code for `unique_ptr`, David Abrahams suggested the use of `class rv`,
+and Klaus Triendl discovered how to bind const rlvalues using `class rv`.
+
+Many thanks to all boosters that have tested, reviewed and improved the library.
+
+[endsect]
+
+[section:release_notes Release Notes]
+
+[section:release_notes_boost_1_55_00 Boost 1.55 Release]
+
+*  Fixed bugs  [@https://svn.boost.org/trac/boost/ticket/7952 #7952],
+               [@https://svn.boost.org/trac/boost/ticket/8764 #8764],
+               [@https://svn.boost.org/trac/boost/ticket/8765 #8765],
+               [@https://svn.boost.org/trac/boost/ticket/8842 #8842],
+               [@https://svn.boost.org/trac/boost/ticket/8979 #8979].
+[endsect]
+
+
+[section:release_notes_boost_1_54_00 Boost 1.54 Release]
+
+
+*  Fixed bugs [@https://svn.boost.org/trac/boost/ticket/7969 #7969],
+              [@https://svn.boost.org/trac/boost/ticket/8231 #8231],
+              [@https://svn.boost.org/trac/boost/ticket/8765 #8765].
+
+[endsect]
+
+[section:release_notes_boost_1_53_00 Boost 1.53 Release]
+
+*  Better header segregation (bug
+  [@https://svn.boost.org/trac/boost/ticket/6524 #6524]).
+*  Small documentation fixes
+*  Replaced deprecated BOOST_NO_XXXX with newer BOOST_NO_CXX11_XXX macros.
+*  Fixed [@https://svn.boost.org/trac/boost/ticket/7830 #7830],
+         [@https://svn.boost.org/trac/boost/ticket/7832 #7832].
+
+[endsect]
+
+[section:release_notes_boost_1_51_00 Boost 1.51 Release]
+
+*  Fixed bugs
+  [@https://svn.boost.org/trac/boost/ticket/7095 #7095],
+  [@https://svn.boost.org/trac/boost/ticket/7031 #7031].
+
+[endsect]
+
+[section:release_notes_boost_1_49_00 Boost 1.49 Release]
+
+*  Fixed bugs
+  [@https://svn.boost.org/trac/boost/ticket/6417 #6417],
+  [@https://svn.boost.org/trac/boost/ticket/6183 #6183],
+  [@https://svn.boost.org/trac/boost/ticket/6185 #6185],
+  [@https://svn.boost.org/trac/boost/ticket/6395 #6395],
+  [@https://svn.boost.org/trac/boost/ticket/6396 #6396],
+
+[endsect]
+
+[endsect]
+
+[xinclude autodoc.xml]

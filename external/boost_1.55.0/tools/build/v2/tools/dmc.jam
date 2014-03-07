@@ -1,0 +1,134 @@
+# Digital Mars C++
+
+# (C) Copyright Christof Meerwald 2003.
+# (C) Copyright Aleksey Gurtovoy 2004.
+# (C) Copyright Arjan Knepper 2006.
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# The following #// line will be used by the regression test table generation
+# program as the column heading for HTML tables. Must not include version number.
+#//<a href="http://www.digitalmars.com/">Digital<br>Mars C++</a>
+
+import feature generators common ;
+import toolset : flags ;
+import sequence regex ;
+
+feature.extend toolset : dmc ;
+
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters dmc : version $(version) ] ;
+    
+    local command = [ common.get-invocation-command dmc : dmc : $(command) ] ;
+    command ?= dmc ;
+
+    common.handle-options dmc : $(condition) : $(command) : $(options) ;   
+    
+    if $(command)
+    {
+        command = [ common.get-absolute-tool-path $(command[-1]) ] ;
+    }   
+    root = $(command:D) ;    
+    
+    if $(root)
+    {        
+        # DMC linker is sensitive the the direction of slashes, and
+        # won't link if forward slashes are used in command.
+        root = [ sequence.join [ regex.split $(root) "/" ] : "\\" ] ;
+        flags dmc .root $(condition) : $(root)\\bin\\ ;
+    }
+    else
+    {
+        flags dmc .root $(condition) : "" ;
+    }    
+}
+
+
+# Declare generators
+generators.register-linker dmc.link : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB : EXE : <toolset>dmc ;
+generators.register-linker dmc.link.dll : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB : SHARED_LIB IMPORT_LIB : <toolset>dmc ;
+
+generators.register-archiver dmc.archive : OBJ : STATIC_LIB : <toolset>dmc ;
+generators.register-c-compiler dmc.compile.c++ : CPP : OBJ : <toolset>dmc ;
+generators.register-c-compiler dmc.compile.c : C : OBJ : <toolset>dmc ;
+
+
+# Declare flags
+# dmc optlink has some limitation on the amount of debug-info included. Therefore only linenumbers are enabled in debug builds.
+# flags dmc.compile OPTIONS <debug-symbols>on : -g ;
+flags dmc.compile OPTIONS <debug-symbols>on : -gl ;
+flags dmc.link OPTIONS <debug-symbols>on : /CO /NOPACKF /DEBUGLI ;
+flags dmc.link OPTIONS <debug-symbols>off : /PACKF ;
+
+flags dmc.compile OPTIONS <optimization>off : -S -o+none ;
+flags dmc.compile OPTIONS <optimization>speed : -o+time ;
+flags dmc.compile OPTIONS <optimization>space : -o+space ;
+flags dmc.compile OPTIONS <exception-handling>on : -Ae ;
+flags dmc.compile OPTIONS <rtti>on : -Ar ;
+# FIXME:
+# Compiling sources to be linked into a shared lib (dll) the -WD cflag should be used
+# Compiling sources to be linked into a static lib (lib) or executable the -WA cflag should be used
+# But for some reason the -WD cflag is always in use.
+# flags dmc.compile OPTIONS <link>shared : -WD ;
+# flags dmc.compile OPTIONS <link>static : -WA ;
+
+# Note that these two options actually imply multithreading support on DMC
+# because there is no single-threaded dynamic runtime library. Specifying
+# <threading>multi would be a bad idea, though, because no option would be
+# matched when the build uses the default settings of <runtime-link>dynamic
+# and <threading>single.
+flags dmc.compile OPTIONS <runtime-debugging>off/<runtime-link>shared : -ND ;
+flags dmc.compile OPTIONS <runtime-debugging>on/<runtime-link>shared : -ND ;
+
+flags dmc.compile OPTIONS <runtime-debugging>off/<runtime-link>static/<threading>single : ;
+flags dmc.compile OPTIONS <runtime-debugging>on/<runtime-link>static/<threading>single : ;
+flags dmc.compile OPTIONS <runtime-debugging>off/<runtime-link>static/<threading>multi : -D_MT ;
+flags dmc.compile OPTIONS <runtime-debugging>on/<runtime-link>static/<threading>multi : -D_MT ;
+
+flags dmc.compile OPTIONS : <cflags> ;
+flags dmc.compile.c++ OPTIONS : <cxxflags> ;
+
+flags dmc.compile DEFINES : <define> ;
+flags dmc.compile INCLUDES : <include> ;
+
+flags dmc.link <linkflags> ;
+flags dmc.archive OPTIONS <arflags> ;
+
+flags dmc LIBPATH <library-path> ;
+flags dmc LIBRARIES <library-file> ;
+flags dmc FINDLIBS <find-library-sa> ;
+flags dmc FINDLIBS <find-library-st> ;
+
+actions together link bind LIBRARIES
+{
+    "$(.root)link" $(OPTIONS) /NOI /DE /XN "$(>)" , "$(<[1])" ,, $(LIBRARIES) user32.lib kernel32.lib "$(FINDLIBS:S=.lib)" , "$(<[2]:B).def"
+}
+
+actions together link.dll bind LIBRARIES
+{
+    echo LIBRARY "$(<[1])" > $(<[2]:B).def
+    echo DESCRIPTION 'A Library' >> $(<[2]:B).def
+    echo EXETYPE NT >> $(<[2]:B).def
+    echo SUBSYSTEM WINDOWS >> $(<[2]:B).def
+    echo CODE	EXECUTE READ >> $(<[2]:B).def
+    echo DATA	READ WRITE >> $(<[2]:B).def
+    "$(.root)link" $(OPTIONS) /NOI /DE /XN /ENTRY:_DllMainCRTStartup /IMPLIB:"$(<[2])" "$(>)" $(LIBRARIES) , "$(<[1])" ,, user32.lib kernel32.lib "$(FINDLIBS:S=.lib)" , "$(<[2]:B).def"
+}
+
+actions compile.c
+{
+    "$(.root)dmc"  -c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o"$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(.root)dmc" -cpp -c -Ab $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o"$(<)" "$(>)"
+}
+
+actions together piecemeal archive
+{
+    "$(.root)lib" $(OPTIONS) -c -n -p256 "$(<)" "$(>)"
+}

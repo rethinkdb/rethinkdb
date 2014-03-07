@@ -1,0 +1,1428 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Matrix Proxies</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Matrix Proxies</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="matrix_row"></a>Matrix Row</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_row&lt;M&gt;</code> allows
+addressing a row of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i) {
+        matrix_row&lt;matrix&lt;double&gt; &gt; mr (m, i);
+        for (unsigned j = 0; j &lt; mr.size (); ++ j)
+            mr (j) = 3 * i + j;
+        std::cout &lt;&lt; mr &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified row falls outside that of the row index range
+of the matrix, then the <code>matrix_row</code> is not a well
+formed Vector Expression. That is, access to an element which is
+outside of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;matrix_row&lt;M&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_row (matrix_type &amp;data, size_type
+i)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>matrix_row &amp;operator = (const matrix_row
+&amp;mr)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_row &amp;assign_temporary (matrix_row
+&amp;mr)</code></td>
+<td>Assigns a temporary. May change the matrix row <code>mr</code>
+.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;operator = (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;operator += (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;plus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;operator -= (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_row &amp;minus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_row &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_row &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_row &amp;mr)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_row</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>matrix_row</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Projections</h3>
+<h4>Description</h4>
+<p>The free <code>row</code> functions support the construction of
+matrix rows.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_row&lt;M&gt; row (M &amp;data, std::size_t i);
+    template&lt;class M&gt;
+    const matrix_row&lt;const M&gt; row (const M &amp;data, std::size_t i);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>M</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Linear depending from the size of the row.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i) {
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            row (m, i) (j) = 3 * i + j;
+        std::cout &lt;&lt; row (m, i) &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h2><a name="matrix_column"></a>Matrix Column</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_column&lt;M&gt;</code> allows
+addressing a column of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned j = 0; j &lt; m.size2 (); ++ j) {
+        matrix_column&lt;matrix&lt;double&gt; &gt; mc (m, j);
+        for (unsigned i = 0; i &lt; mc.size (); ++ i)
+            mc (i) = 3 * i + j;
+        std::cout &lt;&lt; mc &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified column falls outside that of the column index
+range of the matrix, then the <code>matrix_column</code> is not a
+well formed Vector Expression. That is, access to an element which
+is outside of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;matrix_column&lt;M&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_column (matrix_type &amp;data, size_type
+j)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>matrix_column &amp;operator = (const matrix_column
+&amp;mc)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_column &amp;assign_temporary (matrix_column
+&amp;mc)</code></td>
+<td>Assigns a temporary. May change the matrix column
+<code>mc</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;operator = (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;operator += (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;plus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;operator -= (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_column &amp;minus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_column &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_column &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_column &amp;mc)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_column</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>matrix_column</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Projections</h3>
+<h4>Description</h4>
+<p>The free <code>column</code> functions support the construction
+of matrix columns.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_column&lt;M&gt; column (M &amp;data, std::size_t j);
+    template&lt;class M&gt;
+    const matrix_column&lt;const M&gt; column (const M &amp;data, std::size_t j);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>M</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Linear depending from the size of the column.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned j = 0; j &lt; m.size2 (); ++ j) {
+        for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+            column (m, j) (i) = 3 * i + j;
+        std::cout &lt;&lt; column (m, j) &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h2><a name="vector_range"></a>Vector Range</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_vector_range&lt;M&gt;</code>
+allows addressing a sub vector of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+
+    matrix_vector_range&lt;matrix&lt;double&gt; &gt; mvr (m, range (0, 3), range (0, 3));
+    std::cout &lt;&lt; mvr &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified ranges fall outside that of the index range of
+the matrix, then the <code>matrix_vector_range</code> is not a well
+formed Vector Expression. That is, access to an element which is
+outside of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;matrix_vector_range&lt;M&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_vector_range (matrix_type &amp;data,<br />
+const range &amp;r1, const range &amp;r2)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>matrix_vector_range &amp;operator = (const
+matrix_vector_range &amp;mvr)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_vector_range &amp;assign_temporary
+(matrix_vector_range &amp;mvr)</code></td>
+<td>Assigns a temporary. May change the matrix vector range
+<code>mvr</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;operator = (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;operator += (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;plus_assign (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;operator -= (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_range &amp;minus_assign (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_vector_range &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_vector_range &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_vector_range &amp;mvr)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>matrix_vector_range</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="vector_slice"></a>Vector Slice</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_vector_slice&lt;M&gt;</code>
+allows addressing a sliced sub vector of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+
+    matrix_vector_slice&lt;matrix&lt;double&gt; &gt; mvs (m, slice (0, 1, 3), slice (0, 1, 3));
+    std::cout &lt;&lt; mvs &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified slices fall outside that of the index range of
+the matrix, then the <code>matrix_vector_slice</code> is not a well
+formed Vector Expression. That is, access to an element which is
+outside of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;matrix_vector_slice&lt;M&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_vector_slice (matrix_type &amp;data,<br />
+const slice &amp;s1, const slice &amp;s2)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>matrix_vector_slice &amp;operator = (const
+matrix_vector_slice &amp;mvs)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_vector_slice &amp;assign_temporary
+(matrix_vector_slice &amp;mvs)</code></td>
+<td>Assigns a temporary. May change the matrix vector slice
+<code>vs</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;operator = (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;operator += (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;plus_assign (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;operator -= (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_vector_slice &amp;minus_assign (const
+vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_vector_slice &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_vector_slice &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_vector_slice &amp;mvs)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>matrix_vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>matrix_vector_slice</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="matrix_range"></a>Matrix Range</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_range&lt;M&gt;</code> allows
+addressing a sub matrix of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    matrix_range&lt;matrix&lt;double&gt; &gt; mr (m, range (0, 3), range (0, 3));
+    for (unsigned i = 0; i &lt; mr.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; mr.size2 (); ++ j)
+            mr (i, j) = 3 * i + j;
+    std::cout &lt;&lt; mr &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<p>If the specified ranges fall outside that of the index range of
+the matrix, then the <code>matrix_range</code> is not a well formed
+Matrix Expression. That is, access to an element which is outside
+of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_range&lt;M&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_range (matrix_type &amp;data,<br />
+const range &amp;r1, const range &amp;r2)</code></td>
+<td>Constructs a sub matrix.</td>
+</tr>
+<tr>
+<td><code>size_type start1 () const</code></td>
+<td>Returns the index of the first row.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type start2 () const</code></td>
+<td>Returns the index of the first column.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>matrix_range &amp;operator = (const matrix_range
+&amp;mr)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_range &amp;assign_temporary (matrix_range
+&amp;mr)</code></td>
+<td>Assigns a temporary. May change the matrix range
+<code>mr</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the sub matrix. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;operator += (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the sub matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;plus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a matrix expression to the sub matrix. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;operator -= (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the sub matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_range &amp;minus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a matrix expression from the sub matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_range &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub matrix with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_range &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub matrix through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_range &amp;mr)</code></td>
+<td>Swaps the contents of the sub matrices.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>matrix_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+reversed the <code>matrix_range</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Simple Projections</h3>
+<h4>Description</h4>
+<p>The free <code>subrange</code> functions support the construction
+of matrix ranges.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_range&lt;M&gt; subrange (M &amp;data,
+       M::size_type start1, M::size_type stop1, M::size_type start2, M::size_type, stop2);
+    template&lt;class M&gt;
+    const matrix_range&lt;const M&gt; subrange (const M &amp;data,
+       M::size_type start1, M::size_type stop1, M::size_type start2, M::size_type, stop2);
+</code></pre>
+<h3>Generic Projections</h3>
+<h4>Description</h4>
+<p>The free <code>project</code> functions support the construction
+of matrix ranges. Existing <code>matrix_range</code>'s can be composed with further ranges. The resulting ranges are computed using this existing ranges' <code>compose</code> function.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_range&lt;M&gt; project (M &amp;data, const range &amp;r1, const range &amp;r2);
+    template&lt;class M&gt;
+    const matrix_range&lt;const M&gt; project (const M &amp;data, const range &amp;r1, const range &amp;r2);
+    template&lt;class M&gt;
+    matrix_range&lt;M&gt; project (matrix_range&lt;M&gt; &amp;data, const range &amp;r1, const range &amp;r2);
+    template&lt;class M&gt;
+    const matrix_range&lt;M&gt; project (const matrix_range&lt;M&gt; &amp;data, const range &amp;r1, const range &amp;r2);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>M</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the ranges.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            project (m, range (0, 3), range (0, 3)) (i, j) = 3 * i + j;
+    std::cout &lt;&lt; project (m, range (0, 3), range (0, 3)) &lt;&lt; std::endl;
+}
+</pre>
+<h2><a name="matrix_slice"></a>Matrix Slice</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_slice&lt;M&gt;</code> allows
+addressing a sliced sub matrix of a matrix.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    matrix_slice&lt;matrix&lt;double&gt; &gt; ms (m, slice (0, 1, 3), slice (0, 1, 3));
+    for (unsigned i = 0; i &lt; ms.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; ms.size2 (); ++ j)
+            ms (i, j) = 3 * i + j;
+    std::cout &lt;&lt; ms &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of matrix referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<p>If the specified slices fall outside that of the index range of
+the matrix, then the <code>matrix_slice</code> is not a well formed
+Matrix Expression. That is, access to an element which is outside
+of the matrix is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_slice&lt;M&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_slice (matrix_type &amp;data,<br />
+const slice &amp;s1, const slice &amp;s2)</code></td>
+<td>Constructs a sub matrix.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>matrix_slice &amp;operator = (const matrix_slice
+&amp;ms)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>matrix_slice &amp;assign_temporary (matrix_slice
+&amp;ms)</code></td>
+<td>Assigns a temporary. May change the matrix slice
+<code>ms</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the sub matrix. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;operator += (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the sub matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;plus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a matrix expression to the sub matrix. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;operator -= (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the sub matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+matrix_slice &amp;minus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a matrix expression from the sub matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_slice &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub matrix with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+matrix_slice &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (matrix_slice &amp;ms)</code></td>
+<td>Swaps the contents of the sub matrices.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>matrix_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>matrix_slice</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Simple Projections</h3>
+<h4>Description</h4>
+<p>The free <code>subslice</code> functions support the construction
+of matrix slices.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_slice&lt;M&gt; subslice (M &amp;data,
+       M::size_type start1, M::difference_type stride1, M::size_type size1,
+       M::size_type start2, M::difference_type stride2, M::size_type size2);
+    template&lt;class M&gt;
+    const matrix_slice&lt;const M&gt; subslice (const M &amp;data,
+       M::size_type start1, M::difference_type stride1, M::size_type size1,
+       M::size_type start2, M::difference_type stride2, M::size_type size2);
+</code></pre>
+<h3>Generic Projections</h3>
+<h4>Description</h4>
+<p>The free <code>project</code> functions support the construction
+of matrix slices. Existing <code>matrix_slice</code>'s can be composed with further ranges or slices. The resulting slices are computed using this existing slices' <code>compose</code> function.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class M&gt;
+    matrix_slice&lt;M&gt; project (M &amp;data, const slice &amp;s1, const slice &amp;s2);
+    template&lt;class M&gt;
+    const matrix_slice&lt;const M&gt; project (const M &amp;data, const slice &amp;s1, const slice &amp;s2);
+    template&lt;class M&gt;
+    matrix_slice&lt;M&gt; project (matrix_slice&lt;M&gt; &amp;data, const range &amp;r1, const range &amp;r2);
+    template&lt;class M&gt;
+    const matrix_slice&lt;M&gt; project (const matrix_slice&lt;M&gt; &amp;data, const range &amp;r1, const range &amp;r2);
+    template&lt;class M&gt;
+    matrix_slice&lt;M&gt; project (matrix_slice&lt;M&gt; &amp;data, const slice &amp;s1, const slice &amp;s2);
+    template&lt;class M&gt;
+    const matrix_slice&lt;M&gt; project (const matrix_slice&lt;M&gt; &amp;data, const slice &amp;s1, const slice &amp;s2);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>M</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the slices.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/matrix_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            project (m, slice (0, 1, 3), slice (0, 1, 3)) (i, j) = 3 * i + j;
+    std::cout &lt;&lt; project (m, slice (0, 1, 3), slice (0, 1, 3)) &lt;&lt; std::endl;
+}
+</pre>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

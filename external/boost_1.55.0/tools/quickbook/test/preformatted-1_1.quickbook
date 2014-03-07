@@ -1,0 +1,32 @@
+[article Preformatted
+]
+
+[section Preformatted]
+
+Here's the ubiquitous /Hello World/ program in C++.
+
+[pre
+#include <iostream>
+
+int main()
+{
+    std::cout << "Hello, World!" << std::endl;
+    return 0;
+}
+]
+
+The code should appear as a single block of code in a monospaced font and with
+no syntax highlighting. The fifth and sixth lines should appear indented to the
+right, aligning under `main`, on line 3.
+
+Here's a one line function definitition: [pre void something(); ].
+
+And some indented code:
+
+[pre
+    void go()
+    {
+    }
+]
+
+[endsect]

@@ -1,0 +1,89 @@
+Index: common/unicode/unistr.h
+===================================================================
+--- common/unicode/unistr.h	(revision 75773)
++++ common/unicode/unistr.h	(working copy)
+@@ -4089,7 +4089,7 @@
+ #if defined(__GNUC__)
+   // Ticket #7039: Clip length to the maximum valid length to the end of addressable memory given the starting address
+   // This is only an issue when using GCC and certain optimizations are turned on.
+-  return extract(start, _length, dst, dst!=0 ? ((dst >= (char*)((size_t)-1) - UINT32_MAX) ? (((char*)UINT32_MAX) - dst) : UINT32_MAX) : 0, codepage);
++  return extract(start, _length, dst, dst!=0 ? ((dst >= (char*)((size_t)-1) - UINT32_MAX) ? static_cast<unsigned int>((((char*)UINT32_MAX) - dst)) : UINT32_MAX) : 0, codepage);
+ #else
+   return extract(start, _length, dst, dst!=0 ? 0xffffffff : 0, codepage);
+ #endif
+Index: source/i18n/colldata.cpp
+===================================================================
+--- source/i18n/colldata.cpp	(revision 122103)
++++ source/i18n/colldata.cpp	(working copy)
+@@ -236,9 +236,14 @@
+         int32_t newMax = listMax + STRING_LIST_BUFFER_SIZE;
+ 
+         UnicodeString *newStrings = new UnicodeString[newMax];
++        if (newStrings == NULL) {
++            status = U_MEMORY_ALLOCATION_ERROR;
++            return;
++        }
++        for (int32_t i=0; i<listSize; ++i) {
++            newStrings[i] = strings[i];
++        }
+ 
+-        uprv_memcpy(newStrings, strings, listSize * sizeof(UnicodeString));
+-
+ #ifdef INSTRUMENT_STRING_LIST
+         int32_t _h = listSize / STRING_LIST_BUFFER_SIZE;
+ 
+Index: source/i18n/decNumber.c
+===================================================================
+--- source/i18n/decNumber.c	(revision 122360)
++++ source/i18n/decNumber.c	(working copy)
+@@ -1392,6 +1392,8 @@
+ /* fastpath in decLnOp.  The final division is done to the requested  */
+ /* precision.                                                         */
+ /* ------------------------------------------------------------------ */
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Warray-bounds"
+ U_CAPI decNumber * U_EXPORT2 uprv_decNumberLog10(decNumber *res, const decNumber *rhs,
+                           decContext *set) {
+   uInt status=0, ignore=0;         /* status accumulators  */
+@@ -1527,6 +1529,7 @@
+   #endif
+   return res;
+   } /* decNumberLog10  */
++#pragma clang diagnostic pop
+ 
+ /* ------------------------------------------------------------------ */
+ /* decNumberMax -- compare two Numbers and return the maximum         */
+@@ -2800,6 +2803,8 @@
+ /* result setexp(approx, e div 2)  % fix exponent                     */
+ /* end sqrt                                                           */
+ /* ------------------------------------------------------------------ */
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Warray-bounds"
+ U_CAPI decNumber * U_EXPORT2 uprv_decNumberSquareRoot(decNumber *res, const decNumber *rhs,
+                                 decContext *set) {
+   decContext workset, approxset;   /* work contexts  */
+@@ -3129,6 +3134,7 @@
+   #endif
+   return res;
+   } /* decNumberSquareRoot  */
++#pragma clang diagnostic pop
+ 
+ /* ------------------------------------------------------------------ */
+ /* decNumberSubtract -- subtract two Numbers                          */
+@@ -5584,6 +5590,8 @@
+ /* 5. The static buffers are larger than might be expected to allow   */
+ /*    for calls from decNumberPower.                                  */
+ /* ------------------------------------------------------------------ */
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Warray-bounds"
+ decNumber * decLnOp(decNumber *res, const decNumber *rhs,
+                     decContext *set, uInt *status) {
+   uInt ignore=0;                   /* working status accumulator  */
+@@ -5805,6 +5813,7 @@
+   /* [status is handled by caller]  */
+   return res;
+   } /* decLnOp  */
++#pragma clang diagnostic pop
+ 
+ /* ------------------------------------------------------------------ */
+ /* decQuantizeOp  -- force exponent to requested value                */

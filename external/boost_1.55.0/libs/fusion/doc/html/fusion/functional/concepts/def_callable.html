@@ -1,0 +1,161 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Deferred Callable Object</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="reg_callable.html" title="Regular Callable Object">
+<link rel="next" href="poly.html" title="Polymorphic Function Object">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reg_callable.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="poly.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.functional.concepts.def_callable"></a><a class="link" href="def_callable.html" title="Deferred Callable Object">Deferred Callable
+        Object</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.functional.concepts.def_callable.h0"></a>
+          <span class="phrase"><a name="fusion.functional.concepts.def_callable.description"></a></span><a class="link" href="def_callable.html#fusion.functional.concepts.def_callable.description">Description</a>
+        </h6>
+<p>
+          <a class="link" href="callable.html" title="Callable Object">Callable Object</a>
+          types that work with <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top">Boost.ResultOf</a>
+          to determine the result of a call.
+        </p>
+<h6>
+<a name="fusion.functional.concepts.def_callable.h1"></a>
+          <span class="phrase"><a name="fusion.functional.concepts.def_callable.refinement_of"></a></span><a class="link" href="def_callable.html#fusion.functional.concepts.def_callable.refinement_of">Refinement
+          of</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <a class="link" href="callable.html" title="Callable Object">Callable Object</a>
+            </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+          note Once C++ supports the <code class="literal">decltype</code> keyword, all models
+          of <a class="link" href="callable.html" title="Callable Object">Callable Object</a>
+          will also be models of <a class="link" href="def_callable.html" title="Deferred Callable Object">Deferred
+          Callable Object</a>, because function objects won't need client-side
+          support for <code class="computeroutput"><span class="identifier">result_of</span></code>.
+        </p>
+</div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">F</span></code></span></dt>
+<dd><p>
+                A possibly const qualified Deferred Callable Object type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A1</span> <span class="special">...</span><span class="identifier">AN</span></code></span></dt>
+<dd><p>
+                Argument types
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a1</span> <span class="special">...</span><span class="identifier">aN</span></code></span></dt>
+<dd><p>
+                Objects or references to objects with types <code class="computeroutput"><span class="identifier">A1</span>
+                <span class="special">...</span><span class="identifier">AN</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T1</span> <span class="special">...</span><span class="identifier">TN</span></code></span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">T</span></code>i is <code class="computeroutput"><span class="identifier">A</span></code>i <code class="computeroutput"><span class="special">&amp;</span></code>
+                if <code class="computeroutput"><span class="identifier">a</span></code>i is an LValue,
+                same as <code class="computeroutput"><span class="identifier">A</span></code>i, otherwise
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="fusion.functional.concepts.def_callable.h2"></a>
+          <span class="phrase"><a name="fusion.functional.concepts.def_callable.expression_requirements"></a></span><a class="link" href="def_callable.html#fusion.functional.concepts.def_callable.expression_requirements">Expression
+          requirements</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span></code></a><code class="computeroutput"><span class="special">&lt;</span> <span class="identifier">F</span><span class="special">(</span><span class="identifier">T1</span>
+                    <span class="special">...</span><span class="identifier">TN</span><span class="special">)</span> <span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Result of a call with <code class="computeroutput"><span class="identifier">A1</span>
+                    <span class="special">...</span><span class="identifier">AN</span></code>-typed
+                    arguments
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="fusion.functional.concepts.def_callable.h3"></a>
+          <span class="phrase"><a name="fusion.functional.concepts.def_callable.models"></a></span><a class="link" href="def_callable.html#fusion.functional.concepts.def_callable.models">Models</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="poly.html" title="Polymorphic Function Object">Polymorphic Function
+              Object</a> types
+            </li>
+<li class="listitem">
+              member (function or data) pointer types
+            </li>
+</ul></div>
+<h6>
+<a name="fusion.functional.concepts.def_callable.h4"></a>
+          <span class="phrase"><a name="fusion.functional.concepts.def_callable.examples"></a></span><a class="link" href="def_callable.html#fusion.functional.concepts.def_callable.examples">Examples</a>
+        </h6>
+<pre class="programlisting"><span class="special">&amp;</span> <span class="identifier">a_free_function</span>
+<span class="special">&amp;</span> <span class="identifier">a_class</span><span class="special">::</span><span class="identifier">a_static_member_function</span>
+<span class="special">&amp;</span> <span class="identifier">a_class</span><span class="special">::</span><span class="identifier">a_nonstatic_data_member</span>
+<span class="special">&amp;</span> <span class="identifier">a_class</span><span class="special">::</span><span class="identifier">a_nonstatic_member_function</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;()</span>
+<span class="comment">// using namespace boost;</span>
+<span class="identifier">bind</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(),</span> <span class="identifier">_1</span><span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+<span class="comment">// Note: Boost.Lambda expressions don't work with __boost_result_of__</span>
+<span class="identifier">fusion</span><span class="special">::</span><a class="link" href="../generation/functions/mk_fused_fobj.html" title="make_fused_function_object"><code class="computeroutput"><span class="identifier">make_fused_function_object</span></code></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;())</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reg_callable.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="poly.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

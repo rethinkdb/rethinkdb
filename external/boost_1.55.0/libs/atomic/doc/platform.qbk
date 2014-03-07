@@ -1,0 +1,312 @@
+[/
+ / Copyright (c) 2009 Helge Bahmann
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:template_organization Organization of class template layers]
+
+The implementation uses multiple layers of template classes that
+inherit from the next lower level each and refine or adapt the respective
+underlying class:
+
+* [^boost::atomic<T>] is the topmost-level, providing
+  the external interface. Implementation-wise, it does not add anything
+  (except for hiding copy constructor and assignment operator).
+
+* [^boost::detail::atomic::internal_atomic&<T,S=sizeof(T),I=is_integral_type<T> >]:
+  This layer is mainly responsible for providing the overloaded operators
+  mapping to API member functions (e.g. [^+=] to [^fetch_add]).
+  The defaulted template parameter [^I] allows
+  to expose the correct API functions (via partial template
+  specialization): For non-integral types, it only
+  publishes the various [^exchange] functions
+  as well as load and store, for integral types it
+  additionally exports arithmetic and logic operations.
+  [br]
+  Depending on whether the given type is integral, it
+  inherits from either [^boost::detail::atomic::platform_atomic<T,S=sizeof(T)>]
+  or [^boost::detail::atomic::platform_atomic_integral<T,S=sizeof(T)>].
+  There is however some special-casing: for non-integral types
+  of size 1, 2, 4 or 8, it will coerce the datatype into an integer representation
+  and delegate to [^boost::detail::atomic::platform_atomic_integral<T,S=sizeof(T)>]
+  -- the rationale is that platform implementors only need to provide
+  integer-type operations.
+
+* [^boost::detail::atomic::platform_atomic_integral<T,S=sizeof(T)>]
+  must provide the full set of operations for an integral type T
+  (i.e. [^load], [^store], [^exchange],
+  [^compare_exchange_weak], [^compare_exchange_strong],
+  [^fetch_add], [^fetch_sub], [^fetch_and],
+  [^fetch_or], [^fetch_xor], [^is_lock_free]).
+  The default implementation uses locking to emulate atomic operations, so
+  this is the level at which implementors should provide template specializations
+  to add support for platform-specific atomic operations.
+  [br]
+  The two separate template parameters allow separate specialization
+  on size and type (which, with fixed size, cannot
+  specify more than signedness/unsignedness). The rationale is that
+  most platform-specific atomic operations usually depend only on the
+  operand size, so that common implementations for signed/unsigned
+  types are possible. Signedness allows to properly to choose sign-extending
+  instructions for the [^load] operation, avoiding later
+  conversion. The expectation is that in most implementations this will
+  be a normal assignment in C, possibly accompanied by memory
+  fences, so that the compiler can automatically choose the correct
+  instruction.
+
+* At the lowest level, [^boost::detail::atomic::platform_atomic<T,S=sizeof(T)>]
+  provides the most basic atomic operations ([^load], [^store],
+  [^exchange], [^compare_exchange_weak],
+  [^compare_exchange_strong]) for arbitrarily generic data types.
+  The default implementation uses locking as a fallback mechanism.
+  Implementors generally do not have to specialize at this level
+  (since these will not be used for the common integral type sizes
+  of 1, 2, 4 and 8 bytes), but if s/he can if s/he so wishes to
+  provide truly atomic operations for "odd" data type sizes.
+  Some amount of care must be taken as the "raw" data type
+  passed in from the user through [^boost::atomic<T>]
+  is visible here -- it thus needs to be type-punned or otherwise
+  manipulated byte-by-byte to avoid using overloaded assignment,
+  comparison operators and copy constructors.
+
+[endsect]
+
+
+[section:platform_atomic_implementation Implementing platform-specific atomic operations]
+
+In principle implementors are responsible for providing the
+full range of named member functions of an atomic object
+(i.e. [^load], [^store], [^exchange],
+[^compare_exchange_weak], [^compare_exchange_strong],
+[^fetch_add], [^fetch_sub], [^fetch_and],
+[^fetch_or], [^fetch_xor], [^is_lock_free]).
+These must be implemented as partial template specializations for
+[^boost::detail::atomic::platform_atomic_integral<T,S=sizeof(T)>]:
+
+[c++]
+
+  template<typename T>
+  class platform_atomic_integral<T, 4>
+  {
+  public:
+    explicit platform_atomic_integral(T v) : i(v) {}
+    platform_atomic_integral(void) {}
+
+    T load(memory_order order=memory_order_seq_cst) const volatile
+    {
+      // platform-specific code
+    }
+    void store(T v, memory_order order=memory_order_seq_cst) volatile
+    {
+      // platform-specific code
+    }
+
+  private:
+    volatile T i;
+  };
+
+As noted above, it will usually suffice to specialize on the second
+template argument, indicating the size of the data type in bytes.
+
+[section:automatic_buildup Templates for automatic build-up]
+
+Often only a portion of the required operations can be
+usefully mapped to machine instructions. Several helper template
+classes are provided that can automatically synthesize missing methods to
+complete an implementation.
+
+At the minimum, an implementor must provide the
+[^load], [^store],
+[^compare_exchange_weak] and
+[^is_lock_free] methods:
+
+[c++]
+
+  template<typename T>
+  class my_atomic_32 {
+  public:
+    my_atomic_32() {}
+    my_atomic_32(T initial_value) : value(initial_value) {}
+
+    T load(memory_order order=memory_order_seq_cst) volatile const
+    {
+      // platform-specific code
+    }
+    void store(T new_value, memory_order order=memory_order_seq_cst) volatile
+    {
+      // platform-specific code
+    }
+    bool compare_exchange_weak(T &expected, T desired,
+      memory_order success_order,
+      memory_order_failure_order) volatile
+    {
+      // platform-specific code
+    }
+    bool is_lock_free() const volatile {return true;}
+  protected:
+  // typedef is required for classes inheriting from this
+    typedef T integral_type;
+  private:
+    T value;
+  };
+
+The template [^boost::detail::atomic::build_atomic_from_minimal]
+can then take care of the rest:
+
+[c++]
+
+  template<typename T>
+  class platform_atomic_integral<T, 4>
+    : public boost::detail::atomic::build_atomic_from_minimal<my_atomic_32<T> >
+  {
+  public:
+    typedef build_atomic_from_minimal<my_atomic_32<T> > super;
+
+    explicit platform_atomic_integral(T v) : super(v) {}
+    platform_atomic_integral(void) {}
+  };
+
+There are several helper classes to assist in building "complete"
+atomic implementations from different starting points:
+
+* [^build_atomic_from_minimal] requires
+  * [^load]
+  * [^store]
+  * [^compare_exchange_weak] (4-operand version)
+
+* [^build_atomic_from_exchange] requires
+  * [^load]
+  * [^store]
+  * [^compare_exchange_weak] (4-operand version)
+  * [^compare_exchange_strong] (4-operand version)
+  * [^exchange]
+
+* [^build_atomic_from_add] requires
+  * [^load]
+  * [^store]
+  * [^compare_exchange_weak] (4-operand version)
+  * [^compare_exchange_strong] (4-operand version)
+  * [^exchange]
+  * [^fetch_add]
+
+* [^build_atomic_from_typical] (<I>supported on gcc only</I>) requires
+  * [^load]
+  * [^store]
+  * [^compare_exchange_weak] (4-operand version)
+  * [^compare_exchange_strong] (4-operand version)
+  * [^exchange]
+  * [^fetch_add_var] (protected method)
+  * [^fetch_inc] (protected method)
+  * [^fetch_dec] (protected method)
+
+  This will generate a [^fetch_add] method
+  that calls [^fetch_inc]/[^fetch_dec]
+  when the given parameter is a compile-time constant
+  equal to +1 or -1 respectively, and [^fetch_add_var]
+  in all other cases. This provides a mechanism for
+  optimizing the extremely common case of an atomic
+  variable being used as a counter.
+
+  The prototypes for these methods to be implemented is:
+  [c++]
+
+    template<typename T>
+    class my_atomic {
+    public:
+      T fetch_inc(memory_order order) volatile;
+      T fetch_dec(memory_order order) volatile;
+      T fetch_add_var(T counter, memory_order order) volatile;
+    };
+
+These helper templates are defined in [^boost/atomic/detail/builder.hpp].
+
+[endsect]
+
+[section:automatic_buildup_small Build sub-word-sized atomic data types]
+
+There is one other helper template that can build sub-word-sized
+atomic data types even though the underlying architecture allows
+only word-sized atomic operations:
+
+[c++]
+
+  template<typename T>
+  class platform_atomic_integral<T, 1> :
+    public build_atomic_from_larger_type<my_atomic_32<uint32_t>, T>
+  {
+  public:
+    typedef build_atomic_from_larger_type<my_atomic_32<uint32_t>, T> super;
+
+    explicit platform_atomic_integral(T v) : super(v) {}
+    platform_atomic_integral(void) {}
+  };
+
+The above would create an atomic data type of 1 byte size, and
+use masking and shifts to map it to 32-bit atomic operations.
+The base type must implement [^load], [^store]
+and [^compare_exchange_weak] for this to work.
+
+[endsect]
+
+[section:other_sizes Atomic data types for unusual object sizes]
+
+In unusual circumstances, an implementor may also opt to specialize
+[^public boost::detail::atomic::platform_atomic<T,S=sizeof(T)>]
+to provide support for atomic objects not fitting an integral size.
+If you do that, keep the following things in mind:
+
+* There is no reason to ever do this for object sizes
+  of 1, 2, 4 and 8
+* Only the following methods need to be implemented:
+  * [^load]
+  * [^store]
+  * [^compare_exchange_weak] (4-operand version)
+  * [^compare_exchange_strong] (4-operand version)
+  * [^exchange]
+
+The type of the data to be stored in the atomic
+variable (template parameter [^T])
+is exposed to this class, and the type may have
+overloaded assignment and comparison operators --
+using these overloaded operators however will result
+in an error. The implementor is responsible for
+accessing the objects in a way that does not
+invoke either of these operators (using e.g.
+[^memcpy] or type-casts).
+
+[endsect]
+
+[endsect]
+
+[section:platform_atomic_fences Fences]
+
+Platform implementors need to provide a function performing
+the action required for [funcref boost::atomic_thread_fence atomic_thread_fence]
+(the fallback implementation will just perform an atomic operation
+on an integer object). This is achieved by specializing the
+[^boost::detail::atomic::platform_atomic_thread_fence] template
+function in the following way:
+
+[c++]
+
+  template<>
+  void platform_atomic_thread_fence(memory_order order)
+  {
+    // platform-specific code here
+  }
+
+[endsect]
+
+[section:platform_atomic_puttogether Putting it altogether]
+
+The template specializations should be put into a header file
+in the [^boost/atomic/detail] directory, preferably
+specifying supported compiler and architecture in its name.
+
+The file [^boost/atomic/detail/platform.hpp] must
+subsequently be modified to conditionally include the new
+header.
+
+[endsect]

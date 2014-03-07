@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(12): error in "test": difference between v1{1.111e-010} and v2{1.112e-010} exceeds 0.0008999
+
+*** 1 failure detected in test suite "example"

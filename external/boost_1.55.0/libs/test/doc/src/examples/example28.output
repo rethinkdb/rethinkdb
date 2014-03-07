@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(15): error in "test": check output.is_equal( "i=3" ) failed. Output content: "i=2"
+
+*** 1 failure detected in test suite "example"

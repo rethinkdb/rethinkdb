@@ -1,0 +1,1101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.io_objects" 
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Date Time Formatter/Parser Objects</title>
+  <!-- <using-namespace name="boost"/> -->
+  <using-namespace name="boost::date_time"/>
+  <bridgehead renderas="sect2">Date Time Formatter/Parser Objects</bridgehead>
+
+  <link linkend="io_objects.periods">Periods</link> |
+  <link linkend="io_objects.date_generators">Date Generators</link> |
+  <link linkend="io_objects.special_values">Special Values</link> |
+  <link linkend="io_objects.format_date_parser">Format Date Parser</link>
+
+  <anchor id="io_objects.periods" /> 
+  <bridgehead renderas="sect3">Periods</bridgehead> 
+  <para>The period_formatter and period_parser provide a uniform interface for the input and output of date_periods, time_periods, and in a future release, local_date_time_periods. The user has control over the delimiters, formats of the date/time components, and the form the period takes. The format of the date/time components is controlled via the date_time input and output facets.</para>
+  
+  <bridgehead renderas="sect4">Period Form</bridgehead> 
+  <para>Periods are constructed with open ranged parameters. The first value is the starting point, and is included in the period. The end value is not included but immediately follows the last value: [begin/end). However, a period can be streamed as either an open range or a closed range.</para>
+  <screen>[2003-Jan-01/2003-Dec-31] &lt;-- period holding 365 days
+[2003-Jan-01/2004-Jan-01) &lt;-- period holding 365 days</screen>
+  
+  <bridgehead renderas="sect4">Delimiters</bridgehead> 
+  <para>There are four delimiters. The default values are<simplelist type="vert" columns="1">
+      <member>"\" - separator</member>
+      <member>"[" - start delimiter</member>
+      <member>")" - open range end delimiter</member>
+      <member>"]" - closed range end delimiter</member>
+  </simplelist>A user can provide a custom set of delimiters. Custom delimiters may contain spaces.</para>
+
+  <bridgehead renderas="sect4">Customization</bridgehead> 
+  <para>The period form and delimiters can be set as construction parameters or by means of accessor functions. A custom period parser/formatter can then be used as a construction parameter to a new facet, or can be set in an existing facet via an accessor function.</para>
+
+
+  <bridgehead renderas="sect4">Period Formatter/Parser Reference</bridgehead>
+  The complete class reference can be found here: <classname alt="boost::date_time::period_formatter">Period Formatter Doxygen Reference</classname> and here: <classname alt="boost::date_time::period_parser">Period Parser Doxygen Reference</classname>
+
+  <para>
+    <bridgehead renderas="sect4">Period Formatter Construction</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>period_formatter(...)
+  Parameters:
+    range_display_options
+    char_type*
+    char_type*
+    char_type*
+    char_type*</screen></entry>
+            <entry>NOTE: All five construction parameters have default values so this constructor also doubles as the default constructor. The <code>range_display_options</code> is a public type enum of the <code>period_formatter</code> class. The possible choices are AS_OPEN_RANGE or AS_CLOSED_RANGE. The closed range is the default. A period has three significant points: the begining, the last, and the end. A closed range period takes the form [begin,end), where an open range period takes the form [begin,last]. The four char_type* parameters are: the period separator, the start delimiter, the open range end delimiter, and the closed range end delimiter.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+    <bridgehead renderas="sect4">Period Formatter Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>range_display_options range_option()</screen></entry>
+            <entry>Returns the current setting for the range display (either AS_OPEN_RANGE or AS_CLOSED_RANGE).</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void range_option(...)
+  Parameter:
+    range_display_options</screen></entry>
+            <entry>Sets the option for range display (either AS_OPEN_RANGE or AS_CLOSED_RANGE).</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void delimiter_strings(...)
+  Parameters:
+    string_type
+    string_type
+    string_type
+    string_type</screen></entry>
+            <entry>Set new delimiter strings in the formatter.</entry>
+          </row>
+          <row>
+            <entry><screen>string beg("->| ");
+string sep(" || ");
+string opn(" ->|");
+string clo(" |&lt;-");
+pf.delimiter_strings(beg, sep, 
+                     opn, clo);</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_period_start_delimeter(...)
+  Return Type:
+    OutItrT
+  Parameter:
+    OutItrT</screen></entry>
+            <entry>Puts the start delimiter into the stream at position pointed to by OutItrT parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_period_sepatator(...)
+  Return Type:
+    OutItrT
+  Parameter:
+    OutItrT</screen></entry>
+            <entry>Puts the separator into the stream at position pointed to by OutItrT parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_period_end_delimeter(...)
+  Return Type:
+    OutItrT
+  Parameter:
+    OutItrT</screen></entry>
+            <entry>Puts the end delimiter into the stream at position pointed to by OutItrT parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put_period(...)
+  Parameters:
+    OutItrT
+    ios_base
+    char_type
+    period_type
+    facet_type</screen></entry>
+            <entry>Puts a period into the stream using the set values for delimiters, separator, and range display. The facet parameter is used to put the date (or time) objects of the period.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  <para>
+    <bridgehead renderas="sect4">Period Parser Construction</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>period_parser(...)
+  Parameters:
+    period_range_option
+    char_type*
+    char_type*
+    char_type*
+    char_type*</screen></entry>
+            <entry>NOTE: All five construction parameters have default values so this constructor also doubles as the default constructor. The <code>period_range_option</code> is a public type enum of the <code>period_parser</code> class. The possible choices are AS_OPEN_RANGE or AS_CLOSED_RANGE. The closed range is the default. A period has three significant points: the begining, the last, and the end. A closed range period takes the form [begin,end), where an open range period takes the form [begin,last]. The four char_type* parameters are: the period separator, the start delimiter, the open range end delimiter, and the closed range end delimiter.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>period_parser(period_parser)</screen></entry>
+            <entry>Copy constructor</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+    <bridgehead renderas="sect4">Period Parser Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>period_range_option range_option()</screen></entry>
+            <entry>Returns the current setting for the period range (either AS_OPEN_RANGE or AS_CLOSED_RANGE).</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void range_option(...)
+  Parameter:
+    period_range_option </screen></entry>
+            <entry>Sets the option for period range (either AS_OPEN_RANGE or AS_CLOSED_RANGE).</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void delimiter_strings(...)
+  Parameters:
+    string_type
+    string_type
+    string_type
+    string_type</screen></entry>
+            <entry>Set new delimiter strings in the parser.</entry>
+          </row>
+          <row>
+            <entry><screen>string beg("->| ");
+string sep(" || ");
+string opn(" ->|");
+string clo(" |&lt;-");
+pp.delimiter_strings(beg, sep, 
+                     opn, clo);</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>collection_type delimiter_strings()</screen></entry>
+            <entry>Returns the set of delimiter strings currently held in the parser.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>period_type get_period(...)
+  Parameters:
+    stream_itr_type
+    stream_itr_type
+    ios_base
+    period_type
+    duration_type
+    facet_type</screen></entry>
+<entry>Parses a period from the stream. The iterator parameters point to the begining and end of the stream. The duration_type is relevant to the period type, for example: A <code>date_period</code> would use <code>days</code> as a duration_type. The period will be parsed according to the formats and strings found in the facet parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <para>_____________________________________________________</para>
+
+  <anchor id="io_objects.date_generators" /> 
+  <bridgehead renderas="sect3">Date Generators</bridgehead>
+  <para>The date_generator formatter and parser provide flexibility by allowing the user to use custom "phrase elements". These phrase elements are the "in-between" words in the date_generators. For example, in the date_generator "Second Monday of March", "Second" and "of" are the phrase elements, where "Monday" and "March" are the date elements. Customization of the date elements is done with the facet. The order of the date and phrase elements cannot be changed. When parsing, all elements of the date_generator phrase must parse correctly or an ios_base::failure exception will be thrown.</para>
+
+  <bridgehead renderas="sect4">Customization</bridgehead> 
+  <para>The default "phrase_strings" are:
+    <simplelist type="horiz" columns="9">
+      <member>"first"</member>
+      <member>"second"</member>
+      <member>"third"</member>
+      <member>"fourth"</member>
+      <member>"fifth"</member>
+      <member>"last"</member>
+      <member>"before"</member>
+      <member>"after"</member>
+      <member>"of"</member>
+    </simplelist>
+    A custom set of phrase_strings must maintain this order of occurance (Ex: "1st", "2nd", "3rd", "4th", "5th", "last", "prior", "past", "in").</para>
+  <para> Examples using default phrase_strings and default facet formats for weekday &amp; month: <screen>"first Tue of Mar"</screen>And using custom phrase_strings: <screen>"1st Tue in Mar"</screen>
+  </para>
+  <para>The custom set of phrase elements can be set as construction parameters or through an accessor function.A custom date_generator parser/formatter can then be used as a construction parameter to a new facet, or can be set in an existing facet via an accessor function.</para>
+  <para>IMPORTANT NOTE: Prior to 1.33, partial_date was output as "1 Jan" with a single *or* double digit number for the day. The new behavior is to *always* place a double digit number for the day - "01 Jan".</para>
+
+  <bridgehead renderas="sect4">Date Generator Reference</bridgehead>
+  The complete class references can be found here: <classname alt="boost::date_time::date_generator_formatter">Date Generator Formatter Doxygen Reference</classname> and here: <classname alt="boost::date_time::date_generator_parser">Date Generator Parser Doxygen Reference</classname>
+
+  <para>
+    <bridgehead renderas="sect4">Date Generator Formatter Construction</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>date_generator_formatter()</screen></entry>
+            <entry>Uses the default date generator elements.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_generator_formatter(...)
+  Parameters:
+    string_type first_element
+    string_type second_element
+    string_type third_element
+    string_type fourth_element
+    string_type fifth_element
+    string_type last_element
+    string_type before_element
+    string_type after_element
+    string_type of_element</screen></entry>
+            <entry>Constructs a date_generator_formatter using the given element strings.</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+    <bridgehead renderas="sect4">Date Generator Formatter Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void elements(...)
+  Parameters:
+    collection_type
+    phrase_elements</screen></entry>
+            <entry>Replace the current phrase elements with a collection of new ones. The <code>phrase_elements</code> parameter is an enum that indicates what the first element in the new collection is (defaults to first).</entry>
+          </row>
+          <row>
+            <entry><screen>// col is a collection holding 
+// "final", "prior", "following",
+// and "in"
+typedef date_generator_formatter dgf;                                  
+dgf formatter();
+formatter.elements(col, dgf::last);
+// complete elements in dgf are now: 
+"first", "second", "third", 
+"fourth", "fifth", "final", 
+"prior", "following", and "in"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>put_partial_date(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    partial_date
+    facet_type</screen></entry>
+            <entry>A put function for partial_date. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put a partial_date => "dd Month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_nth_kday(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    nth_kday_type
+    facet_type</screen></entry>
+            <entry>A put function for nth_kday_type. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put an nth_day_of_the_week_in_month => "nth weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_first_kday(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    first_kday_type
+    facet_type</screen></entry>
+            <entry>A put function for first_kday_type. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put a first_day_of_the_week_in_month => "first weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_last_kday(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    last_kday_type
+    facet_type</screen></entry>
+            <entry>A put function for last_kday_type. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put a last_day_of_the_week_in_month => "last weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_kday_before(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    kday_before_type
+    facet_type</screen></entry>
+            <entry>A put function for kday_before_type. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put a first_day_of_the_week_before => "weekday before"</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>put_kday_after(...)
+  Return Type:
+    facet_type::OutItrT
+  Parameters:
+    OutItrT next
+    ios_base
+    char_type fill
+    kday_after_type
+    facet_type</screen></entry>
+            <entry>A put function for kday_after_type. This is a templated function that takes a facet_type as a parameter.</entry>
+          </row>
+          <row>
+            <entry>Put a first_day_of_the_week_after => "weekday after".</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  <para>
+    <bridgehead renderas="sect4">Date Generator Parser Construction</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>date_generator_parser()</screen></entry>
+            <entry>Uses the default date generator elements.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_generator_parser(...)
+  Parameter:
+    date_generator_parser</screen></entry>
+            <entry>Copy Constructor</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_generator_parser(...)
+  Parameters:
+    string_type first_element
+    string_type second_element
+    string_type third_element
+    string_type fourth_element
+    string_type fifth_element
+    string_type last_element
+    string_type before_element
+    string_type after_element
+    string_type of_element</screen></entry>
+            <entry>Constructs a date_generator_parser using the given element strings.</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+    <bridgehead renderas="sect4">Date Generator Parser Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void element_strings(...)
+  Parameter:
+    collection_type</screen></entry>
+            <entry>Replace the set of date generator element string with a new set.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void element_strings(...)
+  Parameters:
+    string_type first
+    string_type second
+    string_type third
+    string_type fourth
+    string_type fifth
+    string_type last
+    string_type before
+    string_type after
+    string_type of</screen></entry>
+            <entry>Replace the set of date generator elements with new values.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_partial_date_type(...)
+  Return Type:
+    facet_type::partial_date_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses a partial_date => "dd Month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_nth_kday_type(...)
+  Return Type:
+    facet_type::nth_kday_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses an nth_day_of_the_week_in_month => "nth weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_first_kday_type(...)
+  Return Type:
+    facet_type::firat_kday_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses a first_day_of_the_week_in_month => "first weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_last_kday_type(...)
+  Return Type:
+    facet_type::last_kday_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses a last_day_of_the_week_in_month => "last weekday of month".</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_kday_before_type(...)
+  Return Type:
+    facet_type::kday_before_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses a first_day_of_the_week_before => "weekday before"</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>get_kday_after_type(...)
+  Return Type:
+    facet_type::kday_after_type
+  Parameters:
+    stream_itr_type next
+    stream_itr_type str_end
+    ios_base
+    facet_type</screen></entry>
+            <entry>A templated function that parses a date_generator from the stream.</entry>
+          </row>
+          <row>
+            <entry>Parses a first_day_of_the_week_after => "weekday after".</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <para>_____________________________________________________</para>
+
+  <anchor id="io_objects.special_values" /> 
+  <bridgehead renderas="sect3">Special Values</bridgehead>
+  <para>The date_time library uses five special_values. They are:
+    <simplelist type="horiz" columns="5">
+      <member>not_a_date_time</member>
+      <member>neg_infin</member>
+      <member>pos_infin</member>
+      <member>min_date_time</member>
+      <member>max_date_time</member>
+    </simplelist>
+  </para>
+  <para>The default set of strings used to represent these types are: "not-a-date-time", "-infinity", "+infinity", "minimum-date-time", "maximum-date-time". When output, the min_date-time and max_date_time appear as normal date/time representations: "1400-Jan-01" and "9999-Dec-31" repectively.</para>
+
+  <bridgehead renderas="sect4">Customization</bridgehead> 
+  <para>The special values parser/formatter allows the user to set custom strings for these special values. These strings can be set as construction parameters to a new facet, or can be set in an existing facet via an accessor function.</para>
+  
+  <bridgehead renderas="sect4">Special Values Formatter/Parser Reference</bridgehead>
+  The complete class references can be found here: <classname alt="boost::date_time::special_values_formatter">Special Values Formatter Doxygen Reference</classname> and here: <classname alt="boost::date_time::special_values_parser">Special Values Parser Doxygen Reference</classname>
+
+  <para>
+    <bridgehead renderas="sect4">Special Values Formatter Constructor</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>special_values_formatter()</screen></entry>
+            <entry>Constructor uses defaults for special value strings.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>special_values_formatter(...)
+  Parameters:
+    collection_type::iterator
+    collection_type::iterator</screen></entry>
+            <entry>Constructs using values in collection. NOTE: Only the first three strings of the collection will be used. Strings for minimum_date_time and maximum_date_time are ignored as those special values are output as normal dates/times.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>special_values_formatter(...)
+  Parameters:
+    char_type*
+    char_type*</screen></entry>
+            <entry>Constructs special values formatter from an array of strings.</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <para>
+    <bridgehead renderas="sect4">Special Values Formatter Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put_special(...)
+  Parameters:
+    OutItrT next
+    special_values value</screen></entry>
+            <entry>Puts the given special value into the stream.</entry>
+          </row>
+          <row>
+            <entry><screen>date d1(not_a_date_time);
+date d2(minimum_date_time);
+special_values_formatter formatter;
+formatter.put_special(itr, d1); 
+// Puts: "not-a-date-time"
+formatter.put_special(itr, d2); 
+// Puts: "1400-Jan-01"</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <para>
+    <bridgehead renderas="sect4">Special Values Parser Constructor</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>special_values_parser()</screen></entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>special_values_parser(...)
+  Parameters:
+    collection_type::iterator
+    collection_type::iterator</screen></entry>
+            <entry>Constructs a special values parser using the strings in the collection.</entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>special_values_parser(...)
+  Parameter:
+    scpecial_values_parser</screen></entry>
+            <entry>Copy constructor.</entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>special_values_parser(...)
+  Parameters:
+    string_type nadt_str
+    string_type neg_inf_str
+    string_type pos_inf_str
+    string_type min_dt_str
+    string_type max_dt_str</screen></entry>
+            <entry>Constructs a special values parser using the supplied strings.</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <para>
+    <bridgehead renderas="sect4">Special Values Parser Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void sv_strings(...)
+  Parameters:
+    string_type nadt_str
+    string_type neg_inf_str
+    string_type pos_inf_str
+    string_type min_dt_str
+    string_type max_dt_str</screen></entry>
+            <entry>Replace the set of special value strings with the given ones.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>bool match(...)
+  Parameters:
+    stream_itr_type beg
+    stream_itr_type end
+    match_results</screen></entry>
+            <entry>Returns true if parse was successful. Upon a successful parse, <code>mr.current_match</code> will be set an int values corresponding to the equivalent special_value.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "maximum_date_time"
+typedef special_values_parser svp;
+svp parser;
+svp::match_results mr;
+if(parser.match(itr, str_end, mr)) {
+  d = date(static_cast&lt;special_values>(
+           mr.match_results))
+} else {
+  // error, failed parse
+}
+// d == "9999-Dec-31"</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <para>_____________________________________________________</para>
+
+  <anchor id="io_objects.format_date_parser" /> 
+  <bridgehead renderas="sect3">Format Date Parser</bridgehead>
+  <para>The format date parser is the object that holds the strings for months and weekday names, as well as their abbreviations. Custom sets of strings can be set at construction time, or, the strings in an existing format_date_parser can be replaced through accessor functions. Both the constructor and the accessor functions take a vector of strings as their arguments.</para>
+  
+  <bridgehead renderas="sect4">Format Date Parser Reference</bridgehead>
+  The complete class reference can be found here: <classname alt="boost::date_time::format_date_parser">Doxygen Reference</classname>
+
+  <para>
+    <bridgehead renderas="sect4">Format Date Parser Constructor</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>format_date_parser(...)
+                Parameters:
+                string_type format
+                std::locale</screen></entry>
+            <entry>Creates a parser that uses the given format for parsing dates (in those functions where there is no format parameter). The names and abbreviations used are extracted from the given locale.</entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>format_date_parser(...)
+  Parameters:
+    string_type format
+    input_collection_type
+    input_collection_type
+    input_collection_type
+    input_collection_type</screen></entry>
+            <entry>Creates a parser from using the given components. The input_collection_type parameters are for: short month names, long month names, short weekday names, and long weekday names (in that order). These collections must contain values for every month and every weekday (begining with January and Sunday).</entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>format_date_parser(...)
+  Parameters:
+    format_date_parser</screen></entry>
+            <entry>Copy Constructor</entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <para>
+    <bridgehead renderas="sect4">Format Date Parser Accessors</bridgehead>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>string_type format()</screen></entry>
+            <entry>Returns the format that will be used when parsing dates in those functions where there is no format parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void format(string_type)</screen></entry>
+            <entry>Sets the format that will be used when parsing dates in those functions where there is no format parameter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_month_names(...)
+  Parameter:
+    input_collection_type names</screen></entry>
+            <entry>Replace the short month names used by the parser. The collection must contain values for each month, starting with January.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_month_names(...)
+  Parameter:
+    input_collection_type names</screen></entry>
+            <entry>Replace the long month names used by the parser. The collection must contain values for each month, starting with January.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_weekday_names(...)
+  Parameter:
+    input_collection_type names</screen></entry>
+            <entry>Replace the short weekday names used by the parser. The collection must contain values for each weekday, starting with Sunday.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_weekday_names(...)
+  Parameter:
+    input_collection_type names</screen></entry>
+            <entry>Replace the long weekday names used by the parser. The collection must contain values for each weekday, starting with Sunday.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>date_type parse_date(...)
+  Parameters:
+    string_type input
+    string_type format 
+    special_values_parser</screen></entry>
+            <entry>Parse a date from the given input using the given format.</entry>
+          </row>
+          <row>
+            <entry><screen>string inp("2005-Apr-15");
+string format("%Y-%b-%d");
+date d;
+d = parser.parse_date(inp, 
+                      format,
+                      svp);
+// d == 2005-Apr-15</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>date_type parse_date(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end
+    special_values_parser</screen></entry>
+            <entry>Parse a date from stream using the parser's format.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>date_type parse_date(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end
+    string_type format
+    special_values_parser</screen></entry>
+            <entry>Parse a date from stream using the given format.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "2005-04-15"
+string format("%Y-%m-%d");
+date d;
+d = parser.parse_date(itr, 
+                      str_end, 
+                      format,
+                      svp);
+// d == 2005-Apr-15</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>month_type parse_month(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end
+    string_type format</screen></entry>
+            <entry>Parses a month from stream using given format. Throws bad_month if unable to parse.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "March"
+string format("%B");
+greg_month m;
+m = parser.parse_month(itr, 
+                       str_end, 
+                       format);
+// m == March</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>day_type parse_day_of_month(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end</screen></entry>
+            <entry>Parses a day_of_month from stream. The day must appear as a two digit number (01-31), or a bad_day_of_month will be thrown.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "01"
+greg_day d;
+d = parser.parse_day_of_month(itr, 
+                       str_end);
+// d == 1st</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>day_type parse_var_day_of_month(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end</screen></entry>
+            <entry>Parses a day_of_month from stream. The day must appear as a one or two digit number (1-31), or a bad_day_of_month will be thrown.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "1"
+greg_day d;
+d = parser.parse_var_day_of_month(itr, 
+                       str_end);
+// d == 1st</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>day_of_week_type parse_weekday(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end
+    string_type format</screen></entry>
+            <entry>Parse a weekday from stream according to the given format. Throws a bad_weekday if unable to parse.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "Tue"
+string format("%a");
+greg_weekday wd;
+wd = parser.parse_weekday(itr, 
+                          str_end, 
+                          format);
+// wd == Tuesday</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>year_type parse_year(...)
+  Parameters:
+    istreambuf_iterator input
+    istreambuf_iterator str_end
+    string_type format</screen></entry>
+            <entry>Parse a year from stream according to given format. Throws bad year if unable to parse.</entry>
+          </row>
+          <row>
+            <entry><screen>// stream holds "98"
+string format("%y");
+greg_year y;
+y = parser.parse_year(itr, 
+                      str_end, 
+                      format);
+// y == 1998</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+</section>

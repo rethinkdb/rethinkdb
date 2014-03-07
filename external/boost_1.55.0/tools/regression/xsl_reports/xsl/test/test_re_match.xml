@@ -1,0 +1,57 @@
+<!--
+
+Copyright MetaCommunications, Inc. 2003-2005.
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+-->
+
+<root>
+
+<test pattern="" text="" result="true"/>
+<test pattern="pattern" text="pattern" result="true"/>
+<test pattern="" text="pattern" result="false"/>
+<test pattern="pattern" text="" result="false"/>
+
+<test pattern="*" text="" result="true"/>
+<test pattern="*" text="pattern" result="true"/>
+
+<test pattern="*pattern*" text="" result="false"/>
+<test pattern="*pattern*" text="__pattern__" result="true"/>
+<test pattern="*pattern*" text="pattern" result="true"/>
+<test pattern="*pattern*" text="patter" result="false"/>
+<test pattern="*pattern*" text="patte__" result="false"/>
+<test pattern="*pattern*" text="attern" result="false"/>
+<test pattern="*pattern*" text="__ttern" result="false"/>
+
+<test pattern="*pattern" text="" result="false"/>
+<test pattern="*pattern" text="__pattern" result="true"/>
+<test pattern="*pattern" text="pattern" result="true"/>
+<test pattern="*pattern" text="pattern__" result="false"/>
+<test pattern="*pattern" text="patter" result="false"/>
+<test pattern="*pattern" text="patte__" result="false"/>
+<test pattern="*pattern" text="attern" result="false"/>
+<test pattern="*pattern" text="__ttern" result="false"/>
+
+<test pattern="pattern*" text="" result="false"/>
+<test pattern="pattern*" text="pattern__" result="true"/>
+<test pattern="pattern*" text="pattern" result="true"/>
+<test pattern="pattern*" text="patter" result="false"/>
+<test pattern="pattern*" text="__pattern" result="false"/>
+<test pattern="pattern*" text="attern" result="false"/>
+<test pattern="pattern*" text="patter_" result="false"/>
+<test pattern="pattern*" text="patte__" result="false"/>
+
+<test pattern="patt*ern" text="" result="false"/>
+<test pattern="patt*ern" text="patt__ern" result="true"/>
+<test pattern="patt*ern" text="pattern" result="true"/>
+<test pattern="patter*n" text="patter__n" result="true"/>
+<test pattern="p*attern" text="pttern" result="false"/>
+<test pattern="p*attern" text="pattern" result="true"/>
+<test pattern="patter*n" text="patter" result="false"/>
+<test pattern="p*attern" text="attern" result="false"/>
+<test pattern="p*attern" text="p_ttern" result="false"/>
+
+</root>

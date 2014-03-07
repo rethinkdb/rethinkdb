@@ -1,0 +1,31 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:IoControlCommand I/O control command requirements]
+
+In the table below, `X` denotes an I/O control command class, `a` denotes a
+value of `X`, and `u` denotes an identifier.
+
+[table IoControlCommand requirements
+  [[expression] [type] [assertion/note\npre/post-conditions]]
+  [
+    [`a.name();`]
+    [`int`]
+    [
+      Returns a value suitable for passing as the /request/ argument to
+      __POSIX__ __ioctl__ (or equivalent).
+    ]
+  ]
+  [
+    [`a.data();`]
+    [a pointer, convertible to `void*`]
+    [
+    ]
+  ]
+]
+
+[endsect]

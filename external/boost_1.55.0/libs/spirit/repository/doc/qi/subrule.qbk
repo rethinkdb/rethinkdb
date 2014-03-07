@@ -1,0 +1,240 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2009 Francois Barel
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:subrule Qi subrules]
+
+[heading Description]
+
+The __qi__ `subrule` is a component allowing to create a named parser, and
+to refer to it by name -- much like rules and grammars. It is in fact a fully
+static version of the rule.
+
+The strength of subrules is performance. Replacing some rules with subrules
+can make a parser slightly faster (see
+[link spirit_repository.qi_components.nonterminal.subrule.performance Performance]
+below for measurements). The reason is that subrules allow aggressive inlining
+by the C++ compiler, whereas the implementation of rules is based on a virtual
+function call which, depending on the compiler, can have some run-time overhead
+and stop inlining.
+
+The weaknesses of subrules are:
+
+* subrules can only be defined and used within the same parser expression. A
+  subrule cannot be defined at one location, and then used in another location.
+* subrules put a massive strain on the C++ compiler. They increase compile
+  times and memory usage during compilation, and also increase the risk of
+  hitting compiler limits and/or bugs.
+
+[import ../../example/qi/calc1_sr.cpp]
+
+[calc1_sr_def]
+
+The example above can be found here: [@../../example/qi/calc1_sr.cpp]
+
+As shown in this code snippet (an extract from the calc1_sr example),
+subrules can be freely mixed with rules and grammars. Here, a group of
+3 subrules (`expression`, `term`, `factor`) is assigned to a rule (named
+`entry`). This means that parts of a parser can use subrules (typically
+the innermost, most performance-critical parts), whereas the rest can use
+rules and grammars.
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/nonterminal/subrule.hpp>
+    #include <boost/spirit/repository/include/qi_subrule.hpp>
+
+[heading Synopsis (declaration)]
+
+    subrule<ID, A1, A2> sr(name);
+
+[heading Parameters (declaration)]
+
+[table
+    [[Parameter]            [Description]]
+    [[`ID`]                 [Required numeric argument. Gives the subrule
+                             a unique 'identification tag'.]]
+    [[`A1`, `A2`]           [Optional types, can be specified in any order.
+                             Can be one of 1. signature, 2. locals
+                             (see rules reference for more information on
+                             those parameters).
+
+                             Note that the skipper type need not be specified
+                             in the parameters, unlike with grammars and rules.
+                             Subrules will automatically use the skipper type
+                             which is in effect when they are invoked.]]
+    [[`name`]               [Optional string. Gives the subrule a name,
+                             useful for debugging and error handling.]]
+]
+
+[heading Synopsis (usage)]
+
+Subrules are defined and used within groups, typically (and by convention)
+enclosed inside parentheses.
+
+    // Group containing N subrules
+    (
+        sr1 = expr1
+      , sr2 = expr2
+      , ... // Any number of subrules
+    }
+
+The IDs of all subrules defined within the same group must be different. It is
+an error to define several subrules with the same ID (or to define the same
+subrule multiple times) in the same group.
+
+    // Auto-subrules and inherited attributes
+    (
+        srA %= exprA >> srB >> srC(c1, c2, ...) // Arguments to subrule srC
+      , srB %= exprB
+      , srC  = exprC
+      , ...
+    )(a1, a2, ...)         // Arguments to group, i.e. to start subrule srA
+
+[heading Parameters (usage)]
+
+[table
+    [[Parameter]            [Description]]
+    [[`sr1`, `sr2`]         [Subrules with different IDs.]]
+    [[`expr1`, `expr2`]     [Parser expressions. Can include `sr1` and `sr2`,
+                             as well as any other valid parser expressions.]]
+    [[`srA`]                [Subrule with a synthesized attribute and inherited
+                             attributes.]]
+    [[`srB`]                [Subrule with a synthesized attribute.]]
+    [[`srC`]                [Subrule with inherited attributes.]]
+    [[`exprA`, `exprB`, `exprC`]
+                            [Parser expressions.]]
+    [[`a1`, `a2`]           [Arguments passed to the subrule group. They are
+                             passed as inherited attributes to the group's
+                             start subrule, `srA`.]]
+    [[`c1`, `c2`]           [Arguments passed as inherited attributes to
+                             subrule `srC`.]]
+]
+
+[heading Groups]
+
+A subrule group (a set of subrule definitions) is a parser, which can be
+used anywhere in a parser expression (in assignments to rules, as well as
+directly in arguments to functions such as `parse`).
+In a group, parsing proceeds from the start subrule, which is the first
+(topmost) subrule defined in that group. In the two groups in the synopsis
+above, `sr1` and `srA` are the start subrules respectively -- for example
+when the first subrule group is called forth, the `sr1` subrule is called.
+
+A subrule can only be used in a group which defines it. Groups can be viewed
+as scopes: a definition of a subrule is limited to its enclosing group.
+
+    rule<char const*> r1, r2, r3;
+    subrule<1> sr1;
+    subrule<2> sr2;
+
+    r1 =
+            ( sr1 = 'a' >> int_ )       // First group in r1.
+        >>  ( sr2 = +sr1 )              // Second group in r1.
+        //           ^^^
+        // DOES NOT COMPILE: sr1 is not defined in this
+        // second group, it cannot be used here (its
+        // previous definition is out of scope).
+    ;
+
+    r2 =
+            ( sr1 = 'a' >> int_ )       // Only group in r2.
+        >>  sr1
+        //  ^^^
+        // DOES NOT COMPILE: not in a subrule group,
+        // sr1 cannot be used here (here too, its
+        // previous definition is out of scope).
+    ;
+
+    r3 =
+            ( sr1 = 'x' >> double_ )    // Another group. The same subrule `sr1`
+                                        // can have another, independent
+                                        // definition in this group.
+    ;
+
+[heading Attributes]
+
+A subrule has the same behavior as a rule with respect to attributes. In
+particular:
+
+* the type of its synthesized attribute is the one specified in the
+  subrule's signature, if any. Otherwise it is `unused_type`.
+* the types of its inherited attributes are the ones specified in the
+  subrule's signature, if any. Otherwise the subrule has no inherited
+  attributes.
+* an auto-subrule can be defined by assigning it with the `%=` syntax.
+  In this case, the RHS parser's attribute is automatically propagated
+  to the subrule's synthesized attribute.
+* the Phoenix placeholders `_val`, `_r1`, `_r2`, ... are available to
+  refer to the subrule's synthesized and inherited attributes, if present.
+
+[heading Locals]
+
+A subrule has the same behavior as a rule with respect to locals. In
+particular, the Phoenix placeholders `_a`, `_b`, ... are available to
+refer to the subrule's locals, if present.
+
+[heading Example]
+
+[import ../../example/qi/mini_xml2_sr.cpp]
+
+Some includes:
+
+[mini_xml2_sr_includes]
+
+Some using declarations:
+
+[mini_xml2_sr_using]
+
+A grammar containing only one rule, defined with a group of 5 subrules:
+
+[mini_xml2_sr_grammar]
+
+The definitions of the `mini_xml` and `mini_xml_node` data structures
+are not shown here. The full example above can be found here:
+[@../../example/qi/mini_xml2_sr.cpp]
+
+[heading Performance]
+
+This table compares run-time and compile-time performance when converting
+examples to subrules, with various compilers.
+
+[table Subrules performance
+
+[[Example] [Compiler]
+    [Speed (run-time)] [Time (compile-time)] [Memory (compile-time)]]
+
+[[calc1_sr]      [gcc 4.4.1]                  [ +6%] [ n/a] [ n/a]]
+[[calc1_sr]      [Visual C++ 2008 (VC9)]      [ +5%] [ n/a] [ n/a]]
+[[mini_xml2_sr]  [gcc 3.4.6]                  [ -1%] [+54%] [+32%]]
+[[mini_xml2_sr]  [gcc 4.1.2]                  [ +5%] [+58%] [+25%]]
+[[mini_xml2_sr]  [gcc 4.4.1]                  [ +8%] [+20%] [+14%]]
+[[mini_xml2_sr]  [Visual C++ 2005 (VC8) SP1]  [ +1%] [+33%] [+27%]]
+[[mini_xml2_sr]  [Visual C++ 2008 (VC9)]      [ +9%] [+52%] [+40%]]
+
+]
+
+The columns are:
+
+* *Speed (run-time)*: speed-up of the parser resulting from the use of
+  subrules (higher is better).
+* *Time (compile-time)*: increase in compile time (lower is better).
+* *Memory (compile-time)*: increase in compiler memory usage (lower is better).
+
+[heading Notes]
+
+Subrules push the C++ compiler hard. A group of subrules is a single C++
+expression. Current C++ compilers cannot handle very complex expressions very
+well. One restricting factor is the typical compiler's limit on template
+recursion depth. Some, but not all, compilers allow this limit to be
+configured.
+
+g++'s maximum can be set using a compiler flag: `-ftemplate-depth`. Set this
+appropriately if you use relatively complex subrules.
+
+[endsect]

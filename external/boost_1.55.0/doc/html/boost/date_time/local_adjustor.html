@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template local_adjustor</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp" title="Header &lt;boost/date_time/local_time_adjustor.hpp&gt;">
+<link rel="prev" href="static_local_time_adjustor.html" title="Class template static_local_time_adjustor">
+<link rel="next" href="us_dst_trait.html" title="Struct template us_dst_trait">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="static_local_time_adjustor.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="us_dst_trait.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.local_adjustor"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template local_adjustor</span></h2>
+<p>boost::date_time::local_adjustor &#8212; Template that simplifies the creation of local time calculator. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp" title="Header &lt;boost/date_time/local_time_adjustor.hpp&gt;">boost/date_time/local_time_adjustor.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_type<span class="special">,</span> <span class="keyword">short</span> utc_offset<span class="special">,</span> <span class="keyword">typename</span> dst_rule<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="local_adjustor.html" title="Class template local_adjustor">local_adjustor</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">time_duration_type</span>                                                                       <a name="boost.date_time.local_adjustor.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span>                                                                                <a name="boost.date_time.local_adjustor.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <a class="link" href="static_local_time_adjustor.html" title="Class template static_local_time_adjustor">static_local_time_adjustor</a><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">dst_rule</span><span class="special">,</span> <a class="link" href="utc_adjustment.html" title="Class template utc_adjustment">utc_adjustment</a><span class="special">&lt;</span> <span class="identifier">time_duration_type</span><span class="special">,</span> <span class="identifier">utc_offset</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="boost.date_time.local_adjustor.dst_adjustor"></a><span class="identifier">dst_adjustor</span><span class="special">;</span>      
+
+  <span class="comment">// <a class="link" href="local_adjustor.html#idp51404008-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">time_type</span> <a class="link" href="local_adjustor.html#idp51404216-bb"><span class="identifier">utc_to_local</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_type</span> 
+  <a class="link" href="local_adjustor.html#idp19758360-bb"><span class="identifier">local_to_utc</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">dst_flags</span> <span class="special">=</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">calculate</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp87988456"></a><h2>Description</h2>
+<p>Use this template to create the timezone to utc convertors as required.</p>
+<p>This class will also work for other regions that don't use dst and have a utc offset which is an integral number of hours.</p>
+<p><span class="bold"><strong>Template Parameters</strong></span> -time_type <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> Time class to use -utc_offset <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> Number hours local time is adjust from utc -use_dst <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> true (default) if region uses dst, false otherwise For example: </p>
+<pre class="programlisting"><span class="special">*</span>  <span class="comment">//eastern timezone is utc-5</span>
+<span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">local_adjustor</span><span class="special">&lt;</span><span class="identifier">ptime</span><span class="special">,</span> <span class="special">-</span><span class="number">5</span><span class="special">,</span> <span class="identifier">us_dst</span><span class="special">&gt;</span> <span class="identifier">us_eastern</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">local_adjustor</span><span class="special">&lt;</span><span class="identifier">ptime</span><span class="special">,</span> <span class="special">-</span><span class="number">6</span><span class="special">,</span> <span class="identifier">us_dst</span><span class="special">&gt;</span> <span class="identifier">us_central</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">local_adjustor</span><span class="special">&lt;</span><span class="identifier">ptime</span><span class="special">,</span> <span class="special">-</span><span class="number">7</span><span class="special">,</span> <span class="identifier">us_dst</span><span class="special">&gt;</span> <span class="identifier">us_mountain</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">local_adjustor</span><span class="special">&lt;</span><span class="identifier">ptime</span><span class="special">,</span> <span class="special">-</span><span class="number">8</span><span class="special">,</span> <span class="identifier">us_dst</span><span class="special">&gt;</span> <span class="identifier">us_pacific</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">local_adjustor</span><span class="special">&lt;</span><span class="identifier">ptime</span><span class="special">,</span> <span class="special">-</span><span class="number">7</span><span class="special">,</span> <span class="identifier">no_dst</span><span class="special">&gt;</span> <span class="identifier">us_arizona</span><span class="special">;</span>
+</pre>
+<p> </p>
+<div class="refsect2">
+<a name="idp88011208"></a><h3>
+<a name="idp51404008-bb"></a><code class="computeroutput">local_adjustor</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_type</span> <a name="idp51404216-bb"></a><span class="identifier">utc_to_local</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span></pre>Convert a utc time to local time. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_type</span> 
+<a name="idp19758360-bb"></a><span class="identifier">local_to_utc</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> 
+             <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">dst_flags</span> dst <span class="special">=</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">calculate</span><span class="special">)</span><span class="special">;</span></pre>Convert a local time to utc. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="static_local_time_adjustor.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="us_dst_trait.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

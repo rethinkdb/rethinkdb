@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Tracing Facility</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Tracing Facility</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgements.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>If you ever had the need to debug a macro expansion you had to discover, that 
+  your tools provide only little or no support for this task. For this reason 
+  the <i>Wave</i> library has a tracing facility, which allows to get selectively 
+  some information about the expansion of a certain macro or several macros. </p>
+<p>The tracing of macro expansions generates a possibly huge amount of information, 
+  so it is recommended, that you explicitely enable/disable the tracing for the 
+  macro in question only. This may be done with the help of a special, <tt>Wave</tt> 
+  specific #pragma:</p>
+<pre><span class="preprocessor">    #pragma</span> wave trace(enable)    <span class="comment">// enable the tracing</span>
+    <span class="comment">// the macro expansions here will be traced</span>
+    <span class="comment">// ...</span>
+<span class="preprocessor">    #pragma</span> wave trace(disable)   <span class="comment">// disable the tracing</span></pre>
+<p>In C99 mode or when specifying the <tt>--variadics</tt> command line option 
+  you may additionally use the <tt>operator&nbsp;_Pragma()</tt> variant to enable/disable 
+  the tracing output:</p>
+<pre><span class="preprocessor">    #define</span> CONCAT(x, y) \
+        <span class="preprocessor">_Pragma</span>(<span class="string">&quot;wave trace(enable)&quot;</span>) \
+        x \
+        <span class="preprocessor">_Pragma</span>(<span class="string">&quot;wave trace(disable)&quot;</span>) \
+        <span class="keyword">##</span> y</pre>
+<p>This way you have the possibility to enable the tracing during the expansion 
+  of a part of a macro only. In the sample shown there is traced the expansion 
+  of the macro argument <tt>'x'</tt> only. Note, that the <tt>operator _Pragma()</tt> 
+  directives expand to nothing inside the macro expansion result.</p>
+<p>To see, what the <tt>Wave</tt> driver generates while expanding a simple macro, 
+  let's have a look at the tracing output for the following example:</p>
+<pre ><span class="comment">    // test.cpp</span>
+<span class="preprocessor">    #define</span> X(x)          x<br><span class="preprocessor">    #define</span> Y()           2<br><span class="preprocessor">    #define</span> CONCAT_(x, y) x <span class="keyword">##</span> y
+<span class="preprocessor">    #define</span> CONCAT(x, y)  CONCAT_(x, y)
+<span class="preprocessor">    #pragma</span> wave trace(enable)
+<span class="comment">    // this macro expansion is to be traced</span>
+    CONCAT(X(1), Y())     <span class="comment">// should expand to 12</span>
+<span class="preprocessor">    #pragma</span> wave trace(disable)</pre>
+<p>When preprocessed with <tt>'wave -t test.trace test.cpp'</tt> the <tt>Wave</tt> 
+  driver generates a file <tt>test.trace</tt>, which contains (without the line 
+  numbers in front of the lines):</p>
+<pre>  1: test.cpp:8:1: CONCAT(X(1), Y())
+  2:   test.cpp:5:9: see macro definition: CONCAT(x, y)
+  3:   invoked with
+  4:   [
+  5:     x = X(1)
+  6:     y = Y()
+  7:   ]
+  8:   [
+  9:     test.cpp:2:9: see macro definition: X(x)
+ 10:     invoked with
+ 11:     [
+ 12:       x = 1
+ 13:     ]
+ 14:     [
+ 15:       1
+ 16:       rescanning
+ 17:       [
+ 18:         1
+ 19:       ]
+ 20:     ]
+ 21:     test.cpp:3:9: see macro definition: Y()
+ 22:     [
+ 23:       2
+ 24:       rescanning
+ 25:       [
+ 26:         2
+ 27:       ]
+ 28:     ]
+ 29:     CONCAT_(1, 2)
+ 30:     rescanning
+ 31:     [
+ 32:       test.cpp:4:9: see macro definition: CONCAT_(x, y)
+ 33:       invoked with
+ 34:       [
+ 35:         x = 1
+ 36:         y = 2
+ 37:       ]
+ 38:       [
+ 39:         12
+ 40:         rescanning
+ 41:         [
+ 42:           12
+ 43:         ]
+ 44:       ]
+ 45:       12
+ 46:     ]
+ 47:   ]
+</pre>
+<p>The generated trace output is very verbose, but allows to follow every step 
+  of the actual macro expansion process. The first line in this tracing example 
+  contains the reference to the position, from where the macro expansion was initiated. 
+  Additionally the following information is contained for every single macro expansion:</p>
+<ul>
+  <li>The reference to the position (line and column numbers), where the macro to expand was defined first 
+    (see lines 2, 9, 21 and 32).</li>
+  <li>The real parameters supplied for this macro expansion (see lines 3, 10 and 
+    33), this information is traced inside the <tt>invoked with</tt> block, where 
+    the corresponding formal and actual parameters are listed.</li>
+  <li>The expansion of the given arguments (if any and if these are defined as 
+    macros). This repeats the full tracing information for the argument macro 
+    expansion, only indended by one level. Note though, that the macro expansion 
+    of the actual arguments is traced, regardless of the fact, whether this argument 
+    is really to be inserted into the replacement list after its expansion 
+    or as it was initially supplied (see C++ Standard [16.3.1.1]: &quot;A parameter 
+    in the replacement list, unless preceded by a <tt>#</tt> or <tt>##</tt> preprocessing 
+    token or followed by a <tt>##</tt> preprocessing token, is replaced by the 
+    corresponding argument after all macros contained therein have been expanded&quot; 
+    <a href="references.html#iso_cpp">[1]</a>). </li>
+  <li>The result of the argument substitution (see lines 15, 23, 29 and 39), i.e. 
+    the substituted replacement list.</li>
+  <li>The rescanning process, which again includes the full subsequent macro expansion 
+    process of all found macros (see C++ Standard [16.3.4.1]: &quot;After all 
+    parameters in the replacement list have been substituted, the resulting preprocessing 
+    token sequence is rescanned with all subsequent preprocessing tokens of the 
+    source file for more macro names to replace.&quot; <a href="references.html#iso_cpp">[1]</a>).</li>
+  <li>The result of the actual macro expansion (this is the last line inside the 
+    corresponding rescanning block - see lines 18, 26, 42 and 45).</li>
+</ul>
+<p>Every found macro to expand will add an additional indentation level inside 
+  the trace output.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgements.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Tuesday, March 21, 2006  9:25<!-- #EndDate -->
+  </span>
+</p>
+</body>
+</html>
+

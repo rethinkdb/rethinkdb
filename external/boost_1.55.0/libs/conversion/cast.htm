@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+  <head>
+    <meta name="generator" content=
+    "Microsoft FrontPage 5.0">
+    <meta http-equiv="Content-Type" content=
+    "text/html; charset=windows-1252">
+    <meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+    <meta name="ProgId" content="FrontPage.Editor.Document">
+
+    <title>Header boost/cast.hpp Documentation</title>
+    <style>
+       .copyright
+        {
+            color: #666666;
+            font-size: small;
+        }
+    </style>
+  </head>
+
+  <body bgcolor="#FFFFFF" text="#000000">
+    <h1><img src="../../boost.png" alt="boost.png (6897 bytes)" align=
+    "middle" width="277" height="86">Header <a href=
+    "../../boost/cast.hpp">boost/cast.hpp</a></h1>
+
+    <h2><a name="Cast Functions">Cast Functions</a></h2>
+
+    <p>The header <a href="../../boost/cast.hpp">boost/cast.hpp</a> provides <code>
+    <a href="#Polymorphic_cast">polymorphic_cast</a> and</code> <a href=
+    "#Polymorphic_cast"><code>polymorphic_downcast</code></a> function templates designed to
+    complement the C++ built-in casts.</p>
+
+    <p>The program <a href="cast_test.cpp">cast_test.cpp</a> can be used to
+    verify these function templates work as expected.</p>
+
+    <h3><a name="Polymorphic_cast">Polymorphic casts</a></h3>
+
+    <p>Pointers to polymorphic objects (objects of classes which define at
+    least one virtual function) are sometimes downcast or crosscast.
+    Downcasting means casting from a base class to a derived class.
+    Crosscasting means casting across an inheritance hierarchy diagram, such
+    as from one base to the other in a <code>Y</code> diagram hierarchy.</p>
+
+    <p>Such casts can be done with old-style casts, but this approach is
+    never to be recommended. Old-style casts are sorely lacking in type
+    safety, suffer poor readability, and are difficult to locate with search
+    tools.</p>
+
+    <p>The C++ built-in <code>static_cast</code> can be used for efficiently
+    downcasting pointers to polymorphic objects, but provides no error
+    detection for the case where the pointer being cast actually points to
+    the wrong derived class. The <code>polymorphic_downcast</code> template retains
+    the efficiency of <code>static_cast</code> for non-debug compilations, but for
+    debug compilations adds safety via an assert() that a <code>dynamic_cast</code>
+    succeeds.</p>
+
+    <p>The C++ built-in <code>dynamic_cast</code> can be used for downcasts and
+    crosscasts of pointers to polymorphic objects, but error notification in
+    the form of a returned value of 0 is inconvenient to test, or worse yet,
+    easy to forget to test. The throwing form of <code>dynamic_cast</code>, which
+    works on references, can be used on pointers through the ugly expression
+    &amp;<code>dynamic_cast&lt;T&amp;&gt;(*p)</code>, which causes undefined
+    behavior if <code>p</code> is <code>0</code>. The <code>polymorphic_cast</code>
+    template performs a <code>dynamic_cast</code> on a pointer, and throws an
+    exception if the <code>dynamic_cast</code> returns 0.</p>
+
+    <p>A <code>polymorphic_downcast</code> should be used for
+    downcasts that you are certain should succeed.  Error checking is
+    only performed in translation units where <code>NDEBUG</code> is
+    not defined, via
+<pre>  assert( dynamic_cast&lt;Derived&gt;(x) == x )
+</pre> where <code>x</code> is the source pointer.  This approach
+    ensures that not only is a non-zero pointer returned, but also
+    that it is correct in the presence of multiple inheritance.
+    Attempts to crosscast using <code>polymorphic_downcast</code> will
+    fail to compile.
+    <b>Warning:</b> Because <code>polymorphic_downcast</code> uses assert(), it
+    violates the One Definition Rule (ODR) if NDEBUG is inconsistently
+    defined across translation units. [See ISO Std 3.2]
+</p><p>
+    For crosscasts, or when the success of a cast can only be known at
+    runtime, or when efficiency is not important,
+    <code>polymorphic_cast</code> is preferred. </p>
+
+    <p>The C++ built-in <code>dynamic_cast</code> must be used to cast references
+    rather than pointers. It is also the only cast that can be used to check
+    whether a given interface is supported; in that case a return of 0 isn't
+    an error condition.</p>
+
+    <h3>polymorphic_cast and polymorphic_downcast synopsis</h3>
+
+    <blockquote>
+<pre>namespace boost {
+
+template &lt;class Derived, class Base&gt;
+inline Derived polymorphic_cast(Base* x);
+// Throws: std::bad_cast if ( dynamic_cast&lt;Derived&gt;(x) == 0 )
+// Returns: dynamic_cast&lt;Derived&gt;(x)
+
+template &lt;class Derived, class Base&gt;
+inline Derived polymorphic_downcast(Base* x);
+// Effects: assert( dynamic_cast&lt;Derived&gt;(x) == x );
+// Returns: static_cast&lt;Derived&gt;(x)
+
+}
+</pre>
+    </blockquote>
+
+    <h3>polymorphic_downcast example</h3>
+
+    <blockquote>
+<pre>#include &lt;boost/cast.hpp&gt;
+...
+class Fruit { public: virtual ~Fruit(){}; ... };
+class Banana : public Fruit { ... };
+...
+void f( Fruit * fruit ) {
+// ... logic which leads us to believe it is a Banana
+  Banana * banana = boost::polymorphic_downcast&lt;Banana*&gt;(fruit);
+  ...
+</pre>
+    </blockquote>
+
+    <h3>History</h3>
+
+    <p><code>polymorphic_cast</code> was suggested by Bjarne Stroustrup in "The C++
+    Programming Language".<br>
+     <code>polymorphic_downcast</code> was contributed by <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a>.<code><br>
+     An old
+     numeric_cast</code> that was contributed by <a href=
+    "http://www.boost.org/people/kevlin_henney.htm">Kevlin Henney</a> is now superseeded by the <a href="../numeric/conversion/doc/html/index.html">Boost Numeric Conversion Library</a></p>
+    <hr>
+
+    <p>Revised
+    <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan
+                    -->June 23, 2005<!--webbot bot="Timestamp" endspan i-checksum="30348"
+                    --></p>
+
+    <p class="copyright">&copy; Copyright boost.org 1999. 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+  </body>
+</html>

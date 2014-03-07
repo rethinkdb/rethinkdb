@@ -1,0 +1,92 @@
+# Copyright 2003, 2005 Douglas Gregor
+# Copyright 2004 John Maddock
+# Copyright 2002, 2003, 2004, 2007 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+#   This file is used to configure your Boost.Build installation. You can modify
+# this file in place, or you can place it in a permanent location so that it
+# does not get overwritten should you get a new version of Boost.Build. See:
+#
+#   http://www.boost.org/boost-build2/doc/html/bbv2/overview/configuration.html
+#
+# for documentation about possible permanent locations.
+
+#   This file specifies which toolsets (C++ compilers), libraries, and other
+# tools are available. Often, you should be able to just uncomment existing
+# example lines and adjust them to taste. The complete list of supported tools,
+# and configuration instructions can be found at:
+#
+#   http://boost.org/boost-build2/doc/html/bbv2/reference/tools.html
+#
+
+#   This file uses Jam language syntax to describe available tools. Mostly,
+# there are 'using' lines, that contain the name of the used tools, and
+# parameters to pass to those tools -- where paremeters are separated by
+# semicolons. Important syntax notes:
+#
+#   - Both ':' and ';' must be separated from other tokens by whitespace
+#   - The '\' symbol is a quote character, so when specifying Windows paths you
+#     should use '/' or '\\' instead.
+#
+# More details about the syntax can be found at:
+#
+#   http://boost.org/boost-build2/doc/html/bbv2/advanced.html#bbv2.advanced.jam_language
+#
+
+# ------------------
+# GCC configuration.
+# ------------------
+
+# Configure gcc (default version).
+# using gcc ;
+
+# Configure specific gcc version, giving alternative name to use.
+# using gcc : 3.2 : g++-3.2 ;
+
+
+# -------------------
+# MSVC configuration.
+# -------------------
+
+# Configure msvc (default version, searched for in standard locations and PATH).
+# using msvc ;
+
+# Configure specific msvc version (searched for in standard locations and PATH).
+# using msvc : 8.0 ;
+
+
+# ----------------------
+# Borland configuration.
+# ----------------------
+# using borland ;
+
+
+# ----------------------
+# STLPort configuration.
+# ----------------------
+
+#   Configure specifying location of STLPort headers. Libraries must be either
+# not needed or available to the compiler by default.
+# using stlport : : /usr/include/stlport ;
+
+# Configure specifying location of both headers and libraries explicitly.
+# using stlport : : /usr/include/stlport /usr/lib ;
+
+
+# -----------------
+# QT configuration.
+# -----------------
+
+# Configure assuming QTDIR gives the installation prefix.
+# using qt ;
+
+# Configure with an explicit installation prefix.
+# using qt : /usr/opt/qt ;
+
+# ---------------------
+# Python configuration.
+# ---------------------
+
+# Configure specific Python version.
+# using python : 3.1 : /usr/bin/python3 : /usr/include/python3.1 : /usr/lib ;

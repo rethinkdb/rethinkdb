@@ -1,0 +1,911 @@
+Copyright David Abrahams 2006. Distributed under the Boost
+Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+.. This is a comment. Note how any initial comments are moved by
+   transforms to after the document title, subtitle, and docinfo.
+
+.. Need intro and conclusion
+.. Exposing classes
+    .. Constructors
+    .. Overloading
+    .. Properties and data members
+    .. Inheritance
+    .. Operators and Special Functions
+    .. Virtual Functions
+.. Call Policies
+
+++++++++++++++++++++++++++++++++++++++++++++++
+ Introducing Boost.Python (Extended Abstract)
+++++++++++++++++++++++++++++++++++++++++++++++
+
+
+.. bibliographic fields (which also require a transform):
+
+:Author: David Abrahams
+:Address: 45 Walnut Street
+          Somerville, MA 02143
+:Contact: dave@boost-consulting.com
+:organization: `Boost Consulting`_
+:status: This is a "work in progress"
+:version: 1
+:copyright: Copyright David Abrahams 2002. All rights reserved
+
+:Dedication:
+
+    For my girlfriend, wife, and partner Luann
+
+:abstract:
+
+    This paper describes the Boost.Python library, a system for
+    C++/Python interoperability.
+
+.. meta::
+   :keywords: Boost,python,Boost.Python,C++
+   :description lang=en: C++/Python interoperability with Boost.Python
+
+.. contents:: Table of Contents
+.. section-numbering::
+
+
+.. _`Boost Consulting`: http://www.boost-consulting.com
+
+==============
+ Introduction
+==============
+
+Python and C++ are in many ways as different as two languages could
+be: while C++ is usually compiled to machine-code, Python is
+interpreted.  Python's dynamic type system is often cited as the
+foundation of its flexibility, while in C++ static typing is the
+cornerstone of its efficiency. C++ has an intricate and difficult
+meta-language to support compile-time polymorphism, while Python is
+a uniform language with convenient runtime polymorphism.
+
+Yet for many programmers, these very differences mean that Python and
+C++ complement one another perfectly.  Performance bottlenecks in
+Python programs can be rewritten in C++ for maximal speed, and
+authors of powerful C++ libraries choose Python as a middleware
+language for its flexible system integration capabilities.
+Furthermore, the surface differences mask some strong similarities:
+
+* 'C'-family control structures (if, while, for...)
+
+* Support for object-orientation, functional programming, and generic
+  programming (these are both *multi-paradigm* programming languages.)
+
+* Comprehensive operator overloading facilities, recognizing the
+  importance of syntactic variability for readability and
+  expressivity.
+
+* High-level concepts such as collections and iterators.
+
+* High-level encapsulation facilities (C++: namespaces, Python: modules)
+  to support the design of re-usable libraries.
+
+* Exception-handling for effective management of error conditions.
+
+* C++ idioms in common use, such as handle/body classes and
+  reference-counted smart pointers mirror Python reference semantics.
+
+Python provides a rich 'C' API for writers of 'C' extension modules.
+Unfortunately, using this API directly for exposing C++ type and
+function interfaces to Python is much more tedious than it should be.
+This is mainly due to the limitations of the 'C' language.  Compared to
+C++ and Python, 'C' has only very rudimentary abstraction facilities.
+Support for exception-handling is completely missing. One important
+undesirable consequence is that 'C' extension module writers are
+required to manually manage Python reference counts. Another unpleasant
+consequence is a very high degree of repetition of similar code in 'C'
+extension modules. Of course highly redundant code does not only cause
+frustration for the module writer, but is also very difficult to
+maintain.
+
+The limitations of the 'C' API have lead to the development of a
+variety of wrapping systems. SWIG_ is probably the most popular package
+for the integration of C/C++ and Python. A more recent development is
+the SIP_ package, which is specifically designed for interfacing Python
+with the Qt_ graphical user interface library. Both SWIG and SIP
+introduce a new specialized language for defining the inter-language
+bindings. Of course being able to use a specialized language has
+advantages, but having to deal with three different languages (Python,
+C/C++ and the interface language) also introduces practical and mental
+difficulties. The CXX_ package demonstrates an interesting alternative.
+It shows that at least some parts of Python's 'C' API can be wrapped
+and presented through a much more user-friendly C++ interface. However,
+unlike SWIG and SIP, CXX does not include support for wrapping C++
+classes as new Python types. CXX is also no longer actively developed.
+
+In some respects Boost.Python combines ideas from SWIG and SIP with
+ideas from CXX. Like SWIG and SIP, Boost.Python is a system for
+wrapping C++ classes as new Python "built-in" types, and C/C++
+functions as Python functions. Like CXX, Boost.Python presents Python's
+'C' API through a C++ interface. Boost.Python goes beyond the scope of
+other systems with the unique support for C++ virtual functions that
+are overrideable in Python, support for organizing extensions as Python
+packages with a central registry for inter-language type conversions,
+and a convenient mechanism for tying into Python's serialization engine
+(pickle). Importantly, all this is achieved without introducing a new
+syntax. Boost.Python leverages the power of C++ meta-programming
+techniques to introspect about the C++ type system, and presents a
+simple, IDL-like C++ interface for exposing C/C++ code in extension
+modules. Boost.Python is a pure C++ library, the inter-language
+bindings are defined in pure C++, and other than a C++ compiler only
+Python itself is required to get started with Boost.Python. Last but
+not least, Boost.Python is an unrestricted open source library. There
+are no strings attached even for commercial applications.
+
+.. _SWIG: http://www.swig.org/
+.. _SIP: http://www.riverbankcomputing.co.uk/sip/index.php
+.. _Qt: http://www.trolltech.com/
+.. _CXX: http://cxx.sourceforge.net/
+
+===========================
+ Boost.Python Design Goals 
+===========================
+
+The primary goal of Boost.Python is to allow users to expose C++
+classes and functions to Python using nothing more than a C++
+compiler.  In broad strokes, the user experience should be one of
+directly manipulating C++ objects from Python.
+
+However, it's also important not to translate all interfaces *too*
+literally: the idioms of each language must be respected.  For
+example, though C++ and Python both have an iterator concept, they are
+expressed very differently.  Boost.Python has to be able to bridge the
+interface gap.
+
+It must be possible to insulate Python users from crashes resulting
+from trivial misuses of C++ interfaces, such as accessing
+already-deleted objects.  By the same token the library should
+insulate C++ users from low-level Python 'C' API, replacing
+error-prone 'C' interfaces like manual reference-count management and
+raw ``PyObject`` pointers with more-robust alternatives.
+
+Support for component-based development is crucial, so that C++ types
+exposed in one extension module can be passed to functions exposed in
+another without loss of crucial information like C++ inheritance
+relationships.
+
+Finally, all wrapping must be *non-intrusive*, without modifying or
+even seeing the original C++ source code.  Existing C++ libraries have
+to be wrappable by third parties who only have access to header files
+and binaries.
+
+==========================
+ Hello Boost.Python World
+==========================
+
+And now for a preview of Boost.Python, and how it improves on the raw
+facilities offered by Python. Here's a function we might want to
+expose::
+
+    char const* greet(unsigned x)
+    {
+       static char const* const msgs[] = { "hello", "Boost.Python", "world!" };
+
+       if (x > 2) 
+           throw std::range_error("greet: index out of range");
+
+       return msgs[x];
+    }
+
+To wrap this function in standard C++ using the Python 'C' API, we'd
+need something like this::
+
+    extern "C" // all Python interactions use 'C' linkage and calling convention
+    {
+        // Wrapper to handle argument/result conversion and checking
+        PyObject* greet_wrap(PyObject* args, PyObject * keywords)
+        {
+             int x;
+             if (PyArg_ParseTuple(args, "i", &x))    // extract/check arguments
+             {
+                 char const* result = greet(x);      // invoke wrapped function
+                 return PyString_FromString(result); // convert result to Python
+             }
+             return 0;                               // error occurred
+        }
+
+        // Table of wrapped functions to be exposed by the module
+        static PyMethodDef methods[] = {
+            { "greet", greet_wrap, METH_VARARGS, "return one of 3 parts of a greeting" }
+            , { NULL, NULL, 0, NULL } // sentinel
+        };
+
+        // module initialization function
+        DL_EXPORT init_hello()
+        {
+            (void) Py_InitModule("hello", methods); // add the methods to the module
+        }
+    }
+
+Now here's the wrapping code we'd use to expose it with Boost.Python::
+
+    #include <boost/python.hpp>
+    using namespace boost::python;
+    BOOST_PYTHON_MODULE(hello)
+    {
+        def("greet", greet, "return one of 3 parts of a greeting");
+    }
+
+and here it is in action::
+
+    >>> import hello
+    >>> for x in range(3):
+    ...     print hello.greet(x)
+    ...
+    hello
+    Boost.Python
+    world!
+
+Aside from the fact that the 'C' API version is much more verbose than
+the BPL one, it's worth noting that it doesn't handle a few things
+correctly:
+
+* The original function accepts an unsigned integer, and the Python
+  'C' API only gives us a way of extracting signed integers. The
+  Boost.Python version will raise a Python exception if we try to pass
+  a negative number to ``hello.greet``, but the other one will proceed
+  to do whatever the C++ implementation does when converting an
+  negative integer to unsigned (usually wrapping to some very large
+  number), and pass the incorrect translation on to the wrapped
+  function.
+
+* That brings us to the second problem: if the C++ ``greet()``
+  function is called with a number greater than 2, it will throw an
+  exception.  Typically, if a C++ exception propagates across the
+  boundary with code generated by a 'C' compiler, it will cause a
+  crash.  As you can see in the first version, there's no C++
+  scaffolding there to prevent this from happening.  Functions wrapped
+  by Boost.Python automatically include an exception-handling layer
+  which protects Python users by translating unhandled C++ exceptions
+  into a corresponding Python exception.
+
+* A slightly more-subtle limitation is that the argument conversion
+  used in the Python 'C' API case can only get that integer ``x`` in
+  *one way*.  PyArg_ParseTuple can't convert Python ``long`` objects
+  (arbitrary-precision integers) which happen to fit in an ``unsigned
+  int`` but not in a ``signed long``, nor will it ever handle a
+  wrapped C++ class with a user-defined implicit ``operator unsigned
+  int()`` conversion.  The BPL's dynamic type conversion registry
+  allows users to add arbitrary conversion methods.
+
+==================
+ Library Overview
+==================
+
+This section outlines some of the library's major features.  Except as
+necessary to avoid confusion, details of library implementation are
+omitted.
+
+-------------------------------------------
+ The fundamental type-conversion mechanism
+-------------------------------------------
+
+XXX This needs to be rewritten.
+
+Every argument of every wrapped function requires some kind of
+extraction code to convert it from Python to C++.  Likewise, the
+function return value has to be converted from C++ to Python.
+Appropriate Python exceptions must be raised if the conversion fails.
+Argument and return types are part of the function's type, and much of
+this tedium can be relieved if the wrapping system can extract that
+information through  introspection.
+
+Passing a wrapped C++ derived class instance to a C++ function
+accepting a pointer or reference to a base class requires knowledge of
+the inheritance relationship and how to translate the address of a base
+class into that of a derived class.
+
+------------------
+ Exposing Classes
+------------------
+
+C++ classes and structs are exposed with a similarly-terse interface.
+Given::
+
+    struct World
+    {
+        void set(std::string msg) { this->msg = msg; }
+        std::string greet() { return msg; }
+        std::string msg;
+    };
+
+The following code will expose it in our extension module::
+    
+    #include <boost/python.hpp>
+    BOOST_PYTHON_MODULE(hello)
+    {
+        class_<World>("World")
+            .def("greet", &World::greet)
+            .def("set", &World::set)
+        ;
+    }
+
+Although this code has a certain pythonic familiarity, people
+sometimes find the syntax bit confusing because it doesn't look like
+most of the C++ code they're used to. All the same, this is just
+standard C++.  Because of their flexible syntax and operator
+overloading, C++ and Python are great for defining domain-specific
+(sub)languages
+(DSLs), and that's what we've done in BPL.  To break it down::
+
+    class_<World>("World")
+
+constructs an unnamed object of type ``class_<World>`` and passes
+``"World"`` to its constructor.  This creates a new-style Python class
+called ``World`` in the extension module, and associates it with the
+C++ type ``World`` in the BPL type conversion registry.  We might have
+also written::
+
+    class_<World> w("World");
+
+but that would've been more verbose, since we'd have to name ``w``
+again to invoke its ``def()`` member function::
+
+        w.def("greet", &World::greet)
+
+There's nothing special about the location of the dot for member
+access in the original example: C++ allows any amount of whitespace on
+either side of a token, and placing the dot at the beginning of each
+line allows us to chain as many successive calls to member functions
+as we like with a uniform syntax.  The other key fact that allows
+chaining is that ``class_<>`` member functions all return a reference
+to ``*this``.
+
+So the example is equivalent to::
+
+    class_<World> w("World");
+    w.def("greet", &World::greet);
+    w.def("set", &World::set);
+
+It's occasionally useful to be able to break down the components of a
+Boost.Python class wrapper in this way, but the rest of this paper
+will tend to stick to the terse syntax.
+
+For completeness, here's the wrapped class in use:
+
+>>> import hello
+>>> planet = hello.World()
+>>> planet.set('howdy')
+>>> planet.greet()
+'howdy'
+
+Constructors
+============
+
+Since our ``World`` class is just a plain ``struct``, it has an
+implicit no-argument (nullary) constructor.  Boost.Python exposes the
+nullary constructor by default, which is why we were able to write:
+
+>>> planet = hello.World()
+
+However, well-designed classes in any language may require constructor
+arguments in order to establish their invariants.  Unlike Python,
+where ``__init__`` is just a specially-named method, In C++
+constructors cannot be handled like ordinary member functions.  In
+particular, we can't take their address: ``&World::World`` is an
+error.  The library provides a different interface for specifying
+constructors.  Given::
+
+    struct World
+    {
+        World(std::string msg); // added constructor
+        ...
+
+we can modify our wrapping code as follows::
+
+    class_<World>("World", init<std::string>())
+        ...
+
+of course, a C++ class may have additional constructors, and we can
+expose those as well by passing more instances of ``init<...>`` to
+``def()``::
+
+    class_<World>("World", init<std::string>())
+        .def(init<double, double>())
+        ...
+
+Boost.Python allows wrapped functions, member functions, and
+constructors to be overloaded to mirror C++ overloading.
+
+Data Members and Properties
+===========================
+
+Any publicly-accessible data members in a C++ class can be easily
+exposed as either ``readonly`` or ``readwrite`` attributes::
+
+    class_<World>("World", init<std::string>())
+        .def_readonly("msg", &World::msg)
+        ...
+
+and can be used directly in Python:
+
+>>> planet = hello.World('howdy')
+>>> planet.msg
+'howdy'
+
+This does *not* result in adding attributes to the ``World`` instance
+``__dict__``, which can result in substantial memory savings when
+wrapping large data structures.  In fact, no instance ``__dict__``
+will be created at all unless attributes are explicitly added from
+Python.  BPL owes this capability to the new Python 2.2 type system,
+in particular the descriptor interface and ``property`` type.
+
+In C++, publicly-accessible data members are considered a sign of poor
+design because they break encapsulation, and style guides usually
+dictate the use of "getter" and "setter" functions instead.  In
+Python, however, ``__getattr__``, ``__setattr__``, and since 2.2,
+``property`` mean that attribute access is just one more
+well-encapsulated syntactic tool at the programmer's disposal.  BPL
+bridges this idiomatic gap by making Python ``property`` creation
+directly available to users.  So if ``msg`` were private, we could
+still expose it as attribute in Python as follows::
+
+    class_<World>("World", init<std::string>())
+        .add_property("msg", &World::greet, &World::set)
+        ...
+
+The example above mirrors the familiar usage of properties in Python
+2.2+:
+
+>>> class World(object):
+...     __init__(self, msg):
+...         self.__msg = msg
+...     def greet(self):
+...         return self.__msg
+...     def set(self, msg):
+...         self.__msg = msg
+...     msg = property(greet, set)
+
+Operators and Special Functions
+===============================
+
+The ability to write arithmetic operators for user-defined types that
+C++ and Python both allow the definition of has been a major factor in
+the popularity of both languages for scientific computing.  The
+success of packages like NumPy attests to the power of exposing
+operators in extension modules.  In this example we'll wrap a class
+representing a position in a large file::
+
+    class FilePos { /*...*/ };
+
+    // Linear offset
+    FilePos     operator+(FilePos, int);
+    FilePos     operator+(int, FilePos);
+    FilePos     operator-(FilePos, int);
+    
+    // Distance between two FilePos objects
+    int         operator-(FilePos, FilePos);
+
+    // Offset with assignment
+    FilePos&    operator+=(FilePos&, int);
+    FilePos&    operator-=(FilePos&, int);
+
+    // Comparison
+    bool        operator<(FilePos, FilePos);
+
+The wrapping code looks like this::
+
+    class_<FilePos>("FilePos")
+        .def(self + int())     // __add__
+        .def(int() + self)     // __radd__
+        .def(self - int())     // __sub__
+
+        .def(self - self)      // __sub__
+
+        .def(self += int())    // __iadd__
+        .def(self -= int())    // __isub__
+
+        .def(self < self);     // __lt__
+        ;
+
+The magic is performed using a simplified application of "expression
+templates" [VELD1995]_, a technique originally developed by for
+optimization of high-performance matrix algebra expressions.  The
+essence is that instead of performing the computation immediately,
+operators are overloaded to construct a type *representing* the
+computation.  In matrix algebra, dramatic optimizations are often
+available when the structure of an entire expression can be taken into
+account, rather than processing each operation "greedily".
+Boost.Python uses the same technique to build an appropriate Python
+callable object based on an expression involving ``self``, which is
+then added to the class.
+
+Inheritance
+===========
+
+C++ inheritance relationships can be represented to Boost.Python by adding
+an optional ``bases<...>`` argument to the ``class_<...>`` template
+parameter list as follows::
+
+     class_<Derived, bases<Base1,Base2> >("Derived")
+          ...
+
+This has two effects:  
+
+1. When the ``class_<...>`` is created, Python type objects
+   corresponding to ``Base1`` and ``Base2`` are looked up in the BPL
+   registry, and are used as bases for the new Python ``Derived`` type
+   object [#mi]_, so methods exposed for the Python ``Base1`` and
+   ``Base2`` types are automatically members of the ``Derived`` type.
+   Because the registry is global, this works correctly even if
+   ``Derived`` is exposed in a different module from either of its
+   bases.
+
+2. C++ conversions from ``Derived`` to its bases are added to the
+   Boost.Python registry.  Thus wrapped C++ methods expecting (a
+   pointer or reference to) an object of either base type can be
+   called with an object wrapping a ``Derived`` instance.  Wrapped
+   member functions of class ``T`` are treated as though they have an
+   implicit first argument of ``T&``, so these conversions are
+   necessary to allow the base class methods to be called for derived
+   objects.
+
+Of course it's possible to derive new Python classes from wrapped C++
+class instances.  Because Boost.Python uses the new-style class
+system, that works very much as for the Python built-in types.  There
+is one significant detail in which it differs: the built-in types
+generally establish their invariants in their ``__new__`` function, so
+that derived classes do not need to call ``__init__`` on the base
+class before invoking its methods :
+
+>>> class L(list):
+...      def __init__(self):
+...          pass
+...
+>>> L().reverse()
+>>> 
+
+Because C++ object construction is a one-step operation, C++ instance
+data cannot be constructed until the arguments are available, in the
+``__init__`` function:
+
+>>> class D(SomeBPLClass):
+...      def __init__(self):
+...          pass
+...
+>>> D().some_bpl_method()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in ?
+TypeError: bad argument type for built-in operation
+
+This happened because Boost.Python couldn't find instance data of type
+``SomeBPLClass`` within the ``D`` instance; ``D``'s ``__init__``
+function masked construction of the base class.  It could be corrected
+by either removing ``D``'s ``__init__`` function or having it call
+``SomeBPLClass.__init__(...)`` explicitly.
+
+Virtual Functions
+=================
+
+Deriving new types in Python from extension classes is not very
+interesting unless they can be used polymorphically from C++.  In
+other words, Python method implementations should appear to override
+the implementation of C++ virtual functions when called *through base
+class pointers/references from C++*.  Since the only way to alter the
+behavior of a virtual function is to override it in a derived class,
+the user must build a special derived class to dispatch a polymorphic
+class' virtual functions::
+
+    //
+    // interface to wrap:
+    //
+    class Base
+    {
+     public:
+        virtual int f(std::string x) { return 42; }
+        virtual ~Base();
+    };
+
+    int calls_f(Base const& b, std::string x) { return b.f(x); }
+
+    //
+    // Wrapping Code
+    //
+
+    // Dispatcher class
+    struct BaseWrap : Base
+    {
+        // Store a pointer to the Python object
+        BaseWrap(PyObject* self_) : self(self_) {}
+        PyObject* self;
+
+        // Default implementation, for when f is not overridden
+        int f_default(std::string x) { return this->Base::f(x); }
+        // Dispatch implementation
+        int f(std::string x) { return call_method<int>(self, "f", x); }
+    };
+
+    ...
+        def("calls_f", calls_f);
+        class_<Base, BaseWrap>("Base")
+            .def("f", &Base::f, &BaseWrap::f_default)
+            ;
+
+Now here's some Python code which demonstrates:
+
+>>> class Derived(Base):
+...     def f(self, s):
+...          return len(s)
+...
+>>> calls_f(Base(), 'foo')
+42
+>>> calls_f(Derived(), 'forty-two')
+9
+
+Things to notice about the dispatcher class:
+
+* The key element which allows overriding in Python is the
+  ``call_method`` invocation, which uses the same global type
+  conversion registry as the C++ function wrapping does to convert its
+  arguments from C++ to Python and its return type from Python to C++.
+
+* Any constructor signatures you wish to wrap must be replicated with
+  an initial ``PyObject*`` argument
+
+* The dispatcher must store this argument so that it can be used to
+  invoke ``call_method``
+
+* The ``f_default`` member function is needed when the function being
+  exposed is not pure virtual; there's no other way ``Base::f`` can be
+  called on an object of type ``BaseWrap``, since it overrides ``f``.
+
+Admittedly, this formula is tedious to repeat, especially on a project
+with many polymorphic classes; that it is necessary reflects
+limitations in C++'s compile-time reflection capabilities.  Several
+efforts are underway to write front-ends for Boost.Python which can
+generate these dispatchers (and other wrapping code) automatically.
+If these are successful it will mark a move away from wrapping
+everything directly in pure C++ for many of our users.
+
+---------------
+ Serialization
+---------------
+
+*Serialization* is the process of converting objects in memory to a
+form that can be stored on disk or sent over a network connection. The
+serialized object (most often a plain string) can be retrieved and
+converted back to the original object. A good serialization system will
+automatically convert entire object hierarchies. Python's standard
+``pickle`` module is such a system.  It leverages the language's strong
+runtime introspection facilities for serializing practically arbitrary
+user-defined objects. With a few simple and unintrusive provisions this
+powerful machinery can be extended to also work for wrapped C++ objects.
+Here is an example::
+
+    #include <string>
+
+    struct World
+    {
+        World(std::string a_msg) : msg(a_msg) {}
+        std::string greet() const { return msg; }
+        std::string msg;
+    };
+
+    #include <boost/python.hpp>
+    using namespace boost::python;
+
+    struct World_picklers : pickle_suite
+    {
+      static tuple
+      getinitargs(World const& w) { return make_tuple(w.greet()); }
+    };
+
+    BOOST_PYTHON_MODULE(hello)
+    {
+        class_<World>("World", init<std::string>())
+            .def("greet", &World::greet)
+            .def_pickle(World_picklers())
+        ;
+    }
+
+Now let's create a ``World`` object and put it to rest on disk::
+
+    >>> import hello
+    >>> import pickle
+    >>> a_world = hello.World("howdy")
+    >>> pickle.dump(a_world, open("my_world", "w"))
+
+In a potentially *different script* on a potentially *different
+computer* with a potentially *different operating system*::
+
+    >>> import pickle
+    >>> resurrected_world = pickle.load(open("my_world", "r"))
+    >>> resurrected_world.greet()
+    'howdy'
+
+Of course the ``cPickle`` module can also be used for faster
+processing.
+
+Boost.Python's ``pickle_suite`` fully supports the ``pickle`` protocol
+defined in the standard Python documentation. There is a one-to-one
+correspondence between the standard pickling methods (``__getinitargs__``,
+``__getstate__``, ``__setstate__``) and the functions defined by the
+user in the class derived from ``pickle_suite`` (``getinitargs``,
+``getstate``, ``setstate``). The ``class_::def_pickle()`` member function
+is used to establish the Python bindings for all user-defined functions
+simultaneously. Correct signatures for these functions are enforced at
+compile time. Non-sensical combinations of the three pickle functions
+are also rejected at compile time. These measures are designed to
+help the user in avoiding obvious errors.
+
+Enabling serialization of more complex C++ objects requires a little
+more work than is shown in the example above. Fortunately the
+``object`` interface (see next section) greatly helps in keeping the
+code manageable.
+
+------------------
+ Object interface
+------------------
+
+Experienced extension module authors will be familiar with the 'C' view
+of Python objects, the ubiquitous ``PyObject*``. Most if not all Python
+'C' API functions involve ``PyObject*`` as arguments or return type.  A
+major complication is the raw reference counting interface presented to
+the 'C' programmer. E.g. some API functions return *new references* and
+others return *borrowed references*. It is up to the extension module
+writer to properly increment and decrement reference counts.  This
+quickly becomes cumbersome and error prone, especially if there are
+multiple execution paths.
+
+Boost.Python provides a type ``object`` which is essentially a high
+level wrapper around ``PyObject*``. ``object`` automates reference
+counting as much as possible. It also provides the facilities for
+converting arbitrary C++ types to Python objects and vice versa.
+This significantly reduces the learning effort for prospective
+extension module writers.
+
+Creating an ``object`` from any other type is extremely simple::
+
+    object o(3);
+
+``object`` has templated interactions with all other types, with
+automatic to-python conversions. It happens so naturally that it's
+easily overlooked.
+
+The ``extract<T>`` class template can be used to convert Python objects
+to C++ types::
+
+    double x = extract<double>(o);
+
+All registered user-defined conversions are automatically accessible
+through the ``object`` interface. With reference to the ``World`` class
+defined in previous examples::
+
+    object as_python_object(World("howdy"));
+    World back_as_c_plus_plus_object = extract<World>(as_python_object);
+
+If a C++ type cannot be converted to a Python object an appropriate
+exception is thrown at runtime.  Similarly, an appropriate exception is
+thrown if a C++ type cannot be extracted from a Python object.
+``extract<T>`` provides facilities for avoiding exceptions if this is
+desired.
+
+The ``object::attr()`` member function is available for accessing
+and manipulating attributes of Python objects. For example::
+
+    object planet(World());
+    planet.attr("set")("howdy");
+
+``planet.attr("set")`` returns a callable ``object``.  ``"howdy"`` is
+converted to a Python string object which is then passed as an argument
+to the ``set`` method.
+
+The ``object`` type is accompanied by a set of derived types
+that mirror the Python built-in types such as ``list``, ``dict``,
+``tuple``, etc. as much as possible. This enables convenient
+manipulation of these high-level types from C++::
+
+    dict d;
+    d["some"] = "thing";
+    d["lucky_number"] = 13;
+    list l = d.keys();
+
+This almost looks and works like regular Python code, but it is pure C++.
+
+=================
+ Thinking hybrid
+=================
+
+For many applications runtime performance considerations are very
+important. This is particularly true for most scientific applications.
+Often the performance considerations dictate the use of a compiled
+language for the core algorithms. Traditionally the decision to use a
+particular programming language is an exclusive one. Because of the
+practical and mental difficulties of combining different languages many
+systems are written in just one language. This is quite unfortunate
+because the price payed for runtime performance is typically a
+significant overhead due to static typing. For example, our experience
+shows that developing maintainable C++ code is typically much more
+time-consuming and requires much more hard-earned working experience
+than developing useful Python code. A related observation is that many
+compiled packages are augmented by some type of rudimentary scripting
+layer. These ad hoc solutions clearly show that many times a compiled
+language alone does not get the job done. On the other hand it is also
+clear that a pure Python implementation is too slow for numerically
+intensive production code.
+
+Boost.Python enables us to *think hybrid* when developing new
+applications. Python can be used for rapidly prototyping a
+new application. Python's ease of use and the large pool of standard
+libraries give us a head start on the way to a first working system. If
+necessary, the working procedure can be used to discover the
+rate-limiting algorithms. To maximize performance these can be
+reimplemented in C++, together with the Boost.Python bindings needed to
+tie them back into the existing higher-level procedure.
+
+Of course, this *top-down* approach is less attractive if it is clear
+from the start that many algorithms will eventually have to be
+implemented in a compiled language. Fortunately Boost.Python also
+enables us to pursue a *bottom-up* approach. We have used this approach
+very successfully in the development of a toolbox for scientific
+applications (scitbx) that we will describe elsewhere. The toolbox
+started out mainly as a library of C++ classes with Boost.Python
+bindings, and for a while the growth was mainly concentrated on the C++
+parts. However, as the toolbox is becoming more complete, more and more
+newly added functionality can be implemented in Python. We expect this
+trend to continue, as illustrated qualitatively in this figure:
+
+.. image:: python_cpp_mix.png
+
+This figure shows the ratio of newly added C++ and Python code over
+time as new algorithms are implemented. We expect this ratio to level
+out near 70% Python. The increasing ability to solve new problems
+mostly with the easy-to-use Python language rather than a necessarily
+more arcane statically typed language is the return on the investment
+of learning how to use Boost.Python. The ability to solve some problems
+entirely using only Python will enable a larger group of people to
+participate in the rapid development of new applications.
+
+=============
+ Conclusions
+=============
+
+The examples in this paper illustrate that Boost.Python enables
+seamless interoperability between C++ and Python. Importantly, this is
+achieved without introducing a third syntax: the Python/C++ interface
+definitions are written in pure C++. This avoids any problems with
+parsing the C++ code to be interfaced to Python, yet the interface
+definitions are concise and maintainable. Freed from most of the
+development-time penalties of crossing a language boundary, software
+designers can take full advantage of two rich and complimentary
+language environments. In practice it turns out that some things are
+very difficult to do with pure Python/C (e.g. an efficient array
+library with an intuitive interface in the compiled language) and
+others are very difficult to do with pure C++ (e.g. serialization).
+If one has the luxury of being able to design a software system as a
+hybrid system from the ground up there are many new ways of avoiding
+road blocks in one language or the other.
+
+.. I'm not ready to give up on all of this quite yet
+
+.. Perhaps one day we'll have a language with the simplicity and
+   expressive power of Python and the compile-time muscle of C++.  Being
+   able to take advantage of all of these facilities without paying the
+   mental and development-time penalties of crossing a language barrier
+   would bring enormous benefits.  Until then, interoperability tools
+   like Boost.Python can help lower the barrier and make the benefits of
+   both languages more accessible to both communities.
+
+===========
+ Footnotes
+===========
+
+.. [#mi] For hard-core new-style class/extension module writers it is
+   worth noting that the normal requirement that all extension classes
+   with data form a layout-compatible single-inheritance chain is
+   lifted for Boost.Python extension classes.  Clearly, either
+   ``Base1`` or ``Base2`` has to occupy a different offset in the
+   ``Derived`` class instance.  This is possible because the wrapped
+   part of BPL extension class instances is never assumed to have a
+   fixed offset within the wrapper.
+
+===========
+ Citations
+===========
+
+.. [VELD1995] T. Veldhuizen, "Expression Templates," C++ Report,
+   Vol. 7 No. 5 June 1995, pp. 26-31.
+   http://osl.iu.edu/~tveldhui/papers/Expression-Templates/exprtmpl.html

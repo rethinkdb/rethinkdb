@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/last_value.hpp" last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $">
+  <namespace name="boost">
+    <class name="last_value">
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <purpose>Evaluate an <conceptname>InputIterator</conceptname> sequence and return the
+      last value in the sequence.</purpose>
+
+      <typedef name="result_type"><type>T</type></typedef>
+
+      <method-group name="invocation">
+        <method name="operator()" cv="const">
+          <template> 
+            <template-type-parameter name="InputIterator"/>
+          </template>
+          <type>result_type</type>
+          <parameter name="first">
+            <paramtype>InputIterator</paramtype>
+          </parameter>
+          <parameter name="last">
+            <paramtype>InputIterator</paramtype>
+          </parameter>
+
+          <requires><para><computeroutput>first != last</computeroutput></para></requires>
+          <effects><para>Dereferences every iterator in the sequence <computeroutput>[first, last)</computeroutput>.</para></effects>
+
+          <returns><para>The result of dereferencing the iterator <computeroutput>last-1</computeroutput>.</para></returns>
+        </method>
+      </method-group>
+    </class>
+
+    <class-specialization name="last_value">
+      <template/>
+      <specialization>
+        <template-arg>void</template-arg>
+      </specialization>
+
+      <purpose>Evaluate an InputIterator sequence.</purpose>
+
+      <typedef name="result_type">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+
+      <method-group name="invocation">
+        <method name="operator()" cv="const">
+          <template> 
+            <template-type-parameter name="InputIterator"/>
+          </template>
+          <type>result_type</type>
+          <parameter name="first">
+            <paramtype>InputIterator</paramtype>
+          </parameter>
+          <parameter name="last">
+            <paramtype>InputIterator</paramtype>
+          </parameter>
+
+          <effects><para>Dereferences every iterator in the sequence <computeroutput>[first, last)</computeroutput>.</para></effects>
+        </method>
+      </method-group>
+    </class-specialization>
+  </namespace>
+</header>

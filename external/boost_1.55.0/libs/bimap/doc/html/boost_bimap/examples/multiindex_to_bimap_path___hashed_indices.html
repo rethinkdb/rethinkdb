@@ -1,0 +1,236 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>MultiIndex to Bimap Path - Hashed indices</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="multiindex_to_bimap_path___bidirectional_map.html" title="MultiIndex to Bimap Path - Bidirectional Map">
+<link rel="next" href="../test_suite.html" title="Test suite">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="multiindex_to_bimap_path___bidirectional_map.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../test_suite.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_examples_multiindex_to_bimap_path___hashed_indices">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.examples.multiindex_to_bimap_path___hashed_indices"></a><a class="link" href="multiindex_to_bimap_path___hashed_indices.html" title="MultiIndex to Bimap Path - Hashed indices">MultiIndex
+      to Bimap Path - Hashed indices</a>
+</h3></div></div></div>
+<p>
+        This is example 8 of Boost.MultiIndex.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        Hashed indices can be used as an alternative to ordered indices when fast
+        look-up is needed and sorting information is of no interest. The example
+        features a word counter where duplicate entries are checked by means of a
+        hashed index.
+      </p>
+</div>
+<h5>
+<a name="boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.h0"></a>
+        <span class="phrase"><a name="boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.boost_multiindex"></a></span><a class="link" href="multiindex_to_bimap_path___hashed_indices.html#boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.boost_multiindex">Boost.MultiIndex</a>
+      </h5>
+<p>
+        <a href="../../../../example/mi_to_b_path/mi_hashed_indices.cpp" target="_top">Go to source
+        code</a>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tokenizer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multi_index_container</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multi_index</span><span class="special">/</span><span class="identifier">key_extractors</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multi_index</span><span class="special">/</span><span class="identifier">ordered_index</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multi_index</span><span class="special">/</span><span class="identifier">hashed_index</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multi_index</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">bl</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">;</span>
+
+<span class="comment">// word_counter keeps the ocurrences of words inserted. A hashed</span>
+<span class="comment">// index allows for fast checking of preexisting entries.</span>
+
+<span class="keyword">struct</span> <span class="identifier">word_counter_entry</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span>  <span class="identifier">word</span><span class="special">;</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">occurrences</span><span class="special">;</span>
+
+    <span class="identifier">word_counter_entry</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">word_</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">word</span><span class="special">(</span><span class="identifier">word_</span><span class="special">),</span> <span class="identifier">occurrences</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">multi_index_container</span>
+<span class="special">&lt;</span>
+    <span class="identifier">word_counter_entry</span><span class="special">,</span>
+    <span class="identifier">indexed_by</span>
+    <span class="special">&lt;</span>
+        <span class="identifier">ordered_non_unique</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">BOOST_MULTI_INDEX_MEMBER</span><span class="special">(</span>
+                <span class="identifier">word_counter_entry</span><span class="special">,</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span><span class="identifier">occurrences</span><span class="special">),</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;</span>
+        <span class="special">&gt;,</span>
+        <span class="identifier">hashed_unique</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">BOOST_MULTI_INDEX_MEMBER</span><span class="special">(</span><span class="identifier">word_counter_entry</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span><span class="identifier">word</span><span class="special">)</span>
+        <span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+
+<span class="special">&gt;</span> <span class="identifier">word_counter</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tokenizer</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">char_separator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">text_tokenizer</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">text</span><span class="special">=</span>
+        <span class="string">"En un lugar de la Mancha, de cuyo nombre no quiero acordarme... "</span>
+        <span class="string">"...snip..."</span>
+        <span class="string">"...no se salga un punto de la verdad."</span><span class="special">;</span>
+
+    <span class="comment">// feed the text into the container</span>
+
+    <span class="identifier">word_counter</span>   <span class="identifier">wc</span><span class="special">;</span>
+    <span class="identifier">text_tokenizer</span> <span class="identifier">tok</span><span class="special">(</span><span class="identifier">text</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">char_separator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="string">" \t\n.,;:!?'\"-"</span><span class="special">));</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span>   <span class="identifier">total_occurrences</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">text_tokenizer</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">tok</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">it_end</span> <span class="special">=</span> <span class="identifier">tok</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+         <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">it_end</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">it</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="special">++</span><span class="identifier">total_occurrences</span><span class="special">;</span>
+        <span class="identifier">word_counter</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">wit</span> <span class="special">=</span> <span class="identifier">wc</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(*</span><span class="identifier">it</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="identifier">wc</span><span class="special">.</span><span class="identifier">modify_key</span><span class="special">(</span> <span class="identifier">wit</span><span class="special">,</span> <span class="special">++</span> <span class="identifier">bl</span><span class="special">::</span><span class="identifier">_1</span> <span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="comment">// list words by frequency of appearance</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">fixed</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">word_counter</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">wit</span> <span class="special">=</span> <span class="identifier">wc</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">wit_end</span><span class="special">=</span><span class="identifier">wc</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+         <span class="identifier">wit</span> <span class="special">!=</span> <span class="identifier">wit_end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">wit</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">11</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">wit</span><span class="special">-&gt;</span><span class="identifier">word</span> <span class="special">&lt;&lt;</span> <span class="string">": "</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">5</span><span class="special">)</span>
+                  <span class="special">&lt;&lt;</span> <span class="number">100.0</span> <span class="special">*</span> <span class="identifier">wit</span><span class="special">-&gt;</span><span class="identifier">occurrences</span> <span class="special">/</span> <span class="identifier">total_occurrences</span> <span class="special">&lt;&lt;</span> <span class="string">"%"</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.h1"></a>
+        <span class="phrase"><a name="boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.boost_bimap"></a></span><a class="link" href="multiindex_to_bimap_path___hashed_indices.html#boost_bimap.examples.multiindex_to_bimap_path___hashed_indices.boost_bimap">Boost.Bimap</a>
+      </h5>
+<p>
+        <a href="../../../../example/mi_to_b_path/hashed_indices.cpp" target="_top">Go to source code</a>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tokenizer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">unordered_set_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">multiset_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimaps</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">word</span>        <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">occurrences</span> <span class="special">{};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">bimap</span>
+<span class="special">&lt;</span>
+
+     <span class="identifier">multiset_of</span><span class="special">&lt;</span> <span class="identifier">tagged</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span><span class="identifier">occurrences</span><span class="special">&gt;,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;,</span>
+<span class="identifier">unordered_set_of</span><span class="special">&lt;</span> <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span>       <span class="identifier">word</span><span class="special">&gt;</span>                             <span class="special">&gt;</span>
+
+<span class="special">&gt;</span> <span class="identifier">word_counter</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tokenizer</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">char_separator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">text_tokenizer</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">text</span><span class="special">=</span>
+        <span class="string">"Relations between data in the STL are represented with maps."</span>
+        <span class="string">"A map is a directed relation, by using it you are representing "</span>
+        <span class="string">"a mapping. In this directed relation, the first type is related to "</span>
+        <span class="string">"the second type but it is not true that the inverse relationship "</span>
+        <span class="string">"holds. This is useful in a lot of situations, but there are some "</span>
+        <span class="string">"relationships that are bidirectional by nature."</span><span class="special">;</span>
+
+    <span class="comment">// feed the text into the container</span>
+
+    <span class="identifier">word_counter</span>   <span class="identifier">wc</span><span class="special">;</span>
+    <span class="identifier">text_tokenizer</span> <span class="identifier">tok</span><span class="special">(</span><span class="identifier">text</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">char_separator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="string">" \t\n.,;:!?'\"-"</span><span class="special">));</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span>   <span class="identifier">total_occurrences</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">text_tokenizer</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">tok</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">it_end</span> <span class="special">=</span> <span class="identifier">tok</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+         <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">it_end</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">it</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="special">++</span><span class="identifier">total_occurrences</span><span class="special">;</span>
+
+        <span class="identifier">word_counter</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">wit</span> <span class="special">=</span>
+            <span class="identifier">wc</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;().</span><span class="identifier">insert</span><span class="special">(</span>
+                 <span class="identifier">word_counter</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">0</span><span class="special">,*</span><span class="identifier">it</span><span class="special">)</span>
+            <span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+
+        <span class="identifier">wc</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;().</span><span class="identifier">modify_key</span><span class="special">(</span> <span class="identifier">wit</span><span class="special">,</span> <span class="special">++</span><span class="identifier">_key</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="comment">// list words by frequency of appearance</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">fixed</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">word_counter</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span>
+            <span class="identifier">wit</span>     <span class="special">=</span> <span class="identifier">wc</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;().</span><span class="identifier">begin</span><span class="special">(),</span>
+            <span class="identifier">wit_end</span> <span class="special">=</span> <span class="identifier">wc</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">();</span>
+
+         <span class="identifier">wit</span> <span class="special">!=</span> <span class="identifier">wit_end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">wit</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">15</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">wit</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">word</span><span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="string">": "</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">5</span><span class="special">)</span>
+                  <span class="special">&lt;&lt;</span> <span class="number">100.0</span> <span class="special">*</span> <span class="identifier">wit</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">occurrences</span><span class="special">&gt;()</span> <span class="special">/</span> <span class="identifier">total_occurrences</span> <span class="special">&lt;&lt;</span> <span class="string">"%"</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="multiindex_to_bimap_path___bidirectional_map.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../test_suite.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

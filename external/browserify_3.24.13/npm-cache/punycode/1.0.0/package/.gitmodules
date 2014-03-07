@@ -1,0 +1,12 @@
+[submodule "vendor/docdown"]
+	path = vendor/docdown
+	url = https://github.com/jdalton/docdown.git
+[submodule "vendor/qunit"]
+	path = vendor/qunit
+	url = https://github.com/jquery/qunit.git
+[submodule "vendor/requirejs"]
+	path = vendor/requirejs
+	url = https://github.com/jrburke/requirejs.git
+[submodule "vendor/qunit-clib"]
+	path = vendor/qunit-clib
+	url = https://github.com/jdalton/qunit-clib.git

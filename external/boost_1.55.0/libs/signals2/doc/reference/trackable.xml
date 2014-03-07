@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/trackable.hpp">
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="trackable">
+        <purpose>Provided to ease porting for code using the boost::signals::trackable class from
+          the original Boost.Signals library.</purpose>
+
+        <description>
+          <para>Use of the <code>trackable</code> class is not recommended
+          for new code.  The <code>trackable</code> class is not thread-safe
+          since <code>trackable</code> objects disconnect their associated
+          connections in the <code>trackable</code> destructor.
+          Since the <code>trackable</code> destructor is not run until
+          after the destructors of any derived classes have completed,
+          that leaves open a window where a partially destructed
+          object can still have active connections.
+          </para>
+
+          <para>
+          The preferred method of automatic connection management
+          with Boost.Signals2 is to manage the lifetime of
+          tracked objects with <code>shared_ptr</code>s and
+          to use the <methodname>signals2::slot::track</methodname>
+          method to track their lifetimes.</para>
+
+          <para>The <code>trackable</code> class provides automatic
+          disconnection of signals and slots when objects bound in
+          slots (via pointer or reference) are destroyed.
+          <code>trackable</code> class may only be used as a public
+          base class for some other class; when used as such, that
+          class may be bound to function objects used as part of
+          slots. The manner in which a <code>trackable</code> object
+          tracks the set of signal-slot connections it is a part of is
+          unspecified.</para>
+
+          <para>The actual use of <code>trackable</code> is contingent
+          on the presence of appropriate
+          <functionname>visit_each</functionname> overloads for any
+          type that may contain pointers or references to trackable
+          objects.</para>
+
+        </description>
+
+        <constructor>
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <constructor>
+          <parameter name="other">
+            <paramtype>const <classname>trackable</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <throws><para>Will not throw.</para></throws>
+          <rationale><para>Signal-slot connections can only be created via calls to an explicit connect method, and therefore cannot be created here when trackable objects are copied.</para></rationale>
+        </constructor>
+
+        <destructor>
+          <effects><para>Disconnects all signal/slot connections that
+          contain a pointer or reference to this trackable object that
+          can be found by
+          <functionname>visit_each</functionname>.</para></effects>
+        </destructor>
+
+        <copy-assignment>
+          <parameter name="other">
+            <paramtype>const <classname>trackable</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <returns><para><code>*this</code></para></returns>
+          <throws><para>Will not throw.</para></throws>
+          <rationale><para>Signal-slot connections can only be created via calls to an explicit connect method, and therefore cannot be created here when trackable objects are copied.</para></rationale>
+        </copy-assignment>
+      </class>
+    </namespace>
+  </namespace>
+</header>

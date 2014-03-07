@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.gregorian.date_algorithms">
+  <title>Date Generators/Algorithms</title>
+  <bridgehead renderas="sect2">Date Generators/Algorithms</bridgehead>
+  <link linkend="algo_intro">Introduction</link> --
+  <link linkend="algo_header">Header</link> --
+  <link linkend="algo_overview">Class Overview</link> --
+  <link linkend="algo_func_overview">Function Overview</link>
+
+  <anchor id="algo_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para> 
+    Date algorithms or generators are tools for generating other dates or schedules of dates. A generator function starts with some part of a date such as a month and day and is supplied another part to then generate a concrete date. This allows the programmer to represent concepts such as "The first Sunday in February" and then create a concrete set of dates when provided with one or more years.
+    <emphasis>Note</emphasis>: As of boost version 1_31_0, date generator names have been changed. Old names are still available but are no longer documented and may someday be deprecated
+  </para>
+  <para>Also provided are stand-alone functions for generating a date, or calculation a duration of days. These functions take a date object and a weekday object as parameters.
+  </para>
+  <para>All date generator classes and functions are in the boost::gregorian namespace.
+  </para>
+  <para> 
+    The <link linkend="date_time.examples.print_holidays">print holidays</link> example shows a detailed usage example. 
+  </para>
+
+  <anchor id="algo_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para><programlisting>#include "boost/date_time/gregorian/gregorian.hpp"</programlisting>
+  </para>
+
+  <anchor id="algo_overview" />
+  <bridgehead renderas="sect3">Overview</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+          <entry valign="top" morerows="1">Class and get_date Parameter</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+          <entry valign="top" morerows="1"><screen>year_based_generator
+date get_date(greg_year year)</screen></entry>
+          <entry>A unifying (abstract) date_generator base type for: <code>partial_date</code>, <code>nth_day_of_the_week_in_month</code>, <code>first_day_of_the_week_in_month</code>, and <code>last_day_of_the_week_in_month</code>.</entry>
+	</row>
+	<row>
+          <entry>The <link linkend="date_time.examples.print_holidays">print holidays</link> example shows a detailed usage example.</entry>
+        </row>
+
+        <row>
+          <entry valign="top" morerows="1"><screen>last_day_of_the_week_in_month(greg_weekday, 
+                              greg_month)
+date get_date(greg_year year)</screen></entry>
+	  <entry>Calculate something like last Monday of January</entry>
+	</row>
+	<row>
+	  <entry><screen>last_day_of_the_week_in_month lwdm(Monday,Jan);
+date d = lwdm.get_date(2002);
+//2002-Jan-28</screen>
+	  </entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>first_day_of_the_week_in_month(greg_weekday,
+                               greg_month)
+date get_date(greg_year year)</screen></entry>
+	  <entry>Calculate something like first Monday of January</entry>
+	</row>
+	<row>
+	  <entry><screen>first_day_of_the_week_in_month fdm(Monday,Jan);
+date d = fdm.get_date(2002);
+//2002-Jan-07</screen>
+	  </entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>nth_day_of_the_week_in_month(week_num, 
+                             greg_weekday,
+                             greg_month)
+date get_date(greg_year year)</screen></entry>
+          <entry><code>week_num</code> is a public enum member of <code>nth_day_of_the_week_in_month</code>. Calculate something like first Monday of January, second Tuesday of March, Third Sunday of December, etc. (first through fifth are provided, fifth is the equivalent of last)</entry>
+	</row>
+	<row>
+          <entry><screen>typedef nth_day_of_the_week_in_month nth_dow;
+nth_dow ndm(nth_dow::third, Monday,Jan);
+date d = ndm.get_date(2002);
+//2002-Jan-21</screen>
+	  </entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>partial_date(greg_day, greg_month)
+date get_date(greg_year year)</screen></entry>
+	  <entry>Generates a date by applying the year to the given month and day.</entry>
+	</row>
+	<row>
+	  <entry><screen>partial_date pd(1,Jan);
+date d = pd.get_date(2002);
+//2002-Jan-01</screen>
+	  </entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>first_day_of_the_week_after(greg_weekday)
+date get_date(date d)</screen></entry>
+	  <entry>Calculate something like First Sunday after Jan 1,2002</entry>
+	</row>
+	<row>
+	  <entry><screen>first_day_of_the_week_after fdaf(Monday);
+date d = fdaf.get_date(date(2002,Jan,1));
+//2002-Jan-07</screen>
+	  </entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>first_day_of_the_week_before(greg_weekday)
+date get_date(date d)</screen></entry>
+	  <entry>Calculate something like First Monday before Feb 1,2002</entry>
+	</row>
+	<row>
+          <entry><screen>first_day_of_the_week_before fdbf(Monday);
+date d = fdbf.get_date(date(2002,Feb,1));
+//2002-Jan-28</screen>
+	  </entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+
+  <anchor id="algo_func_overview" />
+  <bridgehead renderas="sect3">Function Overview</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Function Prototype</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry valign="top" morerows="1"><screen>days days_until_weekday date, greg_weekday)</screen></entry>
+	  <entry> Calculates the number of days from given date until given weekday.</entry>
+	</row>
+	<row>
+	  <entry><screen>date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+days_until_weekday(d, gw); // 3 days</screen>
+	  </entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>days days_before_weekday(date, greg_weekday)</screen></entry>
+	  <entry> Calculates the number of day from given date to previous given weekday.</entry>
+	</row>
+	<row>
+	  <entry><screen>date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+days_before_weekday(d, gw); // 4 days</screen>
+	  </entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>date next_weekday(date, greg_weekday)</screen></entry>
+	  <entry> Generates a date object representing the date of the following weekday from the given date.</entry>
+	</row>
+	<row>
+	  <entry><screen>date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+next_weekday(d, gw); // 2004-Jun-4</screen>
+	  </entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>date previous_weekday(date, greg_weekday)</screen></entry>
+	  <entry> Generates a date object representing the date of the previous weekday from the given date.</entry>
+	</row>
+	<row>
+          <entry><screen>date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+previous_weekday(d, gw); // 2004-May-28</screen>
+	  </entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+</section>

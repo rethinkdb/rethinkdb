@@ -1,0 +1,141 @@
+#
+#   Copyright (c) 2005 João Abecasis
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import feature ;
+import generators ;
+import modules ;
+import project ;
+import targets ;
+import testing ;
+import toolset ;
+import type ;
+
+feature.feature quickbook-testing.quickbook-command : : free dependency ;
+feature.feature <quickbook-test-define> : : free ;
+feature.feature <quickbook-test-include> : : free path ;
+feature.feature <quickbook-xinclude-base> : : free ;
+
+type.register QUICKBOOK_INPUT : quickbook ;
+type.register QUICKBOOK_OUTPUT ;
+
+generators.register-standard quickbook-testing.process-quickbook : QUICKBOOK_INPUT : QUICKBOOK_OUTPUT ;
+
+################################################################################
+#
+#   quickbook-test - generates a test for quickbook itself. A quickbook-test is
+#   actually made up of two tests:
+#           $(target-name).boostbook :
+#               generate boostbook from $(input) or $(target-name).quickbook
+#
+#           $(target-name):
+#               compare generated boostbook to $(reference-output) or
+#               $(input).gold or $(target-name).gold
+#
+rule quickbook-test ( target-name : input ? : reference-output ? : requirements * )
+{
+    input ?= $(target-name).quickbook ;
+    reference-output ?= $(input:S=.gold) ;
+
+    local project = [ project.current ] ;
+
+    local boost-root = [ modules.peek : BOOST_ROOT ] ;
+
+    local t =
+        [ targets.create-typed-target QUICKBOOK_OUTPUT
+            : $(project)
+            : $(target-name).boostbook
+            : $(input)
+            : $(requirements)
+                <location-prefix>$(target-name).test
+                <quickbook-testing.quickbook-command>$(boost-root)/tools/quickbook/src//quickbook
+        ]
+
+        [ targets.create-typed-target RUN
+            : $(project)
+            : $(target-name)
+            : $(boost-root)/tools/quickbook/test/src//line-compare-tool
+            : $(requirements)
+                <location-prefix>$(target-name).test
+                <testing.input-file>$(reference-output)
+                <testing.input-file>$(target-name).boostbook
+                <preserve-test-targets>on
+        ]
+        ;
+
+    modules.poke testing : .all-tests : \$\(all-tests\) $(t) ;
+
+    return $(t) ;
+}
+
+rule quickbook-fail-test ( target-name : input ? : requirements * )
+{
+    input ?= $(target-name).quickbook ;
+
+    local project = [ project.current ] ;
+    
+    local boost-root = [ modules.peek : BOOST_ROOT ] ;
+
+    local t =
+        [ targets.create-typed-target RUN_FAIL
+            : $(project)
+            : $(target-name)
+            : $(boost-root)/tools/quickbook/src//quickbook
+            : $(requirements)
+              <testing.input-file>$(input)
+              <preserve-test-targets>on
+              <dependency>$(input)
+        ]
+        ;
+
+    modules.poke testing : .all-tests : \$\(all-tests\) $(t) ;
+
+    return $(t) ;
+}
+
+rule quickbook-error-test ( target-name : input ? : requirements * )
+{
+    input ?= $(target-name).quickbook ;
+
+    local project = [ project.current ] ;
+    
+    local boost-root = [ modules.peek : BOOST_ROOT ] ;
+
+    local t =
+        [ targets.create-typed-target RUN
+            : $(project)
+            : $(target-name)
+            : $(boost-root)/tools/quickbook/src//quickbook
+            : $(requirements)
+              <testing.input-file>$(input)
+              <testing.arg>--expect-errors
+              <preserve-test-targets>on
+              <dependency>$(input)
+        ]
+        ;
+
+    modules.poke testing : .all-tests : \$\(all-tests\) $(t) ;
+
+    return $(t) ;
+}
+
+################################################################################
+toolset.flags quickbook-testing.process-quickbook quickbook-command <quickbook-testing.quickbook-command> ;
+toolset.flags quickbook-testing.process-quickbook QB-DEFINES        <quickbook-test-define> ;
+toolset.flags quickbook-testing.process-quickbook XINCLUDE          <quickbook-xinclude-base> ;
+toolset.flags quickbook-testing.process-quickbook INCLUDES          <quickbook-test-include> ;
+
+rule process-quickbook ( target : source : properties * )
+{
+    DEPENDS $(target) : [ on $(target) return $(quickbook-command) ] ;
+}
+
+actions process-quickbook bind quickbook-command
+{
+    $(quickbook-command) $(>) --output-file=$(<) --debug -D"$(QB-DEFINES)" -I"$(INCLUDES)" --xinclude-base="$(XINCLUDE)"
+}
+

@@ -1,0 +1,83 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Why my application crashes on process termination when file sinks are used?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../rationale.html" title="Rationale and FAQ">
+<link rel="prev" href="init_term_support.html" title="Does Boost.Log support logging at process initialization and termination?">
+<link rel="next" href="namespace_mangling.html" title="Why my application fails to link with Boost.Log? What's the fuss about library namespaces?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="init_term_support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="namespace_mangling.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.rationale.why_crash_on_term"></a><a class="link" href="why_crash_on_term.html" title="Why my application crashes on process termination when file sinks are used?">Why my application crashes
+      on process termination when file sinks are used?</a>
+</h3></div></div></div>
+<p>
+        There are known problems with <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+        (for example, <a href="https://svn.boost.org/trac/boost/ticket/8642" target="_top">#8642</a> and <a href="https://svn.boost.org/trac/boost/ticket/9219" target="_top">#9219</a>), which affect Boost.Log file sink backends.
+        When the file sink is destroyed, it attempts to perform a final log file
+        rotation, which involves <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+        for moving files. This typically happens when Boost.Log core is deinitialized,
+        at the global deinitialization stage, after leaving <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>. The crux of the problem is that <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+        uses a global locale object internally to perform character code conversion
+        for <code class="computeroutput"><span class="identifier">path</span></code>s, and this locale
+        may get destroyed before Boost.Log is deinitialized, which results in a crash.
+      </p>
+<p>
+        There is no way for Boost.Log to influence the order of global deinitialization,
+        but the problem can be worked around on the user's side. One solution is
+        to make sure the locale is initialized <span class="emphasis"><em>before</em></span> Boost.Log.
+        This can be achieved by calling <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">::</span><span class="identifier">codecvt</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">::</span><span class="identifier">imbue</span><span class="special">()</span></code> early during the application startup, before
+        performing any calls to Boost.Log. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">::</span><span class="identifier">imbue</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">(</span><span class="string">"C"</span><span class="special">));</span>
+    <span class="identifier">initialize_log</span><span class="special">();</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Note that in this case you can't use Boost.Log in global constructors or
+        you have to make sure that <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">::</span><span class="identifier">imbue</span><span class="special">()</span></code> is still called first.
+      </p>
+<p>
+        Another solution is to remove and destroy file sinks from the logging core
+        before returning from <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>. This way file rotation will happen before
+        leaving <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>,
+        while the locale is still valid. The file sinks can be removed either individually
+        or as a part of the <code class="computeroutput"><span class="identifier">remove_all_sinks</span><span class="special">()</span></code> call:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">remove_all_sinks</span><span class="special">();</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="init_term_support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="namespace_mangling.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

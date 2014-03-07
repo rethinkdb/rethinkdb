@@ -1,0 +1,586 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Functions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="prev" href="exposing.html" title="Exposing Classes">
+<link rel="next" href="object.html" title="Object Interface">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="exposing.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="object.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="python.functions"></a>Functions</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="functions.html#python.call_policies">Call Policies</a></span></dt>
+<dt><span class="section"><a href="functions.html#python.overloading">Overloading</a></span></dt>
+<dt><span class="section"><a href="functions.html#python.default_arguments">Default Arguments</a></span></dt>
+<dt><span class="section"><a href="functions.html#python.auto_overloading">Auto-Overloading</a></span></dt>
+</dl></div>
+<p>
+      In this chapter, we'll look at Boost.Python powered functions in closer detail.
+      We will see some facilities to make exposing C++ functions to Python safe from
+      potential pifalls such as dangling pointers and references. We will also see
+      facilities that will make it even easier for us to expose C++ functions that
+      take advantage of C++ features such as overloading and default arguments.
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="emphasis"><em>Read on...</em></span>
+      </p></blockquote></div>
+<p>
+      But before you do, you might want to fire up Python 2.2 or later and type
+      <code class="literal">&gt;&gt;&gt; import this</code>.
+    </p>
+<pre class="programlisting">&gt;&gt;&gt; import this
+The Zen of Python, by Tim Peters
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than <span class="bold"><strong>right</strong></span> now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.call_policies"></a>Call Policies</h3></div></div></div>
+<p>
+        In C++, we often deal with arguments and return types such as pointers and
+        references. Such primitive types are rather, ummmm, low level and they really
+        don't tell us much. At the very least, we don't know the owner of the pointer
+        or the referenced object. No wonder languages such as Java and Python never
+        deal with such low level entities. In C++, it's usually considered a good
+        practice to use smart pointers which exactly describe ownership semantics.
+        Still, even good C++ interfaces use raw references and pointers sometimes,
+        so Boost.Python must deal with them. To do this, it may need your help. Consider
+        the following C++ function:
+      </p>
+<pre class="programlisting"><span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">Y</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">Z</span><span class="special">*</span> <span class="identifier">z</span><span class="special">);</span>
+</pre>
+<p>
+        How should the library wrap this function? A naive approach builds a Python
+        X object around result reference. This strategy might or might not work out.
+        Here's an example where it didn't
+      </p>
+<pre class="programlisting"><span class="special">&gt;&gt;&gt;</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span> <span class="preprocessor"># x</span> <span class="identifier">refers</span> <span class="identifier">to</span> <span class="identifier">some</span> <span class="identifier">C</span><span class="special">++</span> <span class="identifier">X</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">del</span> <span class="identifier">y</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">some_method</span><span class="special">()</span> <span class="preprocessor"># CRASH</span><span class="special">!</span>
+</pre>
+<p>
+        What's the problem?
+      </p>
+<p>
+        Well, what if f() was implemented as shown below:
+      </p>
+<pre class="programlisting"><span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">Y</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">Z</span><span class="special">*</span> <span class="identifier">z</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">y</span><span class="special">.</span><span class="identifier">z</span> <span class="special">=</span> <span class="identifier">z</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The problem is that the lifetime of result X&amp; is tied to the lifetime
+        of y, because the f() returns a reference to a member of the y object. This
+        idiom is is not uncommon and perfectly acceptable in the context of C++.
+        However, Python users should not be able to crash the system just by using
+        our C++ interface. In this case deleting y will invalidate the reference
+        to X. We have a dangling reference.
+      </p>
+<p>
+        Here's what's happening:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            <code class="literal">f</code> is called passing in a reference to <code class="literal">y</code>
+            and a pointer to <code class="literal">z</code>
+          </li>
+<li class="listitem">
+            A reference to <code class="literal">y.x</code> is returned
+          </li>
+<li class="listitem">
+            <code class="literal">y</code> is deleted. <code class="literal">x</code> is a dangling reference
+          </li>
+<li class="listitem">
+            <code class="literal">x.some_method()</code> is called
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>BOOM!</strong></span>
+          </li>
+</ol></div>
+<p>
+        We could copy result into a new object:
+      </p>
+<pre class="programlisting"><span class="special">&gt;&gt;&gt;</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">).</span><span class="identifier">set</span><span class="special">(</span><span class="number">42</span><span class="special">)</span> <span class="comment"># Result disappears</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span>       <span class="comment"># No crash, but still bad</span>
+<span class="number">3.14</span>
+</pre>
+<p>
+        This is not really our intent of our C++ interface. We've broken our promise
+        that the Python interface should reflect the C++ interface as closely as
+        possible.
+      </p>
+<p>
+        Our problems do not end there. Suppose Y is implemented as follows:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">Y</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="identifier">x</span><span class="special">;</span> <span class="identifier">Z</span><span class="special">*</span> <span class="identifier">z</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">z_value</span><span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">z</span><span class="special">-&gt;</span><span class="identifier">value</span><span class="special">();</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Notice that the data member <code class="literal">z</code> is held by class Y using
+        a raw pointer. Now we have a potential dangling pointer problem inside Y:
+      </p>
+<pre class="programlisting"><span class="special">&gt;&gt;&gt;</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span> <span class="preprocessor"># y</span> <span class="identifier">refers</span> <span class="identifier">to</span> <span class="identifier">z</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">del</span> <span class="identifier">z</span>       <span class="preprocessor"># Kill</span> <span class="identifier">the</span> <span class="identifier">z</span> <span class="identifier">object</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">z_value</span><span class="special">()</span> <span class="preprocessor"># CRASH</span><span class="special">!</span>
+</pre>
+<p>
+        For reference, here's the implementation of <code class="literal">f</code> again:
+      </p>
+<pre class="programlisting"><span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">Y</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">Z</span><span class="special">*</span> <span class="identifier">z</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">y</span><span class="special">.</span><span class="identifier">z</span> <span class="special">=</span> <span class="identifier">z</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Here's what's happening:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            <code class="literal">f</code> is called passing in a reference to <code class="literal">y</code>
+            and a pointer to <code class="literal">z</code>
+          </li>
+<li class="listitem">
+            A pointer to <code class="literal">z</code> is held by <code class="literal">y</code>
+          </li>
+<li class="listitem">
+            A reference to <code class="literal">y.x</code> is returned
+          </li>
+<li class="listitem">
+            <code class="literal">z</code> is deleted. <code class="literal">y.z</code> is a dangling
+            pointer
+          </li>
+<li class="listitem">
+            <code class="literal">y.z_value()</code> is called
+          </li>
+<li class="listitem">
+            <code class="literal">z-&gt;value()</code> is called
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>BOOM!</strong></span>
+          </li>
+</ol></div>
+<h3>
+<a name="call_policies.call_policies"></a>
+        Call Policies
+      </h3>
+<p>
+        Call Policies may be used in situations such as the example detailed above.
+        In our example, <code class="literal">return_internal_reference</code> and <code class="literal">with_custodian_and_ward</code>
+        are our friends:
+      </p>
+<pre class="programlisting"><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span>
+    <span class="identifier">return_internal_reference</span><span class="special">&lt;</span><span class="number">1</span><span class="special">,</span>
+        <span class="identifier">with_custodian_and_ward</span><span class="special">&lt;</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">&gt;</span> <span class="special">&gt;());</span>
+</pre>
+<p>
+        What are the <code class="literal">1</code> and <code class="literal">2</code> parameters, you
+        ask?
+      </p>
+<pre class="programlisting"><span class="identifier">return_internal_reference</span><span class="special">&lt;</span><span class="number">1</span>
+</pre>
+<p>
+        Informs Boost.Python that the first argument, in our case <code class="literal">Y&amp;
+        y</code>, is the owner of the returned reference: <code class="literal">X&amp;</code>.
+        The "<code class="literal">1</code>" simply specifies the first argument.
+        In short: "return an internal reference <code class="literal">X&amp;</code> owned
+        by the 1st argument <code class="literal">Y&amp; y</code>".
+      </p>
+<pre class="programlisting"><span class="identifier">with_custodian_and_ward</span><span class="special">&lt;</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Informs Boost.Python that the lifetime of the argument indicated by ward
+        (i.e. the 2nd argument: <code class="literal">Z* z</code>) is dependent on the lifetime
+        of the argument indicated by custodian (i.e. the 1st argument: <code class="literal">Y&amp;
+        y</code>).
+      </p>
+<p>
+        It is also important to note that we have defined two policies above. Two
+        or more policies can be composed by chaining. Here's the general syntax:
+      </p>
+<pre class="programlisting"><span class="identifier">policy1</span><span class="special">&lt;</span><span class="identifier">args</span><span class="special">...,</span>
+    <span class="identifier">policy2</span><span class="special">&lt;</span><span class="identifier">args</span><span class="special">...,</span>
+        <span class="identifier">policy3</span><span class="special">&lt;</span><span class="identifier">args</span><span class="special">...&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        Here is the list of predefined call policies. A complete reference detailing
+        these can be found <a href="../../../../v2/reference.html#models_of_call_policies" target="_top">here</a>.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <span class="bold"><strong>with_custodian_and_ward</strong></span>: Ties lifetimes
+            of the arguments
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>with_custodian_and_ward_postcall</strong></span>: Ties
+            lifetimes of the arguments and results
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>return_internal_reference</strong></span>: Ties lifetime
+            of one argument to that of result
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>return_value_policy&lt;T&gt; with T one of:</strong></span>
+            <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                  <span class="bold"><strong>reference_existing_object</strong></span>: naive
+                  (dangerous) approach
+                </li>
+<li class="listitem">
+                  <span class="bold"><strong>copy_const_reference</strong></span>: Boost.Python
+                  v1 approach
+                </li>
+<li class="listitem">
+                  <span class="bold"><strong>copy_non_const_reference</strong></span>:
+                </li>
+<li class="listitem">
+                  <span class="bold"><strong>manage_new_object</strong></span>: Adopt a pointer
+                  and hold the instance
+                </li>
+</ul></div>
+          </li>
+</ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../images/smiley.png" alt="smiley"></span> <span class="bold"><strong>Remember the Zen, Luke:</strong></span>
+      </p>
+<p>
+        "Explicit is better than implicit"
+      </p>
+<p>
+        "In the face of ambiguity, refuse the temptation to guess"
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.overloading"></a>Overloading</h3></div></div></div>
+<p>
+        The following illustrates a scheme for manually wrapping an overloaded member
+        functions. Of course, the same technique can be applied to wrapping overloaded
+        non-member functions.
+      </p>
+<p>
+        We have here our C++ class:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">X</span>
+<span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">b</span><span class="special">,</span> <span class="keyword">char</span> <span class="identifier">c</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">int</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">b</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">c</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span> <span class="special">+</span> <span class="identifier">c</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Class X has 4 overloaded functions. We will start by introducing some member
+        function pointer variables:
+      </p>
+<pre class="programlisting"><span class="keyword">bool</span>    <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx1</span><span class="special">)(</span><span class="keyword">int</span><span class="special">)</span>              <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+<span class="keyword">bool</span>    <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx2</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">)</span>      <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+<span class="keyword">bool</span>    <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx3</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">char</span><span class="special">)=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+<span class="keyword">int</span>     <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx4</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)</span>    <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+</pre>
+<p>
+        With these in hand, we can proceed to define and wrap this for Python:
+      </p>
+<pre class="programlisting"><span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx1</span><span class="special">)</span>
+<span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx2</span><span class="special">)</span>
+<span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx3</span><span class="special">)</span>
+<span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx4</span><span class="special">)</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.default_arguments"></a>Default Arguments</h3></div></div></div>
+<p>
+        Boost.Python wraps (member) function pointers. Unfortunately, C++ function
+        pointers carry no default argument info. Take a function <code class="literal">f</code>
+        with default arguments:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span> <span class="special">=</span> <span class="number">3.14</span><span class="special">,</span> <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="special">=</span> <span class="string">"hello"</span><span class="special">);</span>
+</pre>
+<p>
+        But the type of a pointer to the function <code class="literal">f</code> has no information
+        about its default arguments:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span><span class="special">(*</span><span class="identifier">g</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*)</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">;</span>    <span class="comment">// defaults lost!</span>
+</pre>
+<p>
+        When we pass this function pointer to the <code class="literal">def</code> function,
+        there is no way to retrieve the default arguments:
+      </p>
+<pre class="programlisting"><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">f</span><span class="special">);</span>                            <span class="comment">// defaults lost!</span>
+</pre>
+<p>
+        Because of this, when wrapping C++ code, we had to resort to manual wrapping
+        as outlined in the <a class="link" href="functions.html#python.overloading" title="Overloading">previous section</a>,
+        or writing thin wrappers:
+      </p>
+<pre class="programlisting"><span class="comment">// write "thin wrappers"</span>
+<span class="keyword">int</span> <span class="identifier">f1</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span> <span class="special">}</span>
+<span class="keyword">int</span> <span class="identifier">f2</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">y</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">);</span> <span class="special">}</span>
+
+<span class="comment">/*...*/</span>
+
+    <span class="comment">// in module init</span>
+    <span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">f</span><span class="special">);</span>  <span class="comment">// all arguments</span>
+    <span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">f2</span><span class="special">);</span> <span class="comment">// two arguments</span>
+    <span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">f1</span><span class="special">);</span> <span class="comment">// one argument</span>
+</pre>
+<p>
+        When you want to wrap functions (or member functions) that either:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            have default arguments, or
+          </li>
+<li class="listitem">
+            are overloaded with a common sequence of initial arguments
+          </li>
+</ul></div>
+<h3>
+<a name="default_arguments.boost_python_function_overloads"></a>
+        BOOST_PYTHON_FUNCTION_OVERLOADS
+      </h3>
+<p>
+        Boost.Python now has a way to make it easier. For instance, given a function:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">char</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">2</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">3</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">/*...*/</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The macro invocation:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_PYTHON_FUNCTION_OVERLOADS</span><span class="special">(</span><span class="identifier">foo_overloads</span><span class="special">,</span> <span class="identifier">foo</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">4</span><span class="special">)</span>
+</pre>
+<p>
+        will automatically create the thin wrappers for us. This macro will create
+        a class <code class="literal">foo_overloads</code> that can be passed on to <code class="literal">def(...)</code>.
+        The third and fourth macro argument are the minimum arguments and maximum
+        arguments, respectively. In our <code class="literal">foo</code> function the minimum
+        number of arguments is 1 and the maximum number of arguments is 4. The <code class="literal">def(...)</code>
+        function will automatically add all the foo variants for us:
+      </p>
+<pre class="programlisting"><span class="identifier">def</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="identifier">foo</span><span class="special">,</span> <span class="identifier">foo_overloads</span><span class="special">());</span>
+</pre>
+<h3>
+<a name="default_arguments.boost_python_member_function_overloads"></a>
+        BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS
+      </h3>
+<p>
+        Objects here, objects there, objects here there everywhere. More frequently
+        than anything else, we need to expose member functions of our classes to
+        Python. Then again, we have the same inconveniences as before when default
+        arguments or overloads with a common sequence of initial arguments come into
+        play. Another macro is provided to make this a breeze.
+      </p>
+<p>
+        Like <code class="literal">BOOST_PYTHON_FUNCTION_OVERLOADS</code>, <code class="literal">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</code>
+        may be used to automatically create the thin wrappers for wrapping member
+        functions. Let's have an example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">george</span>
+<span class="special">{</span>
+    <span class="keyword">void</span>
+    <span class="identifier">wack_em</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">char</span> <span class="identifier">c</span> <span class="special">=</span> <span class="char">'x'</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">/*...*/</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The macro invocation:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</span><span class="special">(</span><span class="identifier">george_overloads</span><span class="special">,</span> <span class="identifier">wack_em</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">3</span><span class="special">)</span>
+</pre>
+<p>
+        will generate a set of thin wrappers for george's <code class="literal">wack_em</code>
+        member function accepting a minimum of 1 and a maximum of 3 arguments (i.e.
+        the third and fourth macro argument). The thin wrappers are all enclosed
+        in a class named <code class="literal">george_overloads</code> that can then be used
+        as an argument to <code class="literal">def(...)</code>:
+      </p>
+<pre class="programlisting"><span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"wack_em"</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">george</span><span class="special">::</span><span class="identifier">wack_em</span><span class="special">,</span> <span class="identifier">george_overloads</span><span class="special">());</span>
+</pre>
+<p>
+        See the <a href="../../../../v2/overloads.html#BOOST_PYTHON_FUNCTION_OVERLOADS-spec" target="_top">overloads
+        reference</a> for details.
+      </p>
+<h3>
+<a name="default_arguments.init_and_optional"></a>
+        init and optional
+      </h3>
+<p>
+        A similar facility is provided for class constructors, again, with default
+        arguments or a sequence of overloads. Remember <code class="literal">init&lt;...&gt;</code>?
+        For example, given a class X with a constructor:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">X</span>
+<span class="special">{</span>
+    <span class="identifier">X</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">char</span> <span class="identifier">b</span> <span class="special">=</span> <span class="char">'D'</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">c</span> <span class="special">=</span> <span class="string">"constructor"</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">);</span>
+    <span class="comment">/*...*/</span>
+<span class="special">}</span>
+</pre>
+<p>
+        You can easily add this constructor to Boost.Python in one shot:
+      </p>
+<pre class="programlisting"><span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="identifier">init</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;())</span>
+</pre>
+<p>
+        Notice the use of <code class="literal">init&lt;...&gt;</code> and <code class="literal">optional&lt;...&gt;</code>
+        to signify the default (optional arguments).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.auto_overloading"></a>Auto-Overloading</h3></div></div></div>
+<p>
+        It was mentioned in passing in the previous section that <code class="literal">BOOST_PYTHON_FUNCTION_OVERLOADS</code>
+        and <code class="literal">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</code> can also be
+        used for overloaded functions and member functions with a common sequence
+        of initial arguments. Here is an example:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">/*...*/</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">bool</span> <span class="identifier">a</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">/*...*/</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">bool</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">/*...*/</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">bool</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">b</span><span class="special">,</span> <span class="keyword">char</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">/*...*/</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Like in the previous section, we can generate thin wrappers for these overloaded
+        functions in one-shot:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_PYTHON_FUNCTION_OVERLOADS</span><span class="special">(</span><span class="identifier">foo_overloads</span><span class="special">,</span> <span class="identifier">foo</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">3</span><span class="special">)</span>
+</pre>
+<p>
+        Then...
+      </p>
+<pre class="programlisting"><span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="special">(</span><span class="keyword">void</span><span class="special">(*)(</span><span class="keyword">bool</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">))</span><span class="number">0</span><span class="special">,</span> <span class="identifier">foo_overloads</span><span class="special">());</span>
+</pre>
+<p>
+        Notice though that we have a situation now where we have a minimum of zero
+        (0) arguments and a maximum of 3 arguments.
+      </p>
+<h3>
+<a name="auto_overloading.manual_wrapping"></a>
+        Manual Wrapping
+      </h3>
+<p>
+        It is important to emphasize however that <span class="bold"><strong>the overloaded
+        functions must have a common sequence of initial arguments</strong></span>. Otherwise,
+        our scheme above will not work. If this is not the case, we have to wrap
+        our functions <a class="link" href="functions.html#python.overloading" title="Overloading">manually</a>.
+      </p>
+<p>
+        Actually, we can mix and match manual wrapping of overloaded functions and
+        automatic wrapping through <code class="literal">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</code>
+        and its sister, <code class="literal">BOOST_PYTHON_FUNCTION_OVERLOADS</code>. Following
+        up on our example presented in the section <a class="link" href="functions.html#python.overloading" title="Overloading">on
+        overloading</a>, since the first 4 overload functins have a common sequence
+        of initial arguments, we can use <code class="literal">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</code>
+        to automatically wrap the first three of the <code class="literal">def</code>s and
+        manually wrap just the last. Here's how we'll do this:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</span><span class="special">(</span><span class="identifier">xf_overloads</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">4</span><span class="special">)</span>
+</pre>
+<p>
+        Create a member function pointers as above for both X::f overloads:
+      </p>
+<pre class="programlisting"><span class="keyword">bool</span>    <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx1</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">char</span><span class="special">)</span>    <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+<span class="keyword">int</span>     <span class="special">(</span><span class="identifier">X</span><span class="special">::*</span><span class="identifier">fx2</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)</span>        <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">f</span><span class="special">;</span>
+</pre>
+<p>
+        Then...
+      </p>
+<pre class="programlisting"><span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx1</span><span class="special">,</span> <span class="identifier">xf_overloads</span><span class="special">());</span>
+<span class="special">.</span><span class="identifier">def</span><span class="special">(</span><span class="string">"f"</span><span class="special">,</span> <span class="identifier">fx2</span><span class="special">)</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, David Abrahams<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="exposing.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="object.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Flushable</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Flushable</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Flushable Sink or OutputFilter provides a means for the user to request that all buffered characters be sent downstream.
+</P>
+
+<H2>Refinement of</H2>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<P>Same as <A HREF="filter.html#types">Filter</A> or <A HREF="device.html#types">Device</A>, with the following additional requirement:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Category</TD><TD>A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>flushable_tag</CODE></A></TD></TR>
+</TABLE>
+
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>F</CODE></TD><TD>-</TD><TD>A type which is a model of Flushable</TD></TR>
+    <TR><TD><CODE>D</CODE></TD><TD>-</TD><TD>A type which is a model of <A HREF="device.html">Sink</A>, with the same character type as <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>f</CODE></TD><TD>-</TD><TD>Object of type <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>d</CODE></TD><TD>-</TD><TD>Object of type <CODE>D</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE><A HREF="../functions/flush.html#flush_device">boost::iostreams::flush</A>(f)</CODE></PRE>
+        </TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>Category convertible to <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A></TD>
+        <TD>
+            Attempts to send all buffered characters downstream, returning <CODE>true</CODE> unless an error occurs.<A CLASS='footnote_ref' NAME='note_1_ref' HREF='#note_1'><SUP>[1]</SUP></A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE><A HREF="../functions/flush.html#flush_filter">boost::iostreams::flush</A>(f, d)</CODE></PRE>
+        </TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>Category convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A></TD>
+        <TD>
+            <P>
+                Attempts to write all buffered characters to d, returning <CODE>true</CODE> if all buffered characters were written.
+            </P>
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <A CLASS="code" HREF="../functions/flush.html"><CODE>flush</CODE></A> are be indicated by throwing exceptions. Such exceptions are caught and ignored if they occur during the execution of stream or stream buffer destructor.
+</P>
+
+<H2>Models</H2>
+
+<P>Several of the Filters and Devices provided by the Iostreams library are Flushable, but this is an implementation detail.</P>
+
+<HR>
+
+<P>
+    <A CLASS='footnote_ref' NAME='note_1' HREF='#note_1_ref'><SUP>[1]</SUP></A>It was noticed late in developement that to be consistent with the policy of reporting errors using exceptions (<I>see</I> <A HREF='../guide/exceptions.html'>Exceptions</A>), <CODE>flush</CODE> should have been specified to return <CODE>void</CODE> when invoked on a Device. Until the specification is changed, Devices should always return <CODE>true</CODE> when flushed.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

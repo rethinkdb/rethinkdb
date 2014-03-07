@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.10: http://docutils.sourceforge.net/" />
+<title>Boost Pointer Container Library</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger
+:Contact: goodger@users.sourceforge.net
+:Date: $Date: 2006-11-22 14:01:03 -0800 (Wed, 22 Nov 2006) $
+:Revision: $Revision: 36152 $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See http://docutils.sf.net/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* "! important" is used here to override other ``margin-top`` and
+   ``margin-bottom`` styles that are later in the stylesheet or 
+   more specific.  See http://www.w3.org/TR/CSS1#the-cascade */
+.first {
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left {
+  clear: left }
+
+img.align-right {
+  clear: right }
+
+img.borderless {
+  border: 0 }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font-family: serif ;
+  font-size: 100% }
+
+pre.line-block {
+  font-family: serif ;
+  font-size: 100% }
+
+pre.literal-block, pre.doctest-block {
+  margin-left: 2em ;
+  margin-right: 2em ;
+  background-color: #eeeeee }
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid thin gray }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid thin black }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+tt.docutils {
+  background-color: #eeeeee }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document" id="boost-pointer-container-library">
+<h1 class="title"><img alt="Boost" src="boost.png" /> Pointer Container Library</h1>
+<div class="section">
+<h1><a id="class-associative-ptr-container" name="class-associative-ptr-container">Class <tt class="docutils literal"><span class="pre">associative_ptr_container</span></tt></a></h1>
+<p>This section describes all the common operations for all associative
+pointer containers (in addition to <tt class="docutils literal"><span class="pre">reversible_ptr_container</span></tt>).</p>
+<p><strong>Hierarchy:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="reversible_ptr_container.html">reversible_ptr_container</a><ul>
+<li><tt class="docutils literal"><span class="pre">associative_ptr_container</span></tt><ul>
+<li><a class="reference" href="ptr_set_adapter.html">ptr_set_adapter</a></li>
+<li><a class="reference" href="ptr_multiset_adapter.html">ptr_multiset_adapter</a></li>
+<li><a class="reference" href="ptr_map_adapter.html">ptr_map_adapter</a></li>
+<li><a class="reference" href="ptr_multimap_adapter.html">ptr_multi_map_adapter</a><ul>
+<li><a class="reference" href="ptr_set.html">ptr_set</a></li>
+<li><a class="reference" href="ptr_multiset.html">ptr_multi_set</a></li>
+<li><a class="reference" href="ptr_map.html">ptr_map</a></li>
+<li><a class="reference" href="ptr_multimap.html">ptr_multimap</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>See also:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="http://www.boost.org/libs/range/doc/utility_class.html#iter_range">iterator_range</a></li>
+</ul>
+<p><strong>Navigate:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="ptr_container.html">home</a></li>
+<li><a class="reference" href="reference.html">reference</a></li>
+</ul>
+<p><strong>Synopsis:</strong></p>
+<pre class="literal-block">
+namespace boost
+{
+    template
+    &lt; 
+        class Key, 
+        class CloneAllocator = heap_clone_allocator 
+    &gt;
+    class associative_ptr_container 
+    {
+    public: // <a class="reference" href="#typedefs">typedefs</a>
+        typedef ...   key_type;
+        typedef ...   key_compare;
+        typedef ...   value_compare;
+
+    public: // <a class="reference" href="#observers">observers</a>
+        key_compare    key_comp() const;
+        value_compare  value_comp() const;
+
+    public: // <a class="reference" href="#modifiers">modifiers</a>         
+        template&lt; typename InputIterator &gt;
+        void       insert( InputIterator first, InputIterator last );     
+        template&lt; class InputRange &gt;
+        void       insert( const InputRange&amp; r );
+        void       erase( iterator position ); 
+        size_type  erase( const key_type&amp; x );
+        template&lt; class Range &gt;
+        void       erase( const Range&amp; r );
+        void       erase( iterator first, iterator last );
+
+    public: // <a class="reference" href="#algorithms">algorithms</a>
+        iterator                        find( const key_type&amp; x );
+        const_iterator                  find( const key_type&amp; x ) const;
+        size_type                       count( const key_type&amp; x ) const;              
+        iterator                        lower_bound( const key_type&amp; x );                     
+        const_iterator                  lower_bound( const key_type&amp; x ) const;
+        iterator                        upper_bound( const key_type&amp; x );                           
+        const_iterator                  upper_bound( const key_type&amp; x ) const;
+        iterator_range&lt;iterator&gt;        equal_range( const key_type&amp; x );                 
+        iterator_range&lt;const_iterator&gt;  equal_range( const key_type&amp; x ) const;
+     
+    }; //  class 'associative_ptr_container'
+    
+} // namespace 'boost'  
+</pre>
+</div>
+<div class="section">
+<h1><a id="semantics" name="semantics">Semantics</a></h1>
+<div class="section">
+<h2><a id="semantics-typedefs" name="semantics-typedefs"><span id="typedefs"></span>Semantics: typedefs</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">...</span> <span class="pre">key_type;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>if we are dealing with a map, then simply the key type</li>
+<li>if we are dealing with a set, then the <em>indirected</em> key type, that is, 
+given <tt class="docutils literal"><span class="pre">ptr_set&lt;T&gt;</span></tt>, <tt class="docutils literal"><span class="pre">key_type*</span></tt> will be <tt class="docutils literal"><span class="pre">T*</span></tt>.</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">...</span> <span class="pre">key_compare;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>comparison object type that determines the order of elements in the container</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">...</span> <span class="pre">value_compare;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>comparison object type that determines the order of elements in the container</li>
+<li>if we are dealing with a map, then this comparison simply forwards to the <tt class="docutils literal"><span class="pre">key_compare</span></tt> comparison operation</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-observers" name="semantics-observers"><span id="observers"></span>Semantics: observers</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">key_compare</span> <span class="pre">key_comp()</span> <span class="pre">const;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">value_compare</span> <span class="pre">value_comp()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>returns copies of objects used to determine the order of elements</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-modifiers" name="semantics-modifiers"><span id="modifiers"></span>Semantics: modifiers</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">typename</span> <span class="pre">InputIterator</span> <span class="pre">&gt;</span>
+<span class="pre">void</span> <span class="pre">insert(</span> <span class="pre">InputIterator</span> <span class="pre">first,</span> <span class="pre">InputIterator</span> <span class="pre">last</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">[first,last)</span></tt> is a valid range</li>
+<li>Effects: Inserts a cloned range</li>
+<li>Exception safety: Basic guarantee</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">InputRange</span> <span class="pre">&gt;</span>
+<span class="pre">void</span> <span class="pre">insert(</span> <span class="pre">const</span> <span class="pre">InputRange&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: <tt class="docutils literal"><span class="pre">insert(</span> <span class="pre">boost::begin(r),</span> <span class="pre">boost::end(r)</span> <span class="pre">);</span></tt></li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">void</span> <span class="pre">erase(</span> <span class="pre">iterator</span> <span class="pre">position</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">position</span></tt> is a valid iterator from the container</li>
+<li>Effects: Removes the element defined by <tt class="docutils literal"><span class="pre">position</span></tt>.</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">size_type</span> <span class="pre">erase(</span> <span class="pre">const</span> <span class="pre">key_type&amp;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Removes all the elements in the container with a key equivalent to <tt class="docutils literal"><span class="pre">x</span></tt> and returns the number of erased elements.</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">void</span> <span class="pre">erase(</span> <span class="pre">iterator</span> <span class="pre">first,</span> <span class="pre">iterator</span> <span class="pre">last</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">[first,last)</span></tt> is a valid range</li>
+<li>Effects: Removes the range of elements defined by <tt class="docutils literal"><span class="pre">[first,last)</span></tt>.</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">Range</span> <span class="pre">&gt;</span> <span class="pre">void</span> <span class="pre">erase(</span> <span class="pre">const</span> <span class="pre">Range&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: <tt class="docutils literal"><span class="pre">erase(</span> <span class="pre">boost::begin(r),</span> <span class="pre">boost::end(r)</span> <span class="pre">);</span></tt></li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-algorithms" name="semantics-algorithms"><span id="algorithms"></span>Semantics: algorithms</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">find(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_iterator</span> <span class="pre">find(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Searches for the key and returns <tt class="docutils literal"><span class="pre">end()</span></tt> on failure.</li>
+<li>Complexity: Logarithmic</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">size_type</span> <span class="pre">count(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Counts the elements with a key equivalent to <tt class="docutils literal"><span class="pre">x</span></tt></li>
+<li>Complexity: Logarithmic</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">lower_bound(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_iterator</span> <span class="pre">lower_bound(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns an iterator pointing to the first element with a key not less than <tt class="docutils literal"><span class="pre">x</span></tt></li>
+<li>Complexity: Logarithmic</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">upper_bound(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_iterator</span> <span class="pre">upper_bound(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns an iterator pointing to the first element with a key greater than <tt class="docutils literal"><span class="pre">x</span></tt></li>
+<li>Complexity: Logarithmic</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator_range&lt;iterator&gt;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">equal_range(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator_range&lt;const_iterator&gt;</span> <span class="pre">equal_range(</span> <span class="pre">const</span> <span class="pre">Key&amp;</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: <tt class="docutils literal"><span class="pre">return</span> <span class="pre">boost::make_iterator_range(</span> <span class="pre">lower_bound(</span> <span class="pre">x</span> <span class="pre">),</span> <span class="pre">upper_bound(</span> <span class="pre">x</span> <span class="pre">)</span> <span class="pre">);</span></tt></li>
+<li>Complexity: Logarithmic</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<!-- - ``reference       at( const key_type& key );``
+- ``const_reference at( const key_type& key ) const;`` 
+
+- Requirements: the key exists
+
+- Effects: returns the object with key ``key``
+
+- Throws: ``bad_ptr_container_operation`` if the key does not exist                                  -->
+<hr><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Copyright:</th><td class="field-body">Thorsten Ottosen 2004-2006. Use, modification and distribution is subject to the Boost Software License, Version 1.0 (see <a class="reference" href="http://www.boost.org/LICENSE_1_0.txt">LICENSE_1_0.txt</a>).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</body>
+</html>

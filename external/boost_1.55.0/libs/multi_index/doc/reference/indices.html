@@ -1,0 +1,392 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Index reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="multi_index_container.html">
+<link rel="up" href="index.html">
+<link rel="next" href="ord_indices.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Index reference</h1>
+
+<div class="prev_link"><a href="multi_index_container.html"><img src="../prev.gif" alt="multi_index_container reference" border="0"><br>
+<code>multi_index_container</code> reference
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="ord_indices.html"><img src="../next.gif" alt="ordered indices" border="0"><br>
+Ordered indices
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#index_concepts">Index concepts</a></li>
+  <li><a href="#complexity_signature">Complexity signature</a></li>
+  <li><a href="#index_specification">Index specification</a></li>
+  <li><a href="#indexed_by_synopsis">Header
+    <code>"boost/multi_index/indexed_by.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#indexed_by">Class template <code>indexed_by</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#tags">Tags</a></li>
+  <li><a href="#tag_synopsis">Header
+    <code>"boost/multi_index/tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#tag">Class template <code>tag</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#index_catalog">Indices provided by Boost.MultiIndex</a>
+    <ul>
+      <li><a href="#key_based_indices">Key-based indices</a></li>
+      <li><a href="#other_indices">Other types</a></li>
+    </ul>
+  </li>
+  <li><a href="#views">Index views</a></li>
+</ul>
+
+<h2><a name="index_concepts">Index concepts</a></h2>
+
+<p>
+<code>multi_index_container</code> instantiations comprise one or more indices
+specified at compile time. Each index allows read/write access to the elements
+contained in a definite manner. For instance,
+<a href="ord_indices.html">ordered indices</a>
+provide a set-like interface to the elements, whereas
+<a href="seq_indices.html">sequenced indices</a> mimic the functionality
+of <code>std::list</code>.
+</p>
+
+<p>
+Indices are not isolated objects, and so cannot be constructed on their
+own. Rather they are embedded into a <code>multi_index_container</code> as specified by
+means of an <a href="#index_specification">index specifier</a>. The name of
+the index class implementation proper is never directly exposed to the user, who
+has only access to the associated index specifier.
+</p>
+
+<p>
+Insertion and erasing of elements are always performed through the
+appropriate interface of some index of the <code>multi_index_container</code>;
+these operations, however, do have an impact on all other indices as
+well: for instance, insertion through a given index may fail because
+there exists another index which bans the operation in order to preserve
+its invariant (like uniqueness of elements.) This circumstance, rather
+than being an obstacle, yields much of the power of Boost.MultiIndex:
+equivalent constructions based on manual composition of standard
+containers would have to add a fair amount of code in order to
+globally preserve the invariants of each container while guaranteeing
+that all of them are synchronized. The global operations performed
+in a joint manner among the various indices can be reduced to
+six primitives:
+<ul>
+  <li>Copying,</li>
+  <li>insertion of an element,</li>
+  <li>hinted insertion, where a preexisting element is suggested in
+    order to improve the efficiency of the operation,</li>
+  <li>deletion of an element,</li>
+  <li>replacement of the value of an element,
+    which may trigger the rearrangement of this element in one or
+    more indices, or the banning of the replacement,</li>
+  <li>modification of an element, and its subsequent
+    rearrangement/banning by the various indices.
+</ul>
+The last two primitives deserve some further explanation: in order to
+guarantee the invariants associated to each index (e.g. some definite
+ordering,) elements of a <code>multi_index_container</code> are not mutable.
+To overcome this restriction, indices expose member functions
+for replacement and modification which allow for the mutation of elements
+in a controlled fashion. Immutability of elements does not significantly
+impact the interfaces of ordered and hashed indices, as they are based upon
+those of associative and unordered associative containers, respectively,
+and these containers
+also have non-mutable elements; but it may come as a surprise when dealing
+with sequenced and random access indices, which are designed upon the functionality provided
+by <code>std::list</code>. 
+</p>
+
+<p>
+These global operations are not directly exposed to the user, but rather
+they are wrapped as appropriate by each index (for instance, ordered indices
+provide a set-like suite of insertion member functions, whereas sequenced
+and random access indices have <code>push_back</code> and <code>push_front</code>
+operations.) Boost.MultiIndex poses no particular conditions on
+the interface of indices, although each index provided satisfy the C++ requirements for
+standard containers to the maximum extent possible within the conceptual framework
+of the library.
+</p>
+
+<h2><a name="complexity_signature">Complexity signature</a></h2>
+
+<p>
+Some member functions of an index interface are implemented by
+global primitives from the list above. Complexity of these operations
+thus depends on all indices of a given <code>multi_index_container</code>, not just
+the currently used index.
+</p>
+
+<p>
+In order to establish complexity estimates, an index is characterized
+by its <i>complexity signature</i>, consisting of the following
+associated functions on the number of elements:
+<ul>
+  <li><code>c(n)</code>: copying,
+  <li><code>i(n)</code>: insertion,
+  <li><code>h(n)</code>: hinted insertion,
+  <li><code>d(n)</code>: deletion,
+  <li><code>r(n)</code>: replacement,
+  <li><code>m(n)</code>: modifying.
+</ul>
+
+</p>
+Each function yields the complexity estimate of the contribution of the index
+to the corresponding global primitive. Let us consider
+an instantiation of <code>multi_index_container</code>
+with <code>N</code> indices labelled <code>0</code>,...,<code>N-1</code>
+whose complexity signatures are
+(<code>c<sub>i</sub></code>,<code>i<sub>i</sub></code>,<code>h<sub>i</sub></code>,<code>d<sub>i</sub></code>,<code>r<sub>i</sub></code>,<code>m<sub>i</sub></code>);
+the insertion of an element in such a container is then of complexity
+<code>O(i<sub>0</sub>(n)+···+i<sub>N-1</sub>(n))</code> where <code>n</code>
+is the number of elements. To abbreviate notation, we adopt the
+following definitions:
+<ul>
+  <li><code>C(n)=c<sub>0</sub>(n)+···+c<sub>N-1</sub>(n)</code>,</li>
+  <li><code>I(n)=i<sub>0</sub>(n)+···+i<sub>N-1</sub>(n)</code>,</li>
+  <li><code>H(n)=h<sub>0</sub>(n)+···+h<sub>N-1</sub>(n)</code>,</li>
+  <li><code>D(n)=d<sub>0</sub>(n)+···+d<sub>N-1</sub>(n)</code>,</li>
+  <li><code>R(n)=r<sub>0</sub>(n)+···+r<sub>N-1</sub>(n)</code>,</li>
+  <li><code>M(n)=m<sub>0</sub>(n)+···+m<sub>N-1</sub>(n)</code>.</li>
+</ul>
+For instance, consider a <code>multi_index_container</code> with two ordered indices,
+for which <code>i(n)=log(n)</code>, and a sequenced index with <code>i(n)=1</code>
+(constant time insertion). Insertion of an element into this <code>multi_index_container</code>
+is then of complexity
+<blockquote>
+<code>O(I(n))=O(2*log(n)+1)=O(log(n))</code>.
+</blockquote>
+</p>
+
+<h2><a name="index_specification">Index specification</a></h2>
+
+<p>
+Index specifiers are passed as instantiation arguments to
+<code>multi_index_container</code> and provide the information needed to incorporate
+the corresponding indices. Future releases of Boost.MultiIndex may allow for
+specification of user-defined indices. Meanwhile, the requirements for an index
+specifier remain implementation defined. Currently, Boost.MultiIndex provides the
+index specifiers
+<ul>
+  <li><a href="ord_indices.html#unique_non_unique"><code>ordered_unique</code> and
+    <code>ordered_non_unique</code></a> for
+    <a href="ord_indices.html">ordered indices</a>,</li>
+  <li><a href="hash_indices.html#unique_non_unique"><code>hashed_unique</code> and
+    <code>hashed_non_unique</code></a> for
+    <a href="hash_indices.html">hashed indices</a>,</li>
+  <li><a href="seq_indices.html#sequenced"><code>sequenced</code></a> for
+    <a href="seq_indices.html">sequenced indices</a></li>
+  <li>and <a href="rnd_indices.html#random_access"><code>random_access</code></a> for
+    <a href="rnd_indices.html">random access indices</a>.</li>
+</ul>
+</p>
+
+<h2>
+<a name="indexed_by_synopsis">Header
+<a href="../../../../boost/multi_index/indexed_by.hpp">
+<code>"boost/multi_index/indexed_by.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Tn</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>indexed_by</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="indexed_by">Class template <code>indexed_by</code></a></h3>
+
+<p>
+<code>indexed_by</code> is a model of
+<a href="../../../../libs/mpl/doc/refmanual/random-access-sequence.html">
+<code>MPL Random Access Sequence</code></a> and
+<a href="../../../../libs/mpl/doc/refmanual/extensible-sequence.html">
+<code>MPL Extensible Sequence</code></a> meant to be used to specify a
+compile-time list of indices as the <code>IndexSpecifierList</code> of
+<code>multi_index_container</code>.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Tn</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>indexed_by</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Each user-provided element of <code>indexed_list</code> must be an index
+specifier. At least an element must be provided. The maximum number of elements
+of an <code>indexed_by</code> sequence is implementation defined.
+</p>
+
+<h2><a name="tags">Tags</a></h2>
+
+<p>
+Tags are just conventional types used as mnemonics for indices of an
+<code>multi_index_container</code>, as for instance in member function <code>get</code>.
+Each index can have none, one or more tags associated. The way tags are assigned
+to a given index is dependent on the particular index specifier. However,
+for convenience all indices of Boost.MultiIndex support tagging through the
+class template <a href="#tag"><code>tag</code></a>.
+</p>
+
+<h2>
+<a name="tag_synopsis">Header
+<a href="../../../../boost/multi_index/tag.hpp">
+<code>"boost/multi_index/tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Tn</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>tag</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="tag">Class template <code>tag</code></a></h3>
+
+<p>
+<code>tag</code> is a typelist construct used to specify a compile-time
+sequence of tags to be assigned to an index in instantiation time.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Tn</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>tag</span>
+<span class=special>{</span>
+  <span class=keyword>typedef</span> <b>implementation defined</b> <span class=identifier>type</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Elements of <code>tag</code> can be any type, though the user is expected
+to provide classes with mnemonic names. Duplicate elements are not allowed.
+The maximum number of elements of a <code>tag</code> instantiation is
+implementation defined.
+The nested
+<code>type</code> is a model of
+<a href="../../../../libs/mpl/doc/refmanual/random-access-sequence.html">
+<code>MPL Random Access Sequence</code></a> and
+<a href="../../../../libs/mpl/doc/refmanual/extensible-sequence.html">
+<code>MPL Extensible Sequence</code></a> containing the types <code>T0</code>, ... ,
+<code>Tn</code> in the same order as specified.
+</p>
+
+<h2><a name="index_catalog">Indices provided by Boost.MultiIndex</a></h2>
+
+
+<h3><a name="key_based_indices">Key-based indices</a></h3>
+
+<p>
+Indices of this type are organized around <i>keys</i> obtained from the
+elements, as described in the <a href="key_extraction.html">key extraction
+reference</a>.
+<ul>
+  <li><a href="ord_indices.html">Ordered indices</a> sort the elements
+    on the key and provide fast lookup capabilites.</li>
+  <li><a href="hash_indices.html">Hashed indices</a> offer high
+    efficiency access through hashing techniques.</li>
+</ul>
+</p>
+
+<h3><a name="other_indices">Other types</a></h3>
+
+<p>
+<ul>
+  <li><a href="seq_indices.html">Sequenced indices</a> allow to arrange
+    elements as in a bidirectional list.</li>
+  <li><a href="rnd_indices.html">Random access indices</a> provide
+    constant time positional access and free ordering of elements.</li>
+</ul>
+</p>
+
+<h2><a name="views">Index views</a></h2>
+
+<p>
+The following concept is used by the rearrange facilities of non key-based
+indices. Given an index <code>i</code> of type <code>Index</code>, a <i>view
+of <code>i</code></i> is any range [<code>first</code>,<code>last</code>)
+where <code>first</code> and <code>last</code> are input iterators such that
+<ol>
+  <li>the associated value type of <code>Iterator</code> is convertible
+    to <code>const Index::value_type&amp;</code>
+  </li>
+  <li>and each of the elements of <code>i</code> appears exactly once in
+    [<code>first</code>,<code>last</code>).
+  </li>
+</ol>
+Note that the view refers to the actual elements of <code>i</code>, not to
+copies of them. Additionally, a view is said to be <i>free</i> if its traversal
+order is not affected by changes in the traversal order of <code>i</code>.
+Examples of free views are:
+<ul>
+  <li>[<code>c.begin()</code>,<code>c.end()</code>), where <code>c</code> is
+    any container of reference wrappers (from
+    <a href="../../../../doc/html/ref.html">Boost.Ref</a>) to the elements
+    of <code>i</code> containing exactly one reference to every element.
+  </li>
+  <li>[<code>i'.begin()</code>,<code>i'.end()</code>), where <code>i'</code> is
+    any index belonging to the same <code>multi_index_container</code>
+    as <code>i</code>, except <code>i</code> itself.
+  </li>
+  <li>
+    Any range which is a permutation of the ones described above, as for
+    instance [<code>c.rbegin()</code>,<code>c.rend()</code>), or
+    ranges obtained from the former with the aid of
+    <a href="../../../../libs/iterator/doc/permutation_iterator.html">
+    <code>permutation_iterator</code></a> from Boost.Iterator.
+  </li>
+</ul>
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="multi_index_container.html"><img src="../prev.gif" alt="multi_index_container reference" border="0"><br>
+<code>multi_index_container</code> reference
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="ord_indices.html"><img src="../next.gif" alt="ordered indices" border="0"><br>
+Ordered indices
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 7th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

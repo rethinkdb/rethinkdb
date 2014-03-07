@@ -1,0 +1,246 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template impl</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../make.html#idp187594824" title="Description">
+<link rel="prev" href="../make.html" title="Struct template make">
+<link rel="next" href="../pass_through.html" title="Struct template pass_through">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../make.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../make.html#idp187594824"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../pass_through.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.make.impl"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template impl</span></h2>
+<p>boost::proto::make::impl</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.transform.make_hpp" title="Header &lt;boost/proto/transform/make.hpp&gt;">boost/proto/transform/make.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Data<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="impl.html" title="Struct template impl">impl</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="../transform_impl.html" title="Struct template transform_impl">proto::transform_impl</a><span class="special">&lt;</span> <span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">State</span><span class="special">,</span> <span class="identifier">Data</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="impl.html#boost.proto.make.impltypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></em></span> <a class="link" href="impl.html#boost.proto.make.impl.result_type"><span class="identifier">result_type</span></a><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="impl.html#idp68860280-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="impl.html#idp68860568-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp187618312"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp187618520"></a><h3>
+<a name="boost.proto.make.impltypes"></a><code class="computeroutput">impl</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></em></span> <a name="boost.proto.make.impl.result_type"></a><span class="identifier">result_type</span><span class="special">;</span></p>
+<p>
+                <code class="computeroutput"><a class="link" href="../make.html" title="Struct template make">proto::make</a>&lt;T&gt;::impl&lt;Expr, State, Data&gt;::result_type</code> is
+                computed as follows:
+              </p>
+<p>
+                If <code class="computeroutput">T</code> is an <a class="link" href="../../../ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> of the form
+                <code class="computeroutput">Object(A<sub>0</sub>,&#8230;A<sub>n</sub>)</code> or
+                <code class="computeroutput">Object(A<sub>0</sub>,&#8230;A<sub>n</sub> ...)</code>,
+                then let <code class="computeroutput">O</code> be the return type
+                <code class="computeroutput">Object</code>. Otherwise, let <code class="computeroutput">O</code>
+                be <code class="computeroutput">T</code>. The <code class="computeroutput">result_type</code> typedef is
+                then computed as follows:
+              </p>
+<p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+                      If <code class="computeroutput"><a class="link" href="../is_transform.html" title="Struct template is_transform">proto::is_transform</a>&lt;O&gt;::value</code> is
+                      <code class="computeroutput">true</code>, then let the result type be
+                      <code class="computeroutput">
+                        boost::result_of&lt;<a class="link" href="../when.html" title="Struct template when">proto::when</a>&lt;<a class="link" href="../_.html" title="Struct _">_</a>, O&gt;(Expr, State, Data)&gt;::type
+                      </code>.
+                      Note that a substitution took place.
+                    </p></li>
+<li class="listitem">
+                    If <code class="computeroutput">O</code> is a template like
+                    <code class="computeroutput"><a class="link" href="../noinvoke.html" title="Struct template noinvoke">proto::noinvoke</a>&lt;S&lt;X<sub>0</sub>,&#8230;X<sub>n</sub>&gt; &gt;</code>,
+                    then the result type is calculated as follows:
+                    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem"><p>
+                          For each <code class="computeroutput">i</code> in
+                          <code class="computeroutput">[0,n]</code>, let <code class="computeroutput">
+                            X<sub>i</sub>'
+                          </code> be
+                          <code class="computeroutput">
+                            boost::result_of&lt;<a class="link" href="../make.html" title="Struct template make">proto::make</a>&lt;X<sub>i</sub>&gt;(Expr, State, Data)&gt;::type
+                          </code>
+                          (which evaluates this procedure recursively). Note that a substitution took place. (In this case,
+                          Proto merely assumes that a substitution took place for the sake of compile-time efficiency. There
+                          would be no reason to use <code class="computeroutput"><a class="link" href="../noinvoke.html" title="Struct template noinvoke">proto::noinvoke&lt;&gt;</a></code>
+                          otherwise.)
+                        </p></li>
+<li class="listitem"><p>
+                          The result type is
+                          <code class="computeroutput">
+                            S&lt;X<sub>0</sub>',&#8230;X<sub>n</sub>'&gt;
+                          </code>.
+                        </p></li>
+</ul></div>
+</li>
+<li class="listitem">
+                    If <code class="computeroutput">O</code> is a template like
+                    <code class="computeroutput">S&lt;X<sub>0</sub>,&#8230;X<sub>n</sub>&gt;</code>,
+                    then the result type is calculated as follows:
+                    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem"><p>
+                          For each <code class="computeroutput">i</code> in
+                          <code class="computeroutput">[0,n]</code>, let <code class="computeroutput">
+                            X<sub>i</sub>'
+                          </code> be
+                          <code class="computeroutput">
+                            boost::result_of&lt;<a class="link" href="../make.html" title="Struct template make">proto::make</a>&lt;X<sub>i</sub>&gt;(Expr, State, Data)&gt;::type
+                          </code>
+                          (which evaluates this procedure recursively). Note whether any substitutions took place during
+                          this operation.
+                        </p></li>
+<li class="listitem"><p>
+                          If any substitutions took place in the above step and
+                          <code class="computeroutput">
+                            S&lt;X<sub>0</sub>',&#8230;X<sub>n</sub>'&gt;
+                          </code> has a nested
+                          <code class="computeroutput">type</code> typedef, the result type is
+                          <code class="computeroutput">
+                            S&lt;X<sub>0</sub>',&#8230;X<sub>n</sub>'&gt;::type
+                          </code>.
+                        </p></li>
+<li class="listitem"><p>
+                          Otherwise, the result type is
+                          <code class="computeroutput">
+                            S&lt;X<sub>0</sub>',&#8230;X<sub>n</sub>'&gt;
+                          </code>.
+                        </p></li>
+</ul></div>
+</li>
+<li class="listitem">
+                    Otherwise, the result type is <code class="computeroutput">O</code>, and note that no
+                    substitution took place.
+                  </li>
+</ul></div>
+<p>
+              </p>
+<p>
+                Note that <code class="computeroutput"><a class="link" href="../when.html" title="Struct template when">proto::when&lt;&gt;</a></code> is implemented
+                in terms of <code class="computeroutput"><a class="link" href="../call.html" title="Struct template call">proto::call&lt;&gt;</a></code>
+                and <code class="computeroutput"><a class="link" href="../make.html" title="Struct template make">proto::make&lt;&gt;</a></code>, so the
+                above procedure is evaluated recursively.
+              </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp187650024"></a><h3>
+<a name="idp68860280-bb"></a><code class="computeroutput">impl</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp68860568-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span> expr<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span> state<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span> data<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                  <code class="computeroutput">
+                    <code class="computeroutput"><a class="link" href="../make.html" title="Struct template make">proto::make</a></code>&lt;T&gt;::impl&lt;Expr,State,Data&gt;::operator()
+                  </code>
+                  behaves as follows:
+                </p>
+<p>
+                  </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>
+                        If <code class="computeroutput">T</code> is of the form
+                        <code class="computeroutput">O(A<sub>0</sub>,&#8230;A<sub>n</sub>)</code>, then:
+                      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+<p>
+                            If <code class="computeroutput">
+                              <code class="computeroutput"><a class="link" href="../is_aggregate.html" title="Struct template is_aggregate">proto::is_aggregate</a></code>&lt;result_type&gt;::value
+                            </code> is <code class="computeroutput">true</code>, then construct
+                            and return an object <code class="computeroutput">that</code> as follows:
+                            </p>
+<pre class="programlisting">result_type that = {
+  <code class="computeroutput"><a class="link" href="../when.html" title="Struct template when">proto::when</a></code>&lt;<code class="computeroutput"><a class="link" href="../_.html" title="Struct _">_</a></code>, A<sub>0</sub>&gt;()(expr, state, data),
+  &#8230;
+  <code class="computeroutput"><a class="link" href="../when.html" title="Struct template when">proto::when</a></code>&lt;<code class="computeroutput"><a class="link" href="../_.html" title="Struct _">_</a></code>, A<sub>n</sub>&gt;()(expr, state, data)
+};</pre>
+<p>
+                          </p>
+</li>
+<li class="listitem">
+<p>
+                            Otherwise, construct
+                            and return an object <code class="computeroutput">that</code> as follows:
+                            </p>
+<pre class="programlisting">result_type that(
+  <code class="computeroutput"><a class="link" href="../when.html" title="Struct template when">proto::when</a></code>&lt;<code class="computeroutput"><a class="link" href="../_.html" title="Struct _">_</a></code>, A<sub>0</sub>&gt;()(expr, state, data),
+  &#8230;
+  <code class="computeroutput"><a class="link" href="../when.html" title="Struct template when">proto::when</a></code>&lt;<code class="computeroutput"><a class="link" href="../_.html" title="Struct _">_</a></code>, A<sub>n</sub>&gt;()(expr, state, data)
+);</pre>
+<p>
+                          </p>
+</li>
+</ul></div>
+</li>
+<li class="listitem">
+<p>
+                        If <code class="computeroutput">T</code> is of the form
+                        <code class="computeroutput">O(A<sub>0</sub>,&#8230;A<sub>n</sub> ...)</code>,
+                        then let <code class="computeroutput">T'</code> be <code class="computeroutput">O(A<sub>0</sub>,&#8230;A<sub>n-1</sub>, <em class="replaceable"><code>S</code></em>)</code>,
+                        where <em class="replaceable"><code>S</code></em> is a type sequence computed from the unpacking expression <code class="computeroutput">A<sub>n</sub></code>
+                        as described in the reference for <code class="computeroutput"><code class="computeroutput"><a class="link" href="../pack.html" title="Struct pack">proto::pack</a></code></code>. Then, return:
+                        </p>
+<pre class="programlisting">proto::make&lt;T'&gt;()(expr, state, data)</pre>
+<p>
+                      </p>
+</li>
+<li class="listitem">
+<p>
+                        Otherwise, construct and return an object <code class="computeroutput">that</code>
+                        as follows: </p>
+<pre class="programlisting">result_type that = result_type();</pre>
+<p>
+                      </p>
+</li>
+</ul></div>
+<p>
+                </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../make.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../make.html#idp187594824"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../pass_through.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

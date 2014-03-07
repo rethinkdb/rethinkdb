@@ -1,0 +1,38 @@
+#  (C) Copyright Gennadiy Rozental 2008-2008.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+# Project
+project libs/test/tools/console_test_runner ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+alias test_runner_src
+    : # sources
+      src/console_test_runner.cpp
+      unit_test_framework  
+    ;        
+
+# make aliases explicit so the libraries will only be built when requested
+explicit unit_test_framework ;
+explicit test_runner_src ;
+
+lib dl ; 
+
+lib test_runner_test : test/test_runner_test.cpp unit_test_framework ; 
+
+exe console_test_runner 
+    : test_runner_src
+      dl 
+    ;
+
+exe console_test_runner 
+    : test_runner_src
+    : <target-os>windows
+    ;

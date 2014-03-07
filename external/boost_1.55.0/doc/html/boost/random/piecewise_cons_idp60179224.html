@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template piecewise_constant_distribution</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.piecewise_constant_distribution_hpp" title="Header &lt;boost/random/piecewise_constant_distribution.hpp&gt;">
+<link rel="prev" href="normal_distribution/param_type.html" title="Class param_type">
+<link rel="next" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="normal_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.piecewise_constant_distribution_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="piecewise_cons_idp60179224/param_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.piecewise_cons_idp60179224"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template piecewise_constant_distribution</span></h2>
+<p>boost::random::piecewise_constant_distribution</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.piecewise_constant_distribution_hpp" title="Header &lt;boost/random/piecewise_constant_distribution.hpp&gt;">boost/random/piecewise_constant_distribution.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> RealType <span class="special">=</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">typename</span> WeightType <span class="special">=</span> <span class="keyword">double</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a name="boost.random.piecewise_cons_idp60179224.input_type"></a><span class="identifier">input_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">RealType</span>    <a name="boost.random.piecewise_cons_idp60179224.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="keyword">class</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <a class="link" href="piecewise_cons_idp60179224/param_type.html#boost.random.piecewise_cons_idp60179224.param_type.distribution_type"><span class="identifier">distribution_type</span></a><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="piecewise_cons_idp60179224/param_type.html#boost.random.piecewise_cons_idp60179224.param_typeconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60223624-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalIter<span class="special">,</span> <span class="keyword">typename</span> WeightIter<span class="special">&gt;</span> 
+      <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60206872-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="identifier">IntervalIter</span><span class="special">,</span> <span class="identifier">IntervalIter</span><span class="special">,</span> <span class="identifier">WeightIter</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> F<span class="special">&gt;</span> 
+      <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60209800-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">initializer_list</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">F</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalRange<span class="special">,</span> <span class="keyword">typename</span> WeightRange<span class="special">&gt;</span> 
+      <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60152312-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">IntervalRange</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">WeightRange</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">&gt;</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60154776-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">,</span> <span class="identifier">RealType</span><span class="special">,</span> <span class="identifier">RealType</span><span class="special">,</span> <span class="identifier">F</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60182120-bb">friend functions</a></span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+      <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+      <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60182328-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+      <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+      <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60184888-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60187448-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60189288-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60221896-bb">public member functions</a></span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60222104-bb"><span class="identifier">intervals</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html#idp60222840-bb"><span class="identifier">densities</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="piecewise_cons_idp60179224.html#boost.random.piecewise_cons_idp60179224construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="piecewise_cons_idp60179224.html#idp60220184-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalIter<span class="special">,</span> <span class="keyword">typename</span> WeightIter<span class="special">&gt;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60213384-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="identifier">IntervalIter</span><span class="special">,</span> <span class="identifier">IntervalIter</span><span class="special">,</span> <span class="identifier">WeightIter</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> F<span class="special">&gt;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60217080-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">initializer_list</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">F</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalsRange<span class="special">,</span> <span class="keyword">typename</span> WeightsRange<span class="special">&gt;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60229032-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">IntervalsRange</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                    <span class="keyword">const</span> <span class="identifier">WeightsRange</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">&gt;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60231368-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">,</span> <span class="identifier">RealType</span><span class="special">,</span> <span class="identifier">RealType</span><span class="special">,</span> <span class="identifier">F</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60238312-bb"><span class="identifier">piecewise_constant_distribution</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="piecewise_cons_idp60179224.html#idp60157736-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> URNG<span class="special">&gt;</span> <span class="identifier">RealType</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60157944-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">URNG</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> URNG<span class="special">&gt;</span> 
+    <span class="identifier">RealType</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60159464-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">URNG</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60161512-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60162232-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60162952-bb"><span class="identifier">densities</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60163704-bb"><span class="identifier">intervals</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <a class="link" href="piecewise_cons_idp60179224.html#idp60164440-bb"><span class="identifier">param</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60212248-bb"><span class="identifier">param</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60219432-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="piecewise_cons_idp60179224.html#idp60239736-bb">friend functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60239944-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="piecewise_cons_idp60179224.html#idp60226200-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60241000-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="piecewise_cons_idp60179224.html#idp60232520-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp196217448"></a><h2>Description</h2>
+<p>The class <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> models a <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.random_distribution" title="Random Distribution">random distribution</a> . </p>
+<div class="refsect2">
+<a name="idp196219000"></a><h3>
+<a name="boost.random.piecewise_cons_idp60179224construct-copy-destruct"></a><code class="computeroutput">piecewise_constant_distribution</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp60220184-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Creates a new <code class="computeroutput"><code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code></code> with a single interval, [0, 1). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalIter<span class="special">,</span> <span class="keyword">typename</span> WeightIter<span class="special">&gt;</span> 
+  <a name="idp60213384-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="identifier">IntervalIter</span> first_interval<span class="special">,</span> 
+                                  <span class="identifier">IntervalIter</span> last_interval<span class="special">,</span> 
+                                  <span class="identifier">WeightIter</span> first_weight<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> from two iterator ranges containing the interval boundaries and the interval weights. If there are less than two boundaries, then this is equivalent to the default constructor and creates a single interval, [0, 1).</p>
+<p>The values of the interval boundaries must be strictly increasing, and the number of weights must be one less than the number of interval boundaries. If there are extra weights, they are ignored.</p>
+<p>For example,</p>
+<pre class="programlisting">* double intervals[] = { 0.0, 1.0, 4.0 };
+* double weights[] = { 1.0, 1.0 };
+* piecewise_constant_distribution&lt;&gt; dist(
+*     &amp;intervals[0], &amp;intervals[0] + 3, &amp;weights[0]);
+* 
+</pre>
+<p>The distribution has a 50% chance of producing a value between 0 and 1 and a 50% chance of producing a value between 1 and 4. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> F<span class="special">&gt;</span> 
+  <a name="idp60217080-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">initializer_list</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> il<span class="special">,</span> <span class="identifier">F</span> f<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> from an initializer_list containing the interval boundaries and a unary function specifying the weights. Each weight is determined by calling the function at the midpoint of the corresponding interval.</p>
+<p>If the initializer_list contains less than two elements, this is equivalent to the default constructor and the distribution will produce values uniformly distributed in the range [0, 1). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntervalsRange<span class="special">,</span> <span class="keyword">typename</span> WeightsRange<span class="special">&gt;</span> 
+  <a name="idp60229032-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">IntervalsRange</span> <span class="special">&amp;</span> intervals_arg<span class="special">,</span> 
+                                  <span class="keyword">const</span> <span class="identifier">WeightsRange</span> <span class="special">&amp;</span> weights_arg<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> from Boost.Range ranges holding the interval boundaries and the weights. If there are less than two interval boundaries, this is equivalent to the default constructor and the distribution will produce values uniformly distributed in the range [0, 1). The number of weights must be one less than the number of interval boundaries. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">&gt;</span> 
+  <a name="idp60231368-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> nw<span class="special">,</span> <span class="identifier">RealType</span> xmin<span class="special">,</span> 
+                                  <span class="identifier">RealType</span> xmax<span class="special">,</span> <span class="identifier">F</span> f<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> that approximates a function. The range of the distribution is [xmin, xmax). This range is divided into nw equally sized intervals and the weights are found by calling the unary function f on the midpoints of the intervals. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp60238312-bb"></a><span class="identifier">piecewise_constant_distribution</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a></code> from its parameters. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp196256376"></a><h3>
+<a name="idp60157736-bb"></a><code class="computeroutput">piecewise_constant_distribution</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> URNG<span class="special">&gt;</span> <span class="identifier">RealType</span> <a name="idp60157944-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">URNG</span> <span class="special">&amp;</span> urng<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a value distributed according to the parameters of the piecewist_constant_distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> URNG<span class="special">&gt;</span> 
+  <span class="identifier">RealType</span> <a name="idp60159464-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">URNG</span> <span class="special">&amp;</span> urng<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a value distributed according to the parameters specified by param. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp60161512-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the smallest value that the distribution can produce. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp60162232-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the largest value that the distribution can produce. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a name="idp60162952-bb"></a><span class="identifier">densities</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a vector containing the probability density over each interval. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">RealType</span> <span class="special">&gt;</span> <a name="idp60163704-bb"></a><span class="identifier">intervals</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a vector containing the interval boundaries. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <a name="idp60164440-bb"></a><span class="identifier">param</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the parameters of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60212248-bb"></a><span class="identifier">param</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span><span class="special">;</span></pre>
+<p>Sets the parameters of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60219432-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Subsequent uses of the distribution do not depend on values produced by any engine prior to invoking reset. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp196290856"></a><h3>
+<a name="idp60239736-bb"></a><code class="computeroutput">piecewise_constant_distribution</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp60239944-bb"></a><span class="keyword">operator</span><span class="special">&lt;&lt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> os<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> pcd<span class="special">)</span><span class="special">;</span></pre>
+<p>Writes a distribution to a <code class="computeroutput">std::ostream</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp60226200-bb"></a><span class="keyword">operator</span><span class="special">&gt;&gt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> is<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> pcd<span class="special">)</span><span class="special">;</span></pre>
+<p>Reads a distribution from a <code class="computeroutput">std::istream</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp60241000-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two distributions will return the same sequence of values, when passed equal generators. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp60232520-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="piecewise_cons_idp60179224.html" title="Class template piecewise_constant_distribution">piecewise_constant_distribution</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two distributions may return different sequences of values, when passed equal generators. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="normal_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.piecewise_constant_distribution_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="piecewise_cons_idp60179224/param_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

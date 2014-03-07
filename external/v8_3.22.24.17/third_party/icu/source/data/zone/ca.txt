@@ -1,0 +1,226 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ca.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ca.xml
+ */
+ca{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "America:Araguaina"{
+            ec{"Araguaína"}
+        }
+        "America:Argentina:Rio_Gallegos"{
+            ec{"Río Gallegos"}
+        }
+        "America:Argentina:Tucuman"{
+            ec{"Tucumán"}
+        }
+        "America:Belem"{
+            ec{"Belém"}
+        }
+        "America:Cordoba"{
+            ec{"Córdoba"}
+        }
+        "America:Cuiaba"{
+            ec{"Cuiabá"}
+        }
+        "America:Eirunepe"{
+            ec{"Eirunepé"}
+        }
+        "America:Maceio"{
+            ec{"Maceió"}
+        }
+        "America:Mazatlan"{
+            ec{"Mazatlán"}
+        }
+        "America:Merida"{
+            ec{"Mérida"}
+        }
+        "America:Mexico_City"{
+            ec{"Mèxic"}
+        }
+        "America:New_York"{
+            ec{"Nova York"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Center, Dakota del Nord"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"New Salem, Dakota del Nord"}
+        }
+        "America:Rio_Branco"{
+            ec{"Río Branco"}
+        }
+        "America:Sao_Paulo"{
+            ec{"São Paulo"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Pol sud"}
+        }
+        "Asia:Anadyr"{
+            ec{"Anadyr'"}
+        }
+        "Asia:Aqtau"{
+            ec{"Aqtaū"}
+        }
+        "Asia:Aqtobe"{
+            ec{"Aķtöbe"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamtxatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnoiarsk"}
+        }
+        "Asia:Makassar"{
+            ec{"Makasar"}
+        }
+        "Asia:Samarkand"{
+            ec{"Samarcanda"}
+        }
+        "Asia:Urumqi"{
+            ec{"Urumchi"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Jakutsk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Jekaterinburg"}
+        }
+        "Atlantic:Azores"{
+            ec{"Açores"}
+        }
+        "Atlantic:Canary"{
+            ec{"Illes Canàries"}
+        }
+        "Etc:Unknown"{
+            ec{"Zona desconeguda"}
+        }
+        "Europe:Kiev"{
+            ec{"Kíev"}
+        }
+        "Europe:Moscow"{
+            ec{"Moscou"}
+        }
+        "Pacific:Easter"{
+            ec{"Illa de Pasqua"}
+        }
+        "Pacific:Galapagos"{
+            ec{"Galápagos"}
+        }
+        "Pacific:Marquesas"{
+            ec{"Marqueses"}
+        }
+        "meta:Africa_Central"{
+            ls{"Hora d'Àfrica Central"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Hora d'Àfrica Oriental"}
+        }
+        "meta:Africa_Southern"{
+            ls{"Hora d'Àfrica Austral"}
+        }
+        "meta:Africa_Western"{
+            ld{"Hora d'estiu d'Àfrica Occidental"}
+            ls{"Hora d'Àfrica Occidental"}
+        }
+        "meta:America_Central"{
+            ld{"Hora d'estiu central"}
+            lg{"Hora central"}
+            ls{"Hora estàndard central"}
+        }
+        "meta:America_Eastern"{
+            ld{"Hora d'estiu oriental"}
+            lg{"Hora oriental"}
+            ls{"Hora estàndard oriental"}
+        }
+        "meta:America_Mountain"{
+            ld{"Hora d'estiu de muntanya"}
+            lg{"Hora de muntanya"}
+            ls{"Hora estàndard de muntanya"}
+        }
+        "meta:America_Pacific"{
+            ld{"Hora d'estiu del Pacífic"}
+            lg{"Hora del Pacífic"}
+            ls{"Hora estàndard del Pacífic"}
+        }
+        "meta:Arabian"{
+            ld{"Hora d'estiu d'Aràbia"}
+            lg{"Hora d'Aràbia"}
+            ls{"Hora estàndard d'Aràbia"}
+            sd{"ADT (Aràbia)"}
+            sg{"AT (Aràbia)"}
+            ss{"AST (Aràbia)"}
+        }
+        "meta:Atlantic"{
+            ld{"Hora d'estiu de l'Atlàntic"}
+            lg{"Hora de l'Atlàntic"}
+            ls{"Hora estàndard de l'Atlàntic"}
+        }
+        "meta:China"{
+            ls{"Hora estàndard de la Xina"}
+            sd{"CDT (Xina)"}
+            sg{"CT (Xina)"}
+            ss{"CST (Xina)"}
+        }
+        "meta:Europe_Central"{
+            ld{"Hora Central Europea de l'estiu"}
+            ls{"Hora Central Europea"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Hora d'estiu d'Europa de l'Est"}
+            ls{"Hora d'Europa de l'Est"}
+        }
+        "meta:Europe_Western"{
+            ld{"Hora d'estiu d'Europa Occidental"}
+            ls{"Hora d'Europa Occidental"}
+        }
+        "meta:GMT"{
+            ls{"Hora mitjana de Greenwich"}
+        }
+        "meta:India"{
+            ls{"Hora estàndard de l'Índia"}
+        }
+        "meta:Israel"{
+            ld{"Hora d'estiu d'Israel"}
+            ls{"Hora estàndard d'Israel"}
+            ss{"IST (Israel)"}
+        }
+        "meta:Japan"{
+            ls{"Hora estàndard del Japó"}
+        }
+        "meta:Korea"{
+            ls{"Hora estàndard de Corea"}
+        }
+        "meta:Kuybyshev"{
+            ld{"Hora d'estiu de Kujbysev"}
+            ls{"Hora de Kujbysev"}
+        }
+        "meta:Moscow"{
+            ld{"Hora d'estiu de Moscou"}
+            ls{"Hora de Moscou"}
+        }
+        "meta:Samara"{
+            ld{"Hora d'estiu de Samara"}
+            ls{"Hora de Samara"}
+        }
+        "meta:Turkey"{
+            ld{"Hora d'estiu de Turquia"}
+            ls{"Hora de Turquia"}
+        }
+        "meta:Volgograd"{
+            ld{"Hora d'estiu de Volgograd"}
+            ls{"Hora de Volgograd"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+        regionFormat{"Hora de: {0}"}
+    }
+}

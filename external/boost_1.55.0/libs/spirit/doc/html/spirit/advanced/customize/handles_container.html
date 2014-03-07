@@ -1,0 +1,400 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Determine Whether a Component Handles Container Attributes (Qi and Karma)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="prev" href="is_string.html" title="Determine if a Type Should be Treated as a String (Qi and Karma)">
+<link rel="next" href="transform.html" title="Transform an Attribute to a Different Type (Qi and Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_string.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transform.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.advanced.customize.handles_container"></a><a class="link" href="handles_container.html" title="Determine Whether a Component Handles Container Attributes (Qi and Karma)">Determine
+        Whether a Component Handles Container Attributes (Qi and Karma)</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h0"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.handles_container"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.handles_container">handles_container</a>
+        </h6>
+<p>
+          The template <code class="computeroutput"><span class="identifier">handles_container</span></code>
+          is a template meta-function used as an attribute customization point. It
+          is invoked by the <span class="emphasis"><em>Qi</em></span> <a class="link" href="../../qi/reference/operator/sequence.html" title="Sequence Parser (a &gt;&gt; b)">Sequence</a>
+          (<code class="computeroutput"><span class="special">&gt;&gt;</span></code>) and <span class="emphasis"><em>Karma</em></span>
+          <a class="link" href="../../karma/reference/operator/sequence.html" title="Sequence Generator (a &lt;&lt; b)">Sequence (<code class="computeroutput"><span class="special">&lt;&lt;</span></code>)</a> operators in order to determine
+          whether a sequence element (component) handles container attributes directly.
+          This customization point is invoked for container attributes only, and
+          only if the sequence is compatible with the supplied container attribute.
+        </p>
+<p>
+          If a component, which is part of a sequence is able to handle a container
+          attribute directly, the sequence passes the attribute to the component
+          without any additional action. In <span class="emphasis"><em>Spirit.Qi</em></span> the component
+          uses the attribute to directly store all matched attributes. In <span class="emphasis"><em>Spirit.Karma</em></span>
+          the generator component extracts the attributes needed for output generation
+          directly from this attribute.
+        </p>
+<p>
+          If a component, which is part of a sequence is not able to handle container
+          attributes, in <span class="emphasis"><em>Spirit.Qi</em></span> the sequence passes a new
+          instance of the container attributes' <code class="computeroutput"><span class="identifier">value_type</span></code>
+          to the parser component, inserting the result into the attribute on behalf
+          of the parser component. In <span class="emphasis"><em>Spirit.Karma</em></span> the sequence
+          extracts the next container element on behalf of the generator component
+          and passing it the extracted value.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h1"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.header"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">handles_container</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This header file does not need to be included directly by any user program
+            as it is normally included by other Spirit header files relying on its
+            content.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h2"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.namespace"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h3"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.synopsis"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Component</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Enable</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">handles_container</span>
+<span class="special">{</span>
+    <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;;</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h4"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.template_parameters"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Component</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The component type <code class="computeroutput"><span class="identifier">Component</span></code>
+                    which needs to be tested whether it handles container attributes
+                    directly.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The attribute type <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                    as passed to the sequence operator.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Context</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    This is the type of the current component execution context.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type, <code class="computeroutput"><span class="identifier">Iterator</span></code>
+                    is the type of the iterators used to invoke the component.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Enable</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Helper template parameter usable to selectively enable or disable
+                    certain specializations of <code class="computeroutput"><span class="identifier">is_container</span></code>
+                    utilizing SFINAE (i.e. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_if</span></code>
+                    or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span></code>).
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Component</span></code></span></dt>
+<dd><p>
+                A component type to be tested whether it directly handles container
+                attributes in the context of sequences.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Attribute</span></code></span></dt>
+<dd><p>
+                A container attribute type as passed to the sequence.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T1</span></code>, <code class="computeroutput"><span class="identifier">T2</span></code>, ...</span></dt>
+<dd><p>
+                Arbitrary types
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h5"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.expression_semantics"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">handles_container</span><span class="special">&lt;</span><span class="identifier">Component</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Result of the metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                    if a given component type <code class="computeroutput"><span class="identifier">Component</span></code>,
+                    handles container attributes directly, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                    otherwise. Generally, any implementation of <code class="computeroutput"><span class="identifier">handles_container</span></code>
+                    needs to behave as if if was a <a href="../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                    Boolean Constant</a>.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h6"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.predefined_specializations"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.predefined_specializations">Predefined
+          Specializations</a>
+        </h6>
+<p>
+          <a href="http://boost-spirit.com" target="_top">Spirit</a> predefines specializations
+          of this customization point for several types. The following table lists
+          those types together with the conditions for which the corresponding specializations
+          will evaluate to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> (see <a href="../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+          Boolean Constant</a>):
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Template Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Component</span></code>, <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Always returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                    (the default).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">T1</span><span class="special">,</span>
+                    <span class="identifier">T2</span><span class="special">,</span>
+                    <span class="identifier">T3</span><span class="special">,</span>
+                    <span class="identifier">T4</span><span class="special">&gt;</span></code>,
+                    <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>, where <code class="computeroutput"><span class="identifier">A</span></code>
+                    is the attribute exposed by the rule (<span class="emphasis"><em>Spirit.Qi</em></span>
+                    and <span class="emphasis"><em>Spirit.Karma</em></span>).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">T1</span><span class="special">,</span>
+                    <span class="identifier">T2</span><span class="special">,</span>
+                    <span class="identifier">T3</span><span class="special">,</span>
+                    <span class="identifier">T4</span><span class="special">&gt;</span></code>,
+                    <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>, where <code class="computeroutput"><span class="identifier">A</span></code>
+                    is the attribute exposed by the grammar (<span class="emphasis"><em>Spirit.Qi</em></span>
+                    and <span class="emphasis"><em>Spirit.Karma</em></span>).
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.handles_container.h7"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.handles_container.when_to_implement"></a></span><a class="link" href="handles_container.html#spirit.advanced.customize.handles_container.when_to_implement">When
+          to implement</a>
+        </h6>
+<p>
+          The customization point <code class="computeroutput"><span class="identifier">handles_container</span></code>
+          needs to be implemented for a specific type whenever this type directly
+          handles container attributes. It is applicable for parsers (<span class="emphasis"><em>Spirit.Qi</em></span>)
+          and generators (<span class="emphasis"><em>Spirit.Karma</em></span>). It will have to be
+          implemented under rare circumstances only.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_string.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transform.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Metafunction</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunction-class.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./metafunction-class.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./metafunctions-concepts.html" class="navigation-link">Concepts</a> / <a href="./metafunction.html" class="navigation-link">Metafunction</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="metafunction">
+<h1><a class="toc-backref" href="./metafunctions-concepts.html#id1512">Metafunction</a></h1>
+<div class="section" id="id822">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p id="nullary-metafunction">A <em>metafunction</em> is a class or a class template that represents a
+function invocable at compile-time. An non-nullary metafunction is
+invoked by instantiating the class template with particular
+template parameters (metafunction arguments); the result of the
+metafunction application is accessible through the instantiation's
+nested <tt class="literal"><span class="pre">type</span></tt> typedef. All metafunction's arguments must be types
+(i.e. only <em>type template parameters</em> are allowed). A metafunction
+can have a variable number of parameters. A <em>nullary metafunction</em> is
+represented as a (template) class with a nested <tt class="literal"><span class="pre">type</span></tt> typename
+member.</p>
+</div>
+<div class="section" id="id823">
+<h3><a class="subsection-title" href="#expression-requirements" name="expression-requirements">Expression requirements</a></h3>
+<p>In the following table and subsequent specifications, <tt class="literal"><span class="pre">f</span></tt> is a <a class="reference internal" href="./metafunction.html">Metafunction</a>.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="38%" />
+<col width="28%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Type</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">f::type</span></tt></td>
+<td>Any type</td>
+<td>Unspecified.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">f&lt;&gt;::type</span></tt></td>
+<td>Any type</td>
+<td>Unspecified.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">f&lt;a1,..,an&gt;::type</span></tt></td>
+<td>Any type</td>
+<td>Unspecified.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id824">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<pre class="literal-block">
+typedef f::type x;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">f</span></tt> is a nullary <a class="reference internal" href="./metafunction.html">Metafunction</a>; <tt class="literal"><span class="pre">f::type</span></tt> is a <em>type-name</em>.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">x</span></tt> is the result of the metafunction invocation.</td>
+</tr>
+</tbody>
+</table>
+<!-- ................................................................................... -->
+<pre class="literal-block">
+typedef f&lt;&gt;::type x;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">f</span></tt> is a nullary <a class="reference internal" href="./metafunction.html">Metafunction</a>; <tt class="literal"><span class="pre">f&lt;&gt;::type</span></tt> is a <em>type-name</em>.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">x</span></tt> is the result of the metafunction invocation.</td>
+</tr>
+</tbody>
+</table>
+<!-- ................................................................................... -->
+<pre class="literal-block">
+typedef f&lt;a1,<em>...</em> a<em>n</em>&gt;::type x;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">f</span></tt> is an <em>n</em>-ary <a class="reference internal" href="./metafunction.html">Metafunction</a>; <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt> are types;
+<tt class="literal"><span class="pre">f&lt;a1,...an&gt;::type</span></tt> is a <em>type-name</em>.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">x</span></tt> is the result of the metafunction invocation
+with the actual arguments <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id825">
+<h3><a class="subsection-title" href="#models" name="models">Models</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./identity.html">identity</a></li>
+<li><a class="reference internal" href="./plus.html">plus</a></li>
+<li><a class="reference internal" href="./begin.html">begin</a></li>
+<li><a class="reference internal" href="./insert.html">insert</a></li>
+<li><a class="reference internal" href="./fold.html">fold</a></li>
+</ul>
+</div>
+<div class="section" id="id826">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>, <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a>, <a class="reference internal" href="./invocation.html">invocation</a>, <a class="reference internal" href="./apply.html">apply</a>, <a class="reference internal" href="./lambda.html">lambda</a>, <a class="reference internal" href="./bind.html">bind</a></p>
+<!-- Metafunctions/Concepts//Metafunction Class |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunction-class.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./metafunction-class.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

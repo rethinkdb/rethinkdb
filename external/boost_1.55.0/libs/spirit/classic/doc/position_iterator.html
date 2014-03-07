@@ -1,0 +1,119 @@
+<html>
+<head>
+<title>Position Iterator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Position 
+      Iterator</b></font> </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="file_iterator.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="debugging.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Often, when writing a parser that is able to detect errors in the format of 
+  the input stream, we want it to communicate to the user where the error happened 
+  within that input. The classic example is when writing a compiler or interpreter 
+  that detects syntactical errors in the parsed program, indicating the line number 
+  and maybe even the position within the line where the error was found.</p>
+<p> The class position_iterator is a tool provided within Spirit that allows parser 
+  writers to easily implement this functionality. The concept is quite simple: 
+  this class is an iterator wrapper that keeps track of the current position within 
+  the file, including current file, line and column. It requires a single template 
+  parameter, which should be the type of the iterator that is to be wrapped.</p>
+<p> To use it, you'll need to add the following include:</p>
+<pre>
+    <code><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>spirit</span><span class=special>/</span><span class=identifier>iterator</span><span class=special>/</span><span class=identifier>position_iterator</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span></code></pre>
+<p> Or include all the iterators in Spirit:</p>
+<pre>
+    <code><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>spirit</span><span class=special>/</span><span class=identifier>iterator</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span></code></pre>
+<p> To construct the wrapper, it needs both the begin and end iterators of the 
+  input sequence, and the file name of the input sequence. Optionally, you can 
+  also specify the starting line and column numbers, which default to 1. Default 
+  construction, with no parameters, creates a generic end-of-sequence iterator, 
+  in a similar manner as it's done in the stream operators of the standard C++ 
+  library.</p>
+<p> The wrapped iterator must belong to the input or forward iterator category, 
+  and the position_iterator just inherits that category.</p>
+<p> For example, to create begin and end positional iterators from an input C- 
+  string, you'd use:</p>
+<pre>
+    <code><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>inputstring </span><span class=special>= </span><span class=string>&quot;...&quot;</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>position_iterator</span><span class=special>&lt;</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*&gt; </span><span class=identifier>iterator_t</span><span class=special>;
+
+    </span><span class=identifier>iterator_t </span><span class=identifier>begin</span><span class=special>(</span><span class=identifier>inputstring</span><span class=special>, </span><span class=identifier>inputstring</span><span class=special>+</span><span class=identifier>strlen</span><span class=special>(</span><span class=identifier>inputstring</span><span class=special>));
+    </span><span class=identifier>iterator_t </span><span class=identifier>end</span><span class=special>;</span></code></pre>
+<a name="operations"></a>
+<h2>Operations</h2>
+<pre>
+    <code><span class=keyword>void </span><span class=identifier>set_position</span><span class=special>(</span><span class=identifier>file_position </span><span class=keyword>const</span><span class=special>&amp;);</span></code></pre>
+<p> Call this function when you need to change the current position stored in 
+  the iterator. For example, if parsing C-style #include directives, the included 
+  file's input must be marked by restarting the file and column to 1 and 1 and 
+  the name to the new file's name.<br>
+</p>
+<pre>
+    <code><span class=identifier>file_position </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>get_position</span><span class=special>() </span><span class=keyword>const</span><span class=special>;</span></code></pre>
+<p> Call this function to retrieve the current position.</p>
+<pre>
+    <code><span class=keyword>void </span><span class=identifier>set_tabchars</span><span class=special>(</span><span class=keyword>int</span><span class=special>);</span></code></pre>
+<p> Call this to set the number of tabs per character. This value is necessary 
+  to correctly track the column number.<br>
+</p>
+<p> <a name="file_position"></a> </p>
+<h2>file_position</h2>
+<p> file_position is a structure that holds the position within a file. Its fields 
+  are:</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="2">file_position fields</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><code><span class=identifier>std</span><span class=special>::</span><span class=identifier>string 
+      </span><span class=identifier>file</span><span class=special>;</span></code></td>
+    <td class="table_cells" width="74%">Name of the file. Hopefully a full pathname</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><code><span class=keyword>int</span><span class=identifier> 
+      line</span><span class=special>;</span></code></td>
+    <td class="table_cells" width="74%">Line number within the file. By default, 
+      the first line is number 1</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><code><span class=keyword>int </span><span class=identifier>column</span><span class=special>;</span></code></td>
+    <td class="table_cells" width="74%">Column position within the file. The first 
+      column is 1</td>
+  </tr>
+</table>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/position_iterator/position_iterator.cpp">position_iterator.cpp</a> for a compilable example. This is part of the Spirit distribution.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="file_iterator.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="debugging.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2002 Juan Carlos Arevalo-Baeza<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p class="copyright">&nbsp; </p>
+<p>&nbsp;</p>
+</body>
+</html>

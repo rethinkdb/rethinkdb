@@ -1,0 +1,46 @@
+{
+  "source": "doc/api/repl.markdown",
+  "modules": [
+    {
+      "textRaw": "REPL",
+      "name": "repl",
+      "desc": "<p>A Read-Eval-Print-Loop (REPL) is available both as a standalone program and\neasily includable in other programs. The REPL provides a way to interactively\nrun JavaScript and see the results.  It can be used for debugging, testing, or\njust trying things out.\n\n</p>\n<p>By executing <code>node</code> without any arguments from the command-line you will be\ndropped into the REPL. It has simplistic emacs line-editing.\n\n</p>\n<pre><code>mjr:~$ node\nType &#39;.help&#39; for options.\n&gt; a = [ 1, 2, 3];\n[ 1, 2, 3 ]\n&gt; a.forEach(function (v) {\n...   console.log(v);\n...   });\n1\n2\n3</code></pre>\n<p>For advanced line-editors, start node with the environmental variable\n<code>NODE_NO_READLINE=1</code>. This will start the main and debugger REPL in canonical\nterminal settings which will allow you to use with <code>rlwrap</code>.\n\n</p>\n<p>For example, you could add this to your bashrc file:\n\n</p>\n<pre><code>alias node=&quot;env NODE_NO_READLINE=1 rlwrap node&quot;</code></pre>\n",
+      "methods": [
+        {
+          "textRaw": "repl.start(options)",
+          "type": "method",
+          "name": "start",
+          "desc": "<p>Returns and starts a <code>REPLServer</code> instance. Accepts an &quot;options&quot; Object that\ntakes the following values:\n\n</p>\n<ul>\n<li><p><code>prompt</code> - the prompt and <code>stream</code> for all I/O. Defaults to <code>&gt; </code>.</p>\n</li>\n<li><p><code>input</code> - the readable stream to listen to. Defaults to <code>process.stdin</code>.</p>\n</li>\n<li><p><code>output</code> - the writable stream to write readline data to. Defaults to\n<code>process.stdout</code>.</p>\n</li>\n<li><p><code>terminal</code> - pass <code>true</code> if the <code>stream</code> should be treated like a TTY, and\nhave ANSI/VT100 escape codes written to it. Defaults to checking <code>isTTY</code>\non the <code>output</code> stream upon instantiation.</p>\n</li>\n<li><p><code>eval</code> - function that will be used to eval each given line. Defaults to\nan async wrapper for <code>eval()</code>. See below for an example of a custom <code>eval</code>.</p>\n</li>\n<li><p><code>useColors</code> - a boolean which specifies whether or not the <code>writer</code> function\nshould output colors. If a different <code>writer</code> function is set then this does\nnothing. Defaults to the repl&#39;s <code>terminal</code> value.</p>\n</li>\n<li><p><code>useGlobal</code> - if set to <code>true</code>, then the repl will use the <code>global</code> object,\ninstead of running scripts in a separate context. Defaults to <code>false</code>.</p>\n</li>\n<li><p><code>ignoreUndefined</code> - if set to <code>true</code>, then the repl will not output the\nreturn value of command if it&#39;s <code>undefined</code>. Defaults to <code>false</code>.</p>\n</li>\n<li><p><code>writer</code> - the function to invoke for each command that gets evaluated which\nreturns the formatting (including coloring) to display. Defaults to\n<code>util.inspect</code>.</p>\n</li>\n</ul>\n<p>You can use your own <code>eval</code> function if it has following signature:\n\n</p>\n<pre><code>function eval(cmd, context, filename, callback) {\n  callback(null, result);\n}</code></pre>\n<p>Multiple REPLs may be started against the same running instance of node.  Each\nwill share the same global object but will have unique I/O.\n\n</p>\n<p>Here is an example that starts a REPL on stdin, a Unix socket, and a TCP socket:\n\n</p>\n<pre><code>var net = require(&quot;net&quot;),\n    repl = require(&quot;repl&quot;);\n\nconnections = 0;\n\nrepl.start({\n  prompt: &quot;node via stdin&gt; &quot;,\n  input: process.stdin,\n  output: process.stdout\n});\n\nnet.createServer(function (socket) {\n  connections += 1;\n  repl.start({\n    prompt: &quot;node via Unix socket&gt; &quot;,\n    input: socket,\n    output: socket\n  }).on(&#39;exit&#39;, function() {\n    socket.end();\n  })\n}).listen(&quot;/tmp/node-repl-sock&quot;);\n\nnet.createServer(function (socket) {\n  connections += 1;\n  repl.start({\n    prompt: &quot;node via TCP socket&gt; &quot;,\n    input: socket,\n    output: socket\n  }).on(&#39;exit&#39;, function() {\n    socket.end();\n  });\n}).listen(5001);</code></pre>\n<p>Running this program from the command line will start a REPL on stdin.  Other\nREPL clients may connect through the Unix socket or TCP socket. <code>telnet</code> is useful\nfor connecting to TCP sockets, and <code>socat</code> can be used to connect to both Unix and\nTCP sockets.\n\n</p>\n<p>By starting a REPL from a Unix socket-based server instead of stdin, you can\nconnect to a long-running node process without restarting it.\n\n</p>\n<p>For an example of running a &quot;full-featured&quot; (<code>terminal</code>) REPL over\na <code>net.Server</code> and <code>net.Socket</code> instance, see: <a href=\"https://gist.github.com/2209310\">https://gist.github.com/2209310</a>\n\n</p>\n<p>For an example of running a REPL instance over <code>curl(1)</code>,\nsee: <a href=\"https://gist.github.com/2053342\">https://gist.github.com/2053342</a>\n\n</p>\n",
+          "events": [
+            {
+              "textRaw": "Event: 'exit'",
+              "type": "event",
+              "name": "exit",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted when the user exits the REPL in any of the defined ways. Namely, typing\n<code>.exit</code> at the repl, pressing Ctrl+C twice to signal SIGINT, or pressing Ctrl+D\nto signal &quot;end&quot; on the <code>input</code> stream.\n\n</p>\n<p>Example of listening for <code>exit</code>:\n\n</p>\n<pre><code>r.on(&#39;exit&#39;, function () {\n  console.log(&#39;Got &quot;exit&quot; event from repl!&#39;);\n  process.exit();\n});</code></pre>\n",
+              "params": []
+            }
+          ],
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "miscs": [
+        {
+          "textRaw": "REPL Features",
+          "name": "REPL Features",
+          "type": "misc",
+          "desc": "<p>Inside the REPL, Control+D will exit.  Multi-line expressions can be input.\nTab completion is supported for both global and local variables.\n\n</p>\n<p>The special variable <code>_</code> (underscore) contains the result of the last expression.\n\n</p>\n<pre><code>&gt; [ &quot;a&quot;, &quot;b&quot;, &quot;c&quot; ]\n[ &#39;a&#39;, &#39;b&#39;, &#39;c&#39; ]\n&gt; _.length\n3\n&gt; _ += 1\n4</code></pre>\n<p>The REPL provides access to any variables in the global scope. You can expose\na variable to the REPL explicitly by assigning it to the <code>context</code> object\nassociated with each <code>REPLServer</code>.  For example:\n\n</p>\n<pre><code>// repl_test.js\nvar repl = require(&quot;repl&quot;),\n    msg = &quot;message&quot;;\n\nrepl.start(&quot;&gt; &quot;).context.m = msg;</code></pre>\n<p>Things in the <code>context</code> object appear as local within the REPL:\n\n</p>\n<pre><code>mjr:~$ node repl_test.js\n&gt; m\n&#39;message&#39;</code></pre>\n<p>There are a few special REPL commands:\n\n</p>\n<ul>\n<li><code>.break</code> - While inputting a multi-line expression, sometimes you get lost\nor just don&#39;t care about completing it. <code>.break</code> will start over.</li>\n<li><code>.clear</code> - Resets the <code>context</code> object to an empty object and clears any\nmulti-line expression.</li>\n<li><code>.exit</code> - Close the I/O stream, which will cause the REPL to exit.</li>\n<li><code>.help</code> - Show this list of special commands.</li>\n<li><code>.save</code> - Save the current REPL session to a file<blockquote>\n<p>.save ./file/to/save.js</p>\n</blockquote>\n</li>\n<li><code>.load</code> - Load a file into the current REPL session.<blockquote>\n<p>.load ./file/to/load.js</p>\n</blockquote>\n</li>\n</ul>\n<p>The following key combinations in the REPL have these special effects:\n\n</p>\n<ul>\n<li><code>&lt;ctrl&gt;C</code> - Similar to the <code>.break</code> keyword.  Terminates the current\ncommand.  Press twice on a blank line to forcibly exit.</li>\n<li><code>&lt;ctrl&gt;D</code> - Similar to the <code>.exit</code> keyword.</li>\n</ul>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "REPL"
+    }
+  ]
+}

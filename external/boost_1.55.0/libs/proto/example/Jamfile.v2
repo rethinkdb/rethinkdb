@@ -1,0 +1,79 @@
+# (C) Copyright 2004: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+exe hello
+    :
+        hello.cpp
+    ;
+
+
+exe calc1
+    :
+        calc1.cpp
+    ;
+
+exe calc2
+    :
+        calc2.cpp
+    ;
+
+exe calc3
+    :
+        calc3.cpp
+    ;
+
+exe lazy_vector
+    :
+        lazy_vector.cpp
+    ;
+
+exe tarray
+    :
+        tarray.cpp
+    ;
+
+exe rgb
+    :
+        rgb.cpp
+    ;
+
+exe vec3
+    :
+        vec3.cpp
+    ;
+
+exe vector
+    :
+        vector.cpp
+    ;
+
+exe mixed
+    :
+        mixed.cpp
+    ;
+
+exe futures
+    :
+        futures.cpp
+    ;
+
+exe map_assign
+    :
+        map_assign.cpp
+    ;
+
+exe mini_lambda
+    :
+        mini_lambda.cpp
+    ;
+
+exe virtual_member
+    :
+        virtual_member.cpp
+    ;
+
+exe external_transforms
+    :
+        external_transforms.cpp
+    ;

@@ -1,0 +1,4 @@
+
+project lib : requirements <threading>multi ;
+
+make b.obj : b.cpp : yfc-compile ;

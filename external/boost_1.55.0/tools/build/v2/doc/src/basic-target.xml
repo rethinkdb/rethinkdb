@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.basic-target">
+
+  <title>Class basic-target</title>
+  <indexterm>
+    <primary>basic-target</primary>
+  </indexterm>
+
+<programlisting language="jam">
+class basic-target : <link linkend="bbv2.reference.class.abstract-target">abstract-target</link> {
+    rule <link linkend="bbv2.reference.class.basic-target.__init__">__init__</link> ( name : project : sources * : requirements * : default-build * : usage-requirements * )  
+    rule <link linkend="bbv2.reference.class.basic-target.generate">generate</link> ( property-set )
+    rule <link linkend="bbv2.reference.class.basic-target.construct">construct</link> ( name : source-targets * : property-set )
+
+    # Methods inherited from <link linkend="bbv2.reference.class.abstract-target">abstract-target</link>
+    rule <link linkend="bbv2.reference.class.abstract-target.name">name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.project">project</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.location">location</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.full-name">full-name</link> ( )
+}
+</programlisting>
+
+  <para>
+    Implements the most standard way of constructing main target alternative from
+    sources. Allows sources to be either files or other main targets and handles
+    generation of those dependency targets. 
+    <!-- FIXME: Better description of sources.  The sources can be either target
+    references or instances of abstract-target. -->
+  </para>
+
+  <orderedlist>
+
+    <listitem id="bbv2.reference.class.basic-target.__init__">
+      <code language="jam">rule __init__ ( name : project : sources * : requirements * : default-build * : usage-requirements * )</code>
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term><literal>name</literal></term>
+            <listitem><para>The name of the target</para></listitem>
+          </varlistentry>
+          <varlistentry>
+            <term><literal>project</literal></term>
+            <listitem>
+              <para>
+                The <link linkend="bbv2.reference.class.project-target">project</link>
+                in which the target is declared.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.basic-target.generate">
+      <indexterm zone="bbv2.reference.class.basic-target.generate">
+        <primary>generate</primary>
+        <secondary>Basic Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule generate ( property-set )</code>
+      <para>
+        Overrides
+        <link linkend="bbv2.reference.class.abstract-target.generate">abstract-target.generate</link>.
+
+        Determines final build properties, generates sources, and calls
+        <link linkend="bbv2.reference.class.basic-target.construct">construct</link>.
+        This method should not be overridden.
+      </para>
+      
+      <para>
+        On success, returns:
+        <itemizedlist>
+          <listitem>a property-set with the usage requirements to be applied to dependents</listitem>
+          <listitem>a list of produced virtual targets, which may be empty.</listitem>
+        </itemizedlist>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.basic-target.construct">
+      <indexterm zone="bbv2.reference.class.basic-target.construct">
+        <primary>construct</primary>
+        <secondary>Basic Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule construct ( name : source-targets * : property-set )</code>
+      <para>
+        Constructs virtual targets for this abstract target. Returns a
+        usage-requirements property-set and a list of virtual
+        targets. Should be overriden in derived classes.
+      </para>
+    </listitem>
+    
+  </orderedlist>
+  
+</section>

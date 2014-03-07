@@ -1,0 +1,59 @@
+As of GC6.0alpha8, we attempt to support GNU-style builds based on automake,
+autoconf and libtool.  This is based almost entirely on Tom Tromey's work
+with gcj.
+
+To build and install libraries use
+
+configure; make; make install
+
+The advantages of this process are:
+
+1) It should eventually do a better job of automatically determining the
+right compiler to use, etc.  It probably already does in some cases.
+
+2) It tries to automatically set a good set of default GC parameters for
+the platform (e.g. thread support).  It provides an easier way to configure
+some of the others.
+
+3) It integrates better with other projects using a GNU-style build process.
+
+4) It builds both dynamic and static libraries.
+
+The known disadvantages are:
+
+1) The build scripts are much more complex and harder to debug (though largely
+standard).  I don't understand them all, and there's probably lots of redundant
+stuff.
+
+2) It probably doesn't work on all Un*x-like platforms yet.  It probably will
+never work on the rest.
+
+3) The scripts are not yet complete.  Some of the standard GNU targets don't
+yet work.  (Corrections/additions are very welcome.)
+
+The distribution should contain all files needed to run "configure" and "make",
+as well as the sources needed to regenerate the derived files.  (If I missed
+some, please let me know.)
+
+Note that the distribution comes with a "Makefile" which will be overwritten
+by "configure" with one that is not at all equiavelent to the original.  The
+distribution contains a copy of the original "Makefile" in "Makefile.direct". 
+
+Important options to configure:
+
+  --prefix=PREFIX         install architecture-independent files in PREFIX
+                          [/usr/local]
+  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
+                          [same as prefix]
+  --enable-threads=TYPE   choose threading package
+  --enable-parallel-mark  parallelize marking and free list construction
+  --enable-full-debug	include full support for pointer backtracing etc.
+
+Unless --prefix is set (or --exec-prefix or one of the more obscure options),
+make install will install libgc.a and libgc.so in /usr/local/bin, which
+would typically require the "make install" to be run as root.
+
+Most commonly --enable-threads=posix or will be needed.  --enable-parallel-mark
+is recommended for multiprocessors if it is supported on the platform.
+
+

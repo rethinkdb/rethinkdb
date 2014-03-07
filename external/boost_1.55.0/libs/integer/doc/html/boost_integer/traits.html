@@ -1,0 +1,215 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Integer Traits</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Boost.Integer">
+<link rel="up" href="../index.html" title="Boost.Integer">
+<link rel="prev" href="cstdint.html" title="Standard Integer Types">
+<link rel="next" href="integer.html" title="Integer Type Selection">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cstdint.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integer.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_integer.traits"></a><a class="link" href="traits.html" title="Integer Traits"> Integer Traits</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="traits.html#boost_integer.traits.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="traits.html#boost_integer.traits.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="traits.html#boost_integer.traits.description">Description</a></span></dt>
+<dt><span class="section"><a href="traits.html#boost_integer.traits.test_program">Test Program</a></span></dt>
+<dt><span class="section"><a href="traits.html#boost_integer.traits.acknowledgements">Acknowledgements</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.traits.motivation"></a><a class="link" href="traits.html#boost_integer.traits.motivation" title="Motivation">Motivation</a>
+</h3></div></div></div>
+<p>
+        The C++ Standard Library &lt;limits&gt; header supplies a class template
+        <code class="computeroutput"><span class="identifier">numeric_limits</span><span class="special">&lt;&gt;</span></code>
+        with specializations for each fundamental type.
+      </p>
+<p>
+        For integer types, the interesting members of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;&gt;</span></code> are:
+      </p>
+<pre class="programlisting"><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_specialized</span><span class="special">;</span>      <span class="comment">// Will be true for integer types.
+</span><span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">min</span><span class="special">()</span> <span class="keyword">throw</span><span class="special">();</span>                <span class="comment">// Smallest representable value.
+</span><span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">max</span><span class="special">()</span> <span class="keyword">throw</span><span class="special">();</span>                <span class="comment">// Largest representable value.
+</span><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">digits</span><span class="special">;</span>               <span class="comment">// For integers, the number of value bits.
+</span><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">digits10</span><span class="special">;</span>             <span class="comment">// The number of base 10 digits that can be represented.
+</span><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_signed</span><span class="special">;</span>           <span class="comment">// True if the type is signed.
+</span><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_integer</span><span class="special">;</span>          <span class="comment">// Will be true for all integer types.
+</span></pre>
+<p>
+        For many uses, these are sufficient. But min() and max() are problematical
+        because they are not constant expressions (std::5.19), yet some usages require
+        constant expressions.
+      </p>
+<p>
+        The template class <code class="literal">integer_traits</code> addresses this problem.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.traits.synopsis"></a><a class="link" href="traits.html#boost_integer.traits.synopsis" title="Synopsis">Synopsis</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+  <span class="keyword">class</span> <span class="identifier">integer_traits</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+  <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+     <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_integral</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+     <span class="comment">//
+</span>     <span class="comment">// These members are defined only if T is a built-in
+</span>     <span class="comment">// integal type:
+</span>     <span class="comment">//
+</span>     <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="identifier">const_min</span> <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+     <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="identifier">const_max</span> <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+  <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.traits.description"></a><a class="link" href="traits.html#boost_integer.traits.description" title="Description">Description</a>
+</h3></div></div></div>
+<p>
+        Template class <code class="literal">integer_traits</code> is derived from <code class="literal">std::numeric_limits</code>.
+        The primary specialization adds the single <code class="literal">bool</code> member
+        <code class="literal">is_integral</code> with the compile-time constant value <code class="literal">false</code>.
+        However, for all integral types <code class="literal">T</code> (std::3.9.1/7 [basic.fundamental]),
+        there are specializations provided with the following compile-time constants
+        defined:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  member
+                </p>
+              </th>
+<th>
+                <p>
+                  type
+                </p>
+              </th>
+<th>
+                <p>
+                  value
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="literal">is_integral</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  bool
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="literal">true</code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">const_min</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="literal">T</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  equivalent to <code class="literal">std::numeric_limits&lt;T&gt;::min()</code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">const_max</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="literal">T</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  equivalent to <code class="literal">std::numeric_limits&lt;T&gt;::max()</code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Note: The <span class="emphasis"><em>is_integral</em></span> flag is provided, because a user-defined
+        integer class should specialize <code class="literal">std::numeric_limits&lt;&gt;::is_integer
+        = true</code>, while compile-time constants <code class="literal">const_min</code>
+        and <code class="literal">const_max</code> are not provided for that user-defined class,
+        unless boost::integer_traits is also specialized.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.traits.test_program"></a><a class="link" href="traits.html#boost_integer.traits.test_program" title="Test Program">Test Program</a>
+</h3></div></div></div>
+<p>
+        The program <code class="literal"><a href="../../../test/integer_traits_test.cpp" target="_top">integer_traits_test.cpp</a></code>
+        exercises the <code class="literal">integer_traits</code> class.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.traits.acknowledgements"></a><a class="link" href="traits.html#boost_integer.traits.acknowledgements" title="Acknowledgements">Acknowledgements</a>
+</h3></div></div></div>
+<p>
+        Beman Dawes, Ed Brey, Steve Cleary, and Nathan Myers discussed the integer
+        traits idea on the boost mailing list in August 1999.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001 -2009 Beman Dawes, Daryle Walker, Gennaro Prota,
+      John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cstdint.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integer.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

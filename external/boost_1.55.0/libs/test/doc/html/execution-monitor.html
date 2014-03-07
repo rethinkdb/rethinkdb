@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Part I. Boost Test Library: The Execution Monitor</title>
+<link rel="stylesheet" href="../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Boost Test Library">
+<link rel="up" href="index.html" title="Boost Test Library">
+<link rel="prev" href="aknowledgements.html" title="Acknowledgements">
+<link rel="next" href="execution-monitor/compilation.html" title="The Execution Monitor compilation variants and procedures">
+<script language="JavaScript1.2" src="../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <b>The Execution Monitor</b><a href="prg-exec-monitor.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="aknowledgements.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a href="execution-monitor/compilation.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="part" lang="en">
+<div class="titlepage"><div><div><h1 class="title">
+<a name="execution-monitor"></a>Part I. Boost Test Library: The Execution Monitor</h1></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="execution-monitor/compilation.html">Compilation</a></dt>
+<dt><a href="execution-monitor/user-guide.html">User's guide</a></dt>
+<dt><a href="execution-monitor/reference.html">Reference</a></dt>
+</dl>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title"><a name="execution-monitor.intro"></a></h3></div></div></div>
+<p class="first-line-indented">
+   Sometimes we need to call a function and make sure that no user or system originated exceptions are being thrown
+   by it. Uniform exception reporting is also may be convenient. That's the purpose of the Boost.Test's
+   <em class="firstterm">Execution Monitor</em>.
+  </p>
+<p class="first-line-indented">
+   The Execution Monitor is a lower-level component of the Boost Test Library. It is the base for implementing all
+   other Boost.Test components, but also can be used standalone to get controlled execution of error-prone functions
+   with a uniform error notification. The Execution Monitor calls a user-supplied function in a controlled
+   environment, relieving users from messy error detection.
+  </p>
+<p class="first-line-indented">
+   The Execution Monitor usage is demonstrated in the example exec_mon_example . Additional examples are 
+   in <a class="xref" href="prg-exec-monitor.html" title="Part II. Boost Test Library: The Program Execution Monitor">Part II, &#8220;The Program Execution Monitor&#8221;</a> or <a class="xref" href="utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">Part IV, &#8220;The Unit Test Framework&#8221;</a>.
+  </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="execution-monitor.design"></a>Design Rationale</h4></div></div></div>
+<p class="first-line-indented">
+    The Execution Monitor design assumes that it can be used when no (or almost no) memory available. Also the
+    Execution Monitor is intended to be portable to as many platforms as possible.
+   </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised:  ,  at  </small></p></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="aknowledgements.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="index.html"><img src="../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="execution-monitor/compilation.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

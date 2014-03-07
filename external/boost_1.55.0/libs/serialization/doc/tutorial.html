@@ -1,0 +1,584 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com .
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Tutorial</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr>
+    <td valign="top" width="300">
+       <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top">
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Tutorial</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#simplecase">A Very Simple Case</a>
+  <dt><a href="#nonintrusiveversion">Non Intrusive Version</a>
+  <dt><a href="#serializablemembers">Serializable Members</a>
+  <dt><a href="#derivedclasses">Derived Classes</a>
+  <dt><a href="#pointers">Pointers</a>
+  <dt><a href="#arrays">Arrays</a>
+  <dt><a href="#stl">STL Collections</a>
+  <dt><a href="#versioning">Class Versioning</a>
+  <dt><a href="#splitting">Splitting <code style="white-space: normal">serialize</code> into <code style="white-space: normal">save/load</code></a>
+  <dt><a href="#archives">Archives</a>
+  <dt><a href="#examples">List of examples</a>
+</dl>
+An output archive is similar to an output data stream. Data can be saved to the archive
+with either the &lt;&lt; or the &amp; operator:
+<pre><code>
+ar &lt;&lt; data;
+ar &amp; data;
+</code></pre>
+An input archive is similar to an input datastream.  Data can be loaded from the archive
+with either the &gt;&gt; or the &amp; operator.
+<pre><code>
+ar &gt;&gt; data;
+ar &amp; data;
+</code></pre>
+<p>
+When these operators are invoked for primitive data types, the data is simply saved/loaded
+to/from the archive. When invoked for class data types, the class
+<code style="white-space: normal">serialize</code> function is invoked. Each
+<code style="white-space: normal">serialize</code> function is uses the above operators
+to save/load its data members.  This process will continue in a recursive manner until
+all the data contained in the class is saved/loaded.
+
+<h3><a name="simplecase">A Very Simple Case</a></h3>
+These operators are used inside the <code style="white-space: normal">serialize</code>
+function to save and load class data members.
+<p>
+Included in this library is a program called
+<a href="../example/demo.cpp" target="demo_cpp">demo.cpp</a> which illustrates how
+to use this system. Below we excerpt code from this program to
+illustrate with the simplest possible case how this library is
+intended to be used.
+<pre>
+<code>
+#include &lt;fstream&gt;
+
+// include headers that implement a archive in simple text format
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+#include &lt;boost/archive/text_iarchive.hpp&gt;
+
+/////////////////////////////////////////////////////////////
+// gps coordinate
+//
+// illustrates serialization for a simple type
+//
+class gps_position
+{
+private:
+    friend class boost::serialization::access;
+    // When the class Archive corresponds to an output archive, the
+    // &amp; operator is defined similar to &lt;&lt;.  Likewise, when the class Archive
+    // is a type of input archive the &amp; operator is defined similar to &gt;&gt;.
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        ar &amp; degrees;
+        ar &amp; minutes;
+        ar &amp; seconds;
+    }
+    int degrees;
+    int minutes;
+    float seconds;
+public:
+    gps_position(){};
+    gps_position(int d, int m, float s) :
+        degrees(d), minutes(m), seconds(s)
+    {}
+};
+
+int main() {
+    // create and open a character archive for output
+    std::ofstream ofs("filename");
+
+    // create class instance
+    const gps_position g(35, 59, 24.567f);
+
+    // save data to archive
+    {
+        boost::archive::text_oarchive oa(ofs);
+        // write class instance to archive
+        oa &lt;&lt; g;
+    	// archive and stream closed when destructors are called
+    }
+
+    // ... some time later restore the class instance to its orginal state
+    gps_position newg;
+    {
+        // create and open an archive for input
+        std::ifstream ifs("filename");
+        boost::archive::text_iarchive ia(ifs);
+        // read class state from archive
+        ia &gt;&gt; newg;
+        // archive and stream closed when destructors are called
+    }
+    return 0;
+}
+</code>
+</pre>
+<p>For each class to be saved via serialization, there must exist a function to
+save all the class members which define the state of the class.
+For each class to be loaded via serialization, there must exist a function to
+load theese class members in the same sequence as they were saved.
+In the above example, these functions are generated by the
+template member function <code style="white-space: normal">serialize</code>.
+
+<h3><a name="nonintrusiveversion">Non Intrusive Version</a></h3>
+<p>The above formulation is intrusive. That is, it requires
+that classes whose instances are to be serialized be
+altered. This can be inconvenient in some cases.
+An equivalent alternative formulation permitted by the
+system would be:
+<pre><code>
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+#include &lt;boost/archive/text_iarchive.hpp&gt;
+
+class gps_position
+{
+public:
+    int degrees;
+    int minutes;
+    float seconds;
+    gps_position(){};
+    gps_position(int d, int m, float s) :
+        degrees(d), minutes(m), seconds(s)
+    {}
+};
+
+namespace boost {
+namespace serialization {
+
+template&lt;class Archive&gt;
+void serialize(Archive &amp; ar, gps_position &amp; g, const unsigned int version)
+{
+    ar &amp; g.degrees;
+    ar &amp; g.minutes;
+    ar &amp; g.seconds;
+}
+
+} // namespace serialization
+} // namespace boost
+</code></pre>
+<p>
+In this case the generated serialize functions are not members of the
+<code style="white-space: normal">gps_position</code> class.  The two formulations function
+in exactly the same way.
+<p>
+The main application of non-intrusive serialization is to permit serialization
+to be implemented for classes without changing the class definition.
+In order for this to be possible, the class must expose enough information
+to reconstruct the class state.  In this example, we presumed that the
+class had <code style="white-space: normal">public</code> members - not a common occurence.  Only
+classes which expose enough information to save and restore the class
+state will be serializable without changing the class definition.
+<h3><a name="serializablemembers">Serializable Members</a></h3>
+<p>
+A serializable class with serializable members would look like this:
+<pre><code>
+class bus_stop
+{
+    friend class boost::serialization::access;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        ar &amp; latitude;
+        ar &amp; longitude;
+    }
+    gps_position latitude;
+    gps_position longitude;
+protected:
+    bus_stop(const gps_position &amp; lat_, const gps_position &amp; long_) :
+    latitude(lat_), longitude(long_)
+    {}
+public:
+    bus_stop(){}
+    // See item # 14 in Effective C++ by Scott Meyers.
+    // re non-virtual destructors in base classes.
+    virtual ~bus_stop(){}
+};
+</code></pre>
+<p>That is, members of class type are serialized just as
+members of primitive types are.
+<p>
+Note that saving an instance of the class <code style="white-space: normal">bus_stop</code>
+with one of the archive operators will invoke the
+<code style="white-space: normal">serialize</code> function which saves
+<code style="white-space: normal">latitude</code> and
+<code style="white-space: normal">longitude</code>. Each of these in turn will be saved by invoking
+<code style="white-space: normal">serialize</code> in the definition of
+<code style="white-space: normal">gps_position</code>.  In this manner the whole
+data structure is saved by the application of an archive operator to
+just its root item.
+
+
+<h3><a name="derivedclasses">Derived Classes</a></h3>
+<p>Derived classes should include serializations of their base classes.
+<pre><code>
+#include &lt;boost/serialization/base_object.hpp&gt;
+
+class bus_stop_corner : public bus_stop
+{
+    friend class boost::serialization::access;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        // serialize base class information
+        ar &amp; boost::serialization::base_object&lt;bus_stop&gt;(*this);
+        ar &amp; street1;
+        ar &amp; street2;
+    }
+    std::string street1;
+    std::string street2;
+    virtual std::string description() const
+    {
+        return street1 + " and " + street2;
+    }
+public:
+    bus_stop_corner(){}
+    bus_stop_corner(const gps_position &amp; lat_, const gps_position &amp; long_,
+        const std::string &amp; s1_, const std::string &amp; s2_
+    ) :
+        bus_stop(lat_, long_), street1(s1_), street2(s2_)
+    {}
+};
+</code>
+</pre>
+<p>
+Note the serialization of the base classes from the derived
+class. Do <b>NOT</b> directly call the base class serialize
+functions. Doing so might seem to work but will bypass the code
+that tracks instances written to storage to eliminate redundancies.
+It will also bypass the writing of class version information into
+the archive. For this reason, it is advisable to always make member
+<code style="white-space: normal">serialize</code> functions private.  The declaration
+<code style="white-space: normal">friend boost::serialization::access</code> will grant to the
+serialization library access to private member variables and functions.
+<p>
+<h3><a name="pointers">Pointers</a></h3>
+Suppose we define a bus route as an array of bus stops.  Given that
+<ol>
+    <li>we might have several types of bus stops (remember bus_stop is
+a base class)
+    <li>a given bus_stop might appear in more than one route.
+</ol>
+it's convenient to represent a bus route with an array of pointers
+to <code style="white-space: normal">bus_stop</code>.
+<pre>
+<code>
+class bus_route
+{
+    friend class boost::serialization::access;
+    bus_stop * stops[10];
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        int i;
+        for(i = 0; i &lt 10; ++i)
+            ar &amp; stops[i];
+    }
+public:
+    bus_route(){}
+};
+</code>
+</pre>
+Each member of the array <code style="white-space: normal">stops</code> will be serialized.
+But remember each member is a pointer - so what can this really
+mean?  The whole object of this serialization is to permit
+reconstruction of the original data structures at another place
+and time.  In order to accomplish this with a pointer, it is
+not sufficient to save the value of the pointer, rather the
+object it points to must be saved.  When the member is later
+loaded, a new object has to be created and a new pointer has
+to be loaded into the class member.
+<p>
+If the same pointer is serialized more than once, only one instance
+is be added to the archive.  When read back, no data is read back in.
+The only operation that occurs is for the second pointer is set equal to the first
+<p>
+Note that, in this example, the array consists of polymorphic pointers.
+That is, each array element point to one of several possible 
+kinds of bus stops.  So when the pointer is saved, some sort of class
+identifier must be saved.  When the pointer is loaded, the class
+identifier must be read and and instance of the corresponding class
+must be constructed. Finally the data can be loaded to newly created
+instance of the correct type.
+
+As can be seen in 
+<a href="../example/demo.cpp" target="demo_cpp">demo.cpp</a>,
+serialization of pointers to derived classes through a base
+clas pointer may require explicit enumeration of the derived
+classes to be serialized. This is referred to as "registration" or "export"
+of derived classes.  This requirement and the methods of
+satisfying it are explained in detail
+<a href="serialization.html#derivedpointers">here</a>.
+<p>
+All this is accomplished automatically by the serialization
+library.  The above code is all that is necessary to accomplish
+the saving and loading of objects accessed through pointers.
+<p>
+<h3><a name="arrays">Arrays</a></h3>
+The above formulation is in fact more complex than necessary.
+The serialization library detects when the object being
+serialized is an array and emits code equivalent to the above.
+So the above can be shortened to:
+<pre>
+<code>
+class bus_route
+{
+    friend class boost::serialization::access;
+    bus_stop * stops[10];
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        ar &amp; stops;
+    }
+public:
+    bus_route(){}
+};
+</code>
+</pre>
+<h3><a name="stl">STL Collections</a></h3>
+The above example uses an array of members.  More likely such
+an application would use an STL collection for such a purpose.
+The serialization library contains code for serialization
+of all STL classes.  Hence, the reformulation below will
+also work as one would expect.
+<pre>
+<code>
+#include &lt;boost/serialization/list.hpp&gt;
+
+class bus_route
+{
+    friend class boost::serialization::access;
+    std::list&lt;bus_stop *&gt; stops;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        ar &amp; stops;
+    }
+public:
+    bus_route(){}
+};
+</code>
+</pre>
+<h3><a name="versioning">Class Versioning</a></h3>
+<p>
+Suppose we're satisfied with our <code style="white-space: normal">bus_route</code> class, build a program
+that uses it and ship the product.  Some time later, it's decided
+that the program needs enhancement and the <code style="white-space: normal">bus_route</code> class is
+altered to include the name of the driver of the route. So the
+new version looks like:
+<pre>
+<code>
+#include &lt;boost/serialization/list.hpp&gt;
+#include &lt;boost/serialization/string.hpp&gt;
+
+class bus_route
+{
+    friend class boost::serialization::access;
+    std::list&lt;bus_stop *&gt; stops;
+    std::string driver_name;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        ar &amp; driver_name;
+        ar &amp; stops;
+    }
+public:
+    bus_route(){}
+};
+</code>
+</pre>
+Great, we're all done. Except... what about people using our application
+who now have a bunch of files created under the previous program.
+How can these be used with our new program version?
+<p>
+In general, the serialization library stores a version number in the
+archive for each class serialized.  By default this version number is 0.
+When the archive is loaded, the version number under which it was saved
+is read.  The above code can be altered to exploit this
+<pre>
+<code>
+#include &lt;boost/serialization/list.hpp&gt;
+#include &lt;boost/serialization/string.hpp&gt;
+#include &lt;boost/serialization/version.hpp&gt;
+
+class bus_route
+{
+    friend class boost::serialization::access;
+    std::list&lt;bus_stop *&gt; stops;
+    std::string driver_name;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int version)
+    {
+        // only save/load driver_name for newer archives
+        if(version &gt; 0)
+            ar &amp; driver_name;
+        ar &amp; stops;
+    }
+public:
+    bus_route(){}
+};
+
+BOOST_CLASS_VERSION(bus_route, 1)
+</code>
+</pre>
+By application of versioning to each class, there is no need to
+try to maintain a versioning of files.  That is, a file version
+is the combination of the versions of all its constituent classes.
+
+This system permits programs to be always compatible with archives
+created by all previous versions of a program with no more
+effort than required by this example.
+
+<h3><a name="splitting">Splitting <code style="white-space: normal">serialize</code>
+into <code style="white-space: normal">save/load</code></a></h3>
+The <code style="white-space: normal">serialize</code> function is simple, concise, and guarantees
+that class members are saved and loaded in the same sequence
+- the key to the serialization system.  However, there are cases
+where the load and save operations are not as similar as the examples
+used here.  For example, this could occur with a class that has evolved through
+multiple versions.  The above class can be reformulated as:
+<pre>
+<code>
+#include &lt;boost/serialization/list.hpp&gt;
+#include &lt;boost/serialization/string.hpp&gt;
+#include &lt;boost/serialization/version.hpp&gt;
+#include &lt;boost/serialization/split_member.hpp&gt;
+
+class bus_route
+{
+    friend class boost::serialization::access;
+    std::list&lt;bus_stop *&gt; stops;
+    std::string driver_name;
+    template&lt;class Archive&gt;
+    void save(Archive &amp; ar, const unsigned int version) const
+    {
+        // note, version is always the latest when saving
+        ar  &amp; driver_name;
+        ar  &amp; stops;
+    }
+    template&lt;class Archive&gt;
+    void load(Archive &amp; ar, const unsigned int version)
+    {
+        if(version &gt; 0)
+            ar &amp; driver_name;
+        ar  &amp; stops;
+    }
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
+public:
+    bus_route(){}
+};
+
+BOOST_CLASS_VERSION(bus_route, 1)
+</code>
+</pre>
+The macro <code style="white-space: normal">BOOST_SERIALIZATION_SPLIT_MEMBER()</code> generates
+code which invokes the <code style="white-space: normal">save</code>
+or <code style="white-space: normal">load</code>
+depending on whether the archive is used for saving or loading.
+<h3><a name="archives">Archives</a></h3>
+Our discussion here has focused on adding serialization
+capability to classes.  The actual rendering of the data to be serialized
+is implemented in the archive class.  Thus the stream of serialized
+data is a product of the serialization of the class and the
+archive selected.  It is a key design decision that these two
+components be independent.  This permits any serialization specification
+to be usable with any archive.
+<p>
+In this tutorial, we have used a particular
+archive class - <code style="white-space: normal">text_oarchive</code> for saving and
+<code style="white-space: normal">text_iarchive</code> for loading.
+text archives render data as text and are portable across platforms.  In addition
+to text archives, the library includes archive class for native binary data
+and xml formatted data.  Interfaces to all archive classes are all identical.
+Once serialization has been defined for a class, that class can be serialized to 
+any type of archive.
+<p>
+If the current set of archive classes doesn't provide the
+attributes, format, or behavior needed for a particular application,
+one can either make a new archive class or derive from an existing one.
+This is described later in the manual.
+
+<h3><a name="examples">List of Examples</h3>
+<dl>
+    <dt><a href="../example/demo.cpp" target="demo_cpp">demo.cpp</a>
+    <dd>This is the completed example used in this tutorial.
+    It does the following:
+    <ol>
+        <li>Creates a structure of differing kinds of stops, routes and schedules
+        <li>Displays it
+        <li>Serializes it to a file named "testfile.txt" with one
+        statement
+        <li>Restores to another structure
+        <li>Displays the restored structure
+    </ol>
+    <a href="../example/demo_output.txt" target="demo_output">Output of
+    this program</a> is sufficient to verify that all the
+    originally stated requirements for a serialization system
+    are met with this system. The <a href="../example/demofile.txt"
+    target="test_file">contents of the archive file</a> can
+    also be displayed as serialization files are ASCII text.
+
+    <dt><a href="../example/demo_xml.cpp" target="demo_xml_cpp">demo_xml.cpp</a>
+    <dd>This is a variation the original demo which supports xml archives in addition
+    to the others. The extra wrapping macro, BOOST_SERIALIZATION_NVP(name), is 
+    needed to associate a data item name with the corresponding xml 
+    tag. It is importanted that 'name' be a valid xml tag, else it 
+    will be impossible to restore the archive. 
+    For more information see
+    <a target="detail" href="wrappers.html#nvp">Name-Value Pairs</a>.
+    <a href="../example/demo_save.xml" target="demo_save_xml">Here</a>
+    is what an xml archive looks like.
+
+    <dt><a href="../example/demo_xml_save.cpp" target="demo_xml_save_cpp">demo_xml_save.cpp</a>
+    and <a href="../example/demo_xml_load.cpp" target="demo_xml_load_cpp">demo_xml_load.cpp</a>
+    <dd>Note also that though our examples save and load the program data
+    to an archive within the same program, this merely a convenience
+    for purposes of illustration.  In general, the archive may or may
+    not be loaded by the same program that created it.
+</dl>
+<p>
+The astute reader might notice that these examples contain a subtle but important flaw.
+They leak memory. The bus stops are created in the <code style="white-space: normal">
+main</code> function.  The bus schedules may refer to these bus stops
+any number of times.  At the end of the main function after the bus schedules are destroyed,
+the bus stops are destroyed.  This seems fine.  But what about the structure
+<code style="white-space: normal">new_schedule</code> data item created by the
+process of loading from an archive? This contains its own separate set of bus stops
+that are not referenced outside of the bus schedule.  These won't be destroyed
+anywhere in the program - a memory leak.
+<p>
+There are couple of ways of fixing this.  One way is to explicitly manage the bus stops.
+However, a more robust and transparent is to use 
+<code style="white-space: normal">shared_ptr</code> rather than raw pointers. Along
+with serialization implemenations for the Standard Library, the serialization library
+includes implementation of serialization for 
+<code style="white-space: normal">boost::shared ptr</code>.  Given this, it should be
+easy to alter any of these examples to eliminate the memory leak. This is left 
+as an excercise for the reader.
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

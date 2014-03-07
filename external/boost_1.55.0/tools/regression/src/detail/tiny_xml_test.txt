@@ -1,0 +1,17 @@
+<root>
+<frontmatter>
+//  (C) Copyright Beman Dawes 2002.  Distributed under the Boost
+//  Software License, Version 1.0. (See accompanying file
+//  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</frontmatter>
+<element-1 at-1="abcd" at-2 = "defg" >
+<element-1a>
+It's Howdy Doody time!
+</element-1a>
+<element-1b>It's not Howdy Doody time!</element-1b>
+</element-1>
+<element-2>
+It's
+Eastern Standard time!
+</element-2>
+</root>

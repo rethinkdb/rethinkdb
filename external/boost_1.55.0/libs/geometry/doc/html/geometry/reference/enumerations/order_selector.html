@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>order_selector</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../enumerations.html" title="Enumerations">
+<link rel="prev" href="closure_selector.html" title="closure_selector">
+<link rel="next" href="../exceptions.html" title="Exceptions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="closure_selector.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../enumerations.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../exceptions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.enumerations.order_selector"></a><a class="link" href="order_selector.html" title="order_selector">order_selector</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp59291512"></a>
+<a class="indexterm" name="idp59291864"></a>
+<a class="indexterm" name="idp59292264"></a>
+<a class="indexterm" name="idp59292680"></a>
+Enumerates options for the order of points within polygons.
+        </p>
+<h6>
+<a name="geometry.reference.enumerations.order_selector.h0"></a>
+          <span class="phrase"><a name="geometry.reference.enumerations.order_selector.description"></a></span><a class="link" href="order_selector.html#geometry.reference.enumerations.order_selector.description">Description</a>
+        </h6>
+<p>
+          The enumeration order_selector describes options for the order of points
+          within a polygon. Polygons can be ordered either clockwise or counterclockwise.
+          The specific order of a polygon type is defined by the point_order metafunction.
+          The point_order metafunction defines a value, which is one of the values
+          enumerated in the order_selector
+        </p>
+<h6>
+<a name="geometry.reference.enumerations.order_selector.h1"></a>
+          <span class="phrase"><a name="geometry.reference.enumerations.order_selector.synopsis"></a></span><a class="link" href="order_selector.html#geometry.reference.enumerations.order_selector.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">order_selector</span> <span class="special">{</span><span class="identifier">clockwise</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">counterclockwise</span> <span class="special">=</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">order_undetermined</span> <span class="special">=</span> <span class="number">0</span><span class="special">};</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.enumerations.order_selector.h2"></a>
+          <span class="phrase"><a name="geometry.reference.enumerations.order_selector.values"></a></span><a class="link" href="order_selector.html#geometry.reference.enumerations.order_selector.values">Values</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Value
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    clockwise
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Points are ordered clockwise.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    counterclockwise
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Points are ordered counter clockwise.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    order_undetermined
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Points might be stored in any order, algorithms will determine
+                    it on the fly (not yet supported)
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.enumerations.order_selector.h3"></a>
+          <span class="phrase"><a name="geometry.reference.enumerations.order_selector.header"></a></span><a class="link" href="order_selector.html#geometry.reference.enumerations.order_selector.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">point_order</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.enumerations.order_selector.h4"></a>
+          <span class="phrase"><a name="geometry.reference.enumerations.order_selector.see_also"></a></span><a class="link" href="order_selector.html#geometry.reference.enumerations.order_selector.see_also">See also</a>
+        </h6>
+<p>
+          <a class="link" href="../core/point_order.html" title="point_order">The point_order metafunction</a>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="closure_selector.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../enumerations.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../exceptions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

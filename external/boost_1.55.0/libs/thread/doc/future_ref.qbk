@@ -1,0 +1,2228 @@
+[/
+  (C) Copyright 2008-11 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[///////////////////////////////////]
+[section:reference Futures Reference]
+
+  //#include <boost/thread/futures.hpp>
+
+  namespace boost
+  {
+    namespace future_state  // EXTENSION
+    {
+      enum state {uninitialized, waiting, ready, moved};
+    }
+
+    enum class future_errc
+    {
+      broken_promise,
+      future_already_retrieved,
+      promise_already_satisfied,
+      no_state
+    };
+
+    enum class launch
+    {
+      async = unspecified,
+      deferred = unspecified,
+      any = async | deferred
+    };
+    
+    enum class future_status {
+      ready,  timeout, deferred
+    };
+    
+    namespace system
+    {
+      template <>
+      struct is_error_code_enum<future_errc> : public true_type {};
+
+      error_code make_error_code(future_errc e);
+
+      error_condition make_error_condition(future_errc e);
+    }
+
+    const system::error_category& future_category();
+
+    class future_error;
+
+    template <typename R>
+    class promise;
+
+    template <typename R>
+    void swap(promise<R>& x, promise<R>& y) noexcept;
+
+    namespace container {
+      template <class R, class Alloc>
+      struct uses_allocator<promise<R>, Alloc>:: true_type;
+    }
+
+    template <typename R>
+    class future;
+
+    template <typename R>
+    class shared_future;
+
+    template <typename S>
+    class packaged_task;
+    template <class S> void swap(packaged_task<S>&, packaged_task<S>&) noexcept;
+
+    template <class S, class Alloc>
+    struct uses_allocator<packaged_task <S>, Alloc>;
+
+    template <class F>
+    future<typename result_of<typename decay<F>::type()>::type>
+    async(F f);
+    template <class F>
+    future<typename result_of<typename decay<F>::type()>::type>
+    async(launch policy, F f);
+
+    template <class F, class... Args>
+    future<typename result_of<typename decay<F>::type(typename decay<Args>::type...)>::type>
+    async(F&& f, Args&&... args);
+    template <class F, class... Args>
+    future<typename result_of<typename decay<F>::type(typename decay<Args>::type...)>::type>
+    async(launch policy, F&& f, Args&&... args);
+    
+    template<typename Iterator>
+    void wait_for_all(Iterator begin,Iterator end); // EXTENSION
+    template<typename F1,typename... FS>
+    void wait_for_all(F1& f1,Fs&... fs); // EXTENSION
+
+    template<typename Iterator>
+    Iterator wait_for_any(Iterator begin,Iterator end); // EXTENSION
+    template<typename F1,typename... Fs>
+    unsigned wait_for_any(F1& f1,Fs&... fs); // EXTENSION
+    
+    template <typename T>
+    future<typename decay<T>::type> make_future(T&& value);  // DEPRECATED
+    future<void> make_future();  // DEPRECATED
+    
+    template <typename T>
+    future<typename decay<T>::type> make_ready_future(T&& value);  // EXTENSION
+    future<void> make_ready_future();  // EXTENSION
+    template <typename T>
+    future<T> make_ready_future(exception_ptr ex);  // EXTENSION
+    template <typename T, typename E>
+    future<T> make_ready_future(E ex);  // EXTENSION
+    
+    template <typename T>
+    shared_future<typename decay<T>::type> make_shared_future(T&& value);  // DEPRECATED
+    shared_future<void> make_shared_future();  // DEPRECATED
+    
+[////////////////////////////////////////]
+[section:future_state Enumeration `state`]
+
+    namespace future_state
+    {
+      enum state {uninitialized, waiting, ready, moved};
+    }
+
+
+[endsect]
+[/////////////////////////////////////////////]
+[section:future_errc Enumeration `future_errc`]
+
+  enum class future_errc
+  {
+    broken_promise = implementation defined,
+    future_already_retrieved = implementation defined,
+    promise_already_satisfied = implementation defined,
+    no_state = implementation defined
+  }
+
+
+ The enum values of future_errc are distinct and not zero. 
+ 
+[endsect]
+[///////////////////////////////////]
+[section:launch Enumeration `launch`]
+
+    enum class launch
+    {
+      async = unspecified,
+      deferred = unspecified,
+      any = async | deferred
+    };
+
+The enum type launch is a bitmask type with launch::async and launch::deferred denoting individual bits. 
+
+[endsect]
+[///////////////////////////////////////////////////////////////////////////]
+[section:is_error_code_enum Specialization `is_error_code_enum<future_errc>`]
+
+  namespace system
+  {
+    template <>
+    struct is_error_code_enum<future_errc> : public true_type {};
+
+  }
+
+[endsect]
+[///////////////////////////////////////////////////////////////]
+[section:make_error_code Non-member function `make_error_code()`]
+
+  namespace system
+  {
+    error_code make_error_code(future_errc e);
+  }
+
+[variablelist
+
+[[Returns:] [`error_code(static_cast<int>(e), future_category())`.]]
+
+]  
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////]
+[section:make_error_condition Non-member function `make_error_condition()`]
+
+  namespace system
+  {
+    error_condition make_error_condition(future_errc e);
+  }
+
+[variablelist
+
+[[Returns:] [`error_condition(static_cast<int>(e), future_category())`.]]
+
+]  
+
+[endsect]
+[///////////////////////////////////////////////////////////////]
+[section:future_category Non-member function `future_category()`]
+
+  const system::error_category& future_category();
+
+[variablelist
+
+[[Returns:] [A reference to an object of a type derived from class error_category.]]
+
+[[Notes:] [The object's `default_error_condition` and equivalent virtual functions behave as specified for the class `system::error_category`. 
+The object's `name` virtual function returns a pointer to the string "future".]]
+
+]  
+
+[endsect]
+[/////////////////////////////////////////]
+[section:future_error Class `future_error`]
+
+  class future_error
+      : public std::logic_error
+  {
+  public:
+      future_error(system::error_code ec);
+
+      const system::error_code& code() const no_except;
+  };
+
+[///////////////////////////////]
+[section:constructor Constructor]
+
+      future_error(system::error_code ec);
+
+[variablelist
+
+[[Effects:] [Constructs a future_error.]]
+
+[[Postconditions:] [`code()==ec` ]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////]
+[section:code Member function `code()`]
+
+      const system::error_code& code() const no_except;
+
+[variablelist
+
+[[Returns:] [The value of `ec` that was passed to the object's constructor.]]
+
+]
+
+[endsect]
+
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:future_status Enumeration `future_status`]
+
+  enum class future_status {
+    ready,  timeout, deferred
+  };
+
+[endsect]
+[////////////////////////////////////////////////////]
+[section:unique_future __unique_future class template]
+
+    template <typename R>
+    class __unique_future__
+    {
+
+    public:
+      typedef R value_type;  // EXTENSION
+      __unique_future__(__unique_future__ const& rhs) = delete;
+      __unique_future__& operator=(__unique_future__ const& rhs) = delete;
+
+      __unique_future__() noexcept;
+      ~__unique_future__();
+
+      // move support
+      __unique_future__(__unique_future__ && other) noexcept;
+      __unique_future__(__unique_future__<__unique_future__<R>>&& rhs);  // EXTENSION
+      __unique_future__& operator=(__unique_future__ && other) noexcept;
+      
+      // factories
+      shared_future<R> share();
+      
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(F&& func); // EXTENSION
+      template<typename S, typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(S& scheduler, F&& func); // EXTENSION NOT_YET_IMPLEMENTED
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(launch policy, F&& func); // EXTENSION
+
+      see below unwrap();  // EXTENSION
+      __unique_future__ fallback_to();  // EXTENSION
+                  
+      void swap(__unique_future__& other) noexcept;
+
+      // retrieving the value
+      see below get();
+      see below get_or(see below);  // EXTENSION
+      
+      exception_ptr get_exception_ptr(); // EXTENSION
+
+      // functions to check state
+      bool valid() const noexcept;
+      bool is_ready() const; // EXTENSION
+      bool has_exception() const; // EXTENSION
+      bool has_value() const; // EXTENSION
+
+      // waiting for the result to be ready
+      void wait() const;
+      template <class Rep, class Period>
+      future_status wait_for(const chrono::duration<Rep, Period>& rel_time) const;
+      template <class Clock, class Duration>
+      future_status wait_until(const chrono::time_point<Clock, Duration>& abs_time) const;
+
+    #if defined BOOST_THREAD_USES_DATE_TIME
+      template<typename Duration>
+      bool timed_wait(Duration const& rel_time) const; // DEPRECATED SINCE V3.0.0
+      bool timed_wait_until(boost::system_time const& abs_time) const; // DEPRECATED SINCE V3.0.0
+    #endif
+      typedef future_state::state state;  // EXTENSION
+      state get_state() const;  // EXTENSION
+    };
+
+[///////////////////////////////////////////////]
+[section:default_constructor Default Constructor]
+
+    __unique_future__();
+
+[variablelist
+
+[[Effects:] [Constructs an uninitialized __unique_future__.]]
+
+[[Postconditions:] [[unique_future_is_ready_link `this->is_ready`] returns `false`. [unique_future_get_state_link
+`this->get_state()`] returns __uninitialized__.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[/////////////////////////////]
+[section:destructor Destructor]
+
+    ~__unique_future__();
+
+[variablelist
+
+[[Effects:] [Destroys `*this`.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////]
+[section:move_constructor Move Constructor]
+
+    __unique_future__(__unique_future__ && other);
+
+[variablelist
+
+[[Effects:] [Constructs a new __unique_future__, and transfers ownership of the shared state associated with `other` to `*this`.]]
+
+[[Postconditions:] [[unique_future_get_state_link `this->get_state()`] returns the value of `other->get_state()` prior to the
+call. `other->get_state()` returns __uninitialized__. If `other` was associated with a shared state, that result is now
+associated with `*this`. `other` is not associated with any shared state.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////////////////]
+[section:unwrap_move_constructor Unwrap Move Constructor - EXTENSION]
+
+      __unique_future__(__unique_future__<__unique_future__<R>>&& other);  // EXTENSION
+
+[warning This constructor is experimental and subject to change in future versions. 
+There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[variablelist
+
+[[Requires:] [`other.valid()`.]
+[[Effects:] [Constructs a new __unique_future__, and transfers ownership of the shared state associated with `other` and unwrapping the inner future (see `unwrap()`).]]
+
+[[Postconditions:] [[unique_future_get_state_link `this->get_state()`] returns the value of `other->get_state()` prior to the
+call. `other->get_state()` returns __uninitialized__. The associated shared state is now
+unwrapped and the inner future shared state is associated with `*this`. `other` is not associated with any shared state, `! other.valid()`.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[////////////////////////////////////////////////]
+[section:move_assignment Move Assignment Operator]
+
+    __unique_future__& operator=(__unique_future__ && other);
+
+[variablelist
+
+[[Effects:] [Transfers ownership of the shared state associated with `other` to `*this`.]]
+
+[[Postconditions:] [[unique_future_get_state_link `this->get_state()`] returns the value of `other->get_state()` prior to the
+call. `other->get_state()` returns __uninitialized__. If `other` was associated with a shared state, that result is now
+associated with `*this`. `other` is not associated with any shared state. If `*this` was associated with an asynchronous
+result prior to the call, that result no longer has an associated __unique_future__ instance.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////]
+[section:swap Member function `swap()`]
+
+    void swap(__unique_future__ & other) no_except;
+
+[variablelist
+
+[[Effects:] [Swaps ownership of the shared states associated with `other` and `*this`.]]
+
+[[Postconditions:] [[unique_future_get_state_link `this->get_state()`] returns the value of `other->get_state()` prior to the
+call. `other->get_state()` returns the value of `this->get_state()` prior to the call. If `other` was associated with a
+shared state, that result is now associated with `*this`, otherwise `*this` has no associated result. If `*this` was
+associated with a shared state, that result is now associated with `other`, otherwise `other` has no associated result.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////]
+[section:get Member function `get()`]
+
+    R get();
+    R& __unique_future__<R&>::get();
+    void __unique_future__<void>::get();
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready as-if by a call to
+__unique_future_wait__, and retrieves the result (whether that is a value or an exception).]]
+
+[[Returns:] [
+
+- `__unique_future__<R&>::get()` return the stored reference. 
+
+- `__unique_future__<void>::get()`, there is no return value. 
+
+- `__unique_future__<R>::get()` returns an rvalue-reference to the value stored in the shared state.
+
+]]
+
+[[Postconditions:] [[unique_future_is_ready_link `this->is_ready()`] returns `true`. [unique_future_get_state_link
+`this->get_state()`] returns __ready__.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception stored in the shared state in place of a value.
+]]
+
+[[Notes:] [`get()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////]
+[section:get_or Member function `get_or()` - EXTENSION]
+
+    R get_or(R&& v); // EXTENSION
+    R get_or(R const& v);  // EXTENSION
+    R& __unique_future__<R&>::get_or(R& v);  // EXTENSION
+    void __unique_future__<void>::get_or();  // EXTENSION
+
+[warning These functions are experimental and subject to change in future versions. 
+There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready as-if by a call to
+__unique_future_wait__, and depending on whether the shared state `has_value()` the retrieves the result.]]
+
+[[Returns:] [
+
+- `__unique_future__<R&>::get_or(v)` return the stored reference if has_value() and the passes parameter otherwise. 
+
+- `__unique_future__<void>::get_or()`, there is no return value, but the function doesn't throws even if the shared state contained an exception. 
+
+- `__unique_future__<R>::get_or(v)` returns an rvalue-reference to the value stored in the shared state if `has_value()` and an rvalue-reference build with the parameter `v`.
+
+]]
+
+[[Postconditions:] [[unique_future_is_ready_link `this->is_ready()`] returns `true`. [unique_future_get_state_link
+`this->get_state()`] returns __ready__.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+]]
+
+[[Notes:] [`get_or()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////]
+[section:wait Member function `wait()`]
+
+    void wait() const;
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready. If the result is not ready on
+entry, and the result has a ['wait callback] set, that callback is invoked prior to waiting.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result
+associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [[unique_future_is_ready_link `this->is_ready()`] returns `true`. [unique_future_get_state_link
+`this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////////////////////////////////////////]
+[section:timed_wait_duration Member function `timed_wait()` DEPRECATED SINCE V3.0.0]
+
+    template<typename Duration>
+    bool timed_wait(Duration const& wait_duration);
+
+[warning
+DEPRECATED since 3.00.
+ 
+Available only up to Boost 1.56. 
+
+Use instead __wait_for.  
+]
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time specified by
+`wait_duration` has elapsed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is
+invoked prior to waiting.]]
+
+[[Returns:] [`true` if `*this` is associated with a shared state, and that result is ready before the specified time has
+elapsed, `false` otherwise.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [unique_future_is_ready_link `this->is_ready()`] returns `true` and
+[unique_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point]. `Duration` must be a type that meets the Boost.DateTime time duration requirements.]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////////////////////////////////////////]
+[section:timed_wait_absolute Member function `timed_wait()` DEPRECATED SINCE V3.0.0]
+
+    bool timed_wait(boost::system_time const& wait_timeout);
+
+[warning
+DEPRECATED since 3.00.
+ 
+Available only up to Boost 1.56. 
+
+Use instead __wait_until.  
+]
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time point specified by
+`wait_timeout` has passed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is invoked
+prior to waiting.]]
+
+[[Returns:] [`true` if `*this` is associated with a shared state, and that result is ready before the specified time has
+passed, `false` otherwise.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [unique_future_is_ready_link `this->is_ready()`] returns `true` and
+[unique_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////]
+[section:wait_for Member function `wait_for()`]
+
+      template <class Rep, class Period>
+      future_status wait_for(const chrono::duration<Rep, Period>& rel_time) const;
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time specified by
+`wait_duration` has elapsed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is
+invoked prior to waiting.]]
+
+[[Returns:] [
+
+- `future_status::deferred` if the shared state contains a deferred function. (Not implemented yet)
+
+- `future_status::ready` if the shared state is ready.
+
+- `future_status::timeout` if the function is returning because the relative timeout specified by `rel_time` has expired.
+
+]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [unique_future_is_ready_link `this->is_ready()`] returns `true` and
+[unique_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`wait_for()` is an ['interruption point]. `Duration` must be a type that meets the Boost.DateTime time duration requirements.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:wait_until Member function `wait_until()`]
+
+      template <class Clock, class Duration>
+      future_status wait_until(const chrono::time_point<Clock, Duration>& abs_time) const;
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time point specified by
+`wait_timeout` has passed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is invoked
+prior to waiting.]]
+
+[[Returns:] [
+
+- `future_status::deferred` if the shared state contains a deferred function. (Not implemented yet)
+
+- `future_status::ready` if the shared state is ready.
+
+- `future_status::timeout` if the function is returning because the absolute timeout specified by `absl_time` has reached.
+
+]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [unique_future_is_ready_link `this->is_ready()`] returns `true` and
+[unique_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`wait_until()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[///////////////////////////////////////]
+[section:valid Member function `valid()`]
+
+    bool valid() const noexcept;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, `false`
+otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////]
+[section:is_ready Member function `is_ready()` EXTENSION]
+
+    bool is_ready() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state and that result is ready for retrieval, `false`
+otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////]
+[section:has_value Member function `has_value()` EXTENSION]
+
+    bool has_value() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, that result is ready for retrieval, and the result is a
+stored value, `false` otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////]
+[section:has_exception Member function `has_exception()` EXTENSION]
+
+    bool has_exception() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, that result is ready for retrieval, and the result is a
+stored exception, `false` otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////]
+[section:get_exception_ptr Member function `get_exception_ptr()` EXTENSION]
+
+      exception_ptr get_exception_ptr();
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready. If the result is not ready on
+entry, and the result has a ['wait callback] set, that callback is invoked prior to waiting.]]
+
+[[Returns:] [a exception_ptr, storring or not an exception.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////]
+[section:get_state Member function `get_state()` EXTENSION]
+
+    future_state::state get_state();
+
+[variablelist
+
+[[Effects:] [Determine the state of the shared state associated with `*this`, if any.]]
+
+[[Returns:] [__uninitialized__ if `*this` is not associated with a shared state. __ready__ if the shared state
+associated with `*this` is ready for retrieval, __waiting__ otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+
+[endsect]
+[///////////////////////////////////////]
+[section:share Member function `share()`]
+
+      shared_future<R> share();
+
+[variablelist
+
+[[Returns:] [`shared_future<R>(boost::move(*this))`.]]
+
+[[Postconditions:] [`this->valid() == false`.]]
+
+]
+
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:then Member function `then()` - EXTENSION]
+
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(F&& func); // EXTENSION
+      template<typename S, typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(S& scheduler, F&& func); // EXTENSION NOT_YET_IMPLEMENTED
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(__unique_future__&)>::type> 
+      then(launch policy, F&& func); // EXTENSION
+
+[warning These functions are experimental and subject to change in future versions. 
+There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[note These functions are based on the [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3634.pdf [*N3634 - Improvements to std::future<T> and related APIs]] C++1y proposal by N. Gustafsson, A. Laksberg, H. Sutter, S. Mithani.]
+
+[variablelist
+
+[[Notes:] [The three functions differ only by input parameters. The first only takes a callable object which accepts a 
+future object as a parameter. The second function takes a scheduler as the first parameter and a callable object as 
+the second parameter. The third function takes a launch policy as the first parameter and a callable object as the 
+second parameter.]]
+
+[[Effects:] [
+
+- The continuation is called when the object's shared state is ready (has a value or exception stored).
+
+- The continuation launches according to the specified policy or scheduler.
+
+- When the scheduler or launch policy is not provided the continuation inherits the
+parent's launch policy or scheduler.
+
+- If the parent was created with `promise<<` or with a `packaged_task<>` (has no associated launch policy), the 
+continuation behaves the same as the third overload with a policy argument of `launch::async | launch::deferred` and 
+the same argument for func.
+
+- If the parent has a policy of `launch::deferred` and the continuation does not have a specified launch policy or 
+scheduler, then the parent is filled by immediately calling `.wait()`, and the policy of the antecedent is 
+`launch::deferred`.
+
+]]
+
+[[Returns:] [An object of type `__unique_future__<typename boost::result_of<F(__unique_future__)>` that refers to the shared state created by the continuation.]]
+
+[[Postconditions:] [
+
+- The `__unique_future__` object passed to the parameter of the continuation function is a copy of the original `__unique_future__`.
+
+- `valid() == false` on original future object immediately after it returns.
+
+]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////]
+[section:unwrap Member function `unwrap()` EXTENSION]
+
+      template <typename R2>
+      __unique_future__<R2> __unique_future__<__unique_future__<R2>>::unwrap();  // EXTENSION
+      template <typename R2>
+      __shared_future__<R2> __unique_future__<__shared_future__<R2>>::unwrap();  // EXTENSION
+
+[warning These functions are experimental and subject to change in future versions. 
+There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[note These functions are based on the [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3634.pdf [*N3634 - Improvements to std::future<T> and related APIs]] C++1y proposal by N. Gustafsson, A. Laksberg, H. Sutter, S. Mithani.]
+  
+[variablelist
+
+[[Notes:] [Removes the outermost future and returns a future with the associated state been a proxy of inner future.]]
+
+[[Effects:] [
+
+- Returns a future that becomes ready when the shared state of the inner future is ready.
+
+]]
+
+[[Returns:] [An object of type future with the associated state been a proxy of inner future.]]
+
+[[Postconditions:] [
+
+- The returned future has `valid() == true` regardless of the validity of the inner future.
+
+]]
+
+]
+
+
+[endsect]
+
+[endsect]
+[////////////////////////////////////////////////////]
+[section:shared_future `shared_future` class template]
+
+    template <typename R>
+    class shared_future
+    {
+    public:
+      typedef future_state::state state; // EXTENSION
+      typedef R value_type;  // EXTENSION
+
+      shared_future() noexcept;
+      ~shared_future();
+
+      // copy support
+      shared_future(shared_future const& other);
+      shared_future& operator=(shared_future const& other);
+
+      // move support
+      shared_future(shared_future && other) noexcept;
+      shared_future(__unique_future__<R> && other) noexcept;
+      shared_future& operator=(shared_future && other) noexcept;
+      shared_future& operator=(__unique_future__<R> && other) noexcept;
+
+      // factories
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(F&& func); // EXTENSION
+      template<typename S, typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(S& scheduler, F&& func); // EXTENSION NOT_YET_IMPLEMENTED
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(launch policy, F&& func); // EXTENSION
+
+      void swap(shared_future& other);
+
+      // retrieving the value
+      see below get();
+
+      exception_ptr get_exception_ptr(); // EXTENSION
+
+      // functions to check state, and wait for ready
+      bool valid() const noexcept;
+      bool is_ready() const noexcept; // EXTENSION
+      bool has_exception() const noexcept; // EXTENSION
+      bool has_value() const noexcept; // EXTENSION
+
+      // waiting for the result to be ready
+      void wait() const;
+      template <class Rep, class Period>
+      future_status wait_for(const chrono::duration<Rep, Period>& rel_time) const;
+      template <class Clock, class Duration>
+      future_status wait_until(const chrono::time_point<Clock, Duration>& abs_time) const;
+
+    #if defined BOOST_THREAD_USES_DATE_TIME || defined BOOST_THREAD_DONT_USE_CHRONO
+      template<typename Duration>
+      bool timed_wait(Duration const& rel_time) const;  // DEPRECATED SINCE V3.0.0
+      bool timed_wait_until(boost::system_time const& abs_time) const;  // DEPRECATED SINCE V3.0.0
+    #endif
+      state get_state() const noexcept;  // EXTENSION
+            
+    };
+
+[///////////////////////////////////////////////]
+[section:default_constructor Default Constructor]
+
+    shared_future();
+
+[variablelist
+
+[[Effects:] [Constructs an uninitialized shared_future.]]
+
+[[Postconditions:] [[shared_future_is_ready_link `this->is_ready`] returns `false`. [shared_future_get_state_link
+`this->get_state()`] returns __uninitialized__.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////]
+[section:get Member function `get()`]
+
+    const R& get();
+    R& get();
+    void get();
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready as-if by a call to
+__shared_future_wait__, and returns a `const` reference to the result.]]
+
+[[Returns:] [
+
+- `shared_future<R&>::get()` return the stored reference. 
+
+- `shared_future<void>::get()`, there is no return value. 
+
+- `shared_future<R>::get()` returns a `const` reference to the value stored in the shared state.
+
+]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted.
+]]
+
+[[Notes:] [`get()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////]
+[section:wait Member function `wait()`]
+
+    void wait() const;
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready. If the result is not ready on
+entry, and the result has a ['wait callback] set, that callback is invoked prior to waiting.]]
+
+[[Throws:] [
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the
+['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [[shared_future_is_ready_link `this->is_ready()`] returns `true`. [shared_future_get_state_link
+`this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////////////////]
+[section:timed_wait_duration Member function `timed_wait()`]
+
+    template<typename Duration>
+    bool timed_wait(Duration const& wait_duration);
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time specified by
+`wait_duration` has elapsed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is
+invoked prior to waiting.]]
+
+[[Returns:] [`true` if `*this` is associated with a shared state, and that result is ready before the specified time has
+elapsed, `false` otherwise.]]
+
+[[Throws:] [
+
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [shared_future_is_ready_link `this->is_ready()`] returns `true` and
+[shared_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point]. `Duration` must be a type that meets the Boost.DateTime time duration requirements.]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////////////////]
+[section:timed_wait_absolute Member function `timed_wait()`]
+
+    bool timed_wait(boost::system_time const& wait_timeout);
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time point specified by
+`wait_timeout` has passed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is invoked
+prior to waiting.]]
+
+[[Returns:] [`true` if `*this` is associated with a shared state, and that result is ready before the specified time has
+passed, `false` otherwise.]]
+
+[[Throws:] [
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [shared_future_is_ready_link `this->is_ready()`] returns `true` and
+[shared_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////]
+[section:wait_for Member function `wait_for()`]
+
+      template <class Rep, class Period>
+      future_status wait_for(const chrono::duration<Rep, Period>& rel_time) const;
+
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time specified by
+`wait_duration` has elapsed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is
+invoked prior to waiting.]]
+
+[[Returns:] [
+
+- `future_status::deferred` if the shared state contains a deferred function. (Not implemented yet)
+
+- `future_status::ready` if the shared state is ready.
+
+- `future_status::timeout` if the function is returning because the relative timeout specified by `rel_time` has expired.
+
+]]
+
+[[Throws:] [
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.]]
+
+[[Postconditions:] [If this call returned `true`, then [shared_future_is_ready_link `this->is_ready()`] returns `true` and
+[shared_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point]. `Duration` must be a type that meets the Boost.DateTime time duration requirements.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:wait_until Member function `wait_until()`]
+
+      template <class Clock, class Duration>
+      future_status wait_until(const chrono::time_point<Clock, Duration>& abs_time) const;
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready, or the time point specified by
+`wait_timeout` has passed. If the result is not ready on entry, and the result has a ['wait callback] set, that callback is invoked
+prior to waiting.]]
+
+[[Returns:] [
+
+- `future_status::deferred` if the shared state contains a deferred function. (Not implemented yet)
+
+- `future_status::ready` if the shared state is ready.
+
+- `future_status::timeout` if the function is returning because the absolute timeout specified by `absl_time` has reached.
+
+]]
+
+[[Throws:] [
+- __future_uninitialized__ if `*this` is not associated with a shared state. 
+
+- __thread_interrupted__ if the result associated with `*this` is not ready at the point of the call, and the current thread is interrupted. 
+
+- Any exception thrown by the ['wait callback] if such a callback is called.
+]]
+
+[[Postconditions:] [If this call returned `true`, then [shared_future_is_ready_link `this->is_ready()`] returns `true` and
+[shared_future_get_state_link `this->get_state()`] returns __ready__.]]
+
+[[Notes:] [`timed_wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[///////////////////////////////////////]
+[section:valid Member function `valid()`]
+
+    bool valid() const noexcept;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, `false`
+otherwise.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////]
+[section:is_ready Member function `is_ready()` EXTENSION]
+
+    bool is_ready() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, and that result is ready for retrieval, `false`
+otherwise.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////]
+[section:has_value Member function `has_value()` EXTENSION]
+
+    bool has_value() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, that result is ready for retrieval, and the result is a
+stored value, `false` otherwise.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////]
+[section:has_exception Member function `has_exception()` EXTENSION]
+
+    bool has_exception() const;
+
+[variablelist
+
+[[Returns:] [`true` if `*this` is associated with a shared state, that result is ready for retrieval, and the result is a
+stored exception, `false` otherwise.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////]
+[section:get_exception_ptr Member function `get_exception_ptr()` EXTENSION]
+
+      exception_ptr get_exception_ptr();
+
+[variablelist
+
+[[Effects:] [If `*this` is associated with a shared state, waits until the result is ready. If the result is not ready on
+entry, and the result has a ['wait callback] set, that callback is invoked prior to waiting.]]
+
+[[Returns:] [a exception_ptr, storring or not an exception.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////]
+[section:get_state Member function `get_state()` EXTENSION]
+
+    future_state::state get_state();
+
+[variablelist
+
+[[Effects:] [Determine the state of the shared state associated with `*this`, if any.]]
+
+[[Returns:] [__uninitialized__ if `*this` is not associated with a shared state. __ready__ if the shared state
+associated with `*this` is ready for retrieval, __waiting__ otherwise.]]
+
+[[Throws:] [Whatever `mutex::lock()/mutex::unlock()` can throw.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////]
+[section:then Member function `then()` EXTENSION]
+
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(F&& func); // EXTENSION
+      template<typename S, typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(S& scheduler, F&& func); // EXTENSION NOT_YET_IMPLEMENTED
+      template<typename F>
+      __unique_future__<typename boost::result_of<F(shared_future&)>::type> 
+      then(launch policy, F&& func); // EXTENSION
+
+
+[warning These functions are experimental and subject to change in future versions. 
+There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[note These functions are based on the [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3634.pdf [*N3634 - Improvements to std::future<T> and related APIs]] C++1y proposal by N. Gustafsson, A. Laksberg, H. Sutter, S. Mithani.]
+
+[variablelist
+
+[[Notes:] [The three functions differ only by input parameters. The first only takes a callable object which accepts a 
+shared_future object as a parameter. The second function takes a scheduler as the first parameter and a callable object as 
+the second parameter. The third function takes a launch policy as the first parameter and a callable object as the 
+second parameter.]]
+
+[[Effects:] [
+
+- The continuation is called when the object's shared state is ready (has a value or exception stored).
+
+- The continuation launches according to the specified policy or scheduler.
+
+- When the scheduler or launch policy is not provided the continuation inherits the
+parent's launch policy or scheduler.
+
+- If the parent was created with `promise` or with a `packaged_task` (has no associated launch policy), the 
+continuation behaves the same as the third overload with a policy argument of `launch::async | launch::deferred` and 
+the same argument for func.
+
+- If the parent has a policy of `launch::deferred` and the continuation does not have a specified launch policy or 
+scheduler, then the parent is filled by immediately calling `.wait()`, and the policy of the antecedent is 
+`launch::deferred`
+
+]]
+
+[[Returns:] [An object of type `__unique_future__<typename boost::result_of<F(shared_future)>` that refers to the shared state created by the continuation.]]
+
+[[Postconditions:] [
+
+- The future object is moved to the parameter of the continuation function .
+
+- `valid() == false` on original future object immediately after it returns.
+
+]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[////////////////////////////////////////]
+[section:promise `promise` class template]
+
+    template <typename R>
+    class promise
+    {
+    public:
+      typedef R value_type;  // EXTENSION
+      
+      promise();
+      template <class Allocator>
+      promise(allocator_arg_t, Allocator a);
+      promise & operator=(promise const& rhs) = delete;
+      promise(promise const& rhs) = delete;
+      ~promise();
+
+      // Move support
+      promise(promise && rhs) noexcept;;
+      promise & operator=(promise&& rhs) noexcept;;
+
+      void swap(promise& other) noexcept;
+      // Result retrieval
+      __unique_future__<R> get_future();
+
+      // Set the value
+      void set_value(see below);
+      void set_exception(boost::exception_ptr e);
+      template <typename E>
+      void set_exception(E e); // EXTENSION
+
+      // setting the result with deferred notification
+      void set_value_at_thread_exit(see below);
+      void set_exception_at_thread_exit(exception_ptr p);
+      template <typename E>
+      void set_exception_at_thread_exit(E p);  // EXTENSION
+
+      template<typename F>
+      void set_wait_callback(F f); // EXTENSION
+    };
+
+[///////////////////////////////////////////////]
+[section:default_constructor Default Constructor]
+
+    promise();
+
+[variablelist
+
+[[Effects:] [Constructs a new __promise__ with no associated result.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////]
+[section:alloc_constructor Allocator Constructor]
+
+      template <class Allocator>
+      promise(allocator_arg_t, Allocator a);
+
+[variablelist
+
+[[Effects:] [Constructs a new __promise__ with no associated result using the allocator `a`.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [Available only if BOOST_THREAD_FUTURE_USES_ALLOCATORS is defined.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////]
+[section:move_constructor Move Constructor]
+
+    promise(promise && other);
+
+[variablelist
+
+[[Effects:] [Constructs a new __promise__, and transfers ownership of the result associated with `other` to `*this`, leaving `other`
+with no associated result.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[////////////////////////////////////////////////]
+[section:move_assignment Move Assignment Operator]
+
+    promise& operator=(promise && other);
+
+[variablelist
+
+[[Effects:] [Transfers ownership of the result associated with `other` to `*this`, leaving `other` with no associated result. If there
+was already a result associated with `*this`, and that result was not ['ready], sets any futures associated with that result to
+['ready] with a __broken_promise__ exception as the result. ]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[/////////////////////////////]
+[section:destructor Destructor]
+
+    ~promise();
+
+[variablelist
+
+[[Effects:] [Destroys `*this`. If there was a result associated with `*this`, and that result is not ['ready], sets any futures
+associated with that task to ['ready] with a __broken_promise__ exception as the result.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:get_future Member Function `get_future()`]
+
+    __unique_future__<R> get_future();
+
+[variablelist
+
+[[Effects:] [If `*this` was not associated with a result, allocate storage for a new shared state and associate it with
+`*this`. Returns a __unique_future__ associated with the result associated with `*this`. ]]
+
+[[Throws:] [__future_already_retrieved__ if the future associated with the task has already been retrieved. `std::bad_alloc` if any
+memory necessary could not be allocated.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////]
+[section:set_value Member Function `set_value()`]
+
+    void set_value(R&& r);
+    void set_value(const R& r);
+    void promise<R&>::set_value(R& r);
+    void promise<void>::set_value();
+
+[variablelist
+
+[[Effects:] [
+- If BOOST_THREAD_PROVIDES_PROMISE_LAZY is defined and if `*this` was not associated with a result, allocate storage for a new shared state and associate it with `*this`. 
+
+- Store the value `r` in the shared state associated with `*this`. Any threads blocked waiting for the asynchronous
+result are woken.
+]]
+
+[[Postconditions:] [All futures waiting on the shared state are ['ready] and __unique_future_has_value__ or
+__shared_future_has_value__ for those futures shall return `true`.]]
+
+[[Throws:] [
+- __promise_already_satisfied__ if the result associated with `*this` is already ['ready]. 
+
+- __broken_promise__ if `*this` has no shared state. 
+
+- `std::bad_alloc` if the memory required for storage of the result cannot be allocated. 
+
+- Any exception thrown by the copy or move-constructor of `R`.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////]
+[section:set_exception Member Function `set_exception()`]
+
+    void set_exception(boost::exception_ptr e);
+    template <typename E>
+    void set_exception(E e); // EXTENSION
+
+[variablelist
+
+[[Effects:] [
+- If BOOST_THREAD_PROVIDES_PROMISE_LAZY is defined and if `*this` was not associated with a result, allocate storage for a new shared state and associate it with
+`*this`. 
+
+- Store the exception `e` in the shared state associated with `*this`. Any threads blocked waiting for the asynchronous
+result are woken.]]
+
+[[Postconditions:] [All futures waiting on the shared state are ['ready] and __unique_future_has_exception__ or
+__shared_future_has_exception__ for those futures shall return `true`.]]
+
+[[Throws:] [
+- __promise_already_satisfied__ if the result associated with `*this` is already ['ready]. 
+
+- __broken_promise__ if `*this` has no shared state. 
+
+- `std::bad_alloc` if the memory required for storage of the result cannot be allocated.
+]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////////]
+[section:set_value_at_thread_exit Member Function `set_value_at_thread_exit()`]
+
+    void set_value_at_thread_exit(R&& r);
+    void set_value_at_thread_exit(const R& r);
+    void promise<R&>::set_value_at_thread_exit(R& r);
+    void promise<void>::set_value_at_thread_exit();
+
+[variablelist
+
+[[Effects:] [
+Stores the value r in the shared state without making that state ready immediately. 
+Schedules that state to be made ready when the current thread exits, after all objects of thread storage duration 
+associated with the current thread have been destroyed.]]
+
+
+[[Throws:] [
+- __promise_already_satisfied__ if the result associated with `*this` is already ['ready]. 
+
+- __broken_promise__ if `*this` has no shared state. 
+
+- `std::bad_alloc` if the memory required for storage of the result cannot be allocated. 
+
+- Any exception thrown by the copy or move-constructor of `R`.
+]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////////////////]
+[section:set_exception_at_thread_exit Member Function `set_exception_at_thread_exit()`]
+
+    void set_exception_at_thread_exit(boost::exception_ptr e);
+    template <typename E>
+    void set_exception_at_thread_exit(E p);  // EXTENSION
+
+[variablelist
+
+[[Effects:] [
+Stores the exception pointer p in the shared state without making that state ready immediately. 
+Schedules that state to be made ready when the current thread exits, after all objects of thread storage duration
+ associated with the current thread have been destroyed.]]
+
+[[Postconditions:] [All futures waiting on the shared state are ['ready] and __unique_future_has_exception__ or
+__shared_future_has_exception__ for those futures shall return `true`.]]
+
+[[Throws:] [
+- __promise_already_satisfied__ if the result associated with `*this` is already ['ready]. 
+
+- __broken_promise__ if `*this` has no shared state. 
+
+- `std::bad_alloc` if the memory required for storage of the result cannot be allocated.
+]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////]
+[section:set_wait_callback Member Function `set_wait_callback()` EXTENSION]
+
+    template<typename F>
+    void set_wait_callback(F f);
+
+[variablelist
+
+[[Preconditions:] [The expression `f(t)` where `t` is a lvalue of type __promise__ shall be well-formed. Invoking a copy of
+`f` shall have the same effect as invoking `f`]]
+
+[[Effects:] [Store a copy of `f` with the shared state associated with `*this` as a ['wait callback]. This will replace any
+existing wait callback store alongside that result. If a thread subsequently calls one of the wait functions on a __unique_future__
+or __shared_future__ associated with this result, and the result is not ['ready], `f(*this)` shall be invoked.]]
+
+[[Throws:] [`std::bad_alloc` if memory cannot be allocated for the required storage.]]
+
+]
+
+[endsect]
+
+[endsect]
+[////////////////////////////////////////////////////]
+[section:packaged_task `packaged_task` class template]
+
+    template<typename S>
+    class packaged_task;
+    template<typename R
+      , class... ArgTypes
+    >
+    class packaged_task<R(ArgTypes)>
+    {
+    public:
+      packaged_task(packaged_task const&) = delete;
+      packaged_task& operator=(packaged_task const&) = delete;
+
+      // construction and destruction
+      packaged_task() noexcept;
+
+      explicit packaged_task(R(*f)(ArgTypes...));
+
+      template <class F>
+      explicit packaged_task(F&& f);
+
+      template <class Allocator>
+      packaged_task(allocator_arg_t, Allocator a, R(*f)(ArgTypes...));
+      template <class F, class Allocator>
+      packaged_task(allocator_arg_t, Allocator a, F&& f);
+
+      ~packaged_task()
+      {}
+
+      // move support
+      packaged_task(packaged_task&& other) noexcept;
+      packaged_task& operator=(packaged_task&& other) noexcept;
+
+      void swap(packaged_task& other) noexcept;
+
+      bool valid() const noexcept;
+      // result retrieval
+      __unique_future__<R> get_future();
+
+      // execution
+      void operator()(ArgTypes... );
+      void make_ready_at_thread_exit(ArgTypes...);
+
+      void reset();
+      template<typename F>
+      void set_wait_callback(F f);  // EXTENSION
+    };
+
+[/////////////////////////////////////////]
+[section:task_constructor Task Constructor]
+
+    packaged_task(R(*f)(ArgTypes...));
+
+    template<typename F>
+    packaged_task(F&&f);
+
+[variablelist
+
+[[Preconditions:] [`f()` is a valid expression with a return type convertible to `R`. Invoking a copy of `f` must behave the same
+as invoking `f`.]]
+
+[[Effects:] [Constructs a new __packaged_task__ with `boost::forward<F>(f)` stored as the associated task.]]
+
+[[Throws:] [
+
+- Any exceptions thrown by the copy (or move) constructor of `f`. 
+
+- `std::bad_alloc` if memory for the internal data structures could not be allocated.
+]]
+
+[[Notes:] [The R(*f)(ArgTypes...)) overload to allow passing a function without needing to use `&`.]]
+
+[[Remark:] [This constructor doesn't participate in overload resolution if decay<F>::type is the same type as boost::packaged_task<R>.]]
+
+
+]
+
+[endsect]
+[///////////////////////////////////////////////]
+[section:alloc_constructor Allocator Constructor]
+
+      template <class Allocator>
+      packaged_task(allocator_arg_t, Allocator a, R(*f)(ArgTypes...));
+      template <class F, class Allocator>
+      packaged_task(allocator_arg_t, Allocator a, F&& f);
+
+[variablelist
+
+[[Preconditions:] [`f()` is a valid expression with a return type convertible to `R`. Invoking a copy of `f` shall behave the same
+as invoking `f`.]]
+
+[[Effects:] [Constructs a new __packaged_task with `boost::forward<F>(f)` stored as the associated task using the allocator `a`.]]
+
+[[Throws:] [Any exceptions thrown by the copy (or move) constructor of `f`. `std::bad_alloc` if memory for the internal data
+structures could not be allocated.]]
+
+[[Notes:] [Available only if BOOST_THREAD_FUTURE_USES_ALLOCATORS is defined.]]
+[[Notes:] [The R(*f)(ArgTypes...)) overload to allow passing a function without needing to use `&`.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////]
+[section:move_constructor Move Constructor]
+
+    packaged_task(packaged_task && other);
+
+[variablelist
+
+[[Effects:] [Constructs a new __packaged_task__, and transfers ownership of the task associated with `other` to `*this`, leaving `other`
+with no associated task.]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[////////////////////////////////////////////////]
+[section:move_assignment Move Assignment Operator]
+
+    packaged_task& operator=(packaged_task && other);
+
+[variablelist
+
+[[Effects:] [Transfers ownership of the task associated with `other` to `*this`, leaving `other` with no associated task. If there
+was already a task associated with `*this`, and that task has not been invoked, sets any futures associated with that task to
+['ready] with a __broken_promise__ exception as the result. ]]
+
+[[Throws:] [Nothing.]]
+
+[[Notes:] [If the compiler does not support rvalue-references, this is implemented using the boost.thread move emulation.]]
+
+]
+
+[endsect]
+[/////////////////////////////]
+[section:destructor Destructor]
+
+    ~packaged_task();
+
+[variablelist
+
+[[Effects:] [Destroys `*this`. If there was a task associated with `*this`, and that task has not been invoked, sets any futures
+associated with that task to ['ready] with a __broken_promise__ exception as the result.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:get_future Member Function `get_future()`]
+
+    __unique_future__<R> get_future();
+
+[variablelist
+
+[[Effects:] [Returns a __unique_future__ associated with the result of the task associated with `*this`. ]]
+
+[[Throws:] [__task_moved__ if ownership of the task associated with `*this` has been moved to another instance of
+__packaged_task__. __future_already_retrieved__ if the future associated with the task has already been retrieved.]]
+
+]
+
+[endsect]
+[////////////////////////////////////////////////////]
+[section:call_operator Member Function `operator()()`]
+
+    void operator()();
+
+[variablelist
+
+[[Effects:] [Invoke the task associated with `*this` and store the result in the corresponding future. If the task returns normally,
+the return value is stored as the shared state, otherwise the exception thrown is stored. Any threads blocked waiting for the
+shared state associated with this task are woken.]]
+
+[[Postconditions:] [All futures waiting on the shared state are ['ready]]]
+
+[[Throws:] [
+
+- __task_moved__ if ownership of the task associated with `*this` has been moved to another instance of __packaged_task__. 
+
+- __task_already_started__ if the task has already been invoked.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////////////////////////////]
+[section:make_ready_at_thread_exit Member Function `make_ready_at_thread_exit()`]
+
+      void make_ready_at_thread_exit(ArgTypes...);
+
+[variablelist
+
+[[Effects:] [Invoke the task associated with `*this` and store the result in the corresponding future. If the task returns normally,
+the return value is stored as the shared state, otherwise the exception thrown is stored. 
+In either case, this is done without making that state ready immediately. 
+Schedules the shared state to be made ready when the current thread exits, after all objects of thread storage 
+duration associated with the current thread have been destroyed.]]
+
+[[Throws:] [
+
+- __task_moved__ if ownership of the task associated with `*this` has been moved to another instance of __packaged_task__. 
+
+- __task_already_started__ if the task has already been invoked.
+]]
+
+]
+
+[endsect]
+[///////////////////////////////////////]
+[section:reset Member Function `reset()`]
+
+      void reset();
+
+[variablelist
+
+[[Effects:] [Reset the state of the packaged_task so that it can be called again.]]
+
+[[Throws:] [__task_moved__ if ownership of the task associated with `*this` has been moved to another instance of
+__packaged_task__.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////]
+[section:set_wait_callback Member Function `set_wait_callback()` EXTENSION]
+
+    template<typename F>
+    void set_wait_callback(F f);
+
+[variablelist
+
+[[Preconditions:] [The expression `f(t)` where `t` is a lvalue of type __packaged_task__ shall be well-formed. Invoking a copy of
+`f` shall have the same effect as invoking `f`]]
+
+[[Effects:] [Store a copy of `f` with the task associated with `*this` as a ['wait callback]. This will replace any existing wait
+callback store alongside that task. If a thread subsequently calls one of the wait functions on a __unique_future__ or
+__shared_future__ associated with this task, and the result of the task is not ['ready], `f(*this)` shall be invoked.]]
+
+[[Throws:] [__task_moved__ if ownership of the task associated with `*this` has been moved to another instance of
+__packaged_task__.]]
+
+]
+
+[endsect]
+
+
+[endsect]
+[//////////////////////////////////////////////////////]
+[section:decay_copy  Non-member function `decay_copy()`]
+  template <class T>
+  typename decay<T>::type decay_copy(T&& v)
+  {
+    return boost::forward<T>(v);
+  }
+
+[endsect]
+[///////////////////////////////////////////]
+[section:async Non-member function `async()`]
+
+   
+The function template async provides a mechanism to launch a function potentially in a new thread and
+provides the result of the function in a future object with which it shares a shared state.
+
+[warning `async(launch::deferred, F)` is NOT YET IMPLEMENTED!]
+
+[heading Non-Variadic variant]
+
+    template <class F>
+    __unique_future__<typename result_of<typename decay<F>::type()>::type>
+    async(F&& f);
+    template <class F>
+    __unique_future__<typename result_of<typename decay<F>::type()>::type>
+    async(launch policy, F&& f);
+
+[variablelist
+
+[[Requires:] [
+
+``
+decay_copy(boost::forward<F>(f))()
+``
+
+shall be a valid expression.
+]]
+
+[[Effects] [
+The first function behaves the same as a call to the second function with a policy argument of
+ `launch::async | launch::deferred` and the same arguments for `F`. 
+ 
+The second function creates a shared state that is associated with the returned future object.
+
+The further behavior of the second function depends on the policy argument as follows (if more than one of these conditions applies, the implementation may choose any of the corresponding policies):
+
+- if `policy & launch::async` is non-zero - calls `decay_copy(boost::forward<F>(f))()` as if in a new thread of execution represented by a thread object with the calls to `decay_copy()` being evaluated in the thread that called `async`. Any return value is stored as the result in the shared state. Any exception propagated from the execution of `decay_copy(boost::forward<F>(f))()` is stored as the exceptional result in the shared state. The thread object is stored in the shared state and affects the behavior of any asynchronous return objects that reference that state.
+
+- if `policy & launch::deferred` is non-zero - Stores `decay_copy(boost::forward<F>(f))` in the shared state. This copy of `f` constitute a deferred function. Invocation of the deferred function evaluates `boost::move(g)()` where `g` is the stored value of `decay_copy(boost::forward<F>(f))`. The shared state is not made ready until the function has completed. The first call to a non-timed waiting function on an asynchronous return object referring to this shared state shall invoke the deferred function in the thread that called the waiting function. Once evaluation of `boost::move(g)()` begins, the function is no longer considered deferred. (Note: If this policy is specified together with other policies, such as when using a policy value of `launch::async | launch::deferred`, implementations should defer invocation or the selection of the policy when no more concurrency can be effectively exploited.)
+
+- if no valid launch policy is provided the behaviour is undefined.
+
+]]
+
+[[Returns:] [An object of type `__unique_future__<typename result_of<typename decay<F>::type()>::type>` that refers to the shared state created by this call to `async`.]]
+
+[[Synchronization:] [Regardless of the provided policy argument,
+
+- the invocation of `async` synchronizes with the invocation of `f`. (Note: This statement applies even when the corresponding future object is moved to another thread.); and
+
+- the completion of the function `f` is sequenced before the shared state is made ready. (Note: `f` might not be called at all, so its completion might never happen.)
+
+If the implementation chooses the `launch::async` policy,
+
+- a call to a non-timed waiting function on an asynchronous return object that shares the shared state created by this async call shall block until the associated thread has completed, as if joined, or else time out;
+
+- the associated thread completion synchronizes with the return from the first function that successfully detects the ready status of the shared state or with the return from the last function that releases the shared state, whichever happens first.
+]]
+
+[[Throws:][`system_error` if policy is `launch::async` and the implementation is unable to start a new thread.
+]]
+
+[[Error conditions:] [
+
+- `resource_unavailable_try_again` - if policy is `launch::async` and the system is unable to start a new thread.
+
+]]
+
+[[Remarks:] [The first signature shall not participate in overload resolution if decay<F>::type is boost::launch.
+]]
+
+]
+
+[heading Variadic variant]
+
+    template <class F, class... Args>
+    __unique_future__<typename result_of<typename decay<F>::type(typename decay<Args>::type...)>::type>
+    async(F&& f, Args&&... args);
+    template <class F, class... Args>
+    __unique_future__<typename result_of<typename decay<F>::type(typename decay<Args>::type...)>::type>
+    async(launch policy, F&& f, Args&&... args);
+
+[warning the variadic prototype is provided only on C++11 compilers supporting rvalue references, variadic templates, decltype and a standard library providing <tuple> (waiting for a boost::tuple that is move aware), and BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK is defined.]
+
+[variablelist
+
+[[Requires:] [
+`F` and each `Ti` in `Args` shall satisfy the `MoveConstructible` requirements. 
+
+  invoke (decay_copy (boost::forward<F>(f)), decay_copy (boost::forward<Args>(args))...) 
+  
+shall be a valid expression.
+
+]]
+[[Effects:] [
+
+- The first function behaves the same as a call to the second function with a policy argument of `launch::async | launch::deferred` and the same arguments for `F` and `Args`. 
+
+- The second function creates a shared state that is associated with the returned future object. 
+The further behavior of the second function depends on the policy argument as follows (if more than one of these conditions applies, 
+the implementation may choose any of the corresponding policies):
+
+  - if `policy & launch::async` is non-zero - calls `invoke(decay_copy(forward<F>(f)), decay_copy (forward<Args>(args))...)` 
+  as if in a new thread of execution represented by a thread object with the calls to `decay_copy()` being evaluated in the thread that called `async`. 
+  Any return value is stored as the result in the shared state. 
+  Any exception propagated from the execution of `invoke(decay_copy(boost::forward<F>(f)), decay_copy (boost::forward<Args>(args))...)` 
+  is stored as the exceptional result in the shared state. The thread object is stored in the shared state and 
+  affects the behavior of any asynchronous return objects that reference that state.
+
+  - if `policy & launch::deferred` is non-zero - Stores `decay_copy(forward<F>(f))` and `decay_copy(forward<Args>(args))...` in the shared state. 
+  These copies of `f` and `args` constitute a deferred function. Invocation of the deferred function evaluates 
+  `invoke(move(g), move(xyz))` where `g` is the stored value of `decay_copy(forward<F>(f))` and `xyz` is the stored copy of `decay_copy(forward<Args>(args))...`. 
+  The shared state is not made ready until the function has completed. The first call to a non-timed waiting function on 
+  an asynchronous return object referring to this shared state shall invoke the deferred function in the thread that called the waiting function. 
+  Once evaluation of `invoke(move(g), move(xyz))` begins, the function is no longer considered deferred.
+
+  - if no valid launch policy is provided the behaviour is undefined.
+   
+]]
+
+[[Note:] [If this policy is specified together with other policies, such as when using a policy value of `launch::async | launch::deferred`, 
+implementations should defer invocation or the selection of the policy when no more concurrency can be effectively exploited.]]
+
+[[Returns:] [An object of type `__unique_future__<typename result_of<typename decay<F>::type(typename decay<Args>::type...)>::type>` 
+that refers to the shared state created by this call to `async`.]]
+
+[[Synchronization:] [Regardless of the provided policy argument,
+
+- the invocation of async synchronizes with the invocation of `f`. (Note: This statement applies even when the corresponding future object is moved to another thread.); and
+
+- the completion of the function `f` is sequenced before the shared state is made ready. (Note: f might not be called at all, so its completion might never happen.)
+
+If the implementation chooses the `launch::async` policy,
+
+- a call to a waiting function on an asynchronous return object that shares the shared state created by this async call 
+shall block until the associated thread has completed, as if joined, or else time out;
+
+- the associated thread completion synchronizes with the return from the first function that successfully detects the ready status of the shared state or 
+with the return from the last function that releases the shared state, whichever happens first.
+
+]]
+
+[[Throws:] [`system_error` if policy is `launch::async` and the implementation is unable to start a new thread.
+]]
+
+[[Error conditions:][
+
+- `resource_unavailable_try_again` - if policy is `launch::async` and the system is unable to start a new thread.
+]]
+
+[[Remarks:] [The first signature shall not participate in overload resolution if decay<F>::type is boost::launch.
+]]
+
+]
+
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////]
+[section:wait_for_any Non-member function `wait_for_any()` - EXTENSION]
+
+    template<typename Iterator>
+    Iterator wait_for_any(Iterator begin,Iterator end); // EXTENSION
+
+    template<typename F1,typename F2>
+    unsigned wait_for_any(F1& f1,F2& f2); // EXTENSION
+
+    template<typename F1,typename F2,typename F3>
+    unsigned wait_for_any(F1& f1,F2& f2,F3& f3); // EXTENSION
+
+    template<typename F1,typename F2,typename F3,typename F4>
+    unsigned wait_for_any(F1& f1,F2& f2,F3& f3,F4& f4); // EXTENSION
+
+    template<typename F1,typename F2,typename F3,typename F4,typename F5>
+    unsigned wait_for_any(F1& f1,F2& f2,F3& f3,F4& f4,F5& f5); // EXTENSION
+
+[variablelist
+
+[[Preconditions:] [The types `Fn` shall be specializations of
+__unique_future__ or __shared_future__, and `Iterator` shall be a
+forward iterator with a `value_type` which is a specialization of
+__unique_future__ or __shared_future__.]]
+
+[[Effects:] [Waits until at least one of the specified futures is ['ready].]]
+
+[[Returns:] [The range-based overload returns an `Iterator` identifying the first future in the range that was detected as
+['ready]. The remaining overloads return the zero-based index of the first future that was detected as ['ready] (first parameter =>
+0, second parameter => 1, etc.).]]
+
+[[Throws:] [__thread_interrupted__ if the current thread is interrupted. Any exception thrown by the ['wait callback] associated
+with any of the futures being waited for.  `std::bad_alloc` if memory could not be allocated for the internal wait structures.]]
+
+[[Notes:] [`wait_for_any()` is an ['interruption point].]]
+
+]
+
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////]
+[section:wait_for_all Non-member function `wait_for_all()` - EXTENSION]
+
+    template<typename Iterator>
+    void wait_for_all(Iterator begin,Iterator end); // EXTENSION
+
+    template<typename F1,typename F2>
+    void wait_for_all(F1& f1,F2& f2); // EXTENSION
+
+    template<typename F1,typename F2,typename F3>
+    void wait_for_all(F1& f1,F2& f2,F3& f3); // EXTENSION
+
+    template<typename F1,typename F2,typename F3,typename F4>
+    void wait_for_all(F1& f1,F2& f2,F3& f3,F4& f4); // EXTENSION
+
+    template<typename F1,typename F2,typename F3,typename F4,typename F5>
+    void wait_for_all(F1& f1,F2& f2,F3& f3,F4& f4,F5& f5); // EXTENSION
+
+[variablelist
+
+[[Preconditions:] [The types `Fn` shall be specializations of
+__unique_future__ or __shared_future__, and `Iterator` shall be a
+forward iterator with a `value_type` which is a specialization of
+__unique_future__ or __shared_future__.]]
+
+[[Effects:] [Waits until all of the specified futures are ['ready].]]
+
+[[Throws:] [Any exceptions thrown by a call to `wait()` on the specified futures.]]
+
+[[Notes:] [`wait_for_all()` is an ['interruption point].]]
+
+]
+
+
+[endsect]
+[/////////////////////////////////////////////////////////////////////////////]
+[section:make_ready_future Non-member function `make_ready_future()` EXTENSION]
+
+    template <typename T>
+    future<typename decay<T>::type> make_ready_future(T&& value);  // EXTENSION
+    future<void> make_ready_future();  // EXTENSION
+    template <typename T>
+    future<T> make_ready_future(exception_ptr ex);  // EXTENSION
+    template <typename T, typename E>
+    future<T> make_ready_future(E ex);  // EXTENSION
+
+[variablelist
+
+[[Effects:] [
+- value prototype: The value that is passed into the function is moved to the shared state of the returned function if it is an rvalue. 
+Otherwise the value is copied to the shared state of the returned function.
+
+- exception: The exception that is passed into the function is copied to the shared state of the returned function.
+
+.]]
+
+[[Returns:] [
+
+- a ready future with the value set with `value`
+
+- a ready future with the exception set with `ex`
+
+- a ready future<void> with the value set (void).
+
+]]
+
+[[Postcondition:] [
+
+- Returned future, valid() == true
+
+- Returned future, is_ready() = true
+
+- Returned future, has_value() = true or has_exception() depending on the prototype. 
+
+]]
+
+]
+    
+[endsect]
+[//////////////////////////////////////////////////////////////////]
+[section:make_future Non-member function `make_future()` DEPRECATED]
+
+    template <typename T>
+    future<typename decay<T>::type> make_future(T&& value);  // DEPRECATED
+    future<void> make_future();  // DEPRECATED
+    
+
+[variablelist
+
+[[Effects:] [
+The value that is passed into the function is moved to the shared state of the returned function if it is an rvalue. 
+Otherwise the value is copied to the shared state of the returned function.
+.]]
+
+[[Returns:] [
+
+- future<T>, if function is given a value of type T
+
+- future<void>, if the function is not given any inputs.
+
+]]
+
+[[Postcondition:] [
+
+- Returned future<T>, valid() == true
+
+- Returned future<T>, is_ready() = true
+
+]]
+
+[[See:] [`make_ready_future()`]]
+
+]
+   
+[endsect]
+[////////////////////////////////////////////////////////////////////////////////]
+[section:make_shared_future Non-member function `make_shared_future()` DEPRECATED]
+
+    template <typename T>
+    shared_future<typename decay<T>::type> make_shared_future(T&& value);  // DEPRECATED
+    shared_future<void> make_shared_future();  // DEPRECATED
+ 
+[variablelist
+
+[[Effects:] [
+The value that is passed in to the function is moved to the shared state of the returned function if it is an rvalue. 
+Otherwise the value is copied to the shared state of the returned function.
+.]]
+
+[[Returns:] [
+
+- shared_future<T>, if function is given a value of type T
+
+- shared_future<void>, if the function is not given any inputs.
+
+]]
+
+[[Postcondition:] [
+
+- Returned shared_future<T>, valid() == true
+
+- Returned shared_future<T>, is_ready() = true
+
+]]
+
+[[See:] [`make_ready_future()` and `future<>::share()`]]
+
+]
+    
+[endsect]
+    
+
+[endsect]

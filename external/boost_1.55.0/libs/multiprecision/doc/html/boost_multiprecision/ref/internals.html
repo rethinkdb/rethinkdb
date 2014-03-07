@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Internal Support Code</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="cpp_dec_ref.html" title="cpp_dec_float">
+<link rel="next" href="backendconc.html" title="Backend Requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_dec_ref.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="backendconc.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.ref.internals"></a><a class="link" href="internals.html" title="Internal Support Code">Internal Support
+      Code</a>
+</h3></div></div></div>
+<p>
+        There are some traits classes which authors of new backends should be aware
+        of:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">detail</span><span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">From</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">To</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_explicitly_convertible</span><span class="special">;</span>
+
+<span class="special">}}}</span>
+</pre>
+<p>
+        Inherits from <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">integral_constant</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span><span class="keyword">true</span><span class="special">&gt;</span></code> if type <code class="computeroutput"><span class="identifier">From</span></code>
+        has an explicit conversion from <code class="computeroutput"><span class="identifier">To</span></code>.
+      </p>
+<p>
+        For compilers that support C++11 SFINAE-expressions this trait should "just
+        work". Otherwise it inherits from <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_convertible</span><span class="special">&lt;</span><span class="identifier">From</span><span class="special">,</span> <span class="identifier">To</span><span class="special">&gt;::</span><span class="identifier">type</span></code>, and will need to be specialised for
+        Backends that have constructors marked as <code class="computeroutput"><span class="keyword">explicit</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">From</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">To</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_lossy_conversion</span>
+<span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">see</span> <span class="identifier">below</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Member <code class="computeroutput"><span class="identifier">value</span></code> is true if the
+        conversion from <code class="computeroutput"><span class="identifier">From</span></code> to
+        <code class="computeroutput"><span class="identifier">To</span></code> would result in a loss
+        of precision, and <code class="computeroutput"><span class="keyword">false</span></code> otherwise.
+      </p>
+<p>
+        The default version of this trait simply checks whether the <span class="emphasis"><em>kind</em></span>
+        of conversion (for example from a floating point to an integer type) is inherently
+        lossy. Note that if either of the types <code class="computeroutput"><span class="identifier">From</span></code>
+        or <code class="computeroutput"><span class="identifier">To</span></code> are of an unknown number
+        category (because <code class="computeroutput"><span class="identifier">number_category</span></code>
+        is not specialised for that type) then this trait will be <code class="computeroutput"><span class="keyword">true</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">From</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">To</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_restricted_conversion</span>
+<span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">see</span> <span class="identifier">below</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Member <code class="computeroutput"><span class="identifier">value</span></code> is <code class="computeroutput"><span class="keyword">true</span></code> if <code class="computeroutput"><span class="identifier">From</span></code>
+        is only explicitly convertible to <code class="computeroutput"><span class="identifier">To</span></code>
+        and not implicitly convertible, or if <code class="computeroutput"><span class="identifier">is_lossy_conversion</span><span class="special">&lt;</span><span class="identifier">From</span><span class="special">,</span> <span class="identifier">To</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>.
+        Otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+      </p>
+<p>
+        Note that while this trait is the ultimate arbiter of which constructors
+        are marked as <code class="computeroutput"><span class="keyword">explicit</span></code> in class
+        <code class="computeroutput"><span class="identifier">number</span></code>, authors of backend
+        types should generally specialise one of the traits above, rather than this
+        one directly.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">is_signed_number</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">is_unsigned_number</span><span class="special">;</span>
+</pre>
+<p>
+        These two traits inherit from either <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+        or <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>, by default types are assumed to
+        be signed unless <code class="computeroutput"><span class="identifier">is_unsigned_number</span></code>
+        is specialized for that type.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_dec_ref.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="backendconc.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

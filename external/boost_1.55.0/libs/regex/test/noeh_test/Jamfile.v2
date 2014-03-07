@@ -1,0 +1,50 @@
+# copyright John Maddock 2011
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+project
+    : requirements 
+      <threading>multi 
+      <link>shared:<define>BOOST_REGEX_DYN_LINK=1 
+      <toolset>msvc-7.1:<define>TEST_MFC=1 
+      <toolset>msvc-7.0:<define>TEST_MFC=1
+      <toolset>msvc:<asynch-exceptions>on
+      # There are unidentified linker problems on these platforms:
+      <toolset>mipspro-7.4:<link>static
+      <toolset>sun-5.9:<link>static
+      <warnings>all
+      <toolset>gcc:<cxxflags>-Wextra
+      <toolset>gcc:<cxxflags>-Wshadow
+      <define>U_USING_ICU_NAMESPACE=0
+      #<toolset>gcc-mw:<link>static
+      #<toolset>gcc-mingw:<link>static
+      <toolset>gcc-cygwin:<link>static
+    ;
+
+
+lib boost_regex_noeh :    
+   ../../src/c_regex_traits.cpp
+   ../../src/cpp_regex_traits.cpp
+   ../../src/cregex.cpp
+   ../../src/fileiter.cpp
+   ../../src/icu.cpp
+   ../../src/instances.cpp
+   ../../src/posix_api.cpp
+   ../../src/regex.cpp
+   ../../src/regex_debug.cpp
+   ../../src/regex_raw_buffer.cpp
+   ../../src/regex_traits_defaults.cpp
+   ../../src/static_mutex.cpp
+   ../../src/w32_regex_traits.cpp
+   ../../src/wc_regex_traits.cpp
+   ../../src/wide_posix_api.cpp
+   ../../src/winstances.cpp 
+   ../../src/usinstances.cpp 
+   ../../build//icu_options
+    : 
+        <link>static
+        <define>BOOST_NO_EXCEPTIONS=1
+        <exception-handling>off
+    : 
+    ;

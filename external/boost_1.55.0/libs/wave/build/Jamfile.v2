@@ -1,0 +1,63 @@
+# Boost.Wave: A Standard compliant C++ preprocessor library
+#
+# Boost Wave Library Build Jamfile
+#
+# http://www.boost.org/
+#
+# Copyright (c) 2001-2011 Hartmut Kaiser. Distributed under the Boost 
+# Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project boost/wave
+    : requirements
+      <link>shared:<define>BOOST_ALL_DYN_LINK=1
+      <link>static:<define>BOOST_THREAD_USE_LIB=1
+      <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+      <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+    : source-location ../src
+    ;
+
+SOURCES =
+    instantiate_cpp_exprgrammar
+    instantiate_cpp_grammar
+    instantiate_cpp_literalgrs
+    instantiate_defined_grammar
+    instantiate_predef_macros
+    instantiate_re2c_lexer
+    instantiate_re2c_lexer_str
+    token_ids
+    wave_config_constant
+    cpplexer/re2clex/aq
+    cpplexer/re2clex/cpp_re
+    ;
+
+lib boost_wave
+    :
+    $(SOURCES)
+    ../../filesystem/build//boost_filesystem
+    ../../thread/build//boost_thread
+    ../../date_time/build//boost_date_time
+    ;
+
+for local source in $(SOURCES)
+{
+    local requirements ;
+
+    # workaround for compiler bug
+    requirements += <toolset-msvc:version>7.1:<rtti>off ;
+    requirements += <toolset-msvc:version>7.1_stlport4:<rtti>off ;
+
+    if $(source) in cpplexer/re2clex/cpp_re
+    {
+        requirements += <warnings>off ;
+    }
+
+    if $(source) in instantiate_re2c_lexer instantiate_re2c_lexer_str
+    {
+        requirements += <toolset>msvc-8.0:<define>_CRT_SECURE_NO_WARNINGS ;
+    }
+
+    obj $(source) : $(source).cpp : $(requirements) ;
+}
+
+boost-install boost_wave ;

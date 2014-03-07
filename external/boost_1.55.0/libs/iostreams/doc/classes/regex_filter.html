@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template basic_regex_filter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>basic_regex_filter</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#installation">Installation</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>basic_regex_filter</CODE> performs text substitutions using regular expressions from the <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A> (<A CLASS="bib_ref" HREF="../bibliography.html#maddock">[Maddock]</A>).
+</P>
+<P>
+    Each <CODE>basic_regex_filter</CODE> stores a regular expression and a formatting function. As unfiltered data is scanned for matches, portions of data which fall between regular expression matches are forwarded unchanged. Each time a match is found, the corresponding <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/match_results.html" TARGET="_top"><CODE>match_results</CODE></A> object is passed to the formatting function and the return value is forwarded in place of the matched text.
+</P>
+<P>
+    Users may construct instances of <CODE>basic_regex_filter</CODE> either from <A HREF="#formatter">formatting functions</A> or from <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/format.html" TARGET="_top">format strings</A>.
+</P>
+<P>
+    Since a regular expression may need to look arbitrarily far ahead in a character sequence, <CODE>basic_regex_filter</CODE> derives from <A HREF="aggregate.html"><CODE>aggregate_filter</CODE></A> and processes an entire sequence of data at once.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/regex.hpp"><CODE>&lt;boost/iostreams/filter/regex.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="installation"></A>
+<H2>Installation</H2>
+
+<P>
+    The template <CODE>basic_regex_filter</CODE> uses the <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A>, which must be built separately. See <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/install.html" TARGET="_top">here</A> for details.
+</P>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/function.hpp" TARGET="_top"><SPAN CLASS="literal">&lt;boost/function.hpp&gt;</SPAN></A>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/regex.hpp" TARGET="_top"><SPAN CLASS="literal">&lt;boost/regex.hpp&gt;</SPAN></A>
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Ch</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Tr</A> = regex_traits&lt;Ch&gt;,
+          <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Alloc</A> = std::allocator&lt;Ch&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A HREF="#template_params" CLASS="documented">basic_regex_filter</A>
+    : <SPAN CLASS="keyword">public</SPAN> <A CLASS="documented" HREF="aggregate.html">aggregate_filter</A>&lt;Ch, std::char_traits&lt;Ch&gt;, Alloc&gt; // Exposition only
+{   
+<SPAN CLASS="keyword">public:</SPAN>
+    <SPAN CLASS="keyword">typedef</SPAN> <A CLASS="documented" HREF="../../../../doc/html/function.html" TARGET="_top">boost::function1&lt;</A>
+                std::basic_string&lt;Ch&gt;, 
+                <SPAN CLASS="keyword">const</SPAN> match_results&lt;const Ch*&gt;&amp;
+            &gt; 
+            <A CLASS="documented" HREF="#formatter">formatter</A>;
+    <A CLASS="documented" HREF="#first_constructor">basic_regex_filter</A>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> formatter&amp; replace,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default );
+    <A CLASS="documented" HREF="#second_constructor">basic_regex_filter</A>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> std::basic_string&lt;Ch&gt;&amp; fmt,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default,
+                        regex_constants::match_flag_type fmt_flags = 
+                            regex_constants::format_default );
+    <A CLASS="documented" HREF="#third_constructor">basic_regex_filter</A>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> Ch* fmt,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default,
+                        regex_constants::match_flag_type fmt_flags = 
+                            regex_constants::format_default );
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_regex_filter&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS="defined">regex_filter</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_regex_filter&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS="defined">wregex_filter</SPAN>;
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The character type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Tr</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_traits.html" TARGET="_top">regular expression traits</A> type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate character buffers</TD>
+    </TR>
+</TABLE>
+
+<A NAME="formatter"></A>
+<H4><CODE>basic_regex_filter::formatter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> boost::function1&lt;
+                std::basic_string&lt;Ch&gt;, 
+                <SPAN CLASS="keyword">const</SPAN> match_results&lt;const Ch*&gt;&amp;
+            &gt; 
+            <B>formatter</B>;</PRE>
+    
+<P>
+    The type of object which a <CODE>basic_regex_filter</CODE> uses to determine the replacement text for a given regular expression match. Each time a match is found, a corresponding <CODE>match_results</CODE> object is passed to a <CODE>formatter</CODE>, which returns the appropriate replacement text. Since <A HREF="http://www.boost.org/libs/function" TARGET="_top">Boost.Function</A> objects are implictly constructible from function objects with the correct signature, users of regular expression Filters may define their own function objects with the correct signature and pass them to the <CODE>basic_regex_filter</CODE> constructor which takes a <CODE>formatter</CODE>. E.g.,
+<PRE CLASS="broken_ie">    struct my_formatter {
+        std::string operator()(const match_results&lt;const char*&gt;&amp; match)
+        {
+            <SPAN CLASS="comment">// Examine match and return the appropriate replacement text</SPAN>
+        }
+    };
+    int main()
+    {
+        regex         pattern( <SPAN CLASS="omitted">...</SPAN> );
+        regex_filter  filter(pattern, my_formatter());
+        <SPAN CLASS="omitted">...</SPAN>
+    }</PRE> 
+</P>
+
+<H4><CODE>basic_regex_filter::basic_regex_filter</CODE></H4>
+
+<A NAME="first_constructor"></A>
+<PRE CLASS="broken_ie">    <B>basic_regex_filter</B>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> formatter&amp; replace,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default );</PRE>
+    
+<P>Constructs a <CODE>basic_regex_filter</CODE> from the given regular expression, formatting function and match flags. The parameters have the following interpretations:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>pattern</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The regular expression to be matched against the stream of unfiltered data</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>replace</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A function which will be passed each <CODE>match_results</CODE> object in succession and whose return values will be be used as replacement text</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Used to construct a <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_iterator.html" TARGET="_top">regex_iterator</A></TD>
+    </TR>
+</TABLE>
+
+</P>
+
+<A NAME="second_constructor"></A>
+
+<PRE CLASS="broken_ie">    <B>basic_regex_filter</B>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> std::basic_string&lt;Ch&gt;&amp; fmt,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default,
+                        regex_constants::match_flag_type fmt_flags = 
+                            regex_constants::format_default );</PRE>
+    
+<P>Constructs a <CODE>basic_regex_filter</CODE> from the given regular expression, format string and pair of match flags. The parameters have the following interpretations:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>pattern</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The regular expression to be matched against the stream of unfiltered data</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>fmt</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/format.html" TARGET="_top">format string</A> which specifies the replacement text for each regular expression match, using <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/match_results.html#boost_regex.match_results.format2" TARGET="_top">match_results::format</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Used to construct a <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_iterator.html" TARGET="_top">regex_iterator</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>fmt_flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The flags argument to <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/match_results.html#boost_regex.match_results.format2" TARGET="_top">match_results::format</A></TD>
+    </TR>
+</TABLE>
+
+<A NAME="third_constructor"></A>
+
+<PRE CLASS="broken_ie">    <B>basic_regex_filter</B>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                        <SPAN CLASS="keyword">const</SPAN> Ch* fmt,
+                        regex_constants::match_flag_type flags = 
+                            regex_constants::match_default,
+                        regex_constants::match_flag_type fmt_flags = 
+                            regex_constants::format_default );</PRE>
+    
+<P>Constructs a <CODE>basic_regex_filter</CODE> from the given regular expression, format string and pair of match flags. The parameters have the following interpretations:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>pattern</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The regular expression to be matched against the stream of unfiltered data</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>fmt</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/format.html" TARGET="_top">format string</A> which specifies the replacement text for each regular expression match, using <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/match_results.html#boost_regex.match_results.format2" TARGET="_top">match_results::format</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Used to construct a <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_iterator.html" TARGET="_top">regex_iterator</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>fmt_flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The flags argument to <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/match_results.html#boost_regex.match_results.format2" TARGET="_top">match_results::format</A></TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.gregorian.gregorian_calendar">
+  <title>Gregorian Calendar</title>
+
+  <link linkend="gregcal_intro">Introduction</link> --
+  <link linkend="gregcal_header">Header</link> --
+  <link linkend="gregcal_functions">Functions</link>
+
+  <anchor id="gregcal_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class boost::gregorian::gregorian_calendar implements the functions necessary to create the gregorian date system. It converts to the year-month-day form of a date to a day number representation and back. 
+  </para>
+  <para>
+    For most purposes this class is simply accessed by <link linkend="date_time.gregorian.date_class">gregorian::date</link> and is not used directly by the user. However, there are useful functions that might be of use such as the end_of_month_day function. 
+  </para>
+  <para>
+    The <link linkend="date_time.examples.print_month">print month</link> example demonstrates this. 
+  </para>
+
+  <anchor id="gregcal_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="gregcal_functions" />
+  <bridgehead renderas="sect3">Functions</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry valign="top" morerows="1"><screen>static short day_of_week(ymd_type)</screen></entry>
+	  <entry>Return the day of the week (0==Sunday, 1==Monday, etc)</entry>
+	</row>
+	<row>
+	  <entry>See also <link linkend="date_time.gregorian.date_class">gregorian::date</link> day_of_week</entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>static date_int_type day_number(ymd_type)</screen></entry>
+	  <entry> Convert a ymd_type into a day number. The day number is an absolute number of days since the epoch start.</entry>
+	</row>
+	<row>
+	  <entry></entry>
+        </row>
+        
+	<row>
+          <entry valign="top" morerows="1"><screen>static short end_of_month_day(year_type,
+                              month_type)</screen></entry>
+	  <entry>Given a year and month determine the last day of the month.</entry>
+	</row>
+	<row>
+	  <entry></entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>static ymd_type from_day_number(date_int_type)</screen></entry>
+	  <entry> Convert a day number to a ymd struct.</entry>
+	</row>
+	<row>
+	  <entry></entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>static bool is_leap_year(year_type)</screen></entry>
+	  <entry>Returns true if specified year is a leap year.</entry>
+	</row>
+        <row>
+          <entry><screen>gregorian_calendar::is_leap_year(2000)
+//--> true</screen></entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+</section>

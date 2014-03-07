@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Future work</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="examples.html">
+<link rel="prev" href="tests.html">
+<link rel="up" href="index.html">
+<link rel="next" href="release_notes.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Future work</h1>
+
+<div class="prev_link"><a href="tests.html"><img src="prev.gif" alt="examples" border="0"><br>
+Tests
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="release_notes.html"><img src="next.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div><br clear="all" style="clear: all;">
+<br clear="all" style="clear: all;">
+
+<hr>
+
+<p>
+New functionalities can be included into future releases of Boost.Flyweight
+to meet the demands of users and to leverage upcoming C++0x features
+and new Boost libraries. The following is a list of candidate additions.
+</p>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#instrospection">Introspection API</a></li>
+  <li><a href="#perfect_fwd">Perfect forwarding</a></li>
+  <li><a href="#rw_lock">Read/write locking policy</a></li>
+  <li><a href="#new_boost_libs">Integration with new Boost libraries</a></li>
+</ul>
+
+<h2><a name="instrospection">Introspection API</a></h2>
+
+<p>
+Currently there is no way to access the internal components of a
+<code>flyweight</code> instantiation (factory, holder, etc.) or even
+to know the types of these components. With such an API it would be
+possible to instrument and monitor the usage of Boost.Flyweight like in
+the following example:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>fw_type</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=string>&quot;factory used:  &quot;</span><span class=special>&lt;&lt;</span><span class=keyword>typeid</span><span class=special>(</span><span class=identifier>fw_type</span><span class=special>::</span><span class=identifier>factory_type</span><span class=special>).</span><span class=identifier>name</span><span class=special>()&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=string>&quot;values stored: &quot;</span><span class=special>&lt;&lt;</span><span class=identifier>fw_type</span><span class=special>::</span><span class=identifier>factory</span><span class=special>().</span><span class=identifier>size</span><span class=special>()&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+</pre></blockquote>
+
+<h2><a name="perfect_fwd">Perfect forwarding</a></h2>
+
+<p>
+When constructing a <code>flyweight&lt;T&gt; object</code>, some spurious copies
+of objects of type <code>T</code> are incurred in the process of moving the value
+into the internal factory. So-called <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2027.html#Perfect_Forwarding"><i>perfect
+forwarding</i></a>, i.e. performing the move without generating temporary
+copies, will be solved in an optimum manner by a new
+type of <i>rvalue references</i> to be included in the next revision of the
+C++ standard. Boost.Flyweight will take advantage of this feature as
+compilers begin to provide it.
+</p>
+
+<h2><a name="rw_lock">Read/write locking policy</a></h2>
+
+<p>
+The nature of the flyweight pattern implies that most accesses
+to the internal flyweight factory do not cause new insertions and can
+thus be considered read-only. This hints at the convenience of using
+a locking policy based on read/write locks such as those provided by
+<a href="../../../doc/html/thread/synchronization.html#thread.synchronization.mutex_concepts.shared_lockable">Boost.Thread</a>.
+Implementing a locking policy will also require extending the
+<a href="reference/factories.html#factory"><code>Factory</code></a> concept
+to allow for pure lookup operations. Tim Blechmann has provided a
+preliminary <a href="http://lists.boost.org/Archives/boost/2008/07/139414.php">implementation</a>
+of this idea. Before committing to this library extension it is
+necessary to do a profiling study to determine whether read/write
+locking actually improves performance.
+</p>
+
+<h2><a name="new_boost_libs">Integration with new Boost libraries</a></h2>
+
+<p>
+Recently accepted Boost libraries like
+<a href="http://lists.boost.org/boost-announce/2007/12/0149.php">Boost.Functional/Forward</a>
+and <a href="http://lists.boost.org/boost-announce/2007/12/0157.php">Boost.Functional/Factory</a>
+might be used in the future to replace some internal machinery of
+Boost.Flyweight.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="tests.html"><img src="prev.gif" alt="examples" border="0"><br>
+Tests
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="release_notes.html"><img src="next.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div><br clear="all" style="clear: all;">
+<br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised September 1st 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

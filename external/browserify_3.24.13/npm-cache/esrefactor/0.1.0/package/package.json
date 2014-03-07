@@ -1,0 +1,36 @@
+{
+    "name": "esrefactor",
+    "description": "ECMAScript refactoring helper",
+    "main": "lib/esrefactor.js",
+    "version": "0.1.0",
+    "engines": {
+        "node": ">=0.4.0"
+    },
+    "maintainers": [{
+        "name": "Ariya Hidayat",
+        "email": "ariya.hidayat@gmail.com",
+        "web": "http://ariya.ofilabs.com"
+    }],
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/ariya/esrefactor.git"
+    },
+    "licenses": [{
+        "type": "BSD",
+        "url": "http://github.com/ariya/esrefactor/raw/master/LICENSE.BSD"
+    }],
+    "dependencies": {
+        "esprima": "~1.0.2",
+        "estraverse": "~0.0.4",
+        "escope": "~0.0.13"
+    },
+    "devDependencies": {
+        "istanbul": "~0.1.33"
+    },
+    "scripts": {
+        "test": "node test/run.js && npm run-script coverage",
+        "coverage": "npm run-script analyze-coverage && npm run-script check-coverage",
+        "analyze-coverage": "node node_modules/istanbul/lib/cli.js cover test/run.js",
+        "check-coverage": "node node_modules/istanbul/lib/cli.js check-coverage --statement -2 --branch -4 --function 100"
+    }
+}

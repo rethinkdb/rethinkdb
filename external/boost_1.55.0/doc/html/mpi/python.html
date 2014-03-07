@@ -1,0 +1,477 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Python Bindings</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../mpi.html" title="Chapter&#160;20.&#160;Boost.MPI">
+<link rel="prev" href="../boost/mpi/timer.html" title="Class timer">
+<link rel="next" href="../program_options.html" title="Chapter&#160;21.&#160;Boost.Program_options">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/mpi/timer.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mpi.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../program_options.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="mpi.python"></a>Python Bindings</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="python.html#mpi.python_quickstart">Quickstart</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.python_user_data">Transmitting User-Defined Data</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.python_collectives">Collectives</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.python_skeleton_content">Skeleton/Content Mechanism</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.design">Design Philosophy</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.threading">Threads</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.performance">Performance Evaluation</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.history">Revision History</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.acknowledge">Acknowledgments</a></span></dt>
+</dl></div>
+<p>
+      Boost.MPI provides an alternative MPI interface from the <a href="http://www.python.org" target="_top">Python</a>
+      programming language via the <code class="computeroutput"><span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span></code> module.
+      The Boost.MPI Python bindings, built on top of the C++ Boost.MPI using the
+      <a href="http://www.boost.org/libs/python/doc" target="_top">Boost.Python</a> library,
+      provide nearly all of the functionality of Boost.MPI within a dynamic, object-oriented
+      language.
+    </p>
+<p>
+      The Boost.MPI Python module can be built and installed from the <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">mpi</span><span class="special">/</span><span class="identifier">build</span></code> directory.
+      Just follow the <a class="link" href="getting_started.html#mpi.config" title="Configure and Build">configuration</a> and <a class="link" href="getting_started.html#mpi.installation" title="Installing and Using Boost.MPI">installation</a>
+      instructions for the C++ Boost.MPI. Once you have installed the Python module,
+      be sure that the installation location is in your <code class="computeroutput"><span class="identifier">PYTHONPATH</span></code>.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.python_quickstart"></a>Quickstart</h3></div></div></div>
+<p>
+        Getting started with the Boost.MPI Python module is as easy as importing
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span></code>. Our first "Hello, World!"
+        program is just two lines long:
+      </p>
+<pre class="programlisting"><span class="keyword">import</span> <span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span> <span class="keyword">as</span> <span class="identifier">mpi</span>
+<span class="keyword">print</span> <span class="string">"I am process %d of %d."</span> <span class="special">%</span> <span class="special">(</span><span class="identifier">mpi</span><span class="special">.</span><span class="identifier">rank</span><span class="special">,</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">size</span><span class="special">)</span>
+</pre>
+<p>
+        Go ahead and run this program with several processes. Be sure to invoke the
+        <code class="computeroutput"><span class="identifier">python</span></code> interpreter from
+        <code class="computeroutput"><span class="identifier">mpirun</span></code>, e.g.,
+      </p>
+<pre class="programlisting">mpirun -np 5 python hello_world.py
+</pre>
+<p>
+        This will return output such as:
+      </p>
+<pre class="programlisting">I am process 1 of 5.
+I am process 3 of 5.
+I am process 2 of 5.
+I am process 4 of 5.
+I am process 0 of 5.
+</pre>
+<p>
+        Point-to-point operations in Boost.MPI have nearly the same syntax in Python
+        as in C++. We can write a simple two-process Python program that prints "Hello,
+        world!" by transmitting Python strings:
+      </p>
+<pre class="programlisting"><span class="keyword">import</span> <span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span> <span class="keyword">as</span> <span class="identifier">mpi</span>
+
+<span class="keyword">if</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">rank</span> <span class="special">==</span> <span class="number">0</span><span class="special">:</span>
+  <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="string">'Hello'</span><span class="special">)</span>
+  <span class="identifier">msg</span> <span class="special">=</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">recv</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">1</span><span class="special">)</span>
+  <span class="keyword">print</span> <span class="identifier">msg</span><span class="special">,</span><span class="string">'!'</span>
+<span class="keyword">else</span><span class="special">:</span>
+  <span class="identifier">msg</span> <span class="special">=</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">recv</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+  <span class="keyword">print</span> <span class="special">(</span><span class="identifier">msg</span> <span class="special">+</span> <span class="string">', '</span><span class="special">),</span>
+  <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="string">'world'</span><span class="special">)</span>
+</pre>
+<p>
+        There are only a few notable differences between this Python code and the
+        example <a class="link" href="tutorial.html#mpi.point_to_point" title="Point-to-Point communication">in the C++ tutorial</a>. First
+        of all, we don't need to write any initialization code in Python: just loading
+        the <code class="computeroutput"><span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span></code> module makes the appropriate <code class="computeroutput"><span class="identifier">MPI_Init</span></code> and <code class="computeroutput"><span class="identifier">MPI_Finalize</span></code>
+        calls. Second, we're passing Python objects from one process to another through
+        MPI. Any Python object that can be pickled can be transmitted; the next section
+        will describe in more detail how the Boost.MPI Python layer transmits objects.
+        Finally, when we receive objects with <code class="computeroutput"><span class="identifier">recv</span></code>,
+        we don't need to specify the type because transmission of Python objects
+        is polymorphic.
+      </p>
+<p>
+        When experimenting with Boost.MPI in Python, don't forget that help is always
+        available via <code class="computeroutput"><span class="identifier">pydoc</span></code>: just
+        pass the name of the module or module entity on the command line (e.g.,
+        <code class="computeroutput"><span class="identifier">pydoc</span> <span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span><span class="special">.</span><span class="identifier">communicator</span></code>) to receive complete reference
+        documentation. When in doubt, try it!
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.python_user_data"></a>Transmitting User-Defined Data</h3></div></div></div>
+<p>
+        Boost.MPI can transmit user-defined data in several different ways. Most
+        importantly, it can transmit arbitrary <a href="http://www.python.org" target="_top">Python</a>
+        objects by pickling them at the sender and unpickling them at the receiver,
+        allowing arbitrarily complex Python data structures to interoperate with
+        MPI.
+      </p>
+<p>
+        Boost.MPI also supports efficient serialization and transmission of C++ objects
+        (that have been exposed to Python) through its C++ interface. Any C++ type
+        that provides (de-)serialization routines that meet the requirements of the
+        Boost.Serialization library is eligible for this optimization, but the type
+        must be registered in advance. To register a C++ type, invoke the C++ function
+        <code class="computeroutput"><a class="link" href="../boost/mpi/python/register_serialized.html" title="Function template register_serialized">register_serialized</a></code>.
+        If your C++ types come from other Python modules (they probably will!), those
+        modules will need to link against the <code class="computeroutput"><span class="identifier">boost_mpi</span></code>
+        and <code class="computeroutput"><span class="identifier">boost_mpi_python</span></code> libraries
+        as described in the <a class="link" href="getting_started.html#mpi.installation" title="Installing and Using Boost.MPI">installation section</a>.
+        Note that you do <span class="bold"><strong>not</strong></span> need to link against
+        the Boost.MPI Python extension module.
+      </p>
+<p>
+        Finally, Boost.MPI supports separation of the structure of an object from
+        the data it stores, allowing the two pieces to be transmitted separately.
+        This "skeleton/content" mechanism, described in more detail in
+        a later section, is a communication optimization suitable for problems with
+        fixed data structures whose internal data changes frequently.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.python_collectives"></a>Collectives</h3></div></div></div>
+<p>
+        Boost.MPI supports all of the MPI collectives (<code class="computeroutput"><span class="identifier">scatter</span></code>,
+        <code class="computeroutput"><span class="identifier">reduce</span></code>, <code class="computeroutput"><span class="identifier">scan</span></code>,
+        <code class="computeroutput"><span class="identifier">broadcast</span></code>, etc.) for any
+        type of data that can be transmitted with the point-to-point communication
+        operations. For the MPI collectives that require a user-specified operation
+        (e.g., <code class="computeroutput"><span class="identifier">reduce</span></code> and <code class="computeroutput"><span class="identifier">scan</span></code>), the operation can be an arbitrary
+        Python function. For instance, one could concatenate strings with <code class="computeroutput"><span class="identifier">all_reduce</span></code>:
+      </p>
+<pre class="programlisting"><span class="identifier">mpi</span><span class="special">.</span><span class="identifier">all_reduce</span><span class="special">(</span><span class="identifier">my_string</span><span class="special">,</span> <span class="keyword">lambda</span> <span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">:</span> <span class="identifier">x</span> <span class="special">+</span> <span class="identifier">y</span><span class="special">)</span>
+</pre>
+<p>
+        The following module-level functions implement MPI collectives: all_gather
+        Gather the values from all processes. all_reduce Combine the results from
+        all processes. all_to_all Every process sends data to every other process.
+        broadcast Broadcast data from one process to all other processes. gather
+        Gather the values from all processes to the root. reduce Combine the results
+        from all processes to the root. scan Prefix reduction of the values from
+        all processes. scatter Scatter the values stored at the root to all processes.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.python_skeleton_content"></a>Skeleton/Content Mechanism</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="python.html#mpi.python_compatbility">C++/Python MPI Compatibility</a></span></dt>
+<dt><span class="section"><a href="python.html#mpi.pythonref">Reference</a></span></dt>
+</dl></div>
+<p>
+        Boost.MPI provides a skeleton/content mechanism that allows the transfer
+        of large data structures to be split into two separate stages, with the skeleton
+        (or, "shape") of the data structure sent first and the content
+        (or, "data") of the data structure sent later, potentially several
+        times, so long as the structure has not changed since the skeleton was transferred.
+        The skeleton/content mechanism can improve performance when the data structure
+        is large and its shape is fixed, because while the skeleton requires serialization
+        (it has an unknown size), the content transfer is fixed-size and can be done
+        without extra copies.
+      </p>
+<p>
+        To use the skeleton/content mechanism from Python, you must first register
+        the type of your data structure with the skeleton/content mechanism <span class="bold"><strong>from C++</strong></span>. The registration function is <code class="computeroutput"><a class="link" href="../boost/mpi/python/register_skele_idp94749672.html" title="Function template register_skeleton_and_content">register_skeleton_and_content</a></code>
+        and resides in the <code class="computeroutput"><a class="link" href="reference.html#header.boost.mpi.python_hpp" title="Header &lt;boost/mpi/python.hpp&gt;">&lt;boost/mpi/python.hpp&gt;</a></code>
+        header.
+      </p>
+<p>
+        Once you have registered your C++ data structures, you can extract the skeleton
+        for an instance of that data structure with <code class="computeroutput"><span class="identifier">skeleton</span><span class="special">()</span></code>. The resulting <code class="computeroutput"><span class="identifier">skeleton_proxy</span></code>
+        can be transmitted via the normal send routine, e.g.,
+      </p>
+<pre class="programlisting"><span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">skeleton</span><span class="special">(</span><span class="identifier">my_data_structure</span><span class="special">))</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">skeleton_proxy</span></code> objects can
+        be received on the other end via <code class="computeroutput"><span class="identifier">recv</span><span class="special">()</span></code>, which stores a newly-created instance
+        of your data structure with the same "shape" as the sender in its
+        <code class="computeroutput"><span class="string">"object"</span></code> attribute:
+      </p>
+<pre class="programlisting"><span class="identifier">shape</span> <span class="special">=</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">recv</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+<span class="identifier">my_data_structure</span> <span class="special">=</span> <span class="identifier">shape</span><span class="special">.</span><span class="identifier">object</span>
+</pre>
+<p>
+        Once the skeleton has been transmitted, the content (accessed via <code class="computeroutput"><span class="identifier">get_content</span></code>) can be transmitted in much
+        the same way. Note, however, that the receiver also specifies <code class="computeroutput"><span class="identifier">get_content</span><span class="special">(</span><span class="identifier">my_data_structure</span><span class="special">)</span></code>
+        in its call to receive:
+      </p>
+<pre class="programlisting"><span class="keyword">if</span> <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">rank</span> <span class="special">==</span> <span class="number">0</span><span class="special">:</span>
+  <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">get_content</span><span class="special">(</span><span class="identifier">my_data_structure</span><span class="special">))</span>
+<span class="keyword">else</span><span class="special">:</span>
+  <span class="identifier">mpi</span><span class="special">.</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">recv</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">get_content</span><span class="special">(</span><span class="identifier">my_data_structure</span><span class="special">))</span>
+</pre>
+<p>
+        Of course, this transmission of content can occur repeatedly, if the values
+        in the data structure--but not its shape--changes.
+      </p>
+<p>
+        The skeleton/content mechanism is a structured way to exploit the interaction
+        between custom-built MPI datatypes and <code class="computeroutput"><span class="identifier">MPI_BOTTOM</span></code>,
+        to eliminate extra buffer copies.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="mpi.python_compatbility"></a>C++/Python MPI Compatibility</h4></div></div></div>
+<p>
+          Boost.MPI is a C++ library whose facilities have been exposed to Python
+          via the Boost.Python library. Since the Boost.MPI Python bindings are build
+          directly on top of the C++ library, and nearly every feature of C++ library
+          is available in Python, hybrid C++/Python programs using Boost.MPI can
+          interact, e.g., sending a value from Python but receiving that value in
+          C++ (or vice versa). However, doing so requires some care. Because Python
+          objects are dynamically typed, Boost.MPI transfers type information along
+          with the serialized form of the object, so that the object can be received
+          even when its type is not known. This mechanism differs from its C++ counterpart,
+          where the static types of transmitted values are always known.
+        </p>
+<p>
+          The only way to communicate between the C++ and Python views on Boost.MPI
+          is to traffic entirely in Python objects. For Python, this is the normal
+          state of affairs, so nothing will change. For C++, this means sending and
+          receiving values of type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span></code>,
+          from the <a href="http://www.boost.org/libs/python/doc" target="_top">Boost.Python</a>
+          library. For instance, say we want to transmit an integer value from Python:
+        </p>
+<pre class="programlisting"><span class="identifier">comm</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">17</span><span class="special">)</span>
+</pre>
+<p>
+          In C++, we would receive that value into a Python object and then <code class="computeroutput"><span class="identifier">extract</span></code> an integer value:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span> <span class="identifier">value</span><span class="special">;</span>
+<span class="identifier">comm</span><span class="special">.</span><span class="identifier">recv</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">value</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">int_value</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">extract</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">value</span><span class="special">);</span>
+</pre>
+<p>
+          In the future, Boost.MPI will be extended to allow improved interoperability
+          with the C++ Boost.MPI and the C MPI bindings.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="mpi.pythonref"></a>Reference</h4></div></div></div>
+<p>
+          The Boost.MPI Python module, <code class="computeroutput"><span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span></code>,
+          has its own <a href="../boost.mpi.html" target="_top">reference documentation</a>,
+          which is also available using <code class="computeroutput"><span class="identifier">pydoc</span></code>
+          (from the command line) or <code class="computeroutput"><span class="identifier">help</span><span class="special">(</span><span class="identifier">boost</span><span class="special">.</span><span class="identifier">mpi</span><span class="special">)</span></code> (from the Python interpreter).
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.design"></a>Design Philosophy</h3></div></div></div>
+<p>
+        The design philosophy of the Parallel MPI library is very simple: be both
+        convenient and efficient. MPI is a library built for high-performance applications,
+        but it's FORTRAN-centric, performance-minded design makes it rather inflexible
+        from the C++ point of view: passing a string from one process to another
+        is inconvenient, requiring several messages and explicit buffering; passing
+        a container of strings from one process to another requires an extra level
+        of manual bookkeeping; and passing a map from strings to containers of strings
+        is positively infuriating. The Parallel MPI library allows all of these data
+        types to be passed using the same simple <code class="computeroutput"><span class="identifier">send</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">recv</span><span class="special">()</span></code> primitives. Likewise, collective operations
+        such as <code class="computeroutput"><a class="link" href="../boost/mpi/reduce.html" title="Function reduce">reduce()</a></code> allow arbitrary data types
+        and function objects, much like the C++ Standard Library would.
+      </p>
+<p>
+        The higher-level abstractions provided for convenience must not have an impact
+        on the performance of the application. For instance, sending an integer via
+        <code class="computeroutput"><span class="identifier">send</span></code> must be as efficient
+        as a call to <code class="computeroutput"><span class="identifier">MPI_Send</span></code>, which
+        means that it must be implemented by a simple call to <code class="computeroutput"><span class="identifier">MPI_Send</span></code>;
+        likewise, an integer <code class="computeroutput"><a class="link" href="../boost/mpi/reduce.html" title="Function reduce">reduce()</a></code>
+        using <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code> must
+        be implemented with a call to <code class="computeroutput"><span class="identifier">MPI_Reduce</span></code>
+        on integers using the <code class="computeroutput"><span class="identifier">MPI_SUM</span></code>
+        operation: anything less will impact performance. In essence, this is the
+        "don't pay for what you don't use" principle: if the user is not
+        transmitting strings, s/he should not pay the overhead associated with strings.
+      </p>
+<p>
+        Sometimes, achieving maximal performance means foregoing convenient abstractions
+        and implementing certain functionality using lower-level primitives. For
+        this reason, it is always possible to extract enough information from the
+        abstractions in Boost.MPI to minimize the amount of effort required to interface
+        between Boost.MPI and the C MPI library.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.threading"></a>Threads</h3></div></div></div>
+<p>
+        There are an increasing number of hybrid parrallel applications that mix
+        distributed and shared memory parallelism. To know how to support that model,
+        one need to know what level of threading support is guaranteed by the MPI
+        implementation. There are 4 ordered level of possible threading support described
+        by <code class="computeroutput">mpi::threading::level</code>.
+        At the lowest level, you should not use threads at all, at the highest level,
+        any thread can perform MPI call.
+      </p>
+<p>
+        If you want to use multi-threading in your MPI application, you should indicate
+        in the environment constructor your preffered threading support. Then probe
+        the one the librarie did provide, and decide what you can do with it (it
+        could be nothing, then aborting is a valid option):
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpi</span><span class="special">/</span><span class="identifier">environment</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpi</span><span class="special">/</span><span class="identifier">communicator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="keyword">namespace</span> <span class="identifier">mpi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpi</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">mt</span>  <span class="special">=</span> <span class="identifier">mpi</span><span class="special">::</span><span class="identifier">threading</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">mpi</span><span class="special">::</span><span class="identifier">environment</span> <span class="identifier">env</span><span class="special">(</span><span class="identifier">mt</span><span class="special">::</span><span class="identifier">funneled</span><span class="special">);</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">env</span><span class="special">.</span><span class="identifier">thread_level</span><span class="special">()</span> <span class="special">&lt;</span> <span class="identifier">mt</span><span class="special">::</span><span class="identifier">funneled</span><span class="special">)</span> <span class="special">{</span>
+     <span class="identifier">env</span><span class="special">.</span><span class="identifier">abort</span><span class="special">(-</span><span class="number">1</span><span class="special">);</span>
+  <span class="special">}</span>
+  <span class="identifier">mpi</span><span class="special">::</span><span class="identifier">communicator</span> <span class="identifier">world</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"I am process "</span> <span class="special">&lt;&lt;</span> <span class="identifier">world</span><span class="special">.</span><span class="identifier">rank</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" of "</span> <span class="special">&lt;&lt;</span> <span class="identifier">world</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"."</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.performance"></a>Performance Evaluation</h3></div></div></div>
+<p>
+        Message-passing performance is crucial in high-performance distributed computing.
+        To evaluate the performance of Boost.MPI, we modified the standard <a href="http://www.scl.ameslab.gov/netpipe/" target="_top">NetPIPE</a> benchmark (version
+        3.6.2) to use Boost.MPI and compared its performance against raw MPI. We
+        ran five different variants of the NetPIPE benchmark:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            MPI: The unmodified NetPIPE benchmark.
+          </li>
+<li class="listitem">
+            Boost.MPI: NetPIPE modified to use Boost.MPI calls for communication.
+          </li>
+<li class="listitem">
+            MPI (Datatypes): NetPIPE modified to use a derived datatype (which itself
+            contains a single <code class="computeroutput"><span class="identifier">MPI_BYTE</span></code>)
+            rathan than a fundamental datatype.
+          </li>
+<li class="listitem">
+            Boost.MPI (Datatypes): NetPIPE modified to use a user-defined type <code class="computeroutput"><span class="identifier">Char</span></code> in place of the fundamental <code class="computeroutput"><span class="keyword">char</span></code> type. The <code class="computeroutput"><span class="identifier">Char</span></code>
+            type contains a single <code class="computeroutput"><span class="keyword">char</span></code>,
+            a <code class="computeroutput"><span class="identifier">serialize</span><span class="special">()</span></code>
+            method to make it serializable, and specializes <code class="computeroutput"><a class="link" href="../boost/mpi/is_mpi_datatype.html" title="Struct template is_mpi_datatype">is_mpi_datatype</a></code>
+            to force Boost.MPI to build a derived MPI data type for it.
+          </li>
+<li class="listitem">
+            Boost.MPI (Serialized): NetPIPE modified to use a user-defined type
+            <code class="computeroutput"><span class="identifier">Char</span></code> in place of the
+            fundamental <code class="computeroutput"><span class="keyword">char</span></code> type. This
+            <code class="computeroutput"><span class="identifier">Char</span></code> type contains a
+            single <code class="computeroutput"><span class="keyword">char</span></code> and is serializable.
+            Unlike the Datatypes case, <code class="computeroutput"><a class="link" href="../boost/mpi/is_mpi_datatype.html" title="Struct template is_mpi_datatype">is_mpi_datatype</a></code>
+            is <span class="bold"><strong>not</strong></span> specialized, forcing Boost.MPI
+            to perform many, many serialization calls.
+          </li>
+</ol></div>
+<p>
+        The actual tests were performed on the Odin cluster in the <a href="http://www.cs.indiana.edu/" target="_top">Department
+        of Computer Science</a> at <a href="http://www.iub.edu" target="_top">Indiana University</a>,
+        which contains 128 nodes connected via Infiniband. Each node contains 4GB
+        memory and two AMD Opteron processors. The NetPIPE benchmarks were compiled
+        with Intel's C++ Compiler, version 9.0, Boost 1.35.0 (prerelease), and <a href="http://www.open-mpi.org/" target="_top">Open MPI</a> version 1.1. The NetPIPE
+        results follow:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../libs/mpi/doc/netpipe.png" alt="netpipe"></span>
+      </p>
+<p>
+        There are a some observations we can make about these NetPIPE results. First
+        of all, the top two plots show that Boost.MPI performs on par with MPI for
+        fundamental types. The next two plots show that Boost.MPI performs on par
+        with MPI for derived data types, even though Boost.MPI provides a much more
+        abstract, completely transparent approach to building derived data types
+        than raw MPI. Overall performance for derived data types is significantly
+        worse than for fundamental data types, but the bottleneck is in the underlying
+        MPI implementation itself. Finally, when forcing Boost.MPI to serialize characters
+        individually, performance suffers greatly. This particular instance is the
+        worst possible case for Boost.MPI, because we are serializing millions of
+        individual characters. Overall, the additional abstraction provided by Boost.MPI
+        does not impair its performance.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.history"></a>Revision History</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Boost 1.36.0</strong></span>:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                  Support for non-blocking operations in Python, from Andreas Kl&#246;ckner
+                </li></ul></div>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Boost 1.35.0</strong></span>: Initial release, containing
+            the following post-review changes
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  Support for arrays in all collective operations
+                </li>
+<li class="listitem">
+                  Support default-construction of <code class="computeroutput"><a class="link" href="../boost/mpi/environment.html" title="Class environment">environment</a></code>
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>2006-09-21</strong></span>: Boost.MPI accepted into
+            Boost.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.acknowledge"></a>Acknowledgments</h3></div></div></div>
+<p>
+        Boost.MPI was developed with support from Zurcher Kantonalbank. Daniel Egloff
+        and Michael Gauckler contributed many ideas to Boost.MPI's design, particularly
+        in the design of its abstractions for MPI data types and the novel skeleton/context
+        mechanism for large data structures. Prabhanjan (Anju) Kambadur developed
+        the predecessor to Boost.MPI that proved the usefulness of the Serialization
+        library in an MPI setting and the performance benefits of specialization
+        in a C++ abstraction layer for MPI. Jeremy Siek managed the formal review
+        of Boost.MPI.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/mpi/timer.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mpi.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../program_options.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

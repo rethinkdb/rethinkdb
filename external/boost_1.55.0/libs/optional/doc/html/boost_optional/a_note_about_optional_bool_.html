@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>A note about optional&lt;bool&gt;</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="up" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="prev" href="in_place_factories.html" title="In-Place Factories">
+<link rel="next" href="exception_safety_guarantees.html" title="Exception Safety Guarantees">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="in_place_factories.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="exception_safety_guarantees.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+<div class="section" title="A note about optional&lt;bool&gt;">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_optional.a_note_about_optional_bool_"></a><a class="link" href="a_note_about_optional_bool_.html" title="A note about optional&lt;bool&gt;">A note about
+    optional&lt;bool&gt;</a>
+</h2></div></div></div>
+<p>
+      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> should
+      be used with special caution and consideration.
+    </p>
+<p>
+      First, it is functionally similar to a tristate boolean (false,maybe,true)
+      &#8212;such as <a href="../../../../../doc/html/tribool.html" target="_top">boost::tribool</a>&#8212;
+      except that in a tristate boolean, the maybe state <span class="underline">represents
+      a valid value</span>, unlike the corresponding state of an uninitialized
+      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code>. It
+      should be carefully considered if an <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code>
+      instead of a <code class="computeroutput"><span class="identifier">tribool</span></code> is really
+      needed.
+    </p>
+<p>
+      Second, <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code>
+      provides an implicit conversion to <code class="computeroutput"><span class="keyword">bool</span></code>.
+      This conversion refers to the initialization state and not to the contained
+      value. Using <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> can
+      lead to subtle errors due to the implicit <code class="computeroutput"><span class="keyword">bool</span></code>
+      conversion:
+    </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span> <span class="special">(</span> <span class="keyword">bool</span> <span class="identifier">v</span> <span class="special">)</span> <span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">bar</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="keyword">try</span><span class="special">();</span>
+
+    <span class="comment">// The following intended to pass the value of 'v' to foo():
+</span>    <span class="identifier">foo</span><span class="special">(</span><span class="identifier">v</span><span class="special">);</span>
+    <span class="comment">// But instead, the initialization state is passed
+</span>    <span class="comment">// due to a typo: it should have been foo(*v).
+</span><span class="special">}</span>
+</pre>
+<p>
+      The only implicit conversion is to <code class="computeroutput"><span class="keyword">bool</span></code>,
+      and it is safe in the sense that typical integral promotions don't apply (i.e.
+      if <code class="computeroutput"><span class="identifier">foo</span><span class="special">()</span></code>
+      takes an <code class="computeroutput"><span class="keyword">int</span></code> instead, it won't
+      compile).
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="in_place_factories.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="exception_safety_guarantees.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

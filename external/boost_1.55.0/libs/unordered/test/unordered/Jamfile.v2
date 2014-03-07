@@ -1,0 +1,65 @@
+
+# Copyright 2006-2008 Daniel James.
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project unordered-test/unordered
+    : requirements
+        <warnings>all
+        <toolset>intel:<warnings>on
+        # Would be nice to define -Wundef, but I'm getting warnings from
+        # Boost.Preprocessor on trunk.
+        <toolset>gcc:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion -Wno-long-long -Wfloat-equal"
+        <toolset>darwin:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion -Wfloat-equal"
+        #<toolset>gcc:<define>_GLIBCXX_DEBUG
+        #<toolset>darwin:<define>_GLIBCXX_DEBUG
+    ;
+
+test-suite unordered
+    :
+        [ run fwd_set_test.cpp ]
+        [ run fwd_map_test.cpp ]
+        [ run allocator_traits.cpp ]
+        [ run minimal_allocator.cpp ]
+        [ run compile_set.cpp ]
+        [ run compile_map.cpp ]
+        [ run noexcept_tests.cpp ]
+        [ run link_test_1.cpp link_test_2.cpp ]
+        [ run incomplete_test.cpp ]
+        [ run simple_tests.cpp ]
+        [ run equivalent_keys_tests.cpp ]
+        [ run constructor_tests.cpp ]
+        [ run copy_tests.cpp ]
+        [ run move_tests.cpp ]
+        [ run assign_tests.cpp ]
+        [ run insert_tests.cpp ]
+        [ run insert_stable_tests.cpp ]
+        [ run unnecessary_copy_tests.cpp ]
+        [ run erase_tests.cpp ]
+        [ run erase_equiv_tests.cpp ]
+        [ run find_tests.cpp ]
+        [ run at_tests.cpp ]
+        [ run bucket_tests.cpp ]
+        [ run load_factor_tests.cpp ]
+        [ run rehash_tests.cpp ]
+        [ run equality_tests.cpp ]
+        [ run swap_tests.cpp ]
+
+        [ run compile_set.cpp : :
+            : <define>BOOST_UNORDERED_USE_MOVE
+            : bmove_compile_set ]
+        [ run compile_map.cpp : :
+            : <define>BOOST_UNORDERED_USE_MOVE
+            : bmove_compile_map ]
+        [ run copy_tests.cpp : :
+            : <define>BOOST_UNORDERED_USE_MOVE
+            : bmove_copy ]
+        [ run move_tests.cpp : :
+            : <define>BOOST_UNORDERED_USE_MOVE
+            : bmove_move ]
+        [ run assign_tests.cpp : :
+            : <define>BOOST_UNORDERED_USE_MOVE
+            : bmove_assign ]
+    ;

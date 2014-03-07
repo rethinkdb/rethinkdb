@@ -1,0 +1,724 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - Overview</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Future &amp; History</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="index">
+    <dt><a href="#ToDoList">To-do list</a></dt>
+
+    <dt><a href="#ChangeHistory">Change history</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="ToDoList" id="ToDoList">To-do list</a></h2>
+
+  <p>The library is mostly complete. However, there is some work left
+  (<font color="#FF0000">red</font> = added as a result of the formal
+  review):</p>
+
+  <ol>
+    <li>Implement a choice-point-like class, as discussed in
+    <a href="http://thread.gmane.org/gmane.comp.lib.boost.devel/164460">this
+    thread</a></li>
+
+    <li>Optimize state-entry and state-exit for speed and code-size</li>
+
+    <li>Reimplement <code>fifo_scheduler&lt;&gt;::processor_handle</code> so
+    that <code>fifo_scheduler&lt;&gt;::create_processor&lt;&gt;()</code> and
+    <code>fifo_scheduler&lt;&gt;::destroy_processor()</code> no longer make
+    (indirect) calls to global <code>operator new()</code> and <code>operator
+    delete()</code></li>
+
+    <li>Ensure that everything is compileable with C++ RTTI support turned
+    off (this requires currently lacking support in Boost.Config and probably
+    a patch for <code>shared_ptr</code>)</li>
+
+    <li>Issue an error if <code>BOOST_STATECHART_USE_NATIVE_RTTI</code> is
+    defined when C++ RTTI is turned off</li>
+
+    <li>The current requirement to pass an <code>mpl::list&lt;&gt;</code> to
+    specify inner initial states and reactions is too strict. Check the
+    requirements on the sequences and document them accordingly (David
+    Abrahams)</li>
+
+    <li>Make compilation performance measurements with mpl::vector and
+    mpl::deque instead of mpl::list to find out which is fastest. Document a
+    recommendation for the fastest container and change all examples
+    accordingly (David Abrahams)</li>
+
+    <li>Investigate how a state machine could be serialized. A first glance
+    at the serialization library revealed that there currently (1.33) is no
+    support for types that overload <code>operator new</code> (suitable code
+    is already present in the serialization library but it is currently
+    commented out due to incompatibilities with certain compilers). Such
+    support would be essential for Boost.Statechart serialization</li>
+
+    <li><font color="#FF0000">Implement a switch-like reaction (Simon
+    Gittins, Darryl Green)</font></li>
+
+    <li>Link incomplete code-snippets in the tutorial to complete example
+    code where available</li>
+
+    <li>Where appropriate, link the reference documentation to examples</li>
+
+    <li><font color="#FF0000">Add a description of the implementation and
+    better explain performance trade-offs (Jonathan Turkanis)</font></li>
+
+    <li><font color="#FF0000">Add links to descriptions of alternate
+    implementations and discuss performance trade-offs (Jonathan
+    Turkanis)</font></li>
+
+    <li><font color="#FF0000">Add a list of applications that use
+    Boost.Statechart (Paul A. Bristow)</font></li>
+
+    <li>Refactor the <code>state_machine</code> class template to reduce code
+    size in applications with many different state machines</li>
+
+    <li>Add a diagram that helps to understand what an unstable state machine
+    is</li>
+
+    <li>Comment MPL-heavy code</li>
+
+    <li>Add examples of often made mistakes</li>
+
+    <li>Implement <code>priority_scheduler&lt;&gt;</code></li>
+
+    <li>Eliminate code-duplication in <code>fifo_scheduler</code> with PP
+    code submitted by Pavel Vozenilek</li>
+
+    <li>Add number and label to all diagrams in docs</li>
+
+    <li>Add <code>#pragma once</code> to all headers (speeds up compilation
+    with MS-compatible compilers)</li>
+
+    <li>Investigate whether and how <code>fifo_worker&lt;&gt;</code> should
+    accept a policy parameter defining how to lock and wait</li>
+  </ol>
+
+  <h2><a name="ChangeHistory" id="ChangeHistory">Change history</a></h2>
+
+  <p>(<font color="#FF0000">red</font> = points raised during formal
+  review)</p>
+  <p>1.46.0</p>
+  <ul>
+    <li>Fixed Bug #4817 (The order of deferred events is not preserved under
+    certain circumstances), reported by Igor R</li>
+    <li>Fixed Bug #4511 (MSVC10 warning due to lack of placement operator
+    delete), reported by Igor R</li>
+  </ul>
+
+  <p>1.43.0</p>
+  <ul>
+    <li>Generalized the context() functions so that they can also return a
+    reference to any public base type of a context. This also makes
+    transition&lt;&gt; &amp; in_state_reaction&lt;&gt; more general, reported
+    by Igor R</li>
+    <li>Added triggering_event()</li>
+    <li>Fixed Bug #3329 (shadow variable warnings), reported by Grant
+    Erickson</li>
+    <li>Fixed Bug #3963 (state_machine&lt;&gt;::post_event() should be
+    protected), reported by Arne Babnik</li>
+  </ul>
+
+  <p>1.40.0</p>
+  <ul>
+    <li>Fixed a bug that prevented the use of boost::ref() with
+    fifo_scheduler&lt;&gt;::create_processor&lt;&gt;, reported by Steve
+    Hawkes</li>
+    <li>Fixed bug #3092 (regression test failures in VC10 beta 1), reported by
+    Richard Webb</li>
+  </ul>
+
+  <p>1.38.0</p>
+  <ul>
+    <li>Fixed gcc-4.3 warning in state_machine.hpp (ticket #2389), reported by
+    Bryan Silverthorn</li>
+  </ul>
+
+  <p>1.36.0</p>
+  <ul>
+    <li>Removed all permanent warning suppressions from library headers
+      and avoided the resulting warnings with other means (suggested by
+      Steven Watanabe; thanks to Peter Dimov and Yuval Ronen for insight
+      into when C4511 & C4512 are issued)</li>
+    <li>Added the FAQ item <a href="faq.html#AssertInStateDestructor">Why
+      do I get an assert when I access the state machine from a state
+      destructor?</a> (due to feedback from Jiang Miao)</li>
+    <li>Added defaults for the last two template parameters of <a href=
+      "reference.html#ClassTemplatein_state_reaction">in_state_reaction&lt;&gt;</a>
+      (due to feedback from Sean Kelly)</li>
+    <li>Adapted fifo_scheduler&lt;&gt; to the changed allocator interface of
+      boost::function</li>
+    <li>Changed the PingPong example to demonstrate how the inner workings of
+    an asynchronous_state_machine<> subclass can be hidden</li>
+  </ul>
+
+  <p>1.35.0</p>
+  <ul>
+    <li>Added placement new overload to <code>event&lt;&gt;</code> (due to
+    feedback from Federico J. Fern&aacute;ndez)</li>
+    <li>Made <code>event&lt;&gt;</code> copy-assignable (Federico J.
+    Fern&aacute;ndez)</li>
+  </ul>
+
+  <p>1.34.0</p>
+  <ul>
+    <li>Fixed a bug that prevented compilation of exception_translator.hpp
+    (reported by Oliver Kowalke) and adapted TransitionTest.cpp to also test
+    the exception_translator class</li>
+
+    <li>Fixed an allocator-related bug that led to compiler errors in many
+    tests on GCC &gt;= 4.0</li>
+
+    <li>Fixed a number of issues that led to compile-time failures on Intel
+    9.0 and Code Warrior</li>
+
+    <li>Added compile-link tests for all examples</li>
+
+    <li>Documented <code>state_machine&lt;&gt;::post_event</code> and added a
+    <code>const event_base &amp;</code> overload</li>
+
+    <li>example/Jamfile.v2 now also stages the dlls necessary to launch the
+    multithreaded PingPong examples</li>
+
+    <li>Added a FAQ item regarding UML2.0 conformance</li>
+
+    <li>Made the documentation of <code>unconsumed_event</code> more
+    visible</li>
+
+    <li>Declared <code>state_base::~state_base virtual</code> for GCC. This
+    makes state exit slightly slower but does away with loads of "has virtual
+    functions but non-virtual destructor" warnings</li>
+
+    <li>Made transitions to history UML2.0 compliant, see <a href=
+    "faq.html#Uml2">here</a> for more information</li>
+
+    <li>Tidied all html files &amp; validated them with <a href=
+    "http://validator.w3.org/">http://validator.w3.org/</a></li>
+
+    <li>Fixed broken links</li>
+    <li>Fixed a few conformance problems that led to errors on HP compilers</li>
+    <li>Corrected documentation regarding allocation of states and events</li>
+  </ul>
+
+  <p>17 December, 2005</p>
+
+  <ul>
+    <li>Added detailed performance data to the performance document</li>
+
+    <li>Added the Performance "example" and the associated Performance.xls,
+    which were used to perform the more detailed measurements and draw the
+    associated charts that can now be found in the performance document</li>
+
+    <li>Simplified the BitMachine example (the performance measurement
+    functions are no longer needed)</li>
+
+    <li><font color="#FF0000">Removed the to-do item "Investigate how
+    constant-time dispatch for non-orthogonal state machines can be
+    implemented" suggested by David Abrahams, Jonathan Turkanis, Rob Steward
+    and Dave Gomboc. The more detailed performance measurements have shown
+    that the time spent for event dispatch is almost always small compared to
+    the time spent for state-entry and state-exit. See <a href=
+    "performance.html#SpeedVersusScalabilityTradeoffs">Speed versus
+    scalability tradeoffs</a> in the performance document for more
+    information</font></li>
+
+    <li>Fixed an order of declaration bug which caused a compile-time error
+    in event_base.hpp when compiled with GCC3.4.2 on HP-UX (the error neither
+    showed up on GCC3.4.2 on MinGW nor on MSVC7.1)</li>
+
+    <li>Tested with 1.33.1 version of the boost distribution</li>
+  </ul>
+
+  <p>14 August, 2005</p>
+
+  <ul>
+    <li><b>This release will only work with the 1.33.0 version of the boost
+    distribution</b></li>
+
+    <li><font color="#FF0000"><b>B</b></font><b><font color="#FF0000">reaking
+    change:</font></b> <font color="#FF0000">Added
+    <code>simple_state&lt;&gt;::operator new</code> &amp;
+    <code>simple_state&lt;&gt;::operator delete</code> forwarding to the
+    allocator passed to <code>state_machine</code> (Peter Petrov). This
+    considerably simplifies memory management customization. A user now only
+    needs to pass his own allocator to <code>state_machine&lt;&gt;</code> and
+    no longer has to separately overload <code>operator
+    new</code>/<code>delete</code> for his state classes. Existing state
+    classes for which memory management is not customized will thus
+    automatically use the allocator passed to
+    <code>state_machine&lt;&gt;</code>. Existing state classes for which
+    <code>operator new</code>/<code>delete</code> is overloaded
+    <b>directly</b> will continue to work as before. The only case where
+    existing code will refuse to compile is when a state class inherits from
+    an additional base with overloaded <code>operator
+    new</code>/<code>delete</code> (leading to ambiguous call errors).
+    Forwarding functions need to be added to such state classes (see
+    BitMachine for an example)</font></li>
+
+    <li><b>Breaking change</b>: Added an Allocator parameter to the
+    <code>event</code> class template and added <code>event&lt;&gt;::operator
+    new</code>/<code>delete</code>. This makes customizing memory management
+    easier but could also break existing code (see previous point)</li>
+
+    <li>Added Jamfile.v2 files</li>
+
+    <li>Added <code>event_base</code> specializations to all reactions and
+    updated the reference accordingly. This allows to implement reactions
+    triggered by an event of any type</li>
+
+    <li>Added a facility allowing to specially handle events that did not
+    trigger a reaction. See point 10 of <a href=
+    "reference.html#process_event">process_event</a>() effects for more
+    information. Updated tests and docs accordingly</li>
+
+    <li><font color="#FF0000">Added a FAQ item explaining how to
+    trouble-shoot compile-time errors (John Spalding)</font></li>
+
+    <li><font color="#FF0000">Added a FAQ item that presents code for a
+    StopWatch variant that does not use state-local storage and explains the
+    drawbacks of that approach (Jeff Garland, Rob Steward)</font></li>
+
+    <li>Added a FAQ item explaining the pitfalls of dynamically linked
+    state-machines. Also added associated tests to find out whether and how
+    FSMs can be put into DLLs</li>
+
+    <li><font color="#FF0000">Removed the to-do item "Eliminate the need to
+    wrap a single templated inner initial state into an
+    <code>mpl::list&lt;&gt;</code>" suggested by Jonathan Turkanis because I
+    don't currently see how this can be implemented without big ugly
+    workarounds. A description of the problem can be found here: <a href=
+    "http://thread.gmane.org/gmane.comp.lib.boost.devel/128741">http://thread.gmane.org/gmane.comp.lib.boost.devel/128741</a></font></li>
+
+    <li><font color="#FF0000">Put all remarks about code as comments inside
+    the code (Pavel Vozenilek, Augustus Saunders)</font></li>
+
+    <li>On suitable platforms the library should now be compileable with
+    exception support turned off (untested due to lacking access to such a
+    platform)</li>
+
+    <li>Added allocator support for broken std libs. Thanks to Joaqu&iacute;n
+    M L&oacute;pez Mu&ntilde;oz for adding his allocator workarounds to
+    boost/detail</li>
+  </ul>
+
+  <p>19 June, 2005</p>
+
+  <ul>
+    <li>Updated the documentation for the new reaction specification
+    interface</li>
+
+    <li><font color="#FF0000">Invalid calls to reaction functions now always
+    lead to a failing runtime assert (Jonathan Turkanis). In debug mode the
+    <code>result</code> type is a class with destructive copy semantics,
+    enabling the detection of a wider range of reaction function abuses.
+    Added appropriate tests and updated the documentation</font></li>
+
+    <li><font color="#FF0000">Separated performance-related docs from the
+    rationale into a page of its own (Pavel Vozenilek)</font></li>
+
+    <li><font color="#FF0000">Added clone functionality to events so that
+    stack-allocated events can now be deferred and posted. Updated the
+    documentation and tests accordingly (Jonathan Turkanis)</font></li>
+
+    <li><font color="#FF0000">Clarified the definition of context (John
+    Spalding)</font></li>
+
+    <li><font color="#FF0000">Implemented
+    <code>in_state_reaction&lt;&gt;</code>. Updated the documentation and
+    tests accordingly (Darryl Green)</font></li>
+  </ul>
+
+  <p>12 May, 2005</p>
+
+  <ul>
+    <li><font color="#FF0000"><b>Breaking change</b>: Changed the library
+    namespace from <code>fsm</code> to <code>statechart</code> (Alexander
+    Nasonov, David Abrahams)</font></li>
+
+    <li><font color="#FF0000"><b>Breaking change</b>: Changed the library
+    name from boost::fsm to Boost.Statechart (Alexander Nasonov, David
+    Abrahams)</font></li>
+
+    <li><font color="#FF0000"><b>Breaking change</b>: Reactions are now
+    specified with a <code>reactions</code> member typedef in a state class
+    declaration instead of a template parameter (Alexander Nasonov), not yet
+    documented.</font></li>
+  </ul>
+
+  <p>03 May, 2005</p>
+
+  <ul>
+    <li>Removed the to-do item for the <code>std::type_info</code>
+    replacement. Thanks to Jody Hagins for taking care of that!</li>
+
+    <li>Added to-do items for the issues uncovered during the review</li>
+
+    <li>Fixed documentation bugs in the effects descriptions for
+    <code>state_machine::initiate()</code>,
+    <code>state_machine::terminate()</code> and
+    <code>state_machine::process_event()</code></li>
+
+    <li><font color="#FF0000">Moved "Getting started" and "Audience" into
+    index.html (Augustus Saunders)</font></li>
+
+    <li><font color="#FF0000">Added Basic topics and Intermediate topics
+    headings and shortened the "How to read this tutorial" section (Augustus
+    Saunders)</font></li>
+  </ul>
+
+  <p>21 February, 2005</p>
+
+  <ul>
+    <li>Corrected the review period length mentioned above (absolutely no
+    changes to code and documentation)</li>
+  </ul>
+
+  <p>20 February, 2005</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Incorporated a part of
+    <code>exception_translator::operator()</code> code into the
+    <code>state_machine</code> class template. This simplifies custom
+    exception translators and makes implementing them less error-prone</li>
+
+    <li><b>Breaking change</b>: A request to defer an exception event is no
+    longer honored and ultimately results in the exception being rethrown.
+    This change is the result of the rule that during the processing of an
+    exception no non-user code must be called that could itself propagate an
+    exception and thus mask the original exception (for event deferral
+    <code>operator new</code> must be called, which could throw). Exception
+    event deferral has always been a strange concept anyway</li>
+
+    <li>Various code brush-ups</li>
+  </ul>
+
+  <p>09 February, 2005</p>
+
+  <ul>
+    <li>Added exception testing to TransitionTest</li>
+
+    <li>Fixed a bug that led to an access violation when orthogonal region 0
+    of a state was terminated before exiting the state (either through
+    another termination or a transition)</li>
+
+    <li>Various minor changes</li>
+  </ul>
+
+  <p>07 February, 2005</p>
+
+  <ul>
+    <li>Added FifoSchedulerTest, TerminationTest, CustomReactionTest,
+    StateIterationTest, TypeInfoTest, StateCastTest, HistoryTest and tests
+    for inconsistent uses of history, unsupported types of deep history and
+    invalid statecharts</li>
+
+    <li>Fixed a bug that led to a compile-time error when
+    <code>state_downcast</code> was instantiated with a reference target</li>
+
+    <li>Fixed a bug that led to a null function pointer dereference when
+    history was cleared before making a transition to history</li>
+
+    <li>Updated the "Speed versus scalability tradeoffs" section</li>
+
+    <li>Fixed previously failing builds of single-threaded variants of the
+    PingPong example</li>
+
+    <li>Moved the "Incompatible compilers" section to index.html</li>
+
+    <li>Added explanation for the BitMachine &amp; Handcrafted examples</li>
+
+    <li>Various minor changes</li>
+  </ul>
+
+  <p>25 November, 2004</p>
+
+  <ul>
+    <li>Adapted to the changes in the 1.32.0 distribution (mainly MPL
+    changes). The library no longer works with 1.31.0</li>
+
+    <li>Fixed a bug that led to a failing runtime assert during state machine
+    destruction</li>
+
+    <li>Fixed a bug that led to events deferred in a composite state not
+    being released when that state was left</li>
+
+    <li>Added TransitionTest and DeferralTest</li>
+  </ul>
+
+  <p>19 October, 2004</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Out of the box, a state machine no longer
+    uses <code>exception_translator&lt;&gt;</code> to translate exceptions
+    propagated into the framework. Instead,
+    <code>null_exception_translator</code> is now used, which does not catch
+    or translate any exceptions. Updated docs accordingly</li>
+
+    <li>Implemented <a href="tutorial.html#TwoStageExit">two stage exit</a>
+    and updated docs accordingly</li>
+
+    <li>Implemented an experimental feature that allows a transition action
+    to be a member of the transition source or any of its direct or indirect
+    contexts, see <a href=
+    "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_RELAX_TRANSITION_CONTEXT</a></li>
+
+    <li>Various small code and documentation improvements</li>
+  </ul>
+
+  <p>22 May, 2004</p>
+
+  <ul>
+    <li>Integrated the Intel 7.0 workarounds provided by Pavel Vozenilek
+    (most are std library workarounds)</li>
+
+    <li>Added the Intel 7.0 section to the configuration page</li>
+
+    <li>Updated copyright notices</li>
+  </ul>
+
+  <p>12 May, 2004</p>
+
+  <ul>
+    <li>Fixed a bug that could have led to an <code>exception_thrown</code>
+    event being sent to a state that is <b>not</b> the outermost unstable
+    state in an unstable state machine (as documented in the reference).
+    Instead, the event was sent to the state where the entry action of a
+    direct inner state threw an exception, which is only correct for state
+    machines without orthogonal regions. Also updated the <a href=
+    "tutorial.html#ExceptionHandling">Exception handling</a> section in the
+    tutorial, which now explains this behavior in detail</li>
+
+    <li>Fixed bug that, under extremely rare circumstances, would have
+    prevented the correct handling of out of memory situations</li>
+
+    <li>Fixed an inconsistency in the state entry sequence when a state in an
+    orthogonal region is the target of a transition originating outside its
+    direct outer state. Now the states are always entered according to the
+    number of their orthogonal region, i.e. orthogonal region 0 first, then
+    orthogonal region 1 and so on. Since the documentation did not define the
+    sequence (it does now) users should not notice any difference</li>
+
+    <li>Changed the implementation of <code>state_machine::terminate()</code>
+    so that orthogonal regions are now exited strictly from highest to lowest
+    number instead of arbitrarily as before. Updated docs accordingly</li>
+  </ul>
+
+  <p>22 April, 2004</p>
+
+  <ul>
+    <li>Removed the previously added BCC 5.6.4 fixes (the BCC port was
+    postponed due to lack of knowledge how to work around certain bugs)</li>
+
+    <li>Replaced all uses of <code>BOOST_STATIC_CONSTANT</code> with their
+    mpl counterparts (<code>bool_</code>, <code>integral_c</code>). As a
+    result, ports to buggy compilers should become easier</li>
+
+    <li>Clarified some bits in the tutorial and added StopWatch2.cpp, which
+    details an alternative way of retrieving state machine state</li>
+  </ul>
+
+  <p>10 April, 2004</p>
+
+  <ul>
+    <li>Added two BCC 5.6.4 fixes contributed by Pavel Vozenilek;
+    Boost.Statechart does not yet work on BCC though</li>
+
+    <li>Implemented a few of the documentation and code improvements
+    suggested by Pavel Vozenilek, including the new "UML to Boost.Statechart
+    mapping summary" document</li>
+  </ul>
+
+  <p>26 March, 2004</p>
+
+  <ul>
+    <li>Fixed a small Intel 8.0 bug in the BitMachine example</li>
+  </ul>
+
+  <p>25 March, 2004</p>
+
+  <ul>
+    <li>Now everything compiles warning-free on Intel 8.0</li>
+  </ul>
+
+  <p>21 March, 2004</p>
+
+  <ul>
+    <li><b>Breaking change</b>: <code>fifo_scheduler&lt;&gt;</code> and
+    <code>fifo_worker&lt;&gt;</code> now always work non-blocking by
+    default</li>
+
+    <li>Added gcc makefiles, contributed by Mitsuo Fukasawa</li>
+
+    <li>Added a fixed version of atomic_count_gcc.hpp to fsm.zip, see
+    <a href="http://lists.boost.org/MailArchives/boost/msg57537.php">http://lists.boost.org/MailArchives/boost/msg57537.php</a>
+    for more information</li>
+  </ul>
+
+  <p>16 March, 2004</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Added the <code>FifoWorker</code> template
+    parameter to <code>fifo_scheduler&lt;&gt;</code> and updated
+    documentation and examples accordingly</li>
+  </ul>
+
+  <p>13 March, 2004</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Renamed <code>worker&lt;&gt;</code> to
+    <code>fifo_scheduler&lt;&gt;</code> and updated documentation and
+    examples accordingly</li>
+
+    <li>Changed the <code>fifo_scheduler&lt;&gt;</code> implementation so
+    that a custom worker implementation needs to duplicate less code</li>
+
+    <li>Various other small code and doc changes</li>
+  </ul>
+
+  <p>03 March, 2004</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Redesigned the <code>worker&lt;&gt;</code>
+    and <code>asynchronous_state_machine&lt;&gt;</code> class templates and
+    updated documentation accordingly. Event processors can now be added and
+    removed while a worker is running. Moreover, the new design allows for
+    custom workers with non-FIFO queueing schemes</li>
+
+    <li>The StopWatch example now uses <code>std::time()</code> instead of
+    <code>std::clock()</code></li>
+  </ul>
+
+  <p>09 February, 2004</p>
+
+  <ul>
+    <li>Integrated the standard conformance fixes contributed by Peter
+    Petrov. The library now also works on GCC 3.2 and should be much easier
+    to port to other highly conforming compilers</li>
+
+    <li>Added the state type information facility to
+    <code>simple_state</code></li>
+
+    <li>Added the function templates
+    <code>simple_state::clear_shallow_history()</code> and
+    <code>simple_state::clear_deep_history()</code></li>
+  </ul>
+
+  <p>11 January, 2004</p>
+
+  <ul>
+    <li>Finished reference documentation</li>
+
+    <li>Updated Copyright notices</li>
+  </ul>
+
+  <p>12 December, 2003</p>
+
+  <ul>
+    <li><b>Thanks to Mitsuo Fukasawa the tutorial is now also available in
+    Japanese!!!</b></li>
+
+    <li>Added a state type information facility</li>
+
+    <li>Added reference (unfinished) and configuration documentation and
+    updated other documents</li>
+
+    <li>Various code brush-ups (no breaking changes)</li>
+  </ul>
+
+  <p>12 October, 2003</p>
+
+  <ul>
+    <li><b>Breaking change</b>: Removed <code>rtti_policy&lt;&gt;</code> from
+    the interface. By default, the library now uses its own (often faster)
+    RTTI implementation. Users can demand the use of native C++ RTTI by
+    defining <code>BOOST_STATECHART_USE_NATIVE_RTTI</code>. This change only
+    affects users who customized <code>state_machine&lt;&gt;</code>,
+    <code>asynchronous_state_machine&lt;&gt;</code> or
+    <code>worker&lt;&gt;</code></li>
+
+    <li><b>Breaking change</b>: Reordered template arguments of
+    <code>state_machine&lt;&gt;</code> and
+    <code>asynchronous_state_machine&lt;&gt;</code>. This change only affects
+    users who customized <code>state_machine&lt;&gt;</code> or
+    <code>asynchronous_state_machine&lt;&gt;</code></li>
+
+    <li>Added shallow/deep history support and updated documentation
+    accordingly</li>
+
+    <li>Added various compile-time sanity checks</li>
+
+    <li>Added 1 FAQ (asked by Mitsuo Fukasawa)</li>
+  </ul>
+
+  <p>16 August, 2003</p>
+
+  <ul>
+    <li>Added <code>asynchronous_state_machine&lt;&gt;</code> and
+    <code>worker&lt;&gt;</code> and updated documentation accordingly</li>
+
+    <li>Various minor bug fixes and code improvements (no breaking interface
+    changes)</li>
+
+    <li>Added Keyboard and PingPong examples</li>
+
+    <li>Added .pdf documentation</li>
+  </ul>
+
+  <p>08 June, 2003</p>
+
+  <ul>
+    <li>Added 3 FAQs (asked by Bohdan) &amp; 1 definition</li>
+
+    <li>Removed the superfluous public derivation specifiers in the tutorial
+    and the examples as suggested by Aleksey Gurtovoy</li>
+
+    <li>Various code improvements (no interface changes)</li>
+
+    <li>Various html improvements</li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 04 April, 2010</p>
+
+  <p><i>Copyright &copy; 2003-2010 <a href="contact.html">Andreas Huber
+  D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

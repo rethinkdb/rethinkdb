@@ -1,0 +1,11 @@
+# Copyright 2003 Dave Abrahams 
+# Copyright 2002, 2003 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+project test : requirements <include>everything <threading>single ;
+
+make a.exe : a.obj lib//b.obj/<optimization>speed : yfc-link ;
+make b.exe : a.obj : yfc-link : <define>MACROS ;
+make a.obj : a.cpp : yfc-compile ;

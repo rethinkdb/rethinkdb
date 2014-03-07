@@ -1,0 +1,193 @@
+[/
+ / Copyright (c) 2013 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+
+[section:ext_locked_streams Externally Locked Streams - EXPERIMENTAL]
+
+[warning These features are experimental and subject to change in future versions. There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[note These features are based on the [@http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2013/n3535.html [*N3535 - C++ Streams Mutex]] C++1y proposal, even if the library proposes al alternative interface.]
+
+[section:tutorial Tutorial]
+
+[endsect] [/tutorial]
+
+[/////////////////////]
+[section:ref Reference]
+
+  #include <boost/thread/externally_locked_stream.hpp>
+  namespace boost
+  {
+    template <typename Stream, typename RecursiveMutex=recursive_mutex>
+    class externally_locked_stream;
+    template <class Stream, typename RecursiveMutex=recursive_mutex>
+    class stream_guard;
+    template <typename Stream, typename RecursiveMutex>
+    struct is_strict_lock_sur_parole<stream_guard<Stream, RecursiveMutex> > : true_type  {};
+
+    // Stream-like operators
+    template <typename Stream, typename RecursiveMutex, typename T>
+    const stream_guard<Stream, RecursiveMutex>& operator<<(const stream_guard<Stream, RecursiveMutex>& lck, T arg);
+    template <typename Stream, typename RecursiveMutex>
+    const stream_guard<Stream, RecursiveMutex>& 
+    operator<<(const stream_guard<Stream, RecursiveMutex>& lck, Stream& (*arg)(Stream&));
+    template <typename Stream, typename RecursiveMutex, typename T>
+    const stream_guard<Stream, RecursiveMutex>& 
+    operator>>(const stream_guard<Stream, RecursiveMutex>& lck, T& arg);
+    template <typename Stream, typename RecursiveMutex, typename T>
+    stream_guard<Stream, RecursiveMutex> 
+    operator<<(externally_locked_stream<Stream, RecursiveMutex>& mtx, T arg);
+    template <typename Stream, typename RecursiveMutex>
+    stream_guard<Stream, RecursiveMutex> 
+    operator<<(externally_locked_stream<Stream, RecursiveMutex>& mtx, Stream& (*arg)(Stream&));
+    template <typename Stream, typename RecursiveMutex, typename T>
+    stream_guard<Stream, RecursiveMutex> 
+    operator>>(externally_locked_stream<Stream, RecursiveMutex>& mtx, T& arg);
+  }
+
+[/////////////////////////////////////////]
+[section:stream_guard Class `stream_guard`]
+  
+  #include <boost/thread/externally_locked_stream.hpp>
+  namespace boost
+  { 
+    template <class Stream, typename RecursiveMutex=recursive_mutex>
+    class stream_guard
+    {
+    public:
+      typedef typename externally_locked_stream<Stream, RecursiveMutex>::mutex_type mutex_type;
+  
+      // Constructors, Assignment and Destructors
+      stream_guard(stream_guard const&) = delete;
+      stream_guard& operator=(stream_guard const&) = delete;
+      stream_guard(externally_locked_stream<Stream, RecursiveMutex>& mtx);
+      stream_guard(externally_locked_stream<Stream, RecursiveMutex>& mtx, adopt_lock_t);
+      stream_guard(stream_guard&& rhs);
+      ~stream_guard();
+
+      // Observers  
+      bool owns_lock(mutex_type const* l) const BOOST_NOEXCEPT;
+      Stream& get() const;
+      Stream& bypass() const;
+
+    };
+  }
+
+`stream_guard` is a model of __StrictLock.
+
+[//////////////////////////////////////////////////]
+[section:constructor `stream_guard(mutex_type & m)`]
+
+[variablelist
+
+[[Effects:] [Stores a reference to `m`. Invokes [lock_ref_link `m.lock()`].]]
+
+[[Throws:] [Any exception thrown by the call to [lock_ref_link `m.lock()`].]]
+
+]
+
+[endsect]
+[////////////////////////////////////////////////////////////////////////////]
+[section:constructor_adopt `stream_guard(mutex_type & m,boost::adopt_lock_t)`]
+
+[variablelist
+
+[[Precondition:] [The current thread owns a lock on `m` equivalent to one
+obtained by a call to [lock_ref_link `m.lock()`].]]
+
+[[Effects:] [Stores a reference to `m`. Takes ownership of the lock state of
+`m`.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////////////////]
+[section:move_constructor `stream_guard(stream_guard && m)`]
+
+
+[variablelist
+
+[[Effects:] [Stores a reference to `m`. Invokes [lock_ref_link `m.lock()`].]]
+
+[[Throws:] [Any exception thrown by the call to [lock_ref_link `m.lock()`].]]
+
+]
+
+[endsect]
+[////////////////////////////////////]
+[section:destructor `~stream_guard()`]
+
+[variablelist
+
+[[Effects:] [Invokes [unlock_ref_link `m.unlock()`] on the __lockable_concept_type__
+object passed to the constructor.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[endsect]
+[//////////////////////////////////////////////////////////////////]
+[section:externally_locked_stream Class `externally_locked_stream `]
+
+  #include <boost/thread/externally_locked_stream.hpp>
+  namespace boost
+  {
+    template <typename Stream, typename RecursiveMutex>
+    class externally_locked_stream: public externally_locked<Stream&, RecursiveMutex>
+    {
+    public:
+      // Constructors, Assignment and Destructors
+      externally_locked_stream(externally_locked_stream const&) = delete;
+      externally_locked_stream& operator=(externally_locked_stream const&) = delete;
+      externally_locked_stream(Stream& stream, RecursiveMutex& mtx);
+  
+      // Modifiers  
+      stream_guard<Stream, RecursiveMutex> hold();
+
+    };
+  }
+
+`externally_locked_stream` cloaks a reference to an stream of type `Stream`, and actually
+provides full access to that object through the `get` member functions, provided you
+pass a reference to a strict lock object.
+
+
+[////////////////////////////////////////////////////////////////////////]
+[section:constructor `externally_locked_stream(Stream&, RecursiveMutex&)`]
+
+[variablelist
+
+[[Effects:] [Constructs an externally locked object storing the cloaked reference object and its locking mutex.]]
+
+]
+
+[endsect]
+
+[/////////////////////]
+[section:hold `hold()`]
+
+[variablelist
+
+[[Returns:] [A stream_guard which will hold the mutex during it lifetime .]]
+
+]
+
+[endsect]
+
+
+
+[endsect]
+
+
+[endsect] [/ref]
+
+[endsect] [/Externally Locked Streams]

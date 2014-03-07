@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template allocator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="upgradable_lock.html" title="Class template upgradable_lock">
+<link rel="next" href="node_allocator.html" title="Class template node_allocator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="upgradable_lock.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="node_allocator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.allocator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template allocator</span></h2>
+<p>boost::interprocess::allocator</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> SegmentManager<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="allocator.html#boost.interprocess.allocatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="allocator.html#idp27653656-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="identifier">segment_manager</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="allocator.html#idp27654328-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T2<span class="special">&gt;</span> <a class="link" href="allocator.html#idp27655192-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">T2</span><span class="special">,</span> <span class="identifier">SegmentManager</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="allocator.html#idp27629448-bb">public member functions</a></span>
+  <span class="identifier">segment_manager</span> <span class="special">*</span> <a class="link" href="allocator.html#idp27629656-bb"><span class="identifier">get_segment_manager</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="allocator.html#idp27630392-bb"><span class="identifier">allocate</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">cvoid_ptr</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27632328-bb"><span class="identifier">deallocate</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="allocator.html#idp27633720-bb"><span class="identifier">max_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="allocator.html#idp27634456-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">pointer</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a class="link" href="allocator.html#idp27635640-bb"><span class="identifier">allocation_command</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">allocation_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> 
+                     <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27637992-bb"><span class="identifier">allocate_many</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27639992-bb"><span class="identifier">allocate_many</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27641816-bb"><span class="identifier">deallocate_many</span></a><span class="special">(</span><span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="allocator.html#idp27643144-bb"><span class="identifier">allocate_one</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27644328-bb"><span class="identifier">allocate_individual</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27646040-bb"><span class="identifier">deallocate_one</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27647240-bb"><span class="identifier">deallocate_individual</span></a><span class="special">(</span><span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="allocator.html#idp27648616-bb"><span class="identifier">address</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_pointer</span> <a class="link" href="allocator.html#idp27649672-bb"><span class="identifier">address</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> P<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="allocator.html#idp27650728-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">P</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp27652600-bb"><span class="identifier">destroy</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="allocator.html#idp27656504-bb">friend functions</a></span>
+  <span class="keyword">friend</span> <span class="keyword">void</span> <a class="link" href="allocator.html#idp27656712-bb"><span class="identifier">swap</span></a><span class="special">(</span><span class="identifier">self_t</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">self_t</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp113166184"></a><h2>Description</h2>
+<p>An STL compatible allocator that uses a segment manager as memory source. The internal pointer type will of the same type (raw, smart) as "typename SegmentManager::void_pointer" type. This allows placing the allocator in shared memory, memory mapped-files, etc... </p>
+<div class="refsect2">
+<a name="idp113166792"></a><h3>
+<a name="boost.interprocess.allocatorconstruct-copy-destruct"></a><code class="computeroutput">allocator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27653656-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="identifier">segment_manager</span> <span class="special">*</span> segment_mngr<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor from the segment manager. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27654328-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor from other allocator. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T2<span class="special">&gt;</span> <a name="idp27655192-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">T2</span><span class="special">,</span> <span class="identifier">SegmentManager</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor from related allocator. Never throws </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp113179384"></a><h3>
+<a name="idp27629448-bb"></a><code class="computeroutput">allocator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">segment_manager</span> <span class="special">*</span> <a name="idp27629656-bb"></a><span class="identifier">get_segment_manager</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the segment manager. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp27630392-bb"></a><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> count<span class="special">,</span> <span class="identifier">cvoid_ptr</span> hint <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates memory for an array of count elements. Throws <code class="computeroutput"><a class="link" href="bad_alloc.html" title="Class bad_alloc">boost::interprocess::bad_alloc</a></code> if there is no enough memory </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27632328-bb"></a><span class="identifier">deallocate</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> ptr<span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Deallocates memory previously allocated. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp27633720-bb"></a><span class="identifier">max_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the number of elements that could be allocated. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp27634456-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> p<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns maximum the number of objects the previously allocated memory pointed by p can hold. This size only works for memory allocated with allocate, allocation_command and allocate_many. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">pointer</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+<a name="idp27635640-bb"></a><span class="identifier">allocation_command</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">allocation_type</span> command<span class="special">,</span> 
+                   <span class="identifier">size_type</span> limit_size<span class="special">,</span> <span class="identifier">size_type</span> preferred_size<span class="special">,</span> 
+                   <span class="identifier">size_type</span> <span class="special">&amp;</span> received_size<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> reuse <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27637992-bb"></a><span class="identifier">allocate_many</span><span class="special">(</span><span class="identifier">size_type</span> elem_size<span class="special">,</span> <span class="identifier">size_type</span> num_elements<span class="special">,</span> 
+                   <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span> chain<span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates many elements of size elem_size in a contiguous block of memory. The minimum number to be allocated is min_elements, the preferred and maximum number is preferred_elements. The number of actually allocated elements is will be assigned to received_size. The elements must be deallocated with deallocate(...) </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27639992-bb"></a><span class="identifier">allocate_many</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> <span class="special">*</span> elem_sizes<span class="special">,</span> <span class="identifier">size_type</span> n_elements<span class="special">,</span> 
+                   <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span> chain<span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates n_elements elements, each one of size elem_sizes[i]in a contiguous block of memory. The elements must be deallocated </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27641816-bb"></a><span class="identifier">deallocate_many</span><span class="special">(</span><span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span> chain<span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates many elements of size elem_size in a contiguous block of memory. The minimum number to be allocated is min_elements, the preferred and maximum number is preferred_elements. The number of actually allocated elements is will be assigned to received_size. The elements must be deallocated with deallocate(...) </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp27643144-bb"></a><span class="identifier">allocate_one</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates just one object. Memory allocated with this function must be deallocated only with deallocate_one(). Throws <code class="computeroutput"><a class="link" href="bad_alloc.html" title="Class bad_alloc">boost::interprocess::bad_alloc</a></code> if there is no enough memory </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27644328-bb"></a><span class="identifier">allocate_individual</span><span class="special">(</span><span class="identifier">size_type</span> num_elements<span class="special">,</span> 
+                         <span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span> chain<span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates many elements of size == 1 in a contiguous block of memory. The minimum number to be allocated is min_elements, the preferred and maximum number is preferred_elements. The number of actually allocated elements is will be assigned to received_size. Memory allocated with this function must be deallocated only with deallocate_one(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27646040-bb"></a><span class="identifier">deallocate_one</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Deallocates memory previously allocated with allocate_one(). You should never use deallocate_one to deallocate memory allocated with other functions different from allocate_one(). Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27647240-bb"></a><span class="identifier">deallocate_individual</span><span class="special">(</span><span class="identifier">multiallocation_chain</span> <span class="special">&amp;</span> chain<span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates many elements of size == 1 in a contiguous block of memory. The minimum number to be allocated is min_elements, the preferred and maximum number is preferred_elements. The number of actually allocated elements is will be assigned to received_size. Memory allocated with this function must be deallocated only with deallocate_one(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp27648616-bb"></a><span class="identifier">address</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns address of mutable object. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_pointer</span> <a name="idp27649672-bb"></a><span class="identifier">address</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns address of non mutable object. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> P<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27650728-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> ptr<span class="special">,</span> <span class="identifier">P</span> <span class="special">&amp;&amp;</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an object Throws if T's constructor throws For backwards compatibility with libraries using C++03 allocators </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27652600-bb"></a><span class="identifier">destroy</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys object. Throws if object's destructor throws </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp113249256"></a><h3>
+<a name="idp27656504-bb"></a><code class="computeroutput">allocator</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">void</span> <a name="idp27656712-bb"></a><span class="identifier">swap</span><span class="special">(</span><span class="identifier">self_t</span> <span class="special">&amp;</span> alloc1<span class="special">,</span> <span class="identifier">self_t</span> <span class="special">&amp;</span> alloc2<span class="special">)</span><span class="special">;</span></pre>
+<p>Swap segment manager. Does not throw. If each allocator is placed in different memory segments, the result is undefined.</p>
+<p>Swaps allocators. Does not throw. If each allocator is placed in a different memory segment, the result is undefined.</p>
+<p>Swaps allocators. Does not throw. If each allocator is placed in a different shared memory segments, the result is undefined. </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="upgradable_lock.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="node_allocator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

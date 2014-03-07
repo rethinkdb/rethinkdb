@@ -1,0 +1,120 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2013 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Introduction]
+
+The __boost_geometry_index__ is intended to gather data structures called spatial
+indexes which may be used to accelerate searching for objects in space. In general,
+spatial indexes stores geometric objects' representations and allows searching for
+objects occupying some space or close to some point in space.
+
+Currently, only one spatial index is implemented - __rtree__.
+
+[heading __rtree__]
+
+__rtree__ is a tree data structure used for spatial searching. It was proposed by
+Antonin Guttman in 1984 [footnote Guttman, A. (1984). /R-Trees: A Dynamic Index Structure for Spatial Searching/]
+as an expansion of B-tree for multi-dimensional data. It may be used to store points or volumetric data in order to
+perform a spatial query. This query may for example return objects that are inside some area or are close to some point in space
+[footnote Cheung, K.; Fu, A. (1998). /Enhanced Nearest Neighbour Search on the R-tree/].
+It's possible to insert new objects or to remove the ones already stored.
+
+The __rtree__ structure is presented on the image below. Each __rtree__'s node store a box describing the space occupied by
+its children nodes. At the bottom of the structure, there are leaf-nodes which contains values
+(geometric objects representations). 
+
+[$img/index/rtree/rstar.png]
+
+The __rtree__ is a self-balanced data structure. The key part of balancing algorithm is node splitting algorithm
+[footnote Greene, D. (1989). /An implementation and performance analysis of spatial data access methods/]
+[footnote Beckmann, N.; Kriegel, H. P.; Schneider, R.; Seeger, B. (1990). /The R*-tree: an efficient and robust access method for points and rectangles/].
+Each algorithm produces different splits so the internal structure of a tree may be different for each one of them.
+In general, more complex algorithms analyses elements better and produces less overlapping nodes. In the searching process less nodes must be traversed
+in order to find desired objects. On the other hand more complex analysis takes more time. In general faster inserting will result in slower searching
+and vice versa. The performance of the R-tree depends on balancing algorithm, parameters and data inserted into the container.
+
+Additionally there are also algorithms creating R-tree containing some, number of objects. This technique is called bulk loading and is
+done by use of packing algorithm
+[footnote Leutenegger, Scott T.; Edgington, Jeffrey M.; Lopez, Mario A. (1997). /STR: A Simple and Efficient Algorithm for R-Tree Packing/]
+[footnote Garcia, Yvan J.; Lopez, Mario A.; Leutenegger, Scott T. (1997). /A Greedy Algorithm for Bulk Loading R-trees/].
+This method is faster and results in R-trees with better internal structure. This means that the query performance is increased.
+
+The examples of structures of trees created by use of different algorithms and exemplary operations times are presented below.
+
+[table
+[[]                         [Linear algorithm] [Quadratic algorithm] [R*-tree] [Packing algorithm]]
+[[*Example structure*]      [[$img/index/rtree/linear.png]] [[$img/index/rtree/quadratic.png]] [[$img/index/rtree/rstar.png]] [[$img/index/rtree/bulk.png]]]
+[[*1M Values inserts*]      [1.76s] [2.47s] [6.19s] [1.67s]]
+[[*100k spatial queries*]   [2.21s] [0.51s] [0.12s] [0.07s]]
+[[*100k knn queries*]       [6.37s] [2.09s] [0.64s] [0.52s]]
+]
+
+The performance of the R-tree for different values of Max parameter and Min=0.5*Max is presented in the table below.
+The configuration of the machine used for testing is: /Intel(R) Core(TM) i7 870 @ 2.93GHz, 8GB RAM, MS Windows 7 x64/.
+In the two upper figures you can see the performance of the __rtree__ storing random, relatively small, non-overlapping, 2d boxes.
+In the lower ones, the performance of the __rtree__ also storing random, 2d boxes, but this time quite big and possibly overlapping.
+As you can see, the __rtree__ performance is different in both cases.
+
+[table
+[[]                  [building] [querying]]
+[[*non overlapping*] [[$img/index/rtree/build_non_ovl.png]] [[$img/index/rtree/query_non_ovl.png]]]
+[[*overlapping*]      [[$img/index/rtree/build_ovl.png]] [[$img/index/rtree/query_ovl.png]]]
+]
+
+[heading Implementation details]
+
+Key features of this implementation of the __rtree__ are:
+
+* capable to store arbitrary __value__ type,
+* three different balancing algorithms - linear, quadratic or rstar,
+* creation using packing algorithm,
+* parameters (including maximal and minimal number of elements) may be passed as compile- or run-time parameters, in compile-time
+  version nodes elements are stored in static-size containers,
+* advanced queries - e.g. search for 5 nearest Values to some point and intersecting some Geometry but not within the other one,
+* iterative queries - by use of iterators,
+* C++11 conformant: move semantics, stateful allocators,
+* capable to store __value__ type with no default constructor,
+* in-memory storage (shared memory by use of Boost.Interprocess allocator).
+
+[heading Planned features]
+
+Below you can find features that will (or probably will) be added in the future releases:
+
+[/ Done
+* rstar optimization (planned for release in Boost 1.55),
+* bulk loading (planned for release in Boost 1.55),
+* 'reversed' spatial predicates or additional spatial predicates like contains(),
+* iterative queries - query iterators / type-erased query iterators,
+/]
+* path/ray query predicate - search for Values along Segment or LineString, closest to the starting point,
+* user-defined distance calculation in nearest() predicate,
+* serialization,
+* persistent storage.
+[/ Maybe
+* other geometries as Indexables, e.g. NSpheres. Rings would probably require using move semantics instead of copying
+* bounding tree - rtree variation capable to use other Geometries as bounds, e.g. NSpheres, Rings/convex polygons/ (moving required), Capsules, Elipses, Variants etc.
+* moving instead of copying + optimizations for movable/nonthrowing/trivialy copied elements
+* passing more than one nearest/path predicate - "returned value is one of k1 nearest values to p1 and ... and one of kN nearest values to pN"
+/]
+
+[heading Dependencies]
+
+R-tree depends on *Boost.Move*, *Boost.Container*, *Boost.Tuple*, *Boost.Utility*, *Boost.MPL*.
+
+[heading Contributors]
+
+The spatial index was originally started by Federico J. Fernandez during the Google Summer of Code 2008 program, mentored by Hartmut Kaiser.
+
+[heading Spatial thanks]
+
+I'd like to thank Barend Gehrels, Bruno Lalande, Mateusz Łoskot, Lucanus J. Simonson for their support and ideas.
+
+[endsect]
+

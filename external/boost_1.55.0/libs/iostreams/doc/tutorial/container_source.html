@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='writing_devices.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_sink.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+        <!-- Container Source -->
+
+<A NAME="container_source"></A>
+<H2>2.1.2. Writing a <CODE>container_source</CODE></H2>
+
+<P>Suppose you want to write a Device for reading characters from an STL container. A Device which only supports reading is called a <A HREF="../concepts/source.html">Source</A>. A typical narrow-character Source looks like this:
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// source_tag
+</SPAN>
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>class</SPAN> my_source {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>        char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> source_tag  category;
+
+    std::streamsize read(<SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n)
+    {
+        <SPAN CLASS='comment'>// Read up to n characters from the underlying data source</SPAN>
+        <SPAN CLASS='comment'>// into the buffer s, returning the number of characters</SPAN>
+        <SPAN CLASS='comment'>// read; return -1 to indicate EOF</SPAN>
+    }
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here the member type <A HREF="../guide/traits.html#char_type"><CODE>char_type</CODE></A> indicates the type of characters handled by my_source, which will almost always be <CODE>char</CODE> or <CODE>wchar_t</CODE>. The member type <A HREF="../guide/traits.html#char_type">category</A> indicates which of the fundamental i/o operations are supported by the device. The category tag <A HREF="../guide/traits.html#category_tags"><CODE>source_tag</CODE></A> indicates that only <A HREF="../functions/read.html"><CODE>read</CODE></A> is supported.</P>
+
+<P>The member function <CODE>read</CODE> reads up to <CODE>n</CODE> characters into the buffer <CODE>s</CODE> and returns the number of characters read, unless that number is <CODE>0</CODE> and end-of-stream has been reached, in which case the special value <CODE>-1</CODE> is returned. In general, a Source's member function <CODE>read</CODE> may return fewer characters than requested even though end-of-stream has not been reached; such Sources are called <I>non-blocking</I>. Non-blocking Devices do not interact well with standard streams and stream buffers, however, so most devices should be <A HREF="../concepts/blocking.html">Blocking</A>. <I>See</I> <A HREF="../guide/asynchronous.html">Asynchronous and Non-Blocking I/O</A>.</P>
+
+<P>You could also write the above example as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// source</SPAN>
+
+<SPAN CLASS='keyword'>class</SPAN> my_source : <SPAN CLASS='keyword'>public</SPAN> source {
+<SPAN CLASS='keyword'>public</SPAN>:
+    std::streamsize read(<SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n);
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here <A HREF="../classes/device.html#synopsis"><CODE>source</CODE></A> is a convenience base class which provides the member types <CODE>char_type</CODE> and <CODE>category</CODE>, as well as no-op implementations of member functions <CODE>close</CODE> and <CODE>imbue</CODE>, not needed here.
+
+<P>You're now ready to write your <CODE>container_source</CODE>. For simplicity, let's assume that your container's iterators are RandomAccessIterators.</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;algorithm&gt;</SPAN>                       <SPAN CLASS='comment'>// copy, min</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// source_tag</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>typename</SPAN> Container&gt;
+<SPAN CLASS='keyword'>class</SPAN> container_source {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> Container::value_type  char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> source_tag                      category;
+    container_source(Container&amp; container)
+        : container_(container), pos_(<SPAN CLASS='numeric_literal'>0</SPAN>)
+        { }
+    std::streamsize read(char_type* s, std::streamsize n)
+    {
+        <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+        streamsize amt = <SPAN CLASS='keyword'>static_cast</SPAN>&lt;streamsize&gt;(container_.size() - pos_);
+        streamsize result = (min)(n, amt);
+        <SPAN CLASS='keyword'>if</SPAN> (result != <SPAN CLASS='numeric_literal'>0</SPAN>) {
+            std::copy( container_.begin() + pos_, 
+                       container_.begin() + pos_ + result, 
+                       s );
+            pos_ += result;
+            <SPAN CLASS='keyword'>return</SPAN> result;
+        } <SPAN CLASS='keyword'>else</SPAN> {
+            <SPAN CLASS='keyword'>return</SPAN> <SPAN CLASS='numeric_literal'>-1</SPAN>; <SPAN CLASS='comment'>// EOF</SPAN>
+        }
+    }
+    Container&amp; container() { <SPAN CLASS='keyword'>return</SPAN> container_; }
+<SPAN CLASS='keyword'>private</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> Container::size_type   size_type;
+    Container&amp;  container_;
+    size_type   pos_;
+};
+
+} } } <SPAN CLASS='comment'>// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Here, note that</P>
+<UL>
+<LI>The member type <CODE>char_type</CODE> is defined to be equal to the containers's <CODE>value_type</CODE>;
+<LI>The member type <CODE>category</CODE> tells the Iostreams library that <CODE>container_source</CODE> is a model of <A HREF="../concepts/source.html">Source</A>; and
+<LI>A <CODE>container_source</CODE> can be constructed from a instance of <CODE>Container</CODE>, which is passed and stored by reference, and accessible <I>via</I> the member function <CODE>container()</CODE>.
+</UL>
+
+<P>The main idea behind the implementation of <CODE>read()</CODE> is simple: First, you calculate the number of characters to be read, which is the minimum of the number of unread characters remaining in the container and the number of characters requested. Second, if the number of characters to be read is non-zero, you copy that number of characters from the container into the provided buffer and update the current read position. If the number of characters is zero, i.e., if all the characters in the container have already been consumed by previous calls to read (or if the container was empty to begin with), you return <CODE>-1</CODE> to indicate end-of-stream.</P>
+
+<P>You can read from a container_source as follows</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cassert&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;string&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/stream.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../example/container_device.hpp"><SPAN CLASS='literal'>&lt;libs/iostreams/example/container_device.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// container_source</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+<SPAN CLASS='keyword'>namespace</SPAN> ex = boost::iostreams::example;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+    <SPAN CLASS='keyword'>typedef</SPAN> ex::container_source&lt;string&gt; string_source;
+
+    string                     input = <SPAN CLASS='literal'>"Hello World!"</SPAN>;
+    string                     output;
+    io::stream&lt;string_source&gt;  in(input);
+    getline(in, output);
+    assert(input == output);
+}</PRE>
+
+<P>Finally, I should mention that the Iostreams library provides an easier way to read from an STL container: instances of <A HREF="../../../range/doc/html/range/reference/utilities/iterator_range.html" TARGET="_top"><CODE>boost::iterator_range</CODE></A> can be added directly to <A HREF="../guide/filtering_streams.html">filtering streams and stream buffers</A>. So you could write:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cassert&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;string&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/filtering_stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/filtering_stream.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/range/iterator_range.hpp"><SPAN CLASS='literal'>&lt;boost/range/iterator_range.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+
+    string                 input = <SPAN CLASS='literal'>"Hello World!"</SPAN>;
+    string                 output;
+    io::filtering_istream  in(boost::make_iterator_range(input));
+    getline(in, output);
+    assert(input == output);
+}</PRE>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='writing_devices.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_sink.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

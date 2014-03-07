@@ -1,0 +1,43 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Appendix 3: Differences from Boost.Regex]
+
+Since many of xpressive's users are likely to be familiar with the _regexpp_ library,
+I would be remiss if I failed to point out some important differences between xpressive
+and _regexpp_. In particular:\n
+
+* `xpressive::basic_regex<>` is a template on the iterator type, not the character type.
+* `xpressive::basic_regex<>` cannot be constructed directly from a string; rather, you must use
+  `basic_regex::compile()` or `regex_compiler<>` to build a regex object from a string.
+* `xpressive::basic_regex<>` does not have an `imbue()` member function; rather, the `imbue()` member
+  function is in the `xpressive::regex_compiler<>` factory.
+* `boost::basic_regex<>` has a subset of `std::basic_string<>`'s members. `xpressive::basic_regex<>`
+  does not. The members lacking are: `assign()`, `operator[]()`, `max_size()`, `begin()`, `end()`,
+  `size()`, `compare()`, and `operator=(std::basic_string<>)`.
+* Other member functions that exist in `boost::basic_regex<>` but do not exist in
+  `xpressive::basic_regex<>` are: `set_expression()`, `get_allocator()`, `imbue()`, `getloc()`,
+  `getflags()`, and `str()`.
+* `xpressive::basic_regex<>` does not have a RegexTraits template parameter. Customization of regex
+  syntax and localization behavior will be controlled by `regex_compiler<>` and a custom regex facet
+  for `std::locale`.
+* `xpressive::basic_regex<>` and `xpressive::match_results<>` do not have an Allocator template
+  parameter. This is by design.
+* `match_not_dot_null` and `match_not_dot_newline` have moved from the `match_flag_type` enum to the
+  `syntax_option_type` enum, and they have changed names to `not_dot_null` and `not_dot_newline`.
+* The following `syntax_option_type` enumeration values are not supported: `escape_in_lists`,
+  `char_classes`, `intervals`, `limited_ops`, `newline_alt`, `bk_plus_qm`, `bk_braces`, `bk_parens`,
+  `bk_refs`, `bk_vbar`, `use_except`, `failbit`, `literal`, `perlex`, `basic`, `extended`, `emacs`,
+  `awk`, `grep` ,`egrep`, `sed`, `JavaScript`, `JScript`.
+* The following `match_flag_type` enumeration values are not supported: `match_not_bob`,
+  `match_not_eob`, `match_perl`, `match_posix`, and `match_extra`.
+
+Also, in the current implementation, the regex algorithms in xpressive will not detect
+pathological behavior and abort by throwing an exception. It is up to you to write efficient
+patterns that do not behave pathologically.
+
+[endsect]

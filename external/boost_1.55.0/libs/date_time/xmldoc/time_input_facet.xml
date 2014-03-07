@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.time_input_facet">
+  <title>Time Input Facet</title>
+
+  <link linkend="time_input_facet_intro">Introduction</link> -
+  <link linkend="time_input_facet_constr">Construction</link> -
+  <link linkend="time_input_facet_accessors">Accessors</link>
+
+  <anchor id="time_input_facet_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>The <code>boost::date_time::time_input_facet</code> is an extension of the <code>date_input_facet</code>. It is typedef'ed in the <code>boost::posix_time</code> namespace as <code>time_input_facet</code> and <code>wtime_input_facet</code>. It is typedef'ed in the <code>boost::local_time</code> namespace as <code>local_time_input_facet</code> and <code>wlocal_time_input_facet</code>.
+  </para>
+
+  <anchor id="time_input_facet_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>time_input_facet()</screen></entry>
+            <entry>Default constructor</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>time_input_facet(string_type)</screen></entry>
+            <entry>Format given will be used for date/time input. All other formats will use their defaults.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>time_input_facet(...)
+  Parameters:
+    string_type format
+    format_date_parser_type
+    special_values_parser_type
+    period_parser_type
+    date_gen_parser_type</screen></entry>
+<entry>Format given will be used for date/time input. The remaining parameters are parser objects. Further details on these objects can be found <link linkend="date_time.io_objects">here</link>.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="time_input_facet_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    The time_input_facet inherits all the public date_input_facet methods. Therefore, the date_input_facet methods are not listed here. Instead, they can be found by following <link linkend="date_time.date_input_facet">this</link> link.
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_format()</screen></entry>
+            <entry>Sets the time format to ISO</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_format();
+// "%Y%m%dT%H%M%S%F%q"
+"20051225T132536.789-0700"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_extended_format()</screen></entry>
+            <entry>Sets the date format to ISO Extended</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_extended_format();
+// "%Y-%m-%d %H:%M:%S%F %Q"
+"2005-12-25 13:25:36.789 -07:00"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void time_duration_format(...)
+  Parameter:
+    char_type*</screen></entry>
+            <entry>Sets the time_duration format.</entry>
+          </row>
+          <row>
+            <entry><screen>f->time_duration_format("%H:%M");
+// hours and minutes only</screen></entry>
+          </row>
+
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(...)
+  Common parameters for all 
+  'get' functions:
+    InItrT from
+    InItrT to
+    ios_base
+  Unique parameter for 'get' funcs:
+    gregorian object</screen></entry>
+            <entry>There are 3 get functions in the time_input_facet. The common parameters are: an iterator pointing to the begining of the stream, an iterator pointing to the end of the stream, and an ios_base object. Each unique gregorian object has it's own get function. Each unique get function is described below.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., ptime)</screen></entry>
+            <entry>Gets a ptime object from the stream using the format set by <code>format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("2005-Jan-01 13:12:01");
+ss >> pt; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., time_duration)</screen></entry>
+            <entry>Gets a time_duration object from the stream using the format set by <code>time_duration_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("01:25:15.000123000");
+ss >> td; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., time_period)</screen></entry>
+            <entry>Gets a time_period from the stream. The format of the dates/times will use the format set by <code>format(..)</code> or the default date and time format. The type of period (open or closed range) and the delimiters used are those used by the period_parser.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <!-- This should be changed later
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get_local_time(..., local_date_time)</screen></entry>
+            <entry>Gets a local_date_time object from the stream using the format set by <code>format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+          -->
+          
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

@@ -1,0 +1,360 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Object Interface</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="prev" href="functions.html" title="Functions">
+<link rel="next" href="embedding.html" title="Embedding">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="functions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="embedding.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="python.object"></a>Object Interface</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="object.html#python.basic_interface">Basic Interface</a></span></dt>
+<dt><span class="section"><a href="object.html#python.derived_object_types">Derived Object types</a></span></dt>
+<dt><span class="section"><a href="object.html#python.extracting_c___objects">Extracting C++ objects</a></span></dt>
+<dt><span class="section"><a href="object.html#python.enums">Enums</a></span></dt>
+<dt><span class="section"><a href="object.html#python.creating_python_object">Creating <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span></code> from <code class="computeroutput"><span class="identifier">PyObject</span><span class="special">*</span></code></a></span></dt>
+</dl></div>
+<p>
+      Python is dynamically typed, unlike C++ which is statically typed. Python variables
+      may hold an integer, a float, list, dict, tuple, str, long etc., among other
+      things. In the viewpoint of Boost.Python and C++, these Pythonic variables
+      are just instances of class <code class="literal">object</code>. We will see in this
+      chapter how to deal with Python objects.
+    </p>
+<p>
+      As mentioned, one of the goals of Boost.Python is to provide a bidirectional
+      mapping between C++ and Python while maintaining the Python feel. Boost.Python
+      C++ <code class="literal">object</code>s are as close as possible to Python. This should
+      minimize the learning curve significantly.
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../images/python.png" alt="python"></span>
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.basic_interface"></a>Basic Interface</h3></div></div></div>
+<p>
+        Class <code class="literal">object</code> wraps <code class="literal">PyObject*</code>. All the
+        intricacies of dealing with <code class="literal">PyObject</code>s such as managing
+        reference counting are handled by the <code class="literal">object</code> class. C++
+        object interoperability is seamless. Boost.Python C++ <code class="literal">object</code>s
+        can in fact be explicitly constructed from any C++ object.
+      </p>
+<p>
+        To illustrate, this Python code snippet:
+      </p>
+<pre class="programlisting"><span class="keyword">def</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">):</span>
+     <span class="keyword">if</span> <span class="special">(</span><span class="identifier">y</span> <span class="special">==</span> <span class="string">'foo'</span><span class="special">):</span>
+         <span class="identifier">x</span><span class="special">[</span><span class="number">3</span><span class="special">:</span><span class="number">7</span><span class="special">]</span> <span class="special">=</span> <span class="string">'bar'</span>
+     <span class="keyword">else</span><span class="special">:</span>
+         <span class="identifier">x</span><span class="special">.</span><span class="identifier">items</span> <span class="special">+=</span> <span class="identifier">y</span><span class="special">(</span><span class="number">3</span><span class="special">,</span> <span class="identifier">x</span><span class="special">)</span>
+     <span class="keyword">return</span> <span class="identifier">x</span>
+
+<span class="keyword">def</span> <span class="identifier">getfunc</span><span class="special">():</span>
+   <span class="keyword">return</span> <span class="identifier">f</span><span class="special">;</span>
+</pre>
+<p>
+        Can be rewritten in C++ using Boost.Python facilities this way:
+      </p>
+<pre class="programlisting"><span class="identifier">object</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">object</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">object</span> <span class="identifier">y</span><span class="special">)</span> <span class="special">{</span>
+     <span class="keyword">if</span> <span class="special">(</span><span class="identifier">y</span> <span class="special">==</span> <span class="string">"foo"</span><span class="special">)</span>
+         <span class="identifier">x</span><span class="special">.</span><span class="identifier">slice</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="number">7</span><span class="special">)</span> <span class="special">=</span> <span class="string">"bar"</span><span class="special">;</span>
+     <span class="keyword">else</span>
+         <span class="identifier">x</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"items"</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">y</span><span class="special">(</span><span class="number">3</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span>
+     <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="identifier">object</span> <span class="identifier">getfunc</span><span class="special">()</span> <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">object</span><span class="special">(</span><span class="identifier">f</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Apart from cosmetic differences due to the fact that we are writing the code
+        in C++, the look and feel should be immediately apparent to the Python coder.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.derived_object_types"></a>Derived Object types</h3></div></div></div>
+<p>
+        Boost.Python comes with a set of derived <code class="literal">object</code> types
+        corresponding to that of Python's:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            list
+          </li>
+<li class="listitem">
+            dict
+          </li>
+<li class="listitem">
+            tuple
+          </li>
+<li class="listitem">
+            str
+          </li>
+<li class="listitem">
+            long_
+          </li>
+<li class="listitem">
+            enum
+          </li>
+</ul></div>
+<p>
+        These derived <code class="literal">object</code> types act like real Python types.
+        For instance:
+      </p>
+<pre class="programlisting"><span class="identifier">str</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">==&gt;</span> <span class="string">"1"</span>
+</pre>
+<p>
+        Wherever appropriate, a particular derived <code class="literal">object</code> has
+        corresponding Python type's methods. For instance, <code class="literal">dict</code>
+        has a <code class="literal">keys()</code> method:
+      </p>
+<pre class="programlisting"><span class="identifier">d</span><span class="special">.</span><span class="identifier">keys</span><span class="special">()</span>
+</pre>
+<p>
+        <code class="literal">make_tuple</code> is provided for declaring <span class="emphasis"><em>tuple literals</em></span>.
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">123</span><span class="special">,</span> <span class="char">'D'</span><span class="special">,</span> <span class="string">"Hello, World"</span><span class="special">,</span> <span class="number">0.0</span><span class="special">);</span>
+</pre>
+<p>
+        In C++, when Boost.Python <code class="literal">object</code>s are used as arguments
+        to functions, subtype matching is required. For example, when a function
+        <code class="literal">f</code>, as declared below, is wrapped, it will only accept
+        instances of Python's <code class="literal">str</code> type and subtypes.
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">str</span> <span class="identifier">name</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">object</span> <span class="identifier">n2</span> <span class="special">=</span> <span class="identifier">name</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"upper"</span><span class="special">)();</span>   <span class="comment">// NAME = name.upper()</span>
+    <span class="identifier">str</span> <span class="identifier">NAME</span> <span class="special">=</span> <span class="identifier">name</span><span class="special">.</span><span class="identifier">upper</span><span class="special">();</span>            <span class="comment">// better</span>
+    <span class="identifier">object</span> <span class="identifier">msg</span> <span class="special">=</span> <span class="string">"%s is bigger than %s"</span> <span class="special">%</span> <span class="identifier">make_tuple</span><span class="special">(</span><span class="identifier">NAME</span><span class="special">,</span><span class="identifier">name</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        In finer detail:
+      </p>
+<pre class="programlisting"><span class="identifier">str</span> <span class="identifier">NAME</span> <span class="special">=</span> <span class="identifier">name</span><span class="special">.</span><span class="identifier">upper</span><span class="special">();</span>
+</pre>
+<p>
+        Illustrates that we provide versions of the str type's methods as C++ member
+        functions.
+      </p>
+<pre class="programlisting"><span class="identifier">object</span> <span class="identifier">msg</span> <span class="special">=</span> <span class="string">"%s is bigger than %s"</span> <span class="special">%</span> <span class="identifier">make_tuple</span><span class="special">(</span><span class="identifier">NAME</span><span class="special">,</span><span class="identifier">name</span><span class="special">);</span>
+</pre>
+<p>
+        Demonstrates that you can write the C++ equivalent of <code class="literal">"format"
+        % x,y,z</code> in Python, which is useful since there's no easy way to
+        do that in std C++.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../images/alert.png" alt="alert"></span> <span class="bold"><strong>Beware</strong></span> the common pitfall
+        of forgetting that the constructors of most of Python's mutable types make
+        copies, just as in Python.
+      </p>
+</div>
+<p>
+        Python:
+      </p>
+<pre class="programlisting"><span class="special">&gt;&gt;&gt;</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">dict</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">__dict__</span><span class="special">)</span>     <span class="comment"># copies x.__dict__</span>
+<span class="special">&gt;&gt;&gt;</span> <span class="identifier">d</span><span class="special">[</span><span class="string">'whatever'</span><span class="special">]</span> <span class="special">=</span> <span class="number">3</span>        <span class="comment"># modifies the copy</span>
+</pre>
+<p>
+        C++:
+      </p>
+<pre class="programlisting"><span class="identifier">dict</span> <span class="identifier">d</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"__dict__"</span><span class="special">));</span>  <span class="comment">// copies x.__dict__</span>
+<span class="identifier">d</span><span class="special">[</span><span class="char">'whatever'</span><span class="special">]</span> <span class="special">=</span> <span class="number">3</span><span class="special">;</span>           <span class="comment">// modifies the copy</span>
+</pre>
+<h3>
+<a name="derived_object_types.class__lt_t_gt__as_objects"></a>
+        class_&lt;T&gt; as objects
+      </h3>
+<p>
+        Due to the dynamic nature of Boost.Python objects, any <code class="literal">class_&lt;T&gt;</code>
+        may also be one of these types! The following code snippet wraps the class
+        (type) object.
+      </p>
+<p>
+        We can use this to create wrapped instances. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">object</span> <span class="identifier">vec345</span> <span class="special">=</span> <span class="special">(</span>
+    <span class="identifier">class_</span><span class="special">&lt;</span><span class="identifier">Vec2</span><span class="special">&gt;(</span><span class="string">"Vec2"</span><span class="special">,</span> <span class="identifier">init</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;())</span>
+        <span class="special">.</span><span class="identifier">def_readonly</span><span class="special">(</span><span class="string">"length"</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">Point</span><span class="special">::</span><span class="identifier">length</span><span class="special">)</span>
+        <span class="special">.</span><span class="identifier">def_readonly</span><span class="special">(</span><span class="string">"angle"</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">Point</span><span class="special">::</span><span class="identifier">angle</span><span class="special">)</span>
+    <span class="special">)(</span><span class="number">3.0</span><span class="special">,</span> <span class="number">4.0</span><span class="special">);</span>
+
+<span class="identifier">assert</span><span class="special">(</span><span class="identifier">vec345</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"length"</span><span class="special">)</span> <span class="special">==</span> <span class="number">5.0</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.extracting_c___objects"></a>Extracting C++ objects</h3></div></div></div>
+<p>
+        At some point, we will need to get C++ values out of object instances. This
+        can be achieved with the <code class="literal">extract&lt;T&gt;</code> function. Consider
+        the following:
+      </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">o</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"length"</span><span class="special">);</span> <span class="comment">// compile error</span>
+</pre>
+<p>
+        In the code above, we got a compiler error because Boost.Python <code class="literal">object</code>
+        can't be implicitly converted to <code class="literal">double</code>s. Instead, what
+        we wanted to do above can be achieved by writing:
+      </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">l</span> <span class="special">=</span> <span class="identifier">extract</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">o</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"length"</span><span class="special">));</span>
+<span class="identifier">Vec2</span><span class="special">&amp;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">extract</span><span class="special">&lt;</span><span class="identifier">Vec2</span><span class="special">&amp;&gt;(</span><span class="identifier">o</span><span class="special">);</span>
+<span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span> <span class="special">==</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">length</span><span class="special">());</span>
+</pre>
+<p>
+        The first line attempts to extract the "length" attribute of the
+        Boost.Python <code class="literal">object</code>. The second line attempts to <span class="emphasis"><em>extract</em></span>
+        the <code class="literal">Vec2</code> object from held by the Boost.Python <code class="literal">object</code>.
+      </p>
+<p>
+        Take note that we said "attempt to" above. What if the Boost.Python
+        <code class="literal">object</code> does not really hold a <code class="literal">Vec2</code>
+        type? This is certainly a possibility considering the dynamic nature of Python
+        <code class="literal">object</code>s. To be on the safe side, if the C++ type can't
+        be extracted, an appropriate exception is thrown. To avoid an exception,
+        we need to test for extractibility:
+      </p>
+<pre class="programlisting"><span class="identifier">extract</span><span class="special">&lt;</span><span class="identifier">Vec2</span><span class="special">&amp;&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">o</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">check</span><span class="special">())</span> <span class="special">{</span>
+    <span class="identifier">Vec2</span><span class="special">&amp;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">();</span> <span class="special">...</span>
+</pre>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> The astute reader might have noticed that the <code class="literal">extract&lt;T&gt;</code>
+        facility in fact solves the mutable copying problem:
+      </p>
+<pre class="programlisting"><span class="identifier">dict</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">extract</span><span class="special">&lt;</span><span class="identifier">dict</span><span class="special">&gt;(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">attr</span><span class="special">(</span><span class="string">"__dict__"</span><span class="special">));</span>
+<span class="identifier">d</span><span class="special">[</span><span class="string">"whatever"</span><span class="special">]</span> <span class="special">=</span> <span class="number">3</span><span class="special">;</span>          <span class="comment">// modifies x.__dict__ !</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.enums"></a>Enums</h3></div></div></div>
+<p>
+        Boost.Python has a nifty facility to capture and wrap C++ enums. While Python
+        has no <code class="literal">enum</code> type, we'll often want to expose our C++ enums
+        to Python as an <code class="literal">int</code>. Boost.Python's enum facility makes
+        this easy while taking care of the proper conversions from Python's dynamic
+        typing to C++'s strong static typing (in C++, ints cannot be implicitly converted
+        to enums). To illustrate, given a C++ enum:
+      </p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">choice</span> <span class="special">{</span> <span class="identifier">red</span><span class="special">,</span> <span class="identifier">blue</span> <span class="special">};</span>
+</pre>
+<p>
+        the construct:
+      </p>
+<pre class="programlisting"><span class="identifier">enum_</span><span class="special">&lt;</span><span class="identifier">choice</span><span class="special">&gt;(</span><span class="string">"choice"</span><span class="special">)</span>
+    <span class="special">.</span><span class="identifier">value</span><span class="special">(</span><span class="string">"red"</span><span class="special">,</span> <span class="identifier">red</span><span class="special">)</span>
+    <span class="special">.</span><span class="identifier">value</span><span class="special">(</span><span class="string">"blue"</span><span class="special">,</span> <span class="identifier">blue</span><span class="special">)</span>
+    <span class="special">;</span>
+</pre>
+<p>
+        can be used to expose to Python. The new enum type is created in the current
+        <code class="literal">scope()</code>, which is usually the current module. The snippet
+        above creates a Python class derived from Python's <code class="literal">int</code>
+        type which is associated with the C++ type passed as its first parameter.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          <span class="bold"><strong>what is a scope?</strong></span>
+        </p>
+<p>
+          The scope is a class that has an associated global Python object which
+          controls the Python namespace in which new extension classes and wrapped
+          functions will be defined as attributes. Details can be found <a href="../../../../v2/scope.html" target="_top">here</a>.
+        </p>
+</td></tr>
+</table></div>
+<p>
+        You can access those values in Python as
+      </p>
+<pre class="programlisting"><span class="special">&gt;&gt;&gt;</span> <span class="identifier">my_module</span><span class="special">.</span><span class="identifier">choice</span><span class="special">.</span><span class="identifier">red</span>
+<span class="identifier">my_module</span><span class="special">.</span><span class="identifier">choice</span><span class="special">.</span><span class="identifier">red</span>
+</pre>
+<p>
+        where my_module is the module where the enum is declared. You can also create
+        a new scope around a class:
+      </p>
+<pre class="programlisting"><span class="identifier">scope</span> <span class="identifier">in_X</span> <span class="special">=</span> <span class="identifier">class_</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;(</span><span class="string">"X"</span><span class="special">)</span>
+                <span class="special">.</span><span class="identifier">def</span><span class="special">(</span> <span class="special">...</span> <span class="special">)</span>
+                <span class="special">.</span><span class="identifier">def</span><span class="special">(</span> <span class="special">...</span> <span class="special">)</span>
+            <span class="special">;</span>
+
+<span class="comment">// Expose X::nested as X.nested</span>
+<span class="identifier">enum_</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">::</span><span class="identifier">nested</span><span class="special">&gt;(</span><span class="string">"nested"</span><span class="special">)</span>
+    <span class="special">.</span><span class="identifier">value</span><span class="special">(</span><span class="string">"red"</span><span class="special">,</span> <span class="identifier">red</span><span class="special">)</span>
+    <span class="special">.</span><span class="identifier">value</span><span class="special">(</span><span class="string">"blue"</span><span class="special">,</span> <span class="identifier">blue</span><span class="special">)</span>
+    <span class="special">;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="python.creating_python_object"></a>Creating <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span></code> from <code class="computeroutput"><span class="identifier">PyObject</span><span class="special">*</span></code>
+</h3></div></div></div>
+<p>
+        When you want a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span></code> to manage a pointer to <code class="computeroutput"><span class="identifier">PyObject</span><span class="special">*</span></code>
+        pyobj one does:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span> <span class="identifier">o</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">handle</span><span class="special">&lt;&gt;(</span><span class="identifier">pyobj</span><span class="special">));</span>
+</pre>
+<p>
+        In this case, the <code class="computeroutput"><span class="identifier">o</span></code> object,
+        manages the <code class="computeroutput"><span class="identifier">pyobj</span></code>, it won&#8217;t
+        increase the reference count on construction.
+      </p>
+<p>
+        Otherwise, to use a borrowed reference:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">object</span> <span class="identifier">o</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">handle</span><span class="special">&lt;&gt;(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">python</span><span class="special">::</span><span class="identifier">borrowed</span><span class="special">(</span><span class="identifier">pyobj</span><span class="special">)));</span>
+</pre>
+<p>
+        In this case, <code class="computeroutput"><span class="identifier">Py_INCREF</span></code> is
+        called, so <code class="computeroutput"><span class="identifier">pyobj</span></code> is not destructed
+        when object o goes out of scope.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, David Abrahams<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="functions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="embedding.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

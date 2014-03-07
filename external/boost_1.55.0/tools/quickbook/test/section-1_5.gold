@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="section_id_1_5" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Section Id 1.5</title>
+  <section id="section_id_1_5.id_test1">
+    <title><link linkend="section_id_1_5.id_test1">Quickbook section id test</link></title>
+  </section>
+  <section id="section_id_1_5.id_test2">
+    <title><link linkend="section_id_1_5.id_test2">Quickbook section id test</link></title>
+  </section>
+  <section id="section_id_1_5.id_test3">
+    <title><link linkend="section_id_1_5.id_test3">Quickbook section id test</link></title>
+  </section>
+  <section id="section_id_1_5.___quickbook_section_no_id_test">
+    <title><link linkend="section_id_1_5.___quickbook_section_no_id_test">++ Quickbook
+    section no id test</link></title>
+  </section>
+</article>

@@ -1,0 +1,304 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sequence Facade</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../extension.html" title="Extension">
+<link rel="prev" href="ext_full.html" title="The Full Extension Mechanism">
+<link rel="next" href="iterator_facade.html" title="Iterator Facade">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ext_full.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_facade.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.extension.sequence_facade"></a><a class="link" href="sequence_facade.html" title="Sequence Facade">Sequence Facade</a>
+</h3></div></div></div>
+<h5>
+<a name="fusion.extension.sequence_facade.h0"></a>
+        <span class="phrase"><a name="fusion.extension.sequence_facade.description"></a></span><a class="link" href="sequence_facade.html#fusion.extension.sequence_facade.description">Description</a>
+      </h5>
+<p>
+        The <a class="link" href="sequence_facade.html" title="Sequence Facade"><code class="computeroutput"><span class="identifier">sequence_facade</span></code></a>
+        template provides an intrusive mechanism for producing a conforming Fusion
+        sequence.
+      </p>
+<h5>
+<a name="fusion.extension.sequence_facade.h1"></a>
+        <span class="phrase"><a name="fusion.extension.sequence_facade.synopsis"></a></span><a class="link" href="sequence_facade.html#fusion.extension.sequence_facade.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Derived</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">TravesalTag</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">IsView</span> <span class="special">=</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">sequence_facade</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="fusion.extension.sequence_facade.h2"></a>
+        <span class="phrase"><a name="fusion.extension.sequence_facade.usage"></a></span><a class="link" href="sequence_facade.html#fusion.extension.sequence_facade.usage">Usage</a>
+      </h5>
+<p>
+        The user of <a class="link" href="sequence_facade.html" title="Sequence Facade"><code class="computeroutput"><span class="identifier">sequence_facade</span></code></a> derives his sequence
+        type from a specialization of <a class="link" href="sequence_facade.html" title="Sequence Facade"><code class="computeroutput"><span class="identifier">sequence_facade</span></code></a> and passes the derived
+        sequence type as the first template parameter. The second template parameter
+        should be the traversal category of the sequence being implemented. The 3rd
+        parameter should be set to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+        if the sequence is a view.
+      </p>
+<p>
+        The user must the implement the key expressions required by their sequence
+        type.
+      </p>
+<div class="table">
+<a name="fusion.extension.sequence_facade.t0"></a><p class="title"><b>Table&#160;1.102.&#160;Parameters</b></p>
+<div class="table-contents"><table class="table" summary="Parameters">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span></code>, <code class="computeroutput"><span class="identifier">Seq</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A type derived from <a class="link" href="sequence_facade.html" title="Sequence Facade"><code class="computeroutput"><span class="identifier">sequence_facade</span></code></a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">N</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                  Integral Constant</a>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="fusion.extension.sequence_facade.t1"></a><p class="title"><b>Table&#160;1.103.&#160;Key Expressions</b></p>
+<div class="table-contents"><table class="table" summary="Key Expressions">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">begin</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of an iterator to the beginning of a sequence of type
+                  <code class="computeroutput"><span class="identifier">Seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">begin</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">seq</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An iterator to the beginning of sequence <code class="computeroutput"><span class="identifier">seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">end</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of an iterator to the end of a sequence of type <code class="computeroutput"><span class="identifier">Seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">end</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">seq</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An iterator to the end of sequence <code class="computeroutput"><span class="identifier">seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">size</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The size of a sequence of type <code class="computeroutput"><span class="identifier">Seq</span></code>
+                  as an <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                  Integral Constant</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">size</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">seq</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The size of sequence <code class="computeroutput"><span class="identifier">seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">empty</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> if <code class="computeroutput"><span class="identifier">Seq</span></code>
+                  has zero elements, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                  otherwise.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">empty</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">call</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a type convertible to <code class="computeroutput"><span class="keyword">bool</span></code>
+                  that evaluates to true if the sequence is empty, else, evaluates
+                  to false.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">at</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of element <code class="computeroutput"><span class="identifier">N</span></code>
+                  in a sequence of type <code class="computeroutput"><span class="identifier">Seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">at</span><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">seq</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Element <code class="computeroutput"><span class="identifier">N</span></code> in sequence
+                  <code class="computeroutput"><span class="identifier">seq</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sequence</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">value_at</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the <code class="computeroutput"><span class="identifier">N</span></code>th
+                  element in a sequence of type <code class="computeroutput"><span class="identifier">Seq</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="fusion.extension.sequence_facade.h3"></a>
+        <span class="phrase"><a name="fusion.extension.sequence_facade.include"></a></span><a class="link" href="sequence_facade.html#fusion.extension.sequence_facade.include">Include</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">/</span><span class="identifier">sequence_facade</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">sequence_facade</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="fusion.extension.sequence_facade.h4"></a>
+        <span class="phrase"><a name="fusion.extension.sequence_facade.example"></a></span><a class="link" href="sequence_facade.html#fusion.extension.sequence_facade.example">Example</a>
+      </h5>
+<p>
+        A full working example using <a class="link" href="sequence_facade.html" title="Sequence Facade"><code class="computeroutput"><span class="identifier">sequence_facade</span></code></a> is provided in triple.cpp
+        in the extension examples.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ext_full.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_facade.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Complex - Made easier</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="karma_complex.html" title="Complex - A first more complex generator">
+<link rel="next" href="karma_adapted_complex.html" title="Complex - Fully Integrated">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="karma_complex.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="karma_adapted_complex.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.tutorials.karma_easier_complex"></a><a class="link" href="karma_easier_complex.html" title="Complex - Made easier">Complex
+        - Made easier</a>
+</h4></div></div></div>
+<p>
+          In the previous section we showed how to format a complex number (i.e.
+          a pair of doubles). In this section we will build on this example with
+          the goal to avoid using semantic actions in the format specification. Let's
+          have a look at the resulting code first, trying to understand it afterwards
+          (the full source file for this example can be found here: <a href="../../../../../example/karma/complex_number_easier.cpp" target="_top">complex_number_easier.cpp</a>):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">generate_complex</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">sink</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">omit</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="identifier">generate</span><span class="special">(</span><span class="identifier">sink</span><span class="special">,</span>
+
+        <span class="comment">//  Begin grammar</span>
+        <span class="special">(</span>
+           <span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'('</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">')'</span>
+        <span class="special">|</span>   <span class="identifier">omit</span><span class="special">[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span>
+        <span class="special">),</span>
+        <span class="comment">//  End grammar</span>
+
+        <span class="identifier">c</span><span class="special">.</span><span class="identifier">imag</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">real</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">imag</span><span class="special">()</span>     <span class="comment">//  Data to output</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Let's cover some basic library features first.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.karma_easier_complex.h0"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.karma_easier_complex.making_numeric_generators_fail"></a></span><a class="link" href="karma_easier_complex.html#spirit.karma.tutorials.karma_easier_complex.making_numeric_generators_fail">Making
+          Numeric Generators Fail</a>
+        </h6>
+<p>
+          All <a class="link" href="../reference/numeric.html" title="Numeric Generators">Numeric Generators</a>
+          (such as <code class="computeroutput"><span class="identifier">double_</span></code>, et.al.)
+          take the value to emit from an attached attribute.
+        </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">1.5</span><span class="special">;</span>
+<span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">d</span><span class="special">);</span>       <span class="comment">// will emit '1.5' (without the quotes)</span>
+</pre>
+<p>
+          Alternatively, they may be initialized from a literal value. For instance,
+          to emit a constant <code class="computeroutput"><span class="number">1.5</span></code> you
+          may write:
+        </p>
+<pre class="programlisting"><span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(</span><span class="number">1.5</span><span class="special">));</span>     <span class="comment">// will emit '1.5' as well (without the quotes)</span>
+</pre>
+<p>
+          The difference to a simple <code class="computeroutput"><span class="number">1.5</span></code>
+          or <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="number">1.5</span><span class="special">)</span></code> is that
+          the <code class="computeroutput"><span class="identifier">double_</span><span class="special">(</span><span class="number">1.5</span><span class="special">)</span></code> consumes
+          an attribute if one is available. Additionally, it compares its immediate
+          value to the value of the supplied attribute, and fails if those are not
+          equal.
+        </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">1.5</span><span class="special">;</span>
+<span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(</span><span class="number">1.5</span><span class="special">),</span> <span class="identifier">d</span><span class="special">);</span>  <span class="comment">// will emit '1.5' as long as d == 1.5</span>
+</pre>
+<p>
+          This feature, namely to succeed generating only if the attribute matches
+          the immediate value, enables numeric generators to be used to dynamically
+          control the way output is generated.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Quite a few generators will fail if their immediate value is not equal
+            to the supplied attribute. Among those are all <a class="link" href="../reference/char.html" title="Char Generators">Character
+            Generators</a> and all <a class="link" href="../reference/string.html" title="String Generators">String
+            Generators</a>. Generally, all generators having a sibling created
+            by a variant of <code class="computeroutput"><span class="identifier">lit</span><span class="special">()</span></code>
+            belong into this category.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.tutorials.karma_easier_complex.h1"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.karma_easier_complex.predicates___the_conditionals_for_output_generators"></a></span><a class="link" href="karma_easier_complex.html#spirit.karma.tutorials.karma_easier_complex.predicates___the_conditionals_for_output_generators">Predicates
+          - The Conditionals for Output Generators</a>
+        </h6>
+<p>
+          In addition to the <a class="link" href="../reference/auxiliary/eps.html" title="Epsilon Generator (eps)"><code class="computeroutput"><span class="identifier">eps</span></code></a> generator mentioned earlier
+          <span class="emphasis"><em>Spirit.Karma</em></span> provides two special operators enabling
+          dynamic flow control: the <a class="link" href="../reference/operator/and_predicate.html" title="And-Predicate Generator (&amp;a)">And
+          predicate (unary <code class="computeroutput"><span class="special">&amp;</span></code>)</a>
+          and the <a class="link" href="../reference/operator/not_predicate.html" title="Not-Predicate Generator (!a)">Not
+          predicate (unary <code class="computeroutput"><span class="special">!</span></code>)</a>.
+          The main property of both predicates is to discard all output emitted by
+          the attached generator. This is equivalent to the behavior of predicates
+          used for parsing. There the predicates do not consume any input allowing
+          to look ahead in the input stream. In Karma, the and predicate succeeds
+          as long as its associated generator succeeds, while the not predicate succeeds
+          only if its associated generator fails.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The generator predicates in <span class="emphasis"><em>Spirit.Karma</em></span> consume
+            an attribute, if available. This makes them behave differently from predicates
+            in <span class="emphasis"><em>Spirit.Qi</em></span>, where they do not expose any attribute.
+            This is because predicates allow to make decisions based on data available
+            only at runtime. While in <span class="emphasis"><em>Spirit.Qi</em></span> during parsing
+            the decision is made based on looking ahead a few more input tokens,
+            in <span class="emphasis"><em>Spirit.Karma</em></span> the criteria has to be supplied
+            by the user. The simplest way to do this is by providing an attribute.
+          </p></td></tr>
+</table></div>
+<p>
+          As an example, the following generator succeeds generating
+        </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">double_</span><span class="special">(</span><span class="number">1.0</span><span class="special">),</span> <span class="identifier">d</span><span class="special">));</span>    <span class="comment">// succeeds as d == 1.0</span>
+</pre>
+<p>
+          while this one will fail:
+        </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(!</span><span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">1.0</span><span class="special">),</span> <span class="identifier">d</span><span class="special">));</span>   <span class="comment">// fails as d == 1.0</span>
+</pre>
+<p>
+          Neither of these will emit any output. The predicates discard everything
+          emitted by the generators to which they are applied.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.karma_easier_complex.h2"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.karma_easier_complex.ignoring_supplied_attributes"></a></span><a class="link" href="karma_easier_complex.html#spirit.karma.tutorials.karma_easier_complex.ignoring_supplied_attributes">Ignoring
+          Supplied Attributes</a>
+        </h6>
+<p>
+          Sometimes it is desirable to 'skip' (i.e. ignore) a provided attribute.
+          This happens for instance in alternative generators, where some of the
+          alternatives need to extract only part of the overall attribute passed
+          to the alternative generator. <span class="emphasis"><em>Spirit.Karma</em></span> has a special
+          pseudo generator for that: the directive <a class="link" href="../reference/directive/omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])"><code class="computeroutput"><span class="identifier">omit</span></code></a><code class="computeroutput"><span class="special">[]</span></code>.
+          This directive consumes an attribute of the type defined by its embedded
+          generator but it does not emit any output.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The <span class="emphasis"><em>Spirit.Karma</em></span> <a class="link" href="../reference/directive/omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])"><code class="computeroutput"><span class="identifier">omit</span></code></a> directive does the 'opposite'
+            of the directive of the same name in <span class="emphasis"><em>Spirit.Qi</em></span>.
+            While the <a class="link" href="../../qi/reference/directive/omit.html" title="Parser Directive Ignoring Attribute (omit[])"><code class="computeroutput"><span class="identifier">omit</span></code></a> in <span class="emphasis"><em>Spirit.Qi</em></span>
+            consumes input without exposing an attribute, its <span class="emphasis"><em>Spirit.Karma</em></span>
+            counterpart consumes an attribute without emitting any output.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.tutorials.karma_easier_complex.h3"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.karma_easier_complex.putting_everything_together"></a></span><a class="link" href="karma_easier_complex.html#spirit.karma.tutorials.karma_easier_complex.putting_everything_together">Putting
+          everything together</a>
+        </h6>
+<p>
+          Very similar to our first example earlier we use two alternatives to allow
+          for the two different output formats depending on whether the imaginary
+          part of the complex number is equal to zero or not. The first alternative
+          is executed if the imaginary part is not zero, the second alternative otherwise.
+          This time we make the decision during runtime using the <a class="link" href="../reference/operator/not_predicate.html" title="Not-Predicate Generator (!a)">Not
+          predicate (unary <code class="computeroutput"><span class="special">!</span></code>)</a>
+          combined with the feature of many Karma primitive generators to <span class="emphasis"><em>fail</em></span>
+          under certain conditions. Here is the first alternative again for your
+          reference:
+        </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'('</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">')'</span>
+</pre>
+<p>
+          The generator <code class="computeroutput"><span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>
+          does several things. First, because of the <a class="link" href="../reference/operator/not_predicate.html" title="Not-Predicate Generator (!a)">Not
+          predicate (unary <code class="computeroutput"><span class="special">!</span></code>)</a>,
+          it succeeds only if the <code class="computeroutput"><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>
+          generator <span class="emphasis"><em>fails</em></span>, making the whole first alternative
+          fail otherwise. Second, the <code class="computeroutput"><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>
+          generator succeeds only if the value of its attribute is equal to its immediate
+          parameter (i.e. in this case <code class="computeroutput"><span class="number">0.0</span></code>).
+          And third, the not predicate does not emit any output (regardless whether
+          it succeeds or fails), discarding any possibly emitted output from the
+          <code class="computeroutput"><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>.
+        </p>
+<p>
+          As we pass the imaginary part of the complex number as the attribute value
+          for the <code class="computeroutput"><span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>,
+          the overall first alternative will be chosen only if it is not equal to
+          zero (the <code class="computeroutput"><span class="special">!</span><span class="identifier">double_</span><span class="special">(</span><span class="number">0.0</span><span class="special">)</span></code>
+          does not fail). That is exactly what we need!
+        </p>
+<p>
+          Now, the second alternative has to emit the real part of the complex number
+          only. In order to simplify the overall grammar we strive to unify the attribute
+          types of all alternatives. As the attribute type exposed by the first alternative
+          is <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span></code>,
+          we need to skip the first and last element of the attribute (remember,
+          we pass the real part as the second attribute element). We achieve this
+          by using the <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code>
+          directive:
+        </p>
+<pre class="programlisting"><span class="identifier">omit</span><span class="special">[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="identifier">omit</span><span class="special">[</span><span class="identifier">double_</span><span class="special">]</span>
+</pre>
+<p>
+          The overall attribute of this expression is <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span></code>, but the <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code> 'eats up' the first and the last element.
+          The output emitted by this expression consist of a single generated double
+          representing the second element of the tuple, i.e. the real part of our
+          complex number.
+        </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Generally, it is preferable to use generator constructs not requiring
+            semantic actions. The reason is that semantic actions often use constructs
+            like: <code class="computeroutput"><span class="identifier">double_</span><span class="special">[</span><span class="identifier">_1</span> <span class="special">=</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">real</span><span class="special">()]</span></code>.
+            But this assignment is a real one! The data is in fact <span class="emphasis"><em>copied</em></span>
+            to the attribute value of the generator attached to the action. On the
+            other hand, grammars without any semantic actions usually don't have
+            to copy the attributes, making them more efficient.
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="karma_complex.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="karma_adapted_complex.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

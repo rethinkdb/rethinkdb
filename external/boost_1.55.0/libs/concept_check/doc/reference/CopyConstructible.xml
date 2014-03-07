@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<concept name="CopyConstructible" category="Utility"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="X" role="copy-constructible-type"/>
+
+  <models-sentence>The type <arg num="1"/> must be a model of <self/>.</models-sentence>
+
+  <description>
+  <para>Copy constructible types must be able to be constructed from another
+  member of the type.</para>
+  </description>
+
+  <notation variables="x y">
+    <sample-value>
+      <type name="X"/>
+    </sample-value>
+  </notation>
+
+  <valid-expression name="Copy construction">
+    <construct template-parameters="">
+      <type name="X"/>
+      <sample-value><const><reference-to><type name="X"/></reference-to></const></sample-value>
+    </construct>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="X"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Require copy constructor.</semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="int"/>
+  </example-model>
+</concept>

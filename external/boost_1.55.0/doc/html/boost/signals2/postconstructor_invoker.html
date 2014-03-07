@@ -1,0 +1,109 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class postconstructor_invoker</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp" title="Header &lt;boost/signals2/deconstruct.hpp&gt;">
+<link rel="prev" href="deconstruct_access.html" title="Class deconstruct_access">
+<link rel="next" href="dummy_mutex.html" title="Class dummy_mutex">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="deconstruct_access.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dummy_mutex.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.postconstructor_invoker"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class postconstructor_invoker</span></h2>
+<p>boost::signals2::postconstructor_invoker &#8212; Pass arguments to and run postconstructors for objects created with <a class="link" href="deconstruct.html" title="Function deconstruct">deconstruct()</a>.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp" title="Header &lt;boost/signals2/deconstruct.hpp&gt;">boost/signals2/deconstruct.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="comment">// <a class="link" href="postconstructor_invoker.html#idp98058056-bb">public methods</a></span>
+  <a class="link" href="postconstructor_invoker.html#idp101680248-bb"><span class="keyword">operator</span> <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="postconstructor_invoker.html#idp102219352-bb"><span class="identifier">postconstruct</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="postconstructor_invoker.html#idp92751240-bb"><span class="identifier">postconstruct</span></a><span class="special">(</span><span class="identifier">A1</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2<span class="special">&gt;</span> 
+    <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="postconstructor_invoker.html#idp102341960-bb"><span class="identifier">postconstruct</span></a><span class="special">(</span><span class="identifier">A1</span><span class="special">,</span> <span class="identifier">A1</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2, ...<span class="special">,</span> <span class="keyword">typename</span> AN<span class="special">&gt;</span> 
+    <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="postconstructor_invoker.html#idp58487752-bb"><span class="identifier">postconstruct</span></a><span class="special">(</span><span class="identifier">A1</span><span class="special">,</span> <span class="identifier">A1</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">A1</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp205263736"></a><h2>Description</h2>
+<p>
+            Objects of type <code class="computeroutput">postconstructor_invoker</code> are returned by calls to the
+            <a class="link" href="deconstruct.html" title="Function deconstruct">deconstruct()</a> factory function.  These objects are intended
+            to either be immediately assigned to a shared_ptr (in which case the
+            class' conversion operator will perform the conversion by calling the
+            <a class="link" href="postconstructor_invoker.html#idp93725592-bb">postconstruct</a> with no arguments), or to be converted
+            to shared_ptr explicitly by the user calling one of
+            the <a class="link" href="postconstructor_invoker.html#idp93725592-bb">postconstruct</a> methods.
+          </p>
+<div class="refsect2">
+<a name="idp205266248"></a><h3>
+<a name="idp98058056-bb"></a><code class="computeroutput">postconstructor_invoker</code> public methods</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp101680248-bb"></a><span class="keyword">operator</span> <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+              The conversion operator has the same effect as explicitly calling
+              the <code class="computeroutput"><a class="link" href="postconstructor_invoker.html#idp93725592-bb">postconstruct</a></code> method with no arguments.
+            </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp93725592-bb"></a><span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a name="idp102219352-bb"></a><span class="identifier">postconstruct</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a name="idp92751240-bb"></a><span class="identifier">postconstruct</span><span class="special">(</span><span class="identifier">A1</span> a1<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2<span class="special">&gt;</span> 
+  <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a name="idp102341960-bb"></a><span class="identifier">postconstruct</span><span class="special">(</span><span class="identifier">A1</span> a1<span class="special">,</span> <span class="identifier">A1</span> a2<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2, ...<span class="special">,</span> <span class="keyword">typename</span> AN<span class="special">&gt;</span> 
+  <span class="keyword">const</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span> <a name="idp58487752-bb"></a><span class="identifier">postconstruct</span><span class="special">(</span><span class="identifier">A1</span> a1<span class="special">,</span> <span class="identifier">A1</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">A1</span> aN<span class="special">)</span><span class="special">;</span></pre>
+<p>
+              The <code class="computeroutput">postconstruct</code> methods make an unqualified call to
+              <code class="computeroutput">adl_postconstruct()</code> and then return the <code class="computeroutput">shared_ptr</code>
+              which was wrapped inside the <code class="computeroutput">postconstructor_invoker</code>
+              object by <code class="computeroutput"><a class="link" href="deconstruct.html" title="Function deconstruct">deconstruct()</a></code>.
+              The first two arguments passed to the
+              <code class="computeroutput">adl_postconstruct()</code> call are always the <code class="computeroutput">shared_ptr</code>
+              owning the object created by <code class="computeroutput"><a class="link" href="deconstruct.html" title="Function deconstruct">deconstruct()</a></code>,
+              followed by a ordinary pointer to the same object.  As a convenience,
+              the ordinary pointer
+              will always be cast to point to a non-const type before being passed
+              to <code class="computeroutput">adl_postconstruct</code>.  The remaining arguments passed to
+              <code class="computeroutput">adl_postconstruct</code> are whatever arguments the user may have
+              passed to the <code class="computeroutput">postconstruct</code>
+              method.
+            </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="deconstruct_access.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dummy_mutex.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

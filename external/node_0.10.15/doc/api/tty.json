@@ -1,0 +1,105 @@
+{
+  "source": "doc/api/tty.markdown",
+  "modules": [
+    {
+      "textRaw": "TTY",
+      "name": "tty",
+      "stability": 2,
+      "stabilityText": "Unstable",
+      "desc": "<p>The <code>tty</code> module houses the <code>tty.ReadStream</code> and <code>tty.WriteStream</code> classes. In\nmost cases, you will not need to use this module directly.\n\n</p>\n<p>When node detects that it is being run inside a TTY context, then <code>process.stdin</code>\nwill be a <code>tty.ReadStream</code> instance and <code>process.stdout</code> will be\na <code>tty.WriteStream</code> instance. The preferred way to check if node is being run in\na TTY context is to check <code>process.stdout.isTTY</code>:\n\n</p>\n<pre><code>$ node -p -e &quot;Boolean(process.stdout.isTTY)&quot;\ntrue\n$ node -p -e &quot;Boolean(process.stdout.isTTY)&quot; | cat\nfalse</code></pre>\n",
+      "methods": [
+        {
+          "textRaw": "tty.isatty(fd)",
+          "type": "method",
+          "name": "isatty",
+          "desc": "<p>Returns <code>true</code> or <code>false</code> depending on if the <code>fd</code> is associated with a\nterminal.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "fd"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "tty.setRawMode(mode)",
+          "type": "method",
+          "name": "setRawMode",
+          "desc": "<p>Deprecated. Use <code>tty.ReadStream#setRawMode()</code>\n(i.e. <code>process.stdin.setRawMode()</code>) instead.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "mode"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: ReadStream",
+          "type": "class",
+          "name": "ReadStream",
+          "desc": "<p>A <code>net.Socket</code> subclass that represents the readable portion of a tty. In normal\ncircumstances, <code>process.stdin</code> will be the only <code>tty.ReadStream</code> instance in any\nnode program (only when <code>isatty(0)</code> is true).\n\n</p>\n",
+          "properties": [
+            {
+              "textRaw": "rs.isRaw",
+              "name": "isRaw",
+              "desc": "<p>A <code>Boolean</code> that is initialized to <code>false</code>. It represents the current &quot;raw&quot; state\nof the <code>tty.ReadStream</code> instance.\n\n</p>\n"
+            }
+          ],
+          "methods": [
+            {
+              "textRaw": "rs.setRawMode(mode)",
+              "type": "method",
+              "name": "setRawMode",
+              "desc": "<p><code>mode</code> should be <code>true</code> or <code>false</code>. This sets the properties of the\n<code>tty.ReadStream</code> to act either as a raw device or default. <code>isRaw</code> will be set\nto the resulting mode.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "mode"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: WriteStream",
+          "type": "class",
+          "name": "WriteStream",
+          "desc": "<p>A <code>net.Socket</code> subclass that represents the writable portion of a tty. In normal\ncircumstances, <code>process.stdout</code> will be the only <code>tty.WriteStream</code> instance\never created (and only when <code>isatty(1)</code> is true).\n\n</p>\n",
+          "properties": [
+            {
+              "textRaw": "ws.columns",
+              "name": "columns",
+              "desc": "<p>A <code>Number</code> that gives the number of columns the TTY currently has. This property\ngets updated on &quot;resize&quot; events.\n\n</p>\n"
+            },
+            {
+              "textRaw": "ws.rows",
+              "name": "rows",
+              "desc": "<p>A <code>Number</code> that gives the number of rows the TTY currently has. This property\ngets updated on &quot;resize&quot; events.\n\n</p>\n"
+            }
+          ],
+          "events": [
+            {
+              "textRaw": "Event: 'resize'",
+              "type": "event",
+              "name": "resize",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted by <code>refreshSize()</code> when either of the <code>columns</code> or <code>rows</code> properties\nhas changed.\n\n</p>\n<pre><code>process.stdout.on(&#39;resize&#39;, function() {\n  console.log(&#39;screen size has changed!&#39;);\n  console.log(process.stdout.columns + &#39;x&#39; + process.stdout.rows);\n});</code></pre>\n",
+              "params": []
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "TTY"
+    }
+  ]
+}

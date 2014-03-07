@@ -1,0 +1,674 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template unordered_multiset</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.unordered_set_hpp" title="Header &lt;boost/intrusive/unordered_set.hpp&gt;">
+<link rel="prev" href="make_unordered_set.html" title="Struct template make_unordered_set">
+<link rel="next" href="make_unordered_multiset.html" title="Struct template make_unordered_multiset">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_unordered_set.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.unordered_set_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_unordered_multiset.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.unordered_multiset"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template unordered_multiset</span></h2>
+<p>boost::intrusive::unordered_multiset</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.unordered_set_hpp" title="Header &lt;boost/intrusive/unordered_set.hpp&gt;">boost/intrusive/unordered_set.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> Options<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">:</span> <span class="keyword">public</span> boost::intrusive::hashtable&lt; ValueTraits, Hash, Equal, SizeType, BucketTraits, BoolFlags &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">value_type</span>           <a name="boost.intrusive.unordered_multiset.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">value_traits</span>         <a name="boost.intrusive.unordered_multiset.value_traits"></a><span class="identifier">value_traits</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">bucket_traits</span>        <a name="boost.intrusive.unordered_multiset.bucket_traits"></a><span class="identifier">bucket_traits</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">pointer</span>              <a name="boost.intrusive.unordered_multiset.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_pointer</span>        <a name="boost.intrusive.unordered_multiset.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">reference</span>            <a name="boost.intrusive.unordered_multiset.reference"></a><span class="identifier">reference</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_reference</span>      <a name="boost.intrusive.unordered_multiset.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">difference_type</span>      <a name="boost.intrusive.unordered_multiset.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">size_type</span>            <a name="boost.intrusive.unordered_multiset.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">key_type</span>             <a name="boost.intrusive.unordered_multiset.key_type"></a><span class="identifier">key_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">key_equal</span>            <a name="boost.intrusive.unordered_multiset.key_equal"></a><span class="identifier">key_equal</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">hasher</span>               <a name="boost.intrusive.unordered_multiset.hasher"></a><span class="identifier">hasher</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">bucket_type</span>          <a name="boost.intrusive.unordered_multiset.bucket_type"></a><span class="identifier">bucket_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">bucket_ptr</span>           <a name="boost.intrusive.unordered_multiset.bucket_ptr"></a><span class="identifier">bucket_ptr</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">iterator</span>             <a name="boost.intrusive.unordered_multiset.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_iterator</span>       <a name="boost.intrusive.unordered_multiset.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">insert_commit_data</span>   <a name="boost.intrusive.unordered_multiset.insert_commit_data"></a><span class="identifier">insert_commit_data</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">local_iterator</span>       <a name="boost.intrusive.unordered_multiset.local_iterator"></a><span class="identifier">local_iterator</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_local_iterator</span> <a name="boost.intrusive.unordered_multiset.const_local_iterator"></a><span class="identifier">const_local_iterator</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">node_traits</span>          <a name="boost.intrusive.unordered_multiset.node_traits"></a><span class="identifier">node_traits</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">node</span>                 <a name="boost.intrusive.unordered_multiset.node"></a><span class="identifier">node</span><span class="special">;</span>                
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">node_ptr</span>             <a name="boost.intrusive.unordered_multiset.node_ptr"></a><span class="identifier">node_ptr</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_node_ptr</span>       <a name="boost.intrusive.unordered_multiset.const_node_ptr"></a><span class="identifier">const_node_ptr</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">node_algorithms</span>      <a name="boost.intrusive.unordered_multiset.node_algorithms"></a><span class="identifier">node_algorithms</span><span class="special">;</span>     
+
+  <span class="comment">// <a class="link" href="unordered_multiset.html#boost.intrusive.unordered_multisetconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="unordered_multiset.html#idp38921128-bb"><span class="identifier">unordered_multiset</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span><span class="special">,</span> 
+                              <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                              <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                              <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> 
+    <a class="link" href="unordered_multiset.html#idp38926056-bb"><span class="identifier">unordered_multiset</span></a><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span><span class="special">,</span> 
+                       <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                       <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                       <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="unordered_multiset.html#idp38932072-bb"><span class="identifier">unordered_multiset</span></a><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  unordered_multiset&amp; <a class="link" href="unordered_multiset.html#idp38933112-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="unordered_multiset.html#idp38934280-bb"><span class="special">~</span><span class="identifier">unordered_multiset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="unordered_multiset.html#idp38744648-bb">public member functions</a></span>
+  <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38744856-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38748040-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38751224-bb"><span class="identifier">cbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38754408-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38756632-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38758856-bb"><span class="identifier">cend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">hasher</span> <a class="link" href="unordered_multiset.html#idp38761080-bb"><span class="identifier">hash_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">key_equal</span> <a class="link" href="unordered_multiset.html#idp38763288-bb"><span class="identifier">key_eq</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="unordered_multiset.html#idp38765528-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38767832-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38770136-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38773096-bb"><span class="identifier">clone_from</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Cloner</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38778520-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38782536-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38786536-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38789240-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38792296-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38795528-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38801352-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38805304-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38809608-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">,</span> 
+           <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38814152-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">,</span> 
+                                <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38820168-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38822600-bb"><span class="identifier">clear_and_dispose</span></a><span class="special">(</span><span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38826264-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38828520-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38833320-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38835624-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38841096-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38843400-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> <a class="link" href="unordered_multiset.html#idp38848872-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> 
+    <a class="link" href="unordered_multiset.html#idp38851256-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+  <a class="link" href="unordered_multiset.html#idp38856760-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+    <a class="link" href="unordered_multiset.html#idp38859160-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="unordered_multiset.html#idp38864680-bb"><span class="identifier">iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="unordered_multiset.html#idp38868152-bb"><span class="identifier">iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="unordered_multiset.html#idp38871640-bb"><span class="identifier">local_iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38875064-bb"><span class="identifier">local_iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38878504-bb"><span class="identifier">bucket_count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38880360-bb"><span class="identifier">bucket_size</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38882968-bb"><span class="identifier">bucket</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38885688-bb"><span class="identifier">bucket</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">bucket_ptr</span> <a class="link" href="unordered_multiset.html#idp38890024-bb"><span class="identifier">bucket_pointer</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="unordered_multiset.html#idp38891880-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38895032-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38898216-bb"><span class="identifier">cbegin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="unordered_multiset.html#idp38901400-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38904552-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38907720-bb"><span class="identifier">cend</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unordered_multiset.html#idp38910888-bb"><span class="identifier">rehash</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="unordered_multiset.html#idp38914440-bb"><span class="identifier">incremental_rehash</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="unordered_multiset.html#idp38917608-bb"><span class="identifier">incremental_rehash</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38918936-bb"><span class="identifier">split_count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="unordered_multiset.html#idp38936632-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">local_iterator</span> <a class="link" href="unordered_multiset.html#idp38936840-bb"><span class="identifier">s_local_iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">const_local_iterator</span> <a class="link" href="unordered_multiset.html#idp38940968-bb"><span class="identifier">s_local_iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38945096-bb"><span class="identifier">suggested_upper_bucket_count</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="unordered_multiset.html#idp38947528-bb"><span class="identifier">suggested_lower_bucket_count</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp152624808"></a><h2>Description</h2>
+<p>The class template <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> is an intrusive container, that mimics most of the interface of std::tr1::unordered_multiset as described in the C++ TR1.</p>
+<p><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> is a semi-intrusive container: each object to be stored in the container must contain a proper hook, but the container also needs additional auxiliary memory to work: <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> needs a pointer to an array of type <code class="computeroutput">bucket_type</code> to be passed in the constructor. This bucket array must have at least the same lifetime as the container. This makes the use of <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> more complicated than purely intrusive containers. <code class="computeroutput">bucket_type</code> is default-constructible, copyable and assignable</p>
+<p>The template parameter <code class="computeroutput">T</code> is the type to be managed by the container. The user can specify additional options and if no options are provided default options are used.</p>
+<p>The container supports the following options: <code class="computeroutput">base_hook&lt;&gt;/member_hook&lt;&gt;/value_traits&lt;&gt;</code>, <code class="computeroutput">constant_time_size&lt;&gt;</code>, <code class="computeroutput">size_type&lt;&gt;</code>, <code class="computeroutput">hash&lt;&gt;</code> and <code class="computeroutput">equal&lt;&gt;</code> <code class="computeroutput">bucket_traits&lt;&gt;</code>, <code class="computeroutput">power_2_buckets&lt;&gt;</code> and <code class="computeroutput">cache_begin&lt;&gt;</code>.</p>
+<p><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> only provides forward iterators but it provides 4 iterator types: iterator and const_iterator to navigate through the whole container and local_iterator and const_local_iterator to navigate through the values stored in a single bucket. Local iterators are faster and smaller.</p>
+<p>It's not recommended to use non constant-time size unordered_multisets because several key functions, like "empty()", become non-constant time functions. Non constant-time size unordered_multisets are mainly provided to support auto-unlink hooks.</p>
+<p><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a>, unlike std::unordered_set, does not make automatic rehashings nor offers functions related to a load factor. Rehashing can be explicitly requested and the user must provide a new bucket array that will be used from that moment.</p>
+<p>Since no automatic rehashing is done, iterators are never invalidated when inserting or erasing elements. Iterators are only invalidated when rehasing. </p>
+<div class="refsect2">
+<a name="idp152634488"></a><h3>
+<a name="boost.intrusive.unordered_multisetconstruct-copy-destruct"></a><code class="computeroutput">unordered_multiset</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp38921128-bb"></a><span class="identifier">unordered_multiset</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span> b_traits<span class="special">,</span> 
+                            <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> hash_func <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                            <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> equal_func <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                            <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> v_traits <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: buckets must not be being used by any other resource.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs an empty <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>, storing a reference to the bucket array and copies of the hasher and equal functors.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If value_traits::node_traits::node constructor throws (this does not happen with predefined Boost.Intrusive hooks) or the copy constructor or invocation of Hash or Equal throws.</p>
+<p><span class="bold"><strong>Notes</strong></span>: buckets array must be disposed only after *this is disposed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> 
+  <a name="idp38926056-bb"></a><span class="identifier">unordered_multiset</span><span class="special">(</span><span class="identifier">Iterator</span> b<span class="special">,</span> <span class="identifier">Iterator</span> e<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span> b_traits<span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> hash_func <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> equal_func <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> v_traits <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: buckets must not be being used by any other resource and Dereferencing iterator must yield an lvalue of type value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs an empty <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> and inserts elements from [b, e).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: If N is std::distance(b, e): Average case is O(N) (with a good hash function and with buckets_len &gt;= N),worst case O(N2).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If value_traits::node_traits::node constructor throws (this does not happen with predefined Boost.Intrusive hooks) or the copy constructor or invocation of hasher or key_equal throws.</p>
+<p><span class="bold"><strong>Notes</strong></span>: buckets array must be disposed only after *this is disposed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp38932072-bb"></a><span class="identifier">unordered_multiset</span><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: to-do </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">unordered_multiset&amp; <a name="idp38933112-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: to-do </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp38934280-bb"></a><span class="special">~</span><span class="identifier">unordered_multiset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Detaches all elements from this. The objects in the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> are not deleted (i.e. no destructors are called).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements in the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>, if it's a safe-mode or auto-unlink value. Otherwise constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp152692696"></a><h3>
+<a name="idp38744648-bb"></a><code class="computeroutput">unordered_multiset</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp38744856-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time if <code class="computeroutput"><code class="computeroutput"><a class="link" href="cache_begin.html" title="Struct template cache_begin">cache_begin</a></code>&lt;&gt;</code> is true. Amortized constant time with worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>) O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38748040-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time if <code class="computeroutput"><code class="computeroutput"><a class="link" href="cache_begin.html" title="Struct template cache_begin">cache_begin</a></code>&lt;&gt;</code> is true. Amortized constant time with worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>) O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38751224-bb"></a><span class="identifier">cbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time if <code class="computeroutput"><code class="computeroutput"><a class="link" href="cache_begin.html" title="Struct template cache_begin">cache_begin</a></code>&lt;&gt;</code> is true. Amortized constant time with worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>) O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp38754408-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38756632-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38758856-bb"></a><span class="identifier">cend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">hasher</span> <a name="idp38761080-bb"></a><span class="identifier">hash_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the hasher object used by the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hasher copy-constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">key_equal</span> <a name="idp38763288-bb"></a><span class="identifier">key_eq</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the key_equal object used by the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If key_equal copy-constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp38765528-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true if the container is empty.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: if constant-time size and <code class="computeroutput"><a class="link" href="cache_last.html" title="Struct template cache_last">cache_last</a></code> options are disabled, average constant time (worst case, with empty() == true: O(this-&gt;bucket_count()). Otherwise constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38767832-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of elements stored in the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to elements contained in *this if constant-time size option is disabled. Constant-time otherwise.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp38770136-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: the hasher and the equality function unqualified swap call should not throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Swaps the contents of two unordered_multisets. Swaps also the contained bucket array and equality and hasher functors.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the swap() call for the comparison or hash functors found using ADL throw. Basic guarantee. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp38773096-bb"></a><span class="identifier">clone_from</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> <span class="special">&amp;</span> src<span class="special">,</span> <span class="identifier">Cloner</span> cloner<span class="special">,</span> 
+                  <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw. Cloner should yield to nodes that compare equal and produce the same hash than the original node.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements from *this calling Disposer::operator()(pointer), clones all the elements from src calling Cloner::operator()(const_reference ) and inserts them on *this. The hash function and the equality predicate are copied from the source.</p>
+<p>If <code class="computeroutput"><a class="link" href="store_hash.html" title="Struct template store_hash">store_hash</a></code> option is true, this method does not use the hash function.</p>
+<p>If any operation throws, all cloned elements are unlinked and disposed calling Disposer::operator()(pointer).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to erased plus inserted elements.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If cloner or hasher throw or hash or equality predicate copying throws. Basic guarantee. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp38778520-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts value into the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>.</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator to the new inserted value.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Strong guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp38782536-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">Iterator</span> b<span class="special">,</span> <span class="identifier">Iterator</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Dereferencing iterator must yield an lvalue of type value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to this-&gt;insert(t) for each element in [b, e).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case is O(N), where N is the size of the range.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp38786536-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> i<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the element pointed to by i.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased element. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp38789240-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> b<span class="special">,</span> <span class="identifier">const_iterator</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the range pointed to by b end e.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(std::distance(b, e)), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38792296-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given value.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp38795528-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                  <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements that have the same hash and compare equal with the given key.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash_func or the equal_func functors throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp38801352-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_iterator</span> i<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the element pointed to by i. Disposer::operator()(pointer) is called for the removed element.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp38805304-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_iterator</span> b<span class="special">,</span> <span class="identifier">const_iterator</span> e<span class="special">,</span> 
+                         <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the range pointed to by b end e. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(std::distance(b, e)), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp38809608-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given value. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">,</span> 
+         <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp38814152-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given key. according to the comparison functor "equal_func". Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp38820168-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements of the container.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements on the container. if it's a safe-mode or auto-unlink value_type. Constant time otherwise.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp38822600-bb"></a><span class="identifier">clear_and_dispose</span><span class="special">(</span><span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements of the container.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements on the container. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38826264-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of contained elements with the given key</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp38828520-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                  <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of contained elements with the given key</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp38833320-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element whose value is "value" or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">iterator</span> <a name="idp38835624-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element whose key is "key" according to the given hasher and equality functor or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38841096-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Finds a const_iterator to the first element whose key is "key" or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">const_iterator</span> 
+  <a name="idp38843400-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element whose key is "key" according to the given hasher and equality functor or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> <a name="idp38848872-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with values equivalent to value. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> 
+  <a name="idp38851256-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with equivalent keys. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(key, hash_func, equal_func)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+<a name="idp38856760-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with values equivalent to value. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+  <a name="idp38859160-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"key_value_equal" must be a equality function that induces the same equality as key_equal. The difference is that "key_value_equal" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with equivalent keys. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(key, hash_func, equal_func)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp38864680-bb"></a><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash function throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp38868152-bb"></a><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash function throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp38871640-bb"></a><span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp38875064-bb"></a><span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38878504-bb"></a><span class="identifier">bucket_count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of buckets passed in the constructor or the last rehash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38880360-bb"></a><span class="identifier">bucket_size</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of elements in the nth bucket.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38882968-bb"></a><span class="identifier">bucket</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> k<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the index of the bucket in which elements with keys equivalent to k would be found, if any such element existed.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: the return value is in the range [0, this-&gt;bucket_count()). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp38885688-bb"></a><span class="identifier">bucket</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> k<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span> hash_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the index of the bucket in which elements with keys equivalent to k would be found, if any such element existed.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: the return value is in the range [0, this-&gt;bucket_count()). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">bucket_ptr</span> <a name="idp38890024-bb"></a><span class="identifier">bucket_pointer</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the bucket array pointer passed in the constructor or the last rehash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp38891880-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp38895032-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp38898216-bb"></a><span class="identifier">cbegin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp38901400-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp38904552-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp38907720-bb"></a><span class="identifier">cend</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp38910888-bb"></a><span class="identifier">rehash</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span> new_bucket_traits<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: new_buckets must be a pointer to a new bucket array or the same as the old bucket array. new_size is the length of the the array pointed by new_buckets. If new_buckets == this-&gt;bucket_pointer() n can be bigger or smaller than this-&gt;bucket_count().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Updates the internal reference with the new bucket erases the values from the old bucket and inserts then in the new one.</p>
+<p>If <code class="computeroutput"><a class="link" href="store_hash.html" title="Struct template store_hash">store_hash</a></code> option is true, this method does not use the hash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case linear in this-&gt;size(), worst case quadratic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hasher functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp38914440-bb"></a><span class="identifier">incremental_rehash</span><span class="special">(</span><span class="keyword">bool</span> grow <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>:</p>
+<p><span class="bold"><strong>Effects</strong></span>:</p>
+<p><span class="bold"><strong>Complexity</strong></span>:</p>
+<p><span class="bold"><strong>Throws</strong></span>:</p>
+<p><span class="bold"><strong>Note</strong></span>: this method is only available if incremental&lt;true&gt; option is activated. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp38917608-bb"></a><span class="identifier">incremental_rehash</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bucket_traits</span> <span class="special">&amp;</span> new_bucket_traits<span class="special">)</span><span class="special">;</span></pre>
+<span class="bold"><strong>Note</strong></span>: this method is only available if incremental&lt;true&gt; option is activated. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp38918936-bb"></a><span class="identifier">split_count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>:</p>
+<p><span class="bold"><strong>Effects</strong></span>:</p>
+<p><span class="bold"><strong>Complexity</strong></span>:</p>
+<p><span class="bold"><strong>Throws</strong></span>: </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp153015624"></a><h3>
+<a name="idp38936632-bb"></a><code class="computeroutput">unordered_multiset</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">local_iterator</span> <a name="idp38936840-bb"></a><span class="identifier">s_local_iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This static function is available only if the <span class="emphasis"><em>value traits</em></span> is stateless. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">const_local_iterator</span> <a name="idp38940968-bb"></a><span class="identifier">s_local_iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This static function is available only if the <span class="emphasis"><em>value traits</em></span> is stateless. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp38945096-bb"></a><span class="identifier">suggested_upper_bucket_count</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the nearest new bucket count optimized for the container that is bigger than n. This suggestion can be used to create bucket arrays with a size that will usually improve container's performance. If such value does not exist, the higher possible value is returned.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp38947528-bb"></a><span class="identifier">suggested_lower_bucket_count</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the nearest new bucket count optimized for the container that is smaller than n. This suggestion can be used to create bucket arrays with a size that will usually improve container's performance. If such value does not exist, the lower possible value is returned.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_unordered_set.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.unordered_set_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_unordered_multiset.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

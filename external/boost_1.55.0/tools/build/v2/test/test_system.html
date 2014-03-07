@@ -1,0 +1,618 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Linux/x86 (vers 1st March 2002), see www.w3.org">
+    <!--tidy options: -i -wrap 78 -->
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+    <title>A testing system for Boost.Build</title>
+<style type="text/css">
+        hr { color: black }
+        p.revision { text-align: right; font-style: italic }
+        pre.code { margin-left: 2em }
+        pre.example { margin-left: 2em; border: solid black thin }
+        pre.output { margin-left: 2em }
+        img.banner { border: 0; float: left }
+        h1 { text-align: right }
+        br.clear { clear: left }
+        div.attention { color: red }
+
+</style>
+  </head>
+
+  <body>
+    <p><a href="../../../../index.htm"><img class="banner" height="86" width=
+    "277" alt="C++ Boost" src="../../../../boost.png"></a></p>
+
+    <h1>A testing system for Boost.Build<br class="clear">
+    </h1>
+    <hr>
+
+    <dl class="page-index">
+      <dt><a href="#sec-intro">Introduction for users</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#sec-command-line-options">Command line options</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#sec-developers">Introduction for developers</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#sec-intro-changing">Changing the working
+          directory</a></dt>
+
+          <dt><a href="#sec-intro-examining">Examining the working directory and
+          changing it</a></dt>
+
+          <dt><a href="#sec-intro-results">Test result</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#sec-reference">Reference documentation</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#method-__init__">Method __init__</a></dt>
+
+          <dt><a href="#method-set_tree">Method <tt>set_tree</tt></a></dt>
+
+          <dt><a href="#method-write">Method <tt>write</tt></a></dt>
+
+          <dt><a href="#method-copy">Method <tt>copy</tt></a></dt>
+
+          <dt><a href="#method-touch">Method <tt>touch</tt></a></dt>
+
+          <dt><a href="#method-run_build_system">Method
+          <tt>run_build_system</tt></a></dt>
+
+          <dt><a href="#method-read">Method <tt>read</tt></a></dt>
+
+          <dt><a href="#method-read_and_strip">Method
+          <tt>read_and_strip</tt></a></dt>
+
+          <dt><a href="#methods-expectations">Methods for declaring
+          expectations</a></dt>
+
+          <dt><a href="#methods-ignoring">Methods for ignoring
+          changes</a></dt>
+
+          <dt><a href="#methods-result">Methods for explicitly specifying
+          results</a></dt>
+
+          <dt><a href="#class-list">Helper class <tt>List</tt></a></dt>
+        </dl>
+      </dd>
+    </dl>
+    <hr>
+
+    <h2><a name="sec-intro">Introduction for users</a></h2>
+
+    <p>The testing system for Boost.Build is a small set of Python modules and
+    scripts for automatically testing user-obversable behaviour. It uses
+    components from testing systems of <a href="http://www.scons.org">Scons</a>
+    and <a href="http://subversion.tigris.org">Subversion</a>, together with
+    some additional functionality.</p>
+
+    <p>To run the tests you need to:</p>
+
+    <ol>
+      <li>Get the source tree of Boost.Build (located at <tt>tools/build</tt>
+      in Boost)</li>
+
+      <li>Have <a href="http://www.python.org">Python</a> installed. Version
+      2.1 is known to work.</li>
+
+      <li>Build Boost.Jam. See <a href=
+      "../engine/index.html">$boost_build_root/engine/index.html</a> for
+      instructions.</li>
+
+      <li>Configure at least one toolset. You can edit <tt>site-config.jam</tt>
+      or <tt>user-config.jam</tt> to add new toolsets. Or you can create file
+      <tt>test-config.jam</tt> in <tt>$boost_build_root/test</tt> directory. In
+      this case, <tt>site-config.jam</tt> and <tt>user-config.jam</tt> will be
+      ignored for testing.</li>
+    </ol>
+
+    <p>When all is set, you can run all the tests using the <tt>test_all.py</tt>
+     script or you can run a specific test by starting its Python script
+     directly.</p>
+
+    <p>Examples:</p>
+
+<pre class="code">
+python test_all.py
+python generators_test.py
+</pre>
+
+    <p>If everything is OK, you will see a list of passed tests. Otherwise, a
+    failure will be reported.</p>
+
+    <h3><a name="sec-command-line-options">Command line options</a></h3>
+
+    <p>Test scripts will use the toolset you configured to be the default or
+    you can specify a specific one on the command line:</p>
+
+<pre class="code">
+python test_all.py borland
+python generators_test.py msvc-7.1
+</pre>
+
+    <p>Other test script flags you can specify on the command line are:</p>
+
+    <ul>
+        <li><tt>--default-bjam</tt> -- By default the test system will use the
+        Boost Jam executable found built in its default development build
+        location. This option makes it use the default one available on your
+        system, i.e. the one found in the system path.</li>
+
+        <li><tt>--preserve</tt> -- In case of a failed test its working
+        directory will be copied to the "failed_test" directory under the
+        current directory.</li>
+
+        <li><tt>--verbose</tt> -- Makes the test system and the run build system
+        display additional output. Note though that this may cause tests that
+        check the build system output to fail.</li>
+    </ul>
+
+    <h2><a name="sec-developers">Introduction for developers</a></h2>
+
+    <p>It is suggested that every new functionality come together with tests,
+    and that bugfixes are accompanied by tests. There's no need to say that
+    tests are good, but two points are extremely important:</p>
+
+    <ul>
+      <li>For an interpreted language like Jam, without any static checks,
+      testing is simply the only sefeguard we can have.</li>
+
+      <li>Good tests allow us to change internal design much more safely, and we
+      have not gotten everything nailed down yet.</li>
+    </ul>
+
+    <p>Adding a new test is simple:</p>
+
+    <ol>
+      <li>Go to <tt>$boost_build_root/test/test_all.py</tt> and add new test
+      name to the list at the end of the file. Suppose the test name is "hello".
+      </li>
+
+      <li>Add a new python module, in this example "hello.py", to do the actual
+      testing.</li>
+    </ol>
+
+    <p>The module, in general will perform these basic actions:</p>
+
+    <ol>
+      <li>Set up the initial working directory state</li>
+
+      <li>
+        Run the build system and check the results:
+
+        <ol>
+          <li>generated output,</li>
+
+          <li>changes made to the working directory,</li>
+
+          <li>new content of the working directory.</li>
+        </ol>
+      </li>
+
+      <li>Add, remove or touch files or change their content and then repeat
+      the previous step until satisfied.</li>
+
+      <li>Clean up</li>
+    </ol>
+
+    <p>The "hello.py" module might contain:</p>
+<pre class="example">
+from BoostBuild import List
+
+# Create a temporary working directory
+t = BoostBuild.Tester()
+
+# Create the needed files
+t.write("jamroot.jam", "")
+t.write("jamfile.jam", """
+exe hello : hello.cpp ;
+""")
+t.write("hello.cpp", """
+int main()
+{
+    return 0;
+}
+
+""")
+
+t.run_build_system()
+
+# First, create a list of three pathnames.
+file_list = List("bin/$toolset/debug/") * List("hello.exe hello.obj")
+# Second, assert that those files were added as result of the last build system invocation.
+t.expect_addition(file_list)
+
+# Invoke the build system once again.
+t.run_build_system("clean")
+# Check if the files added previously were removed.
+t.expect_removal(file_list)
+
+# Remove temporary directories
+t.cleanup()
+</pre>
+
+    <p>The <tt>test</tt> directory contains a file "template.py" which can be
+    used as a start for your own tests.</p>
+
+    <p>Overview of the most important methods of class <tt>Tester</tt> follows.
+    </p>
+
+    <h3><a name="sec-intro-changing">Changing the working directory</a></h3>
+
+    <p>The class <tt>Tester</tt> creates a temporary directory in its
+    constructor and changes to that directory. It can be modified by calling
+    these methods:</p>
+
+    <ul>
+      <li><tt>set_tree</tt> -- sets the content of the working directory to be
+      equal to the content of the specified directory. This method is
+      preferrable when directory tree for testing is large.</li>
+
+      <li><tt>write</tt> -- sets the content of file in a working directory.
+      This is optimal if you want to create a directory tree with 3-4 small
+      files.</li>
+
+      <li><tt>touch</tt> -- changes the modification times of a file</li>
+    </ul>
+
+    <h3><a name="sec-intro-examining">Examining the working directory and
+    changing it</a></h3>
+
+    <p>The method <tt>read</tt>, inherited from the <tt>TestCmd</tt> class, can
+    be used to read any file in the working directory and check its content.
+    <tt>Tester</tt> adds another method for tracking changes. Whenever the build
+    system is run (using <a href="#method-run_build_system"><tt>run_build_system
+    </tt></a>), the working dir state before and after running is recorded. In
+    addition, difference between the two states -- i.e. lists of files that were
+    added, removed, modified or touched -- are stored in two member variables -
+    <tt>tree_difference</tt> and <tt>unexpected_difference</tt>.</p>
+
+    <p>After than, the test author may specify that some change is expected, for
+    example, by calling <tt>expect_addition("foo")</tt>. This call will check if
+    the file was indeed added, and if so, will remove its name from the list of
+    added files in <tt>unexpected_difference</tt>. Likewise, it is possible to
+    specify that some changes are not interesting, for example a call to
+    <tt>ignore("*.obj")</tt> will just remove every file with the ".obj"
+    extension from <tt>unexpected_difference</tt>.</p>
+
+    <p>When test has finished with expectations and ignoring, the member
+    <tt>unexpected_difference</tt> will contain the list of all changes not yet
+    accounted for. It is possible to assure that this list is empty by calling
+    the <tt>expect_nothing_more</tt> member function.</p>
+
+    <h3><a name="sec-intro-results">Test result</a></h3>
+
+    <p>Any of the <tt>expect*</tt> methods below will fail the test if the
+    expectation is not met. It is also possible to perform manually arbitrary
+    test and explicitly cause the test to either pass or fail. Ordinary
+    filesystem functions can be used to work with the directory tree. Methods
+    <tt>pass_test</tt> and <tt>fail_test</tt> are used to explicitly give the
+    test outcome.</p>
+
+    <p>Typically, after test termination, the working directory is erased. See
+    the <a href="#sec-command-line-options">"--preserve" command line option</a>
+    for information on how to preserve the working directory content for failed
+    tests for debugging purposes.</p>
+
+    <h2 id="sec-reference">Reference documentation</h2>
+
+    <p>The test system is composed of class <tt>Tester</tt>, derived form
+    <tt>TestCmd.TestCmd</tt>, and helper class <tt>List</tt>. <tt>Tester</tt>
+    and <tt>List</tt> methods are described below.</p>
+
+    <p>The documentation frequently refers to <tt>filename</tt>. In all cases,
+    files are specified in unix style: a sequence of components, separated by
+    "/". This is true on all platforms. In some contexts a list of files is
+    allowed. In those cases any object with a sequence interface is allowed.</p>
+
+    <h3><a name="method-__init__">Method <tt>__init__(self, arguments="",
+    executable="bjam", match=TestCmd.match_exact, boost_build_path=None,
+    translate_suffixes=True, pass_toolset=True, use_test_config=True,
+    ignore_toolset_requirements=True, workdir="", **keywords)</tt></a></h3>
+
+    <p><b>Optional arguments:</b></p>
+
+    <ul>
+        <li><tt>arguments</tt>
+            -- Arguments passed to the run executable.</li>
+        <li><tt>executable</tt>
+            -- Name of the executable to invoke.</li>
+        <li><tt>match</tt>
+            -- Function to use for compating actual and expected file contents.
+            </li>
+        <li><tt>boost_build_path</tt>
+            -- Boost build path to be passed to the run executable.</li>
+        <li><tt>translate_suffixes</tt>
+            -- Whether to update suffixes on the the file names passed from the
+            test script so they match those actually created by the current
+            toolset. For example, static library files are specified by using
+            the .lib suffix but when the 'gcc' toolset is used it actually
+            creates them using the .a suffix.</li>
+        <li><tt>pass_toolset</tt>
+            -- Whether the test system should pass the specified toolset to the
+            run executable.</li>
+        <li><tt>use_test_config</tt>
+            -- Whether the test system should tell the run executable to read in
+            the test_config.jam configuration file.</li>
+        <li><tt>ignore_toolset_requirements</tt>
+            -- Whether the test system should tell the run executable to ignore
+            toolset requirements.</li>
+        <li><tt>workdir</tt>
+            -- Indicates an absolute directory where the test will be run from.
+            </li>
+    </ul>
+
+    <p><b>Optional arguments inherited from the base class:</b></p>
+
+    <ul>
+        <li><tt>description</tt>
+            -- Test description string displayed in case of a failed test.</li>
+        <li><tt>subdir</tt>
+            -- List of subdirectories to automatically create under the working
+              directory. Each subdirectory needs to be specified separately
+              parent coming before its child.</li>
+        <li><tt>verbose</tt>
+            -- Flag that may be used to enable more verbose test system output.
+            Note that it does not also enable more verbose build system output
+            like the <a href="#sec-command-line-options">"--verbose" command
+            line option</a> does.</li>
+    </ul>
+
+    <p><b>Effects:</b></p>
+
+    <ol>
+      <li>Remembers the current working directory in member
+      <tt>original_workdir</tt>.</li>
+
+      <li>Determines the location of the executable (<code>bjam</code> by
+      default) and build system files, assuming that the current directory is
+      <tt>tools/build/test</tt>. Formulates jam invocation command, which
+      will include explicit setting for the <tt>BOOST_BUILD_PATH</tt> variable
+      and arguments passed to this methods, if any. This command will be used
+      by subsequent invocation of <a href="#method-run_build_system"><tt>
+      run_build_system</tt></a>. Finally, initializes the base class.</li>
+
+      <li>Changes the current working directory to the temporary working
+      directory created by the base constructor.</li>
+
+      <li>If you want to run a test in an existing directory, pass it as
+      <tt>workdir</tt>.</li>
+
+      <li> Most parameters passed to this constructor function may be overruled
+      for each specific test system run using <a href=
+      "#method-run_build_system"><tt>run_build_system</tt></a> parameters.
+    </ol>
+
+    <h3><a name="method-set_tree">Method <tt>set_tree(self,
+    tree_location)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Replaces the content of the current working directory with the content
+    of directory at <tt>tree_location</tt>. If <tt>tree_location</tt> is not
+    absolute pathname, it will be treated as relative to
+    <tt>self.original_workdir</tt>. This methods also explicitly makes the
+    copied files writeable.</p>
+
+    <h3><a name="method-write">Method <tt>write(self, name,
+    content)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Writes the specified content to the file given by <tt>name</tt> under
+    the temporary working directory. If the file already exists, it is
+    overwritten. Any required directories are automatically created.</p>
+
+    <h3><a name="method-copy">Method <tt>copy(self, src, dst)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Equvivalent to <tt>self.write(self.read(src), dst)</tt>.</p>
+
+    <h3><a name="method-touch">Method <tt>touch(self, names)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Sets the access and modification times for all files in <tt>names</tt> to
+    the current time. All the elements in <tt>names</tt> should be relative
+    paths.</p>
+
+    <h3><a name="method-run_build_system">Method <tt>run_build_system(self,
+    extra_args="", subdir="", stdout=None, stderr="", status=0, match=None,
+    pass_toolset=None, use_test_config=None, ignore_toolset_requirements=None,
+    expected_duration=None, **kw)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <ol>
+      <li>Stores the state of the working directory in
+      <tt>self.previous_tree</tt>.</li>
+
+      <li>Changes to <tt>subdir</tt>, if it is specified. It is relative to
+      the <tt>original_workdir</tt> or the workdir specified in
+      <tt>__init</tt>.</li>
+
+      <li>Invokes the <tt>bjam</tt> executable, passing <tt>extra_args</tt>
+      to it. The binary should be located under
+      <tt>&lt;test_invocation_dir&gt;/../jam/src/bin.&lt;platform&gt;</tt>.
+      This is to make sure tests use the version of jam build from CVS.</li>
+
+      <li>Compares the stdout, stderr and exit status of build system
+      invocation with values to appropriate parameters, if they are not
+      <tt>None</tt>. If any difference is found, the test fails.</li>
+
+      <li>If the <tt>expected_duration</tt> parameter is specified then it
+      represents the maximal allowed time in seconds for the test to run. The
+      test will be marked as failed if its duration is greater than the given
+      <tt>expected_duration</tt> parameter value.</li>
+
+      <li>Stores the new state of the working directory in <tt>self.tree</tt>.
+      Computes the difference between previous and current trees and stores them
+      in variables <tt>self.tree_difference</tt> and
+      <tt>self.unexpected_difference</tt>. Both variables are instances of class
+      <tt>tree.Trees_different</tt>, which have four attributes:
+      <tt>added_files</tt>, <tt>removed_files</tt>, <tt>modified_files</tt> and
+      <tt>touched_files</tt>. Each is a list of strings.</p></li>
+    </ol>
+
+    <h3><a name="method-read">Method <tt>read(self, name)</tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Read the specified file and returns it content. Raises an exception is
+    the file is absent.</p>
+
+    <h3><a name="method-read_and_strip">Method <tt>read_and_strip(self, name)
+    </tt></a></h3>
+
+    <p><b>Effects:</b></p>
+
+    <p>Read the specified file and returns it content, after removing trailing
+    whitespace from every line. Raises an exception is the file is absent.</p>
+
+    <p><b>Rationale:</b></p>
+
+    <p>Althought this method is questionable, there are a lot of cases when jam
+    or shells it uses insert spaces. It seems that introducing this method is
+    much simpler than dealing with all those cases.</p>
+
+    <h3><a name="methods-expectations">Methods for declaring expectations</a>
+    </h3>
+
+    <p>Accordingly to the number of changes kinds that are detected, there are
+    four methods that specify that test author expects a specific change to
+    occur. They check <tt>self.unexpected_difference</tt>, and if the change is
+    present there, it is removed. Otherwise, test fails.</p>
+
+    <p>Each method accepts a list of names. Those names use <tt>/</tt> path
+    separator on all systems. Additionaly, the test system translates suffixes
+    appropriately. For the test to be portable, suffixes should use Windows
+    convention: <tt>exe</tt> for executables, <tt>dll</tt> for dynamic libraries
+    and <tt>lib</tt> for static libraries. Lastly, the string "$toolset" in file
+    names is replaced by the name of tested toolset.</p>
+
+    <p><b>Note:</b> The <tt>List</tt> helper class might be useful to create
+    lists of names.</p>
+
+    <p><b>Note:</b> The file content can be examined using the
+    <tt>TestCmd.read</tt> function.</p>
+
+    <p>The members are:</p>
+
+    <ul>
+      <li>expect_addition</li>
+      <li>expect_removal</li>
+      <li>expect_modification</li>
+      <li>expect_nothing</li>
+    </ul>
+
+    <p>Note that <tt>expect_modification</tt> is used to check that a either
+    file content or timestamp has changed. The rationale is that some compilers
+    change content even if sources does not change, and it's easier to have a
+    method which checks for both content and time changes.</p>
+
+    <p>There's also a member <tt>expect_nothing_more</tt>, which checks that all
+    the changes are either expected or ignored, in other words that
+    <tt>unexpected_difference</tt> is empty by now.</p>
+
+    <p>Lastly, there's a method to compare file content with expected content:
+    </p>
+    <tt>expect_content(self, name, content, exact=0)</tt>
+
+    <p>The method fails the test if the content of file identified by 'name' is
+    different from 'content'. If 'exact' is true, the file content is used
+    as-is, otherwise, two transformations are applied:</p>
+
+    <ul>
+      <li>The <tt>read_and_strip</tt> method is used to read the file, which
+      removes trailing whitespace</li>
+
+      <li>Each backslash in the file content is converted to forward slash.</li>
+    </ul>
+
+    <h3><a name="methods-ignoring">Methods for ignoring changes</a></h3>
+
+    <p>There are five methods which ignore changes made to the working tree.
+    They silently remove elements from <tt>self.unexpected_difference</tt>, and
+    don't generate error if element is not found. They accept shell style
+    wildcard.</p>
+
+    <p>The following methods correspond to four kinds of changes:</p>
+
+    <ul>
+      <li>ignore_addition(self, wildcard)</li>
+      <li>ignore_removal(self, wildcard)</li>
+      <li>ignore_modification(self, wildcard)</li>
+      <li>ignore_touch(self, wilcard)</li>
+    </ul>
+
+    <p>The method <tt>ignore(self, wildcard)</tt> ignores all the changes made
+    to files that match a wildcard.</p>
+
+    <h3><a name="methods-result">Methods for explicitly specifying results</a>
+    </h3>
+
+    <h4>Method <tt>pass_test(self, condition=1)</tt></h4>
+
+    <div class="attention">
+      At this moment, the method should not be used.
+    </div>
+
+    <h4>Method <tt>fail_test(self, condition=1)</tt></h4>
+
+    <p><b>Effects:</b> Cause the test to fail if <tt>condition</tt> is true.</p>
+
+    <h3><a name="class-list">Helper class <tt>List</tt></a></h3>
+    The class has sequence interface and two additional methods.
+
+    <h4>Method <tt>__init__(self, string)</tt></h4>
+
+    <p><b>Effects:</b> Splits the string on unescaped spaces and tabs. The split
+    components can further be retrieved using standard sequence access.</p>
+
+    <h4>Method <tt>__mul__(self, other)</tt></h4>
+
+    <p><b>Effects:</b> Returns an <tt>List</tt> instance, which elements are all
+    possible concatenations of two string, first of which is from <tt>self</tt>,
+    and second of which is from <tt>other</tt>.</p>
+
+    <p>The class also defines <tt>__str__</tt> and <tt>__repr__</tt> methods.
+    Finally, there's <tt>__coerce__</tt> method which allows to convert strings
+    to instances of <tt>List</tt>.</p>
+
+    <p><b>Example:</b></p>
+<pre>
+    l = "a b" * List("c d")
+    for e in l:
+        print e
+</pre>
+
+    <p>will output:</p>
+<pre>
+    ac
+    ad
+    bc
+    bd
+
+</pre>
+    <hr>
+    <p class="revision">Last modified: May 02, 2008</p>
+    <p>&copy; Copyright Vladimir Prus 2002, 2003, 2004, 2005.<br>
+    &copy; Copyright Jurko Gospodnetic 2008.<br>
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)</p>
+  </body>
+</html>

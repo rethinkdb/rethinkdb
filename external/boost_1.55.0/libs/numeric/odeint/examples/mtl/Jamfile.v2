@@ -1,0 +1,16 @@
+# Copyright 2009 Karsten Ahnert and Mario Mulansky.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+MTL4_INCLUDE = /home/karsten/boost/MTL-4.0.8862-Linux/usr/include ;
+
+project
+    : requirements 
+      <include>../../../../..
+      <include>$(MTL4_INCLUDE)
+      <define>BOOST_ALL_NO_LIB=1
+    ;
+    
+exe gauss_packet : gauss_packet.cpp ;
+exe implicit_euler_mtl : implicit_euler_mtl.cpp ;

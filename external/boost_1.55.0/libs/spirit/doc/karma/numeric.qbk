@@ -1,0 +1,1369 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:numeric Numeric Generators]
+
+The library includes a couple of predefined objects for generating booleans, 
+signed and unsigned integers, and real numbers. These generators are fully
+parametric. Most of the important aspects of numeric generation can be
+finely adjusted to suit. This includes the radix base, the exponent, the 
+fraction etc. Policies control the real number generators' behavior. There are 
+some predefined policies covering the most common real number formats but the
+user can supply her own when needed.
+
+The numeric parsers are fine tuned (employing loop unrolling and
+extensive template metaprogramming) with exceptional performance that
+rivals the low level C functions such as `ltoa`, `ssprintf`, and `_gcvt`. 
+Benchmarks reveal up to 2X speed over the C counterparts (see here: 
+__sec_karma_numeric_performance__). This goes to show that you can write 
+extremely tight generic C++ code that rivals, if not surpasses C. 
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/karma/numeric.hpp>
+    #include <boost/spirit/include/karma_numeric.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:unsigned_int Unsigned Integer Number Generators (`uint_`, etc.)]
+
+[heading Description]
+
+The `uint_generator` class is the simplest among the members of the
+numerics package. The `uint_generator` can generate unsigned integers of
+arbitrary length and size. The `uint_generator` generator can be used to 
+generate ordinary primitive C/C++ integers or even user defined scalars such as
+bigints (unlimited precision integers) if the type follows
+certain expression requirements (for more information about the requirements, see 
+[link spirit.karma.reference.numeric.unsigned_int.additional_requirements below])). 
+The `uint_generator` is a template class. Template parameters fine tune its behavior. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/numeric/uint.hpp>
+    #include <boost/spirit/include/karma_uint.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit           // alias: boost::spirit::karma::lit`]]
+    [[`boost::spirit::bin           // alias: boost::spirit::karma::bin`]]
+    [[`boost::spirit::oct           // alias: boost::spirit::karma::oct`]]
+    [[`boost::spirit::hex           // alias: boost::spirit::karma::hex`]]
+    [[`boost::spirit::ushort_       // alias: boost::spirit::karma::ushort_`]]
+    [[`boost::spirit::ulong_        // alias: boost::spirit::karma::ulong_`]]
+    [[`boost::spirit::uint_         // alias: boost::spirit::karma::uint_`]]
+    [[`boost::spirit::ulong_long    // alias: boost::spirit::karma::ulong_long`]]
+]
+
+[note The generators `ulong_long` and `ulong_long(num)` are only available on 
+        platforms where the preprocessor constant `BOOST_HAS_LONG_LONG` is 
+        defined (i.e. on platforms having native support for `unsigned long long` 
+        (64 bit) unsigned integer types).]
+
+[note `lit` is reused by the [karma_string String Generators], the
+      __karma_char__, and the Numeric Generators. In 
+      general, a char generator is created when you pass in a
+      character, a string generator is created when you pass in a string, and a 
+      numeric generator is created when you use a numeric literal.] 
+
+[heading Synopsis]
+
+    template <
+        typename Num
+      , unsigned Radix>
+    struct uint_generator;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`Num`]        [The numeric base type of the 
+                     numeric generator.]                [`unsigned int`]]
+    [[`Radix`]      [The radix base. This can be 
+                     any value in the (inclusive) range from `2` .. `36`.]  [`10`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`num`]            [Numeric literal, any unsigned integer value, or
+                         a __karma_lazy_argument__ that evaluates to an 
+                         unsigned integer value of type `Num`]]
+    [[`Num`]            [Type of `num`: any unsigned integer type, or in case
+                         of a __karma_lazy_argument__, its return value]]
+    [[`Radix`]          [An integer literal specifying the required radix for 
+                         the output conversion. Valid values are from the 
+                         (inclusive) range `2` .. `36`.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`lit(num)`]       [Generate the unsigned integer literal `num` using the
+                         default formatting (radix is `10`). This generator never
+                         fails (unless the underlying output stream reports
+                         an error).]]
+    [
+[``ushort_
+uint_
+ulong_
+ulong_long``]           [Generate the unsigned integer provided by a mandatory 
+                         attribute using the default formatting (radix is `10`). 
+                         This generator never fails (unless the underlying 
+                         output stream reports an error).]]
+    [
+[``ushort_(num)
+uint_(num)
+ulong_(num)
+ulong_long(num)``]      [Generate the unsigned integer provided by the 
+                         immediate literal value the generator is initialized 
+                         from using the default formatting (radix is `10`). If 
+                         this generator has an associated attribute it succeeds 
+                         only if the attribute is equal to the 
+                         immediate literal (unless the underlying output 
+                         stream reports an error). Otherwise this generator 
+                         fails and does not generate any output.]]
+    [
+[``bin
+oct
+hex``]                  [Generate the unsigned integer provided by a mandatory 
+                         attribute using the default formatting and the 
+                         corresponding radix (`bin`: radix is `2`, `oct`: radix is `8`,
+                         `hex`: radix is `16`). This generator never fails (unless 
+                         the underlying output stream reports an error).]]
+    [
+[``bin(num)
+oct(num)
+hex(num)``]             [Generate the unsigned integer provided by the 
+                         immediate literal value the generator is initialized 
+                         from using the default formatting and the 
+                         corresponding radix (`bin`: radix is `2`, `oct`: 
+                         radix is `8`, `hex`: radix is `16`). If 
+                         this generator has an associated attribute it succeeds 
+                         only if the attribute is equal to the 
+                         immediate literal (unless the underlying output 
+                         stream reports an error). Otherwise this generator 
+                         fails and does not generate any output.]]
+]
+
+All generators listed in the table above (except `lit(num)`) are predefined 
+specializations of the `uint_generator<Num, Radix>` basic unsigned integer
+number generator type described below. It is possible to directly use this
+type to create unsigned integer generators using a wide range of formatting
+options.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``uint_generator<
+    Num, Radix
+>()``]
+                        [Generate the unsigned integer of type `Num` provided 
+                         by a mandatory attribute using the specified `Radix` 
+                         (allowed values are from the (inclusive) range from 
+                         `2` .. `36`, the 
+                         default value is `10`).This generator never fails 
+                         (unless the underlying output stream reports an 
+                         error).]]
+    [
+[``uint_generator<
+    Num, Radix
+>()(num)``]
+                        [Generate the unsigned integer of type `Num` provided 
+                         by the immediate literal value the generator is 
+                         initialized from, using the specified `Radix` 
+                         (allowed values are from the (inclusive) range from 
+                         `2` .. `36`, the
+                         default value is `10`). If this generator has an 
+                         associated attribute it succeeds only if the 
+                         attribute is equal to the immediate literal (unless 
+                         the underlying output stream reports an error). 
+                         Otherwise this generator fails and does not generate 
+                         any output.]]
+]
+
+[heading Additional Requirements]
+
+The following lists enumerate the requirements which must be met in order to 
+use a certain type `Num` to instantiate and use a 
+`uint_generator<Num, Radix>`.
+
+If `boost::is_integral<Num>::value` is `true` the type `Num` must have defined:
+
+* comparison operators for: `<`, `<=`, `==`, `!=`, `>`, and `>=` 
+* numeric operators for: `+`, `-`, `/`, `*`, and `%`
+
+If `boost::is_integral<Num>::value` is `false` the type `Num` must have defined:
+
+* comparison operators for: `<`, `<=`, `==`, `!=`, `>`, and `>=` 
+* numeric operators for: `+`, `-`, `/`, `*`, and `%`
+* helper functions implementing the interface and the semantics of: `std::fmod`, 
+  `std::pow`, `std::lround`, `std::ltrunc`, `std::floor`, and `std::ceil`. 
+  These need to be defined in a way so that they will be found using argument 
+  dependent lookup (ADL).
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`lit(num)`]       [__unused__]]
+    [[`ushort_`]         [`unsigned short`, attribute is mandatory (otherwise 
+                         compilation will fail)]]
+    [[`ushort_(num)`]    [`unsigned short`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `num` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [[`uint_`]           [`unsigned int`, attribute is mandatory (otherwise 
+                         compilation will fail)]]
+    [[`uint_(num)`]      [`unsigned int`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `num` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [[`ulong_`]          [`unsigned long`, attribute is mandatory (otherwise 
+                         compilation will fail)]]
+    [[`ulong_(num)`]     [`unsigned long`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `num` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [[`ulong_long`]     [`unsigned long long`, attribute is mandatory 
+                         (otherwise compilation will fail)]]
+    [[`ulong_long(num)`][`unsigned long long`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `num` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [
+[``bin
+oct
+hex``]                  [`unsigned int`, attribute is mandatory 
+                         (otherwise compilation will fail)]]
+    [
+[``bin(num)
+oct(num)
+hex(num)``]             [`unsigned int`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `num` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [
+[``uint_generator<
+    Num, Radix
+>()``]                  [`Num`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [
+[``uint_generator<
+    Num, Radix
+>()(num)``]             [`Num`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+]
+
+[note  In addition to their usual attribute of type `Num` all listed generators 
+       accept an instance of a `boost::optional<Num>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Num` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(N), where `N` is the number of digits needed to represent the generated 
+ integer number]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_uint]
+
+Basic usage of an `uint` generator:
+
+[reference_karma_uint]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:signed_int Signed Integer Number Generators (`int_`, etc.)]
+
+[heading Description]
+
+The `int_generator` can generate signed integers of arbitrary length and size.
+This is almost the same as the `uint_generator`. The only difference is the
+additional task of generating the `'+'` or `'-'` sign preceding the number.
+The class interface is the same as that of the `uint_generator`.
+
+The `int_generator` generator can be used to emit ordinary primitive C/C++
+integers or even user defined scalars such as bigints (unlimited
+precision integers) if the type follows certain expression
+requirements (for more information about the requirements, see 
+[link spirit.karma.reference.numeric.signed_int.additional_requirements below]). 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/numeric/int.hpp>
+    #include <boost/spirit/include/karma_int.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit           // alias: boost::spirit::karma::lit`]]
+    [[`boost::spirit::short_        // alias: boost::spirit::karma::short_`]]
+    [[`boost::spirit::int_          // alias: boost::spirit::karma::int_`]]
+    [[`boost::spirit::long_         // alias: boost::spirit::karma::long_`]]
+    [[`boost::spirit::long_long     // alias: boost::spirit::karma::long_long`]]
+]
+
+[note The generators `long_long` and `long_long(num)` are only available on 
+        platforms where the preprocessor constant `BOOST_HAS_LONG_LONG` is 
+        defined (i.e. on platforms having native support for `long long` 
+        (64 bit) integer types).]
+
+[note `lit` is reused by the [karma_string String Generators], the
+      __karma_char__, and the Numeric Generators. In 
+      general, a char generator is created when you pass in a
+      character, a string generator is created when you pass in a string, and a 
+      numeric generator is created when you use a numeric literal.] 
+
+[heading Synopsis]
+
+    template <
+        typename T
+      , unsigned Radix
+      , bool force_sign>
+    struct int_generator;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                        [Default]]
+    [[`T`]          [The numeric base type of the 
+                     numeric parser.]                    [`int`]]
+    [[`Radix`]      [The radix base. This can be 
+                     either 2: binary, 8: octal, 
+                     10: decimal and 16: hexadecimal.]   [`10`]]
+    [[`force_sign`] [If `true`, all numbers will
+                     have a sign (space for zero)]       [`false`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`num`]            [Numeric literal, any signed integer value, or
+                         a __karma_lazy_argument__ that evaluates to a signed 
+                         integer value of type `Num`]]
+    [[`Num`]            [Type of `num`: any signed integer type]]
+    [[`Radix`]          [A constant integer literal specifying the required 
+                         radix for the output conversion. Valid values are `2`, 
+                         `8`, `10`, and `16`.]]
+    [[`force_sign`]     [A constant boolean literal specifying whether the
+                         generated number should always have a sign (`'+'` for
+                         positive numbers, `'-'` for negative numbers and a 
+                         '` `' for zero).]]
+    ]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`lit(num)`]       [Generate the integer literal `num` using the default
+                         formatting (radix is `10`, sign is only printed for 
+                         negative literals). This generator never fails (unless 
+                         the underlying output stream reports an error).]]
+    [
+[``short_
+int_
+long_
+long_long``]            [Generate the integer provided by a mandatory attribute
+                         using the default formatting (radix is `10`, sign is 
+                         only printed for negative literals). This generator 
+                         never fails (unless the underlying output stream 
+                         reports an error).]]
+    [
+[``short_(num)
+int_(num)
+long_(num)
+long_long(num)``]       [Generate the integer provided by the immediate literal
+                         value the generator is initialized from using the 
+                         default formatting (radix is `10`, sign is only printed 
+                         for negative literals). If this generator has an 
+                         associated attribute it succeeds only if the 
+                         attribute is equal to the immediate literal (unless 
+                         the underlying output stream reports an error). 
+                         Otherwise this generator fails and does not generate 
+                         any output.]]
+]
+
+All generators listed in the table above (except `lit(num)`) are predefined 
+specializations of the `int_generator<Num, Radix, force_sign>` basic integer
+number generator type described below. It is possible to directly use this
+type to create integer generators using a wide range of formatting options.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``int_generator<
+    Num, Radix, force_sign
+>()``]
+                        [Generate the integer of type `Num` provided by a 
+                         mandatory attribute using the specified `Radix` 
+                         (possible values are `2`, `8`, `10`, and `16`, the 
+                         default value is `10`). If `force_sign` is `false` 
+                         (the default), a sign is only printed for negative 
+                         literals. If `force_sign` is `true`, all numbers will 
+                         be printed using a sign, i.e. `'-'` for negative 
+                         numbers, `'+'` for positive numbers, and `' '` for 
+                         zeros. This generator never fails (unless the 
+                         underlying output stream reports an error).]]
+    [
+[``int_generator<
+    Num, Radix, force_sign
+>()(num)``]
+                        [Generate the integer of type `Num` provided by the 
+                         immediate literal value the generator is initialized 
+                         from, using the specified `Radix` (possible values are
+                         `2`, `8`, `10`, and `16`, the default value is `10`). 
+                         If `force_sign` is `false` (the default), a sign is 
+                         only printed for negative literals. If `force_sign` is 
+                         `true`, all numbers will be printed using a sign, i.e.
+                         `'-'` for negative numbers, `'+'` for positive numbers,
+                         and `' '` for zeros. If this generator has an 
+                         associated attribute it succeeds only if the 
+                         attribute is equal to the immediate literal (unless 
+                         the underlying output stream reports an error). 
+                         Otherwise this generator fails and does not generate 
+                         any output.]]
+]
+
+[heading Additional Requirements]
+
+The following lists enumerate the requirements which must be met in order to 
+use a certain type `Num` to instantiate and use a 
+`int_generator<Num, Radix, force_sign>`.
+
+If `boost::is_integral<Num>::value` is `true` the type `Num` must have defined:
+
+* comparison operators for: `<`, `<=`, `==`, `!=`, `>`, and `>=` 
+* numeric operators for: `+`, `-`, `/`, `*`, `%`, and unary `-`
+
+If `boost::is_integral<Num>::value` is `false` the type `Num` must have defined:
+
+* comparison operators for: `<`, `<=`, `==`, `!=`, `>`, and `>=` 
+* numeric operators for: `+`, `-`, `/`, `*`, `%`, and unary `-`
+* helper functions implementing the interface and the semantics of: `std::fmod`, 
+  `std::fabs`, `std::pow`, `std::lround`, `std::ltrunc`, `std::floor`, and
+  `std::ceil`. These need to be defined in a way so that they will be found 
+  using argument dependent lookup (ADL).
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`lit(num)`]       [__unused__]]
+    [[`short_`]         [`short`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`short_(num)`]    [`short`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [[`int_`]           [`int`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`int_(num)`]      [`int`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [[`long_`]          [`long`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`long_(num)`]     [`long`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [[`long_long`]      [`long long`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`long_long(num)`] [`long long`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [
+[``int_generator<
+    Num, Radix, force_sign
+>()``]                  [`Num`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [
+[``int_generator<
+    Num, Radix, force_sign
+>()(num)``]             [`Num`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+]
+
+[note  In addition to their usual attribute of type `Num` all listed generators 
+       accept an instance of a `boost::optional<Num>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Num` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(N), where `N` is the number of digits needed to represent the generated 
+ integer number]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_int]
+
+Basic usage of an `int_` generator:
+
+[reference_karma_int]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:real_number Real Number Generators (`float_`, `double_`, etc.)]
+
+[heading Description]
+
+The `real_generator` can generate  real numbers of arbitrary length and size
+limited by its template parameter, `Num`. The numeric base type `Num` can be
+a user defined numeric type such as fixed_point (fixed point reals) and
+bignum (unlimited precision numbers) if the type follows certain
+expression requirements (for more information about the requirements, see 
+[link spirit.karma.reference.numeric.real_number.additional_requirements below]).
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/numeric/real.hpp>
+    #include <boost/spirit/include/karma_real.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit           // alias: boost::spirit::karma::lit`]]
+    [[`boost::spirit::float_        // alias: boost::spirit::karma::float_`]]
+    [[`boost::spirit::double_       // alias: boost::spirit::karma::double_`]]
+    [[`boost::spirit::long_double   // alias: boost::spirit::karma::long_double`]]
+]
+
+[note `lit` is reused by the [karma_string String Generators], the
+      __karma_char__, and the Numeric Generators. In 
+      general, a char generator is created when you pass in a
+      character, a string generator is created when you pass in a string, and a 
+      numeric generator is created when you use a numeric literal.] 
+
+[heading Synopsis]
+
+    template <typename Num, typename RealPolicies>
+    struct real_generator;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]        [Description]               [Default]]
+    [[`Num`]            [The type of the real number to generate.]  [`double`]]
+    [[`RealPolicies`]   [The policies to use while 
+                         converting the real number.] [`real_policies<Num>`]]
+]
+
+For more information about the type `RealPolicies` see 
+[link spirit.karma.reference.numeric.real_number.real_number_formatting_policies below].
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`num`]            [Numeric literal, any real number value, or
+                         a __karma_lazy_argument__ that evaluates to a real
+                         number value of type `Num`]]
+    [[`Num`]            [Type of `num`: any real number type]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`lit(num)`]       [Generate the real number literal `num` using the 
+                         default formatting (no trailing zeros, `fixed` 
+                         representation for numbers `fabs(n) <= 1e5 && fabs(n) > 1e-3`,
+                         scientific representation otherwise, 3 fractional digits,
+                         sign is only printed for negative literals). This 
+                         generator never fails (unless the underlying output 
+                         stream reports an error).]]
+    [
+[``float_
+double_
+long_double``]          [Generate the real number provided by a 
+                         mandatory attribute using the default formatting (no 
+                         trailing zeros, `fixed` representation for numbers 
+                         `fabs(n) <= 1e5 && fabs(n) > 1e-3`, scientific 
+                         representation otherwise, 3 fractional digits,
+                         sign is only printed for negative literals). This 
+                         generator never fails (unless the underlying output 
+                         stream reports an error).]]
+    [
+[``float_(num)
+double_(num)
+long_double(num)``]     [Generate the real point number provided by the 
+                         immediate literal value the generator is initialized 
+                         from using the default formatting (no trailing zeros, 
+                         `fixed` representation for numbers 
+                         `fabs(n) <= 1e5 && fabs(n) > 1e-3`, scientific 
+                         representation otherwise, 3 fractional digits, sign is 
+                         only printed for negative literals). If this generator 
+                         has an associated attribute it succeeds only if 
+                         the attribute is equal to the immediate literal (unless
+                         the underlying output stream reports an error). 
+                         Otherwise this generator fails and does not generate 
+                         any output.]]
+]
+
+All generators listed in the table above (except `lit(num)`) are predefined 
+specializations of the `real_generator<Num, RealPolicies>` basic real
+number generator type described below. It is possible to directly use this
+type to create real number generators using a wide range of formatting
+options.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``real_generator<
+    Num, RealPolicies
+>()``]
+                        [Generate the real number of type `Num` 
+                         provided by a mandatory attribute using the specified 
+                         `RealPolicies`. This generator never fails 
+                         (unless the underlying output stream reports an 
+                         error).]]
+    [
+[``real_generator<
+    Num, RealPolicies
+>()(num)``]
+                        [Generate the real number of type `Num` provided by the
+                         immediate literal value the generator is initialized
+                         from  using the specified `RealPolicies`.
+                         If this generator has an associated attribute it
+                         succeeds only if the attribute is equal to the
+                         immediate literal (unless the underlying output stream
+                         reports an error).  Otherwise this generator fails and
+                         does not generate any output.]]
+]
+
+[heading Additional Requirements]
+
+The following list enumerates the requirements which must be met in order to 
+use a certain type `Num` to instantiate a `real_generator<Num, Policies>`.
+
+In order to be usable as the first template parameter for `real_generator<>` 
+the type `Num` must have defined:
+
+* comparison operators for: `<`, `<=`, `==`, `!=`, `>`, and `>=` 
+* numeric operators for: `+`, `-`, `/`, `*`, and `%`
+* functions implementing the interface and the semantics of: `std::fmod`, 
+  `std::pow`, `std::log10`, `std::lround`, `std::ltrunc`, `std::modf`, 
+  `std::floor`, and `std::ceil`. These need to be defined in a way so that they 
+  will be found using argument dependent lookup (ADL).
+* a valid specialization of the type `std::numeric_limits<Num>` allowing for 
+  numeric property inspection.
+
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`lit(num)`]       [__unused__]]
+
+    [[`float_`]         [`float`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`float_(num)`]    [`float_`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [[`double_`]        [`double`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [[`double_(num)`]   [`double`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+
+    [[`long_double`]    [`long double`, attribute is mandatory (otherwise 
+                         compilation will fail)]]
+    [[`long_double(num)`][`long double`, attribute is optional, if it is supplied, 
+                         the generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+    [
+[``real_generator<
+    Num, Policies
+>()``]                  [`Num`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [
+[``real_generator<
+    Num, Policies
+>()(num)``]             [`Num`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `num` and 
+                         succeeds only if both are equal, failing otherwise.]]
+]
+
+[note  In addition to their usual attribute of type `Num` all listed generators 
+       accept an instance of a `boost::optional<Num>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Num` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Real Number Formatting Policies]
+
+If special formatting of a real number is needed, overload 
+the policy class `real_policies<Num>` and use it as a template
+parameter to the `real_generator<>` real number generator. For instance:
+
+    // define a new real number formatting policy
+    template <typename Num>
+    struct scientific_policy : real_policies<Num>
+    {
+        // we want the numbers always to be in scientific format
+        static int floatfield(Num n) { return fmtflags::scientific; }
+    };
+
+    // define a new generator type based on the new policy
+    typedef real_generator<double, scientific_policy<double> > science_type;
+    science_type const scientific = science_type();
+
+    // use the new generator 
+    generate(sink, science_type(), 1.0);  // will output: 1.0e00
+    generate(sink, scientific, 0.1);      // will output: 1.0e-01
+
+The template parameter `Num` should be the type to be formatted using the 
+overloaded policy type. At the same time `Num` will be used as the attribute 
+type of the created real number generator.
+
+
+[heading Real Number Formatting Policy Expression Semantics]
+
+A real number formatting policy should expose the following variables and 
+functions:
+
+[table
+[[Expression][Description]]
+[   [``
+        template <typename Inserter
+          , typename OutputIterator
+          , typename Policies>
+        bool call (OutputIterator& sink, Num n
+          , Policies const& p);
+    ``]
+    [This is the main function used to generate the output for a real
+     number. It is called by the real generator in order to perform the 
+     conversion. In theory all of the work can be implemented here, but the 
+     easiest way is to use existing functionality provided by the type specified
+     by the template parameter `Inserter`. The default implementation of this
+     functions is:
+     ``
+          template <typename Inserter, typename OutputIterator
+            , typename Policies>
+          static bool
+          call (OutputIterator& sink, Num n, Policies const& p)
+          {
+              return Inserter::call_n(sink, n, p);
+          }
+     ``
+      `sink` is the output iterator to use for generation 
+
+      `n` is the real number to convert 
+
+      `p` is the instance of the policy type used to instantiate this real 
+           number generator.
+    ]]
+[   [``
+        bool force_sign(Num n);
+    ``]
+    [The default behavior is to not to require generating a sign. If the function
+     `force_sign()` returns true, then all generated numbers will have a 
+     sign (`'+'` or `'-'`, zeros will have a space instead of a sign).
+
+     `n` is the real number to output. This can be used to 
+     adjust the required behavior depending on the value of this number.]]
+[   [``
+        bool trailing_zeros(Num n);
+    ``]
+    [Return whether trailing zero digits have to be emitted in the fractional 
+     part of the output. If set, this flag instructs the real number
+     generator to emit trailing zeros up to the required precision digits (as 
+     returned by the `precision()` function).
+
+     `n` is the real number to output. This can be used to 
+     adjust the required behavior depending on the value of this number.]]
+[   [``
+        int floatfield(Num n);
+    ``]
+    [Decide, which representation type to use in the generated output.
+
+     By default all numbers having an absolute value of zero or in between 
+     `0.001` and `100000` will be generated using the fixed format, all others 
+     will be generated using the scientific representation.
+
+    The `trailing_zeros()` can be used to force the output of trailing zeros 
+    in the fractional part up to the number of digits returned by the 
+    `precision()` member function. The default is not to generate the trailing 
+    zeros.
+
+    `n` is the real number to output. This can be used to 
+          adjust the formatting flags depending on the value of 
+          this number.
+
+    The return value has to be either `fmtflags::scientific` (generate real
+    number values in scientific notation) or `fmtflags::fixed` (generate 
+    real number values in fixed-point notation).
+    ]]
+[   [``
+        unsigned precision(Num n);
+    ``]
+    [Return the maximum number of decimal digits to generate in the 
+     fractional part of the output.
+
+    `n` is the real number to output. This can be used to 
+    adjust the required precision depending on the value of this number. If 
+    the trailing zeros flag is specified the fractional part of the output will 
+    be 'filled' with zeros, if appropriate.
+
+    *Note:* If the trailing_zeros flag is not in effect additional semantics 
+          apply. See the description for the `fraction_part()` function below. 
+          Moreover, this precision will be limited to the value of 
+          `std::numeric_limits<T>::digits10 + 1`.]]
+[   [``
+        template <typename OutputIterator>
+        bool integer_part(OutputIterator& sink
+          , Num n, bool sign, bool force_sign);
+    ``]
+    [This function is called to generate the integer part of the real
+      number. 
+
+      `sink` is the output iterator to use for generation 
+
+      `n` is the absolute value of the integer part of the real
+           number to convert (always non-negative)
+
+      `sign` is the sign of the overall real number to convert.
+
+      `force_sign` is a flag indicating whether a sign has to be generated even for
+                   non-negative numbers (this is the same as has been returned
+                   from the function `force_sign()` described above)
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+[   [``
+        template <typename OutputIterator>
+        bool dot(OutputIterator& sink, Num n,
+          unsigned precision);
+    ``]
+    [This function is called to generate the decimal point.
+
+     `sink` is the output iterator to use for generation 
+
+     `n` is the fractional part of the real number to convert. Note 
+      that this number is scaled such, that it represents the number of units 
+      which correspond to the value returned from the `precision()` function 
+      earlier. I.e. a fractional part of `0.01234` is represented as `1234` 
+      when the function `precision()` returned `5`.
+
+      `precision` is the number of digits to emit as returned by the function 
+                   `precision()` described above
+
+      This is given to allow to decide, whether a decimal point has to be 
+      generated at all.
+
+      *Note:* If the `trailing_zeros` flag is not in effect additional comments 
+      apply. See the description for the `fraction_part()` function below.
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+[   [``
+        template <typename OutputIterator>
+        bool fraction_part(OutputIterator& sink, Num n
+          , unsigned adjprec, unsigned precision);
+    ``]
+    [This function is called to generate the fractional part of the number.
+
+      `sink` is the output iterator to use for generation 
+
+      `n` is the fractional part of the real number to convert. Note 
+      that this number is scaled such, that it represents the number of units 
+      which correspond to the value returned from the `precision()` function 
+      earlier. I.e. a fractional part of `0.01234` is represented as `1234` 
+      when the function `precision()` returned `5`.
+
+      `adjprec` is the corrected number of digits to emit (see note below)
+
+      `precision` is the number of digits to emit as returned by the function 
+                   `precision()` described above
+
+      *Note:* If `trailing_zeros()` returns `false` the `adjprec` 
+      parameter will have been corrected from the value the `precision()` 
+      function returned earlier (defining the maximal number of fractional 
+      digits) in the sense, that it takes into account trailing zeros. I.e. a 
+      real number `0.0123` and a value of `5` returned from 
+      `precision()` will result in:
+
+      `trailing_zeros()` returned `false`: `n` will be `123`, and `adjprec` 
+      will be `4` (as we need to print `0123`)
+
+      `trailing_zeros()` returned `true`: `n` will be `1230`, and `adjprec`
+      will be `5` (as we need to print `01230`)
+
+      The missing preceding zeros in the fractional part have to be supplied 
+      by the implementation of this policy function.
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+[   [``
+        template <typename CharEncoding, 
+            typename Tag, typename OutputIterator>
+        bool exponent(
+            OutputIterator& sink, long n);
+    ``]
+    [This function is called to generate the exponential part of the number 
+     (this is called only if the `floatfield()` function returned the 
+     `fmtflags::scientific` flag).
+
+     `sink` is the output iterator to use for generation 
+
+     `n` is the (signed) exponential part of the real number to convert. 
+
+     The template parameters `CharEncoding` and `Tag` are either of the type 
+     `unused_type` or describe the character class and conversion to be 
+     applied to any output possibly influenced by either the `lower[]` or 
+     `upper[]` directives.
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+[   [``
+        template <typename CharEncoding
+          , typename Tag, typename OutputIterator>
+        bool nan (OutputIterator& sink, Num n
+          , bool force_sign);
+    ``]
+    [This function is called whenever the number to print is a non-normal 
+     real number of type `NaN`.
+
+     `sink` is the output iterator to use for generation 
+
+     `n` is the (signed) real number to convert
+
+    `force_sign` is a flag indicating whether a sign has to be generated even for
+                 non-negative numbers (this is the same as has been returned from
+                 the function `force_sign()` described above)
+
+     The template parameters `CharEncoding` and `Tag` are either of the type 
+     `unused_type` or describe the character class and conversion to be 
+     applied to any output possibly influenced by either the `lower[]` or 
+     `upper[]` directives.
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+[   [``
+        template <typename CharEncoding
+          , typename Tag, typename OutputIterator>
+        bool inf (OutputIterator& sink, Num n
+          , bool force_sign);
+    ``]
+    [This function is called whenever the number to print is a non-normal 
+     real number of type `Inf`.
+
+     `sink` is the output iterator to use for generation 
+
+     `n` is the (signed) real number to convert
+
+    `force_sign` is a flag indicating whether a sign has to be generated even for
+                 non-negative numbers (this is the same as has been returned from
+                 the function `force_sign()` described above)
+
+     The template parameters `CharEncoding` and `Tag` are either of the type 
+     `unused_type` or describe the character class and conversion to be 
+      applied to any output possibly influenced by either the `lower[]` or 
+      `upper[]` directives.
+
+      The return value defines the outcome of the whole generator. If it is 
+      `false`, no further output is generated, immediately returning `false` from 
+      the calling `real_generator` as well. If it is `true`, normal output 
+      generation continues.]]
+]
+
+[tip  The easiest way to implement a proper real number formatting policy is 
+      to derive a new type from the the type `real_policies<>` while overriding 
+      the aspects of the formatting which need to be changed.]
+
+
+[heading Complexity]
+
+[:O(N), where `N` is the number of digits needed to represent the generated 
+        real number.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_real]
+
+Basic usage of an `double_` generator:
+
+[reference_karma_real]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:boolean Boolean Generators (`bool_`)]
+
+[heading Description]
+
+As you might expect, the `bool_generator` can generate output from boolean 
+values. The `bool_generator` generator can be used to generate output from 
+ordinary primitive C/C++ `bool` values or user defined boolean types if 
+the type follows certain expression requirements (for more information about 
+the requirements, see 
+[link spirit.karma.reference.numeric.boolean.additional_requirements below])). 
+The `bool_generator` is a template class. Template parameters fine tune its 
+behavior. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/numeric/bool.hpp>
+    #include <boost/spirit/include/karma_bool.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit           // alias: boost::spirit::karma::lit`]]
+    [[`boost::spirit::bool_         // alias: boost::spirit::karma::bool_`]]
+    [[`boost::spirit::true_         // alias: boost::spirit::karma::true_`]]
+    [[`boost::spirit::false_        // alias: boost::spirit::karma::false_`]]
+]
+
+[note `lit` is reused by the [karma_string String Generators], the
+      __karma_char__, and the Numeric Generators. In 
+      general, a char generator is created when you pass in a
+      character, a string generator is created when you pass in a string, and a 
+      numeric generator is created when you use a numeric (boolean) literal.] 
+
+[heading Synopsis]
+
+    template <
+        typename B
+      , unsigned Policies>
+    struct bool_generator;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`B`]          [The boolean base type of the 
+                     boolean generator.]                [`bool`]]
+    [[`Policies`]   [The policies to use while 
+                     converting the boolean.]           [`bool_policies<B>`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`b`]              [Boolean literal, or a __karma_lazy_argument__ that 
+                         evaluates to a boolean value of type `B`]]
+    [[`B`]              [Type of `b`: any type usable as a boolean, or in case
+                         of a __karma_lazy_argument__, its return value]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`lit(b)`]         [Generate the boolean literal `b` using the default
+                         formatting (`false` is generated as `"false"`, and 
+                         `true` is generated as `"true"`). This generator never 
+                         fails (unless the underlying output stream reports an error).]]
+    [[`bool_`]          [Generate the boolean value provided by a mandatory 
+                         attribute using the default formatting (`false` is 
+                         generated as `"false"`, and `true` is generated as 
+                         `"true"`). This generator never fails (unless the 
+                         underlying output stream reports an error).]]
+    [[`bool_(b)`]       [Generate the boolean value provided by the 
+                         immediate literal value the generator is initialized 
+                         from using the default formatting (`false` is 
+                         generated as `"false"`, and `true` is generated as 
+                         `"true"`). If this generator has an associated 
+                         attribute it succeeds only if the attribute 
+                         is equal to the immediate literal (unless the 
+                         underlying output stream reports an error). Otherwise 
+                         this generator fails and does not generate any output.]]
+    [[`true_`]          [Generate `"true"`. If this generator has an associated 
+                         attribute it succeeds only if the attribute 
+                         is `true` as well (unless the underlying output stream 
+                         reports an error).]]
+    [[`false_`]         [Generate `"false"`. If this generator has an associated 
+                         attribute it succeeds only if the attribute 
+                         is `false` as well (unless the underlying output stream 
+                         reports an error).]]
+]
+
+All generators listed in the table above (except `lit(num)`) are predefined 
+specializations of the `bool_generator<B, Policies>` basic boolean generator 
+type described below. It is possible to directly use this type to create 
+boolean generators using a wide range of formatting options.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``bool_generator<
+    B, Policies
+>()``]                  [Generate the boolean of type `B` provided 
+                         by a mandatory attribute using the specified `Policies` 
+                         This generator never fails (unless the underlying 
+                         output stream reports an error).]]
+    [
+[``bool_generator<
+    B, Policies
+>()(b)``]               [Generate the boolean of type `B` provided 
+                         by the immediate literal value the generator is 
+                         initialized from, using the specified `Policies`. If 
+                         this generator has an associated attribute it succeeds 
+                         only if the attribute is equal to the 
+                         immediate literal (unless the underlying output 
+                         stream reports an error). Otherwise this generator 
+                         fails and does not generate any output.]]
+]
+
+[note   All boolean generators properly respect the [karma_upperlower `upper`]
+        and [karma_upperlower `lower`] directives.]
+
+[heading Additional Requirements]
+
+The following lists enumerate the requirements which must be met in order to 
+use a certain type `B` to instantiate and use a `bool_generator<B, Policies>`.
+
+The type `B`:
+
+* must be (safely) convertible to `bool`
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`bool_(b)`]       [__unused__]]
+    [[`bool_`]          [`bool`, attribute is mandatory (otherwise 
+                         compilation will fail)]]
+    [[`bool_(b)`]       [`bool`, attribute is optional, if it is 
+                         supplied, the generator compares the attribute with 
+                         `b` and succeeds only if both are equal, failing 
+                         otherwise.]]
+
+    [
+[``bool_generator<
+    B, Policies
+>()``]                  [`B`, attribute is mandatory (otherwise compilation 
+                         will fail)]]
+    [
+[``bool_generator<
+    B, Policies
+>()(b)``]               [`B`, attribute is optional, if it is supplied, the 
+                         generator compares the attribute with `b` and 
+                         succeeds only if both are equal, failing otherwise.]]
+]
+
+[note  In addition to their usual attribute of type `B` all listed generators 
+       accept an instance of a `boost::optional<B>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `B` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Boolean Formatting Policies]
+
+If special formatting of a boolean is needed, overload 
+the policy class `bool_policies<B>` and use it as a template
+parameter to the `bool_generator<>` boolean generator. For instance:
+
+    struct special_bool_policy : karma::bool_policies<>
+    {
+        template <typename CharEncoding, typename Tag
+          , typename OutputIterator>
+        static bool generate_false(OutputIterator& sink, bool b)
+        {
+            // we want to spell the names of false as eurt (true backwards)
+            return string_inserter<CharEncoding, Tag>::call(sink, "eurt");
+        }
+    };
+
+    typedef karma::bool_generator<special_bool_policy> backwards_bool_type;
+    backwards_bool_type const backwards_bool;
+
+    karma::generate(sink, backwards_bool, true);    // will output: true
+    karma::generate(sink, backwards_bool(false));   // will output: uert
+
+The template parameter `B` should be the type to be formatted using the 
+overloaded policy type. At the same time `B` will be used as the attribute 
+type of the created real number generator. The default for `B` is `bool`.
+
+
+[heading Boolean Formatting Policy Expression Semantics]
+
+A boolean formatting policy should expose the following:
+
+[table
+[[Expression][Description]]
+[   [``
+        template <typename Inserter
+          , typename OutputIterator
+          , typename Policies>
+        bool call (OutputIterator& sink, Num n
+          , Policies const& p);
+    ``]
+    [This is the main function used to generate the output for a boolean.
+     It is called by the boolean generator in order to perform the 
+     conversion. In theory all of the work can be implemented here, but the 
+     easiest way is to use existing functionality provided by the type specified
+     by the template parameter `Inserter`. The default implementation of this
+     functions is:
+     ``
+          template <typename Inserter, typename OutputIterator
+            , typename Policies>
+          static bool
+          call (OutputIterator& sink, B b, Policies const& p)
+          {
+              return Inserter::call_n(sink, b, p);
+          }
+     ``
+      `sink` is the output iterator to use for generation 
+
+      `b` is the boolean to convert 
+
+      `p` is the instance of the policy type used to instantiate this real 
+           number generator.
+    ]]
+[   [``
+        template <typename CharEncoding, 
+            typename Tag, typename OutputIterator>
+        bool generate_false(
+            OutputIterator& sink, B b);
+    ``]
+    [This function is called to generate the boolean if it is `false`.
+
+     `sink` is the output iterator to use for generation 
+
+     `b` is the boolean to convert (the value is `false`). 
+
+     The template parameters `CharEncoding` and `Tag` are either of the type 
+     `unused_type` or describe the character class and conversion to be 
+     applied to any output possibly influenced by either the `lower[]` or 
+     `upper[]` directives.
+
+      The return value defines the outcome of the whole generator. ]]
+[   [``
+        template <typename CharEncoding, 
+            typename Tag, typename OutputIterator>
+        bool generate_true(
+            OutputIterator& sink, B b);
+    ``]
+    [This function is called to generate the boolean if it is `true`.
+
+     `sink` is the output iterator to use for generation 
+
+     `b` is the boolean to convert (the value is `true`). 
+
+     The template parameters `CharEncoding` and `Tag` are either of the type 
+     `unused_type` or describe the character class and conversion to be 
+     applied to any output possibly influenced by either the `lower[]` or 
+     `upper[]` directives.
+
+      The return value defines the outcome of the whole generator. ]]
+]
+
+[heading Complexity]
+
+[:O(N), where `N` is the number of characters needed to represent the generated 
+ boolean.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_bool]
+
+Basic usage of an `bool_` generator:
+
+[reference_karma_bool]
+
+[endsect]
+
+[endsect]

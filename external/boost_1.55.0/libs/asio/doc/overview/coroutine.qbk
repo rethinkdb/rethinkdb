@@ -1,0 +1,51 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:coroutine Stackless Coroutines]
+
+The [link boost_asio.reference.coroutine `coroutine`] class provides support for
+stackless coroutines. Stackless coroutines enable programs to implement
+asynchronous logic in a synchronous manner, with minimal overhead, as shown in
+the following example:
+
+  struct session : boost::asio::coroutine
+  {
+    boost::shared_ptr<tcp::socket> socket_;
+    boost::shared_ptr<std::vector<char> > buffer_;
+
+    session(boost::shared_ptr<tcp::socket> socket)
+      : socket_(socket),
+        buffer_(new std::vector<char>(1024))
+    {
+    }
+
+    void operator()(boost::system::error_code ec = boost::system::error_code(), std::size_t n = 0)
+    {
+      if (!ec) reenter (this)
+      {
+        for (;;)
+        {
+          yield socket_->async_read_some(boost::asio::buffer(*buffer_), *this);
+          yield boost::asio::async_write(*socket_, boost::asio::buffer(*buffer_, n), *this);
+        }
+      }
+    }
+  };
+
+The `coroutine` class is used in conjunction with the pseudo-keywords
+`reenter`, `yield` and `fork`. These are preprocessor macros, and are
+implemented in terms of a `switch` statement using a technique similar to
+Duff's Device. The [link boost_asio.reference.coroutine `coroutine`] class's
+documentation provides a complete description of these pseudo-keywords.
+
+[heading See Also]
+
+[link boost_asio.reference.coroutine coroutine],
+[link boost_asio.examples.cpp03_examples.http_server_4 HTTP Server 4 example],
+[link boost_asio.overview.core.spawn Stackful Coroutines].
+
+[endsect]

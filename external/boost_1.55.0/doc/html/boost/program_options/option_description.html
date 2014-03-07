@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class option_description</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../program_options/reference.html#header.boost.program_options.options_description_hpp" title="Header &lt;boost/program_options/options_description.hpp&gt;">
+<link rel="prev" href="basic_option.html" title="Class template basic_option">
+<link rel="next" href="options_descri_idp94227496.html" title="Class options_description_easy_init">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_option.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.options_description_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="options_descri_idp94227496.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.program_options.option_description"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class option_description</span></h2>
+<p>boost::program_options::option_description</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../program_options/reference.html#header.boost.program_options.options_description_hpp" title="Header &lt;boost/program_options/options_description.hpp&gt;">boost/program_options/options_description.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="option_description.html" title="Class option_description">option_description</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="keyword">enum</span> <a name="boost.program_options.option_description.match_result"></a>match_result <span class="special">{</span> no_match, full_match, approximate_match <span class="special">}</span><span class="special">;</span>
+  <span class="comment">// <a class="link" href="option_description.html#boost.program_options.option_descriptionconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="option_description.html#idp102461960-bb"><span class="identifier">option_description</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="option_description.html#idp102462024-bb"><span class="identifier">option_description</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="option_description.html#idp101292648-bb"><span class="identifier">option_description</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">*</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="option_description.html#idp94226408-bb"><span class="special">~</span><span class="identifier">option_description</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="option_description.html#idp102838536-bb">public member functions</a></span>
+  <span class="identifier">match_result</span> <a class="link" href="option_description.html#idp102264952-bb"><span class="identifier">match</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a class="link" href="option_description.html#idp101436280-bb"><span class="identifier">key</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="option_description.html#idp102017144-bb"><span class="identifier">canonical_display_name</span></a><span class="special">(</span><span class="keyword">int</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a class="link" href="option_description.html#idp102018648-bb"><span class="identifier">long_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a class="link" href="option_description.html#idp102019064-bb"><span class="identifier">description</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">&gt;</span> <a class="link" href="option_description.html#idp102459912-bb"><span class="identifier">semantic</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="option_description.html#idp102460648-bb"><span class="identifier">format_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="option_description.html#idp102461256-bb"><span class="identifier">format_parameter</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="option_description.html#idp94226472-bb">private member functions</a></span>
+  <a class="link" href="option_description.html" title="Class option_description">option_description</a> <span class="special">&amp;</span> <a class="link" href="option_description.html#idp94226648-bb"><span class="identifier">set_name</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp164307848"></a><h2>Description</h2>
+<p>Describes one possible command line/config file option. There are two kinds of properties of an option. First describe it syntactically and are used only to validate input. Second affect interpretation of the option, for example default value for it or function that should be called when the value is finally known. Routines which perform parsing never use second kind of properties <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> they are side effect free. </p>
+<p><span class="bold"><strong>See Also:</strong></span></p>
+<p><a class="link" href="options_description.html" title="Class options_description">options_description</a> </p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp164309736"></a><h3>
+<a name="boost.program_options.option_descriptionconstruct-copy-destruct"></a><code class="computeroutput">option_description</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp102461960-bb"></a><span class="identifier">option_description</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp102462024-bb"></a><span class="identifier">option_description</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p>Initializes the object with the passed data.</p>
+<p>Note: it would be nice to make the second parameter auto_ptr, to explicitly pass ownership. Unfortunately, it's often needed to create objects of types derived from '<code class="computeroutput"><a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a></code>': <code class="computeroutput"><a class="link" href="options_description.html" title="Class options_description">options_description</a></code> d; d.add_options()("a", parameter&lt;int&gt;("n")-&gt;default_value(1)); Here, the static type returned by 'parameter' should be derived from <code class="computeroutput"><a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a></code>.</p>
+<p>Alas, derived-&gt;base conversion for auto_ptr does not really work, see <a href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2000/n1232.pdf" target="_top">http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2000/n1232.pdf</a> <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/cwg_defects.html#84" target="_top">http://std.dkuug.dk/jtc1/sc22/wg21/docs/cwg_defects.html#84</a></p>
+<p>So, we have to use plain old pointers. Besides, users are not expected to use the constructor directly.</p>
+<p>The 'name' parameter is interpreted by the following rules:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>if there's no "," character in 'name', it specifies long name</p></li>
+<li class="listitem"><p>otherwise, the part before "," specifies long name and the part after <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> short name. </p></li>
+</ul></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp101292648-bb"></a><span class="identifier">option_description</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">*</span> s<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> description<span class="special">)</span><span class="special">;</span></pre>
+<p>Initializes the class with the passed data. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp94226408-bb"></a><span class="special">~</span><span class="identifier">option_description</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp164329816"></a><h3>
+<a name="idp102838536-bb"></a><code class="computeroutput">option_description</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">match_result</span> 
+<a name="idp102264952-bb"></a><span class="identifier">match</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> option<span class="special">,</span> <span class="keyword">bool</span> approx<span class="special">,</span> <span class="keyword">bool</span> long_ignore_case<span class="special">,</span> 
+      <span class="keyword">bool</span> short_ignore_case<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Given 'option', specified in the input source, returns 'true' if 'option' specifies *this. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a name="idp101436280-bb"></a><span class="identifier">key</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> option<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the key that should identify the option, in particular in the <code class="computeroutput"><a class="link" href="variables_map.html" title="Class variables_map">variables_map</a></code> class. The 'option' parameter is the option spelling from the input source. If option name contains '*', returns 'option'. If long name was specified, it's the long name, otherwise it's a short name with prepended '-'. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp102017144-bb"></a><span class="identifier">canonical_display_name</span><span class="special">(</span><span class="keyword">int</span> canonical_option_style <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the canonical name for the option description to enable the user to recognised a matching option. 1) For short options ('-', '/'), returns the short name prefixed. 2) For long options ('<span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span>' / '-') returns the long name prefixed 3) All other cases, returns the long name (if present) or the short name, unprefixed. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a name="idp102018648-bb"></a><span class="identifier">long_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <a name="idp102019064-bb"></a><span class="identifier">description</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Explanation of this option. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="keyword">const</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">&gt;</span> <a name="idp102459912-bb"></a><span class="identifier">semantic</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Semantic of option's value. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp102460648-bb"></a><span class="identifier">format_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the option name, formatted suitably for usage message. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp102461256-bb"></a><span class="identifier">format_parameter</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the parameter name and properties, formatted suitably for usage message. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp164365224"></a><h3>
+<a name="idp94226472-bb"></a><code class="computeroutput">option_description</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a class="link" href="option_description.html" title="Class option_description">option_description</a> <span class="special">&amp;</span> <a name="idp94226648-bb"></a><span class="identifier">set_name</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_option.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.options_description_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="options_descri_idp94227496.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

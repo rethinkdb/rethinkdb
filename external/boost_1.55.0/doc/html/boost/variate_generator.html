@@ -1,0 +1,128 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template variate_generator</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_random/reference.html#header.boost.random.variate_generator_hpp" title="Header &lt;boost/random/variate_generator.hpp&gt;">
+<link rel="prev" href="random/uniform_smallint/param_type.html" title="Class param_type">
+<link rel="next" href="random/weibull_distribution.html" title="Class template weibull_distribution">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="random/uniform_smallint/param_type.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_random/reference.html#header.boost.random.variate_generator_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random/weibull_distribution.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.variate_generator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template variate_generator</span></h2>
+<p>boost::variate_generator</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../boost_random/reference.html#header.boost.random.variate_generator_hpp" title="Header &lt;boost/random/variate_generator.hpp&gt;">boost/random/variate_generator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Engine<span class="special">,</span> <span class="keyword">typename</span> Distribution<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="variate_generator.html" title="Class template variate_generator">variate_generator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">helper_type</span><span class="special">::</span><span class="identifier">value_type</span>   <a name="boost.variate_generator.engine_value_type"></a><span class="identifier">engine_value_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">Engine</span>                    <a name="boost.variate_generator.engine_type"></a><span class="identifier">engine_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">Distribution</span>              <a name="boost.variate_generator.distribution_type"></a><span class="identifier">distribution_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">Distribution</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.variate_generator.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>      
+
+  <span class="comment">// <a class="link" href="variate_generator.html#boost.variate_generatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="variate_generator.html#idp54654168-bb"><span class="identifier">variate_generator</span></a><span class="special">(</span><span class="identifier">Engine</span><span class="special">,</span> <span class="identifier">Distribution</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="variate_generator.html#idp34609896-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="variate_generator.html#idp34610104-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="variate_generator.html#idp34610808-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">engine_value_type</span> <span class="special">&amp;</span> <a class="link" href="variate_generator.html#idp34612328-bb"><span class="identifier">engine</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">engine_value_type</span> <span class="special">&amp;</span> <a class="link" href="variate_generator.html#idp34613048-bb"><span class="identifier">engine</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">distribution_type</span> <span class="special">&amp;</span> <a class="link" href="variate_generator.html#idp21148984-bb"><span class="identifier">distribution</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">distribution_type</span> <span class="special">&amp;</span> <a class="link" href="variate_generator.html#idp21150136-bb"><span class="identifier">distribution</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="variate_generator.html#idp19350200-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="variate_generator.html#idp54653256-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp200192152"></a><h2>Description</h2>
+<p>A random variate generator is used to join a random number generator together with a random number distribution. Boost.Random provides a vast choice of <a class="link" href="../boost_random/reference.html#boost_random.reference.generators" title="Generators">generators</a>  as well as <a class="link" href="../boost_random/reference.html#boost_random.reference.distributions" title="Distributions">distributions</a> .</p>
+<p>The argument for the template parameter Engine shall be of the form U, U&amp;, or U*, where U models a  <a class="link" href="../boost_random/reference.html#boost_random.reference.concepts.uniform_random_number_generator" title="Uniform Random Number Generator">uniform random number generator</a> . Then, the member engine_value_type names U (not the pointer or reference to U).</p>
+<p>Specializations of <code class="computeroutput"><a class="link" href="variate_generator.html" title="Class template variate_generator">variate_generator</a></code> satisfy the requirements of CopyConstructible. They also satisfy the requirements of Assignable unless the template parameter Engine is of the form U&amp;.</p>
+<p>The complexity of all functions specified in this section is constant. No function described in this section except the constructor throws an exception. </p>
+<div class="refsect2">
+<a name="idp200195912"></a><h3>
+<a name="boost.variate_generatorconstruct-copy-destruct"></a><code class="computeroutput">variate_generator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp54654168-bb"></a><span class="identifier">variate_generator</span><span class="special">(</span><span class="identifier">Engine</span> e<span class="special">,</span> <span class="identifier">Distribution</span> d<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="variate_generator.html" title="Class template variate_generator">variate_generator</a></code></code> object with the associated  <a class="link" href="../boost_random/reference.html#boost_random.reference.concepts.uniform_random_number_generator" title="Uniform Random Number Generator">uniform random number generator</a>  eng and the associated  <a class="link" href="../boost_random/reference.html#boost_random.reference.concepts.random_distribution" title="Random Distribution">random distribution</a>  d.</p>
+<p>Throws: If and what the copy constructor of Engine or Distribution throws. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp200202088"></a><h3>
+<a name="idp34609896-bb"></a><code class="computeroutput">variate_generator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp34610104-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns: distribution()(engine()) </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp34610808-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns: distribution()(engine(), value). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">engine_value_type</span> <span class="special">&amp;</span> <a name="idp34612328-bb"></a><span class="identifier">engine</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns: A reference to the associated uniform random number generator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">engine_value_type</span> <span class="special">&amp;</span> <a name="idp34613048-bb"></a><span class="identifier">engine</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: A reference to the associated uniform random number generator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">distribution_type</span> <span class="special">&amp;</span> <a name="idp21148984-bb"></a><span class="identifier">distribution</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns: A reference to the associated <a class="link" href="../boost_random/reference.html#boost_random.reference.concepts.random_distribution" title="Random Distribution">random distribution</a> . </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">distribution_type</span> <span class="special">&amp;</span> <a name="idp21150136-bb"></a><span class="identifier">distribution</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: A reference to the associated random distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp19350200-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Precondition: distribution().min() is well-formed</p>
+<p>Returns: distribution().min() </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp54653256-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Precondition: distribution().max() is well-formed</p>
+<p>Returns: distribution().max() </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="random/uniform_smallint/param_type.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_random/reference.html#header.boost.random.variate_generator_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random/weibull_distribution.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

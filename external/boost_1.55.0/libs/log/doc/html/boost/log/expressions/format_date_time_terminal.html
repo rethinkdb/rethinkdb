@@ -1,0 +1,102 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template format_date_time_terminal</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../expressions.html#header.boost.log.expressions.formatters.date_time_hpp" title="Header &lt;boost/log/expressions/formatters/date_time.hpp&gt;">
+<link rel="prev" href="make_csv_decor.html" title="Function template make_csv_decor">
+<link rel="next" href="format_date_time_actor.html" title="Class template format_date_time_actor">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_csv_decor.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.date_time_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="format_date_time_actor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.expressions.format_date_time_terminal"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template format_date_time_terminal</span></h2>
+<p>boost::log::expressions::format_date_time_terminal</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../expressions.html#header.boost.log.expressions.formatters.date_time_hpp" title="Header &lt;boost/log/expressions/formatters/date_time.hpp&gt;">boost/log/expressions/formatters/date_time.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="format_date_time_terminal.html" title="Class template format_date_time_terminal">format_date_time_terminal</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">void</span>                                  <a name="boost.log.expressions.format_date_time_terminal._is_boost_log_terminal"></a><span class="identifier">_is_boost_log_terminal</span><span class="special">;</span>   <span class="comment">// Internal typedef for type categorization. </span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span>                                     <a name="boost.log.expressions.format_date_time_terminal.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>               <span class="comment">// Attribute value type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">FallbackPolicyT</span>                       <a name="boost.log.expressions.format_date_time_terminal.fallback_policy"></a><span class="identifier">fallback_policy</span><span class="special">;</span>          <span class="comment">// Fallback policy. </span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                 <a name="boost.log.expressions.format_date_time_terminal.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>                <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>        <a name="boost.log.expressions.format_date_time_terminal.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>              <span class="comment">// String type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">basic_formatting_ostream</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <a name="boost.log.expressions.format_date_time_terminal.stream_type"></a><span class="identifier">stream_type</span><span class="special">;</span>              <span class="comment">// Formatting stream type. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                           <a name="boost.log.expressions.format_date_time_terminal.formatter_function_type"></a><span class="identifier">formatter_function_type</span><span class="special">;</span>  <span class="comment">// Formatter function. </span>
+  <span class="keyword">typedef</span> <span class="identifier">string_type</span>                           <a name="boost.log.expressions.format_date_time_terminal.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>              <span class="comment">// Function result type. </span>
+
+  <span class="comment">// <a class="link" href="format_date_time_terminal.html#boost.log.expressions.format_date_time_terminalconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="format_date_time_terminal.html#idp26363896-bb"><span class="identifier">format_date_time_terminal</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                            <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="format_date_time_terminal.html#idp26365176-bb"><span class="identifier">format_date_time_terminal</span></a><span class="special">(</span><a class="link" href="format_date_time_terminal.html" title="Class template format_date_time_terminal">format_date_time_terminal</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="format_date_time_terminal.html#idp26365896-bb"><span class="identifier">format_date_time_terminal</span></a><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="format_date_time_terminal.html#idp26358968-bb">public member functions</a></span>
+  <span class="identifier">attribute_name</span> <a class="link" href="format_date_time_terminal.html#idp26359176-bb"><span class="identifier">get_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="format_date_time_terminal.html#idp26359800-bb"><span class="identifier">get_fallback_policy</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">formatter_function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="format_date_time_terminal.html#idp26360456-bb"><span class="identifier">get_formatter_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="format_date_time_terminal.html#idp26361112-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="format_date_time_terminal.html#idp26362504-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp58759352"></a><h2>Description</h2>
+<p>Date and time formatter terminal. </p>
+<div class="refsect2">
+<a name="idp58759736"></a><h3>
+<a name="boost.log.expressions.format_date_time_terminalconstruct-copy-destruct"></a><code class="computeroutput">format_date_time_terminal</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp26363896-bb"></a><span class="identifier">format_date_time_terminal</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> 
+                          <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> fallback<span class="special">,</span> 
+                          <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> format<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp26365176-bb"></a><span class="identifier">format_date_time_terminal</span><span class="special">(</span><a class="link" href="format_date_time_terminal.html" title="Class template format_date_time_terminal">format_date_time_terminal</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>Copy constructor. </li>
+<li class="listitem"><pre class="literallayout"><a name="idp26365896-bb"></a><span class="identifier">format_date_time_terminal</span><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp58772008"></a><h3>
+<a name="idp26358968-bb"></a><code class="computeroutput">format_date_time_terminal</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_name</span> <a name="idp26359176-bb"></a><span class="identifier">get_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns attribute name. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp26359800-bb"></a><span class="identifier">get_fallback_policy</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns fallback policy. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">formatter_function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp26360456-bb"></a><span class="identifier">get_formatter_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Retruns formatter function. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp26361112-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span> ctx<span class="special">)</span><span class="special">;</span></pre>Invokation operator. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp26362504-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span> ctx<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Invokation operator. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_csv_decor.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.date_time_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="format_date_time_actor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

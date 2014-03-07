@@ -1,0 +1,174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Cloning Boost.Intrusive containers</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="erasing_and_disposing.html" title="Erasing and disposing values from Boost.Intrusive containers">
+<link rel="next" href="function_hooks.html" title="Using function hooks">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="erasing_and_disposing.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_hooks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.clone_from"></a><a class="link" href="clone_from.html" title="Cloning Boost.Intrusive containers">Cloning Boost.Intrusive containers</a>
+</h2></div></div></div>
+<p>
+      As previously mentioned, <span class="bold"><strong>Boost.Intrusive</strong></span> containers
+      are <span class="bold"><strong>non-copyable and non-assignable</strong></span>, because
+      intrusive containers don't allocate memory at all. To implement a copy-constructor
+      or assignment operator, the user must clone one by one all the elements of
+      the container and insert them in another intrusive container. However, cloning
+      by hand is usually more inefficient than a member cloning function and a specialized
+      cloning function can offer more guarantees than the manual cloning (better
+      exception safety guarantees, for example).
+    </p>
+<p>
+      To ease the implementation of copy constructors and assignment operators of
+      classes containing <span class="bold"><strong>Boost.Intrusive</strong></span> containers,
+      all <span class="bold"><strong>Boost.Intrusive</strong></span> containers offer a special
+      cloning function called <code class="computeroutput"><span class="identifier">clone_from</span></code>.
+    </p>
+<p>
+      Apart from the container to be cloned, <code class="computeroutput"><span class="identifier">clone_from</span></code>
+      takes two function objects as arguments. For example, consider the <code class="computeroutput"><span class="identifier">clone_from</span></code> member function of <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Cloner</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Disposer</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">clone_from</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">list</span> <span class="special">&amp;</span><span class="identifier">src</span><span class="special">,</span> <span class="identifier">Cloner</span> <span class="identifier">cloner</span><span class="special">,</span> <span class="identifier">Disposer</span> <span class="identifier">disposer</span><span class="special">);</span>
+</pre>
+<p>
+      This function will make <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+      a clone of <code class="computeroutput"><span class="identifier">src</span></code>. Let's explain
+      the arguments:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The first parameter is the list to be cloned.
+        </li>
+<li class="listitem">
+          The second parameter is a function object that will clone <code class="computeroutput"><span class="identifier">value_type</span></code> objects and return a pointer
+          to the clone. It must implement the following function: <code class="computeroutput"><span class="identifier">pointer</span>
+          <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">value_type</span>
+          <span class="special">&amp;)</span></code>.
+        </li>
+<li class="listitem">
+          The second parameter is a function object that will dispose <code class="computeroutput"><span class="identifier">value_type</span></code> objects. It's used first to
+          empty the container before cloning and to dispose the elements if an exception
+          is thrown.
+        </li>
+</ul></div>
+<p>
+      The cloning function works as follows:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          First it clears and disposes all the elements from *this using the disposer
+          function object.
+        </li>
+<li class="listitem">
+          After that it starts cloning all the elements of the source container using
+          the cloner function object.
+        </li>
+<li class="listitem">
+          If any operation in the cloning function (for example, the cloner function
+          object) throws, all the constructed elements are disposed using the disposer
+          function object.
+        </li>
+</ul></div>
+<p>
+      Here is an example of <code class="computeroutput"><span class="identifier">clone_from</span></code>:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="comment">//A class that can be inserted in an intrusive list</span>
+<span class="keyword">class</span> <span class="identifier">my_class</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">my_class</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">my_class</span> <span class="special">&amp;</span><span class="identifier">b</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">int_</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">int_</span><span class="special">;</span>   <span class="special">}</span>
+
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+
+   <span class="comment">//...</span>
+<span class="special">};</span>
+
+<span class="comment">//Definition of the intrusive list</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;</span> <span class="identifier">my_class_list</span><span class="special">;</span>
+
+<span class="comment">//Cloner object function</span>
+<span class="keyword">struct</span> <span class="identifier">new_cloner</span>
+<span class="special">{</span>
+   <span class="identifier">my_class</span> <span class="special">*</span><span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">my_class</span> <span class="special">&amp;</span><span class="identifier">clone_this</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">new</span> <span class="identifier">my_class</span><span class="special">(</span><span class="identifier">clone_this</span><span class="special">);</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//The disposer object function</span>
+<span class="keyword">struct</span> <span class="identifier">delete_disposer</span>
+<span class="special">{</span>
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">my_class</span> <span class="special">*</span><span class="identifier">delete_this</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">delete</span> <span class="identifier">delete_this</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">MaxElem</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;</span> <span class="identifier">nodes</span><span class="special">(</span><span class="identifier">MaxElem</span><span class="special">);</span>
+
+   <span class="comment">//Fill all the nodes and insert them in the list</span>
+   <span class="identifier">my_class_list</span> <span class="identifier">list</span><span class="special">;</span>
+
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">].</span><span class="identifier">int_</span> <span class="special">=</span> <span class="identifier">i</span><span class="special">;</span>
+
+   <span class="identifier">list</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">nodes</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">nodes</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+   <span class="comment">//Now clone "list" using "new" and "delete" object functions</span>
+   <span class="identifier">my_class_list</span> <span class="identifier">cloned_list</span><span class="special">;</span>
+   <span class="identifier">cloned_list</span><span class="special">.</span><span class="identifier">clone_from</span><span class="special">(</span><span class="identifier">list</span><span class="special">,</span> <span class="identifier">new_cloner</span><span class="special">(),</span> <span class="identifier">delete_disposer</span><span class="special">());</span>
+
+   <span class="comment">//Test that both are equal</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">cloned_list</span> <span class="special">!=</span> <span class="identifier">list</span><span class="special">)</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Both lists are different"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="keyword">else</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Both lists are equal"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="comment">//Don't forget to free the memory from the second list</span>
+   <span class="identifier">cloned_list</span><span class="special">.</span><span class="identifier">clear_and_dispose</span><span class="special">(</span><span class="identifier">delete_disposer</span><span class="special">());</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="erasing_and_disposing.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_hooks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

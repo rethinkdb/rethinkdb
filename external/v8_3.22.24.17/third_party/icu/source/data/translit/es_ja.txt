@@ -1,0 +1,11 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: es_ja.txt
+# Generated from CLDR 
+#
+::es-es_FONIPA;
+::es_FONIPA-ja;

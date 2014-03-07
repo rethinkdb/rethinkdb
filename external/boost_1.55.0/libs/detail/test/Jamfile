@@ -1,0 +1,23 @@
+################################################################*# Jam #*#######
+#   Copyright (C) 2010 Bryce Lelbach
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+################################################################################
+
+build-project container_fwd ;
+
+project detail/test 
+  : requirements
+    <toolset>clang:<cxxflags>-Wno-unused
+    <toolset>clang:<cxxflags>-Wno-tautological-compare
+    <toolset>clang:<cxxflags>-ftemplate-depth-300
+    <toolset>gcc:<cxxflags>-ftemplate-depth-300
+    <toolset>darwin:<cxxflags>-ftemplate-depth-300
+  ;
+
+for tests in [ glob *.cpp ] {
+  run $(tests) : : : : $(tests:B) ;
+}
+
+

@@ -1,0 +1,53 @@
+Copyright (c) 1993-1994 by Xerox Corporation.  All rights reserved.
+
+THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
+OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+
+Permission is hereby granted to use or copy this program
+for any purpose,  provided the above notices are retained on all copies.
+Permission to modify the code and to distribute modified code is granted,
+provided the above notices are retained, and a notice that the code was
+modified is included with the above copyright notice.
+
+Please send bug reports to Hans-J. Boehm (Hans_Boehm@hp.com or
+boehm@acm.org).
+
+This is a string packages that uses a tree-based representation.
+See cord.h for a description of the functions provided.  Ec.h describes
+"extensible cords", which are essentially output streams that write
+to a cord.  These allow for efficient construction of cords without
+requiring a bound on the size of a cord.
+
+More details on the data structure can be found in
+
+Boehm, Atkinson, and Plass, "Ropes: An Alternative to Strings",
+Software Practice and Experience 25, 12, December 1995, pp. 1315-1330.
+
+A fundamentally similar "rope" data structure is also part of SGI's standard
+template library implementation, and its descendents, which include the
+GNU C++ library.  That uses reference counting by default.
+There is a short description of that data structure at
+http://reality.sgi.com/boehm/ropeimpl.html .  (The more official location
+http://www.sgi.com/tech/stl/ropeimpl.html is missing a figure.)
+
+All of these are descendents of the "ropes" in Xerox Cedar.
+
+de.c is a very dumb text editor that illustrates the use of cords.
+It maintains a list of file versions.  Each version is simply a
+cord representing the file contents.  Nonetheless, standard
+editing operations are efficient, even on very large files.
+(Its 3 line "user manual" can be obtained by invoking it without
+arguments.  Note that ^R^N and ^R^P move the cursor by
+almost a screen.  It does not understand tabs, which will show
+up as highlighred "I"s.  Use the UNIX "expand" program first.)
+To build the editor, type "make cord/de" in the gc directory.
+
+This package assumes an ANSI C compiler such as gcc.  It will
+not compile with an old-style K&R compiler.
+
+Note that CORD_printf iand friends use C functions with variable numbers
+of arguments in non-standard-conforming ways.  This code is known to
+break on some platforms, notably PowerPC.  It should be possible to
+build the remainder of the library (everything but cordprnt.c) on
+any platform that supports the collector.
+ 

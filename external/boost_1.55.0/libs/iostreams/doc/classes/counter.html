@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template counter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>basic_counter</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+  <DT><A href="#examples">Examples</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>basic_counter</CODE> is a <A HREF='../concepts/dual_use_filter.html'>DualUseFilter</A> which forwards data unmodified to the next filter in a chain, keeping track of the number of characters and lines it has processed. 
+</P>
+<P>
+    <CODE>basic_counter</CODE> is <A HREF='../concepts/optimally_buffered.html'>OptimallyBuffered</A> with an optimal buffer size of <CODE>0</CODE> to keep the character and line counts accurate. When a <CODE>basic_counter</CODE> is used for output, the line and character counts should exactly reflect the data which has been passed to downstream fillters. When a <CODE>basic_counter</CODE> is used for input, the character counts may deviate slightly from the number of characters that have been read from downstream the filters because of the putback buffer. The line count should exactly reflect the number of lines that have been read from downstream, except when the first character of a line is being read, in which case the line count may be off by one.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/counter.hpp"><CODE>&lt;boost/iostreams/filter/counter.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>typename</SPAN> <A CLASS='documented' HREF='#template_params'>Ch</A>&gt;
+<SPAN CLASS='keyword'>class</SPAN> <A CLASS='documented' HREF='#template_params'>basic_counter</A> {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>typedef</SPAN> Ch                                char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> [implmentation defined]  category;
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#basic_counter_ctor'>basic_counter</A>(<SPAN CLASS='keyword'>int</SPAN> first_line = <SPAN CLASS='literal'>0</SPAN>, <SPAN CLASS='keyword'>int</SPAN> first_char = <SPAN CLASS='literal'>0</SPAN>);
+    <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#lines'>lines</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#characters'>characters</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    std::streamsize <A CLASS='documented' HREF='#optimal_buffer_size'>optimal_buffer_size</A>() <SPAN CLASS='keyword'>const</SPAN>;
+};
+
+<SPAN CLASS='keyword'>typedef</SPAN> basic_counter&lt;<SPAN CLASS='keyword'>char</SPAN>&gt;     <SPAN CLASS='defined'>counter</SPAN>;
+<SPAN CLASS='keyword'>typedef</SPAN> basic_counter&lt;<SPAN CLASS='keyword'>wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>wcounter</SPAN>;
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The <A HREF='../guide/traits.html#char_type'>character type</A></TD>
+    </TR>
+</TABLE>
+
+<A NAME="basic_counter_ctor"></A>
+<H4><CODE>counter::counter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> basic_counter(<SPAN CLASS='keyword'>int</SPAN> first_line = <SPAN CLASS='literal'>0</SPAN>, <SPAN CLASS='keyword'>int</SPAN> first_char = <SPAN CLASS='literal'>0</SPAN>);</PRE>
+
+<P>Constructs a <CODE>basic_counter</CODE> with the given initial counts.</P>
+
+<A NAME="lines"></A>
+<H4><CODE>counter::lines</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>int</SPAN> lines() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns the current line count.</P>
+
+<A NAME="characters"></A>
+<H4><CODE>counter::characters</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>int</SPAN> characters() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns the current character count.</P>
+
+<A NAME="optimal_buffer_size"></A>
+<H4><CODE>counter::optimal_buffer_size</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize optimal_buffer_size() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+
+<P>Returns <CODE>0</CODE>.</P>
+
+<A NAME="examples"></A>
+<H2>Examples</H2>
+
+<P>The following example illustrates one way of obtaining the line and character counts after a <CODE>basic_counter</CODE> has been added to a filter chain: the <A HREF='filtering_stream.html'><CODE>filtering_stream</CODE></A> member function <A HREF='filtering_stream.html#component'><CODE>component</CODE></A> to obtain a pointer to <CODE>basic_counter</CODE>.</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/device/file.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/device/file.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/filter/counter.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/filter/counter.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/filtering_stream.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/filtering_stream.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    io::filtering_istream in;
+    in.push(io::counter());
+    in.push(io::file_source(<SPAN CLASS='literal'>"poem.txt"</SPAN>));
+    <SPAN CLASS='comment'>// read from in</SPAN>
+    <SPAN CLASS='keyword'>int</SPAN> lines = in.component&lt;<SPAN CLASS='literal'>0</SPAN>, counter&gt;()-&gt;lines();
+    <SPAN CLASS='keyword'>int</SPAN> characters = in.component&lt;<SPAN CLASS='literal'>0</SPAN>, counter&gt;()-&gt;characters();
+}</PRE>
+
+<P>The following example illustrates a second way of obtaining the line and character counts: add the <CODE>basic_counter</CODE> to the filter chain by referece, using <A HREF='../../../../doc/html/ref.html'><CODE>boost::ref</CODE></A>, and access the <CODE>basic_counter</CODE> directly.
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/device/file.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/device/file.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/filter/counter.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/filter/counter.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/iostreams/filtering_stream.hpp'><SPAN CLASS='literal'>&lt;boost/iostreams/filtering_stream.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF='../../../../boost/ref.hpp'><SPAN CLASS='literal'>&lt;boost/ref.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    io::counter cnt;
+    io::filtering_ostreams out;
+    out.push(boost::ref(cnt));
+    out.push(io::file_sink(<SPAN CLASS='literal'>"log.txt"</SPAN>));
+    <SPAN CLASS='comment'>// write to out</SPAN>
+    <SPAN CLASS='keyword'>int</SPAN> lines = cnt.lines();
+    <SPAN CLASS='keyword'>int</SPAN> characters = cnt.characters();
+}</PRE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

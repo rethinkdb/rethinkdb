@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.posix_time"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Posix Time</title>
+  <bridgehead renderas="sect2">Posix Time System</bridgehead>
+  <para>
+    <link linkend="posix_intro">Introduction</link> -- 
+    <link linkend="posix_ex">Usage Examples</link>
+  </para>  
+  
+  <anchor id="posix_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    Defines a non-adjusted time system with nano-second/micro-second resolution and stable calculation properties.  The nano-second resolution option uses 96 bits of underlying storage for each ptime while the micro-second resolution uses 64 bits per ptime (see <link linkend="date_time.buildinfo">Build Options</link> for details). This time system uses the Gregorian calendar to implement the date portion of the time representation. 
+  </para>
+
+  <anchor id="posix_ex" />
+  <bridgehead renderas="sect3">Usage Examples</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Example</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><link linkend="date_time.examples.time_math">Time Math</link></entry>
+	    <entry>A few simple calculations using ptime and time_durations.</entry>
+	  </row>
+	  <row>
+	    <entry><link linkend="date_time.examples.print_hours">Print Hours</link></entry>
+	    <entry>Retrieve time from clock, use a time_iterator.</entry>
+	  </row>
+	  <row>
+	    <entry><link linkend="date_time.examples.local_utc_conversion">Local to UTC Conversion</link></entry>
+	    <entry>Demonstrates a couple different ways to convert a local to UTC time including daylight savings rules.</entry>
+	  </row>
+	  <row>
+	    <entry><link linkend="date_time.examples.time_periods">Time Periods</link></entry>
+	    <entry>Some simple examples of intersection and display of time periods.</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  
+  <xi:include href="ptime_class.xml" />
+  <xi:include href="time_duration.xml" />
+  <xi:include href="time_period.xml" />
+  <xi:include href="time_iterators.xml" />
+  <!-- includes here -->
+  
+</section>
+

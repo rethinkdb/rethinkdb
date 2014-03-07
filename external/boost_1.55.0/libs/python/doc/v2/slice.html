@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta name="generator"
+ content="HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=iso-8859-1">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+  <title>Boost.Python - &lt;boost/python/slice.hpp&gt;</title>
+</head>
+<body>
+<table border="0" cellpadding="7" cellspacing="0" width="100%"
+ summary="header">
+  <tbody>
+    <tr>
+      <td valign="top" width="300">
+      <h3><a href="../../../../index.htm"><img height="86" width="277"
+ alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+      </td>
+      <td valign="top">
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">Header &lt;boost/python/slice.hpp&gt;</h2>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="page-index">
+  <dt><a href="#introduction">Introduction</a></dt>
+  <dt><a href="#classes">Classes</a></dt>
+  <dd>
+    <dl class="page-index">
+      <dt><a href="#slice-spec">Class <code>slice</code></a></dt>
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#slice-spec-synopsis">Class <code>slice</code>
+synopsis</a></dt>
+          <dt><a href="#slice-spec-ctors">Class <code>slice</code>
+constructors</a></dt>
+          <dt><a href="#slice-spec-observers">Class <code>slice</code>
+observer functions</a></dt>
+        </dl>
+      </dd>
+    </dl>
+  </dd>
+  <dt><a href="#examples">Example(s)</a></dt>
+</dl>
+<hr>
+<h2><a name="introduction"></a>Introduction</h2>
+<p>Exposes a <a href="ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a>
+for the Python <a
+ href="http://www.python.org/doc/2.3.3/api/slice-objects.html">slice</a>
+type.</p>
+<h2><a name="classes"></a>Classes</h2>
+<h3><a name="slice-spec"></a>Class <code>slice</code></h3>
+<p>Exposes the extended slicing protocol by wrapping the built-in slice
+type. The semantics of the constructors and member functions defined
+below can be fully understood by reading the <a
+ href="ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> concept
+definition. Since <code>slice</code> is publicly derived from <code><a
+ href="object.html#object-spec">object</a></code>, the public object
+interface applies to <code>slice</code> instances as well.<br>
+</p>
+<h4><a name="slice-spec-synopsis"></a>Class <code>slice</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  class slice : public object
+  {
+   public:
+      slice(); // create an empty slice, equivalent to [::]
+
+      template &lt;typename Int1, typename Int2&gt;
+      slice(Int1 start, Int2 stop);
+
+      template &lt;typename Int1, typename Int2, typename Int3&gt;
+      slice(Int1 start, Int2 stop, Int3 step);
+
+      // Access the parameters this slice was created with.
+      object start();
+      object stop();
+      object step();
+
+      // The return type of slice::get_indices()
+      template &lt;typename RandomAccessIterator&gt;
+      struct range
+      {
+          RandomAccessIterator start;
+          RandomAccessIterator stop;
+          int step;
+      };
+
+      template &lt;typename RandomAccessIterator&gt;
+      range&lt;RandomAccessIterator&gt;
+      get_indices(
+          RandomAccessIterator const&amp; begin, 
+          RandomAccessIterator const&amp; end);
+  };
+}}
+</pre>
+<h4><a name="slice-spec-ctors"></a>Class <code>slice</code>
+constructors<br>
+</h4>
+<pre>slice();<br></pre>
+<dl class="function-semantics">
+  <dt><b>Effects:</b> constructs a <code>slice</code> with default stop, start, and
+step values.&nbsp; Equivalent to the slice object created as part of the Python
+expression <code>base[::].</code></dt>
+  <dt><b>Throws:</b> nothing.</dt>
+</dl>
+<pre>
+template &lt;typename Int1, typename Int2&gt;
+slice(Int1 start, Int2 stop);
+</pre>
+<dl class="function-semantics">
+  <dt><b>Requires:</b> <code>start</code>, <code>stop</code>, and <code>step</code>
+    are of type <code><a href="object.html#slice_nil-spec">slice_nil</a></code> 
+    or convertible to type <code>object</code>.</dt>
+  <dt><b>Effects:</b> constructs a new slice with default step value
+and the provided start and stop values.&nbsp; Equivalent to the slice
+object
+created by the built-in Python function <code><a
+ href="http://www.python.org/doc/current/lib/built-in-funcs.html#12h-62">slice(start,stop)</a></code>,
+or as part of the Python expression <code>base[start:stop]</code>.</dt>
+  <dt><b>Throws:</b> <code>error_already_set</code> and sets a Python <code>TypeError</code>
+exception if no conversion is possible from the arguments to type <code>object</code>.</dt>
+</dl>
+<pre>
+template &lt;typename Int1, typename Int2, typename Int3&gt;
+slice(Int1 start, Int2 stop, Int3 step);
+</pre>
+  <dt><b>Requires:</b> <code>start</code>, <code>stop</code>, and <code>step</code> are <code>slice_nil</code> or convertible to type <code>object</code>.</dt>
+  <dt><b>Effects:</b> constructs a new slice with start stop and step
+values.&nbsp; Equivalent to the slice object created
+by the built-in Python function <code><a
+ href="http://www.python.org/doc/current/lib/built-in-funcs.html">slice(start,stop,step)</a></code>,
+or as part of the Python expression <code>base[start:stop:step]</code>.</dt>
+  <dt><b>Throws:</b> <code>error_already_set</code> and sets a Python <code>TypeError</code>
+exception if no conversion is possible from the arguments to type
+object.</dt>
+<h4><a name="slice-spec-observers"></a>Class <code>slice</code>
+observer functions<br>
+</h4>
+<pre>
+object slice::start() const;
+object slice::stop() const;
+object slice::step() const;
+</pre>
+<dl class="function-semantics">
+  <dt><b>Effects:</b> None.</dt>
+  <dt><b>Throws:</b> nothing.</dt>
+  <dt><b>Returns:</b>the parameter that
+the slice was created with.&nbsp;If the parameter was omitted or
+slice_nil was used when the slice was created, than that parameter will
+be a reference to PyNone and compare equal to a default-constructed
+object.&nbsp; In principal, any object may be used when creating a
+slice object, but in practice they are usually integers.</dt>
+</dl>
+<br>
+<pre>
+template &lt;typename RandomAccessIterator&gt;
+slice::range&lt;RandomAccessIterator&gt;
+slice::get_indices( 
+    RandomAccessIterator const&amp; begin, 
+    RandomAccessIterator const&amp; end) const;
+</pre>
+<dl class="function-semantics">
+  <dt><b>Arguments:</b> A pair of STL-conforming Random Access
+Iterators that form a half-open range.</dt>
+  <dt><b>Effects:</b> Create a RandomAccessIterator pair that defines a
+fully-closed range within the [begin,end) range of its arguments.&nbsp;
+This function translates this slice's indices while accounting for the
+effects of any PyNone or negative indices, and non-singular step sizes.</dt>
+  <dt><b>Returns:</b> a slice::range
+that has been initialized with a non-zero value of step and a pair of
+RandomAccessIterators that point within the range of this functions
+arguments and define a closed interval.</dt>
+  <dt><b>Throws:</b> <a href="definitions.html#raise">Raises</a> a Python <code>TypeError</code> exception if any of this slice's arguments
+are neither references to <code>PyNone</code> nor convertible to <code>int</code>.&nbsp; Throws
+<code>std::invalid_argument</code> if the resulting range would be empty.&nbsp; You
+should always wrap calls to <code>slice::get_indices()</code>
+within <code>try { ...; } catch (std::invalid_argument) {}</code> to
+handle this case and take appropriate action.</dt>
+  <dt><b>Rationale</b>: closed-interval: If
+an open interval were used, then for step
+size other than 1, the required state for the end iterator would point
+beyond the one-past-the-end position or before the beginning of the
+specified range.<br>
+exceptions on empty slice: It is impossible to define a closed interval
+over an empty range, so some other form of error checking would have to
+be used to prevent undefined behavior.&nbsp;In the case where the
+exception is not caught, it will simply be translated to Python by the
+default exception handling mechanisms. </dt>
+</dl>
+<h2><a name="examples"></a><b>Examples</b></h2>
+<pre>
+using namespace boost::python;
+
+// Perform an extended slice of a Python list.
+// Warning: extended slicing was not supported for built-in types prior 
+// to Python 2.3
+list odd_elements(list l)
+{
+    return l[slice(_,_,2)];
+}
+
+// Perform a multidimensional extended slice of a Numeric.array
+numeric::array even_columns(numeric::array arr)
+{
+    // select every other column, starting with the second, of a 2-D array.
+    // Equivalent to "return arr[:, 1::2]" in Python.
+    return arr[make_tuple( slice(), slice(1,_,2))];
+}
+
+// Perform a summation over a slice of a std::vector.
+double partial_sum(std::vector&lt;double&gt; const&amp; Foo, const slice index)
+{
+    slice::range&lt;std::vector&lt;double&gt;::const_iterator&gt; bounds;
+    try {
+        bounds = index.get_indices&lt;&gt;(Foo.begin(), Foo.end());
+    }
+    catch (std::invalid_argument) {
+        return 0.0;
+    }
+    double sum = 0.0;
+    while (bounds.start != bounds.stop) {
+        sum += *bounds.start;
+        std::advance( bounds.start, bounds.step);
+    }
+    sum += *bounds.start;
+    return sum;
+}
+</pre>
+<p>Revised 07 Febuary, 2004</p>
+<p><i>&copy; Copyright <a
+ href="mailto:jbrandmeyer@users.sourceforge.net">Jonathan Brandmeyer</a>,
+2004.&nbsp; Modification, copying and redistribution of this document
+is permitted under the terms and conditions of the Boost Software
+License, version 1.0.<br>
+</i></p>
+</body>
+</html>

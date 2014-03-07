@@ -1,0 +1,262 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section:alternatives Annex: Alternatives]
+
+This section compares the features offered by this library with similar features offered by C++ and by other libraries.
+
+[heading Features]
+
+The following table compares local function features.
+
+[table
+[
+    [ Local Function Feature ]
+    [ Boost.LocalFunction ]
+    [ C++11 Lambda Function (Not C++03) ]
+    [ Local Functor ]
+    [ Global Functor (Not Local) ]
+    [ Boost.Phoenix ]
+]
+[
+    [ ['Can be defined locally] ]
+    [ Yes. ]
+    [ Yes. ]
+    [ Yes. ]
+    [ No.
+Therefore this not really an alternative implementation of local functions but it is listed here just for comparison. ]
+    [ Yes. ]
+]
+[
+    [ ['Can be defined using C++ statement syntax] ]
+    [ Yes.
+Plus eventual compiler errors and debugging retain their usual meaning and format. ]
+    [ Yes.
+Plus eventual compiler errors and debugging retain their usual meaning and format. ]
+    [ Yes.
+Plus eventual compiler errors and debugging retain their usual meaning and format. ]
+    [ Yes.
+Plus eventual compiler errors and debugging retain their usual meaning and format. ]
+    [ No (it uses C++ __expression_template__ syntax). ]
+]
+[
+    [ ['Can be defined within expressions] ]
+    [ No. It can be defined only within declarations. ]
+    [ Yes (plus the local function can be unnamed). ]
+    [ No. It can be defined only within declarations. ]
+    [ No. It can be defined only within declarations. ]
+    [ Yes (plus the local function can be unnamed). ]
+]
+[
+    [ ['Can be passed as template parameter (e.g., to STL algorithms)] ]
+    [ Yes.
+The __CXX03__ standard does not allow to pass local types as template parameters (see __N2657__) but this library implements a "trick" to get around this limitation (see the __Implementation__ section). ]
+    [ Yes. ]
+    [ No on __CXX03__ compilers (but yes on __CXX11__ compilers and some compilers like MSVC 8.0, see __N2657__). ]
+    [ Yes. ]
+    [ Yes. ]
+]
+[
+    [ ['Access variables in scope] ]
+    [ Yes.
+The variable names are repeated in the function declaration so they can be bound by value, by constant value, by reference, and by constant reference (the object `this` can also be bound using `this_`). ]
+    [ Yes.
+The variable names are repeated in the function declaration (plus there is a short-hand syntax to bind all variables in scope at once) so they can be bound by constant value and by reference (the object `this` can also be bound).
+However, variables cannot be bound by constant references (see below). ]
+    [ No.
+Programmers must manually program functor data members and explicitly specify their types to access variables in scope. ]
+    [ No.
+Programmers must manually program functor data members and explicitly specify their types to access variables in scope. ]
+    [ Yes.
+Variables in scope are accessible as usual within expressions (plus `boost::phoenix::let` can be used to bind variables by constant reference). ]
+]
+[
+    [ ['[@http://en.wikipedia.org/wiki/Type_polymorphism#Parametric_polymorphism Polymorphic] in the function parameter type] ]
+    [ No (local functions cannot be function templates). ]
+    [ No (__CXX11__ lambdas cannot be function templates). ]
+    [ No (local classes cannot have member function templates). ]
+    [ Yes. ]
+    [ Yes. ]
+]
+]
+
+[*C++11 Lambda Function]
+
+__CXX11_lambda_functions__ have most of the features of this library plus some additional feature (see also the example in the __Introduction__ section):
+
+* __CXX11_lambda_functions__ can be defined within expressions while this library local functions can only be defined at declaration scope.
+* __CXX11_lambda_functions__ are only supported by the __CXX11__ standard so they are not supported by all C++ compilers.
+This library local functions can be programmed also on __CXX03__ compilers (and they have performances comparable to __CXX11_lambda_functions__ on __CXX11__ compilers).
+* __CXX11_lambda_functions__ do not allow to bind variables in scope by constant reference.
+Because a variable cannot be bound by constant reference, __CXX11_lambda_functions__ can bind a variable by constant only if the variable is `CopyConstructible` and the binding requires a (potentially expensive) extra copy operation.
+Constant reference binding is instead supported by this library.
+* __CXX11_lambda_functions__ do not allow to bind data members selectively without binding also the object `this` while this library local functions can bind either selected data members or the entire object `this` (using `this_`).
+* __CXX11_lambda_functions__ provide a short-hand syntax to bind all variables in scope at once (`&` or `=`) while this library local function always require to bind variables naming them one-by-one.
+
+For example, for non-copyable objects (see also [@../../example/noncopyable_cxx11_lambda_error.cpp =noncopyable_cxx11_lambda_error.cpp=] and [@../../example/noncopyable_local_function.cpp =noncopyable_local_function.cpp=]):
+
+[table
+    [ [C++11 Lambda Function] [Boost.LocalFunction] ]
+    [ [[noncopyable_cxx11_lambda_error]] [[noncopyable_local_function]] ]
+]
+
+Or, for objects with expensive copy operations (see also [@../../example/expensive_copy_cxx11_lambda.cpp =expensive_copy_cxx11_lambda.cpp=] and [@../../example/expensive_copy_local_function.cpp =expensive_copy_local_function.cpp=]):
+
+[table
+    [ [C++11 Lambda Function] [Boost.LocalFunction] ]
+    [ [[expensive_copy_cxx11_lambda]] [[expensive_copy_local_function]] ]
+]
+
+When constant binding functionality is needed for __CXX11_lambda_functions__, the best alternative might be to bind an extra local variable declared constant and initialized to the original variable (for example, see /constant blocks/ implemented with __CXX11_lambda_functions__ in the __Examples__ section).
+
+[*Local Functor]
+
+The following example compares local functions with C++ local functors (see also [@../../example/add_local_functor.cpp =add_local_functor.cpp=] and [@../../test/add.cpp =add.cpp=]):
+
+[table
+    [ [Local Functor] [Boost.LocalFunction] ]
+    [ [[add_local_functor]] [[add]] ]
+]
+
+[*Global Functor]
+
+The following example compares local functions with C++ global functors (see also [@../../example/add_global_functor.cpp =add_global_functor.cpp=] and [@../../test/add.cpp =add.cpp=]):
+
+[table
+    [ [Global Functor] [Boost.LocalFunction] ]
+    [ [[add_global_functor]] [[add]] ]
+]
+
+However, note that global functors do not allow to define the function locally so they are not a real alternative implementation of local functions.
+
+[*Boost.Phoenix]
+
+The following example compares local functions with __Boost_Phoenix__ (see also [@../../example/add_phoenix.cpp =add_phoenix.cpp=] and [@../../test/add.cpp =add.cpp=]):
+
+[table
+    [ [Boost.Phoenix] [Boost.LocalFunction] ]
+    [ [[add_phoenix]] [[add]] ]
+]
+
+The comparison in this section does not include the __Boost_Lambda__ library because that library is obsolete and it was replaced by __Boost_Phoenix__.
+The __Boost_Phoenix__ library version 3.0 is used for this comparison.
+
+[heading Performances]
+
+The following tables compare run-times, compile-times, and binary sizes for the different alternatives to local functions presented in this section.
+
+Overall, this library has compile-times and generates binary sizes similar to the ones of the other approaches.
+This library run-times on __CXX03__ compilers were measured to be larger than other approaches when compiler optimization is enabled (using `bjam release ...`).
+However, on compilers that allow to pass local types as template parameters (e.g., MSVC 8.0 or GCC 4.5.3 with __CXX11__ features enabled [^-std=c++0x], see also __N2657__ and __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`) this library automatically generates optimized code that runs as fast as the fastest of the other approaches (see the "Boost.LocalFunction" approach below).
+When this library local function is specified `inline` (see the "Boost.LocalFunction Inline" approach below and the __Advanced_Topics__ section) its run-times are always comparable to both the "Local Functor" and "Global Functor" approaches.
+However, in these cases the local function cannot be portably passed as template parameter (see __N2657__ and __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`) so `std::for_each` is replaced by a for-loop (on MSVC the for-loop, and not the local function in fact the same applies to local functors, was measured to have worst performances than using `std::for_each`).
+Finally, this library run-times are always among the fastest when no compiler optimization is enabled (using `bjam debug ...`).
+
+[note
+The run-time performances of this library local functions are explained because on __CXX03__ compliant compilers (e.g., GCC 4.5.3 without [^-std=c++0x]) this library needs to use a function pointer in order to portably pass the local function class as a template parameter (see __N2657__ and the __Implementation__ section).
+For all tested compilers, this function pointer prevents the compiler optimization algorithms from inlining the local function calls.
+Instead, the functors used by other approaches (e.g., __Boost_Phoenix__) have been observed to allow all tested compilers to inline all the function calls for optimization.
+This run-time performance cost is not present on compilers that allow to pass local types as template parameters (e.g., MSVC 8.0 or GCC 4.5.3 with __CXX11__ features enabled [^-std=c++0x], see __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`) because this library does not have to use the extra function pointer to implement the local function call (it directly passes the local class type as template parameter).
+]
+
+This run-time performance cost on __CXX03__ compilers might or might not be an issue depending on the performance requirements of specific applications.
+For example, an application might already be using a number of indirect function calls (function pointers, virtual functions, etc) for which the overhead added by using the one extra function pointer required by the local function call might not be noticeable within the overall program run-time.
+
+Finally, note that only a very simple local function body with just a single instruction was used for the anaylsis presented here (see the source files below).
+The authors have not studied how this library and the other approaches will perform with respect to each other when a more complex set of instructions is programmed for the local function body (e.g., /if/ a more complex set of instructions in the local function body were to inhibit some compiler from inlining function objects also other approaches like __CXX11_lambda_functions__ and __Boost_Phoenix__ /could/ start to show higher run-times even when optimization is enabled).
+
+The following commands were executed from the library example directory to measure compile-time, binary size, and run-time respectively:
+
+[pre
+> touch <FILE_NAME>.cpp                             # force recompilation
+> python chrono.py bjam {release|debug} <FILE_NAME> # compile-time
+> size <FILE_NAME>                                  # binary size
+> ./<FILE_NAME>                                     # run-time
+]
+
+The local function was called =1e8= times to add together all the elements of a vector and the run-time was measured using __Boost_Chrono__ averaging over =10= executions of the vector summation (see the source files below).
+
+[table
+    [
+        [Legend]
+        [Approach]
+        [Source File]
+    ]
+    [
+        [[$../../example/profile_legend_local_function.png]]
+        [__Boost_LocalFunction__]
+        [[@../../example/profile_local_function.cpp =profile_local_function.cpp=]]
+    ]
+    [
+        [[$../../example/profile_legend_local_function_inline.png]]
+        [__Boost_LocalFunction__ inline]
+        [[@../../example/profile_local_function_inline.cpp =profile_local_function_inline.cpp=]]
+    ]
+    [
+        [[$../../example/profile_legend_cxx11_lambda.png]]
+        [__CXX11__ Lambda Function
+[footnote
+Measurements available only for __CXX11__ compilers.
+]
+        ]
+        [[@../../example/profile_cxx11_lambda.cpp =profile_cxx11_lambda.cpp=]]
+    ]
+    [
+        [[$../../example/profile_legend_local_functor.png]]
+        [Local Functor]
+        [[@../../example/profile_local_functor.cpp =profile_local_functor.cpp=]]
+    ]
+    [
+        [[$../../example/profile_legend_global_functor.png]]
+        [Global Functor]
+        [[@../../example/profile_global_functor.cpp =profile_global_functor.cpp=]]
+    ]
+    [
+        [[$../../example/profile_legend_phoenix.png]]
+        [__Boost_Phoenix__]
+        [[@../../example/profile_phoenix.cpp =profile_phoenix.cpp=]]
+    ]
+]
+
+[table
+    [ [GCC 4.5.3 With C++11 Lambda Functions and "Local Classes as Template Parameters" ([^bjam cxxflags=-std=c++0x ...])] ]
+    [ [ 
+        [*Compiled with =bjam release ...= for maximum optimization (=-O3 -finline-functions=)]
+        [$../../example/profile_gcc_cxx11_release.png [width 13in] [height 10in]]
+    ] ]
+    [ [ 
+        [*Compiled with =bjam debug ...= for no optimization (=-O0 -fno-inline=)]
+        [$../../example/profile_gcc_cxx11_debug.png [width 13in] [height 10in]]
+    ] ]
+]
+
+[table
+    [ [MSVC 8.0 With "Local Classes as Template Parameters" (Without C++11 Lambda Functions)] ]
+    [ [ 
+        [*Compiled with =bjam release ...= for maximum optimization (=/O2 /Ob2=)]
+        [$../../example/profile_msvc_release.png [width 13in] [height 10in]]
+    ] ]
+    [ [ 
+        [*Compiled with =bjam debug ...= for no optimization (=/Od /Ob0=)]
+        [$../../example/profile_msvc_debug.png [width 13in] [height 10in]]
+    ] ]
+]
+
+[table
+    [ [GCC 4.3.4 With __CXX03__ Only (Without __CXX11__ Lambda Functions and Without "Local Classes as Template Parameters")] ]
+    [ [ 
+        [*Compiled with =bjam release ...= for maximum optimization (=-O3 -finline-functions=)]
+        [$../../example/profile_gcc_release.png [width 13in] [height 10in]]
+    ] ]
+    [ [ 
+        [*Compiled with =bjam debug ...= for no optimization (=-O0 -fno-inline=)]
+        [$../../example/profile_gcc_debug.png [width 13in] [height 10in]]
+    ] ]
+]
+
+[endsect]
+

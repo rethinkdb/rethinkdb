@@ -1,0 +1,24 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ig.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ig.xml
+ */
+ig{
+    Countries{
+        BJ{"Binin"}
+        BM{"Bemuda"}
+        CN{"Chaina"}
+        HT{"Hati"}
+        KM{"Comorosu"}
+        LY{"Libyia"}
+        MV{"Maldivesa"}
+        NG{"Nigeria"}
+    }
+    Version{"2.0.46.79"}
+}

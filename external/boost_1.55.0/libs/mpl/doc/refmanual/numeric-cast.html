@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: numeric_cast</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inherit-linearly.html" class="navigation-link">Prev</a>&nbsp;<a href="./min.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inherit-linearly.html" class="navigation-link">Back</a>&nbsp;<a href="./min.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./numeric-cast.html" class="navigation-link">numeric_cast</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="numeric-cast">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1568">numeric_cast</a></h1>
+<div class="section" id="id1181">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename SourceTag
+    , typename TargetTag
+    &gt;
+struct <a href="./numeric-cast.html" class="identifier">numeric_cast</a>;
+</pre>
+</div>
+<div class="section" id="id1182">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Each <tt class="literal"><span class="pre"><a href="./numeric-cast.html" class="identifier">numeric_cast</a></span></tt> specialization is a user-specialized unary <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>
+providing a conversion between two numeric types.</p>
+</div>
+<div class="section" id="id1183">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/numeric_cast.hpp" class="header">boost/mpl/numeric_cast.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1184">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="17%" />
+<col width="30%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">SourceTag</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a></td>
+<td>A tag for the conversion's source type.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">TargetTag</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a></td>
+<td>A tag for the conversion's destination type.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1185">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>If <tt class="literal"><span class="pre">x</span></tt> and <tt class="literal"><span class="pre">y</span></tt> are two numeric types, <tt class="literal"><span class="pre">x</span></tt> is convertible to <tt class="literal"><span class="pre">y</span></tt>, and
+<tt class="literal"><span class="pre">x_tag</span></tt> and <tt class="literal"><span class="pre">y_tag</span></tt> are the types' corresponding <a class="reference internal" href="./integral-constant.html">Integral Constant</a> tags:</p>
+<pre class="literal-block">
+typedef <a href="./apply-wrap.html" class="identifier">apply_wrap</a><tt class="literal"><span class="pre">2</span></tt>&lt; <a href="./numeric-cast.html" class="identifier">numeric_cast</a>&lt;x_tag,y_tag&gt;,x &gt;::type  r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">A type.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">r</span></tt> is a value of <tt class="literal"><span class="pre">x</span></tt> converted to the type of <tt class="literal"><span class="pre">y</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1186">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Unspecified.</p>
+</div>
+<div class="section" id="id1187">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+struct complex_tag : <a href="./int.html" class="identifier">int_</a>&lt;10&gt; {};
+
+template&lt; typename Re, typename Im &gt; struct complex
+{
+    typedef complex_tag tag;
+    typedef complex type;
+    typedef Re real;
+    typedef Im imag;
+};
+
+template&lt; typename C &gt; struct real : C::real {};
+template&lt; typename C &gt; struct imag : C::imag {};
+
+namespace boost { namespace mpl {
+
+template&lt;&gt; struct <a href="./numeric-cast.html" class="identifier">numeric_cast</a>&lt; integral_c_tag,complex_tag &gt;
+{
+    template&lt; typename N &gt; struct <a href="./apply.html" class="identifier">apply</a>
+        : complex&lt; N, <a href="./integral-c.html" class="identifier">integral_c</a>&lt; typename N::<a href="./value-type.html" class="identifier">value_type</a>, 0 &gt; &gt;
+    {
+    };
+};
+
+template&lt;&gt;
+struct plus_impl&lt; complex_tag,complex_tag &gt;
+{
+    template&lt; typename N1, typename N2 &gt; struct <a href="./apply.html" class="identifier">apply</a>
+        : complex&lt;
+              <a href="./plus.html" class="identifier">plus</a>&lt; typename N1::real, typename N2::real &gt;
+            , <a href="./plus.html" class="identifier">plus</a>&lt; typename N1::imag, typename N2::imag &gt;
+            &gt;
+    {
+    };
+};
+
+}}
+
+typedef <a href="./int.html" class="identifier">int_</a>&lt;2&gt; i;
+typedef complex&lt; <a href="./int.html" class="identifier">int_</a>&lt;5&gt;, <a href="./int.html" class="identifier">int_</a>&lt;-1&gt; &gt; c1;
+typedef complex&lt; <a href="./int.html" class="identifier">int_</a>&lt;-5&gt;, <a href="./int.html" class="identifier">int_</a>&lt;1&gt; &gt; c2;
+
+typedef <a href="./plus.html" class="identifier">plus</a>&lt;c1,i&gt; r4;
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( real&lt;r4&gt;::value, ==, 7 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( imag&lt;r4&gt;::value, ==, -1 );
+
+typedef <a href="./plus.html" class="identifier">plus</a>&lt;i,c2&gt; r5;
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( real&lt;r5&gt;::value, ==, -3 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( imag&lt;r5&gt;::value, ==, 1 );
+</pre>
+</div>
+<div class="section" id="id1188">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a>, <a class="reference internal" href="./plus.html">plus</a>, <a class="reference internal" href="./minus.html">minus</a>, <a class="reference internal" href="./times.html">times</a></p>
+<!-- Metafunctions/Miscellaneous//min |80 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inherit-linearly.html" class="navigation-link">Prev</a>&nbsp;<a href="./min.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inherit-linearly.html" class="navigation-link">Back</a>&nbsp;<a href="./min.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

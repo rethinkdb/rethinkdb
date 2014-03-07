@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Esprima: Parsing Demo</title>
+<script src="../test/3rdparty/platform.js"></script>
+<script src="checkenv.js"></script>
+<script src="../esprima.js"></script>
+<script src="../assets/json2.js"></script>
+<script src="../assets/codemirror/codemirror.js"></script>
+<script src="../assets/codemirror/javascript.js"></script>
+<script src="../assets/yui/yahoo-dom-event.js"></script>
+<script src="../assets/yui/treeview-min.js"></script>
+<link rel="stylesheet" type="text/css" href="../assets/codemirror/codemirror.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/yui/treeview.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/style.css"/>
+<link rel="stylesheet" type="text/css" href="parse.css"/>
+<style>
+.ygtvfocus .ygtvlabel,
+.ygtvfocus .ygtvlabel:link,
+.ygtvfocus .ygtvlabel:visited,
+.ygtvfocus .ygtvlabel:hover {
+    background-color: #eee;
+}
+
+.highlight {
+    background-color: #add8e6;
+    background-color: rgba(173, 216, 230, 0.6);
+}
+
+label {
+    margin-left: 5px;
+    margin-right: 15px;
+}
+
+table th, table td {
+    text-align: left;
+    background-color: white;
+}
+
+tbody tr:nth-child(odd) td {
+    background-color: white;
+}
+
+tbody td {
+    background-color: white;
+}
+</style>
+<script>
+/*jslint sloppy:true browser:true */
+/*global esprima:true, YAHOO:true */
+var parseId;
+
+function updateTree(syntax) {
+
+    if (window.tree) {
+        window.tree.destroy();
+        window.tree = null;
+    }
+
+    if (typeof syntax === 'undefined') {
+        return;
+    }
+
+    if (document.getElementById('tab_tree').className !== 'active') {
+        return;
+    }
+
+    window.tree = new YAHOO.widget.TreeView("treeview");
+    document.getElementById('collapse').onclick = function () { window.tree.collapseAll(); };
+    document.getElementById('expand').onclick = function () { window.tree.expandAll(); };
+
+    function isArray(o) {
+        return (typeof Array.isArray === 'function') ? Array.isArray(o) :
+            Object.prototype.toString.apply(o) === '[object Array]';
+    }
+
+    function convert(name, node) {
+        var result, i, key, value, child;
+
+        switch (typeof node) {
+        case 'string':
+            return {
+                type: 'Text',
+                label: name + ': ' + node
+            };
+
+        case 'number':
+        case 'boolean':
+            return {
+                type: 'Text',
+                label: name + ': ' + String(node)
+            };
+
+        case 'object':
+            if (!node) {
+                return {
+                    type: 'Text',
+                    label: name + ': null'
+                };
+            }
+            if (node instanceof RegExp) {
+                return {
+                    type: 'Text',
+                    label: name + ': ' + node.toString()
+                };
+            }
+            result = {
+                type: 'Text',
+                label: name,
+                expanded: true,
+                children: []
+            };
+            if (isArray(node)) {
+                if (node.length === 2 && name === 'range') {
+                    result.label = name + ': [' + node[0] + ', ' + node[1] + ']';
+                } else {
+                    result.label = result.label + ' [' + node.length + ']';
+                    for (i = 0; i < node.length; i += 1) {
+                        key = String(i);
+                        value = node[i];
+                        child = convert(key, value);
+                        if (isArray(child.children) && child.children.length === 1) {
+                            result.children.push(child.children[0]);
+                        } else {
+                            result.children.push(convert(key, value));
+                        }
+                    }
+                }
+            } else {
+                if (typeof node.type !== 'undefined') {
+                    result.children.push({
+                        type: 'Text',
+                        label: node.type,
+                        expanded: true,
+                        children: [],
+                        data: node
+                    });
+                    for (key in node) {
+                        if (Object.prototype.hasOwnProperty.call(node, key)) {
+                            if (key !== 'type') {
+                                value = node[key];
+                                result.children[0].children.push(convert(key, value));
+                            }
+                        }
+                    }
+                } else {
+                    for (key in node) {
+                        if (Object.prototype.hasOwnProperty.call(node, key)) {
+                            value = node[key];
+                            result.children.push(convert(key, value));
+                        }
+                    }
+                }
+            }
+            return result;
+
+        default:
+            break;
+        }
+
+        return {
+            type: 'Text',
+            label: '?'
+        };
+    }
+
+    window.tree.subscribe('focusChanged', function (args) {
+        var from, to;
+
+        function convert(loc) {
+            return {
+                line: loc.line - 1,
+                ch:   loc.column
+            };
+        }
+
+        if (window.editorMark) {
+            window.editorMark.clear();
+            delete window.editorMark;
+        }
+        if (args.newNode && args.newNode.data && args.newNode.data.loc) {
+            from = convert(args.newNode.data.loc.start);
+            to = convert(args.newNode.data.loc.end);
+            window.editorMark = window.editor.markText(from, to, 'highlight');
+        }
+    });
+
+    window.tree.buildTreeFromObject(convert('Program body', syntax.body));
+    window.tree.render();
+}
+
+function parse(delay) {
+    if (parseId) {
+        window.clearTimeout(parseId);
+    }
+
+    parseId = window.setTimeout(function () {
+        var code, options, result, el, str;
+
+        // Special handling for regular expression literal since we need to
+        // convert it to a string literal, otherwise it will be decoded
+        // as object "{}" and the regular expression would be lost.
+        function adjustRegexLiteral(key, value) {
+            if (key === 'value' && value instanceof RegExp) {
+                value = value.toString();
+            }
+            return value;
+        }
+
+        if (typeof window.editor === 'undefined') {
+            code = document.getElementById('code').value;
+        } else {
+            code = window.editor.getValue();
+        }
+        options = {
+            comment: document.getElementById('comment').checked,
+            raw: document.getElementById('raw').checked,
+            range: document.getElementById('range').checked,
+            loc: document.getElementById('loc').checked
+        };
+
+        document.getElementById('tokens').value = '';
+
+        try {
+
+            result = esprima.parse(code, options);
+            str = JSON.stringify(result, adjustRegexLiteral, 4);
+            options.tokens = true;
+            document.getElementById('tokens').value = JSON.stringify(esprima.parse(code, options).tokens,
+                adjustRegexLiteral, 4);
+            updateTree(result);
+        } catch (e) {
+            updateTree();
+            str = e.name + ': ' + e.message;
+        }
+
+        el = document.getElementById('syntax');
+        el.value = str;
+
+        parseId = undefined;
+    }, delay || 811);
+}
+</script>
+</head>
+<body class="yui-skin-sam">
+<div class="container">
+
+<div class="topbar">
+<ul class="nav">
+<li><a href="../index.html">&larr; Home</a></li>
+<li><a href="http://github.com/ariya/esprima">Code</a></li>
+<li><a href="../doc/index.html">Documentation</a></li>
+<li><a href="http://issues.esprima.org">Issues</a></li>
+</ul>
+</div>
+
+<h1>Parser <small>produces syntax tree</small></h1>
+
+<p>Esprima version <span id="version"></span>.</p>
+
+<p>Type ECMAScript code:</p>
+<div><textarea id="code" autofocus="autofocus" cols="70" rows="15" spellcheck="false">
+// Life, Universe, and Everything
+var answer = 6 * 7;
+</textarea></div>
+<p id="codemirror" align="right"><small>The above code editor is based on <a href="http://codemirror.net" target="_blank">CodeMirror</a>.</small></p>
+<p><label><input type="checkbox" id="raw"> Preserve raw value of literals</label>
+<label><input type="checkbox" id="comment"> Include comments</label></p>
+<p>Syntax node location info (start, end):
+<label><input type="checkbox" id="range">Index-based range</label>
+<label><input type="checkbox" id="loc">Line and column-based</label></p>
+<div class="tabs">
+    <ul>
+    <li id="tab_syntax" class="active">
+    <h3><a id="show_syntax">Syntax</a></h3>
+    <div class="tab">
+        <textarea id="syntax" rows="20" readonly></textarea>
+    </div>
+    </li>
+    <li id="tab_tokens">
+     <h3><a id="show_tokens">Tokens</a></h3>
+     <div class="tab">
+        <textarea id="tokens" rows="20" readonly></textarea>
+    </div>
+    </li>
+    <li id="tab_tree">
+    <h3><a id="show_tree">Tree</a></h3>
+    <div class="tab">
+        <span style="margin-left: 500px;"><input type="button" id="expand" value="Expand All">
+            <input type="button" id="collapse" value="Collapse All"></span>
+        <div id="treeview">
+        </div>
+    </div>
+    </li>
+</ul>
+</div>
+
+
+<!--
+<div class="footer"><strong>Esprima</strong> is created by
+    <a href="http://ariya.ofilabs.com/about" target="_blank">Ariya Hidayat</a>. Follow <a href="http://twitter.com/ariyahidayat">@ariyahidayat</a> on Twitter.
+</div>
+-->
+
+<div id="testbox"><textarea id="test"></textarea></div>
+</div>
+<script>
+window.onload = function () {
+    var id, el;
+
+    id = function (i) {
+        return document.getElementById(i);
+    };
+
+    el = id('version');
+    if (typeof el.innerText === 'string') {
+        el.innerText = esprima.version;
+    } else {
+        el.textContent = esprima.version;
+    }
+    try {
+        parse(1);
+    } catch (e) { }
+
+    id('show_tree').onclick = function () {
+        id('tab_tree').className = 'active';
+        id('tab_syntax').className = '';
+        id('tab_tokens').className = '';
+        parse(1);
+    };
+
+    id('show_syntax').onclick = function () {
+        id('tab_tree').className = '';
+        id('tab_syntax').className = 'active';
+        id('tab_tokens').className = '';
+    };
+
+    id('show_tokens').onclick = function () {
+        id('tab_tree').className = '';
+        id('tab_syntax').className = '';
+        id('tab_tokens').className = 'active';
+    };
+};
+</script>
+<script>
+/*jslint sloppy:true browser:true */
+/*global CodeMirror:true */
+try {
+    function quickParse() { parse(1); }
+    document.getElementById('comment').onchange = quickParse;
+    document.getElementById('raw').onchange = quickParse;
+    document.getElementById('range').onchange = quickParse;
+    document.getElementById('loc').onchange = quickParse;
+    document.getElementById('tokens').onchange = quickParse;
+
+    // Special handling for IE.
+    document.getElementById('comment').onclick = quickParse;
+    document.getElementById('raw').onclick = quickParse;
+    document.getElementById('range').onclick = quickParse;
+    document.getElementById('loc').onclick = quickParse;
+    document.getElementById('tokens').onclick = quickParse;
+
+    window.checkEnv();
+
+    // This is just testing, to detect whether CodeMirror would fail or not
+    window.editor = CodeMirror.fromTextArea(document.getElementById("test"));
+
+    window.editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+        lineNumbers: true,
+        matchBrackets: true,
+        onChange: parse
+    });
+} catch (e) {
+    // CodeMirror failed to initialize, possible in e.g. old IE.
+    document.getElementById('codemirror').innerHTML = '';
+    document.getElementById('code').onchange = parse;
+    document.getElementById('code').onkeydown = parse;
+} finally {
+    document.getElementById('testbox').parentNode.removeChild(document.getElementById('testbox'));
+}
+</script>
+</body>
+</html>

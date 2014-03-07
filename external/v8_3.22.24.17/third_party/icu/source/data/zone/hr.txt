@@ -1,0 +1,405 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/hr.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/hr.xml
+ */
+hr{
+    Version{"2.0.50.96"}
+    zoneStrings{
+        "Africa:Kinshasa"{
+            ec{"Kinšasa"}
+        }
+        "Africa:Lubumbashi"{
+            ec{"Lubumbaši"}
+        }
+        "America:Anchorage"{
+            ec{"Alaska vremenska zona"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Središnja, Sjeverna Dakota"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"New Salem, Sjeverna Dakota"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Južni pol"}
+        }
+        "Asia:Anadyr"{
+            ec{"Anadir"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamčatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnojarsk"}
+        }
+        "Asia:Shanghai"{
+            ec{"Šangaj"}
+        }
+        "Asia:Tashkent"{
+            ec{"Taškent"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azorski otoci"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanarska Otočja"}
+        }
+        "Etc:Unknown"{
+            ec{"Nepoznat ili nevažeći grad"}
+        }
+        "Europe:Kaliningrad"{
+            ec{"Kalinjingrad"}
+        }
+        "Europe:Kiev"{
+            ec{"Kijev"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskva"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"Uzgorod"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Zaporožje"}
+        }
+        "Pacific:Easter"{
+            ec{"Uskrsni Otok"}
+        }
+        "meta:Acre"{
+            ld{"Acre ljetno vrijeme"}
+        }
+        "meta:Africa_Central"{
+            ls{"Središnja Afrika"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Istočna Afrika"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Južna Afrika"}
+            ls{"Južna Afrika"}
+        }
+        "meta:Africa_Western"{
+            ld{"Zapadna Afrika, ljetno vrijeme"}
+            ls{"Zapadna Afrika"}
+        }
+        "meta:America_Central"{
+            ld{"središnje dnevno vrijeme"}
+            lg{"središnje vrijeme"}
+            ls{"središnje standardno vrijeme"}
+        }
+        "meta:America_Eastern"{
+            ld{"istočno dnevno vrijeme"}
+            lg{"istočno vrijeme"}
+            ls{"istočno standardno vrijeme"}
+        }
+        "meta:America_Mountain"{
+            ld{"planinsko dnevno vrijeme"}
+            lg{"planinsko vrijeme"}
+            ls{"planinsko standardno vrijeme"}
+        }
+        "meta:America_Pacific"{
+            ld{"pacifičko dnevno vrijeme"}
+            lg{"pacifičko vrijeme"}
+            ls{"pacifičko standardno vrijeme"}
+        }
+        "meta:Aqtau"{
+            sd{"AQTST(Aqtau)"}
+            ss{"AQTT(Aqtau)"}
+        }
+        "meta:Aqtobe"{
+            sd{"AQTST(Aqtobe)"}
+            ss{"AQTT(Aqtobe)"}
+        }
+        "meta:Arabian"{
+            ld{"arapsko ljetno vrijeme"}
+            lg{"arapsko vrijeme"}
+            ls{"arapsko zimsko vrijeme"}
+            sd{"ADT (arapsko)"}
+            sg{"AT (arapsko)"}
+            ss{"AST (arapsko)"}
+        }
+        "meta:Armenia"{
+            sd{"AMST (Armenija)"}
+            ss{"AMT (Armenija)"}
+        }
+        "meta:Atlantic"{
+            ld{"atlantsko dnevno vrijeme"}
+            lg{"atlantsko vrijeme"}
+            ls{"atlantsko standardno vrijeme"}
+        }
+        "meta:Australia_Central"{
+            ld{"središnje australsko ljetno vrijeme"}
+            lg{"središnje australsko vrijeme"}
+            ls{"središnje australsko zimsko vrijeme"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"australsko središnje zapadno ljetno vrijeme"}
+            lg{"australsko središnje zapadno vrijeme"}
+            ls{"australsko središnje zapadno zimsko vrijeme"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"istočno australsko ljetno vrijeme"}
+            lg{"istočno australsko vrijeme"}
+            ls{"istočno australsko zimsko vrijeme"}
+        }
+        "meta:Australia_Western"{
+            ld{"zapadno australsko ljetno vrijeme"}
+            lg{"zapadno australsko vrijeme"}
+            ls{"zapadno australsko zimsko vrijeme"}
+        }
+        "meta:Azores"{
+            ld{"azorsko ljetno vrijeme"}
+            ls{"azorsko vrijeme"}
+        }
+        "meta:Cape_Verde"{
+            ld{"ljetno vrijeme Zelenortskog otočja"}
+            ls{"vrijeme Zelenortskog otočja"}
+        }
+        "meta:Chamorro"{
+            lg{"vrijeme Chamorro"}
+            ls{"standardno vrijeme Chamorro"}
+        }
+        "meta:Chatham"{
+            ld{"ljetno vrijeme Chathama"}
+            ls{"standardno vrijeme Chathama"}
+        }
+        "meta:China"{
+            ls{"standardno kinesko vrijeme"}
+            sd{"CDT (Kina)"}
+            ss{"CST (Kina)"}
+        }
+        "meta:Christmas"{
+            ls{"vrijeme Božićnog Otoka"}
+        }
+        "meta:Cocos"{
+            ls{"vrijeme Kokosovih Otoka"}
+        }
+        "meta:Cook"{
+            ld{"poluljetno vrijeme Cookovih Otoka"}
+            ls{"vrijeme Cookovih Otoka"}
+        }
+        "meta:Davis"{
+            ls{"vrijeme Davis"}
+        }
+        "meta:DumontDUrville"{
+            ls{"vrijeme Dumont-d'Urville"}
+        }
+        "meta:Easter"{
+            ld{"ljetno vrijeme Uskršnjih Otoka"}
+            ls{"vrijeme Uskršnjih Otoka"}
+        }
+        "meta:Europe_Central"{
+            cu:int{1}
+            ld{"srednjoeuropsko ljetno vrijeme"}
+            ls{"srednjoeuropsko vrijeme"}
+        }
+        "meta:Europe_Eastern"{
+            cu:int{1}
+            ld{"istočnoeuropsko ljetno vrijeme"}
+            ls{"istočnoeuropsko vrijeme"}
+        }
+        "meta:Europe_Western"{
+            cu:int{1}
+            ld{"zapadnoeuropsko ljetno vrijeme"}
+            ls{"zapadnoeuropsko vrijeme"}
+        }
+        "meta:Falkland"{
+            ld{"falklandsko ljetno vrijeme"}
+            ls{"falklandsko vrijeme"}
+        }
+        "meta:Fiji"{
+            ld{"ljetno vrijeme Fidžija"}
+            ls{"vrijeme Fidžija"}
+        }
+        "meta:French_Southern"{
+            ls{"južno francusko i antarktičko vrijeme"}
+        }
+        "meta:GMT"{
+            cu:int{1}
+            ls{"univerzalno vrijeme"}
+        }
+        "meta:Galapagos"{
+            ls{"vrijeme Galapagosa"}
+        }
+        "meta:Gambier"{
+            ls{"vrijeme Gambiera"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"vrijeme Gilbertovih Otoka"}
+        }
+        "meta:Guam"{
+            ls{"guamsko standardno vrijeme"}
+            ss{"GST (Guam)"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ls{"havajsko-aleutsko standardno vrijeme"}
+        }
+        "meta:India"{
+            ls{"standardno indijsko vrijeme"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"vrijeme Indijskog oceana"}
+        }
+        "meta:Israel"{
+            ld{"izraelsko ljetno vrijeme"}
+            ls{"standardno izraelsko vrijeme"}
+            ss{"IST (Izrael)"}
+        }
+        "meta:Japan"{
+            ls{"standardno japansko vrijeme"}
+        }
+        "meta:Korea"{
+            ls{"standardno korejsko vrijeme"}
+        }
+        "meta:Kosrae"{
+            ls{"vrijeme Kosrae"}
+        }
+        "meta:Kuybyshev"{
+            ld{"kujbiševsko ljetno vrijeme"}
+            ls{"kujbiševsko vrijeme"}
+        }
+        "meta:Kwajalein"{
+            ls{"kwajaleinsko vrijeme"}
+        }
+        "meta:Line_Islands"{
+            ls{"vrijeme Otoka Line"}
+        }
+        "meta:Lord_Howe"{
+            ld{"ljetno vrijeme otoka Lord Howe"}
+            lg{"vrijeme otoka Lord Howe"}
+            ls{"zimsko vrijeme otoka Lord Howe"}
+        }
+        "meta:Maldives"{
+            ls{"vrijeme Maldiva"}
+        }
+        "meta:Marquesas"{
+            ls{"vrijeme Marquesasa"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"vrijeme Maršalovih Otoka"}
+        }
+        "meta:Mauritius"{
+            ld{"ljetno vrijeme Mauricijusa"}
+            ls{"vrijeme Mauricijusa"}
+        }
+        "meta:Mawson"{
+            ls{"vrijeme Mawson"}
+        }
+        "meta:Moscow"{
+            ld{"moskovsko ljetno vrijeme"}
+            lg{"moskovsko vrijeme"}
+            ls{"moskovsko standardno vrijeme"}
+        }
+        "meta:Nauru"{
+            ls{"vrijeme Naurua"}
+        }
+        "meta:New_Caledonia"{
+            ld{"ljetno vrijeme Nove Kaledonije"}
+            ls{"vrijeme Nove Kaledonije"}
+        }
+        "meta:New_Zealand"{
+            ld{"ljetno vrijeme Novog Zelanda"}
+            lg{"vrijeme Novog Zelanda"}
+            ls{"standardno vrijeme Novog Zelanda"}
+        }
+        "meta:Niue"{
+            ls{"vrijeme Niuea"}
+        }
+        "meta:Norfolk"{
+            ls{"vrijeme Otoka Norfolk"}
+        }
+        "meta:North_Mariana"{
+            ls{"vrijeme Sjevernomarijanskih Otoka"}
+        }
+        "meta:Palau"{
+            ls{"vrijeme Palaua"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"vrijeme Papue Nove Gvineje"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"vrijeme Otoka Phoenix"}
+        }
+        "meta:Pitcairn"{
+            ls{"vrijeme Pitcairna"}
+        }
+        "meta:Ponape"{
+            ls{"vrijeme Ponapea"}
+        }
+        "meta:Reunion"{
+            ls{"vrijeme Reuniona"}
+        }
+        "meta:Rothera"{
+            ls{"vrijeme Rothera"}
+        }
+        "meta:Samara"{
+            ld{"samarsko ljetno vrijeme"}
+            ls{"samarsko vrijeme"}
+        }
+        "meta:Samoa"{
+            ls{"samoansko standardno vrijeme"}
+        }
+        "meta:Seychelles"{
+            ls{"sejšelsko vrijeme"}
+        }
+        "meta:Solomon"{
+            ls{"vrijeme Solomonovih otoka"}
+        }
+        "meta:South_Georgia"{
+            ls{"vrijeme Južne Džordžije"}
+            ss{"GST (J. Džordžije)"}
+        }
+        "meta:Syowa"{
+            ls{"vrijeme Syowa"}
+        }
+        "meta:Tahiti"{
+            ls{"vrijeme Tahitija"}
+        }
+        "meta:Tokelau"{
+            ls{"vrijeme Tokelau"}
+        }
+        "meta:Tonga"{
+            ld{"ljetno vrijeme Tonga"}
+            ls{"vrijeme Tonga"}
+        }
+        "meta:Truk"{
+            ls{"vrijeme Truka"}
+        }
+        "meta:Turkey"{
+            ld{"tursko ljetno vrijeme"}
+            ls{"tursko vrijeme"}
+        }
+        "meta:Tuvalu"{
+            ls{"vrijeme Tuvalu"}
+        }
+        "meta:Vanuatu"{
+            ld{"ljetno vrijeme Vanuatu"}
+            ls{"vrijeme Vanuatu"}
+        }
+        "meta:Volgograd"{
+            ld{"volgogradsko ljetno vrijeme"}
+            ls{"volgogradsko vrijeme"}
+        }
+        "meta:Vostok"{
+            ls{"vrijeme Vostok"}
+        }
+        "meta:Wake"{
+            ls{"vrijeme Otoka Wake"}
+        }
+        "meta:Wallis"{
+            ls{"vrijeme Otoka Wallis i Futuna"}
+        }
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm; -HH:mm"}
+    }
+}

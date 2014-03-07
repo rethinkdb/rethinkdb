@@ -1,0 +1,46 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:copy_backward copy_backward]
+
+[heading Prototype]
+
+``
+template<class BidirectionalRange, class BidirectionalOutputIterator>
+    BidirectionalOutputIterator
+        copy_backward(const BidirectionalRange& source_rng,
+                      BidirectionalOutputIterator out_it);
+``
+
+[heading Description]
+
+`copy_backward` copies all elements from `source_rng` to the range `[out_it - distance(source_rng), out_it)`.
+
+The values are copied in reverse order. The return value is `out_it - distance(source_rng)`.
+
+Note well that unlike all other standard algorithms `out_it` denotes the *end* of the output sequence.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/copy_backward.hpp`
+
+[heading Requirements]
+
+* `BidirectionalRange` is a model of __bidirectional_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* The `value_type` of __bidirectional_range__ Concept is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+* `out_it` is not an iterator within the `source_rng`.
+* `[out_it, out_it + distance(source_rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. Exactly `distance(source_rng)` assignments are performed.
+
+[endsect]
+
+

@@ -1,0 +1,56 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_base_of is_base_of]
+
+   template <class Base, class Derived>
+   struct is_base_of : public __tof {};
+  
+__inherit If Base is base class of type Derived or if both types are the same
+class type then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+This template will detect non-public base classes, and ambiguous base classes.
+It also detects indirect base classes - which is to say __is_base_of<B, D> inherits
+from __true_type if B is located anywhere in the inheritance tree of D.
+
+Note that `is_base_of<X,X>` will inherit from __true_type if X is a class type.  
+This is a change in behaviour 
+from Boost-1.39.0 in order to track the emerging C++0x standard.
+
+Types `Base` and `Derived` must not be incomplete types.
+
+__std_ref 10.
+
+__header ` #include <boost/type_traits/is_base_of.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat If the compiler does not support partial-specialization of class templates, 
+then this template can not be used with function types.  There are some older compilers
+which will produce compiler errors if `Base` is a private base class of `Derived`, or if
+`Base` is an ambiguous base of `Derived`.  These compilers include Borland C++, older 
+versions of Sun Forte C++, Digital Mars C++, and older versions of EDG based compilers.
+
+__examples
+
+[:Given: ` class Base{}; class Derived : public Base{};` ]
+
+[:`is_base_of<Base, Derived>` inherits from `__true_type`.]
+
+[:`is_base_of<Base, Derived>::type` is the type `__true_type`.]
+
+[:`is_base_of<Base, Derived>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_base_of<Base, Base>::value` is an integral constant 
+expression that evaluates to /true/: a class is regarded as it's own base.]
+
+[:`is_base_of<T, T>::value_type` is the type `bool`.]
+
+[endsect]
+
+
+

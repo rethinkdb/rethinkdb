@@ -1,0 +1,174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>yield_context</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="write_at/overload8.html" title="write_at (8 of 8 overloads)">
+<link rel="next" href="is_error_code_enum_lt__addrinfo_errors__gt_.html" title="boost::system::is_error_code_enum&lt; boost::asio::error::addrinfo_errors &gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="write_at/overload8.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_error_code_enum_lt__addrinfo_errors__gt_.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.yield_context"></a><a class="link" href="yield_context.html" title="yield_context">yield_context</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp104686552"></a> 
+Context object that represents the currently executing coroutine.
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_yield_context</span><span class="special">&lt;</span> <span class="identifier">unspecified</span> <span class="special">&gt;</span> <span class="identifier">yield_context</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.yield_context.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.yield_context.types"></a></span><a class="link" href="yield_context.html#boost_asio.reference.yield_context.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_yield_context/callee_type.html" title="basic_yield_context::callee_type"><span class="bold"><strong>callee_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The coroutine callee type, used by the implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_yield_context/caller_type.html" title="basic_yield_context::caller_type"><span class="bold"><strong>caller_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The coroutine caller type, used by the implementation.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.yield_context.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.yield_context.member_functions"></a></span><a class="link" href="yield_context.html#boost_asio.reference.yield_context.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_yield_context/basic_yield_context.html" title="basic_yield_context::basic_yield_context"><span class="bold"><strong>basic_yield_context</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a yield context to represent the specified coroutine.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_yield_context/operator_lb__rb_.html" title="basic_yield_context::operator[]"><span class="bold"><strong>operator[]</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Return a yield context that sets the specified error_code.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="basic_yield_context.html" title="basic_yield_context"><code class="computeroutput"><span class="identifier">basic_yield_context</span></code></a> class is used
+        to represent the currently executing stackful coroutine. A <a class="link" href="basic_yield_context.html" title="basic_yield_context"><code class="computeroutput"><span class="identifier">basic_yield_context</span></code></a> may be passed
+        as a handler to an asynchronous operation. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Handler</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">my_coroutine</span><span class="special">(</span><span class="identifier">basic_yield_context</span><span class="special">&lt;</span><span class="identifier">Handler</span><span class="special">&gt;</span> <span class="identifier">yield</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="special">...</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">buffer</span><span class="special">,</span> <span class="identifier">yield</span><span class="special">);</span>
+  <span class="special">...</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The initiating function (async_read_some in the above example) suspends the
+        current coroutine. The coroutine is resumed when the asynchronous operation
+        completes, and the result of the operation is returned.
+      </p>
+<h5>
+<a name="boost_asio.reference.yield_context.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.yield_context.requirements"></a></span><a class="link" href="yield_context.html#boost_asio.reference.yield_context.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/spawn.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="write_at/overload8.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_error_code_enum_lt__addrinfo_errors__gt_.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

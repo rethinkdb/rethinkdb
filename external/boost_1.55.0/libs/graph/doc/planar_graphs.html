@@ -1,0 +1,276 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<HEAD>
+<TITLE>Boost Graph Library: Planar Graphs</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Planar Graphs</H1>
+
+<p>
+A graph is <a name="planar"><i>planar</i></a> if it can be drawn in 
+two-dimensional space with no two of its edges crossing. Such a drawing of a 
+planar graph is called a <a name="plane_drawing"><i>plane drawing</i></a>. 
+Every planar graph also admits a <i>straight-line drawing</i>, which is a 
+plane drawing where each edge is represented by a line segment. 
+
+<br>
+<br>
+<table class="image" align="center">
+<caption align="bottom">
+<h5>A planar graph (left), a plane drawing (center), and a straight line 
+drawing (right), all of the same graph</h5>
+</caption>
+<tr>
+<td>
+<img src="./figs/planar_plane_straight_line.png">
+</td>
+</tr>
+<tr></tr>
+<table>
+<br>
+
+Two examples of non-planar graphs are K<sub>5</sub>, the complete graph on 
+five vertices, and K<sub>3,3</sub>, the complete bipartite graph on six 
+vertices with three vertices in each bipartition. No matter how the vertices 
+of either graph are arranged in the plane, at least two edges are forced to 
+cross.
+
+<a name = "kuratowskisubgraphs">
+<br>
+<br>
+<table class="image" align="center">
+<caption align="bottom"><h5>K<sub>5</sub> (left) and K<sub>3,3</sub> (right) - 
+the two Kuratowski subgraphs</h5>
+</caption>
+<tr>
+<td>
+<img src="./figs/k_5_and_k_3_3.png">
+</td>
+</tr>
+</table>
+<br>
+
+The above graphs are both minimal examples of non-planarity within
+their class of graphs; delete any edge or vertex from either one and the 
+resulting graph is planar. A theorem of Kuratowski singles these two graphs 
+out as fundamental obstructions to planarity within any graph: 
+<blockquote>
+<i>
+A graph is planar if and only if it does not contain a subgraph that is an 
+expansion<a href="#1">[1]</a> of either K<sub>5</sub> or K<sub>3,3</sub>
+</i>
+</blockquote>
+
+<p>
+A subgraph that is an expansion of K<sub>5</sub> or K<sub>3,3</sub> is called 
+a <a name = "kuratowski_subgraph"><i>Kuratowski subgraph</i></a>. Because of 
+the above theorem, given any graph, one can produce either a plane drawing of 
+a graph, which will certify that the graph is planar, or a minimal set of edges
+that forms a Kuratowski subgraph, which will certify that the graph is 
+non-planar - in both cases, the certificate of planarity or non-planarity is 
+easy to check.
+<p>
+Any plane drawing separates the plane into distinct regions bordered by graph 
+edges called <i>faces</i>. As a simple example, any embedding of a triangle 
+into the plane separates it into two faces: the region inside the triangle and 
+the (unbounded) region outside the triangle. The unbounded region outside the 
+graph's embedding is called the <i>outer face</i>. Every embedding yields
+one outer face and zero or more inner faces. A famous result called 
+Euler's formula states that for any 
+planar graph with <i>n</i> vertices, <i>e</i> edges, <i>f</i> faces, and 
+<i>c</i> connected components,
+<a name="EulersFormula">
+<blockquote>
+<i>n + f = e + c + 1</i>
+</blockquote>
+</a>
+This formula implies that any planar graph with no self-loops or parallel edges
+has at most <i>3n - 6</i> edges and <i>2n- 4</i> faces. Because of these
+bounds, algorithms on planar graphs can run in time <i>O(n)</i> or space
+<i>O(n)</i> on an <i>n</i> vertex graph even if they have to traverse all 
+edges or faces of the graph.
+<p>
+A convenient way to separate the actual planarity test from algorithms that
+accept a planar graph as input is through an intermediate structure called a 
+<i>planar embedding</i>. Instead of specifying the absolute positions of the 
+vertices and edges in the plane as a plane drawing would, a planar embedding 
+specifies their positions relative to one another. A planar embedding consists 
+of a sequence, for each vertex in the graph, of all of the edges incident on 
+that vertex in the order in which they are to be drawn around that vertex.
+The orderings defined by this sequence
+can either represent a clockwise or counter-clockwise iteration through the
+neighbors of each vertex, but the orientation must be
+consistent across the entire embedding. 
+<p>
+In the Boost Graph Library, a planar embedding is a model of the 
+<a href="./PlanarEmbedding.html">PlanarEmbedding</a> concept. A type that
+models PlanarEmbedding can be passed into the planarity test and populated if 
+the input graph is planar. All other "back end" planar graph algorithms accept 
+this populated PlanarEmbedding as an input. Conceptually, a type that models 
+PlanarEmbedding is a <a href="../../property_map/doc/property_map.html">property 
+map</a> that maps each vertex to a sequence of edges,
+where the sequence of edges has a similar interface to a standard C++ 
+container. The sequence of edges each vertex maps to represents the ordering
+of edges adjacent to that vertex. This interface is flexible enough to allow 
+storage of the planar embedding independent from the graph in, say, a 
+<tt>std::vector</tt> of <tt>std::vector</tt>s, or to allow for graph 
+implementations that actually store lists of adjacent edges/vertices to 
+internally re-arrange their storage to represent the planar embedding.
+Currently, only the former approach is supported when using the native graph 
+types (<tt>adjacency_list</tt>, <tt>adjacency_matrix</tt>, etc.)
+of the Boost Graph Library.
+
+<H3>Tools for working with planar graphs in the Boost Graph Library</h3>
+
+The Boost Graph Library planar graph algorithms all work on undirected graphs.
+Some algorithms require certain degrees of connectivity of the input graph,
+but all algorithms work on graphs with self-loops and parallel edges.
+<p>
+The function <tt><a href = "boyer_myrvold.html">boyer_myrvold_planarity_test
+</a></tt> can be used to test whether or not a graph is planar, but it can also
+produce two important side-effects: in the case the graph is not planar, it can
+isolate a Kuratowski subgraph, and in the case the graph is planar, it can 
+compute a planar embedding. The Boyer-Myrvold algorithm works on any undirected
+ graph.
+<p>
+An undirected graph is <i>connected</i> if, for any two vertices <i>u</i> and 
+<i>v</i>, there's a path from <i>u</i> to <i>v</i>. An undirected graph is 
+<i>biconnected</i> if it is connected and it remains connected even if any
+single vertex is removed. Finally, a planar graph is 
+<i>maximal planar</i> (also called
+<i>triangulated</i>) if no additional edge (with the exception of self-loops
+and parallel edges) can be added to it without creating 
+a non-planar graph. Any maximal planar simple graph on <i>n > 2</i> vertices 
+has exactly <i>3n - 6</i> edges and <i>2n - 4</i> faces, a consequence of 
+Euler's formula. If a planar graph isn't connected, isn't biconnected, or isn't
+maximal planar, there is some set of edges that can be added to the graph to 
+make it satisfy any of those three properties while preserving planarity. Many 
+planar graph drawing algorithms make at least one of these three assumptions 
+about the input graph, so there are functions in the Boost Graph Library that 
+can help:
+<ul>
+<li><tt><a href="make_connected.html">make_connected</a></tt> adds a minimal 
+set of edges to an undirected graph to make it connected.
+<li><tt><a href="make_biconnected_planar.html">make_biconnected_planar</a></tt>
+adds a set of edges to a connected, undirected planar graph to make it 
+biconnected while preserving planarity.
+<li><tt><a href="make_maximal_planar.html">make_maximal_planar</a></tt> adds a 
+set of edges to a biconnected, undirected planar graph to make it maximal 
+planar.
+</ul>
+<p>
+Some algorithms involve a traversal of the faces of the graph, and the Boost 
+Graph Library has the generic traversal function 
+<tt><a href="planar_face_traversal.html">planar_face_traversal</a></tt> for
+this purpose. This traversal, like other traversals in the Boost Graph Library,
+can be customized by overriding event points in an appropriately defined
+<a href="PlanarFaceVisitor.html">visitor class</a>.
+<p>
+An intermediate step in some drawing algorithms for planar graphs is the 
+creation of 
+a <i>canonical ordering</i> of the vertices. A canonical ordering is a 
+permutation of the vertices of a maximal planar graph. It orders the vertices 
+in a way that makes it straightforward to draw the <i>i</i>th vertex once the 
+first <i>(i-1)</i> vertices have been drawn - the only edges connecting the
+<i>i</i>th vertex to vertices already drawn will be adjacent to a consecutive 
+sequence of vertices along the outer face of the partially embedded graph. The 
+function 
+<tt><a href="planar_canonical_ordering.html">planar_canonical_ordering</a></tt>
+will create such an ordering, given a maximal planar graph and a planar 
+embedding of that graph.
+<p>
+A straight line drawing can be created using the function 
+<tt>
+<a href="straight_line_drawing.html">chrobak_payne_straight_line_drawing</a>,
+</tt> which takes a maximal planar graph, a planar embedding of that 
+graph, and a canonical ordering as input. The resulting drawing maps all of the
+vertices from a graph with <i>n</i> vertices to integer coordinates on a 
+<i>(2n-4) x (n-2)</i> grid such that when the edges of the graph are drawn
+as line segments connecting vertices, no two edges cross. Self-loops and 
+parallel edges are ignored by this algorithm.
+<p>
+Finally, there are two functions that can be used to verify the results of the 
+<tt>boyer_myrvold_planarity_test</tt> and 
+<tt>chrobak_payne_straight_line_drawing</tt> functions:
+<ul>
+<li><tt><a href="is_kuratowski_subgraph.html">is_kuratowski_subgraph</a></tt> 
+takes the output of <tt>boyer_myrvold_planarity_test</tt> on a nonplanar graph 
+and verifies that it can be contracted into a graph isomorphic to a Kuratowski 
+subgraph.
+<li><tt><a href="is_straight_line_drawing.html">is_straight_line_drawing</a>
+</tt> takes the output of <tt>chrobak_payne_straight_line_drawing</tt> and uses
+a planar sweep algorithm to verify that none of the embedded edges intersect.
+</ul>
+
+<h3>Complexity</h3>
+
+Most of the algorithms in the Boost Graph Library that deal with planar graphs 
+run in time <i>O(n)</i> on an input graph with <i>n</i> vertices. This achieves
+a theoretically optimal bound (you must at least iterate over all <i>n</i> 
+vertices in order to embed a graph in the plane.) However, some of the work 
+that goes into achieving these theoretically optimal time bounds may come at 
+the expense of practical performance. For example, since any comparison-based 
+sorting algorithm uses at least on the order of <i>n log n</i> comparisons in 
+the worst case, any time an algorithm dealing with planar graphs needs to sort,
+a bucket sort is used to sort in <i>O(n)</i> time. Also, computing a planar 
+embedding of a graph involves maintaining an ordered list of edges around a 
+vertex, and this list of edges needs to support an arbitrary sequence of 
+concatenations and reversals. A <tt>std::list</tt> can only guarantee 
+<i>O(n<sup>2</sup>)</i> for a mixed sequence of <i>n</i> concatenations and 
+reversals (since <tt>reverse</tt> is an <i>O(n)</i> operation.) However, our 
+implementation achieves <i>O(n)</i> for these operations by using a list data 
+structure that implements mixed sequences of concatenations and reversals 
+lazily.
+<p>
+In both of the above cases, it may be preferable to sacrifice the nice 
+theoretical upper bound for performance by using the C++ STL. The bucket sort 
+allocates and populates a vector of vectors; because of the overhead in
+doing so, <tt>std::stable_sort</tt> may actually be faster in some cases. 
+The custom list also uses more space than <tt>std::list</tt>, and it's not 
+clear that anything other than carefully constructed pathological examples 
+could force a <tt>std::list</tt> to use <i>n<sup>2</sup></i> operations within 
+the planar embedding algorithm. For these reasons, the macro 
+<tt>BOOST_GRAPH_PREFER_STD_LIB</tt> exists, which, when defined, will force 
+the planar graph algorithms to use <tt>std::stable_sort</tt> and 
+<tt>std::list</tt> in the examples above.
+<p>
+See the documentation on individual algorithms for more information about 
+complexity guarantees.
+
+
+<h3>Examples</h3>
+
+<ol>
+<li><a href="../example/simple_planarity_test.cpp">Testing whether or not a 
+graph is planar.</a>
+<li><a href="../example/straight_line_drawing.cpp">Creating a straight line 
+drawing of a graph in the plane.</a>
+</ol>
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> A graph <i>G'</i> is an expansion of a graph <i>G</i> if
+<i>G'</i> can be created from <i>G</i> by a series of zero or more <i>edge 
+subdivisions</i>: take any edge <i>{x,y}</i> in the graph, remove it, add a new
+vertex <i>z</i>, and add the two edges <i>{x,z}</i> and <i>{z,y}</i> to the 
+graph. For example, a path of any length is an expansion of a single edge and 
+a cycle of any length is an expansion of a triangle.
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

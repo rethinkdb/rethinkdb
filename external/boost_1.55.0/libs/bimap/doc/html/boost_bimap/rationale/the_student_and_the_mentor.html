@@ -1,0 +1,761 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The student and the mentor</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../rationale.html" title="Rationale">
+<link rel="prev" href="code.html" title="Code">
+<link rel="next" href="../history.html" title="History">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="code.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../history.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_rationale_the_student_and_the_mentor">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.rationale.the_student_and_the_mentor"></a><a class="link" href="the_student_and_the_mentor.html" title="The student and the mentor">The
+      student and the mentor</a>
+</h3></div></div></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          It is a good idea to read the original <a href="http://h1.ripway.com/mcape/boost/libs/misc/" target="_top">Boost.Misc
+          SoC proposal</a> first.
+        </p></td></tr>
+</table></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="literal">- The discussion starts with Joaquin trying to strip out the "misc"
+          name out of the library -</code>
+        </p></blockquote></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/people/joaquin.png" alt="joaquin"></span>
+      </p>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Thinking about it, the unifying principle of MISC containers
+          is perhaps misleading: certainly all miscs use multi-indexing internally,
+          but this does not reflect much in the external interface (as it should
+          be, OTOH). So, from the user's point of view, miscs are entirely heterogeneous
+          beasts. Moreover, there isn't in your proposal any kind of global facility
+          common to all miscs. What about dropping the misc principle and working
+          on each container as a separate library, then? You'd have boost::bimap,
+          boost::mru, etc, and no common intro to them. This also opens up the possibility
+          to add other containers to the suite which aren't based on B.MI. What's
+          your stance on this? Do you see a value in keeping miscs conceptually together?
+          </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/people/matias.png" alt="matias"></span>
+      </p>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> As the original proposal states only two containers (bimap and
+          mru set) both based in B.MI, it was straight forward to group them together.
+          When I was writing the SoC proposal I experienced a similar feeling when
+          the two families begin to grow. As you say, the only common denominator
+          is their internal implementation. I thought a bit about a more general
+          framework to join this two families (and other internally related ones)
+          and finally came up with an idea: Boost.MultiIndex! So I think that it
+          is not a good idea to try to unify the two families and I voted in favor
+          of get rid of the misc part of boost::misc::bimap and boost::misc::mru.
+          Anyway, for my SoC application it seems OK to put the two families in the
+          same project because although from the outside they are completely unrelated,
+          the work I will have to do in order to build the libraries will be consistent
+          and what I will learn coding the bimap family will be used when I start
+          to code the mru family. When the mru family is in place, I will surely
+          have learnt other things to improve the bimap group. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> On the other hand, I think it will be useful for the general
+          user to have at least some document linked in the B.MI documentation that
+          enumerates the most common cases of uses (a bimap and an mru set for example)
+          and points where to find clean implementation for this useful containers.
+          For now, a link to boost::bimap and other one to boost::mru will suffice.
+          If you think about the title of such a document, you will probably come
+          up with something like: Common Multi Index Specialized Containers, and
+          we are back to our misc proposal. So, to order some ideas: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- A new family of containers that can be accessed by both key
+          will be created. (boost::bimap)</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- A new family of time aware containers will see the light. (boost::mru)</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- A page can be added to B.MI documentation, titled misc that
+          links this new libraries.</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> This is a clearer framework for the user. They can use a mru
+          container without hearing about Boost.MultiIndex at all. And B.MI users
+          will get some of their common containers already implemented with an STL
+          friendly interface in other libraries. And as you stated this is more extensible
+          because opens the door to use other libraries in bimap and mru families
+          than just Boost.MultiIndex without compromising the more general boost
+          framework. The word "misc" it is going to disappear from the
+          code and the documentation of bimap and mru. From now on the only use for
+          it will be to identify our SoC project. I am thinking in a name for the
+          bimap library. What about Boost.BidirectionalMap? Ideas? </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Yes, Boost.Bimap. In my opinion, bimap is a well known name
+          in the Boost and even in the C++ community. It sounds and is short. Why
+          not to vindicate yourself as the owner of this name? </em></span>
+        </p></blockquote></div>
+<p>
+        <code class="literal">- Then after a week of work -</code>
+      </p>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Now that Boost.Bimap is getting some shape, I see that as you
+          have told me, we must offer a "one_to_many_map" and a "multi_bimap"
+          as part of the library. The framework I am actually working allowed to
+          construct this kind of bidirectional maps and it is easy to understand
+          from the user side. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> OK, I am glad we agree on this point. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> With respect to the symmetry of the key access names, I have
+          to agree that there is not much a difference between the following ones:
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- to - from</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- to - b</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- 0 - 1</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- left - right</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> In my opinion it is a matter of taste, but left/right sounds
+          more symmetrical than the others. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I like very much the left/right notation, it is very simple
+          to remember and it is a lot more symmetrical than to/from. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> At first my idea was to obtain ease of use hiding the B.MI core,
+          making it more STL-intuitive. Nevertheless I have realized that B.MI is
+          a lot more coherent and easy to use that I had imagined. This makes me
+          think again in the problem. In the design that I am coding now, bimap
+          <span class="bold"><strong>is-a</strong></span> multi_index_container specializes
+          with a data type very comfortable called bipair, that can be seen like
+          any of the two maps that integrates it using map views. This scheme has
+          great benefits for users: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - If the user already knows B.MI, he can take advantage of the
+          tools that it provides and that are not present in the STL containers.
+          In addition, in some cases the use to indices to see the data can be very
+          useful. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - If the user does not know anything about B.MI but have an
+          STL framework, the learning curve is reduced to understand the bimap instantiation
+          and how a is obtained the desired map view. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Another very important benefit holds: All the algorithms done
+          for B.MI continues to work with Boost.Bimap and if B.MI continues growing,
+          bimap grow automatically. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Umm... This is an interesting design decision, but controversial
+          in my opinion. Basically you decide to expose the implementation of bimap;
+          that has advantages, as you stated, but also a nonsmall disadvantage: once
+          <span class="bold"><strong>you have documented</strong></span> the implementation,
+          it is not possible to change it anymore. It is a marriage with B.MI without
+          the chance of divorce. The other possibility, to hide the implementation
+          and to duplicate and document the provided functionality, explicitly or
+          implicitly due to the same characteristics of the implementation, is of
+          course heavier to maintain, but it gives a degree of freedom to change
+          the guts of your software if you need to. Do not take this like a frontal
+          objection, but I think that it is quite important design decision, not
+          only in the context of bimap but in general. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> You are quite right here. I think we have to choose the hardest
+          path and hide the B.MI core from the user. I am sending you the first draft
+          of bimap along with some documentation. </em></span>
+        </p></blockquote></div>
+<p>
+        <code class="literal">- This completes the second week, the documentation was basically
+        the first section of this rationale -</code>
+      </p>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I must confess that I am beginning to like what I see. I am
+          mathematical by vocation, and when I see symmetry in a formulation I believe
+          that it is in the right track. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> We are two mathematicians by vocation then. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I think that the part of std::set theory is very clear. To me,
+          it turns out to me somewhat strange to consider the rank of a map (values
+          X) like a std::set, but of course the formulation is consistent. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I like it very much, it can be a little odd at first, but now
+          that I have get used to it, it is very easy to express in the code my contrains
+          on the data, and I believe that if somebody reads the code and sees the
+          bimap instantiation he is not going to have problems understanding it.
+          Perhaps it is easier to understand it if we use your notation: ordered_nonunique,
+          unordered_unique, but this goes against our STL facade. In my opinion the
+          user that comes from STL must have to learn as less as possible. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Considering a relation like a <code class="computeroutput"><span class="keyword">struct</span>
+          <span class="special">{</span><span class="identifier">left</span><span class="special">,</span> <span class="identifier">right</span><span class="special">}</span></code> is clean and clear. If I understand it
+          well, one relation has views of type <code class="computeroutput"><span class="identifier">pair</span><span class="special">{</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">second</span><span class="special">}</span></code>, is this correct? </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Yes, I believe that the left/right notation to express symmetry
+          is great. I believe that to people is going to love it. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> OK, perfect. I likes this very much: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- bm.left is compatible with std::map&lt;A,B&gt;</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- bm.right is compatible with std::map&lt;B,A&gt;</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- bm is compatible with std::set&lt;relation&lt;A,B&gt;&gt;</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> It is elegant and symmetric. I feel good vibrations here. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Great! </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Moving on, the support for N-1, N-N, and hashed index is very
+          easy to grasp, and it fits well in framework. However I do not finish to
+          understand very well the "set&lt;relation&gt; constraints" section.
+          Will you came up with some examples of which is the meaning of the different
+          cases that you enumerate? </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias - </strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Yes, I mean: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- based on the left</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- based on the right</em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> The bimap core must be based on some index of multi index. If
+          the index of the left is of the type hash, then in fact the main view is
+          going to be an unordered_set&lt; relation&lt;A,B&gt; &gt;. Perhaps this
+          is not what the user prefers and he wants to base its main view on the
+          right index. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- set_of_relation </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- multiset_of_relation </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- unordered_set_of_relation </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>- unordered_multiset_of_relation </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> However, if both of them are hash indexes, the user may want
+          the main view to be ordered. As we have a B.MI core this is very easy to
+          support, we just have to add another index to it. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I understand it now. OK, I do not know if we have to include
+          this in the first version, is going to be a functionality avalanche! </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> The user is not affected by the addition of this functionality,
+          because by default it will be based on the left index that is a very natural
+          behaviour. I do not think that this is functionality bloat, but I agree
+          with you that it is a functionality avalanche. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> There are restrictions between the left and right set types
+          and the possible main view set types. For example if some of the index
+          is of unique type, then the main view cannot be of type multiset_of_relation.
+          To the inverse one, if the main view is of type set_of_relation the left
+          and the right index cannot be of type multi_set. All this subject of the
+          unicity constrictions and the resulting interactions between indexes is
+          one of the subtle subjects of B.MI. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> This can be checked at compile time and informed as an error
+          in compile time. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> It can be interesting. </em></span>
+        </p></blockquote></div>
+<p>
+        <code class="literal">- And right when everything seems to be perfect... - </code>
+      </p>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I have some worse news with respect to mutant, it is very a
+          well designed and manageable class, unfortunately, C++ does not guarantee
+          layout-compatibility almost in any case. For example, the C++ standard
+          does not guarantee that the classes <code class="computeroutput"><span class="keyword">struct</span><span class="special">{</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">;</span> <span class="identifier">T2</span>
+          <span class="identifier">b</span><span class="special">;}</span></code>
+          and <code class="computeroutput"><span class="keyword">struct</span><span class="special">{</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">;</span> <span class="identifier">T2</span> <span class="identifier">a</span><span class="special">;}</span></code> are
+          layout-compatible, and therefore the trick of reinterpret_cast is an undefined
+          behavior. I am with you in which that in the 100% of the cases this scheme
+          will really work, but the standard is the standard. If you can look the
+          layout-compatibility subject in it (http://www.kuzbass.ru/docs/isocpp/).
+          As you see, sometimes the standard is cruel. Although mutant seems a lost
+          case, please do not hurry to eliminate it. We will see what can be done
+          for it. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I read the standard, and you were right about it. Mutant was
+          an implementation detail. It is a pity because I am sure that it will work
+          perfect in any compiler. Perhaps the standard becomes more strict some
+          day and mutant returns to life... We can then try a wrapper around a relation&lt;A,B&gt;
+          that have two references named first and second that bind to A and B, or
+          B and A. </em></span>
+        </p></blockquote></div>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">relation</span><span class="special">&lt;</span><span class="identifier">TA</span><span class="special">,</span><span class="identifier">TB</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="identifier">const_reference_pair</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span> <span class="identifier">pba</span><span class="special">(</span><span class="identifier">r</span><span class="special">);</span>
+<span class="identifier">const_reference_pair</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">A</span><span class="special">&gt;</span> <span class="identifier">pbb</span><span class="special">(</span><span class="identifier">r</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> It is not difficult to code the relation class in this way but
+          two references are initialized with every access and the use of <code class="computeroutput"><span class="identifier">pba</span><span class="special">.</span><span class="identifier">first</span></code> will be slower than <code class="computeroutput"><span class="identifier">r</span><span class="special">.</span><span class="identifier">left</span></code>
+          in most compilers. It is very difficult to optimize this kind of references.
+          </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> This workaround is not possible, due to technical problems with
+          the expected behavior of the iterators. If the iterators of bm.left are
+          of bidirectional type, then standard stated that it have to return an object
+          of type const value_type&amp; when dereferenced. You will have to return
+          a const_reference_pair created in the flight, making it impossible to return
+          a reference. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I understand... I have workaround for that also but surely the
+          standard will attack me again! We must manage to create the class relation
+          that responds as we want, the rest of the code will flow from this point.
+          This clear separation between the relation class and the rest of the library,
+          is going to help to us to separate the problems and to attack them better.
+          </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> What workaround? It already pricks my curiosity,I have dedicated
+          a long time to the subject and I do not find any solution except that we
+          allow the relation class to occupy more memory. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> We must achieve that the relation&lt;A,B&gt; size equals the
+          pair&lt;A,B&gt; size if we want this library to be really useful. I was
+          going to write my workaround and I realized that It does not work. Look
+          at this: http://www.boost.org/libs/iterator/doc/new-iter-concepts.html
+          Basically the problem that we are dealing is solved if we based our iterators
+          on this proposal. The present standard forces that the bidirectional iterators
+          also are of the type input and output. Using the new concepts there is
+          no inconvenient in making our iterators "Readable Writable Swappable
+          Bidirectional Traversal". Therefore the const_reference_pair returns
+          to be valid. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> It is correct in the sense that you simply say that your iterators
+          are less powerful than those of the std::map. It is not that it is wrong,
+          simply that instead of fixing the problem, you confess it. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> OK, but in our particular case; What are the benefits of offering
+          a LValue iterator against a Read Write iterator? It does not seem to me
+          that it is less powerful in this case. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> The main problem with a ReadWrite is that the following thing:
+          <code class="computeroutput"><span class="identifier">value_type</span> <span class="special">*</span>
+          <span class="identifier">p</span><span class="special">=&amp;(*</span><span class="identifier">it</span><span class="special">);</span></code>
+          fails or stores a transitory direction in p. Is this important in the real
+          life? I do not know. How frequently you store the direction of the elements
+          of a map? Perhaps it is not very frequent, since the logical thing is to
+          store the iterators instead of the directions of the elements. Let us review
+          our options: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 1. We used mutant knowing that is not standard, but of course
+          it is supported in the 100% of the cases. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 2. We used const_reference_pair and we declared the iterators
+          not LValue. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 3. We found some trick that still we do not know. I have thus
+          been playing with unions and things, without much luck. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 4. We leverage the restriction that views have to support the
+          first, second notation. If we made this decision, there are several possibilities:
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> a. The left map has standard semantics first/second while the
+          right map has the inverse semantics. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> b. Instead of first and second we provide first() and second(),
+          with which the problem is trivial. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> c. The map view do not support first/second but left/right as
+          the father relation </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 5. We solve the problem using more memory than sizeof(pair&lt;A,B&gt;).
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> In any case, I would say that the only really unacceptable option
+          is the last one. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Lets see. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 1. I want the "standard compliant" label in the library.
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 2. This is the natural choice, but knowing that there is another
+          option that always works and it is more efficient is awful. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 3. I have also tried to play with unions, the problem is that
+          the union members must be POD types. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 4. This option implies a big lost to the library. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 5. Totally agree. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I want to add another option to this list. Using metaprogramming,
+          the relation class checks if the compiler supports the mutant idiom. If
+          it supports it then it uses it and obtains zero overhead plus LValue iterators,
+          but if it do not supports it then uses const_reference_pair and obtains
+          minimum overhead with ReadWrite iterators. This might be controversial
+          but the advantages that mutant offers are very big and the truth is that
+          I do not believe that in any actual compiler this idiom is not supported.
+          This scheme would adjust perfectly to the present standard since we are
+          not supposing anything. The only drawback here is that although the mutant
+          approach allows to make LValue iterators we have to degrade they to Read
+          Write in both cases, because we want that the same code can be compiled
+          in any standard compliant compiler. </em></span>
+        </p></blockquote></div>
+<p>
+        <code class="literal">- Hopefully we find our way out of the problem -</code>
+      </p>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Changing the subject, I believe that the general concept of
+          hooking data is good, but I do not like the way you implement it. It has
+          to be easy to migrate to B.MI to anticipate the case in that Boost.Bimap
+          becomes insufficient. It is more natural for a B.MI user that the data
+          is accessed without the indirection of <code class="computeroutput"><span class="special">.</span><span class="identifier">data</span></code>. I do not know how this can be articulated
+          in your framework. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> I have a technical problem to implement the data_hook in this
+          way. If the standard would let us use the mutant idiom directly, I can
+          implement it using multiple inheritance. But as we must use const_reference_pair
+          too, It becomes impossible for me to support it. We have three options
+          here: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 1) relation { left, right, data } and pair_view { first, second,
+          data } </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - This is more intuitive within the bimap framework, since it
+          does not mix the data with the index, as a table in a data base does, but
+          gives more importance to the index. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - It is not necessary that the user puts the mutable keyword
+          in each member of the data class. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - This moves away just a little bit from B.MI because the model
+          of it is similar to a table, but it continues to exist a clear path of
+          migration. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 2) relation { left,right, d1,d2... dn } and pair_view { first,
+          second, data } </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - The path to B.MI is the one you have proposed. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - It is very asymmetric. It is necessary to explain that the
+          views are handled different that the relation. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - The user must place the mutable keyboards in the data class.
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 3) Only relation { left,right, d1,d2... dn } </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - Simple migration path to B.MI. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> - You are not able to access the hooked data from the views.
+          </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> My vote goes to the first proposal. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Yes, the first option is the one that less surprises hold to
+          the user. I also vote for 1. </em></span>
+        </p></blockquote></div>
+<p>
+        <code class="literal">- The third week was over -</code>
+      </p>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> There is still one problem that I have to solve. I need to know
+          if it is necessary to create a map_view associated to nothing. If it is
+          necessary there are two options: that it behaves as an empty container
+          or that it throws an exception or assert when trying to use it. If it is
+          not necessary, the map_view is going to keep a reference instead of a pointer.
+          To me, the map_view always must be viewing something. In the case of the
+          iterators being able to create them empty, makes them easy to use in contexts
+          that require constructors by default, like being the value_type of a container,
+          but I do not believe that this is the case of map_view. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> How would an empty map_view be useful? My intuition is like
+          yours, map_view would have to be always associate to something. If we wished
+          to obtain the semantics "is associated or not" we can use a pointer
+          to a map_view. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> OK, then you agree to that map_views stores a reference instead
+          of a pointer? </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Joaquin</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> It depends on the semantics you want to give to map_views, and
+          in concrete to the copy of map_views. </em></span>
+        </p></blockquote></div>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">map_view</span> <span class="identifier">x</span><span class="special">=...;</span>
+<span class="identifier">map_view</span> <span class="identifier">y</span><span class="special">=...;</span>
+<span class="identifier">x</span><span class="special">=</span><span class="identifier">y</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> What is supposed to do this last line? </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 1. Rebinding of x, that is to say, x points at the same container
+          that y. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 2. Copy of the underlying container. </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> If you want to implement 1, you cannot use references internally.
+          If you want to implement 2, it is almost the same to use a reference or
+          a pointer. </em></span>
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>Matias</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> If I want that they behave exactly as std::maps then I must
+          go for 2. But if I think they as "views" of something, I like
+          1. The question is complicated. I add another option: </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> 3. Error: operator= is declare as private in boost::bimap::map_view
+          std_container </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Also What happens with <code class="computeroutput"><span class="identifier">std_container</span>
+          <span class="special">=</span> <span class="identifier">view</span><span class="special">;</span></code>? and with <code class="computeroutput"><span class="identifier">view</span>
+          <span class="special">=</span> <span class="identifier">std_container</span><span class="special">;</span></code>? </em></span>
+        </p></blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="code.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../history.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

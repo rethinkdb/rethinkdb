@@ -1,0 +1,91 @@
+<html>
+<head>
+	<title>BOOST_PP_REPEAT_FROM_TO_3RD</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_REPEAT_FROM_TO_3RD</b> macro represents the third dimension of <b>BOOST_PP_REPEAT_FROM_TO</b>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_REPEAT_FROM_TO_3RD</b>(<i>first</i>, <i>last</i>, <i>macro</i>, <i>data</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>first</dt>
+			<dd>
+				The lower bound of the repetition.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>last</dt>
+			<dd>
+				The upper bound of the repetition.
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				A ternary operation of the form <i>macro</i>(<i>z</i>, <i>n</i>, <i>data</i>).&nbsp;
+				This macro is expanded by <b>BOOST_PP_REPEAT_FROM_TO_3RD</b> with the next available repetition depth,
+				the current repetition number, and the auxiliary <i>data</i> argument.&nbsp;
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>macro</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands to the sequence:
+			<div>
+				<i>macro</i>(<i>z</i>, <i>first</i>, <i>data</i>) <i>macro</i>(<i>z</i>, <i>first</i> + <i>1</i>, <i>data</i>) ... <i>macro</i>(<i>z</i>, <i>last</i> - <i>1</i>, <i>data</i>)
+			</div>
+		</div>
+		<div>
+			The number of repetitions (i.e. <i>last</i> - <i>first</i>) must not exceed <b>BOOST_PP_LIMIT_REPEAT</b>.
+		</div>
+		<div>
+			The <i>z</i> value that is passed to <i>macro</i> represents the next available repetition dimension.&nbsp;
+			Other macros that have <b>_Z</b> suffix variants internally use <b>BOOST_PP_REPEAT</b>--for example, <b>BOOST_PP_ENUM_PARAMS</b> and <b>BOOST_PP_ENUM_PARAMS_Z</b>.&nbsp;
+			Using these <b>_Z</b> versions is not strictly necessary, but passing the <i>z</i> value (that is passed to <i>macro</i>) to these macros allows them to reenter <b>BOOST_PP_REPEAT</b> with maximum efficiency.
+		</div>
+		<div>
+			To directly use this <i>z</i> value, rather than simply passing it to another macro, see <b>BOOST_PP_REPEAT_FROM_TO_<i>z</i></b>.
+		</div>
+		<div>
+			This macro is deprecated.&nbsp;
+			It only exists for backward compatibility.&nbsp;
+			Use <b>BOOST_PP_REPEAT_FROM_TO</b> instead.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="limit_repeat.html">BOOST_PP_LIMIT_REPEAT</a></li>
+			<li><a href="repeat_from_to_z.html">BOOST_PP_REPEAT_FROM_TO_<i>z</i></a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/repetition/repeat_from_to.html">&lt;boost/preprocessor/repetition/repeat_from_to.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/repetition/repeat_from_to.html">boost/preprocessor/repetition/repeat_from_to.hpp</a>&gt;
+
+#define MACRO(z, n, data) (n)
+
+<a href="repeat_from_to_3rd.html">BOOST_PP_REPEAT_FROM_TO_3RD</a>(1, 6, MACRO, nil)
+   // expands to (1) (2) (3) (4) (5)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

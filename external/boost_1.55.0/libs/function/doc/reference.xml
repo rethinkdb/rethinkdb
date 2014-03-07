@@ -1,0 +1,992 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<library-reference id="function.reference" last-revision="$Date: 2013-06-15 00:06:26 -0700 (Sat, 15 Jun 2013) $">
+
+<section id="function.definitions">
+  <title>Definitions</title>
+<para>
+  <itemizedlist>
+    <listitem>
+      <para>A function object <computeroutput>f</computeroutput> is
+      <emphasis>compatible</emphasis> if for the given set of argument
+      types <computeroutput>Arg1</computeroutput>,
+      <computeroutput>Arg2</computeroutput>, ...,
+      <computeroutput>ArgN</computeroutput> and a
+      return type <computeroutput>ResultType</computeroutput>, the
+      appropriate following function is well-formed:
+<programlisting>
+  <emphasis>// if ResultType is not <emphasis role="bold">void</emphasis></emphasis>
+  ResultType foo(Arg1 arg1, Arg2 arg2, ..., Arg<emphasis>N</emphasis> arg<emphasis>N</emphasis>)
+  {
+    <emphasis role="bold">return</emphasis> f(arg1, arg2, ..., arg<emphasis>N</emphasis>);
+  }
+
+  <emphasis>// if ResultType is <emphasis role="bold">void</emphasis></emphasis>
+  ResultType foo(Arg1 arg1, Arg2 arg2, ..., Arg<emphasis>N</emphasis> arg<emphasis>N</emphasis>)
+  {
+    f(arg1, arg2, ..., arg<emphasis>N</emphasis>);
+  }
+</programlisting></para>
+
+      <para> A special provision is made for pointers to member
+      functions. Though they are not function objects, Boost.Function
+      will adapt them internally to function objects. This requires
+      that a pointer to member function of the form <code>R
+      (X::*mf)(Arg1, Arg2, ..., ArgN)
+      cv-quals</code> be adapted to a
+      function object with the following function call operator
+      overloads:
+<programlisting>
+  <emphasis role="bold">template</emphasis>&lt;<emphasis role="bold">typename P</emphasis>&gt;
+  R <emphasis role="bold">operator</emphasis>()(<emphasis>cv-quals</emphasis> P&amp; x, Arg1 arg1, Arg2 arg2, ..., Arg<emphasis>N</emphasis> arg<emphasis>N</emphasis>) <emphasis role="bold">const</emphasis>
+  {
+    <emphasis role="bold">return</emphasis> (*x).*mf(arg1, arg2, ..., arg<emphasis>N</emphasis>);
+  }
+</programlisting>
+</para>
+    </listitem>
+    <listitem>
+      <para>A function object <code>f</code> of
+      type <code>F</code> is
+      <emphasis>stateless</emphasis> if it is a function pointer or if
+      <code><classname>boost::is_stateless</classname>&lt;F&gt;</code>
+      is true. The construction of or copy to a Boost.Function object
+      from a stateless function object will not cause exceptions to be
+      thrown and will not allocate any storage.
+      </para>
+    </listitem>
+  </itemizedlist>
+</para>
+</section>
+
+<header name="boost/function.hpp">
+<namespace name="boost">
+  <class name="bad_function_call">
+    <inherit access="public"><classname>std::runtime_error</classname></inherit>
+    <purpose>An exception type thrown when an instance of a <code>function</code> object is empty when invoked.</purpose>
+    <constructor>
+      <effects><simpara>Constructs a <code><classname>bad_function_call</classname></code> exception object.</simpara></effects>
+    </constructor>
+  </class>
+
+  <class name="function_base">
+    <purpose>The common base class for all Boost.Function
+    objects. Objects of type function_base may not be created
+    directly.</purpose>
+
+    <method-group name="capacity">
+      <method name="empty" cv="const">
+        <type>bool</type>
+        <returns><simpara><code>false</code> if <code>this</code> has a target, and <code>true</code> otherwise.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+
+    <method-group name="target access">
+      <overloaded-method name="target">
+        <signature>
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>Functor*</type>
+        </signature>
+        <signature cv="const">
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>const Functor*</type>
+        </signature>
+
+        <returns><simpara>If <code>this</code> stores a target of type
+        <code>Functor</code>, returns the address of the
+        target. Otherwise, returns the NULL
+        pointer.</simpara></returns>
+
+        <throws><simpara>Will not throw.</simpara></throws>
+      </overloaded-method>
+
+      <method name="contains" cv="const">
+        <template>
+          <template-type-parameter name="Functor"/>
+        </template>
+        <type>bool</type>
+        <parameter name="f">
+          <paramtype>const Functor&amp;</paramtype>
+        </parameter>
+        <returns><simpara><code>true</code> if <code>this-&gt;<methodname>target</methodname>&lt;Functor&gt;()</code> is non-NULL and <code><functionname>function_equal</functionname>(*(this-&gt;target&lt;Functor&gt;()), f)</code></simpara></returns>
+ 
+      </method>
+
+      <method name="target_type" cv="const">
+        <type>const std::type_info&amp;</type>
+        <returns><simpara><code>typeid</code> of the target function object, or <code>typeid(void)</code> if <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+  </class>
+
+  <class name="functionN">
+    <template>
+      <template-type-parameter name="R"/>
+      <template-type-parameter name="T1"/>
+      <template-type-parameter name="T2"/>
+      <template-varargs/>
+      <template-type-parameter name="TN"/>
+    </template>
+
+    <inherit access="public"><classname>function_base</classname></inherit>
+
+    <purpose>A set of generalized function pointers that can be used for callbacks or wrapping function objects.</purpose>
+
+    <description>
+      <para>Class template <classname>functionN</classname> is
+      actually a family of related classes <classname
+      alt="functionN">function0</classname>, <classname
+      alt="functionN">function1</classname>, etc., up to some
+      implementation-defined maximum. In this context, <code>N</code>
+      refers to the number of parameters.</para>
+    </description>
+
+    <typedef name="result_type"><type>R</type></typedef>
+    <typedef name="argument_type">
+      <type>T1</type><purpose>If N == 1</purpose>
+    </typedef>
+    <typedef name="first_argument_type">
+      <type>T1</type>
+      <purpose>If N == 2</purpose>
+    </typedef>
+    <typedef name="second_argument_type">
+      <type>T2</type>
+      <purpose>If N == 2</purpose>
+    </typedef>
+    <typedef name="arg1_type"><type>T1</type></typedef>
+    <typedef name="arg2_type"><type>T2</type></typedef>
+    <typedef name="..."><type/></typedef>
+    <typedef name="argN_type"><type>TN</type></typedef>
+
+    <static-constant name="arity">
+      <type>int</type>
+      <default>N</default>
+    </static-constant>
+
+    <struct name="sig">
+      <template>
+        <template-type-parameter name="Args"/>
+      </template>
+
+      <purpose>
+        <simpara><libraryname>Lambda</libraryname> library support</simpara>
+      </purpose>
+
+      <typedef name="type"><type>result_type</type></typedef>
+    </struct>
+
+    <constructor>
+      <postconditions><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+      <throws><simpara>Will not throw.</simpara></throws>
+    </constructor>
+
+    <constructor>
+      <parameter name="f">
+        <paramtype>const <classname>functionN</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>Contains a copy of the <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>.</simpara></postconditions>
+      <throws><simpara>Will not throw unless copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+
+    <constructor>
+      <parameter name="f">
+        <paramtype><classname>functionN</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+    
+    <constructor>
+      <template>
+        <template-type-parameter name="F"/>
+      </template>
+      <parameter name="f"><paramtype>F</paramtype></parameter>
+      <requires><simpara>F is a function object Callable from <code>this</code>.</simpara></requires>
+      <postconditions><simpara><code>*this</code> targets a copy of <code>f</code> if <code>f</code> is nonempty, or <code>this-&gt;<methodname>empty</methodname>()</code> if <code>f</code> is empty.</simpara></postconditions>
+    </constructor>
+
+    <constructor>
+      <template>
+        <template-type-parameter name="F"/>
+        <template-type-parameter name="Allocator"/>
+      </template>
+      <parameter name="f"><paramtype>F</paramtype></parameter>
+      <parameter name="alloc"><paramtype>Allocator</paramtype></parameter>
+      <requires><simpara>F is a function object Callable from <code>this</code>, Allocator is an allocator. The copy constructor and destructor of Allocator shall not throw.</simpara></requires>
+      <postconditions><simpara><code>*this</code> targets a copy of <code>f</code> if <code>f</code> is nonempty, or <code>this-&gt;<methodname>empty</methodname>()</code> if <code>f</code> is empty.</simpara></postconditions>
+
+      <effects><simpara>If memory allocation is required, the given allocator (or a copy of it) will be used to allocate that memory.</simpara></effects>
+    </constructor>
+
+    <destructor>
+      <effects><simpara>If <code>!this-&gt;<methodname>empty</methodname>()</code>, destroys the target of this.</simpara></effects>
+
+    </destructor>
+
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype>const <classname>functionN</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>If copy construction does not throw, <code>*this</code> targets a copy of <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>. If copy construction does throw, <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></postconditions>
+    </copy-assignment>
+    
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype><classname>functionN</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </copy-assignment>
+
+    <method-group name="modifiers">
+      <method name="swap">
+        <type>void</type>
+        <parameter name="f"><paramtype>const <classname>functionN</classname>&amp;</paramtype></parameter>
+        <effects><simpara>Interchanges the targets of <code>*this</code> and <code>f</code>.</simpara></effects>
+      </method>
+
+      <method name="clear">
+        <type>void</type>
+        <postconditions><simpara>this-&gt;<methodname>empty</methodname>()</simpara></postconditions>
+      </method>
+    </method-group>
+
+    <method-group name="capacity">
+      <method name="empty" cv="const">
+        <type>bool</type>
+        <returns><simpara><code>false</code> if <code>this</code> has a target, and <code>true</code> otherwise.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+
+      <method name="conversion-operator" cv="const">
+        <type>safe_bool</type>
+        <returns><simpara>A <code>safe_bool</code> that evaluates <code>false</code> in a boolean context when <code>this-&gt;<methodname>empty</methodname>()</code>, and <code>true</code> otherwise.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+
+      <method name="operator!" cv="const">
+        <type>bool</type>
+        <returns><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+
+    <method-group name="target access">
+      <overloaded-method name="target">
+        <signature>
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>Functor*</type>
+        </signature>
+        <signature cv="const">
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>const Functor*</type>
+        </signature>
+
+        <returns><simpara>If <code>this</code> stores a target of type
+        <code>Functor</code>, returns the address of the
+        target. Otherwise, returns the NULL
+        pointer.</simpara></returns>
+
+        <throws><simpara>Will not throw.</simpara></throws>
+      </overloaded-method>
+
+      <method name="contains" cv="const">
+        <template>
+          <template-type-parameter name="Functor"/>
+        </template>
+        <type>bool</type>
+        <parameter name="f">
+          <paramtype>const Functor&amp;</paramtype>
+        </parameter>
+        <returns><simpara><code>true</code> if <code>this-&gt;<methodname>target</methodname>&lt;Functor&gt;()</code> is non-NULL and <code><functionname>function_equal</functionname>(*(this-&gt;target&lt;Functor&gt;()), f)</code></simpara></returns>
+ 
+      </method>
+
+      <method name="target_type" cv="const">
+        <type>const std::type_info&amp;</type>
+        <returns><simpara><code>typeid</code> of the target function object, or <code>typeid(void)</code> if <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+
+    </method-group>
+
+    <method-group name="invocation">
+      <method name="operator()" cv="const">
+        <type>result_type</type>
+        <parameter name="a1"><paramtype>arg1_type</paramtype></parameter>
+        <parameter name="a2"><paramtype>arg2_type</paramtype></parameter>
+        <parameter><paramtype>...</paramtype></parameter>
+        <parameter name="aN"><paramtype>argN_type</paramtype></parameter>
+        <effects><simpara><code>f(a1, a2, ..., aN)</code>, where <code>f</code> is the target of <code>*this</code>.</simpara></effects>
+        <returns><simpara>if <code>R</code> is <code>void</code>, nothing is returned; otherwise, the return value of the call to <code>f</code> is returned.</simpara></returns>
+        <throws><simpara><code><classname>bad_function_call</classname></code> if <code>this-&gt;<methodname>empty</methodname>()</code>. Otherwise, may through any exception thrown by the target function <code>f</code>.</simpara></throws>
+      </method>
+    </method-group>
+
+    <free-function-group name="specialized algorithms">
+      <function name="swap">
+        <template>
+          <template-type-parameter name="T1"/>
+          <template-type-parameter name="T2"/>
+          <template-varargs/>
+          <template-type-parameter name="TN"/>
+        </template>
+        <type>void</type>
+        <parameter name="f1"><paramtype><classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        <parameter name="f2"><paramtype><classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        <effects><simpara><code>f1.<methodname>swap</methodname>(f2)</code></simpara></effects>
+      </function>
+    </free-function-group>
+
+    <free-function-group name="comparison operators">
+      <overloaded-function name="operator==">
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="U1"/>
+            <template-type-parameter name="U2"/>
+            <template-varargs/>
+            <template-type-parameter name="UN"/>
+          </template>
+          <type>void</type>
+          <parameter name="f1"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="f2"><paramtype>const <classname>functionN</classname>&lt;U1, U2, ..., UN&gt;&amp;</paramtype></parameter>
+        </signature>
+
+        <returns><simpara>True when <code>f</code> stores an object of
+        type <code>Functor</code> and one of the following conditions applies:
+          <itemizedlist>
+
+            <listitem><simpara><code>g</code> is of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>f.target&lt;Functor&gt;() == g.<methodname
+            alt="reference_wrapper::get_pointer">get_pointer</methodname>()</code>.</simpara></listitem>
+
+            <listitem><simpara><code>g</code> is not of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and
+            <code><functionname>function_equal</functionname>(*(f.target&lt;Functor&gt;()),
+            g)</code>.</simpara></listitem>
+
+          </itemizedlist>
+          </simpara></returns>
+
+        <notes><simpara><code><classname>functionN</classname></code>
+        objects are not
+        <conceptname>EqualityComparable</conceptname>.</simpara></notes>
+
+        <rationale><simpara>The <code>safe_bool</code> conversion
+        opens a loophole whereby two <code>functionN</code>
+        instances can be compared via <code>==</code>, although this
+        is not feasible to implement. The undefined <code>void
+        operator==</code> closes the loophole and ensures a
+        compile-time or link-time error.</simpara></rationale>
+      </overloaded-function>
+
+      <overloaded-function name="operator!=">
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="T1"/>
+            <template-type-parameter name="T2"/>
+            <template-varargs/>
+            <template-type-parameter name="TN"/>
+            <template-type-parameter name="U1"/>
+            <template-type-parameter name="U2"/>
+            <template-varargs/>
+            <template-type-parameter name="UN"/>
+          </template>
+          <type>void</type>
+          <parameter name="f1"><paramtype>const <classname>functionN</classname>&lt;T1, T2, ..., TN&gt;&amp;</paramtype></parameter>
+          <parameter name="f2"><paramtype>const <classname>functionN</classname>&lt;U1, U2, ..., UN&gt;&amp;</paramtype></parameter>
+        </signature>
+
+        <returns><simpara>True when <code>f</code> does not store an
+        object of type <code>Functor</code> or it stores an object of
+        type <code>Functor</code> and one of the following conditions
+        applies:
+          <itemizedlist>
+
+            <listitem><simpara><code>g</code> is of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>f.target&lt;Functor&gt;() != g.<methodname
+            alt="reference_wrapper::get_pointer">get_pointer</methodname>()</code>.</simpara></listitem>
+
+            <listitem><simpara><code>g</code> is not of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>!<functionname>function_equal</functionname>(*(f.target&lt;Functor&gt;()), g)</code>.</simpara></listitem>
+
+          </itemizedlist>
+          </simpara></returns>
+
+        <notes><simpara><code><classname>functionN</classname></code>
+        objects are not
+        <conceptname>EqualityComparable</conceptname>.</simpara></notes>
+
+        <rationale><simpara>The <code>safe_bool</code> conversion
+        opens a loophole whereby two <code>functionN</code>
+        instances can be compared via <code>!=</code>, although this
+        is not feasible to implement. The undefined <code>void
+        operator!=</code> closes the loophole and ensures a
+        compile-time or link-time error.</simpara></rationale>
+      </overloaded-function>
+    </free-function-group>
+  </class>
+
+  <class name="function">
+    <template>
+      <template-type-parameter name="Signature">
+        <purpose>Function type R (T1, T2, ..., TN)</purpose>
+      </template-type-parameter>
+    </template>
+    <inherit access="public"><classname>functionN</classname>&lt;R, T1, T2, ..., TN&gt;</inherit>
+
+    <purpose>A generalized function pointer that can be used for
+    callbacks or wrapping function objects.</purpose>
+
+    <description>
+      <para>Class template <classname>function</classname> is a thin
+      wrapper around the numbered class templates <classname
+      alt="functionN">function0</classname>, <classname
+      alt="functionN">function1</classname>, etc. It accepts a
+      function type with N arguments and will will derive from
+      <classname>functionN</classname> instantiated with the arguments
+      it receives.</para>
+
+      <para>The semantics of all operations in class template
+      <classname>function</classname> are equivalent to that of the
+      underlying <classname>functionN</classname> object, although
+      additional member functions are required to allow proper copy
+      construction and copy assignment of function objects.</para>
+    </description>
+
+    <typedef name="result_type"><type>R</type></typedef>
+    <typedef name="argument_type">
+      <type>T1</type><purpose>If N == 1</purpose>
+    </typedef>
+    <typedef name="first_argument_type">
+      <type>T1</type>
+      <purpose>If N == 2</purpose>
+    </typedef>
+    <typedef name="second_argument_type">
+      <type>T2</type>
+      <purpose>If N == 2</purpose>
+    </typedef>
+    <typedef name="arg1_type"><type>T1</type></typedef>
+    <typedef name="arg2_type"><type>T2</type></typedef>
+    <typedef name="..."><type/></typedef>
+    <typedef name="argN_type"><type>TN</type></typedef>
+
+    <static-constant name="arity">
+      <type>int</type>
+      <default>N</default>
+    </static-constant>
+
+    <struct name="sig">
+      <template>
+        <template-type-parameter name="Args"/>
+      </template>
+
+      <purpose>
+        <simpara><libraryname>Lambda</libraryname> library support</simpara>
+      </purpose>
+
+      <typedef name="type"><type>result_type</type></typedef>
+    </struct>
+
+    <constructor>
+      <postconditions><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+      <throws><simpara>Will not throw.</simpara></throws>
+    </constructor>
+
+    <constructor>
+      <parameter name="f">
+        <paramtype>const <classname>functionN</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>Contains a copy of the <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>.</simpara></postconditions>
+      <throws><simpara>Will not throw unless copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+        
+    <constructor>
+      <parameter name="f">
+        <paramtype><classname>functionN</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+    
+    <constructor>
+      <parameter name="f">
+        <paramtype>const <classname>function</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>Contains a copy of the <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>.</simpara></postconditions>
+      <throws><simpara>Will not throw unless copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+
+    <constructor>
+      <parameter name="f">
+        <paramtype><classname>function</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </constructor>
+    
+    <constructor>
+      <template>
+        <template-type-parameter name="F"/>
+      </template>
+      <parameter name="f"><paramtype>F</paramtype></parameter>
+      <requires><simpara>F is a function object Callable from <code>this</code>.</simpara></requires>
+      <postconditions><simpara><code>*this</code> targets a copy of <code>f</code> if <code>f</code> is nonempty, or <code>this-&gt;<methodname>empty</methodname>()</code> if <code>f</code> is empty.</simpara></postconditions>
+    </constructor>
+
+    <constructor>
+      <template>
+        <template-type-parameter name="F"/>
+        <template-type-parameter name="Allocator"/>
+      </template>
+      <parameter name="f"><paramtype>F</paramtype></parameter>
+      <parameter name="alloc"><paramtype>Allocator</paramtype></parameter>
+      <requires><simpara>F is a function object Callable from <code>this</code>, Allocator is an allocator. The copy constructor and destructor of Allocator shall not throw.</simpara></requires>
+      <postconditions><simpara><code>*this</code> targets a copy of <code>f</code> if <code>f</code> is nonempty, or <code>this-&gt;<methodname>empty</methodname>()</code> if <code>f</code> is empty.</simpara></postconditions>
+
+      <effects><simpara>If memory allocation is required, the given allocator (or a copy of it) will be used to allocate that memory.</simpara></effects>
+    </constructor>
+
+    <destructor>
+      <effects><simpara>If <code>!this-&gt;<methodname>empty</methodname>()</code>, destroys the target of <code>this</code>.</simpara></effects>
+
+    </destructor>
+
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype>const <classname>functionN</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>If copy construction does not throw, <code>*this</code> targets a copy of <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>. If copy construction does throw, <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></postconditions>
+    </copy-assignment>
+    
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype><classname>functionN</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </copy-assignment>
+
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype>const <classname>function</classname>&amp;</paramtype>
+      </parameter>
+      <postconditions><simpara>If copy construction of the target of <code>f</code> does not throw, <code>*this</code> targets a copy of <code>f</code>'s target, if it has one, or is empty if <code>f.<methodname>empty</methodname>()</code>. </simpara></postconditions>
+      <throws><simpara>Will not throw when the target of <code>f</code> is a stateless function object or a reference to the function object. If copy construction does throw, <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></throws>
+    </copy-assignment>
+    
+    <copy-assignment>
+      <parameter name="f">
+        <paramtype><classname>function</classname>&amp;&amp;</paramtype>
+      </parameter>
+      <requires><simpara>C++11 compatible compiler.</simpara></requires>
+      <postconditions><simpara>Moves the value from <code>f</code> to <code>*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code>*this</code> leaving argument empty.</simpara></postconditions>
+      <throws><simpara>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code>f</code> throws.</simpara></throws>
+    </copy-assignment>
+
+    <method-group name="modifiers">
+      <method name="swap">
+        <type>void</type>
+        <parameter name="f"><paramtype>const <classname>function</classname>&amp;</paramtype></parameter>
+        <effects><simpara>Interchanges the targets of <code>*this</code> and <code>f</code>.</simpara></effects>
+      </method>
+
+      <method name="clear">
+        <type>void</type>
+        <postconditions><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+
+    <method-group name="capacity">
+      <method name="empty" cv="const">
+        <type>bool</type>
+        <returns><simpara><code>false</code> if <code>this</code> has a target, and <code>true</code> otherwise.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+
+      <method name="conversion-operator" cv="const">
+        <type>safe_bool</type>
+        <returns><simpara>A <code>safe_bool</code> that evaluates <code>false</code> in a boolean context when <code>this-&gt;<methodname>empty</methodname>()</code>, and <code>true</code> otherwise.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+
+      <method name="operator!" cv="const">
+        <type>bool</type>
+        <returns><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+
+    <method-group name="target access">
+      <overloaded-method name="target">
+        <signature>
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>Functor*</type>
+        </signature>
+        <signature cv="const">
+          <template> 
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>const Functor*</type>
+        </signature>
+
+        <returns><simpara>If <code>this</code> stores a target of type
+        <code>Functor</code>, returns the address of the
+        target. Otherwise, returns the NULL
+        pointer.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </overloaded-method>
+
+      <method name="contains" cv="const">
+        <template>
+          <template-type-parameter name="Functor"/>
+        </template>
+        <type>bool</type>
+        <parameter name="f">
+          <paramtype>const Functor&amp;</paramtype>
+        </parameter>
+        <returns><simpara><code>true</code> if <code>this-&gt;<methodname>target</methodname>&lt;Functor&gt;()</code> is non-NULL and <code><functionname>function_equal</functionname>(*(this-&gt;target&lt;Functor&gt;()), f)</code></simpara></returns>
+ 
+      </method>
+
+      <method name="target_type" cv="const">
+        <type>const std::type_info&amp;</type>
+        <returns><simpara><code>typeid</code> of the target function object, or <code>typeid(void)</code> if <code>this-&gt;<methodname>empty</methodname>()</code>.</simpara></returns>
+        <throws><simpara>Will not throw.</simpara></throws>
+      </method>
+    </method-group>
+
+    <method-group name="invocation">
+      <method name="operator()" cv="const">
+        <type>result_type</type>
+        <parameter name="a1"><paramtype>arg1_type</paramtype></parameter>
+        <parameter name="a2"><paramtype>arg2_type</paramtype></parameter>
+        <parameter><paramtype>...</paramtype></parameter>
+        <parameter name="aN"><paramtype>argN_type</paramtype></parameter>
+        <effects><simpara><code>f(a1, a2, ..., aN)</code>, where <code>f</code> is the target of <code>*this</code>.</simpara></effects>
+        <returns><simpara>if <code>R</code> is <code>void</code>, nothing is returned; otherwise, the return value of the call to <code>f</code> is returned.</simpara></returns>
+        <throws><simpara><code><classname>bad_function_call</classname></code> if <code>this-&gt;<methodname>empty</methodname>()</code>. Otherwise, may through any exception thrown by the target function <code>f</code>.</simpara></throws>
+      </method>
+    </method-group>
+
+    <free-function-group name="specialized algorithms">
+      <function name="swap">
+        <template>
+          <template-type-parameter name="Signature"/>
+        </template>
+        <type>void</type>
+        <parameter name="f1"><paramtype><classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        <parameter name="f2"><paramtype><classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        <effects><simpara><code>f1.<methodname>swap</methodname>(f2)</code></simpara></effects>
+      </function>
+    </free-function-group>
+
+    <free-function-group name="comparison operators">
+      <overloaded-function name="operator==">
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="Signature1"/>
+            <template-type-parameter name="Signature2"/>
+          </template>
+          <type>void</type>
+          <parameter name="f1"><paramtype>const <classname>function</classname>&lt;Signature1&gt;&amp;</paramtype></parameter>
+          <parameter name="f2"><paramtype>const <classname>function</classname>&lt;Signature2&gt;&amp;</paramtype></parameter>
+        </signature>
+
+        <returns><simpara>True when <code>f</code> stores an object of
+        type <code>Functor</code> and one of the following conditions applies:
+          <itemizedlist>
+
+            <listitem><simpara><code>g</code> is of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>f.target&lt;Functor&gt;() == g.<methodname
+            alt="reference_wrapper::get_pointer">get_pointer</methodname>()</code>.</simpara></listitem>
+
+            <listitem><simpara><code>g</code> is not of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code><functionname>function_equals</functionname>(*(f.target&lt;Functor&gt;()), g)</code>.</simpara></listitem>
+
+          </itemizedlist>
+          </simpara></returns>
+
+        <notes><simpara><code><classname>function</classname></code>
+        objects are not
+        <conceptname>EqualityComparable</conceptname>.</simpara></notes>
+
+        <rationale><simpara>The <code>safe_bool</code> conversion
+        opens a loophole whereby two <code>function</code>
+        instances can be compared via <code>==</code>, although this
+        is not feasible to implement. The undefined <code>void
+        operator==</code> closes the loophole and ensures a
+        compile-time or link-time error.</simpara></rationale>
+      </overloaded-function>
+
+      <overloaded-function name="operator!=">
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype>Functor</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="Signature"/>
+            <template-type-parameter name="Functor"/>
+          </template>
+          <type>bool</type>
+          <parameter name="g"><paramtype><classname>reference_wrapper</classname>&lt;Functor&gt;</paramtype></parameter>
+          <parameter name="f"><paramtype>const <classname>function</classname>&lt;Signature&gt;&amp;</paramtype></parameter>
+        </signature>        
+        <signature>
+          <template>
+            <template-type-parameter name="Signature1"/>
+            <template-type-parameter name="Signature2"/>
+          </template>
+          <type>void</type>
+          <parameter name="f1"><paramtype>const <classname>function</classname>&lt;Signature1&gt;&amp;</paramtype></parameter>
+          <parameter name="f2"><paramtype>const <classname>function</classname>&lt;Signature2&gt;&amp;</paramtype></parameter>
+        </signature>
+
+        <returns><simpara>True when <code>f</code> does not store an
+        object of type <code>Functor</code> or it stores an object of
+        type <code>Functor</code> and one of the following conditions
+        applies:
+          <itemizedlist>
+
+            <listitem><simpara><code>g</code> is of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>f.target&lt;Functor&gt;() != g.<methodname
+            alt="reference_wrapper::get_pointer">get_pointer</methodname>()</code>.</simpara></listitem>
+
+            <listitem><simpara><code>g</code> is not of type
+            <code><classname>reference_wrapper</classname>&lt;Functor&gt;</code>
+            and <code>!<functionname>function_equals</functionname>(*(f.target&lt;Functor&gt;()), g)</code>.</simpara></listitem>
+
+          </itemizedlist>
+          </simpara></returns>
+
+        <notes><simpara><code><classname>function</classname></code>
+        objects are not
+        <conceptname>EqualityComparable</conceptname>.</simpara></notes>
+
+        <rationale><simpara>The <code>safe_bool</code> conversion
+        opens a loophole whereby two <code>function</code>
+        instances can be compared via <code>!=</code>, although this
+        is not feasible to implement. The undefined <code>void
+        operator!=</code> closes the loophole and ensures a
+        compile-time or link-time error.</simpara></rationale>
+      </overloaded-function>
+    </free-function-group>
+  </class>
+</namespace>
+</header>
+
+<header name="boost/function_equal.hpp">
+  <namespace name="boost">
+  <function name="function_equal">
+    <template>
+      <template-type-parameter name="F"/>
+      <template-type-parameter name="G"/>
+    </template>
+    <type>bool</type>
+    <parameter name="f">
+      <paramtype>const F&amp;</paramtype>
+    </parameter>
+    <parameter name="g">
+      <paramtype>const G&amp;</paramtype>
+    </parameter>
+    <purpose><simpara>Compare two function objects for equality.</simpara></purpose>
+    <returns><simpara><code>f == g</code>.</simpara></returns>
+    <throws><simpara>Only if <code>f == g</code> throws.</simpara></throws>
+  </function>
+  </namespace>
+</header>
+</library-reference>

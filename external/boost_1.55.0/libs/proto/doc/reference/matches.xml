@@ -1,0 +1,837 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/matches.hpp">
+  <para>
+    Contains definition of the
+    <computeroutput>
+      <classname alt="boost::proto::matches">proto::matches&lt;&gt;</classname>
+    </computeroutput>
+    metafunction for determining if a given expression matches a given pattern.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="_">
+        <inherit><type><classname>proto::transform</classname>&lt;_&gt;</type></inherit>
+        <purpose>A wildcard grammar element that matches any expression, and a transform that returns
+          the current expression unchanged.</purpose>
+        <description>
+          <para>
+            The wildcard type, <computeroutput>proto::_</computeroutput>, is a grammar element such
+            that <computeroutput><classname>proto::matches</classname>&lt;E, proto::_&gt;::value</computeroutput>
+            is <computeroutput>true</computeroutput> for any expression type <computeroutput>E</computeroutput>.
+          </para>
+          <para>
+            The wildcard can also be used as a stand-in for a template argument when matching terminals.
+            For instance, the following is a grammar that will match any
+            <computeroutput>std::complex&lt;&gt;</computeroutput> terminal:<programlisting>BOOST_MPL_ASSERT((
+  <classname>proto::matches</classname>&lt;
+    <classname>proto::terminal</classname>&lt;std::complex&lt;double&gt; &gt;::type,
+    <emphasis role="bold"><classname>proto::terminal</classname>&lt;std::complex&lt; proto::_ &gt; &gt;</emphasis>
+  &gt;
+));</programlisting>
+          </para>
+          <para>
+            When used as a transform, <computeroutput>proto::_</computeroutput> returns the current expression
+            unchanged. For instance, in the following, <computeroutput>proto::_</computeroutput> is used with
+            the <computeroutput><classname alt="proto::fold">proto::fold&lt;&gt;</classname></computeroutput>
+            transform to fold the children of a node:<programlisting>struct CountChildren :
+  <classname>proto::or_</classname>&lt;
+    // Terminals have no children
+    <classname>proto::when</classname>&lt;<classname>proto::terminal</classname>&lt;proto::_&gt;, mpl::int_&lt;0&gt;()&gt;,
+    // Use proto::fold&lt;&gt; to count the children of non-terminals
+    <classname>proto::otherwise</classname>&lt;
+      <classname>proto::fold</classname>&lt;
+        proto::_, // &lt;-- fold the current expression
+        mpl::int_&lt;0&gt;(),
+        mpl::plus&lt;<classname>proto::_state</classname>, mpl::int_&lt;1&gt; &gt;()
+      &gt;
+    &gt;
+  &gt;
+{};</programlisting>
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt;Expr, State, Data&gt;</type></inherit>
+          <typedef name="result_type">
+            <type>Expr</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>Expr</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>An expression </para>
+                </description>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>expr</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::not_ -->
+      <struct name="not_">
+        <template>
+          <template-type-parameter name="Grammar"/>
+        </template>
+        <inherit><type><classname>proto::transform</classname>&lt;not_&lt;Grammar&gt; &gt;</type></inherit>
+        <purpose>Inverts the set of expressions matched by a grammar. When used as a transform,
+          <computeroutput>proto::not_&lt;&gt;</computeroutput> returns the current expression unchanged.
+        </purpose>
+        <description>
+          <para>
+            If an expression type <computeroutput>E</computeroutput> does not match a grammar
+            <computeroutput>G</computeroutput>, then <computeroutput>E</computeroutput> <emphasis>does</emphasis>
+            match <computeroutput>proto::not_&lt;G&gt;</computeroutput>. For example,
+            <computeroutput><classname>proto::not_</classname>&lt;<classname>proto::terminal</classname>&lt;<classname>proto::_</classname>&gt; &gt;</computeroutput>
+            will match any non-terminal.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt;Expr, State, Data&gt;</type></inherit>
+          <typedef name="result_type">
+            <type>Expr</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>Expr</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>An expression </para>
+                </description>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::matches</classname>&lt;Expr, proto::not_&gt;::value</computeroutput>
+                  is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput>expr</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>not_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::if_ -->
+      <struct name="if_">
+        <template>
+          <template-type-parameter name="If"/>
+          <template-type-parameter name="Then">
+            <default><type><classname>proto::_</classname></type></default>
+          </template-type-parameter>
+          <template-type-parameter name="Else">
+            <default><type><classname>proto::not_</classname>&lt;<classname>proto::_</classname>&gt;</type></default>
+          </template-type-parameter>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt;if_&lt;If, Then, Else&gt; &gt;</inherit>
+        <purpose>Used to select one grammar or another based on the result of a compile-time Boolean.
+          When used as a transform, <computeroutput>proto::if_&lt;&gt;</computeroutput> selects between two
+          transforms based on a compile-time Boolean.</purpose>
+        <description>
+          <para>
+            When <computeroutput>proto::if_&lt;If, Then, Else&gt;</computeroutput> is used as a grammar,
+            <computeroutput>If</computeroutput> must be a Proto transform and
+            <computeroutput>Then</computeroutput> and <computeroutput>Else</computeroutput> must be grammars.
+            An expression type <computeroutput>E</computeroutput> matches
+            <computeroutput>proto::if_&lt;If, Then, Else&gt;</computeroutput> if
+            <computeroutput>boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, If&gt;(E)&gt;::type::value</computeroutput>
+            is <computeroutput>true</computeroutput> and
+            <computeroutput>E</computeroutput> matches <computeroutput>Then</computeroutput>; or, if
+            <computeroutput>boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, If&gt;(E)&gt;::type::value</computeroutput>
+            is <computeroutput>false</computeroutput> and <computeroutput>E</computeroutput> matches <computeroutput>Else</computeroutput>.
+          </para>
+          <para>
+            The template parameter <computeroutput>Then</computeroutput> defaults to <computeroutput><classname>proto::_</classname></computeroutput>
+            and <computeroutput>Else</computeroutput> defaults to
+            <computeroutput><classname>proto::not_</classname>&lt;<classname>proto::_</classname>&gt;</computeroutput>,
+            so an expression type <computeroutput>E</computeroutput> will match
+            <computeroutput>proto::if_&lt;If&gt;</computeroutput> if and only if
+            <computeroutput>boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, If&gt;(E)&gt;::type::value</computeroutput>
+            is <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            <programlisting>// A grammar that only matches integral terminals,
+// using is_integral&lt;&gt; from Boost.Type_traits.
+struct IsIntegral :
+  <classname>proto::and_</classname>&lt;
+    <classname>proto::terminal</classname>&lt;<classname>proto::_</classname>&gt;,
+    <classname>proto::if_</classname>&lt; boost::is_integral&lt;<classname>proto::_value</classname>&gt;()&gt;
+  &gt;
+{};</programlisting>
+          </para>
+          <para>
+            When <computeroutput>proto::if_&lt;If, Then, Else&gt;</computeroutput> is used as a transform,
+            <computeroutput>If</computeroutput>, <computeroutput>Then</computeroutput> and
+            <computeroutput>Else</computeroutput> must be Proto transforms. When applying the transform to
+            an expression <computeroutput>E</computeroutput>, state <computeroutput>S</computeroutput> and
+            data <computeroutput>V</computeroutput>, if
+            <computeroutput>boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, If&gt;(E,S,V)&gt;::type::value</computeroutput>
+            is <computeroutput>true</computeroutput> then the <computeroutput>Then</computeroutput> transform
+            is applied; otherwise the <computeroutput>Else</computeroutput> transform is applied.
+            <programlisting>// Match a terminal. If the terminal is integral, return
+// mpl::true_; otherwise, return mpl::false_.
+struct IsIntegral2 :
+  <classname>proto::when</classname>&lt;
+    <classname>proto::terminal</classname>&lt;_&gt;,
+    proto::if_&lt;
+      boost::is_integral&lt;<classname>proto::_value</classname>&gt;(),
+      mpl::true_(),
+      mpl::false_()
+    &gt;
+  &gt;
+{};</programlisting>
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</type></inherit>
+          <typedef name="result_type">
+            <type>typename mpl::if_&lt;
+      typename boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, If&gt;(Expr, State, Data)&gt;::type,
+      typename boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, Then&gt;(Expr, State, Data)&gt;::type,
+      typename boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>, Else&gt;(Expr, State, Data)&gt;::type
+    &gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>An expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>A data of arbitrary type </para>
+                </description>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput><classname>proto::when</classname>&lt;<classname>proto::_</classname>, <replaceable>Then-or-Else</replaceable>&gt;()(expr, state, data)</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>if_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::or_ -->
+      <struct name="or_">
+        <template>
+          <template-type-parameter name="G" pack="1"/>
+        </template>
+        <inherit><type><classname>proto::transform</classname>&lt;or_&lt;G...&gt; &gt;</type></inherit>
+        <purpose>For matching one of a set of alternate grammars. Alternates are tried in order to avoid ambiguity.
+          When used as a transform, <computeroutput>proto::or_&lt;&gt;</computeroutput> applies the transform
+          associated with the first grammar that matches the expression.</purpose>
+        <description>
+          <para>
+            An expression type <computeroutput>E</computeroutput> matches
+            <computeroutput>proto::or_&lt;G<subscript>0</subscript>,G<subscript>1</subscript>,...G<subscript>n</subscript>&gt;</computeroutput>
+            if <computeroutput>E</computeroutput> matches any <computeroutput>G<subscript>x</subscript></computeroutput> for
+            <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>.
+          </para>
+          <para>
+            When applying
+            <computeroutput>proto::or_&lt;G<subscript>0</subscript>,G<subscript>1</subscript>,...G<subscript>n</subscript>&gt;</computeroutput>
+            as a transform with an expression <computeroutput>e</computeroutput> of type <computeroutput>E</computeroutput>,
+            state <computeroutput>s</computeroutput> and data <computeroutput>d</computeroutput>, it is equivalent to
+            <computeroutput>G<subscript>x</subscript>()(e, s, d)</computeroutput>, where
+            <computeroutput>x</computeroutput> is the lowest number such that
+            <computeroutput><classname>proto::matches</classname>&lt;E, G<subscript>x</subscript>&gt;::value</computeroutput>
+            is <computeroutput>true</computeroutput>.
+          </para>
+          <para>
+            The maximun number of template arguments <computeroutput>proto::or_&lt;&gt;</computeroutput> accepts
+            is controlled by the <computeroutput><macroname>BOOST_PROTO_MAX_LOGICAL_ARITY</macroname></computeroutput>
+            macro.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</type></inherit>
+          <typedef name="result_type">
+            <type><replaceable>unspecified</replaceable></type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>An expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>A data of arbitrary type </para>
+                </description>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>
+                    G<subscript>x</subscript>()(expr, state, data)
+                  </computeroutput>, where
+                  <computeroutput>x</computeroutput> is the lowest number such that
+                  <computeroutput>
+                    <classname>proto::matches</classname>&lt;Expr, G<subscript>x</subscript>&gt;::value
+                  </computeroutput>
+                  is <computeroutput>true</computeroutput>.
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>or_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::and_ -->
+      <struct name="and_">
+        <template>
+          <template-type-parameter name="G" pack="1"/>
+        </template>
+        <inherit><type><classname>proto::transform</classname>&lt;and_&lt;G...&gt; &gt;</type></inherit>
+        <purpose>For matching all of a set of grammars. When used as a transform,
+          <computeroutput>proto::and_&lt;&gt;</computeroutput> applies the transform associated
+          with each grammar in the set and returns the result of the last.</purpose>
+        <description>
+          <para>
+            An expression type <computeroutput>E</computeroutput> matches
+            <computeroutput>proto::and_&lt;G<subscript>0</subscript>,G<subscript>1</subscript>,...G<subscript>n</subscript>&gt;</computeroutput>
+            if <computeroutput>E</computeroutput> matches all <computeroutput>G<subscript>x</subscript></computeroutput>
+            for <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>.
+          </para>
+          <para>
+            When applying
+            <computeroutput>proto::and_&lt;G<subscript>0</subscript>,G<subscript>1</subscript>,...G<subscript>n</subscript>&gt;</computeroutput>
+            as a transform with an expression <computeroutput>e</computeroutput>, state
+            <computeroutput>s</computeroutput> and data <computeroutput>d</computeroutput>, it is equivalent
+            to <computeroutput>(G<subscript>0</subscript>()(e, s, d),G<subscript>1</subscript>()(e, s, d),...G<subscript>n</subscript>()(e, s, d))</computeroutput>.
+          </para>
+          <para>
+            The maximun number of template arguments <computeroutput>proto::and_&lt;&gt;</computeroutput> accepts
+            is controlled by the <computeroutput><macroname>BOOST_PROTO_MAX_LOGICAL_ARITY</macroname></computeroutput>
+            macro.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</type></inherit>
+          <typedef name="result_type">
+            <type>typename boost::result_of&lt;G<subscript>n</subscript>(Expr, State, Data)&gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>An expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>A data of arbitrary type </para>
+                </description>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>(G<subscript>0</subscript>()(expr, state, data),G<subscript>1</subscript>()(expr, state, data),...G<subscript>n</subscript>()(expr, state, data))</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>and_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::switch_ -->
+      <struct name="switch_">
+        <template>
+          <template-type-parameter name="Cases"/>
+          <template-type-parameter name="Transform"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt;switch_&lt;Cases, Transform&gt; &gt;</inherit>
+        <purpose>For matching one of a set of alternate grammars, which are looked up based on
+          the result type of the transform passed in second template parameter. 
+          If no transform is passed, the default one is <computeroutput><classname>proto::tag_of</classname>&lt;<classname>proto::_</classname>&gt;()</computeroutput>
+          so the default matching is based on the expression's tag type. When used as a transform,
+          <computeroutput>proto::switch_&lt;&gt;</computeroutput> applies the transform associated
+          with the sub-grammar that matches the expression.</purpose>
+        <description>
+        <para>
+          An expression type <computeroutput>E</computeroutput> matches
+            <computeroutput>proto::switch_&lt;C,T&gt;</computeroutput> if
+          <computeroutput>E</computeroutput> matches
+            <computeroutput>C::case_&lt;boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>,T&gt;(E)&gt;::type&gt;</computeroutput>.
+          </para>
+        <para>
+          When applying <computeroutput>proto::switch_&lt;C,T&gt;</computeroutput> as a
+            transform with an expression <computeroutput>e</computeroutput> of type
+            <computeroutput>E</computeroutput>, state <computeroutput>s</computeroutput> of
+            type <computeroutput>S</computeroutput> and data <computeroutput>d</computeroutput>
+            of type <computeroutput>D</computeroutput>, it is equivalent to
+            <computeroutput>C::case_&lt;boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>,T&gt;(E,S,D)&gt;::type&gt;()(e, s, d)</computeroutput>.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type>
+    Cases::template case_&lt;
+      typename <classname>when</classname>&lt;_, Transform&gt;::template impl&lt;Expr, State, Data&gt;::result_type 
+    &gt;::template impl&lt;Expr, State, Data&gt;</type>
+          </inherit>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>switch_</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::exact -->
+      <struct name="exact">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>For forcing exact matches of terminal types.</purpose>
+        <description>
+          <para>By default, matching terminals ignores references and cv-qualifiers. For instance,
+            a terminal expression of type
+            <computeroutput><classname>proto::terminal</classname>&lt;int const &amp;&gt;::type</computeroutput>
+            will match the grammar <computeroutput><classname>proto::terminal</classname>&lt;int&gt;</computeroutput>.
+            If that is not desired, you can force an exact match with
+            <computeroutput><classname>proto::terminal</classname>&lt;proto::exact&lt;int&gt; &gt;</computeroutput>.
+            This will only match integer terminals where the terminal is held by value.</para>
+        </description>
+      </struct>
+
+      <!-- proto::convertible_to -->
+      <struct name="convertible_to">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>For matching terminals that are convertible to a type.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::convertible_to&lt;&gt;</computeroutput> to match a terminal that is
+            convertible to some type. For example, the grammar
+            <computeroutput><classname>proto::terminal</classname>&lt;proto::convertible_to&lt;int&gt; &gt;</computeroutput>
+            will match any terminal whose argument is convertible to an integer.
+          </para>
+        </description>
+      </struct>
+      
+      <!-- proto::vararg -->
+      <struct name="vararg">
+        <template>
+          <template-type-parameter name="Grammar"/>
+        </template>
+        <purpose>For matching a Grammar to a variable number of sub-expressions.</purpose>
+        <description>
+          <para>
+            An expression type <computeroutput><classname>proto::basic_expr</classname>&lt;AT,
+            <classname alt="proto::listN">proto::list<replaceable>N</replaceable></classname>&lt;A<subscript>0</subscript>,...A<subscript>n</subscript>,U<subscript>0</subscript>,...U<subscript>m</subscript>&gt; &gt;</computeroutput>
+            matches a grammar <computeroutput><classname>proto::basic_expr</classname>&lt;BT,
+            <classname alt="proto::listN">proto::list<replaceable>M</replaceable></classname>&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>,proto::vararg&lt;V&gt; &gt; &gt;</computeroutput>
+            if <computeroutput>BT</computeroutput> is <computeroutput><classname>proto::_</classname></computeroutput>
+            or <computeroutput>AT</computeroutput>, and if
+            <computeroutput>A<subscript>x</subscript></computeroutput> matches
+            <computeroutput>B<subscript>x</subscript></computeroutput>
+            for each <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>
+            and if <computeroutput>U<subscript>x</subscript></computeroutput> matches
+            <computeroutput>V</computeroutput> for each <computeroutput>x</computeroutput> in <computeroutput>[0,m]</computeroutput>.
+          </para>
+          <para>For example:</para>
+          <para>
+            <programlisting>// Match any function call expression, regardless
+// of the number of function arguments:
+struct Function :
+  <classname>proto::function</classname>&lt; proto::vararg&lt;proto::_&gt; &gt;
+{};</programlisting>
+          </para>
+          <para>
+            When used as a transform, <computeroutput>proto::vararg&lt;G&gt;</computeroutput>
+            applies <computeroutput>G</computeroutput>'s transform.
+          </para>
+        </description>
+      </struct>
+
+      <!-- proto::matches -->
+      <struct name="matches">
+        <template>
+          <template-type-parameter name="Expr"/>
+          <template-type-parameter name="Grammar"/>
+        </template>
+        <purpose>A Boolean metafunction that evaluates whether a given expression type matches a grammar.</purpose>
+        <description>
+          <para>
+            <computeroutput>proto::matches&lt;Expr, Grammar&gt;</computeroutput> inherits from
+            <computeroutput>mpl::true_</computeroutput> if
+            <computeroutput>Expr::proto_grammar</computeroutput> matches
+            <computeroutput>Grammar::proto_grammar</computeroutput>, and from
+            <computeroutput>mpl::false_</computeroutput> otherwise.
+          </para>
+          <para>
+            Non-terminal expressions are matched against a grammar according to the following rules:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  The wildcard pattern, <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput>, matches any expression.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression
+                  <computeroutput>
+                    <classname>proto::basic_expr</classname>&lt;AT,
+                    <classname alt="proto::listN">
+                      proto::list<replaceable>N</replaceable>
+                    </classname>&lt;A<subscript>0</subscript>,...A<subscript>n</subscript>&gt;
+                    &gt;
+                  </computeroutput>
+                  matches a grammar
+                  <computeroutput>
+                    <classname>proto::basic_expr</classname>&lt;BT,
+                    <classname alt="proto::listN">
+                      proto::list<replaceable>N</replaceable>
+                    </classname>&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>&gt;
+                    &gt;
+                  </computeroutput> if
+                  <computeroutput>BT</computeroutput> is <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput> or
+                  <computeroutput>AT</computeroutput>, and if <computeroutput>
+                    A<subscript>x</subscript>
+                  </computeroutput> matches
+                  <computeroutput>
+                    B<subscript>x</subscript>
+                  </computeroutput> for each <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression
+                  <computeroutput>
+                    <classname>proto::basic_expr</classname>&lt;AT,
+                    <classname alt="proto::listN">
+                      proto::list<replaceable>N</replaceable>
+                    </classname>&lt;A<subscript>0</subscript>,...A<subscript>n</subscript>,U<subscript>0</subscript>,...U<subscript>m</subscript>&gt;
+                    &gt;
+                  </computeroutput> matches a grammar
+                  <computeroutput>
+                    <classname>proto::basic_expr</classname>&lt;BT,
+                    <classname alt="proto::listN">
+                      proto::list<replaceable>M</replaceable>
+                    </classname>&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>,<classname>proto::vararg</classname>&lt;V&gt;
+                    &gt; &gt;
+                  </computeroutput> if
+                  <computeroutput>BT</computeroutput> is <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput> or
+                  <computeroutput>AT</computeroutput>, and if
+                  <computeroutput>
+                    A<subscript>x</subscript>
+                  </computeroutput> matches
+                  <computeroutput>
+                    B<subscript>x</subscript>
+                  </computeroutput> for each
+                  <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput> and if
+                  <computeroutput>
+                    U<subscript>x</subscript>
+                  </computeroutput> matches
+                  <computeroutput>V</computeroutput> for each <computeroutput>x</computeroutput> in
+                  <computeroutput>[0,m]</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression <computeroutput>E</computeroutput> matches
+                  <computeroutput>
+                    <classname>proto::or_</classname>&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>&gt;
+                  </computeroutput> if
+                  <computeroutput>E</computeroutput> matches some
+                  <computeroutput>
+                    B<subscript>x</subscript>
+                  </computeroutput> for
+                  <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression <computeroutput>E</computeroutput> matches
+                  <computeroutput>
+                    <classname>proto::and_</classname>&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>&gt;
+                  </computeroutput> if
+                  <computeroutput>E</computeroutput> matches all
+                  <computeroutput>
+                    B<subscript>x</subscript>
+                  </computeroutput> for
+                  <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression <computeroutput>E</computeroutput> matches
+                  <computeroutput>
+                    <classname>proto::if_</classname>&lt;T,U,V&gt;
+                  </computeroutput> if:
+                  <itemizedlist>
+                    <listitem>
+                      <computeroutput>
+                        boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>,T&gt;(E)&gt;::type::value
+                      </computeroutput>
+                      is <computeroutput>true</computeroutput> and
+                      <computeroutput>E</computeroutput> matches
+                      <computeroutput>U</computeroutput>, <emphasis>or</emphasis>
+                    </listitem>
+                    <listitem>
+                      <computeroutput>
+                        boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>,T&gt;(E)&gt;::type::value
+                      </computeroutput>
+                      is <computeroutput>false</computeroutput> and <computeroutput>E</computeroutput> matches
+                      <computeroutput>V</computeroutput>.
+                    </listitem>
+                  </itemizedlist>
+                  Note: <computeroutput>U</computeroutput> defaults to <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput>
+                  and <computeroutput>V</computeroutput> defaults to
+                  <computeroutput>
+                    <classname>proto::not_</classname>&lt;<classname>proto::_</classname>&gt;
+                  </computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression <computeroutput>E</computeroutput> matches
+                  <computeroutput>
+                    <classname>proto::not_</classname>&lt;T&gt;
+                  </computeroutput> if
+                  <computeroutput>E</computeroutput> does <emphasis>not</emphasis> match <computeroutput>T</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  An expression <computeroutput>E</computeroutput> matches
+                  <computeroutput>
+                    <classname>proto::switch_</classname>&lt;C, T&gt;
+                  </computeroutput> if
+                  <computeroutput>E</computeroutput> matches <computeroutput>C::case_&lt;boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>proto::_</classname>,T&gt;(E)&gt;::type&gt;</computeroutput>.
+                  Note: <computeroutput>T</computeroutput> defaults to <computeroutput><classname>proto::tag_of</classname>&lt;<classname>proto::_</classname>&gt;()</computeroutput>
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+          <para>
+            A terminal expression can trivially match the grammar <classname>proto::_</classname>. In addition,
+            a terminal expression
+            <computeroutput>
+              <classname>proto::basic_expr</classname>&lt;AT,
+              <classname>proto::term</classname>&lt;A&gt; &gt;
+            </computeroutput> matches a grammar
+            <computeroutput>
+              <classname>proto::basic_expr</classname>&lt;BT, <classname>proto::term</classname>&lt;B&gt; &gt;
+            </computeroutput>
+            if <computeroutput>BT</computeroutput> is <computeroutput><classname>proto::_</classname></computeroutput>
+            or <computeroutput>AT</computeroutput> and one of the following is true:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is the wildcard pattern,
+                  <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>B</computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>B &amp;</computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>B const &amp;</computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is <computeroutput>
+                    <classname>proto::exact</classname>&lt;A&gt;
+                  </computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is
+                  <computeroutput>
+                    <classname>proto::convertible_to</classname>&lt;X&gt;
+                  </computeroutput>
+                  and <computeroutput>boost::is_convertible&lt;A,X&gt;::value</computeroutput> is
+                  <computeroutput>true</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>X[M]</computeroutput> or
+                  <computeroutput>X(&amp;)[M]</computeroutput> and
+                  <computeroutput>B</computeroutput> is <computeroutput>
+                    X[<globalname>proto::N</globalname>]
+                  </computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>X(&amp;)[M]</computeroutput>
+                  and <computeroutput>B</computeroutput> is <computeroutput>
+                    X(&amp;)[<globalname>proto::N</globalname>]
+                  </computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>A</computeroutput> is <computeroutput>X[M]</computeroutput> or
+                  <computeroutput>X(&amp;)[M]</computeroutput> and <computeroutput>B</computeroutput> is
+                  <computeroutput>X*</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> <replaceable>lambda-matches</replaceable>
+                  <computeroutput>A</computeroutput> (see below).
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+          <para>
+            A type <computeroutput>B</computeroutput> <replaceable>lambda-matches</replaceable>
+            <computeroutput>A</computeroutput> if one of the following is true:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is <computeroutput>A</computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is the wildcard pattern, <computeroutput>
+                    <classname>proto::_</classname>
+                  </computeroutput>
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  <computeroutput>B</computeroutput> is <computeroutput>
+                    T&lt;B<subscript>0</subscript>,...B<subscript>n</subscript>&gt;
+                  </computeroutput> and <computeroutput>A</computeroutput> is <computeroutput>
+                    T&lt;A<subscript>0</subscript>,...A<subscript>n</subscript>&gt;
+                  </computeroutput> and for each <computeroutput>x</computeroutput> in <computeroutput>[0,n]</computeroutput>,
+                  <computeroutput>A<subscript>x</subscript></computeroutput> and
+                  <computeroutput>B<subscript>x</subscript></computeroutput> are types such that
+                  <computeroutput>A<subscript>x</subscript></computeroutput> <replaceable>lambda-matches</replaceable>
+                  <computeroutput>B<subscript>x</subscript></computeroutput>
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+        <inherit>
+          <type>mpl::bool_&lt;<replaceable>true-or-false</replaceable>&gt;</type></inherit>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,50 @@
+# Copyright Eric Niebler 2005. Use, modification, and distribution are
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import doxygen ;
+import quickbook ;
+
+doxygen autodoc
+    :
+        [ glob ../../../boost/xpressive/*.hpp ]
+        [ glob ../../../boost/xpressive/traits/*.hpp ]
+    :
+        <doxygen:param>EXTRACT_ALL=YES
+        <doxygen:param>"PREDEFINED=\"BOOST_XPRESSIVE_DOXYGEN_INVOKED\" \\
+                                   \"BOOST_DEDUCED_TYPENAME=typename\" \\
+                                   \"BOOST_XPRESSIVE_GLOBAL_MARK_TAG(x,y)=mark_tag const x(y)\" \\
+                                   \"BOOST_STATIC_CONSTANT(x,y)=static x const y\" \\
+                                   \"BOOST_XPR_NONDEDUCED_TYPE_(X)=X\" \\
+                                   \"BOOST_PROTO_DISABLE_IF_IS_CONST(X)=\" \\
+                                   \"UNREF(X)=typename remove_reference<X>::type\" \\
+                                   \"UNCV(X)=typename remove_const<X>::type\" \\
+                                   \"UNREF(X)=typename remove_reference<X>::type\" \\
+                                   \"UNCVREF(X)=typename remove_const<typename remove_reference<X>::type>::type\""
+        <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>SEARCH_INCLUDES=YES
+        <doxygen:param>INCLUDE_PATH=$(BOOST_ROOT)
+        # So that Doxygen comments can link to sections in the quickbook users' guide
+        <doxygen:param>"ALIASES=\"RefSect{2}=\\xmlonly<link linkend='boost_xpressive.\\1'>\\2</link>\\endxmlonly\""
+    ;
+
+xml xpressive
+    :
+        xpressive.qbk
+    ;
+
+boostbook standalone
+    :
+        xpressive
+    :
+        <xsl:param>boost.root=../../../..
+        <xsl:param>toc.max.depth=3
+        <xsl:param>toc.section.depth=3
+        <xsl:param>chunk.section.depth=3
+        <dependency>autodoc
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+    ;

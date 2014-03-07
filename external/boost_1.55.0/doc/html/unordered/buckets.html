@@ -1,0 +1,321 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Data Structure</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../unordered.html" title="Chapter&#160;37.&#160;Boost.Unordered">
+<link rel="prev" href="../unordered.html" title="Chapter&#160;37.&#160;Boost.Unordered">
+<link rel="next" href="hash_equality.html" title="Equality Predicates and Hash Functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../unordered.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="hash_equality.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="unordered.buckets"></a><a class="link" href="buckets.html" title="The Data Structure">The Data Structure</a>
+</h2></div></div></div>
+<p>
+      The containers are made up of a number of 'buckets', each of which can contain
+      any number of elements. For example, the following diagram shows an <code class="computeroutput"><a class="link" href="../boost/unordered_set.html" title="Class template unordered_set">unordered_set</a></code> with 7 buckets containing
+      5 elements, <code class="computeroutput"><span class="identifier">A</span></code>, <code class="computeroutput"><span class="identifier">B</span></code>, <code class="computeroutput"><span class="identifier">C</span></code>,
+      <code class="computeroutput"><span class="identifier">D</span></code> and <code class="computeroutput"><span class="identifier">E</span></code>
+      (this is just for illustration, containers will typically have more buckets).
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../../../libs/unordered/doc/diagrams/buckets.png" align="middle"></span>
+    </p>
+<p>
+      In order to decide which bucket to place an element in, the container applies
+      the hash function, <code class="computeroutput"><span class="identifier">Hash</span></code>, to
+      the element's key (for <code class="computeroutput"><span class="identifier">unordered_set</span></code>
+      and <code class="computeroutput"><span class="identifier">unordered_multiset</span></code> the
+      key is the whole element, but is referred to as the key so that the same terminology
+      can be used for sets and maps). This returns a value of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>.
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code> has a much greater range of values
+      then the number of buckets, so that container applies another transformation
+      to that value to choose a bucket to place the element in.
+    </p>
+<p>
+      Retrieving the elements for a given key is simple. The same process is applied
+      to the key to find the correct bucket. Then the key is compared with the elements
+      in the bucket to find any elements that match (using the equality predicate
+      <code class="computeroutput"><span class="identifier">Pred</span></code>). If the hash function
+      has worked well the elements will be evenly distributed amongst the buckets
+      so only a small number of elements will need to be examined.
+    </p>
+<p>
+      There is <a class="link" href="hash_equality.html" title="Equality Predicates and Hash Functions">more information on hash functions
+      and equality predicates in the next section</a>.
+    </p>
+<p>
+      You can see in the diagram that <code class="computeroutput"><span class="identifier">A</span></code>
+      &amp; <code class="computeroutput"><span class="identifier">D</span></code> have been placed in
+      the same bucket. When looking for elements in this bucket up to 2 comparisons
+      are made, making the search slower. This is known as a collision. To keep things
+      fast we try to keep collisions to a minimum.
+    </p>
+<p>
+      </p>
+<div class="table">
+<a name="idp245938824"></a><p class="title"><b>Table&#160;37.1.&#160;Methods for Accessing Buckets</b></p>
+<div class="table-contents"><table class="table" summary="Methods for Accessing Buckets">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th><p>Method</p></th>
+<th><p>Description</p></th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">bucket_count</span><span class="special">()</span> <span class="keyword">const</span></code></td>
+<td>The
+      number of buckets.</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">max_bucket_count</span><span class="special">()</span>
+      <span class="keyword">const</span></code></td>
+<td>An upper bound on the number of
+      buckets.</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">bucket_size</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span></code></td>
+<td>The
+      number of elements in bucket <code class="computeroutput"><span class="identifier">n</span></code>.</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">bucket</span><span class="special">(</span><span class="identifier">key_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span></code></td>
+<td>Returns
+      the index of the bucket which would contain k</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><span class="identifier">local_iterator</span>
+      <span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span></code></td>
+<td rowspan="6">Return begin and end iterators for bucket
+      <code class="computeroutput"><span class="identifier">n</span></code>.</td>
+</tr>
+<tr><td><code class="computeroutput"><span class="identifier">local_iterator</span>
+      <span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span></code></td></tr>
+<tr><td><code class="computeroutput"><span class="identifier">const_local_iterator</span>
+      <span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></code></td></tr>
+<tr><td><code class="computeroutput"><span class="identifier">const_local_iterator</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></code></td></tr>
+<tr><td><code class="computeroutput"><span class="identifier">const_local_iterator</span>
+      <span class="identifier">cbegin</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></code></td></tr>
+<tr><td><code class="computeroutput"><span class="identifier">const_local_iterator</span> <span class="identifier">cend</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p><br class="table-break">
+    </p>
+<h3>
+<a name="unordered.buckets.h0"></a>
+      <span class="phrase"><a name="unordered.buckets.controlling_the_number_of_buckets"></a></span><a class="link" href="buckets.html#unordered.buckets.controlling_the_number_of_buckets">Controlling
+      the number of buckets</a>
+    </h3>
+<p>
+      As more elements are added to an unordered associative container, the number
+      of elements in the buckets will increase causing performance to degrade. To
+      combat this the containers increase the bucket count as elements are inserted.
+      You can also tell the container to change the bucket count (if required) by
+      calling <code class="computeroutput"><span class="identifier">rehash</span></code>.
+    </p>
+<p>
+      The standard leaves a lot of freedom to the implementer to decide how the number
+      of buckets are chosen, but it does make some requirements based on the container's
+      'load factor', the average number of elements per bucket. Containers also have
+      a 'maximum load factor' which they should try to keep the load factor below.
+    </p>
+<p>
+      You can't control the bucket count directly but there are two ways to influence
+      it:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Specify the minimum number of buckets when constructing a container or
+          when calling <code class="computeroutput"><span class="identifier">rehash</span></code>.
+        </li>
+<li class="listitem">
+          Suggest a maximum load factor by calling <code class="computeroutput"><span class="identifier">max_load_factor</span></code>.
+        </li>
+</ul></div>
+<p>
+      <code class="computeroutput"><span class="identifier">max_load_factor</span></code> doesn't let
+      you set the maximum load factor yourself, it just lets you give a <span class="emphasis"><em>hint</em></span>.
+      And even then, the draft standard doesn't actually require the container to
+      pay much attention to this value. The only time the load factor is <span class="emphasis"><em>required</em></span>
+      to be less than the maximum is following a call to <code class="computeroutput"><span class="identifier">rehash</span></code>.
+      But most implementations will try to keep the number of elements below the
+      max load factor, and set the maximum load factor to be the same as or close
+      to the hint - unless your hint is unreasonably small or large.
+    </p>
+<div class="table">
+<a name="unordered.buckets.bucket_size"></a><p class="title"><b>Table&#160;37.2.&#160;Methods for Controlling Bucket Size</b></p>
+<div class="table-contents"><table class="table" summary="Methods for Controlling Bucket Size">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Method
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">X</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Construct an empty container with at least <code class="computeroutput"><span class="identifier">n</span></code>
+                buckets (<code class="computeroutput"><span class="identifier">X</span></code> is the
+                container type).
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">X</span><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">InputIterator</span>
+                <span class="identifier">j</span><span class="special">,</span>
+                <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Construct an empty container with at least <code class="computeroutput"><span class="identifier">n</span></code>
+                buckets and insert elements from the range [<code class="computeroutput"><span class="identifier">i</span></code>,
+                <code class="computeroutput"><span class="identifier">j</span></code>) (<code class="computeroutput"><span class="identifier">X</span></code> is the container type).
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">float</span> <span class="identifier">load_factor</span><span class="special">()</span> <span class="keyword">const</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                The average number of elements per bucket.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">float</span> <span class="identifier">max_load_factor</span><span class="special">()</span> <span class="keyword">const</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Returns the current maximum load factor.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">float</span> <span class="identifier">max_load_factor</span><span class="special">(</span><span class="keyword">float</span> <span class="identifier">z</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Changes the container's maximum load factor, using <code class="computeroutput"><span class="identifier">z</span></code> as a hint.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">rehash</span><span class="special">(</span><span class="identifier">size_type</span>
+                <span class="identifier">n</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Changes the number of buckets so that there at least n buckets, and
+                so that the load factor is less than the maximum load factor.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h3>
+<a name="unordered.buckets.h1"></a>
+      <span class="phrase"><a name="unordered.buckets.iterator_invalidation"></a></span><a class="link" href="buckets.html#unordered.buckets.iterator_invalidation">Iterator
+      Invalidation</a>
+    </h3>
+<p>
+      It is not specified how member functions other than <code class="computeroutput"><span class="identifier">rehash</span></code>
+      affect the bucket count, although <code class="computeroutput"><span class="identifier">insert</span></code>
+      is only allowed to invalidate iterators when the insertion causes the load
+      factor to be greater than or equal to the maximum load factor. For most implementations
+      this means that insert will only change the number of buckets when this happens.
+      While iterators can be invalidated by calls to <code class="computeroutput"><span class="identifier">insert</span></code>
+      and <code class="computeroutput"><span class="identifier">rehash</span></code>, pointers and references
+      to the container's elements are never invalidated.
+    </p>
+<p>
+      In a similar manner to using <code class="computeroutput"><span class="identifier">reserve</span></code>
+      for <code class="computeroutput"><span class="identifier">vector</span></code>s, it can be a good
+      idea to call <code class="computeroutput"><span class="identifier">rehash</span></code> before
+      inserting a large number of elements. This will get the expensive rehashing
+      out of the way and let you store iterators, safe in the knowledge that they
+      won't be invalidated. If you are inserting <code class="computeroutput"><span class="identifier">n</span></code>
+      elements into container <code class="computeroutput"><span class="identifier">x</span></code>,
+      you could first call:
+    </p>
+<pre class="programlisting"><span class="identifier">x</span><span class="special">.</span><span class="identifier">rehash</span><span class="special">((</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">n</span><span class="special">)</span> <span class="special">/</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">max_load_factor</span><span class="special">()</span> <span class="special">+</span> <span class="number">1</span><span class="special">);</span>
+</pre>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+      Note: <code class="computeroutput"><span class="identifier">rehash</span></code>'s argument is
+      the minimum number of buckets, not the number of elements, which is why the
+      new size is divided by the maximum load factor. The <code class="computeroutput"><span class="special">+</span>
+      <span class="number">1</span></code> guarantees there is no invalidation;
+      without it, reallocation could occur if the number of bucket exactly divides
+      the target size, since the container is allowed to rehash when the load factor
+      is equal to the maximum load factor.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003, 2004 Jeremy B. Maitin-Shepard<br>Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../unordered.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="hash_equality.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

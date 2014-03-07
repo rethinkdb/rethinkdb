@@ -1,0 +1,42 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:credits Credits]
+
+This documentation was pulled together by John Maddock, using 
+[@../../../../doc/html/quickbook.html Boost.Quickbook]
+and [@../../../../doc/html/boostbook.html Boost.DocBook].
+ 
+The original version of this library was created by Steve Cleary, 
+Beman Dawes, Howard Hinnant, and John Maddock.  John Maddock is the
+current maintainer of the library.
+
+This version of type traits library is based on contributions by 
+Adobe Systems Inc, David Abrahams, Steve Cleary, 
+Beman Dawes, Aleksey Gurtovoy, Howard Hinnant, Jesse Jones, Mat Marcus, 
+Itay Maman, John Maddock, Thorsten Ottosen, Robert Ramey, Jeremy Siek
+and Antony Polukhin.
+
+Mat Marcus and Jesse Jones invented, and 
+[@http://opensource.adobe.com/project4/project.shtml published a paper describing], 
+the partial specialization workarounds used in this library.
+
+Aleksey Gurtovoy added MPL integration to the library.
+
+The __is_convertible template is based on code originally devised by 
+Andrei Alexandrescu, see 
+"[@http://www.cuj.com/experts/1810/alexandr.htm?topic=experts 
+Generic<Programming>: Mappings between Types and Values]".
+
+The latest version of this library and documentation can be found at 
+[@http://www.boost.org www.boost.org]. Bugs, suggestions and discussion
+should be directed to boost@lists.boost.org 
+(see [@http://www.boost.org/more/mailing_lists.htm#main 
+www.boost.org/more/mailing_lists.htm#main] for subscription details).
+
+[endsect]
+

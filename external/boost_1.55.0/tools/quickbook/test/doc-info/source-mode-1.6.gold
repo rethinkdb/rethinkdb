@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="c_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>C++ test</title>
+  <articleinfo>
+    <legalnotice id="c_test.legal">
+      <para>
+        <code><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase
+        role="special">(</phrase><phrase role="identifier">x</phrase><phrase role="special">):</phrase>
+        <phrase role="keyword">print</phrase> <phrase role="string">&quot;Hello&quot;</phrase></code>
+      </para>
+    </legalnotice>
+    <articlepurpose>
+      <code>This shouldn't be highlighted</code>
+    </articlepurpose>
+  </articleinfo>
+<programlisting>This shouldn't be highlighted.</programlisting>
+  <article id="c___source_mode_include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>C++ source mode include</title>
+    <para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+    </para>
+  </article>
+<programlisting>This shouldn't be highlighted.</programlisting>
+  <article id="python_source_mode_include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Python source mode include</title>
+    <para>
+<programlisting><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase role="special">():</phrase></programlisting>
+    </para>
+  </article>
+<programlisting>This shouldn't be highlighted.</programlisting>
+  <article id="teletype_source_mode_include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Teletype source mode include</title>
+    <para>
+<programlisting>This shouldn't be highlighted</programlisting>
+    </para>
+  </article>
+<programlisting>This shouldn't be highlighted.</programlisting>
+</article>

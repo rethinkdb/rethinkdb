@@ -1,0 +1,50 @@
+[/ 
+  Copyright 2009 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_virtual_base_of is_virtual_base_of]
+   template <class Base, class Derived>
+   struct is_virtual_base_of : public __tof {};
+  
+__inherit If Base is a virtual base class of type Derived then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+Types `Base` and `Derived` must not be incomplete types.
+
+__std_ref 10.
+
+__header ` #include <boost/type_traits/is_virtual_base_of.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat this trait also requires a working __is_base_of trait.
+
+[note 
+There are a small number of cases where it's simply not possible for this trait to work, and
+where attempting to instantiate the trait will cause compiler errors (see bug report
+[@https://svn.boost.org/trac/boost/ticket/3730 #3730]).  Further more the issues may well
+be compiler specific.  In this situation the user should supply a full specialization of
+the trait to work around the problem.]
+
+__examples
+
+[:Given: ` class Base{}; class Derived : public virtual Base{};` ]
+
+[:`is_virtual_base_of<Base, Derived>` inherits from `__true_type`.]
+
+[:`is_virtual_base_of<Base, Derived>::type` is the type `__true_type`.]
+
+[:`is_virtual_base_of<Base, Derived>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_virtual_base_of<SomeClassType, SomeClassType>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_virtual_base_of<NotAClassType, NotAClassType>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_virtual_base_of<T, U>::value_type` is the type `bool`.]
+
+[endsect]
+

@@ -1,0 +1,37 @@
+The diameter of the boost web-site graph is 2
+
+Number of clicks from the home page: 
+0	www.boost.org
+1	Boost Libraries
+1	More Information
+1	Boost People
+1	Frequently Asked Questions
+2	Boost Header Dependencies
+2	Compiler Status
+2	Formal Review Process
+2	Boost Library Requirements and Guidelines
+2	Dave Abrahams
+2	Darin Adler
+2	Call Traits
+2	Compose Library
+2	Boost Graph Library
+2	Property Map Library
+2	Array wrapper
+
+The breadth-first search tree:
+www.boost.org
+  Boost Libraries
+    Call Traits
+    Compose Library
+    Boost Graph Library
+    Property Map Library
+    Array wrapper
+  More Information
+    Boost Header Dependencies
+    Compiler Status
+    Formal Review Process
+  Boost People
+    Dave Abrahams
+    Darin Adler
+  Frequently Asked Questions
+    Boost Library Requirements and Guidelines

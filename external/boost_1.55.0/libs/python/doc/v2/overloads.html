@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/overloads.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/overloads.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href=
+      "#overload-dispatch-expression"><i>overload-dispatch-expressions</i></a></dt>
+
+      <dt><a href= "#OverloadDispatcher-concept">OverloadDispatcher</a> concept</dt>
+
+      <dt><a href="#macros">Macros</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href=
+          "#BOOST_PYTHON_FUNCTION_OVERLOADS-spec">BOOST_PYTHON_FUNCTION_OVERLOADS</a></dt>
+
+          <dt><a href=
+          "#BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS-spec">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Defines facilities for generating families of overloaded Python
+    functions and extension class methods from C++ functions and
+    member functions with default arguments, or from similar families
+    of C++ overloads</p>
+
+    <h2><a name=
+    "overload-dispatch-expression"></a><i>overload-dispatch-expressions</i></h2>
+
+    <p>
+    An <em>overload-dispatch-expression</em> is used to describe a
+    family of overloaded methods to be generated for an extension
+    class. It has the following properties:
+
+    <blockquote>
+      <dl class="properties">
+        <dt><b>docstring:</b> An <a href="definitions.html#ntbs">ntbs</a>
+        whose value will bound to the methods' <code>__doc__</code>
+        attribute</dt>
+
+        <dt><b>keywords:</b> A <a href=
+        "args.html#keyword-expression">keyword-expression</a> which
+        will be used to name (a trailing subsequence of) the arguments
+        to the generated methods.</dt>
+
+        <dt><b>call policies:</b> An instance of some type which models <a href=
+        "CallPolicies.html">CallPolicies</a>.</dt>
+
+        <dt><b>minimum <a href="definitions.html#arity">arity</a></b>
+        The minimum number of arguments to be accepted by a generated
+        method overload.</dt>
+
+        <dt><b>maximum <a href="definitions.html#arity">arity</a></b>
+        The maximum number of arguments to be accepted by a generated
+        method overload.</dt>
+      </dl>
+    </blockquote>
+
+    <h2><a name="OverloadDispatcher-concept"></a>OverloadDispatcher Concept</h2>
+
+    An OverloadDispatcher <code>X</code> is a class which has a
+    <em>minimum arity</em> and a <em>maximum arity</em>, and for which
+    the following following are valid <a
+    href="#overload-dispatch-expression"><em>overload-dispatch-expression</em></a>s,
+    with the same minimum and maximum arity as the OverloadDispatcher.
+
+<pre>
+X()
+X(docstring)
+X(docstring, keywords)
+X(keywords, docstring)
+X()[policies]
+X(docstring)[policies]
+X(docstring, keywords)[policies]
+X(keywords, docstring)[policies]
+</pre>
+
+<ul>
+<li>If <code>policies</code> are supplied, it must be an instance of a
+type which models <a
+href="CallPolicies.html#CallPolicies-concept">CallPolicies</a>, and
+will be used as the result's call policies. Otherwise the result's
+call policies will be an instance of <a
+href="default_call_policies.html#default_call_policies-spec">default_call_policies</a>.
+
+<li>If <code>docstring</code> is supplied it must be an <a
+href="definitions.html#ntbs">ntbs</a>, and will be used as the result's docstring. Otherwise the result has an empty docstring.
+
+<li>If <code>keywords</code> is supplied it must be the result of a <a
+        href= "args.html#keyword-expression">keyword-expression</a>
+        whose length is no greater than <code>X</code>'s maximum
+        arity, and will be used as the result's keywords. Otherwise
+        the result's keywords will be empty.
+</ul>
+
+
+
+
+    <h2><a name="macros"></a>Macros</h2>
+
+    <h3><a name=
+    "BOOST_PYTHON_FUNCTION_OVERLOADS-spec">BOOST_PYTHON_FUNCTION_OVERLOADS(name,&nbsp;func_id,&nbsp;min_args,&nbsp;max_args)</a></h3>
+    Expands to the definition of an OverloadDispatcher called
+    <code>name</code> in the current scope which can be used to
+    generate the following function invocation:
+<pre>
+func_id(a<small><i>1</i></small>, a<small><i>2</i></small>,...a<small><i>i</i></small>);
+</pre>
+
+   for all <code>min_args</code> &lt;= <i>i</i> &lt;= <code>max_args</code>.
+
+    <h3><a name=
+    "BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS-spec">BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(name,&nbsp;member_name,&nbsp;min_args,&nbsp;max_args)</a></h3>
+
+    Expands to the definition of an OverloadDispatcher called
+    <code>name</code> in the current scope which can be used to
+    generate the following function invocation:
+<pre>
+x.member_name(a<small><i>1</i></small>, a<small><i>2</i></small>,...a<small><i>i</i></small>);
+</pre>
+
+   for all <code>min_args</code> &lt;= <i>i</i> &lt;=
+   <code>max_args</code>, where <code>x</code> is a reference to an
+   object of class type.
+
+    <h2><a name="examples"></a>Example(s)</h2>
+
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/args.hpp&gt;
+#include &lt;boost/python/tuple.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/overloads.hpp&gt;
+#include &lt;boost/python/return_internal_reference.hpp&gt;
+
+using namespace boost::python;
+
+tuple f(int x = 1, double y = 4.25, char const* z = &quot;wow&quot;)
+{
+    return make_tuple(x, y, z);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(f_overloads, f, 0, 3)
+
+struct Y {};
+struct X
+{
+    Y&amp; f(int x, double y = 4.25, char const* z = &quot;wow&quot;)
+    {
+        return inner;
+    }
+    Y inner;
+};
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(f_member_overloads, f, 1, 3)
+
+BOOST_PYTHON_MODULE(args_ext)
+{
+    def(&quot;f&quot;, f, 
+        f_overloads(
+            args(&quot;x&quot;, &quot;y&quot;, &quot;z&quot;), &quot;This is f's docstring&quot;
+        ));
+
+    
+    class_&lt;Y&gt;(&quot;Y&quot;)
+        ;
+            
+    class_&lt;X&gt;(&quot;X&quot;, &quot;This is X's docstring&quot;)
+        .def(&quot;f1&quot;, &amp;X::f, 
+                f_member_overloads(
+                    args(&quot;x&quot;, &quot;y&quot;, &quot;z&quot;), &quot;f's docstring&quot;
+                )[return_internal_reference&lt;&gt;()]
+        )
+        ;
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  15 April, 2003
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

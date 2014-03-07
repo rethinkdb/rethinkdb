@@ -1,0 +1,146 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Custom predicate support</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">
+<link rel="prev" href="output-test.html" title="Output testing tool">
+<link rel="next" href="floating_point_comparison.html" title="Floating-point comparison algorithms">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../testing-tools.html">Testing tools</a><a href="../usage-recommendations.html">
+      &gt;
+      </a><b>Custom predicate support</b>
+</td>
+<td><div class="spirit-nav">
+<a href="output-test.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="floating_point_comparison.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.testing-tools.custom-predicate"></a>Custom predicate support</h4></div></div></div>
+<p class="first-line-indented">
+   Even though supplied testing tools cover wide range of possible checks and provide detailed report on cause of error
+   in some cases you may want to implement and use custom predicate that perform complex check and produce intelligent
+   report on failure. To satisfy this need testing tools implement custom predicate support. There two layers of custom
+   predicate support implemented by testing tools toolbox: with and without custom error message generation.
+  </p>
+<p class="first-line-indented">
+   The first layer is supported by BOOST_CHECK_PREDICATE family of testing tools. You can use it to check any custom
+   predicate that reports the result as boolean value. The values of the predicate arguments are reported by the tool
+   automatically in case of failure.
+  </p>
+<div class="example">
+<a name="utf.testing-tools.custom-predicate.example30"></a><p class="title"><b>Example 36. Custom predicate support using BOOST_CHECK_PREDICATE</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+//____________________________________________________________________________//
+
+bool is_even( int i )        { return i%2 == 0;  }
+
+BOOST_AUTO_TEST_CASE( test_is_even )
+{
+    BOOST_CHECK_PREDICATE( is_even, (14) );
+
+    int i = 17;
+    BOOST_CHECK_PREDICATE( is_even, (i) );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../src/examples/example30.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id658382" onclick="toggle_element( 'example30-output', 'id658382', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example30-output">&gt; example
+Running 1 test case...
+test.cpp(13): error in "test_is_even": check is_even( i ) failed for ( 17 )
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+   To use second layer your predicate have to return
+   <code class="computeroutput">boost::test_tools::predicate_result</code>. This class encapsulates boolean result value along
+   with any error or information message you opt to report.
+  </p>
+<p class="first-line-indented">
+   Usually you construct the instance of class <code class="computeroutput">boost::test_tools::predicate_result</code> inside your
+   predicate function and return it by value. The constructor expects one argument - the boolean result value. The
+   constructor is implicit, so you can simply return boolean value from your predicate and
+   <code class="computeroutput">boost::test_tools::predicate_result</code> is constructed automatically to hold your value and empty
+   message. You can also assign boolean value to the constructed instance. You can check the current predicate value by
+   using <code class="computeroutput">operator!</code>() or directly accessing public read-only property p_predicate_value. The
+   error message is stored in public read-write property p_message.
+  </p>
+<div class="example">
+<a name="utf.testing-tools.custom-predicate.example31"></a><p class="title"><b>Example 37. Custom predicate support using class predicate_result</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+//____________________________________________________________________________//
+
+boost::test_tools::predicate_result
+compare_lists( std::list&lt;int&gt; const&amp; l1, std::list&lt;int&gt; const&amp; l2 )
+{
+    if( l1.size() != l2.size() ) {
+        boost::test_tools::predicate_result res( false );
+
+        res.message() &lt;&lt; "Different sizes [" &lt;&lt; l1.size() &lt;&lt; "!=" &lt;&lt; l2.size() &lt;&lt; "]";
+
+        return res;
+    }
+
+    return true;
+}
+
+//____________________________________________________________________________//
+
+BOOST_AUTO_TEST_CASE( test_list_comparizon )
+{
+    std::list&lt;int&gt; l1, l2;
+    l1.push_back( 1 );
+    l1.push_back( 2 );
+
+    BOOST_CHECK( compare_lists( l1, l2 ) );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../src/examples/example31.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id658525" onclick="toggle_element( 'example31-output', 'id658525', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example31-output">Running 1 test case...
+test.cpp(28): error in "test_list_comparizon": check compare_lists( l1, l2 ) failed. Different sizes [2!=0]
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="output-test.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../testing-tools.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="floating_point_comparison.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

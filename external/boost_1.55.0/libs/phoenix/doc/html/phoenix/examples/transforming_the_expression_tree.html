@@ -1,0 +1,198 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Transforming the Expression Tree</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../examples.html" title="Advanced Examples">
+<link rel="prev" href="adding_an_expression.html" title="Adding an expression">
+<link rel="next" href="../wrap_up.html" title="Wrap Up">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="adding_an_expression.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../wrap_up.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.examples.transforming_the_expression_tree"></a><a class="link" href="transforming_the_expression_tree.html" title="Transforming the Expression Tree">Transforming
+      the Expression Tree</a>
+</h3></div></div></div>
+<p>
+        This example will show how to write <a class="link" href="../inside/actions.html" title="More on Actions">Actions</a>
+        that transform the Phoenix AST.
+      </p>
+<div class="blockquote"><blockquote class="blockquote">
+<p>
+          "<span class="emphasis"><em>Lisp macros transform the program structure itself, with
+          the full language available to express such transformations.</em></span>"
+        </p>
+<p>
+          <a href="http://en.wikipedia.org/wiki/Lisp_macro#Lisp_macros" target="_top">Wikipedia</a>
+        </p>
+</blockquote></div>
+<p>
+        What we want to do is to invert some arithmetic operators, i.e. plus will
+        be transformed to minus, minus to plus, multiplication to division and division
+        to multiplication.
+      </p>
+<p>
+        Let's start with defining our default action:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">invert_actions</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Rule</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">when</span>
+        <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span> <span class="comment">// the default is proto::_</span>
+    <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        By default, we don't want to do anything, well, not exactly nothing, but
+        just return the expression. This is done by <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/_.html" target="_top">proto::_</a>
+        which, used as a transform, just passes the current expression along. Making
+        this action an identity transform.
+      </p>
+<p>
+        So, after the basics are set up, we can start by writing the transformations
+        we want to have on our tree:
+      </p>
+<pre class="programlisting"><span class="comment">// Transform plus to minus</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">invert_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&gt;</span>
+    <span class="special">:</span> <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/call.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">call</span></code></a><span class="special">&lt;</span>
+        <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">make_expr</span></code></a><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">minus</span><span class="special">&gt;(</span>
+            <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_left</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+          <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_right</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+        <span class="special">)</span>
+    <span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+        Wow, this looks complicated! Granted you need to know a little bit about
+        <a href="http://www.boost.org/doc/libs/release/libs/proto/index.html" target="_top">Boost.Proto</a>
+        (For a good introduction read through the <a href="http://cpp-next.com/archive/2010/08/expressive-c-introduction/" target="_top">Expressive
+        C++</a> series).
+      </p>
+<p>
+        What is done is the following:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The left expression is passed to evaluator (with the current context,
+            that contains our invert_actions)
+          </li>
+<li class="listitem">
+            The right expression is passed to evaluator (with the current context,
+            that contains our invert_actions)
+          </li>
+<li class="listitem">
+            The result of these two <a href="http://www.boost.org/doc/libs/release/doc/html/Transform.html" target="_top">Proto
+            Transforms</a> is passed to <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">make_expr</span></code></a> which returns the
+            freshly created expression
+          </li>
+</ul></div>
+<p>
+        After you know what is going on, maybe the rest doesn't look so scary anymore:
+      </p>
+<pre class="programlisting"><span class="comment">// Transform minus to plus</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">invert_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">minus</span><span class="special">&gt;</span>
+    <span class="special">:</span> <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/call.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">call</span></code></a><span class="special">&lt;</span>
+        <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">make_expr</span></code></a><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&gt;(</span>
+            <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_left</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+          <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_right</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+        <span class="special">)</span>
+    <span class="special">&gt;</span>
+<span class="special">{};</span>
+
+<span class="comment">// Transform multiplies to divides</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">invert_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">multiplies</span><span class="special">&gt;</span>
+    <span class="special">:</span> <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/call.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">call</span></code></a><span class="special">&lt;</span>
+        <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">make_expr</span></code></a><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">divides</span><span class="special">&gt;(</span>
+            <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_left</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+          <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_right</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+        <span class="special">)</span>
+    <span class="special">&gt;</span>
+<span class="special">{};</span>
+
+<span class="comment">// Transform divides to multiplies</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">invert_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">divides</span><span class="special">&gt;</span>
+    <span class="special">:</span> <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/call.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">call</span></code></a><span class="special">&lt;</span>
+        <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">make_expr</span></code></a><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">multiplies</span><span class="special">&gt;(</span>
+            <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_left</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+          <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_right</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_context</span><span class="special">)</span>
+        <span class="special">)</span>
+    <span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+        That's it! Now that we have our actions defined, we want to evaluate some
+        of our expressions with them:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="comment">// Calculate the result type: our transformed AST</span>
+<span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span>
+    <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">evaluator</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span>
+      <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">context</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">invert_actions</span><span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="special">)</span>
+<span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">expr</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span>
+        <span class="comment">// Evaluate it with our actions</span>
+        <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">eval</span><span class="special">(</span>
+            <span class="identifier">expr</span>
+          <span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">context</span><span class="special">(</span>
+                <span class="keyword">int</span><span class="special">()</span>
+              <span class="special">,</span> <span class="identifier">invert_actions</span><span class="special">()</span>
+            <span class="special">)</span>
+        <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Run some tests to see if it is working:
+      </p>
+<pre class="programlisting"><span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span><span class="special">);</span>                    <span class="comment">// --&gt; _1</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">+</span> <span class="identifier">_2</span><span class="special">);</span>               <span class="comment">// --&gt; _1 - _2</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">+</span> <span class="identifier">_2</span> <span class="special">-</span> <span class="identifier">_3</span><span class="special">);</span>          <span class="comment">// --&gt; _1 - _2 + _3</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">_2</span><span class="special">);</span>               <span class="comment">// --&gt; _1 / _2</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">_2</span> <span class="special">/</span> <span class="identifier">_3</span><span class="special">);</span>          <span class="comment">// --&gt; _1 / _2 * _3</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">_2</span> <span class="special">+</span> <span class="identifier">_3</span><span class="special">);</span>          <span class="comment">// --&gt; _1 / _2 - _3</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">_2</span> <span class="special">-</span> <span class="identifier">_3</span><span class="special">);</span>          <span class="comment">// --&gt; _1 / _2 + _2</span>
+<span class="identifier">invert</span><span class="special">(</span><span class="identifier">if_</span><span class="special">(</span><span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">_4</span><span class="special">)[</span><span class="identifier">_2</span> <span class="special">-</span> <span class="identifier">_3</span><span class="special">]);</span> <span class="comment">// --&gt; if_(_1 / _4)[_2 + _3]</span>
+<span class="identifier">_1</span> <span class="special">*</span> <span class="identifier">invert</span><span class="special">(</span><span class="identifier">_2</span> <span class="special">-</span> <span class="identifier">_3</span><span class="special">));</span>         <span class="comment">// --&gt; _1 * _2 + _3</span>
+</pre>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/note.png" alt="note"></span> The complete example can be found here: <a href="../../../../example/invert.cpp" target="_top">example/invert.cpp</a>
+      </p>
+<p>
+        <span class="emphasis"><em>Pretty simple ...</em></span>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="adding_an_expression.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../wrap_up.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

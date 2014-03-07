@@ -1,0 +1,454 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - Performance</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Performance</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="index">
+    <dt><a href="#SpeedVersusScalabilityTradeoffs">Speed versus scalability
+    tradeoffs</a></dt>
+
+    <dt><a href="#MemoryManagementCustomization">Memory management
+    customization</a></dt>
+
+    <dt><a href="#RttiCustomization">RTTI customization</a></dt>
+
+    <dt><a href="#ResourceUsage">Resource usage</a></dt>
+  </dl>
+
+  <h2><a name="SpeedVersusScalabilityTradeoffs" id=
+  "SpeedVersusScalabilityTradeoffs">Speed versus scalability
+  tradeoffs</a></h2>
+
+  <p>Quite a bit of effort has gone into making the library fast for small
+  simple machines <b>and</b> scaleable at the same time (this applies only to
+  <code>state_machine&lt;&gt;</code>, there still is some room for optimizing
+  <code>fifo_scheduler&lt;&gt;</code>, especially for multi-threaded builds).
+  While I believe it should perform reasonably in most applications, the
+  scalability does not come for free. Small, carefully handcrafted state
+  machines will thus easily outperform equivalent Boost.Statechart machines.
+  To get a picture of how big the gap is, I implemented a simple benchmark in
+  the BitMachine example. The Handcrafted example is a handcrafted variant of
+  the 1-bit-BitMachine implementing the same benchmark.</p>
+
+  <p>I tried to create a fair but somewhat unrealistic <b>worst-case</b>
+  scenario:</p>
+
+  <ul>
+    <li>For both machines exactly one object of the only event is allocated
+    before starting the test. This same object is then sent to the machines
+    over and over</li>
+
+    <li>The Handcrafted machine employs GOF-visitor double dispatch. The
+    states are preallocated so that event dispatch &amp; transition amounts
+    to nothing more than two virtual calls and one pointer assignment</li>
+  </ul>
+
+  <p>The Benchmarks - running on a 3.2GHz Intel Pentium 4 - produced the
+  following dispatch and transition times per event:</p>
+
+  <ul>
+    <li>Handcrafted:
+
+      <ul>
+        <li>MSVC7.1: 10ns</li>
+
+        <li>GCC3.4.2: 20ns</li>
+
+        <li>Intel9.0: 20ns</li>
+      </ul>
+    </li>
+
+    <li>1-bit-BitMachine with customized memory management:
+
+      <ul>
+        <li>MSVC7.1: 150ns</li>
+
+        <li>GCC3.4.2: 320ns</li>
+
+        <li>Intel9.0: 170ns</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>Although this is a big difference I still think it will not be
+  noticeable in most&nbsp;real-world applications. No matter whether an
+  application uses handcrafted or Boost.Statechart machines it will...</p>
+
+  <ul>
+    <li>almost never run into a situation where a state machine is swamped
+    with as many events as in the benchmarks. A state machine will almost
+    always spend a good deal of time waiting for events (which typically come
+    from a human operator, from machinery or from electronic devices over
+    often comparatively slow I/O channels). Parsers are just about the only
+    application of FSMs where this is not the case. However, parser FSMs are
+    usually not directly specified on the state machine level but on a higher
+    one that is better suited for the task. Examples of such higher levels
+    are: Boost.Regex, Boost.Spirit, XML Schemas, etc. Moreover, the nature of
+    parsers allows for a number of optimizations that are not possible in a
+    general-purpose FSM framework.<br>
+    Bottom line: While it is possible to implement a parser with this
+    library, it is almost never advisable to do so because other approaches
+    lead to better performing and more expressive code</li>
+
+    <li>often run state machines in their own threads. This adds considerable
+    locking and thread-switching overhead. Performance tests with the
+    PingPong example, where two asynchronous state machines exchange events,
+    gave the following times to process one event and perform the resulting
+    in-state reaction (using the library with
+    <code>boost::fast_pool_allocator&lt;&gt;</code>):
+
+      <ul>
+        <li>Single-threaded (no locking and waiting): 840ns / 840ns</li>
+
+        <li>Multi-threaded with one thread (the scheduler uses mutex locking
+        but never has to wait for events): 6500ns / 4800ns</li>
+
+        <li>Multi-threaded with two threads (both schedulers use mutex
+        locking and exactly one always waits for an event): 14000ns /
+        7000ns</li>
+      </ul>
+
+      <p>As mentioned above, there definitely is some room to improve the
+      timings for the asynchronous machines. Moreover, these are very crude
+      benchmarks, designed to show the overhead of locking and thread context
+      switching. The overhead in a real-world application will typically be
+      smaller and other operating systems can certainly do better in this
+      area. However, I strongly believe that on most platforms the threading
+      overhead is usually larger than the time that Boost.Statechart spends
+      for event dispatch and transition. Handcrafted machines will inevitably
+      have the same overhead, making raw single-threaded dispatch and
+      transition speed much less important</p>
+    </li>
+
+    <li>almost always allocate events with <code>new</code> and destroy them
+    after consumption. This will add a few cycles, even if event memory
+    management is customized</li>
+
+    <li>often use state machines that employ orthogonal states and other
+    advanced features. This forces the handcrafted machines to use a more
+    adequate and more time-consuming book-keeping</li>
+  </ul>
+
+  <p>Therefore, in real-world applications event dispatch and transition not
+  normally constitutes a bottleneck and the relative gap between handcrafted
+  and Boost.Statechart machines also becomes much smaller than in the
+  worst-case scenario.</p>
+
+  <h3>Detailed performance data</h3>
+
+  <p>In an effort to identify the main performance bottleneck, the example
+  program "Performance" has been written. It measures the time that is spent
+  to process one event in different BitMachine variants. In contrast to the
+  BitMachine example, which uses only transitions, Performance uses a varying
+  number of in-state reactions together with transitions. The only difference
+  between in-state-reactions and transitions is that the former neither enter
+  nor exit any states. Apart from that, the same amount of code needs to be
+  run to dispatch an event and execute the resulting action.</p>
+
+  <p>The following diagrams show the average time the library spends to
+  process one event, depending on the percentage of in-state reactions
+  employed. 0% means that all triggered reactions are transitions. 100% means
+  that all triggered reactions are in-state reactions. I draw the following
+  conclusions from these measurements:</p>
+
+  <ul>
+    <li>The fairly linear course of the curves suggests that the measurements
+    with a 100% in-state reaction ratio are accurate and not merely a product
+    of optimizations in the compiler. Such optimizations might have been
+    possible due to the fact that in the 100% case it is known at
+    compile-time that the current state will never change</li>
+
+    <li>The data points with 100% in-state reaction ratio and speed optimized
+    RTTI show that modern compilers seem to inline the complex-looking
+    dispatch code so aggressively that dispatch is reduced to little more
+    than it actually is, one virtual function call followed by a linear
+    search for a suitable reaction. For instance, in the case of the 1-bit
+    Bitmachine, Intel9.0 seems to produce dispatch code that is equally
+    efficient like the two virtual function calls in the Handcrafted
+    machine</li>
+
+    <li>On all compilers and in all variants the time spent in event dispatch
+    is dwarfed by the time spent to exit the current state and enter the
+    target state. It is worth noting that BitMachine is a flat and
+    non-orthogonal state machine, representing a close-to-worst case.
+    Real-world machines will often exit and enter multiple states during a
+    transition, what further dwarfs pure dispatch time. This makes the
+    implementation of constant-time dispatch (as requested by a few people
+    during formal review) an undertaking with little merit. Instead, the
+    future optimization effort will concentrate on state-entry and
+    state-exit</li>
+
+    <li>Intel9.0 seems to have problems to optimize/inline code as soon as
+    the amount of code grows over a certain threshold. Unlike with the other
+    two compilers, I needed to compile the tests for the 1, 2, 3 and 4-bit
+    BitMachine into separate executables to get good performance. Even then
+    was the performance overly bad for the 4-bit BitMachine. It was much
+    worse when I compiled all 4 tests into the same executable. This surely
+    looks like a bug in the compiler</li>
+  </ul>
+
+  <h4>Out of the box</h4>
+
+  <p>The library is used as is, without any optimizations/modifications.</p>
+
+  <p><img alt="PerformanceNormal1" src="PerformanceNormal1.gif" border="0"
+  width="371" height="284"><img alt="PerformanceNormal2" src=
+  "PerformanceNormal2.gif" border="0" width="371" height="284"><img alt=
+  "PerformanceNormal3" src="PerformanceNormal3.gif" border="0" width="371"
+  height="284"><img alt="PerformanceNormal4" src="PerformanceNormal4.gif"
+  border="0" width="371" height="284"></p>
+
+  <h4>Native RTTI</h4>
+
+  <p>The library is used with <code><a href=
+  "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_USE_NATIVE_RTTI</a></code>
+  defined.</p>
+
+  <p><img alt="PerformanceNative1" src="PerformanceNative1.gif" border="0"
+  width="371" height="284"><img alt="PerformanceNative2" src=
+  "PerformanceNative2.gif" border="0" width="371" height="284"><img alt=
+  "PerformanceNative3" src="PerformanceNative3.gif" border="0" width="371"
+  height="284"><img alt="PerformanceNative4" src="PerformanceNative4.gif"
+  border="0" width="371" height="284"></p>
+
+  <h4>Customized memory-management</h4>
+
+  <p>The library is used with customized memory management
+  (<code>boost::fast_pool_allocator</code>).</p>
+
+  <p><img alt="PerformanceCustom1" src="PerformanceCustom1.gif" border="0"
+  width="371" height="284"><img alt="PerformanceCustom2" src=
+  "PerformanceCustom2.gif" border="0" width="371" height="284"><img alt=
+  "PerformanceCustom3" src="PerformanceCustom3.gif" border="0" width="371"
+  height="284"><img alt="PerformanceCustom4" src="PerformanceCustom4.gif"
+  border="0" width="371" height="284"></p>
+
+  <h3><a name="DoubleDispatch" id="DoubleDispatch">Double dispatch</a></h3>
+
+  <p>At the heart of every state machine lies an implementation of double
+  dispatch. This is due to the fact that the incoming event <b>and</b> the
+  active state define exactly which <a href=
+  "definitions.html#Reaction">reaction</a> the state machine will produce.
+  For each event dispatch, one virtual call is followed by a linear search
+  for the appropriate reaction, using one RTTI comparison per reaction. The
+  following alternatives were considered but rejected:</p>
+
+  <ul>
+    <li><a href=
+    "http://www.objectmentor.com/resources/articles/acv.pdf">Acyclic
+    visitor</a>: This double-dispatch variant satisfies all scalability
+    requirements but performs badly due to costly inheritance tree
+    cross-casts. Moreover, a state must store one v-pointer for <b>each</b>
+    reaction what slows down construction and makes memory management
+    customization inefficient. In addition, C++ RTTI must inevitably be
+    turned on, with negative effects on executable size. Boost.Statechart
+    originally employed acyclic visitor and was about 4 times slower than it
+    is now (MSVC7.1 on Intel Pentium M). The dispatch speed might be better
+    on other platforms but the other negative effects will remain</li>
+
+    <li><a href="http://en.wikipedia.org/wiki/Visitor_pattern">GOF
+    Visitor</a>: The GOF Visitor pattern inevitably makes the whole machine
+    depend upon all events. That is, whenever a new event is added there is
+    no way around recompiling the whole state machine. This is contrary to
+    the scalability requirements</li>
+
+    <li>Single two-dimensional array of function pointers: To satisfy
+    requirement 6, it should be possible to spread a single state machine
+    over several translation units. This however means that the dispatch
+    table must be filled at runtime and the different translation units must
+    somehow make themselves "known", so that their part of the state machine
+    can be added to the table. There simply is no way to do this
+    automatically <b>and</b> portably. The only portable way that a state
+    machine distributed over several translation units could employ
+    table-based double dispatch relies on the user. The programmer(s) would
+    somehow have to <b>manually</b> tie together the various pieces of the
+    state machine. Not only does this scale badly but is also quite
+    error-prone</li>
+  </ul>
+
+  <h2><a name="MemoryManagementCustomization" id=
+  "MemoryManagementCustomization">Memory management customization</a></h2>
+
+  <p>Out of the box, everything (event objects, state objects, internal data,
+  etc.) is allocated through <code>std::allocator&lt; void &gt;</code> (the
+  default for the Allocator template parameter). This should be satisfactory
+  for applications meeting the following prerequisites:</p>
+
+  <ul>
+    <li>There are no deterministic reaction time (hard real-time)
+    requirements</li>
+
+    <li>The application will never run long enough for heap fragmentation to
+    become a problem. This is of course an issue for all long running
+    programs not only the ones employing this library. However, it should be
+    noted that fragmentation problems could show up earlier than with
+    traditional FSM frameworks</li>
+  </ul>
+
+  <p>Should an application not meet these prerequisites, Boost.Statechart's
+  memory management can be customized as follows:</p>
+
+  <ul>
+    <li>By passing a model of the standard Allocator concept to the class
+    templates that support a corresponding parameter
+    (<code>event&lt;&gt;</code>, <code>state_machine&lt;&gt;</code>,
+    <code>asynchronous_state_machine&lt;&gt;</code>,
+    <code>fifo_scheduler&lt;&gt;</code>, <code>fifo_worker&lt;&gt;</code>).
+    This redirects all allocations to the passed custom allocator and should
+    satisfy the needs of just about any project</li>
+
+    <li>Additionally, it is possible to <b>separately</b> customize
+    <b>state</b> memory management by overloading <code>operator new()</code>
+    and <code>operator delete()</code> for all state classes but this is
+    probably only useful under rare circumstances</li>
+  </ul>
+
+  <h2><a name="RttiCustomization" id="RttiCustomization">RTTI
+  customization</a></h2>
+
+  <p>RTTI is used for event dispatch and
+  <code>state_downcast&lt;&gt;()</code>. Currently, there are exactly two
+  options:</p>
+
+  <ol>
+    <li>By default, a speed-optimized internal implementation is
+    employed</li>
+
+    <li>The library can be instructed to use native C++ RTTI instead by
+    defining <code><a href=
+    "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_USE_NATIVE_RTTI</a></code></li>
+  </ol>
+
+  <p>There are 2 reasons to favor 2:</p>
+
+  <ul>
+    <li>When a state machine (or parts of it) are compiled into a DLL,
+    problems could arise from the use of the internal RTTI mechanism (see the
+    FAQ item "<a href="faq.html#Dll">How can I compile a state machine into a
+    dynamic link library (DLL)?</a>"). Using option 2 is one way to work
+    around such problems (on some platforms, it seems to be the only
+    way)</li>
+
+    <li>State and event objects need to store one pointer less, meaning that
+    in the best case the memory footprint of a state machine object could
+    shrink by 15% (an empty event is typically 30% smaller, what can be an
+    advantage when there are bursts of events rather than a steady flow).
+    However, on most platforms executable size grows when C++ RTTI is turned
+    on. So, given the small per machine object savings, this only makes sense
+    in applications where both of the following conditions hold:
+
+      <ul>
+        <li>Event dispatch will never become a bottleneck</li>
+
+        <li>There is a need to reduce the memory allocated at runtime (at the
+        cost of a larger executable)</li>
+      </ul>
+
+      <p>Obvious candidates are embedded systems where the executable resides
+      in ROM. Other candidates are applications running a large number of
+      identical state machines where this measure could even reduce the
+      <b>overall</b> memory footprint</p>
+    </li>
+  </ul>
+
+  <h2><a name="ResourceUsage" id="ResourceUsage">Resource usage</a></h2>
+
+  <h3>Memory</h3>
+
+  <p>On a 32-bit box, one empty active state typically needs less than 50
+  bytes of memory. Even <b>very</b> complex machines will usually have less
+  than 20 simultaneously active states so just about every machine should run
+  with less than one kilobyte of memory (not counting event queues).
+  Obviously, the per-machine memory footprint is offset by whatever
+  state-local members the user adds.</p>
+
+  <h3>Processor cycles</h3>
+
+  <p>The following ranking should give a rough picture of what feature will
+  consume how many cycles:</p>
+
+  <ol>
+    <li><code>state_cast&lt;&gt;()</code>: By far the most cycle-consuming
+    feature. Searches linearly for a suitable state, using one
+    <code>dynamic_cast</code> per visited state</li>
+
+    <li>State entry and exit: Profiling of the fully optimized
+    1-bit-BitMachine suggested that roughly 3 quarters of the total event
+    processing time is spent destructing the exited state and constructing
+    the entered state. Obviously, transitions where the <a href=
+    "definitions.html#InnermostCommonContext">innermost common context</a> is
+    "far" from the leaf states and/or with lots of orthogonal states can
+    easily cause the destruction and construction of quite a few states
+    leading to significant amounts of time spent for a transition</li>
+
+    <li><code>state_downcast&lt;&gt;()</code>: Searches linearly for the
+    requested state, using one virtual call and one RTTI comparison per
+    visited state</li>
+
+    <li>Deep history: For all innermost states inside a state passing either
+    <code>has_deep_history</code> or <code>has_full_history</code> to its
+    state base class, a binary search through the (usually small) history map
+    must be performed on each exit. History slot allocation is performed
+    exactly once, at first exit</li>
+
+    <li>Shallow history: For all direct inner states of a state passing
+    either <code>has_shallow_history</code> or <code>has_full_history</code>
+    to its state base class, a binary search through the (usually small)
+    history map must be performed on each exit. History slot allocation is
+    performed exactly once, at first exit</li>
+
+    <li>Event dispatch: One virtual call followed by a linear search for a
+    suitable <a href="definitions.html#Reaction">reaction</a>, using one RTTI
+    comparison per visited reaction</li>
+
+    <li>Orthogonal states: One additional virtual call for each exited state
+    <b>if</b> there is more than one active leaf state before a transition.
+    It should also be noted that the worst-case event dispatch time is
+    multiplied in the presence of orthogonal states. For example, if two
+    orthogonal leaf states are added to a given state configuration, the
+    worst-case time is tripled</li>
+  </ol>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->03 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38512" --></p>
+
+  <p><i>Copyright &copy; 2003-<!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y" startspan -->2006<!--webbot bot="Timestamp" endspan i-checksum="770" -->
+  <a href="contact.html">Andreas Huber D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

@@ -1,0 +1,241 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Mini XML - ASTs!]
+
+Stop and think about it... We've come very close to generating an AST 
+(abstract syntax tree) in our last example. We parsed a single structure and 
+generated an in-memory representation of it in the form of a struct: the 
+`struct employee`. If we changed the implementation to parse one or more 
+employees, the result would be a `std::vector<employee>`. We can go on and add 
+more hierarchy: teams, departments, corporations. Then we'll have an AST 
+representation of it all.
+
+In this example (actually two examples), we'll now explore how to create
+ASTs. We will parse a minimalistic XML-like language and compile the results
+into our data structures in the form of a tree.
+
+Along the way, we'll see new features:
+
+* Inherited attributes
+* Variant attributes
+* Local Variables
+* Not Predicate
+* Lazy Lit
+
+The full cpp files for these examples can be found here:
+[@../../example/qi/mini_xml1.cpp] and here: [@../../example/qi/mini_xml2.cpp]
+
+There are a couple of sample toy-xml files in the mini_xml_samples subdirectory: 
+[@../../example/qi/mini_xml_samples/1.toyxml], 
+[@../../example/qi/mini_xml_samples/2.toyxml], and
+[@../../example/qi/mini_xml_samples/3.toyxml] for testing purposes. 
+The example [@../../example/qi/mini_xml_samples/4.toyxml] has an error in it.
+
+[import ../../example/qi/mini_xml1.cpp]
+[import ../../example/qi/mini_xml2.cpp]
+
+[heading First Cut]
+
+Without further delay, here's the first version of the XML grammar:
+
+[tutorial_xml1_grammar]
+
+Going bottom up, let's examine the `text` rule:
+
+    rule<Iterator, std::string(), space_type> text;
+
+and its definition:
+
+    text = lexeme[+(char_ - '<')        [_val += _1]];
+
+The semantic action collects the chars and appends them (via +=) to the
+`std::string` attribute of the rule (represented by the placeholder `_val`).
+
+[heading Alternates]
+
+    rule<Iterator, mini_xml_node(), space_type> node;
+
+and its definition:
+
+    node = (xml | text)                 [_val = _1];
+
+We'll see a `mini_xml_node` structure later. Looking at the rule
+definition, we see some alternation going on here. An xml `node` is
+either an `xml` OR `text`. Hmmm... hold on to that thought...
+
+    rule<Iterator, std::string(), space_type> start_tag;
+
+Again, with an attribute of `std::string`. Then, it's definition:
+
+    start_tag =
+            '<'
+        >>  !char_('/')
+        >>  lexeme[+(char_ - '>')       [_val += _1]]
+        >>  '>'
+    ;
+
+[heading Not Predicate]
+
+`start_tag` is similar to the `text` rule apart from the added `'<'` and `'>'`.
+But wait, to make sure that the `start_tag` does not parse `end_tag`s too, we
+add: `!char_('/')`. This is a "Not Predicate":
+
+    !p
+
+It will try the parser, `p`. If it is successful, fail; otherwise, pass. In
+other words, it negates the result of `p`. Like the `eps`, it does not consume
+any input though. It will always rewind the iterator position to where it
+was upon entry. So, the expression:
+
+    !char_('/')
+
+basically says: we should not have a `'/'` at this point.
+
+[heading Inherited Attribute]
+
+The `end_tag`:
+
+    rule<Iterator, void(std::string), space_type> end_tag;
+
+Ohh! Now we see an inherited attribute there: `std::string`. The `end_tag` does
+not have a synthesized attribute. Let's see its definition:
+
+    end_tag =
+            "</"
+        >>  lit(_r1)
+        >>  '>'
+    ;
+
+`_r1` is yet another __phoenix__ placeholder for the first inherited attribute
+(we have only one, use `_r2`, `_r3`, etc. if you have more).
+
+[heading A Lazy Lit]
+
+Check out how we used `lit` here, this time, not with a literal string, but with
+the value of the first inherited attribute, which is specified as `std::string` in
+our rule declaration.
+
+Finally, our `xml` rule:
+
+    rule<Iterator, mini_xml(), space_type> xml;
+
+`mini_xml` is our attribute here. We'll see later what it is. Let's see its
+definition:
+
+    xml =
+            start_tag                   [at_c<0>(_val) = _1]
+        >>  *node                       [push_back(at_c<1>(_val), _1)]
+        >>  end_tag(at_c<0>(_val))
+    ;
+
+Those who know __fusion__ now will notice `at_c<0>` and `at_c<1>`. This gives us
+a hint that `mini_xml` is a sort of a tuple - a fusion sequence. `at_c<N>` here
+is a lazy version of the tuple accessors, provided by __phoenix__.
+
+[heading How it all works]
+
+So, what's happening?
+
+# Upon parsing `start_tag`, the parsed start-tag string is placed in
+  `at_c<0>(_val)`.
+
+# Then we parse zero or more `node`s. At each step, we `push_back` the result
+  into `at_c<1>(_val)`.
+
+# Finally, we parse the `end_tag` giving it an inherited attribute: `at_c<0>(_val)`.
+  This is the string we obtained from the `start_tag`. Investigate `end_tag` above.
+  It will fail to parse if it gets something different from what we got from the
+  `start_tag`. This ensures that our tags are balanced.
+
+To give the last item some more light, what happens is this:
+
+    end_tag(at_c<0>(_val))
+
+calls:
+
+    end_tag =
+            "</"
+        >>  lit(_r1)
+        >>  '>'
+    ;
+
+passing in `at_c<0>(_val)`, the string from start tag. This is referred to in the
+`end_tag` body as `_r1`.
+
+[heading The Structures]
+
+Let's see our structures. It will definitely be hierarchical: xml is
+hierarchical. It will also be recursive: xml is recursive.
+
+[tutorial_xml1_structures]
+
+[heading Of Alternates and Variants]
+
+So that's what a `mini_xml_node` looks like. We had a hint that it is either
+a `string` or a `mini_xml`. For this, we use __boost_variant__. `boost::recursive_wrapper`
+wraps `mini_xml`, making it a recursive data structure.
+
+Yep, you got that right: the attribute of an alternate:
+
+    a | b
+
+is a
+
+  boost::variant<A, B>
+
+where `A` is the attribute of `a` and `B` is the attribute of `b`.
+
+[heading Adapting structs again]
+
+`mini_xml` is no brainier. It is a plain ol' struct. But as we've seen in our
+employee example, we can adapt that to be a __fusion__ sequence:
+
+[tutorial_xml1_adapt_structures]
+
+[heading One More Take]
+
+Here's another version. The AST structure remains the same, but this time,
+you'll see that we make use of auto-rules making the grammar
+semantic-action-less. Here it is:
+
+[tutorial_xml2_grammar]
+
+This one shouldn't be any more difficult to understand after going through the
+first xml parser example. The rules are almost the same, except that, we got rid
+of semantic actions and used auto-rules (see the employee example if you missed
+that). There is some new stuff though. It's all in the `xml` rule:
+
+[heading Local Variables]
+
+    rule<Iterator, mini_xml(), locals<std::string>, space_type> xml;
+
+Wow, we have four template parameters now. What's that `locals` guy doing there?
+Well, it declares that the rule `xml` will have one local variable: a `string`.
+Let's see how this is used in action:
+
+    xml %=
+            start_tag[_a = _1]
+        >>  *node
+        >>  end_tag(_a)
+    ;
+
+# Upon parsing `start_tag`, the parsed start-tag string is placed in
+  the local variable specified by (yet another) __phoenix__ placeholder:
+  `_a`. We have only one local variable. If we had more, these are designated
+  by `_b`..`_z`.
+
+# Then we parse zero or more `node`s.
+
+# Finally, we parse the `end_tag` giving it an inherited attribute: `_a`, our
+  local variable.
+
+There are no actions involved in stuffing data into our `xml` attribute. It's
+all taken care of thanks to the auto-rule.
+
+[endsect]

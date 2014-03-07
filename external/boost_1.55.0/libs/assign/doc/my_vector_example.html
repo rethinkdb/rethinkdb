@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Assignment Documentation </title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+
+<body>
+<pre>
+<span class=comment>// Boost.Assign library
+//
+//  Copyright Thorsten Ottosen 2003-2004. Use, modification and
+//  distribution is subject to the Boost Software License, Version
+//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+// For more information, see http://www.boost.org/libs/assign/
+//
+
+</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>detail</span><span class=special>/</span><span class=identifier>workaround</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;
+</span>
+<span class=preprocessor>#if </span><span class=identifier>BOOST_WORKAROUND</span><span class=special>(</span><span class=identifier>__BORLANDC__</span><span class=special>, </span><span class=identifier>BOOST_TESTED_AT</span><span class=special>(</span><span class=number>0</span><span class=identifier>x564</span><span class=special>))</span>
+###<span class=identifier>pragma </span><span class=identifier>warn </span><span class=special>-</span><span class=number>8091 </span><span class=comment>// supress warning in Boost.Test</span>
+###<span class=identifier>pragma </span><span class=identifier>warn </span><span class=special>-</span><span class=number>8057 </span><span class=comment>// unused argument argc/argv in Boost.Test</span>
+<span class=preprocessor>#endif
+</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_inserter</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>test</span><span class=special>/</span><span class=identifier>unit_test</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>test</span><span class=special>/</span><span class=identifier>test_tools</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>function</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>bind</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>vector</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>stdexcept</span><span class=special>&gt;
+</span>
+<span class=keyword>namespace </span><span class=identifier>ba </span><span class=special>= </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+
+
+</span>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;</span>
+<span class=keyword>class </span><span class=identifier>range_inserter</span>
+<span class=special>{
+    </span><span class=keyword>typedef </span><span class=keyword>typename </span><span class=identifier>C</span><span class=special>::</span><span class=identifier>iterator </span><span class=identifier>iterator</span><span class=special>;
+    </span><span class=identifier>iterator </span><span class=identifier>begin</span><span class=special>, </span><span class=identifier>end</span><span class=special>;</span>
+<span class=keyword>public</span><span class=special>:
+    </span><span class=identifier>range_inserter</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=identifier>c </span><span class=special>)
+    </span><span class=special>: </span><span class=identifier>begin</span><span class=special>( </span><span class=identifier>c</span><span class=special>.</span><span class=identifier>begin</span><span class=special>() </span><span class=special>), </span><span class=identifier>end</span><span class=special>( </span><span class=identifier>c</span><span class=special>.</span><span class=identifier>end</span><span class=special>() </span><span class=special>)
+    </span><span class=special>{ </span><span class=special>}
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>T </span><span class=identifier>r </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=keyword>if</span><span class=special>( </span><span class=identifier>begin </span><span class=special>== </span><span class=identifier>end </span><span class=special>)
+            </span><span class=keyword>throw </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>range_error</span><span class=special>( </span><span class=string>&quot;range error: &lt;range_inserter&gt;&quot; </span><span class=special>);
+        </span><span class=special>*</span><span class=identifier>begin </span><span class=special>= </span><span class=identifier>r</span><span class=special>;
+        </span><span class=special>++</span><span class=identifier>begin</span><span class=special>;
+    </span><span class=special>}</span>
+<span class=special>};
+
+
+</span>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;</span>
+<span class=keyword>inline </span><span class=identifier>range_inserter</span><span class=special>&lt;</span><span class=identifier>C</span><span class=special>&gt; </span><span class=identifier>make_range_inserter</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=identifier>c </span><span class=special>)</span>
+<span class=special>{
+    </span><span class=keyword>return </span><span class=identifier>range_inserter</span><span class=special>&lt;</span><span class=identifier>C</span><span class=special>&gt;( </span><span class=identifier>c </span><span class=special>);</span>
+<span class=special>}
+
+
+</span>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;</span>
+<span class=keyword>class </span><span class=identifier>my_vector</span>
+<span class=special>{
+    </span><span class=keyword>typedef </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;                </span><span class=identifier>vector_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=keyword>typename </span><span class=identifier>vector_t</span><span class=special>::</span><span class=identifier>size_type  </span><span class=identifier>size_type</span><span class=special>;
+    </span><span class=identifier>vector_t </span><span class=identifier>data_</span><span class=special>;
+</span>
+<span class=keyword>public</span><span class=special>:
+    </span><span class=identifier>my_vector</span><span class=special>() </span><span class=special>: </span><span class=identifier>data_</span><span class=special>( </span><span class=number>10</span><span class=special>, </span><span class=number>0 </span><span class=special>)
+    </span><span class=special>{ </span><span class=special>}
+    
+    </span><span class=identifier>ba</span><span class=special>::</span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=identifier>range_inserter</span><span class=special>&lt; </span><span class=identifier>vector_t </span><span class=special>&gt;, </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=keyword>operator</span><span class=special>=( </span><span class=identifier>T </span><span class=identifier>r </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>ba</span><span class=special>::</span><span class=identifier>make_list_inserter</span><span class=special>( </span><span class=identifier>make_range_inserter</span><span class=special>( </span><span class=identifier>data_ </span><span class=special>) </span><span class=special>)( </span><span class=identifier>r </span><span class=special>);
+    </span><span class=special>}
+    
+    </span><span class=identifier>size_type </span><span class=identifier>size</span><span class=special>() </span><span class=keyword>const
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>data_</span><span class=special>.</span><span class=identifier>size</span><span class=special>();
+    </span><span class=special>}
+    
+    </span><span class=keyword>const </span><span class=identifier>T</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>[]( </span><span class=identifier>size_type </span><span class=identifier>index </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>data_</span><span class=special>.</span><span class=identifier>at</span><span class=special>( </span><span class=identifier>index </span><span class=special>);
+    </span><span class=special>}</span>
+<span class=special>};
+
+
+</span>
+<span class=keyword>void </span><span class=identifier>check_list_inserter</span><span class=special>()</span>
+<span class=special>{
+    </span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+    </span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+    
+    </span><span class=identifier>my_vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>vec</span><span class=special>;
+    </span><span class=identifier>vec </span><span class=special>= </span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>,</span><span class=number>4</span><span class=special>,</span><span class=number>5</span><span class=special>,</span><span class=number>6</span><span class=special>,</span><span class=number>7</span><span class=special>,</span><span class=number>8</span><span class=special>,</span><span class=number>9</span><span class=special>,</span><span class=number>10</span><span class=special>;
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>vec</span><span class=special>.</span><span class=identifier>size</span><span class=special>(), </span><span class=number>10u </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>vec</span><span class=special>[</span><span class=number>0</span><span class=special>], </span><span class=number>1 </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>vec</span><span class=special>[</span><span class=number>9</span><span class=special>], </span><span class=number>10 </span><span class=special>);</span>
+<span class=special>}
+
+
+</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>test</span><span class=special>/</span><span class=identifier>included</span><span class=special>/</span><span class=identifier>unit_test_framework</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; 
+</span>
+<span class=keyword>using </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>unit_test_framework</span><span class=special>::</span><span class=identifier>test_suite</span><span class=special>;
+</span>
+<span class=identifier>test_suite</span><span class=special>* </span><span class=identifier>init_unit_test_suite</span><span class=special>( </span><span class=keyword>int </span><span class=identifier>argc</span><span class=special>, </span><span class=keyword>char</span><span class=special>* </span><span class=identifier>argv</span><span class=special>[] </span><span class=special>)</span>
+<span class=special>{
+    </span><span class=identifier>test_suite</span><span class=special>* </span><span class=identifier>test </span><span class=special>= </span><span class=identifier>BOOST_TEST_SUITE</span><span class=special>( </span><span class=string>&quot;List Test Suite&quot; </span><span class=special>);
+
+    </span><span class=identifier>test</span><span class=special>-&gt;</span><span class=identifier>add</span><span class=special>( </span><span class=identifier>BOOST_TEST_CASE</span><span class=special>( </span><span class=special>&amp;</span><span class=identifier>check_list_inserter </span><span class=special>) </span><span class=special>);
+
+    </span><span class=keyword>return </span><span class=identifier>test</span><span class=special>;</span>
+<span class=special>}
+</span>
+</pre>
+</body>
+</html>

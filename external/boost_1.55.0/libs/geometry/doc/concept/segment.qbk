@@ -1,0 +1,35 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:concept_segment Segment Concept]
+
+[heading Description]
+[concept Segment..segment]
+
+
+[heading Concept Definition]
+
+* there must be a specialization of `traits::tag` defining `segment_tag` as type
+* there must be a specialization of `traits::point_type` to define the underlying point type 
+	(even if it does not consist of points, it should define this type, to indicate the points it can work with)
+* there must be a specialization of `traits::indexed_access`, per index and per dimension, with two functions:
+	* `get` to get a coordinate value
+	* `set` to set a coordinate value (this one is not checked for ConstSegment)
+	
+[note The segment concept is similar to the box concept, defining using another tag. 
+However, the box concept assumes the index as `min_corner`, `max_corner`, while for the segment concept, there is no assumption.]	
+
+[heading Available Models]	
+* [link geometry.reference.models.model_segment model::segment]
+* [link geometry.reference.models.model_referring_segment referring segment]
+
+[endsect]

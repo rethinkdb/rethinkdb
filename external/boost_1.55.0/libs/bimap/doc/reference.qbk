@@ -1,0 +1,64 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Reference]
+
+[section Headers]
+
+The following are the interface headers of Boost.Bimap:
+
+[*Convenience]
+
+* "boost/bimap.hpp" ['(includes "boost/bimap/bimap.hpp" and imports the bimap class to boost namespace)]
+
+[*Container]
+
+* "boost/bimap/bimap.hpp" ['(includes "boost/bimap/set_of.hpp" and "boost/bimap/unconstrained_set_of.hpp")]
+
+[*Set Types]
+
+* "boost/bimap/set_of.hpp"
+* "boost/bimap/multiset_of.hpp"
+* "boost/bimap/unordered_set_of.hpp"
+* "boost/bimap/unordered_multiset_of.hpp"
+* "boost/bimap/list_of.hpp"
+* "boost/bimap/vector_of.hpp"
+* "boost/bimap/unconstrained_set_of.hpp"
+
+[*Boost Integration]
+
+* "boost/bimap/support/lambda.hpp"
+* "boost/bimap/property_map/set_support.hpp"
+* "boost/bimap/property_map/unordered_set_support.hpp"
+
+A program using Boost.Bimap must therefore include
+"boost/bimap/bimap.hpp" and the headers defining the collection types to be used.
+
+Additional headers allow the integration of Boost.Bimap with other boost libraries,
+like Boost.Lambda and Boost.Property_map.
+
+In order to use the serialization capabilities of Boost.Bimap, the appropriate
+Boost.Serialization library module must be linked. Other than that, Boost.Bimap
+is a header-only library, requiring no additional object modules.
+
+[endsect]
+
+[include reference/bimap.qbk]
+[include reference/set_of.qbk]
+[include reference/unordered_set_of.qbk]
+[include reference/list_of.qbk]
+[include reference/vector_of.qbk]
+[include reference/unconstrained_set_of.qbk]
+
+[endsect]
