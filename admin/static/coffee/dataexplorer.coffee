@@ -3266,7 +3266,6 @@ module 'DataExplorerView', ->
                     str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
                     hours = parseInt(str_pieces[5])
                     hours++
-                    console.log hours
                     if hours.toString().length is 1
                         hours = "0"+hours.toString()
                     else
