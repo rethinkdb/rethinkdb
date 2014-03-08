@@ -108,7 +108,9 @@ void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t 
 
 void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
 
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node, node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent);
+// Moves pairs from sibling into node.
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node,
+           node_t *sibling, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void validate(value_sizer_t<void> *sizer, const node_t *node);
 

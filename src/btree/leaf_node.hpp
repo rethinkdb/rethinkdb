@@ -126,7 +126,8 @@ bool is_full(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_ke
 
 bool is_underfull(value_sizer_t<void> *sizer, const leaf_node_t *node);
 
-void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree_key_t *median_out);
+void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *sibling,
+           btree_key_t *median_out);
 
 void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right);
 
