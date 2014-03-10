@@ -263,8 +263,6 @@ bool do_serve(
             if (i_am_a_server) {
                 // Proxies do not have caches to balance
                 cache_balancer.init(new alt_cache_balancer_t(total_cache_size,
-                                                             BASE_CACHE_SIZE,
-                                                             CACHE_REBALANCE_DAMPING_FACTOR,
                                                              CACHE_REBALANCE_INTERVAL_MS));
             }
 

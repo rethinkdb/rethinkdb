@@ -88,14 +88,8 @@
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   2
 
-// Minimum amount of cache size to allocate per shard
-#define BASE_CACHE_SIZE                           (2 * MEGABYTE)
-
 // Interval to reevaluate cache sizes (in milliseconds)
 #define CACHE_REBALANCE_INTERVAL_MS               2000
-
-// Damping factor to prevent cache sizes from changing too fast
-#define CACHE_REBALANCE_DAMPING_FACTOR            25
 
 // The maximum number of concurrently active
 // index writes per merger serializer.

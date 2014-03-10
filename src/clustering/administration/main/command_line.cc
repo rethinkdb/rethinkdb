@@ -408,7 +408,7 @@ uint64_t get_avail_mem_size() {
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
-    uint64_t res = get_avail_mem_size() / 2;
+    uint64_t res = get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO;
 
     if (exists_option(opts, "--cache-size")) {
         std::string cache_size_opt = get_single_option(opts, "--cache-size");

@@ -56,13 +56,11 @@ class alt_cache_balancer_t :
 {
 public:
     alt_cache_balancer_t(uint64_t _total_cache_size,
-                         uint64_t _base_mem_per_store,
-                         uint64_t _damping_factor,
                          uint64_t interval_ms);
     ~alt_cache_balancer_t();
 
     uint64_t get_base_mem_per_store() const {
-        return base_mem_per_store;
+        return 0;
     }
 
 private:
@@ -88,8 +86,7 @@ private:
         alt::evicter_t *evicter;
         uint64_t new_size;
         uint64_t old_size;
-        uint64_t used_size;
-        uint64_t evictions;
+        uint64_t bytes_loaded;
     };
 
     // Helper function that rebalances all the shards on a given thread
@@ -102,7 +99,6 @@ private:
     };
 
     uint64_t total_cache_size;
-    uint64_t base_mem_per_store;
     uint64_t damping_factor;
     bool done_overcommit_warning;
 

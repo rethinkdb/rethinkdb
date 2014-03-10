@@ -47,15 +47,15 @@ public:
         return in_memory_size_;
     }
 
-    uint64_t get_cache_evictions() const {
-        return eviction_counter_;
+    uint64_t get_bytes_loaded() const {
+        return bytes_loaded_counter_;
     }
 
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
     void update_in_memory_size();
-    void evict_if_necessary(bool count_evictions);
+    void evict_if_necessary();
 
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
@@ -65,9 +65,9 @@ private:
     // changed.
     std::function<void(uint64_t)> on_memory_limit_change_cb_;
 
-    // These are updated every time a page is loaded,
+    // This is updated every time a page is loaded or created,
     // and cleared when cache memory limits are re-evaluated
-    uint64_t eviction_counter_;
+    uint64_t bytes_loaded_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;

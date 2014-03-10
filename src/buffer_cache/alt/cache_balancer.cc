@@ -11,16 +11,11 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->get_memory_limit()),
-    used_size(evicter->in_memory_size()),
-    evictions(evicter->get_cache_evictions()) { }
+    bytes_loaded(evicter->get_bytes_loaded()) { }
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size,
-                                           uint64_t _base_mem_per_store,
-                                           uint64_t _damping_factor,
                                            uint64_t interval_ms) :
     total_cache_size(_total_cache_size),
-    base_mem_per_store(_base_mem_per_store),
-    damping_factor(_damping_factor),
     done_overcommit_warning(false),
     rebalance_timer(interval_ms, this),
     thread_info(get_num_threads()),
@@ -51,18 +46,6 @@ void alt_cache_balancer_t::on_ring() {
     pool_queue.give_value(NULL);
 }
 
-void alt_cache_balancer_t::warn_if_overcommitted(size_t num_shards) {
-    // Only do this the first time
-    bool overcommitted = ((num_shards * base_mem_per_store) > total_cache_size);
-    if (overcommitted && !done_overcommit_warning) {
-        logWRN("Too many tables to fit within the cache_size setting, more memory will be used");
-        done_overcommit_warning = true;
-    } else if (!overcommitted && done_overcommit_warning) {
-        logINF("Number of tables is now sufficiently low to fit within the cache_size setting");
-        done_overcommit_warning = false;
-    }
-}
-
 void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interruptor) {
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
@@ -70,7 +53,7 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
 
     // Get cache sizes from shards on each thread
     size_t total_evicters = 0;
-    uint64_t total_evictions = 0;
+    uint64_t total_bytes_loaded = 0;
 
     for (size_t i = 0; i < thread_info.size(); ++i) {
         std::set<alt::evicter_t*> *current_evicters = &thread_info[i].evicters;
@@ -83,32 +66,45 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
         for (auto j = current_evicters->begin(); j != current_evicters->end(); ++j) {
             cache_data_t data(*j);
             per_thread_data[i].push_back(data);
-
-            total_evictions += data.evictions;
+            total_bytes_loaded += data.bytes_loaded;
         }
     }
 
-    // Warn the user if they have too many tables to fit into the max cache size
-    warn_if_overcommitted(total_evicters);
+    // Calculate new cache sizes
+    if (total_cache_size > 0 && total_evicters > 0) {
+        uint64_t total_new_sizes = 0;
 
-    // Calculate new cache sizes if there were evictions
-    if (total_evictions > 0) {
         for (size_t i = 0; i < per_thread_data.size(); ++i) {
             for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
                 cache_data_t *data = &per_thread_data[i][j];
 
-                int64_t temp = total_cache_size;
-                temp -= total_evicters * base_mem_per_store;
-                temp = std::max(temp, static_cast<int64_t>(0));
-                temp *= data->evictions;
-                temp /= total_evictions;
-                temp += base_mem_per_store;
+                double temp = data->old_size;
+                temp /= static_cast<double>(total_cache_size);
+                temp *= static_cast<double>(total_bytes_loaded);
 
-                // Apply damping to keep cache from changing size too quickly
-                temp -= data->old_size;
-                temp /= static_cast<int64_t>(damping_factor);
-                temp += data->old_size;
-                data->new_size = temp;
+                int64_t new_size = data->bytes_loaded;
+                new_size -= static_cast<int64_t>(temp);
+                new_size += data->old_size;
+                new_size = std::max(new_size, static_cast<int64_t>(0));
+
+                data->new_size = new_size;
+                total_new_sizes += new_size;
+            }
+        }
+
+        // Distribute any rounding error across shards
+        int64_t extra_bytes = total_cache_size - total_new_sizes;
+        while (extra_bytes != 0) {
+            int64_t delta = extra_bytes / static_cast<int64_t>(total_evicters);
+            if (delta == 0) {
+                delta = ((extra_bytes < 0) ? -1 : 1);
+            }
+            for (size_t i = 0; i < per_thread_data.size() && extra_bytes != 0; ++i) {
+                for (size_t j = 0; j < per_thread_data[i].size() && extra_bytes != 0; ++j) {
+                    cache_data_t *data = &per_thread_data[i][j];
+                    data->new_size += delta;
+                    extra_bytes -= delta;
+                }
             }
         }
 
