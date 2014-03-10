@@ -10,6 +10,8 @@ evicter_t::evicter_t(cache_balancer_t *balancer)
       eviction_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
 {
+    update_in_memory_size();
+
     guarantee(balancer_ != NULL);
     memory_limit_ = balancer_->get_base_mem_per_store();
     balancer_->add_evicter(this);
