@@ -219,8 +219,8 @@ public:
         rdb_update_sindexes(*sindexes_, &mod_report, txn_);
     }
 
-    void operator()(const rdb_erase_range_report_t &erase_range_report) const {
-        rdb_erase_range_sindexes(*sindexes_, &erase_range_report, interruptor_);
+    void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {
+        rdb_erase_major_range_sindexes(*sindexes_, &erase_range_report, interruptor_);
     }
 
 private:
@@ -365,7 +365,7 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
 }
 
 typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_range_report_t>
+                       rdb_erase_major_range_report_t>
         sindex_change_t;
 
 void add_status(const single_sindex_status_t &new_status,
@@ -1694,10 +1694,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
         range_key_tester_t tester(&delete_range.range);
-        rdb_erase_range(&tester, delete_range.range.inner,
-                        &sindex_block,
-                        superblock.get(), store,
-                        interruptor);
+        std::vector<rdb_modification_report_t> mod_reports;
+        rdb_erase_small_range(&tester, delete_range.range.inner,
+                              superblock.get(), interruptor, &mod_reports);
+        update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
@@ -1753,6 +1753,7 @@ private:
             wm << rdb_sindex_change_t(mod_reports[i]);
             store->sindex_queue_push(wm, &acq);
 
+            // TODO! Make sure this does proper deletions and stuff
             rdb_update_sindexes(sindexes, &mod_reports[i], txn);
         }
     }
@@ -1791,10 +1792,10 @@ void store_t::protocol_reset_data(const region_t& subregion,
     buf_lock_t sindex_block
         = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
-    rdb_erase_range(&key_tester, subregion.inner,
-                    &sindex_block,
-                    superblock, this,
-                    interruptor);
+    rdb_erase_major_range(&key_tester, subregion.inner,
+                          &sindex_block,
+                          superblock, this,
+                          interruptor);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

@@ -2,6 +2,8 @@
 #ifndef BTREE_ERASE_RANGE_HPP_
 #define BTREE_ERASE_RANGE_HPP_
 
+#include <functional>
+
 #include "errors.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/types.hpp"
@@ -41,14 +43,13 @@ protected:
     DISABLE_COPYING(value_deleter_t);
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer,
-                               key_tester_t *tester,
-                               value_deleter_t *deleter,
-                               const btree_key_t *left_exclusive_or_null,
-                               const btree_key_t *right_inclusive_or_null,
-                               superblock_t *superblock,
-                               signal_t *interruptor,
-                               bool release_superblock = true);
+void btree_erase_range_generic(value_sizer_t<void> *sizer, key_tester_t *tester,
+        value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
+        const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
+        signal_t *interruptor, bool release_superblock = true,
+        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+            &on_erase_cb =
+                std::function<void(const store_key_t &, const char *, const buf_parent_t &)>());
 
 void erase_all(value_sizer_t<void> *sizer,
                value_deleter_t *deleter,

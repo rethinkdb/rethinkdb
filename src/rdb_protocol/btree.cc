@@ -575,15 +575,43 @@ void spawn_sindex_erase_ranges(
     }
 }
 
-void rdb_erase_range(key_tester_t *tester,
-                     const key_range_t &key_range,
-                     buf_lock_t *sindex_block,
-                     superblock_t *superblock,
-                     btree_store_t<rdb_protocol_t> *store,
-                     signal_t *interruptor) {
+/* Helper function for rdb_erase_*_range() */
+void rdb_erase_range_convert_keys(const key_range_t &key_range,
+                                  bool *left_key_supplied_out,
+                                  bool *right_key_supplied_out,
+                                  store_key_t *left_key_exclusive_out,
+                                  store_key_t *right_key_inclusive_out) {
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
     guarantee(!key_range.is_empty());
+
+    rassert(left_key_supplied_out != NULL);
+    rassert(right_key_supplied_out != NULL);
+    rassert(left_key_exclusive_out != NULL);
+    rassert(right_key_inclusive_out != NULL);
+
+    /* Twiddle some keys to get the in the form we want. Notice these are keys
+     * which will be made  exclusive and inclusive as their names suggest
+     * below. At the point of construction they aren't. */
+    *left_key_exclusive_out = store_key_t(key_range.left);
+    *right_key_inclusive_out = store_key_t(key_range.right.key);
+
+    *left_key_supplied_out = left_key_exclusive_out->decrement();
+    *right_key_supplied_out = !key_range.right.unbounded;
+    if (*right_key_supplied_out) {
+        right_key_inclusive_out->decrement();
+    }
+
+    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
+     * names. */
+}
+
+void rdb_erase_major_range(key_tester_t *tester,
+                           const key_range_t &key_range,
+                           buf_lock_t *sindex_block,
+                           superblock_t *superblock,
+                           btree_store_t<rdb_protocol_t> *store,
+                           signal_t *interruptor) {
 
     /* Dispatch the erase range to the sindexes. */
     sindex_access_vector_t sindex_superblocks;
@@ -595,7 +623,7 @@ void rdb_erase_range(key_tester_t *tester,
         store->lock_sindex_queue(sindex_block, &acq);
 
         write_message_t wm;
-        wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
+        wm << rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range));
         store->sindex_queue_push(wm, &acq);
     }
 
@@ -619,31 +647,73 @@ void rdb_erase_range(key_tester_t *tester,
          * point. */
     }
 
-    /* Twiddle some keys to get the in the form we want. Notice these are keys
-     * which will be made  exclusive and inclusive as their names suggest
-     * below. At the point of construction they aren't. */
-    store_key_t left_key_exclusive(key_range.left);
-    store_key_t right_key_inclusive(key_range.right.key);
-
-    bool left_key_supplied = left_key_exclusive.decrement();
-    bool right_key_supplied = !key_range.right.unbounded;
-    if (right_key_supplied) {
-        right_key_inclusive.decrement();
-    }
-
-    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
-     * names. */
+    bool left_key_supplied, right_key_supplied;
+    store_key_t left_key_exclusive, right_key_inclusive;
+    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
+            &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
     value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
+    /* Actually delete the values */
     rdb_value_deleter_t deleter;
 
     btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
+}
+
+void rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &key_range,
+                           superblock_t *superblock,
+                           signal_t *interruptor,
+                           std::vector<rdb_modification_report_t> *mod_reports_out) {
+    rassert(mod_reports_out != NULL);
+    mod_reports_out->clear();
+
+    bool left_key_supplied, right_key_supplied;
+    store_key_t left_key_exclusive, right_key_inclusive;
+    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
+             &left_key_exclusive, &right_key_inclusive);
+
+    /* We need these structures to perform the erase range. */
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    /* Don't delete the values here. We generate mod reports so the values
+    can be deleted later after secondary indexes have been updated. */
+    rdb_value_detacher_t detacher;
+
+    struct on_erase_cb_t {
+        static void on_erase(const store_key_t &key, const char *data,
+                const buf_parent_t &parent,
+                std::vector<rdb_modification_report_t> *_mod_reports_out) {
+            const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
+
+            // The mod_report we generate is a simple delete. While there is generally
+            // a difference between an erase and a delete (deletes get backfilled,
+            // while an erase is as if the value had never existed), that
+            // difference is irrelevant in the case of secondary indexes.
+            rdb_modification_report_t mod_report;
+            mod_report.primary_key = key;
+            // Get the full data
+            mod_report.info.deleted.first = get_data(value, parent);
+            // Get the inline value
+            block_size_t block_size = parent.cache()->get_block_size();
+            mod_report.info.deleted.second.assign(value->value_ref(),
+                value->value_ref() + value->inline_size(block_size));
+
+            _mod_reports_out->push_back(mod_report);
+        }
+    };
+
+    btree_erase_range_generic(sizer, tester, &detacher,
+        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
+        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
+        superblock, interruptor, true /* release_superblock */,
+        std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
 }
 
 // This is actually a kind of misleading name. This function estimates the size
@@ -954,7 +1024,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
@@ -1124,8 +1194,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     }
 }
 
-void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
-                              const rdb_erase_range_report_t *erase_range,
+void rdb_erase_major_range_sindexes(const sindex_access_vector_t &sindexes,
+                              const rdb_erase_major_range_report_t *erase_range,
                               signal_t *interruptor) {
     auto_drainer_t drainer;
 

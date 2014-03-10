@@ -188,12 +188,27 @@ class rdb_value_detacher_t : public value_deleter_t {
     void delete_value(buf_parent_t parent, void *value);
 };
 
-void rdb_erase_range(key_tester_t *tester,
-                     const key_range_t &keys,
-                     buf_lock_t *sindex_block,
-                     superblock_t *superblock,
-                     btree_store_t<rdb_protocol_t> *store,
-                     signal_t *interruptor);
+/* `rdb_erase_major_range` has a complexity of O(n) where n is the size of the
+ * btree, if secondary indexes are present. Be careful when to use it. */
+void rdb_erase_major_range(key_tester_t *tester,
+                           const key_range_t &keys,
+                           buf_lock_t *sindex_block,
+                           superblock_t *superblock,
+                           btree_store_t<rdb_protocol_t> *store,
+                           signal_t *interruptor);
+
+/* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
+ * the btree, and m is the number of documents actually being deleted.
+ * It also requires O(m) memory. 
+ * In contrast to `rdb_erase_major_range()`, it doesn't update secondary indexes
+ * itself, but returns a number of modification reports that should be applied
+ * to secondary indexes separately. Furthermore, it detaches blobs rather than
+ * deleting them. */
+void rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &keys,
+                           superblock_t *superblock,
+                           signal_t *interruptor,
+                           std::vector<rdb_modification_report_t> *mod_reports_out);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
@@ -252,9 +267,9 @@ struct rdb_modification_report_t {
 };
 
 
-struct rdb_erase_range_report_t {
-    rdb_erase_range_report_t() { }
-    explicit rdb_erase_range_report_t(const key_range_t &_range_to_erase)
+struct rdb_erase_major_range_report_t {
+    rdb_erase_major_range_report_t() { }
+    explicit rdb_erase_major_range_report_t(const key_range_t &_range_to_erase)
         : range_to_erase(_range_to_erase) { }
     key_range_t range_to_erase;
 
@@ -262,7 +277,7 @@ struct rdb_erase_range_report_t {
 };
 
 typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_range_report_t>
+                       rdb_erase_major_range_report_t>
         rdb_sindex_change_t;
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
@@ -294,9 +309,9 @@ void rdb_update_sindexes(
         txn_t *txn);
 
 
-void rdb_erase_range_sindexes(
+void rdb_erase_major_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_erase_range_report_t *erase_range,
+        const rdb_erase_major_range_report_t *erase_range,
         signal_t *interruptor);
 
 void post_construct_secondary_indexes(
