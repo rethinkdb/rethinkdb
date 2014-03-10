@@ -343,12 +343,14 @@ module 'DataExplorerView', ->
                 else
                     full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
-                @descriptions[full_tag] =
+                @descriptions[full_tag] = (grouped_data) =>
                     name: tag
                     args: /.*(\(.*\))/.exec(command['body'])?[1]
-                    description: @description_with_example_template
-                        description: command['description']
-                        example: command['example']
+                    description:
+                        @description_with_example_template
+                            description: command['description']
+                            example: command['example']
+                            grouped_data: grouped_data is true
 
             parents = {}
             returns = []
@@ -904,6 +906,8 @@ module 'DataExplorerView', ->
                         result: result
                     result.suggestions = @uniq result.suggestions
 
+                    @grouped_data = @is_grouped_data stack
+
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
                             result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
@@ -1176,6 +1180,7 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 position: 0
 
+
             if stack is null # Stack is null if the query was too big for us to parse
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
@@ -1249,6 +1254,8 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 result: result
             result.suggestions = @uniq result.suggestions
+
+            @grouped_data = @is_grouped_data stack
 
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
@@ -1950,6 +1957,22 @@ module 'DataExplorerView', ->
                     return null
             return stack
 
+        is_grouped_data: (stack) =>
+            if stack.length > 0
+                element = stack[stack.length-1]
+                if element.body? and element.body.length > 0 and element.complete is false
+                    return @is_grouped_data element.body
+                else
+                    grouped_data = 0
+                    for i in [stack.length-1..0] by -1
+                        if stack[i].type is 'function' and stack[i].name is 'ungroup('
+                            grouped_data -= 1
+                        else if stack[i].type is 'function' and stack[i].name is 'group('
+                            grouped_data += 1
+                    return grouped_data > 0
+            return false
+
+
         # Decide if we have to show a suggestion or a description
         # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
@@ -2231,7 +2254,7 @@ module 'DataExplorerView', ->
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
             if fn is 'db(' or fn is 'dbDrop('
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if databases.length is 0
                     data =
                         no_database: true
@@ -2245,7 +2268,7 @@ module 'DataExplorerView', ->
             else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
                     namespaces_available = []
                     for namespace in namespaces.models
@@ -2265,7 +2288,7 @@ module 'DataExplorerView', ->
 
                 @extra_suggestions= namespaces_available
             else
-                description = @descriptions[fn]
+                description = @descriptions[fn] @grouped_data
                 @extra_suggestions= null
             return description
 
