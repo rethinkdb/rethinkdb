@@ -106,7 +106,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
                         data->new_size += delta;
                         extra_bytes -= delta;
                     } else {
-                        extra_bytes -= data->new_size;
+                        extra_bytes += data->new_size;
                         data->new_size = 0;
                     }
                 }
