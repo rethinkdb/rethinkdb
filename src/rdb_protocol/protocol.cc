@@ -218,7 +218,7 @@ public:
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
         noop_value_deleter_t deleter;
-        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deleter);
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deleter, &deleter);
     }
 
     void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {

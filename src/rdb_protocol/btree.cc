@@ -88,15 +88,13 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
+                        const value_deleter_t *deleter,
                         rdb_modification_info_t *mod_info_out) {
     // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
 
     // As noted above, we can be sure that buf is valid.
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
-
-    // Detach!!
-    detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
@@ -106,6 +104,9 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                 kv_location->value->value_ref()
                 + kv_location->value->inline_size(block_size));
     }
+
+    // Detach/Delete
+    deleter->delete_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
 
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
@@ -154,10 +155,12 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp) {
-    // Detach the old value.
+                     repli_timestamp_t timestamp,
+                     const value_deleter_t *deleter) {
+    // Detach/Delete the old value.
     if (kv_location->value.has()) {
-        detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
+        deleter->delete_value(buf_parent_t(&kv_location->buf),
+                              kv_location->value.get());
     }
 
     scoped_malloc_t<rdb_value_t> new_value(
@@ -259,8 +262,9 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
+                rdb_value_detacher_t detacher;
                 kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   mod_info_out);
+                                   &detacher, mod_info_out);
                 guarantee(!mod_info_out->deleted.second.empty());
                 guarantee(mod_info_out->added.second.empty());
                 mod_info_out->deleted.first = old_val;
@@ -507,7 +511,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     if (exists) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
                                            buf_parent_t(&kv_location.buf));
-        kv_location_delete(&kv_location, key, timestamp, mod_info);
+        rdb_value_detacher_t detacher;
+        kv_location_delete(&kv_location, key, timestamp, &detacher, mod_info);
     }
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
@@ -629,8 +634,8 @@ void rdb_erase_major_range(key_tester_t *tester,
     }
 
     {
-        auto_drainer_t sindex_erase_drainer;
         rdb_value_detacher_t detacher;
+        auto_drainer_t sindex_erase_drainer;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
                 true /* release the superblock */, interruptor, &detacher);
@@ -1074,6 +1079,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
+        const value_deleter_t *deleter,
         const rdb_modification_report_t *modification,
         auto_drainer_t::lock_t) {
     // Note if you get this error it's likely that you've passed in a default
@@ -1123,7 +1129,7 @@ void rdb_update_single_sindex(
 
                     if (kv_location.value.has()) {
                         kv_location_delete(&kv_location, *it,
-                            repli_timestamp_t::distant_past, NULL);
+                            repli_timestamp_t::distant_past, deleter, NULL);
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1156,7 +1162,8 @@ void rdb_update_single_sindex(
 
                     kv_location_set(&kv_location, *it,
                                     modification->info.added.second,
-                                    repli_timestamp_t::distant_past);
+                                    repli_timestamp_t::distant_past,
+                                    deleter);
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();
@@ -1169,15 +1176,19 @@ void rdb_update_single_sindex(
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         txn_t *txn, const value_deleter_t *deleter) {
+                         txn_t *txn, const value_deleter_t *sindex_deleter,
+                         const value_deleter_t *post_deleter) {
     {
+        rdb_value_detacher_t default_deleter;
+        const value_deleter_t *actual_sindex_deleter =
+            sindex_deleter == NULL ? &default_deleter : sindex_deleter;
         auto_drainer_t drainer;
 
         for (sindex_access_vector_t::const_iterator it = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
             coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, &*it,
+                        &rdb_update_single_sindex, &*it, actual_sindex_deleter,
                         modification, auto_drainer_t::lock_t(&drainer)));
         }
     }
@@ -1186,8 +1197,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     if (modification->info.deleted.first) {
         rdb_value_deleter_t default_deleter;
-        const value_deleter_t *actual_deleter =
-            deleter == NULL ? &default_deleter : deleter;
+        const value_deleter_t *actual_post_deleter =
+            post_deleter == NULL ? &default_deleter : post_deleter;
         // Deleting the value unfortunately updates the ref in-place as it operates, so
         // we need to make a copy of the blob reference that is extended to the
         // appropriate width.
@@ -1195,7 +1206,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
-        actual_deleter->delete_value(buf_parent_t(txn), ref_cpy.data());
+        actual_post_deleter->delete_value(buf_parent_t(txn), ref_cpy.data());
     }
 }
 
