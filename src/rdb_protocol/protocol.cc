@@ -217,14 +217,14 @@ public:
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
-        noop_value_deleter_t deleter;
-        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deleter, &deleter);
+        noop_value_deleter_t no_deleter;
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &no_deleter, &no_deleter);
     }
 
     void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {
-        noop_value_deleter_t deleter;
+        noop_value_deleter_t no_deleter;
         rdb_erase_major_range_sindexes(*sindexes_, &erase_range_report,
-                                       interruptor_, &deleter);
+                                       interruptor_, &no_deleter);
     }
 
 private:

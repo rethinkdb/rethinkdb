@@ -1303,7 +1303,9 @@ public:
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
-            rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
+            noop_value_deleter_t no_deleter;
+            rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &no_deleter,
+                                &no_deleter);
             coro_t::yield();
         }
     }
@@ -1326,6 +1328,11 @@ public:
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
     signal_t *interruptor_;
+
+    class noop_value_deleter_t : public value_deleter_t {
+    public:
+        void delete_value(buf_parent_t, void *) const { }
+    };
 };
 
 void post_construct_secondary_indexes(
