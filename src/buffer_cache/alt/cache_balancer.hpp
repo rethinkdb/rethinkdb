@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <set>
 
+#include "errors.hpp"
+
 #include "threading.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -21,37 +23,41 @@ public:
     cache_balancer_t() { }
     virtual ~cache_balancer_t() { }
 
-    virtual uint64_t get_base_mem_per_store() const = 0;
+    virtual uint64_t base_mem_per_store() const = 0;
 
 protected:
     friend class alt::evicter_t;
 
     virtual void add_evicter(alt::evicter_t *evicter) = 0;
     virtual void remove_evicter(alt::evicter_t *evicter) = 0;
+
+    DISABLE_COPYING(cache_balancer_t);
 };
 
 // Dummy balancer that does nothing but provide the initial size of a cache
 class dummy_cache_balancer_t : public cache_balancer_t {
 public:
     dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
-        base_mem_per_store(_base_mem_per_store) { }
+        base_mem_per_store_(_base_mem_per_store) { }
     ~dummy_cache_balancer_t() { }
 
-    uint64_t get_base_mem_per_store() const {
-        return base_mem_per_store;
+    uint64_t base_mem_per_store() const {
+        return base_mem_per_store_;
     }
 
 private:
     void add_evicter(alt::evicter_t *) { }
     void remove_evicter(alt::evicter_t *) { }
 
-    uint64_t base_mem_per_store;
+    uint64_t base_mem_per_store_;
 };
+
+class alt_cache_balancer_dummy_value_t { };
 
 class alt_cache_balancer_t :
     public cache_balancer_t,
     public home_thread_mixin_t,
-    public coro_pool_callback_t<void *>,
+    public coro_pool_callback_t<alt_cache_balancer_dummy_value_t>,
     public repeating_timer_callback_t
 {
 public:
@@ -59,7 +65,7 @@ public:
                          uint64_t interval_ms);
     ~alt_cache_balancer_t();
 
-    uint64_t get_base_mem_per_store() const {
+    uint64_t base_mem_per_store() const {
         return 0;
     }
 
@@ -77,7 +83,8 @@ private:
 
     // Callback that handles rebalancing in a coro pool, so we don't block the
     // timer callback or have multiple rebalances happening at once
-    void coro_pool_callback(void *, UNUSED signal_t *interruptor);
+    void coro_pool_callback(alt_cache_balancer_dummy_value_t,
+                            UNUSED signal_t *interruptor);
 
     // Used when calculating new cache sizes
     struct cache_data_t {
@@ -98,16 +105,18 @@ private:
         cross_thread_mutex_t mutex;
     };
 
-    uint64_t total_cache_size;
-    uint64_t damping_factor;
-    bool done_overcommit_warning;
-
+    const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
 
+    // This contains the extant evicter pointers for each thread, and a mutex
+    // to control access
     scoped_array_t<thread_info_t> thread_info;
 
-    single_value_producer_t<void *> pool_queue;
-    coro_pool_t<void *> rebalance_pool;
+    // Coroutine pool to make sure there is only one rebalance happening at a time
+    // The single_value_producer_t makes sure we never build up a backlog
+    struct dummy_value_t { };
+    single_value_producer_t<alt_cache_balancer_dummy_value_t> pool_queue;
+    coro_pool_t<alt_cache_balancer_dummy_value_t> rebalance_pool;
 
     DISABLE_COPYING(alt_cache_balancer_t);
 };

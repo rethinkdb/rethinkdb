@@ -13,7 +13,6 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size,
                                            uint64_t interval_ms) :
     total_cache_size(_total_cache_size),
-    done_overcommit_warning(false),
     rebalance_timer(interval_ms, this),
     thread_info(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
@@ -23,6 +22,7 @@ alt_cache_balancer_t::~alt_cache_balancer_t() {
 }
 
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
+    evicter->assert_thread();
     thread_info_t *info = &thread_info[get_thread_id().threadnum];
     cross_thread_mutex_t::acq_t mutex_acq(&info->mutex);
     auto res = info->evicters.insert(evicter);
@@ -30,6 +30,7 @@ void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
 }
 
 void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
+    evicter->assert_thread();
     thread_info_t *info = &thread_info[get_thread_id().threadnum];
     cross_thread_mutex_t::acq_t mutex_acq(&info->mutex);
     size_t res = info->evicters.erase(evicter);
@@ -40,10 +41,10 @@ void alt_cache_balancer_t::on_ring() {
     assert_thread();
     // Can't block in this callback, spawn a new coroutine
     // Using this coro_pool, we only have one rebalance going at once
-    pool_queue.give_value(NULL);
+    pool_queue.give_value(alt_cache_balancer_dummy_value_t());
 }
 
-void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interruptor) {
+void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
     per_thread_data.init(thread_info.size());

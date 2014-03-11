@@ -13,7 +13,7 @@ evicter_t::evicter_t(cache_balancer_t *balancer)
     update_in_memory_size();
 
     guarantee(balancer_ != NULL);
-    memory_limit_ = balancer_->get_base_mem_per_store();
+    memory_limit_ = balancer_->base_mem_per_store();
     balancer_->add_evicter(this);
 }
 
