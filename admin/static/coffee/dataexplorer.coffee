@@ -350,7 +350,7 @@ module 'DataExplorerView', ->
                         @description_with_example_template
                             description: command['description']
                             example: command['example']
-                            grouped_data: grouped_data is true
+                            grouped_data: grouped_data is true and full_tag isnt 'group(' and full_tag isnt 'ungroup('
 
             parents = {}
             returns = []
@@ -906,7 +906,7 @@ module 'DataExplorerView', ->
                         result: result
                     result.suggestions = @uniq result.suggestions
 
-                    @grouped_data = @is_grouped_data stack
+                    @grouped_data = @count_group_level(stack).count_group > 0
 
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
@@ -1255,7 +1255,7 @@ module 'DataExplorerView', ->
                 result: result
             result.suggestions = @uniq result.suggestions
 
-            @grouped_data = @is_grouped_data stack
+            @grouped_data = @count_group_level(stack).count_group > 0
 
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
@@ -1957,20 +1957,40 @@ module 'DataExplorerView', ->
                     return null
             return stack
 
-        is_grouped_data: (stack) =>
+        # Count the number of `group` commands minus `ungroup` commands in the current level
+        # We count per level because we don't want to report a positive number of group for nested queries, e.g:
+        # r.table("foo").group("bar").map(function(doc) { doc.merge(
+        #
+        # We return an object with two fields
+        #   - count_group: number of `group` commands minus the number of `ungroup` commands
+        #   - parse_level: should we keep parsing the same level
+        count_group_level: (stack) =>
+            count_group = 0
             if stack.length > 0
+                 # Flag for whether or not we should keep looking for group/ungroup
+                 # we want the warning to appear only at the same level
+                parse_level = true
+
                 element = stack[stack.length-1]
                 if element.body? and element.body.length > 0 and element.complete is false
-                    return @is_grouped_data element.body
-                else
-                    grouped_data = 0
+                    parse_body = @count_group_level element.body
+                    count_group += parse_body.count_group
+                    parse_level = parse_body.parse_level
+
+                    if element.body[0].type is 'return'
+                        parse_level = false
+                    if element.body[element.body.length-1].type is 'function'
+                        parse_level = false
+
+                if parse_level is true
                     for i in [stack.length-1..0] by -1
                         if stack[i].type is 'function' and stack[i].name is 'ungroup('
-                            grouped_data -= 1
+                            count_group -= 1
                         else if stack[i].type is 'function' and stack[i].name is 'group('
-                            grouped_data += 1
-                    return grouped_data > 0
-            return false
+                            count_group += 1
+
+            count_group: count_group
+            parse_level: parse_level
 
 
         # Decide if we have to show a suggestion or a description
