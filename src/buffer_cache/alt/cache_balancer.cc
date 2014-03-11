@@ -4,9 +4,6 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 
-#include "debug.hpp"
-#include "logger.hpp"
-
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
