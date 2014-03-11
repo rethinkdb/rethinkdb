@@ -43,23 +43,19 @@ public:
         return memory_limit_;
     }
 
-    uint64_t in_memory_size() const {
-        return in_memory_size_;
-    }
-
     uint64_t get_bytes_loaded() const {
         return bytes_loaded_counter_;
     }
 
+    uint64_t in_memory_size() const;
+
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
-    void update_in_memory_size();
     void evict_if_necessary();
 
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
-    uint64_t in_memory_size_;
 
     // Called with the new memory_limit_ whenever the value of `memory_limit_` is
     // changed.
