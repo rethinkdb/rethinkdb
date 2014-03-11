@@ -44,6 +44,7 @@ void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     unevictable_.add_size(ser_buf_size);
     evict_if_necessary();
     bytes_loaded_counter_ += ser_buf_size;
+    balancer_->notify_access();
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -56,6 +57,7 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     evictable_unbacked_.add(page, page->ser_buf_size_);
     evict_if_necessary();
     bytes_loaded_counter_ += page->ser_buf_size_;
+    balancer_->notify_access();
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
@@ -63,6 +65,7 @@ void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     evictable_disk_backed_.add(page, page->ser_buf_size_);
     evict_if_necessary();
     bytes_loaded_counter_ += page->ser_buf_size_;
+    balancer_->notify_access();
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {

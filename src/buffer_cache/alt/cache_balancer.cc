@@ -4,16 +4,20 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 
+const uint64_t alt_cache_balancer_t::rebalance_check_interval_ms = 20;
+const uint64_t alt_cache_balancer_t::rebalance_access_count_threshold = 1000;
+const uint64_t alt_cache_balancer_t::rebalance_timeout_ms = 5000;
+
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->get_memory_limit()),
     bytes_loaded(evicter->get_bytes_loaded()) { }
 
-alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size,
-                                           uint64_t interval_ms) :
+alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
-    rebalance_timer(interval_ms, this),
+    rebalance_timer(rebalance_check_interval_ms, this),
+    last_rebalance_time(0),
     thread_info(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
 
@@ -37,8 +41,31 @@ void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
     guarantee(res == 1);
 }
 
+void alt_cache_balancer_t::notify_access() {
+    ++thread_info[get_thread_id().threadnum].access_count;
+}
+
 void alt_cache_balancer_t::on_ring() {
     assert_thread();
+
+    // Determine if we should do a rebalance, either:
+    //  1. At least rebalance_timeout_ms milliseconds have passed
+    //  2. At least access_count_threshold accesses have occurred
+    // since the last rebalance.
+    microtime_t now = current_microtime();
+    if (last_rebalance_time + (rebalance_timeout_ms * 1024) > now) {
+        uint64_t total_accesses = 0;
+        for (size_t i = 0; i < thread_info.size(); ++i) {
+            total_accesses += thread_info[i].access_count;
+        }
+
+        if (total_accesses < rebalance_access_count_threshold) {
+            return;
+        }
+    }
+
+    last_rebalance_time = now;
+
     // Can't block in this callback, spawn a new coroutine
     // Using this coro_pool, we only have one rebalance going at once
     pool_queue.give_value(alt_cache_balancer_dummy_value_t());
@@ -136,4 +163,8 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
             it->evicter->update_memory_limit(it->new_size);
         }
     }
+
+    // Clear the number of accesses for this thread
+    thread_info[index].access_count = 0;
 }
+

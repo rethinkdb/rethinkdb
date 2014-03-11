@@ -5,6 +5,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include "time.hpp"
 
 #include "threading.hpp"
 #include "arch/timing.hpp"
@@ -23,7 +24,11 @@ public:
     cache_balancer_t() { }
     virtual ~cache_balancer_t() { }
 
+    // Used to determine the initial size of a cache
     virtual uint64_t base_mem_per_store() const = 0;
+
+    // Tell the rebalancer that an access has occurred
+    virtual void notify_access() = 0;
 
 protected:
     friend class alt::evicter_t;
@@ -45,6 +50,8 @@ public:
         return base_mem_per_store_;
     }
 
+    void notify_access() { }
+
 private:
     void add_evicter(alt::evicter_t *) { }
     void remove_evicter(alt::evicter_t *) { }
@@ -63,16 +70,22 @@ class alt_cache_balancer_t :
     public repeating_timer_callback_t
 {
 public:
-    alt_cache_balancer_t(uint64_t _total_cache_size,
-                         uint64_t interval_ms);
+    alt_cache_balancer_t(uint64_t _total_cache_size);
     ~alt_cache_balancer_t();
 
     uint64_t base_mem_per_store() const {
         return 0;
     }
 
+    void notify_access();
+
 private:
     friend class alt::evicter_t;
+
+    // Constants to control how often we rebalance
+    static const uint64_t rebalance_access_count_threshold;
+    static const uint64_t rebalance_timeout_ms;
+    static const uint64_t rebalance_check_interval_ms;
 
     void add_evicter(alt::evicter_t *evicter);
     void remove_evicter(alt::evicter_t *evicter);
@@ -100,15 +113,19 @@ private:
 
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
-            scoped_array_t<std::vector<cache_data_t> > *new_sizes);
+                                   scoped_array_t<std::vector<cache_data_t> > *new_sizes);
 
     struct thread_info_t {
+        thread_info_t() : access_count(0) { }
+
         std::set<alt::evicter_t *> evicters;
-        cross_thread_mutex_t mutex;
+        cross_thread_mutex_t mutex; // Controls access to evicters
+        uint64_t access_count;
     };
 
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
+    microtime_t last_rebalance_time;
 
     // This contains the extant evicter pointers for each thread, and a mutex
     // to control access
@@ -116,7 +133,6 @@ private:
 
     // Coroutine pool to make sure there is only one rebalance happening at a time
     // The single_value_producer_t makes sure we never build up a backlog
-    struct dummy_value_t { };
     single_value_producer_t<alt_cache_balancer_dummy_value_t> pool_queue;
     coro_pool_t<alt_cache_balancer_dummy_value_t> rebalance_pool;
 

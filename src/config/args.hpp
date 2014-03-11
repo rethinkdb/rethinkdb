@@ -88,9 +88,6 @@
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   2
 
-// Interval to reevaluate cache sizes (in milliseconds)
-#define CACHE_REBALANCE_INTERVAL_MS               2000
-
 // The maximum number of concurrently active
 // index writes per merger serializer.
 // The smaller the number, the more effective
