@@ -18,6 +18,12 @@
 #include <sys/sysctl.h>
 #endif
 
+// Needed for determining available RAM for default cache size
+#if defined(__MACH__)
+#include <mach/host_info.h>
+#include <mach/mach_host.h>
+#endif
+
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -402,9 +408,20 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
 }
 
 uint64_t get_avail_mem_size() {
-    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
     uint64_t page_size = sysconf(_SC_PAGESIZE);
+
+#if defined(__MACH__)
+    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+    vm_statistics_data_t vmstat;
+    if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+	fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
+	return 1024 * MEGABYTE;
+    }
+    return vmstat.free_count * page_size;
+#else
+    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
     return avail_mem_pages * page_size;
+#endif
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
