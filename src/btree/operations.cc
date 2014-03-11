@@ -337,14 +337,16 @@ void ensure_stat_block(superblock_t *sb) {
     const block_id_t node_id = sb->get_stat_block_id();
 
     if (node_id == NULL_BLOCK_ID) {
-        //Create a block
-        buf_lock_t temp_lock(buf_parent_t(sb->expose_buf().txn()),
-                             alt_create_t::create);
-        buf_write_t write(&temp_lock);
-        //Make the stat block be the default constructed statblock
+        buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
+                              alt_create_t::create);
+        buf_write_t write(&stats_block);
+        // Make the stat block be the default constructed stats block.
+
+        // TODO: This would only initialize the entire stats block if
+        // sizeof(btree_statblock_t) == block_size.value().
         *static_cast<btree_statblock_t *>(write.get_data_write())
             = btree_statblock_t();
-        sb->set_stat_block_id(temp_lock.block_id());
+        sb->set_stat_block_id(stats_block.block_id());
     }
 }
 
@@ -407,16 +409,24 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                     median);
     }
 
+    // (Perhaps) increase rbuf's recency to the max of the current txn's recency and
+    // buf's subtrees' recencies.  (This is conservative since rbuf doesn't have all
+    // of buf's subtrees.)
+    rbuf.manually_touch_recency(superceding_recency(rbuf.get_recency(),
+                                                    buf->get_recency()));
+
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
-        buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
-        last_buf->swap(temp_buf);
+        *last_buf = buf_lock_t(sb->expose_buf(), alt_create_t::create);
         {
             buf_write_t last_write(last_buf);
             internal_node::init(sizer->block_size(),
                                 static_cast<internal_node_t *>(last_write.get_data_write()));
         }
+        // We set the recency of the new root block to the max of the subtrees'
+        // recency and the current transaction's recency.
+        last_buf->manually_touch_recency(buf->get_recency());
 
         insert_root(last_buf->block_id(), sb);
     }
@@ -501,6 +511,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
         if (node_is_mergable) {
             // Merge.
 
+            const repli_timestamp_t buf_recency = buf->get_recency();
+            const repli_timestamp_t sib_buf_recency = sib_buf.get_recency();
+
             // Nodes must be passed to merge in ascending order.
             if (nodecmp_node_with_sib < 0) {
                 {
@@ -514,6 +527,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 static_cast<node_t *>(sib_buf_write.get_data_write()),
                                 parent_node);
                 }
+
                 buf->mark_deleted();
                 buf->swap(sib_buf);
             } else {
@@ -528,10 +542,16 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 static_cast<node_t *>(buf_write.get_data_write()),
                                 parent_node);
                 }
+
                 sib_buf.mark_deleted();
             }
 
             sib_buf.reset_buf_lock();
+
+            // We moved all of sib_buf's subtrees into buf, so buf's recency needs to
+            // be increased to the max of its new set of subtrees (a superset of what
+            // it was before) and the current txn's recency.
+            buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
 
             bool parent_is_singleton;
             {
@@ -571,6 +591,13 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                   static_cast<node_t *>(sib_buf_write.get_data_write()),
                                   replacement_key, parent_node);
             }
+
+            // We moved new subtrees or values into buf, so its recency may need to
+            // be increased.  (We conservatively update it to the max of our subtrees
+            // and sib_buf's subtrees and our current txn's recency, to simplify the
+            // code.)
+            buf->manually_touch_recency(superceding_recency(sib_buf.get_recency(),
+                                                            buf->get_recency()));
 
             if (leveled) {
                 buf_write_t last_buf_write(last_buf);

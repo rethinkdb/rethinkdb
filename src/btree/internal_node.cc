@@ -153,8 +153,10 @@ bool level(block_size_t block_size, internal_node_t *node, internal_node_t *sibl
         node->pair_offsets[node->npairs - 1] = new_pair_offset;
 
         uint16_t new_npairs = node->npairs;
-        // TODO: This loop involves repeated memmoves.  There should be a way to drastically reduce the number and increase efficiency.
-        while (true) { // TODO: find cleaner way to construct loop
+        // This loop involves repeated memmoves (resulting in ~(n^2) work where n is
+        // the block size).  There should be a way to drastically reduce the number
+        // and increase efficiency.
+        for (;;) {
             const btree_internal_pair *pair_to_move = get_pair_by_index(sibling, 0);
             uint16_t size_change = sizeof(*node->pair_offsets) + pair_size(pair_to_move);
             if (new_npairs * sizeof(*node->pair_offsets) + (block_size.value() - node->frontmost_offset) + size_change >= sibling->npairs * sizeof(*sibling->pair_offsets) + (block_size.value() - sibling->frontmost_offset) - size_change) {
