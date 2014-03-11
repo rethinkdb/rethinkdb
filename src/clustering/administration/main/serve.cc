@@ -129,6 +129,7 @@ bool do_serve(
         scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
             new cluster_directory_metadata_t(machine_id,
                                              connectivity_cluster.get_me(),
+                                             total_cache_size,
                                              get_ips(),
                                              stat_manager.get_address(),
                                              metadata_change_handler.get_request_mailbox_address(),

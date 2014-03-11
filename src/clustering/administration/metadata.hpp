@@ -89,6 +89,7 @@ public:
     cluster_directory_metadata_t(
             machine_id_t mid,
             peer_id_t pid,
+            uint64_t _cache_size,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
@@ -97,6 +98,7 @@ public:
             cluster_directory_peer_type_t _peer_type) :
         machine_id(mid),
         peer_id(pid),
+        cache_size(_cache_size),
         ips(_ips),
         get_stats_mailbox_address(_stats_mailbox),
         semilattice_change_mailbox(_semilattice_change_mailbox),
@@ -118,6 +120,7 @@ public:
         rdb_namespaces = std::move(other.rdb_namespaces);
         machine_id = other.machine_id;
         peer_id = other.peer_id;
+        cache_size = other.cache_size;
         ips = std::move(other.ips);
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         semilattice_change_mailbox = other.semilattice_change_mailbox;
@@ -137,6 +140,7 @@ public:
         rdb_namespaces = other.rdb_namespaces;
         machine_id = other.machine_id;
         peer_id = other.peer_id;
+        cache_size = other.cache_size;
         ips = other.ips;
         get_stats_mailbox_address = other.get_stats_mailbox_address;
         semilattice_change_mailbox = other.semilattice_change_mailbox;
@@ -156,6 +160,9 @@ public:
     machine_id_t machine_id;
     peer_id_t peer_id;
 
+    /* Tell everyone how much cache we have */
+    uint64_t cache_size;
+
     /* To tell everyone what our ips are. */
     std::vector<std::string> ips;
 
@@ -166,7 +173,7 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_12(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_13(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, cache_size, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t
