@@ -322,6 +322,7 @@ private:
     // Called by the evicter_ if the memory limit is changed.
     void on_memory_limit_change(uint64_t new_limit);
 
+    void spawn_read_ahead(uint64_t bytes_to_read);
 
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,

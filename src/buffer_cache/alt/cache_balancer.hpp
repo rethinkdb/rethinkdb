@@ -50,6 +50,8 @@ private:
     void remove_evicter(alt::evicter_t *) { }
 
     uint64_t base_mem_per_store_;
+
+    DISABLE_COPYING(dummy_cache_balancer_t);
 };
 
 class alt_cache_balancer_dummy_value_t { };

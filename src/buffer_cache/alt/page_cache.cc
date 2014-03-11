@@ -119,12 +119,15 @@ void page_cache_t::on_memory_limit_change(uint64_t new_limit) {
         // a) we don't start more than one page_read_ahead_cb_t
         // b) the cache isn't shut down while we are starting the read ahead
         read_ahead_cb_existence_ = drainer_->lock();
-        {
-            on_thread_t thread_switcher(serializer_->home_thread());
-            rassert(read_ahead_cb_ == NULL);
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer_, this, bytes_to_read);
-        }
+        coro_t::spawn_sometime(std::bind(&alt::page_cache_t::spawn_read_ahead,
+                                         this, bytes_to_read));
     }
+}
+
+void page_cache_t::spawn_read_ahead(uint64_t bytes_to_read) {
+    on_thread_t thread_switcher(serializer_->home_thread());
+    rassert(read_ahead_cb_ == NULL);
+    read_ahead_cb_ = new page_read_ahead_cb_t(serializer_, this, bytes_to_read);
 }
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,

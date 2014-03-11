@@ -83,7 +83,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
                 int64_t new_size = data->bytes_loaded;
                 new_size -= static_cast<int64_t>(temp);
                 new_size += data->old_size;
-                new_size = std::max(new_size, static_cast<int64_t>(0));
+                new_size = std::max<int64_t>(new_size, 0);
 
                 data->new_size = new_size;
                 total_new_sizes += new_size;
@@ -116,11 +116,13 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
         scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
     on_thread_t rethreader((threadnum_t(index)));
-    // No need to lock the thread_info since we're blocking rebalance and can count
-    // on coroutine safety for other cases
+
+    // No need to lock the thread_info's mutex since a new rebalance cannot run
+    // while we are in here
     std::set<alt::evicter_t *> *evicters = &thread_info[index].evicters;
     std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
+    ASSERT_NO_CORO_WAITING;
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {
         // Make sure the evicter still exists
         if (evicters->find(it->evicter) != evicters->end()) {
