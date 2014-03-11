@@ -4,6 +4,8 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 
+#include "debug.hpp"
+
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
@@ -85,6 +87,8 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
                 new_size += data->old_size;
                 new_size = std::max<int64_t>(new_size, 0);
 
+                debugf("new table size calculated: %ld, (old_size=%ld, bytes_loaded=%ld)\n",
+                       new_size, data->old_size, data->bytes_loaded);
                 data->new_size = new_size;
                 total_new_sizes += new_size;
             }
@@ -97,11 +101,16 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
             if (delta == 0) {
                 delta = ((extra_bytes < 0) ? -1 : 1);
             }
+            debugf("applying %ld extra_bytes, delta=%ld\n", extra_bytes, delta);
             for (size_t i = 0; i < per_thread_data.size() && extra_bytes != 0; ++i) {
                 for (size_t j = 0; j < per_thread_data[i].size() && extra_bytes != 0; ++j) {
                     cache_data_t *data = &per_thread_data[i][j];
-                    data->new_size += delta;
-                    extra_bytes -= delta;
+
+                    // Avoid underflow
+                    if (static_cast<int64_t>(data->new_size) + delta >= 0) {
+                        data->new_size += delta;
+                        extra_bytes -= delta;
+                    }
                 }
             }
         }
