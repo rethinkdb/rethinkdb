@@ -11,7 +11,7 @@
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
-            value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
+            const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
             const btree_key_t *right_inclusive_or_null,
             const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
                 &on_erase_cb)
@@ -115,7 +115,7 @@ public:
 private:
     value_sizer_t<void> *sizer_;
     key_tester_t *tester_;
-    value_deleter_t *deleter_;
+    const value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
     std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
@@ -125,7 +125,7 @@ private:
 };
 
 void btree_erase_range_generic(value_sizer_t<void> *sizer,
-        key_tester_t *tester, value_deleter_t *deleter,
+        key_tester_t *tester, const value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
         superblock_t *superblock, signal_t *interruptor, bool release_superblock,
@@ -142,7 +142,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer,
 // partially-completed btree erasure operation to be interrupted?  If the tree is
 // already detached, the worst that would happen is that we leak blocks, yes.
 void erase_all(value_sizer_t<void> *sizer,
-               value_deleter_t *deleter,
+               const value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock) {

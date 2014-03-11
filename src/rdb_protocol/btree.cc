@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -512,11 +513,11 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
-void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
+void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) const {
     actually_delete_rdb_value(parent, value);
 }
 
-void rdb_value_detacher_t::delete_value(buf_parent_t parent, void *value) {
+void rdb_value_detacher_t::delete_value(buf_parent_t parent, void *value) const {
     detach_rdb_value(parent, value);
 }
 
@@ -540,18 +541,17 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 
 void sindex_erase_range(const key_range_t &key_range,
         superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
+        signal_t *interruptor, bool release_superblock,
+        const value_deleter_t *deleter) THROWS_NOTHING {
 
     value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
-
-    rdb_value_detacher_t deleter;
 
     sindex_key_range_tester_t tester(key_range);
 
     try {
         btree_erase_range_generic(sizer, &tester,
-                                  &deleter, NULL, NULL,
+                                  deleter, NULL, NULL,
                                   superblock, interruptor,
                                   release_superblock);
     } catch (const interrupted_exc_t &) {
@@ -566,12 +566,13 @@ void spawn_sindex_erase_ranges(
         auto_drainer_t *drainer,
         auto_drainer_t::lock_t,
         bool release_superblock,
-        signal_t *interruptor) {
+        signal_t *interruptor,
+        const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
                     &sindex_erase_range, key_range, it->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
-                    release_superblock));
+                    release_superblock, deleter));
     }
 }
 
@@ -629,9 +630,10 @@ void rdb_erase_major_range(key_tester_t *tester,
 
     {
         auto_drainer_t sindex_erase_drainer;
+        rdb_value_detacher_t detacher;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true /* release the superblock */, interruptor);
+                true /* release the superblock */, interruptor, &detacher);
 
         /* Notice, when we exit this block we destruct the sindex_erase_drainer
          * which means we'll wait until all of the sindex_erase_ranges finish
@@ -1167,7 +1169,7 @@ void rdb_update_single_sindex(
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         txn_t *txn) {
+                         txn_t *txn, const value_deleter_t *deleter) {
     {
         auto_drainer_t drainer;
 
@@ -1183,6 +1185,9 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     /* All of the sindex have been updated now it's time to actually clear the
      * deleted blob if it exists. */
     if (modification->info.deleted.first) {
+        rdb_value_deleter_t default_deleter;
+        const value_deleter_t *actual_deleter =
+            deleter == NULL ? &default_deleter : deleter;
         // Deleting the value unfortunately updates the ref in-place as it operates, so
         // we need to make a copy of the blob reference that is extended to the
         // appropriate width.
@@ -1190,18 +1195,19 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
-        actually_delete_rdb_value(buf_parent_t(txn), ref_cpy.data());
+        actual_deleter->delete_value(buf_parent_t(txn), ref_cpy.data());
     }
 }
 
 void rdb_erase_major_range_sindexes(const sindex_access_vector_t &sindexes,
                               const rdb_erase_major_range_report_t *erase_range,
-                              signal_t *interruptor) {
+                              signal_t *interruptor, const value_deleter_t *deleter) {
     auto_drainer_t drainer;
 
     spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
                               &drainer, auto_drainer_t::lock_t(&drainer),
-                              false /* don't release the superblock */, interruptor);
+                              false /* don't release the superblock */, interruptor,
+                              deleter);
 }
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {

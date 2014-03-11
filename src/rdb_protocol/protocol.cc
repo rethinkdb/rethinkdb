@@ -209,6 +209,7 @@ void bring_sindexes_up_to_date(
                 mod_queue.release()));
 }
 
+/* Helper for `post_construct_and_drain_queue()`. */
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
     apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
@@ -216,14 +217,25 @@ public:
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
-        rdb_update_sindexes(*sindexes_, &mod_report, txn_);
+        noop_value_deleter_t deleter;
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deleter);
     }
 
     void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {
-        rdb_erase_major_range_sindexes(*sindexes_, &erase_range_report, interruptor_);
+        noop_value_deleter_t deleter;
+        rdb_erase_major_range_sindexes(*sindexes_, &erase_range_report,
+                                       interruptor_, &deleter);
     }
 
 private:
+    /* A deleter that does absolutely nothing. Since we are in sindex
+    post construction, all deleted values have already been deleted
+    previously, and we must not delete and/or detach them again. */
+    class noop_value_deleter_t : public value_deleter_t {
+    public:
+        void delete_value(buf_parent_t, void *) const { }
+    };
+
     const sindex_access_vector_t *sindexes_;
     txn_t *txn_;
     signal_t *interruptor_;
@@ -247,8 +259,10 @@ void post_construct_and_drain_queue(
 
         /* Drain the queue. */
 
-        int previous_size = mod_queue->size();
         while (!lock.get_drain_signal()->is_pulsed()) {
+            // Yield while we are not holding any locks yet.
+            coro_t::yield();
+
             write_token_pair_t token_pair;
             store->new_write_token_pair(&token_pair);
 
@@ -290,18 +304,19 @@ void post_construct_and_drain_queue(
             mutex_t::acq_t acq;
             store->lock_sindex_queue(&queue_sindex_block, &acq);
 
-            while (mod_queue->size() >= previous_size &&
-                   mod_queue->size() > 0) {
+            const int MAX_CHUNK_SIZE = 100;
+            int current_chunk_size = 0;
+            while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
                 rdb_sindex_change_t sindex_change;
                 deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
                 mod_queue->pop(&viewer);
-                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes,
-                                                                   queue_txn.get(),
-                                                                   lock.get_drain_signal()),
+                boost::apply_visitor(apply_sindex_change_visitor_t(
+                                        &sindexes,
+                                        queue_txn.get(),
+                                        lock.get_drain_signal()),
                                      sindex_change);
+                ++current_chunk_size;
             }
-
-            previous_size = mod_queue->size();
 
             if (mod_queue->size() == 0) {
                 for (auto it = sindexes_to_bring_up_to_date.begin();
@@ -1753,7 +1768,6 @@ private:
             wm << rdb_sindex_change_t(mod_reports[i]);
             store->sindex_queue_push(wm, &acq);
 
-            // TODO! Make sure this does proper deletions and stuff
             rdb_update_sindexes(sindexes, &mod_reports[i], txn);
         }
     }

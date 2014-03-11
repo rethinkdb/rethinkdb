@@ -185,7 +185,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
 class rdb_value_detacher_t : public value_deleter_t {
-    void delete_value(buf_parent_t parent, void *value);
+public:
+    void delete_value(buf_parent_t parent, void *value) const;
 };
 
 /* `rdb_erase_major_range` has a complexity of O(n) where n is the size of the
@@ -303,16 +304,19 @@ private:
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
+/* The `deleter` is applied if the modification is a deletion, *after* all secondary
+ * indexes have been updated.
+ * For your convenience: If `deleter` is NULL, an `rdb_value_deleter_t` is used.*/
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
-        txn_t *txn);
+        txn_t *txn, const value_deleter_t *deleter = NULL);
 
 
 void rdb_erase_major_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_erase_major_range_report_t *erase_range,
-        signal_t *interruptor);
+        signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
@@ -321,11 +325,8 @@ void post_construct_secondary_indexes(
     THROWS_ONLY(interrupted_exc_t);
 
 class rdb_value_deleter_t : public value_deleter_t {
-    friend void rdb_update_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification, txn_t *txn);
-
-    void delete_value(buf_parent_t parent, void *_value);
+public:
+    void delete_value(buf_parent_t parent, void *_value) const;
 };
 
 
