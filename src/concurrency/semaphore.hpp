@@ -15,9 +15,9 @@ public:
 #define SEMAPHORE_NO_LIMIT (-1)
 
 // DEPRECATED.
-class semaphore_t {
+class co_semaphore_t {
 public:
-    virtual ~semaphore_t() { }
+    virtual ~co_semaphore_t() { }
 
     virtual void lock(semaphore_available_callback_t *cb, int64_t count = 1) = 0;
     virtual void co_lock(int64_t count = 1) = 0;
@@ -28,13 +28,13 @@ public:
 };
 
 
-/* `static_semaphore_t` is a `semaphore_t` with a fixed capacity that has
+/* `static_semaphore_t` is a `co_semaphore_t` with a fixed capacity that has
  to be provided at the time of construction. */
 
 // DEPRECATED.  Why not use new_semaphore_t?  It doesn't have starvation issues.  It
 // doesn't have starvation issues, obeys first-in/first-out semantics.  You wouldn't
 // want starvation issues.
-class static_semaphore_t : public semaphore_t {
+class static_semaphore_t : public co_semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
         int64_t count;
@@ -75,7 +75,7 @@ public:
     void force_lock(int64_t count = 1);
 };
 
-/* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
+/* `adjustable_semaphore_t` is a `co_semaphore_t` where you can change the
 capacity at runtime. If you call `set_capacity()` and the new capacity is less
 than the current number of objects that hold the semaphore, then new objects
 will be allowed to enter at `trickle_fraction` of the rate that the objects are
@@ -83,7 +83,7 @@ leaving until the number of objects drops to the desired capacity. */
 
 // DEPRECATED.  Why not use new_semaphore_t?  It doesn't have starvation issues,
 // obeys first-in/first-out semantics.
-class adjustable_semaphore_t : public semaphore_t {
+class adjustable_semaphore_t : public co_semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
         int64_t count;
@@ -138,7 +138,7 @@ private:
 
 class semaphore_acq_t {
 public:
-    semaphore_acq_t(semaphore_t *_acquiree, int64_t _count = 1, bool _force = false) :
+    semaphore_acq_t(co_semaphore_t *_acquiree, int64_t _count = 1, bool _force = false) :
         acquiree(_acquiree),
         count(_count) {
 
@@ -163,7 +163,7 @@ public:
     }
 
 private:
-    semaphore_t *acquiree;
+    co_semaphore_t *acquiree;
     int64_t count;
     DISABLE_COPYING(semaphore_acq_t);
 };
