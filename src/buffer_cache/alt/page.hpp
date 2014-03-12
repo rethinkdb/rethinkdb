@@ -13,6 +13,8 @@ namespace alt {
 class page_cache_t;
 class page_acq_t;
 
+class page_loader_t;
+
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
@@ -66,8 +68,8 @@ private:
     void evict_self();
 
     // KSI: Explain this more.
-    // One of destroy_ptr_, buf_, or block_token_ is non-null.
-    bool *destroy_ptr_;
+    // One of loader_, buf_, or block_token_ is non-null.
+    page_loader_t *loader_;
     uint32_t ser_buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
@@ -86,13 +88,13 @@ private:
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one
     // of unevictable_pages_, etc).  Which bag we should be in:
     //
-    // if destroy_ptr_ is non-null:  unevictable_pages_
+    // if loader_ is non-null:  unevictable_pages_
     // else if waiters_ is non-empty: unevictable_pages_
     // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
     // else if block_token_ is non-null: evictable_disk_backed_pages_
     // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
     //
-    // So, when destroy_ptr_, waiters_, buf_, or block_token_ is touched, we might
+    // So, when loader_, waiters_, buf_, or block_token_ is touched, we might
     // need to change this page's eviction bag.
     //
     // The logic above is implemented in page_cache_t::correct_eviction_category.

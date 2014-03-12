@@ -1140,7 +1140,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // acquired the buf, and the only way to get rid of the buf
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
-                        rassert(page->destroy_ptr_ == NULL);
+                        rassert(page->loader_ == NULL);
                         rassert(page->buf_.has());
 
                         // KSI: Is there a page_acq_t for this buf we're writing?  Is it
