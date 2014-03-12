@@ -22,7 +22,7 @@ evicter_t::~evicter_t() {
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
     assert_thread();
-    bytes_loaded_counter_.value = 0;
+    bytes_loaded_counter_ = 0;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
     if (on_memory_limit_change_cb_) {
@@ -44,7 +44,7 @@ void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
     evict_if_necessary();
-    bytes_loaded_counter_.value += ser_buf_size;
+    __sync_add_and_fetch(&bytes_loaded_counter_, ser_buf_size);
     balancer_->notify_access();
 }
 
@@ -57,7 +57,7 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    bytes_loaded_counter_.value += page->ser_buf_size_;
+    __sync_add_and_fetch(&bytes_loaded_counter_, page->ser_buf_size_);
     balancer_->notify_access();
 }
 
@@ -65,7 +65,7 @@ void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    bytes_loaded_counter_.value += page->ser_buf_size_;
+    __sync_add_and_fetch(&bytes_loaded_counter_, page->ser_buf_size_);
     balancer_->notify_access();
 }
 

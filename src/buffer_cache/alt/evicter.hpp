@@ -45,7 +45,10 @@ public:
     }
 
     uint64_t get_bytes_loaded() const {
-        return bytes_loaded_counter_.value;
+        __sync_synchronize();
+        uint64_t res = bytes_loaded_counter_;
+        __sync_synchronize();
+        return res;
     }
 
     uint64_t in_memory_size() const;
@@ -65,7 +68,7 @@ private:
     // This is updated every time a page is loaded or created,
     // and cleared when cache memory limits are re-evaluated
     // May be read from other threads
-    cache_line_padded_t<uint64_t> bytes_loaded_counter_;
+    intptr_t bytes_loaded_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;

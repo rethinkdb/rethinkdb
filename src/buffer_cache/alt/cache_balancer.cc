@@ -42,7 +42,7 @@ void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
 }
 
 void alt_cache_balancer_t::notify_access() {
-    ++thread_info[get_thread_id().threadnum].access_count.value;
+    __sync_add_and_fetch(&thread_info[get_thread_id().threadnum].access_count, 1);
 }
 
 void alt_cache_balancer_t::on_ring() {
@@ -56,7 +56,9 @@ void alt_cache_balancer_t::on_ring() {
     if (last_rebalance_time + (rebalance_timeout_ms * 1000) > now) {
         uint64_t total_accesses = 0;
         for (size_t i = 0; i < thread_info.size(); ++i) {
-            total_accesses += thread_info[i].access_count.value;
+            __sync_synchronize();
+            total_accesses += thread_info[i].access_count;
+            __sync_synchronize();
         }
 
         if (total_accesses < rebalance_access_count_threshold) {
@@ -165,6 +167,6 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
     }
 
     // Clear the number of accesses for this thread
-    thread_info[index].access_count.value = 0;
+    thread_info[index].access_count = 0;
 }
 
