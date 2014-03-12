@@ -45,7 +45,7 @@ public:
     }
 
     uint64_t get_bytes_loaded() const {
-        return bytes_loaded_counter_;
+        return bytes_loaded_counter_.value;
     }
 
     uint64_t in_memory_size() const;

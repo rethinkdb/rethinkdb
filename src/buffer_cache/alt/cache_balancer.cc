@@ -5,8 +5,8 @@
 #include "concurrency/pmap.hpp"
 
 const uint64_t alt_cache_balancer_t::rebalance_check_interval_ms = 20;
-const uint64_t alt_cache_balancer_t::rebalance_access_count_threshold = 1000;
-const uint64_t alt_cache_balancer_t::rebalance_timeout_ms = 5000;
+const uint64_t alt_cache_balancer_t::rebalance_access_count_threshold = 100;
+const uint64_t alt_cache_balancer_t::rebalance_timeout_ms = 500;
 
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
@@ -42,7 +42,7 @@ void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
 }
 
 void alt_cache_balancer_t::notify_access() {
-    ++thread_info[get_thread_id().threadnum].access_count;
+    ++thread_info[get_thread_id().threadnum].access_count.value;
 }
 
 void alt_cache_balancer_t::on_ring() {
@@ -56,7 +56,7 @@ void alt_cache_balancer_t::on_ring() {
     if (last_rebalance_time + (rebalance_timeout_ms * 1000) > now) {
         uint64_t total_accesses = 0;
         for (size_t i = 0; i < thread_info.size(); ++i) {
-            total_accesses += thread_info[i].access_count;
+            total_accesses += thread_info[i].access_count.value;
         }
 
         if (total_accesses < rebalance_access_count_threshold) {
@@ -165,6 +165,6 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
     }
 
     // Clear the number of accesses for this thread
-    thread_info[index].access_count = 0;
+    thread_info[index].access_count.value = 0;
 }
 

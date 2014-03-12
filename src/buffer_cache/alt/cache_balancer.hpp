@@ -121,7 +121,10 @@ private:
 
         std::set<alt::evicter_t *> evicters;
         cross_thread_mutex_t mutex; // Controls access to evicters
-        cache_line_padded<uint64_t> access_count;
+
+        // This is set on the evicter's thread in notify_access(), and read during rebalance,
+        // then cleared when the rebalance is sent to the evicter's thread.
+        cache_line_padded_t<uint64_t> access_count;
     };
 
     const uint64_t total_cache_size;
