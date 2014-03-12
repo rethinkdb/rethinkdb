@@ -32,15 +32,12 @@ public:
     void add_waiter(page_acq_t *acq, cache_account_t *account);
     void remove_waiter(page_acq_t *acq);
 
-private:
-    friend class page_acq_t;
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
     uint32_t get_page_buf_size();
 
-    bool is_deleted();
-
+private:
     friend class page_ptr_t;
     void add_snapshotter();
     void remove_snapshotter(page_cache_t *page_cache);
