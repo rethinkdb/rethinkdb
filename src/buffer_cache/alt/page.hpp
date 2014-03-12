@@ -14,13 +14,21 @@ class page_cache_t;
 class page_acq_t;
 
 class page_loader_t;
+class deferred_page_loader_t;
+class deferred_block_token_t;
+
+// Is set to "defer" if loading data should be deferred (just get the block token,
+// instead).
+enum class load_when_t { defer, immediately };
 
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
 class page_t {
 public:
-    page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
+    // RSI: Remove default parameter.
+    page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account,
+           load_when_t load_when = load_when_t::defer);
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
     page_t(scoped_malloc_t<ser_buffer_t> buf,
@@ -41,12 +49,28 @@ public:
 
 private:
     friend class page_ptr_t;
+    friend class deferred_page_loader_t;
     void add_snapshotter();
     void remove_snapshotter(page_cache_t *page_cache);
     size_t num_snapshot_references();
 
 
     void pulse_waiters_or_make_evictable(page_cache_t *page_cache);
+
+
+    static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
+                                          counted_t<standard_block_token_t> block_token,
+                                          scoped_malloc_t<ser_buffer_t> buf);
+
+    static void catch_up_with_deferred_load(
+            deferred_page_loader_t *deferred_loader,
+            page_cache_t *page_cache,
+            cache_account_t *account);
+
+    static void deferred_load_with_block_id(page_t *page, block_id_t block_id,
+                                            page_cache_t *page_cache,
+                                            cache_account_t *account);
+
 
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
