@@ -7,6 +7,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
@@ -33,11 +34,8 @@ void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
 }
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
-                                           page_cache_t *page_cache,
-                                           uint64_t bytes_to_send)
-    : serializer_(serializer), page_cache_(page_cache),
-      bytes_remaining_(bytes_to_send) {
-    guarantee(bytes_to_send > 0);
+                                           page_cache_t *page_cache)
+    : serializer_(serializer), page_cache_(page_cache) {
     serializer_->register_read_ahead_cb(this);
 }
 
@@ -50,33 +48,14 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
     assert_thread();
     scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
 
-    if (bytes_remaining_ == 0) {
-        return;
-    }
-
     // Notably, this code relies on do_on_thread to preserve callback order (which it
     // does do).
-
-    uint32_t size = token->block_size().ser_value();
-    if (bytes_remaining_ < size) {
-        bytes_remaining_ = 0;
-    } else {
-        bytes_remaining_ -= size;
-        do_on_thread(page_cache_->home_thread(),
-                     std::bind(&page_cache_t::add_read_ahead_buf,
-                               page_cache_,
-                               block_id,
-                               buf.release(),
-                               token));
-    }
-
-    if (bytes_remaining_ == 0) {
-        // We know bytes_remaining_ was just set to 0, so this is the only time we
-        // call destroy_read_ahead_cb.
-        do_on_thread(page_cache_->home_thread(),
-                     std::bind(&page_cache_t::have_read_ahead_cb_destroyed,
-                               page_cache_));
-    }
+    do_on_thread(page_cache_->home_thread(),
+                 std::bind(&page_cache_t::add_read_ahead_buf,
+                           page_cache_,
+                           block_id,
+                           buf.release(),
+                           token));
 }
 
 void page_read_ahead_cb_t::destroy_self() {
@@ -99,37 +78,6 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     }
 }
 
-void page_cache_t::on_memory_limit_change(uint64_t new_limit) {
-    if (new_limit == 0) {
-        return;
-    }
-
-    // Re-initiate read ahead if the cache is less than 3/4 utilized.
-    const uint64_t RESTART_FRACTION_NUMERATOR = 3;
-    const uint64_t RESTART_FRACTION_DENOMINATOR = 4;
-
-    uint64_t current_size = evicter_.in_memory_size();
-    bool start_read_ahead = current_size * RESTART_FRACTION_DENOMINATOR
-                            < new_limit * RESTART_FRACTION_NUMERATOR;
-    start_read_ahead = start_read_ahead && !read_ahead_cb_existence_.has_lock();
-    if (start_read_ahead) {
-        rassert(new_limit > current_size);
-        uint64_t bytes_to_read = new_limit - current_size;
-        // Setting read_ahead_cb_existence_ makes sure that
-        // a) we don't start more than one page_read_ahead_cb_t
-        // b) the cache isn't shut down while we are starting the read ahead
-        read_ahead_cb_existence_ = drainer_->lock();
-        coro_t::spawn_sometime(std::bind(&alt::page_cache_t::spawn_read_ahead,
-                                         this, bytes_to_read));
-    }
-}
-
-void page_cache_t::spawn_read_ahead(uint64_t bytes_to_read) {
-    on_thread_t thread_switcher(serializer_->home_thread());
-    rassert(read_ahead_cb_ == NULL);
-    read_ahead_cb_ = new page_read_ahead_cb_t(serializer_, this, bytes_to_read);
-}
-
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
                                       ser_buffer_t *buf_ptr,
                                       const counted_t<standard_block_token_t> &token) {
@@ -137,7 +85,7 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
-    if (!evicter_.interested_in_read_ahead_block(token->block_size().ser_value())) {
+    if (!balancer_->is_read_ahead_ok()) {
         have_read_ahead_cb_destroyed();
         return;
     }
@@ -174,11 +122,12 @@ page_cache_t::page_cache_t(serializer_t *serializer,
                            cache_balancer_t *balancer)
     : serializer_(serializer),
       free_list_(serializer),
+      balancer_(balancer),
       evicter_(this, balancer),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
-    const bool start_read_ahead = evicter_.get_memory_limit() > 0;
+    const bool start_read_ahead = balancer_->is_read_ahead_ok();
     if (start_read_ahead) {
         read_ahead_cb_existence_ = drainer_->lock();
     }
@@ -186,7 +135,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     {
         on_thread_t thread_switcher(serializer->home_thread());
         if (start_read_ahead) {
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this, evicter_.get_memory_limit());
+            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
@@ -194,17 +143,11 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
-
-    // Let the evicter tell us when the memory limit changes in case
-    // we want to restart read_ahead.
-    evicter_.set_on_memory_limit_change_cb(
-        std::bind(&page_cache_t::on_memory_limit_change, this, ph::_1));
 }
 
 page_cache_t::~page_cache_t() {
     assert_thread();
 
-    evicter_.set_on_memory_limit_change_cb(std::function<void(int64_t)>());
     have_read_ahead_cb_destroyed();
 
     drainer_.reset();

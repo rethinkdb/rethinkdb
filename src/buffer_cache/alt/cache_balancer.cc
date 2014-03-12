@@ -8,6 +8,11 @@ const uint64_t alt_cache_balancer_t::rebalance_check_interval_ms = 20;
 const uint64_t alt_cache_balancer_t::rebalance_access_count_threshold = 100;
 const uint64_t alt_cache_balancer_t::rebalance_timeout_ms = 500;
 
+// These variables control the stopping of read-ahead
+// Stop read ahead once 90% of the cache has been utilized
+const uint64_t alt_cache_balancer_t::read_ahead_ratio_numerator = 9;
+const uint64_t alt_cache_balancer_t::read_ahead_ratio_denominator = 10;
+
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
@@ -18,6 +23,7 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
     rebalance_timer(rebalance_check_interval_ms, this),
     last_rebalance_time(0),
+    read_ahead_ok(false),
     thread_info(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
 
@@ -77,6 +83,8 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
     per_thread_data.init(thread_info.size());
+    scoped_array_t<uint64_t> cache_in_use;
+    cache_in_use.init(thread_info.size());
 
     // Get cache sizes from shards on each thread
     size_t total_evicters = 0;
@@ -145,24 +153,43 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
         // Send new cache sizes to each thread
         pmap(per_thread_data.size(),
              std::bind(&alt_cache_balancer_t::apply_rebalance_to_thread,
-                       this, ph::_1, &per_thread_data));
+                       this, ph::_1, &per_thread_data, &cache_in_use));
+
+        // We only allow read_ahead to be ok until it has been not ok
+        if (read_ahead_ok) {
+            // Update read_ahead_ok based on how much cache is in use
+            uint64_t cache_usage = 0;
+            for (size_t i = 0; i < cache_in_use.size(); ++i) {
+                cache_usage += cache_in_use[i];
+            }
+
+            read_ahead_ok = (cache_usage * read_ahead_ratio_denominator) <
+                            (total_cache_size * read_ahead_ratio_numerator);
+        }
     }
 }
 
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
-        scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
+        scoped_array_t<std::vector<cache_data_t> > *new_sizes,
+        scoped_array_t<uint64_t> *cache_in_use) {
     on_thread_t rethreader((threadnum_t(index)));
 
     // No need to lock the thread_info's mutex since a new rebalance cannot run
     // while we are in here
     std::set<alt::evicter_t *> *evicters = &thread_info[index].evicters;
     std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
+    uint64_t *total_cache_usage = &(*cache_in_use)[index];
+
+    *total_cache_usage = 0;
 
     ASSERT_NO_CORO_WAITING;
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {
         // Make sure the evicter still exists
         if (evicters->find(it->evicter) != evicters->end()) {
             it->evicter->update_memory_limit(it->new_size);
+
+            // Set the cache-in-use so we can calculate if read-ahead is ok
+            *total_cache_usage += it->evicter->in_memory_size();
         }
     }
 

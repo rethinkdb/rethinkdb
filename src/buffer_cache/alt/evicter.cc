@@ -28,14 +28,12 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
     bytes_loaded_counter_ = 0;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
-    if (on_memory_limit_change_cb_) {
-        on_memory_limit_change_cb_(new_memory_limit);
-    }
 }
 
-void evicter_t::set_on_memory_limit_change_cb(
-        const std::function<void(uint64_t)> &on_memory_limit_change_cb) {
-    on_memory_limit_change_cb_ = on_memory_limit_change_cb;
+void evicter_t::notify_access() {
+    __sync_add_and_fetch(&bytes_loaded_counter_,
+                         page_cache_->max_block_size().value());
+    balancer_->notify_access();
 }
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
@@ -47,9 +45,7 @@ void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_,
-                         page_cache_->max_block_size().value());
-    balancer_->notify_access();
+    notify_access();
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -61,18 +57,14 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_,
-                         page_cache_->max_block_size().value());
-    balancer_->notify_access();
+    notify_access();
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_,
-                         page_cache_->max_block_size().value());
-    balancer_->notify_access();
+    notify_access();
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
@@ -123,10 +115,6 @@ uint64_t evicter_t::in_memory_size() const {
     return unevictable_.size()
         + evictable_disk_backed_.size()
         + evictable_unbacked_.size();
-}
-
-bool evicter_t::interested_in_read_ahead_block(uint32_t ser_block_size) const {
-    return in_memory_size() + ser_block_size < memory_limit_;
 }
 
 void evicter_t::evict_if_necessary() {

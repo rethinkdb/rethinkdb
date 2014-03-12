@@ -31,6 +31,9 @@ public:
     // Tell the rebalancer that an access has occurred
     virtual void notify_access() = 0;
 
+    // Check if read-ahead is allowed at the moment
+    virtual bool is_read_ahead_ok() = 0;
+
 protected:
     friend class alt::evicter_t;
 
@@ -52,6 +55,8 @@ public:
     }
 
     void notify_access() { }
+
+    bool is_read_ahead_ok() { return false; }
 
 private:
     void add_evicter(alt::evicter_t *) { }
@@ -80,6 +85,10 @@ public:
 
     void notify_access();
 
+    bool is_read_ahead_ok() {
+        return read_ahead_ok;
+    }
+
 private:
     friend class alt::evicter_t;
 
@@ -87,6 +96,10 @@ private:
     static const uint64_t rebalance_access_count_threshold;
     static const uint64_t rebalance_timeout_ms;
     static const uint64_t rebalance_check_interval_ms;
+    
+    // Constants to determine when to stop read-ahead
+    static const uint64_t read_ahead_ratio_numerator;
+    static const uint64_t read_ahead_ratio_denominator;
 
     void add_evicter(alt::evicter_t *evicter);
     void remove_evicter(alt::evicter_t *evicter);
@@ -114,7 +127,8 @@ private:
 
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
-                                   scoped_array_t<std::vector<cache_data_t> > *new_sizes);
+                                   scoped_array_t<std::vector<cache_data_t> > *new_sizes,
+                                   scoped_array_t<uint64_t> *cache_in_use);
 
     struct thread_info_t {
         thread_info_t() : access_count(0) { }
@@ -130,6 +144,7 @@ private:
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
     microtime_t last_rebalance_time;
+    bool read_ahead_ok;
 
     // This contains the extant evicter pointers for each thread, and a mutex
     // to control access

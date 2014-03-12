@@ -32,12 +32,7 @@ public:
                        cache_balancer_t *balancer);
     ~evicter_t();
 
-    bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
-
     void update_memory_limit(uint64_t new_memory_limit);
-
-    void set_on_memory_limit_change_cb(
-            const std::function<void(uint64_t)> &on_memory_limit_change_cb);
 
     uint64_t next_access_time() {
         return ++access_time_counter_;
@@ -59,15 +54,15 @@ public:
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
+    // Tells the cache balancer about a page being loaded
+    void notify_access();
+
+    // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
 
     page_cache_t *const page_cache_;
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
-
-    // Called with the new memory_limit_ whenever the value of `memory_limit_` is
-    // changed.
-    std::function<void(uint64_t)> on_memory_limit_change_cb_;
 
     // This is updated every time a page is loaded or created,
     // and cleared when cache memory limits are re-evaluated

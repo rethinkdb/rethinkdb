@@ -244,8 +244,7 @@ class page_read_ahead_cb_t : public home_thread_mixin_t,
                              public serializer_read_ahead_callback_t {
 public:
     page_read_ahead_cb_t(serializer_t *serializer,
-                         page_cache_t *cache,
-                         uint64_t bytes_to_send);
+                         page_cache_t *cache);
 
     void offer_read_ahead_buf(block_id_t block_id,
                               scoped_malloc_t<ser_buffer_t> *buf,
@@ -258,9 +257,6 @@ private:
 
     serializer_t *serializer_;
     page_cache_t *page_cache_;
-
-    // How many more bytes of data can we send?
-    uint64_t bytes_remaining_;
 
     DISABLE_COPYING(page_read_ahead_cb_t);
 };
@@ -318,11 +314,6 @@ public:
     }
 
 private:
-    // Called by the evicter_ if the memory limit is changed.
-    void on_memory_limit_change(uint64_t new_limit);
-
-    void spawn_read_ahead(uint64_t bytes_to_read);
-
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
                             ser_buffer_t *buf,
@@ -424,6 +415,7 @@ private:
 
     free_list_t free_list_;
 
+    cache_balancer_t *balancer_;
     evicter_t evicter_;
 
     // KSI: I bet this read_ahead_cb_ and read_ahead_cb_existence_ type could be
