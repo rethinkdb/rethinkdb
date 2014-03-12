@@ -14,6 +14,8 @@ class cache_balancer_t;
 
 namespace alt {
 
+class page_cache_t;
+
 class evicter_t : public home_thread_mixin_debug_only_t {
 public:
     void add_not_yet_loaded(page_t *page);
@@ -26,7 +28,8 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
-    explicit evicter_t(cache_balancer_t *balancer);
+    explicit evicter_t(page_cache_t *page_cache,
+                       cache_balancer_t *balancer);
     ~evicter_t();
 
     bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
@@ -58,6 +61,7 @@ public:
 private:
     void evict_if_necessary();
 
+    page_cache_t *const page_cache_;
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
 

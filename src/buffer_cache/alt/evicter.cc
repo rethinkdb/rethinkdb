@@ -1,12 +1,15 @@
 #include "buffer_cache/alt/evicter.hpp"
 
 #include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 
 namespace alt {
 
-evicter_t::evicter_t(cache_balancer_t *balancer)
-    : balancer_(balancer),
+evicter_t::evicter_t(page_cache_t *page_cache,
+                     cache_balancer_t *balancer)
+    : page_cache_(page_cache),
+      balancer_(balancer),
       bytes_loaded_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
 {
@@ -44,7 +47,8 @@ void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_, ser_buf_size);
+    __sync_add_and_fetch(&bytes_loaded_counter_,
+                         page_cache_->max_block_size().value());
     balancer_->notify_access();
 }
 
@@ -57,7 +61,8 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_, page->ser_buf_size_);
+    __sync_add_and_fetch(&bytes_loaded_counter_,
+                         page_cache_->max_block_size().value());
     balancer_->notify_access();
 }
 
@@ -65,7 +70,8 @@ void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
     evict_if_necessary();
-    __sync_add_and_fetch(&bytes_loaded_counter_, page->ser_buf_size_);
+    __sync_add_and_fetch(&bytes_loaded_counter_,
+                         page_cache_->max_block_size().value());
     balancer_->notify_access();
 }
 
