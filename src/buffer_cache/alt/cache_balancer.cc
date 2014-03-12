@@ -23,7 +23,7 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
     rebalance_timer(rebalance_check_interval_ms, this),
     last_rebalance_time(0),
-    read_ahead_ok(false),
+    read_ahead_ok(true),
     thread_info(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
 
