@@ -197,6 +197,12 @@ public:
 
     repli_timestamp_t get_recency() const;
 
+    // Usually unnecessary -- the txn has a recency value that touches the recency.
+    // This is used when your tree transformations (leveling, merging, adding a new
+    // root, etc) potentially gives yourself new subtrees with greater recency values
+    // than your txn's.
+    void manually_touch_recency(repli_timestamp_t superceding_recency);
+
     access_t access() const {
         guarantee(!empty());
         return current_page_acq()->access();

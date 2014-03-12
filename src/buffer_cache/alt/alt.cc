@@ -667,15 +667,46 @@ void buf_lock_t::detach_child(block_id_t child_id) {
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {
-    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
-    return current_page_acq()->recency();
+    current_page_acq_t *cpa = current_page_acq();
+    guarantee(cpa != NULL);
+
+    // Emulate the cpa->recency() waiting behavior.  We only do this waiting here so
+    // that we can guarantee(!empty()) after it's pulsed.  (FYI: We and the
+    // page_cache wait for the write_acq_signal() so that a write acquirer can't see
+    // its recency change before/after the write_acq_signal() gets pulsed.)
+    if (access() == access_t::read) {
+        cpa->read_acq_signal()->wait();
+    } else {
+        cpa->write_acq_signal()->wait();
+    }
+
+    ASSERT_FINITE_CORO_WAITING;
+    guarantee(!empty());
+    return cpa->recency();
+}
+
+void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
+    guarantee(!empty());
+    rassert(snapshot_node_ == NULL);
+
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
+    current_page_acq_->write_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
+    guarantee(!empty());
+    {
+        repli_timestamp_t s = superceding_recency(current_page_acq_->recency(), recency);
+        guarantee(s == recency);
+    }
+    current_page_acq_->manually_touch_recency(recency);
 }
 
 page_t *buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     cpa->read_acq_signal()->wait();
 
     ASSERT_FINITE_CORO_WAITING;
@@ -686,6 +717,7 @@ page_t *buf_lock_t::get_held_page_for_read() {
 page_t *buf_lock_t::get_held_page_for_write() {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     current_page_acq_->write_acq_signal()->wait();
 
     ASSERT_FINITE_CORO_WAITING;

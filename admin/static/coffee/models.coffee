@@ -699,6 +699,8 @@ module 'DataUtils', ->
     
 
     @get_directory_activities_by_namespaces = ->
+        #TODO We report the status of the "last" internal hash shard as being the status of the whole shard
+        #We should eventually report the status of all internal shards
         if not @directory_activities_by_namespaces?
             @directory_activities_by_namespaces = {}
             for machine in directory.models

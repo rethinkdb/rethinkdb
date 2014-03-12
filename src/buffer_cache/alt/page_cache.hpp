@@ -170,7 +170,10 @@ public:
     signal_t *write_acq_signal();
 
     page_t *current_page_for_read(cache_account_t *account);
+    repli_timestamp_t recency();
+
     page_t *current_page_for_write(cache_account_t *account);
+    void manually_touch_recency(repli_timestamp_t recency);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
     // already snapshotted the page and is not waiting for the page_t *.
@@ -178,7 +181,6 @@ public:
 
     block_id_t block_id() const { return block_id_; }
     access_t access() const { return access_; }
-    repli_timestamp_t recency() const;
 
     void mark_deleted();
 
@@ -220,12 +222,9 @@ private:
     // At most one of current_page_ is null or snapshotted_page_ is null, unless the
     // acquired page has been deleted, in which case both are null.
     current_page_t *current_page_;
-    page_ptr_t snapshotted_page_;
+    timestamped_page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
-
-    // The recency for our acquisition of the page.
-    repli_timestamp_t recency_;
 
     // The block version for our acquisition of the page -- every write acquirer sees
     // a greater block version than the previous acquirer.  The current page's block
@@ -378,6 +377,7 @@ private:
 
     void im_waiting_for_flush(std::set<page_txn_t *> txns);
 
+    friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
         return recencies_.size() <= id
             ? repli_timestamp_t::invalid
@@ -442,36 +442,28 @@ private:
 class dirtied_page_t {
 public:
     dirtied_page_t()
-        : block_id(NULL_BLOCK_ID),
-          tstamp(repli_timestamp_t::invalid) { }
+        : block_id(NULL_BLOCK_ID) { }
     dirtied_page_t(block_version_t _block_version,
-                   block_id_t _block_id, page_ptr_t &&_ptr,
-                   repli_timestamp_t _tstamp)
+                   block_id_t _block_id, timestamped_page_ptr_t &&_ptr)
         : block_version(_block_version),
           block_id(_block_id),
-          ptr(std::move(_ptr)),
-          tstamp(_tstamp) { }
+          ptr(std::move(_ptr)) { }
     dirtied_page_t(dirtied_page_t &&movee)
         : block_version(movee.block_version),
           block_id(movee.block_id),
-          ptr(std::move(movee.ptr)),
-          tstamp(movee.tstamp) { }
+          ptr(std::move(movee.ptr)) { }
     dirtied_page_t &operator=(dirtied_page_t &&movee) {
         block_version = movee.block_version;
         block_id = movee.block_id;
         ptr = std::move(movee.ptr);
-        tstamp = movee.tstamp;
         return *this;
     }
     // Our block version of the dirty page.
     block_version_t block_version;
     // The block id of the dirty page.
     block_id_t block_id;
-    // The pointer to the snapshotted dirty page value.  (If empty, the page was
-    // deleted.)
-    page_ptr_t ptr;
-    // The timestamp of the modification.
-    repli_timestamp_t tstamp;
+    // The snapshotted dirty page value.  (If empty, the page was deleted.)
+    timestamped_page_ptr_t ptr;
 };
 
 class touched_page_t {

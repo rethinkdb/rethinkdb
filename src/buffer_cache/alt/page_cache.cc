@@ -518,9 +518,24 @@ page_t *current_page_acq_t::current_page_for_read(cache_account_t *account) {
     return current_page_->the_page_for_read(help(), account);
 }
 
-repli_timestamp_t current_page_acq_t::recency() const {
+repli_timestamp_t current_page_acq_t::recency() {
     assert_thread();
-    return recency_;
+    rassert(snapshotted_page_.has() || current_page_ != NULL);
+
+    // We wait for write_cond_ when getting the recency (if we're a write acquirer)
+    // so that we can't see the recency change before/after the write_cond_ is
+    // pulsed.
+    if (access_ == access_t::read) {
+        read_cond_.wait();
+    } else {
+        write_cond_.wait();
+    }
+
+    if (snapshotted_page_.has()) {
+        return snapshotted_page_.timestamp();
+    }
+    rassert(current_page_ != NULL);
+    return page_cache_->recency_for_block_id(block_id_);
 }
 
 page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
@@ -531,6 +546,15 @@ page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
     return current_page_->the_page_for_write(help(), account);
+}
+
+void current_page_acq_t::manually_touch_recency(repli_timestamp_t recency) {
+    assert_thread();
+    rassert(access_ == access_t::write);
+    rassert(current_page_ != NULL);
+    write_cond_.wait();
+    rassert(current_page_ != NULL);
+    page_cache_->set_recency_for_block_id(block_id_, recency);
 }
 
 void current_page_acq_t::mark_deleted() {
@@ -623,8 +647,6 @@ void current_page_t::make_non_deleted(block_size_t block_size,
 void current_page_t::add_acquirer(current_page_acq_t *acq,
                                   cache_account_t *account) {
     const block_version_t prev_version = last_write_acquirer_version_;
-    const repli_timestamp_t prev_recency
-        = acq->page_cache()->recency_for_block_id(acq->block_id());
 
     if (acq->access_ == access_t::write) {
         block_version_t v = prev_version.subsequent();
@@ -633,14 +655,7 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
         rassert(acq->the_txn_ != NULL);
         page_txn_t *const acq_txn = acq->the_txn_;
 
-        // Out of order recencies can happen when acquiring the stats block, or when
-        // two shards share the same B-tree.
-        repli_timestamp_t r = superceding_recency(prev_recency,
-                                                  acq_txn->this_txn_recency_);
-        acq->recency_ = r;
-
         last_write_acquirer_version_ = v;
-        acq->page_cache()->set_recency_for_block_id(acq->block_id(), r);
 
         if (last_write_acquirer_ != acq_txn) {
             // RSP: Performance (in the assertion).
@@ -668,7 +683,6 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
     } else {
         rassert(acq->the_txn_ == NULL);
         acq->block_version_ = prev_version;
-        acq->recency_ = prev_recency;
     }
 
     acquirers_.push_back(acq);
@@ -712,6 +726,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
         }
     }
 
+    const repli_timestamp_t current_recency = help.page_cache->recency_for_block_id(help.block_id);
+
     // It's time to pulse the pulsables.
     current_page_acq_t *cur = acq;
     while (cur != NULL) {
@@ -747,6 +763,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 // This is bad, because there's some code, that merely wants to
                 // delete a page, or get its recency, that will surprisingly load it.
                 cur->snapshotted_page_.init(
+                        current_recency,
                         the_page_for_read_or_deleted(help,
                                                      account),
                         help.page_cache);
@@ -784,6 +801,9 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                                      std::move(buf),
                                      help.page_cache);
                 }
+                repli_timestamp_t superceding
+                    = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
+                help.page_cache->set_recency_for_block_id(help.block_id, superceding);
                 cur->pulse_write_available();
             }
             break;
@@ -926,13 +946,12 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // Since we snapshotted the lead acquirer, it gets detached.
         rassert(acq->current_page_ == NULL);
         // Steal the snapshotted page_ptr_t.
-        page_ptr_t local = std::move(acq->snapshotted_page_);
+        timestamped_page_ptr_t local = std::move(acq->snapshotted_page_);
         // It's okay to have two dirtied_page_t's or touched_page_t's for the
         // same block id -- compute_changes handles this.
         snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
                                                             acq->block_id(),
-                                                            std::move(local),
-                                                            acq->recency()));
+                                                            std::move(local)));
         // If you keep writing and reacquiring the same page, though, the count
         // might be off and you could excessively throttle new operations.
 
@@ -973,7 +992,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
 
             block_change_t change(d.block_version, true,
                                   d.ptr.has() ? d.ptr.get_page_for_read() : NULL,
-                                  d.tstamp);
+                                  d.ptr.has() ? d.ptr.timestamp() : repli_timestamp_t::invalid);
 
             auto res = changes.insert(std::make_pair(d.block_id, change));
 
@@ -981,18 +1000,19 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                 // The insertion failed -- we need to use the newer version.
                 auto const jt = res.first;
                 // The versions can't be the same for different write operations.
-                rassert(jt->second.version != d.block_version,
+                rassert(jt->second.version != change.version,
                         "equal versions on block %" PRIi64 ": %" PRIu64,
                         d.block_id,
-                        d.block_version.debug_value());
-                if (jt->second.version < d.block_version) {
-                    rassert(d.tstamp ==
-                            superceding_recency(jt->second.tstamp, d.tstamp));
+                        change.version.debug_value());
+                if (jt->second.version < change.version) {
+                    rassert(change.page == NULL ||
+                            change.tstamp == superceding_recency(jt->second.tstamp, change.tstamp));
                     jt->second = change;
                 }
             }
         }
     }
+
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
         for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {
