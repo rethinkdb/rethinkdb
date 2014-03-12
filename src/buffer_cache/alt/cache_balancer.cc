@@ -53,7 +53,7 @@ void alt_cache_balancer_t::on_ring() {
     //  2. At least access_count_threshold accesses have occurred
     // since the last rebalance.
     microtime_t now = current_microtime();
-    if (last_rebalance_time + (rebalance_timeout_ms * 1024) > now) {
+    if (last_rebalance_time + (rebalance_timeout_ms * 1000) > now) {
         uint64_t total_accesses = 0;
         for (size_t i = 0; i < thread_info.size(); ++i) {
             total_accesses += thread_info[i].access_count;

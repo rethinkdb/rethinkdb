@@ -21,6 +21,7 @@ evicter_t::~evicter_t() {
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
+    assert_thread();
     bytes_loaded_counter_ = 0;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();

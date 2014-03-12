@@ -10,6 +10,7 @@
 #include "threading.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/cache_line_padded.hpp"
 #include "concurrency/cross_thread_mutex.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
 #include "containers/scoped.hpp"
@@ -120,7 +121,7 @@ private:
 
         std::set<alt::evicter_t *> evicters;
         cross_thread_mutex_t mutex; // Controls access to evicters
-        uint64_t access_count;
+        cache_line_padded<uint64_t> access_count;
     };
 
     const uint64_t total_cache_size;

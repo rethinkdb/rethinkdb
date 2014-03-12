@@ -414,8 +414,8 @@ uint64_t get_avail_mem_size() {
     mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
     vm_statistics_data_t vmstat;
     if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
-	fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
-	return 1024 * MEGABYTE;
+        fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
+        return 1024 * MEGABYTE;
     }
     return vmstat.free_count * page_size;
 #else
