@@ -409,7 +409,7 @@ bool btree_store_t<protocol_t>::add_sindex(
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
         value_sizer_t<void> *sizer,
-        value_deleter_t *deleter, signal_t *interruptor) {
+        const value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
      * that we pass to it because that makes sense at other call sites.
@@ -457,9 +457,22 @@ void btree_store_t<protocol_t>::set_sindexes(
              * a child, it's now a parentless block. */
             sindex_block->detach_child(it->second.superblock);
 
+            /* If the index had been completely constructed, we must detach
+             * its values since snapshots might be accessing it.  If on the other
+             * hand the index has not finished post construction, it would be
+             * incorrect to do so. The reason being that some of the values that
+             * the sindex points to might have been deleted in the meantime
+             * (the deletion would be on the sindex queue, but might not have
+             * found its way into the index tree yet).
+             * We pick an appropriate value deleter now. */
+            noop_value_deleter_t no_deleter;
+            const value_deleter_t *actual_deleter = it->second.post_construction_complete
+                                                    ? deleter
+                                                    : &no_deleter;
+
             guarantee(std_contains(secondary_index_slices, it->first));
             clear_sindex(sindex_block->txn(), it->second.superblock,
-                         sizer, deleter, interruptor);
+                         sizer, actual_deleter, interruptor);
             secondary_index_slices.erase(it->first);
         }
     }
@@ -533,6 +546,13 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     if (!::get_secondary_index(sindex_block, id, &sindex)) {
         return false;
     } else {
+        // Similar to `btree_store_t::set_sindexes()`, we have to pick a deleter
+        // based on whether the sindex had finished post construction or not.
+        noop_value_deleter_t no_deleter;
+        const value_deleter_t *actual_deleter = sindex.post_construction_complete
+                                                ? deleter
+                                                : &no_deleter;
+
         delete_secondary_index(sindex_block, id);
         /* After deleting sindex from the sindex_block we can now detach it as
          * a child, it's now a parentless block. */
@@ -545,7 +565,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
         clear_sindex(txn, sindex.superblock,
-                     sizer, deleter, interruptor);
+                     sizer, actual_deleter, interruptor);
         secondary_index_slices.erase(id);
     }
     return true;

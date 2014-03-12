@@ -228,14 +228,6 @@ public:
     }
 
 private:
-    /* A deleter that does absolutely nothing. Since we are in sindex
-    post construction, all deleted values have already been deleted
-    previously, and we must not delete and/or detach them again. */
-    class noop_value_deleter_t : public value_deleter_t {
-    public:
-        void delete_value(buf_parent_t, void *) const { }
-    };
-
     const sindex_access_vector_t *sindexes_;
     txn_t *txn_;
     signal_t *interruptor_;

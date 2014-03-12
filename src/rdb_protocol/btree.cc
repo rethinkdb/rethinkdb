@@ -1327,12 +1327,7 @@ public:
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
-    signal_t *interruptor_;
-
-    class noop_value_deleter_t : public value_deleter_t {
-    public:
-        void delete_value(buf_parent_t, void *) const { }
-    };
+    signal_t *interruptor_;  
 };
 
 void post_construct_secondary_indexes(

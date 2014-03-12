@@ -8,6 +8,8 @@
 #include "btree/slice.hpp"
 #include "concurrency/fifo_checker.hpp"
 
+void noop_value_deleter_t::delete_value(buf_parent_t, void *) const { }
+
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
