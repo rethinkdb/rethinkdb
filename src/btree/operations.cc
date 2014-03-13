@@ -412,18 +412,16 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                     static_cast<node_t *>(rbuf_write.get_data_write()),
                     median);
 
-        if (detacher != NULL) {
-            // If we split a leaf node, we must detach all values that we have removed
-            // from `buf`.
-            buf_read_t rbuf_read(&rbuf);
-            const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
-            if (node::is_leaf(node)) {
-                const leaf_node_t *leaf =
-                    static_cast<const leaf_node_t *>(rbuf_read.get_data_read());
-                // Detach the values that are now in `rbuf` with buf as their parent.
-                for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
-                    detacher->delete_value(buf_parent_t(buf), (*it).second);
-                }
+        // If we split a leaf node, we must detach all values that we have removed
+        // from `buf`.
+        buf_read_t rbuf_read(&rbuf);
+        const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
+        if (node::is_leaf(node)) {
+            const leaf_node_t *leaf =
+                static_cast<const leaf_node_t *>(rbuf_read.get_data_read());
+            // Detach the values that are now in `rbuf` with buf as their parent.
+            for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
+                detacher->delete_value(buf_parent_t(buf), (*it).second);
             }
         }
     }
@@ -546,17 +544,15 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 buf_write_t sib_buf_write(&sib_buf);
                 buf_write_t buf_write(buf);
                 buf_read_t last_buf_read(last_buf);
-                if (detacher != NULL) {
-                    // If we merge leaf nodes, detach all values in `sib_buf`
-                    buf_read_t sib_buf_read(&sib_buf);
-                    const node_t *node =
-                        static_cast<const node_t *>(sib_buf_read.get_data_read());
-                    if (node::is_leaf(node)) {
-                        const leaf_node_t *leaf =
-                            static_cast<const leaf_node_t *>(sib_buf_read.get_data_read());
-                        for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
-                            detacher->delete_value(buf_parent_t(&sib_buf), (*it).second);
-                        }
+                // If we merge leaf nodes, detach all values in `sib_buf`
+                buf_read_t sib_buf_read(&sib_buf);
+                const node_t *node =
+                    static_cast<const node_t *>(sib_buf_read.get_data_read());
+                if (node::is_leaf(node)) {
+                    const leaf_node_t *leaf =
+                        static_cast<const leaf_node_t *>(sib_buf_read.get_data_read());
+                    for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
+                        detacher->delete_value(buf_parent_t(&sib_buf), (*it).second);
                     }
                 }
                 const internal_node_t *parent_node
@@ -611,10 +607,48 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                   static_cast<node_t *>(buf_write.get_data_write()),
                                   static_cast<node_t *>(sib_buf_write.get_data_write()),
                                   replacement_key, parent_node);
-                // TODO! Somehow detach values.
-                // We could do this by taking the old key, the replacement key,
-                // and comparing which values are between those.
-                // Those values must be detached from the other node.
+                if (leveled) {
+                    // Detach values that were removed from one of the nodes, if the
+                    // node is a leaf:
+                    buf_read_t buf_read(buf);
+                    const node_t *node =
+                        static_cast<const node_t *>(buf_read.get_data_read());
+                    if (node::is_leaf(node)) {
+                        const leaf_node_t *leaf =
+                            static_cast<const leaf_node_t *>(buf_read.get_data_read());
+                        if (nodecmp_node_with_sib < 0) {
+                            // We have moved keys from `sib_buf` into `buf`
+                            // and increased the dividing key.
+                            // Any key/value pair in `buf` that is larger than
+                            // `key_in_middle` must have come from `sib_buf`.
+                            rassert(key_in_middle.compare(replacement_key_buffer) <= 0);
+                            for (auto it = leaf::begin(*leaf);
+                                 it != leaf::end(*leaf);
+                                 ++it) {
+                                store_key_t entry_key((*it).first);
+                                if (entry_key.compare(key_in_middle) > 0) {
+                                    detacher->delete_value(buf_parent_t(&sib_buf),
+                                                           (*it).second);
+                                }
+                            }
+                        } else {
+                            // We have moved keys from `sib_buf` into `buf`
+                            // and decreased the dividing key.
+                            // Any key/value pair in `buf` that is smaller than or
+                            // equal to `key_in_middle` must have come from `sib_buf`.
+                            rassert(key_in_middle.compare(replacement_key_buffer) >= 0);
+                            for (auto it = leaf::begin(*leaf);
+                                 it != leaf::end(*leaf);
+                                 ++it) {
+                                store_key_t entry_key((*it).first);
+                                if (entry_key.compare(key_in_middle) <= 0) {
+                                    detacher->delete_value(buf_parent_t(&sib_buf),
+                                                           (*it).second);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // We moved new subtrees or values into buf, so its recency may need to
