@@ -62,7 +62,6 @@ public:
 
 class deletion_context_t {
 public:
-    deletion_context_t() { }
     virtual ~deletion_context_t() { }
 
     // Used by btree balancing operations to detach values

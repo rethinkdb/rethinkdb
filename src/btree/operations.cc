@@ -397,6 +397,13 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
         }
     }
 
+    // If we are splitting the root, we must detach it from sb first.
+    // It will later be attached to a newly created root, together with its
+    // newly created sibling.
+    if (last_buf->empty()) {
+        sb->expose_buf().detach_child(buf->block_id());
+    }
+
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
     buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : buf_parent_t(last_buf),
@@ -534,10 +541,26 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             const repli_timestamp_t buf_recency = buf->get_recency();
             const repli_timestamp_t sib_buf_recency = sib_buf.get_recency();
 
+            // Nodes must be passed to merge in ascending order.
             // Make it such that we always merge from sib_buf into buf. It
             // simplifies the code below.
             if (nodecmp_node_with_sib < 0) {
                 buf->swap(sib_buf);
+            }
+
+            bool parent_is_singleton;
+            {
+                buf_read_t last_buf_read(last_buf);
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                parent_is_singleton = internal_node::is_singleton(parent_node);
+            }
+            if (parent_is_singleton) {
+                // `buf` will get a new parent below. Detach it from its old one.
+                // We can't detach it later because it's value will already have
+                // been changed by then.
+                // And I guess that would be bad, wouldn't it?
+                last_buf->detach_child(buf->block_id());
             }
 
             {
@@ -570,14 +593,6 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             // it was before) and the current txn's recency.
             buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
 
-            bool parent_is_singleton;
-            {
-                buf_read_t last_buf_read(last_buf);
-                const internal_node_t *parent_node
-                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
-                parent_is_singleton = internal_node::is_singleton(parent_node);
-            }
-
             if (!parent_is_singleton) {
                 buf_write_t last_buf_write(last_buf);
                 internal_node::remove(sizer->block_size(),
@@ -587,6 +602,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
+                // This is why we had detached `buf` from `last_buf` earlier.
                 last_buf->mark_deleted();
                 insert_root(buf->block_id(), sb);
             }
@@ -608,8 +624,8 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                   static_cast<node_t *>(sib_buf_write.get_data_write()),
                                   replacement_key, parent_node);
                 if (leveled) {
-                    // Detach values that were removed from one of the nodes, if the
-                    // node is a leaf:
+                    // In case of a leaf node: Detach values that were removed from
+                    // `sib_buf`:
                     buf_read_t buf_read(buf);
                     const node_t *node =
                         static_cast<const node_t *>(buf_read.get_data_read());
