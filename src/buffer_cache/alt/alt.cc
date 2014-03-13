@@ -260,11 +260,10 @@ const char *show(access_t access) {
 #endif
 
 alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
-                                                 block_id_t child_id,
-                                                 cache_account_t *account) {
+                                                 block_id_t child_id) {
     // KSI: This allocation is sometimes just unnecessary, right?
     auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
-                                               account, read_access_t::read);
+                                               read_access_t::read);
 
     alt_snapshot_node_t *child
         = cache->matching_snapshot_node_or_null(child_id, acq->block_version());
@@ -284,8 +283,7 @@ alt_snapshot_node_t *buf_lock_t::help_make_child(cache_t *cache,
 alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
-                                              block_id_t child_id,
-                                              cache_account_t *account) {
+                                              block_id_t child_id) {
     ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
@@ -295,7 +293,7 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
         //
         // [1] assuming the cache is used proprely, with the child always acquired
         // via the parent, or detached, before modification
-        alt_snapshot_node_t *child = help_make_child(cache, child_id, account);
+        alt_snapshot_node_t *child = help_make_child(cache, child_id);
 
         child->ref_count_++;
         parent->children_.insert(std::make_pair(child_id, child));
@@ -321,8 +319,7 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
 void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
                                                    block_version_t parent_version,
                                                    block_id_t parent_id,
-                                                   block_id_t child_id,
-                                                   cache_account_t *account) {
+                                                   block_id_t child_id) {
     ASSERT_FINITE_CORO_WAITING;
     // We create at most one child snapshot node.
 
@@ -341,7 +338,7 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
         }
 
         if (child == NULL) {
-            child = help_make_child(cache, child_id, account);
+            child = help_make_child(cache, child_id);
         }
 
         child->ref_count_++;
@@ -384,8 +381,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_,
-                                                block_id,
-                                                txn_->account());
+                                                block_id);
         guarantee(snapshot_node_ != NULL,
                   "Tried to acquire (in cache %p) a deleted block (%" PRIu64
                   " as child of %" PRIu64 ") (with read access).",
@@ -397,11 +393,10 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
             create_child_snapshot_attachments(txn_->cache(),
                                               parent.lock_or_null_->current_page_acq()->block_version(),
                                               parent.lock_or_null_->block_id(),
-                                              block_id,
-                                              txn_->account());
+                                              block_id);
         }
         current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
-                                                      access, txn_->account()));
+                                                      access));
     }
 
 #if ALT_DEBUG
@@ -447,7 +442,6 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   block_id,
                                                   access_t::write,
-                                                  txn_->account(),
                                                   alt::page_create_t::yes));
 
     if (parent.lock_or_null_ != NULL) {
@@ -664,8 +658,7 @@ void buf_lock_t::detach_child(block_id_t child_id) {
             cache(),
             current_page_acq()->block_version(),
             block_id(),
-            child_id,
-            cache()->page_cache_.default_reads_account());
+            child_id);
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {

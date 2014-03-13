@@ -70,7 +70,7 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
     assert_thread();
-    if (page->destroy_ptr_ != NULL || !page->waiters_.empty()) {
+    if (page->loader_ != NULL || !page->waiters_.empty()) {
         return &unevictable_;
     } else if (!page->buf_.has()) {
         return &evicted_;
