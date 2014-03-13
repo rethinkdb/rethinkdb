@@ -35,32 +35,32 @@ private:
 static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 1;
 
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
-               cache_account_t *account, load_when_t load_when)
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache, load_deferred_t)
     : loader_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
 
-    switch (load_when) {
-    case load_when_t::immediately:
-        coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
-                                                this,
-                                                block_id,
-                                                page_cache,
-                                                account));
-        break;
-    case load_when_t::defer:
-        coro_t::spawn_now_dangerously(std::bind(&page_t::deferred_load_with_block_id,
-                                                this,
-                                                block_id,
-                                                page_cache,
-                                                account));
-        break;
-    default:
-        unreachable();
-    }
+    coro_t::spawn_now_dangerously(std::bind(&page_t::deferred_load_with_block_id,
+                                            this,
+                                            block_id,
+                                            page_cache));
+}
+
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
+               cache_account_t *account, load_immediately_t)
+    : loader_(NULL),
+      ser_buf_size_(0),
+      access_time_(page_cache->evicter().next_access_time()),
+      snapshot_refcount_(0) {
+    page_cache->evicter().add_not_yet_loaded(this);
+
+    coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
+                                            this,
+                                            block_id,
+                                            page_cache,
+                                            account));
 }
 
 page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
@@ -254,10 +254,8 @@ void page_t::catch_up_with_deferred_load(
 }
 
 
-// RSI: Unused parameter.
 void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
-                                         page_cache_t *page_cache,
-                                         UNUSED cache_account_t *account) {
+                                         page_cache_t *page_cache) {
     // This is called using spawn_now_dangerously.  We need to set
     // loader_ before blocking the coroutine.
     deferred_page_loader_t loader(page);

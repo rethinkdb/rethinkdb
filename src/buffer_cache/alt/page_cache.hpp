@@ -98,7 +98,11 @@ private:
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
 
     void convert_from_serializer_if_necessary(current_page_help_t help,
-                                              cache_account_t *account);
+                                              cache_account_t *account,
+                                              load_immediately_t immediately);
+
+    void convert_from_serializer_if_necessary(current_page_help_t help,
+                                              load_deferred_t deferred);
 
     void mark_deleted(current_page_help_t help);
 

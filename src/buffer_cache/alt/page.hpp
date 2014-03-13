@@ -21,14 +21,17 @@ class deferred_block_token_t;
 // instead).
 enum class load_when_t { defer, immediately };
 
+enum class load_deferred_t { defer };
+enum class load_immediately_t { immediately };
+
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
 class page_t {
 public:
-    // RSI: Remove default parameter.
+    page_t(block_id_t block_id, page_cache_t *page_cache, load_deferred_t deferred);
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account,
-           load_when_t load_when = load_when_t::defer);
+           load_immediately_t immediately);
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
     page_t(scoped_malloc_t<ser_buffer_t> buf,
@@ -68,8 +71,7 @@ private:
             cache_account_t *account);
 
     static void deferred_load_with_block_id(page_t *page, block_id_t block_id,
-                                            page_cache_t *page_cache,
-                                            cache_account_t *account);
+                                            page_cache_t *page_cache);
 
 
     static void load_with_block_id(page_t *page,
