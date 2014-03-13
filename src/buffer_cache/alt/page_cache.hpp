@@ -310,7 +310,7 @@ public:
     size_t total_page_memory() const;
     size_t evictable_page_memory() const;
 
-    block_size_t max_block_size() const;
+    block_size_t max_block_size() const { return max_block_size_; }
 
     cache_account_t create_cache_account(int priority);
 
@@ -394,6 +394,7 @@ private:
     void resize_current_pages_to_id(block_id_t block_id);
 
     const page_cache_config_t dynamic_config_;
+    const block_size_t max_block_size_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
     // flushes.  The rationale behind this is that reads are almost always blocking

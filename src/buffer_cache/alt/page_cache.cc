@@ -142,6 +142,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
                            memory_tracker_t *tracker)
     : dynamic_config_(config),
+      max_block_size_(serializer->max_block_size()),
       serializer_(serializer),
       free_list_(serializer),
       evicter_(tracker, config.memory_limit),
@@ -286,27 +287,22 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
     // where we write uninitialized data to disk.
-    memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
+    memset(buf.get()->cache_data, 0xCD, max_block_size_.value());
 #endif
 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(serializer_->max_block_size(),
+            new current_page_t(max_block_size_,
                                std::move(buf),
                                this);
     } else {
-        current_pages_[block_id]->make_non_deleted(serializer_->max_block_size(),
+        current_pages_[block_id]->make_non_deleted(max_block_size_,
                                                    std::move(buf),
                                                    this);
     }
 
     return current_pages_[block_id];
-}
-
-block_size_t page_cache_t::max_block_size() const {
-    assert_thread();
-    return serializer_->max_block_size();
 }
 
 cache_account_t page_cache_t::create_cache_account(int priority) {
@@ -759,7 +755,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                     // KSI: This should actually _not_ exist -- we are ignoring
                     // legitimate errors where we write uninitialized data to disk.
                     memset(buf.get()->cache_data, 0xCD,
-                           help.page_cache->serializer()->max_block_size().value());
+                           help.page_cache->max_block_size().value());
 #endif
 
                     make_non_deleted(help.page_cache->max_block_size(),
