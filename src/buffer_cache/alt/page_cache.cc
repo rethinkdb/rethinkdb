@@ -347,10 +347,9 @@ current_page_acq_t::current_page_acq_t()
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        access_t access,
-                                       cache_account_t *account,
                                        page_create_t create)
     : page_cache_(NULL), the_txn_(NULL) {
-    init(txn, block_id, access, account, create);
+    init(txn, block_id, access, create);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
@@ -361,20 +360,18 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
 
 current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
                                        block_id_t block_id,
-                                       cache_account_t *account,
                                        read_access_t read)
     : page_cache_(NULL), the_txn_(NULL) {
-    init(page_cache, block_id, account, read);
+    init(page_cache, block_id, read);
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
                               access_t access,
-                              cache_account_t *account,
                               page_create_t create) {
     if (access == access_t::read) {
         rassert(create == page_create_t::no);
-        init(txn->page_cache(), block_id, account, read_access_t::read);
+        init(txn->page_cache(), block_id, read_access_t::read);
     } else {
         txn->page_cache()->assert_thread();
         guarantee(page_cache_ == NULL);
@@ -391,7 +388,7 @@ void current_page_acq_t::init(page_txn_t *txn,
         dirtied_page_ = false;
 
         the_txn_->add_acquirer(this);
-        current_page_->add_acquirer(this, account);
+        current_page_->add_acquirer(this);
     }
 }
 
@@ -407,12 +404,11 @@ void current_page_acq_t::init(page_txn_t *txn,
     dirtied_page_ = false;
 
     the_txn_->add_acquirer(this);
-    current_page_->add_acquirer(this, page_cache_->default_reads_account());
+    current_page_->add_acquirer(this);
 }
 
 void current_page_acq_t::init(page_cache_t *page_cache,
                               block_id_t block_id,
-                              cache_account_t *account,
                               read_access_t) {
     page_cache->assert_thread();
     guarantee(page_cache_ == NULL);
@@ -424,7 +420,7 @@ void current_page_acq_t::init(page_cache_t *page_cache,
     current_page_ = page_cache_->page_for_block_id(block_id);
     dirtied_page_ = false;
 
-    current_page_->add_acquirer(this, account);
+    current_page_->add_acquirer(this);
 }
 
 current_page_acq_t::~current_page_acq_t() {
@@ -445,7 +441,7 @@ void current_page_acq_t::declare_readonly() {
     assert_thread();
     access_ = access_t::read;
     if (current_page_ != NULL) {
-        current_page_->pulse_pulsables(this, page_cache_->default_reads_account());
+        current_page_->pulse_pulsables(this);
     }
 }
 
@@ -457,7 +453,7 @@ void current_page_acq_t::declare_snapshotted() {
     if (!declared_snapshotted_) {
         declared_snapshotted_ = true;
         rassert(current_page_ != NULL);
-        current_page_->pulse_pulsables(this, page_cache_->default_reads_account());
+        current_page_->pulse_pulsables(this);
     }
 }
 
@@ -609,8 +605,7 @@ void current_page_t::make_non_deleted(block_size_t block_size,
     page_.init(new page_t(block_size, std::move(buf), page_cache), page_cache);
 }
 
-void current_page_t::add_acquirer(current_page_acq_t *acq,
-                                  cache_account_t *account) {
+void current_page_t::add_acquirer(current_page_acq_t *acq) {
     const block_version_t prev_version = last_write_acquirer_version_;
 
     if (acq->access_ == access_t::write) {
@@ -651,14 +646,14 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
     }
 
     acquirers_.push_back(acq);
-    pulse_pulsables(acq, account);
+    pulse_pulsables(acq);
 }
 
 void current_page_t::remove_acquirer(current_page_acq_t *acq) {
     current_page_acq_t *next = acquirers_.next(acq);
     acquirers_.remove(acq);
     if (next != NULL) {
-        pulse_pulsables(next, acq->page_cache()->default_reads_account());
+        pulse_pulsables(next);
     } else {
         if (is_deleted_) {
             acq->page_cache()->free_list()->release_block_id(acq->block_id());
@@ -666,8 +661,7 @@ void current_page_t::remove_acquirer(current_page_acq_t *acq) {
     }
 }
 
-void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
-                                     cache_account_t *account) {
+void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     const current_page_help_t help = acq->help();
 
     // First, avoid pulsing when there's nothing to pulse.
@@ -711,26 +705,9 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 // flushing its version of the page -- and if it deleted the page,
                 // this is how it learns.
 
-                // LSI: We should just gather block tokens up front, like we do with
-                // recencies, so that page_t construction never loads a page, and
-                // doesn't use an account.  Then you provide the account solely when
-                // requesting the page value.  Note that the only time the value of
-                // the account parameter is actually important is when acquiring a
-                // page -- since the acquirer wants to use the page, their account
-                // makes sense to use even if pushing some snapshotters out of the
-                // way.  If we're pulsing after _releasing_ a page, the page is
-                // probably loaded, so the account being suboptimal is not a big
-                // deal.
-
-                // LSI: Note that the fact that we always instantly try to load a
-                // page the first time we try to acquire a page for a given block id
-                // implies that buf_lock_t construction might try to load the page.
-                // This is bad, because there's some code, that merely wants to
-                // delete a page, or get its recency, that will surprisingly load it.
                 cur->snapshotted_page_.init(
                         current_recency,
-                        the_page_for_read_or_deleted(help,
-                                                     account),
+                        the_page_for_read_or_deleted(help),
                         help.page_cache);
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
@@ -799,6 +776,14 @@ void current_page_t::convert_from_serializer_if_necessary(current_page_help_t he
     }
 }
 
+void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
+    rassert(!is_deleted_);
+    if (!page_.has()) {
+        page_.init(new page_t(help.block_id, help.page_cache),
+                   help.page_cache);
+    }
+}
+
 page_t *current_page_t::the_page_for_read(current_page_help_t help,
                                           cache_account_t *account) {
     guarantee(!is_deleted_);
@@ -806,12 +791,12 @@ page_t *current_page_t::the_page_for_read(current_page_help_t help,
     return page_.get_page_for_read();
 }
 
-page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help,
-                                                     cache_account_t *account) {
+page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
     if (is_deleted_) {
         return NULL;
     } else {
-        return the_page_for_read(help, account);
+        convert_from_serializer_if_necessary(help);
+        return page_.get_page_for_read();
     }
 }
 
@@ -1140,7 +1125,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // acquired the buf, and the only way to get rid of the buf
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
-                        rassert(page->destroy_ptr_ == NULL);
+                        rassert(page->loader_ == NULL);
                         rassert(page->buf_.has());
 
                         // KSI: Is there a page_acq_t for this buf we're writing?  Is it
