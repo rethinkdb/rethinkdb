@@ -768,21 +768,18 @@ void current_page_t::mark_deleted(current_page_help_t help) {
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
-                                                          cache_account_t *account,
-                                                          load_immediately_t) {
+                                                          cache_account_t *account) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache, account,
-                              load_immediately_t::immediately),
+        page_.init(new page_t(help.block_id, help.page_cache, account),
                    help.page_cache);
     }
 }
 
-void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
-                                                          load_deferred_t) {
+void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache, load_deferred_t::defer),
+        page_.init(new page_t(help.block_id, help.page_cache),
                    help.page_cache);
     }
 }
@@ -790,7 +787,7 @@ void current_page_t::convert_from_serializer_if_necessary(current_page_help_t he
 page_t *current_page_t::the_page_for_read(current_page_help_t help,
                                           cache_account_t *account) {
     guarantee(!is_deleted_);
-    convert_from_serializer_if_necessary(help, account, load_immediately_t::immediately);
+    convert_from_serializer_if_necessary(help, account);
     return page_.get_page_for_read();
 }
 
@@ -798,7 +795,7 @@ page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
     if (is_deleted_) {
         return NULL;
     } else {
-        convert_from_serializer_if_necessary(help, load_deferred_t::defer);
+        convert_from_serializer_if_necessary(help);
         return page_.get_page_for_read();
     }
 }
@@ -806,7 +803,7 @@ page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
 page_t *current_page_t::the_page_for_write(current_page_help_t help,
                                            cache_account_t *account) {
     guarantee(!is_deleted_);
-    convert_from_serializer_if_necessary(help, account, load_immediately_t::immediately);
+    convert_from_serializer_if_necessary(help, account);
     return page_.get_page_for_write(help.page_cache, account);
 }
 

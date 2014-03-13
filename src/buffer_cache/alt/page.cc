@@ -35,7 +35,7 @@ private:
 static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 1;
 
 
-page_t::page_t(block_id_t block_id, page_cache_t *page_cache, load_deferred_t)
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : loader_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -49,7 +49,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache, load_deferred_t)
 }
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
-               cache_account_t *account, load_immediately_t)
+               cache_account_t *account)
     : loader_(NULL),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),

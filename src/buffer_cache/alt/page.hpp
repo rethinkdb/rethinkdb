@@ -17,21 +17,17 @@ class page_loader_t;
 class deferred_page_loader_t;
 class deferred_block_token_t;
 
-// Is set to "defer" if loading data should be deferred (just get the block token,
-// instead).
-enum class load_when_t { defer, immediately };
-
-enum class load_deferred_t { defer };
-enum class load_immediately_t { immediately };
-
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
 class page_t {
 public:
-    page_t(block_id_t block_id, page_cache_t *page_cache, load_deferred_t deferred);
-    page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account,
-           load_immediately_t immediately);
+    // Defers loading the block for the given block id (but does go and get its block
+    // token ASAP, so that we can't lose access to the current version of the block).
+    page_t(block_id_t block_id, page_cache_t *page_cache);
+    // Loads the block for the given block id.
+    page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
+
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
     page_t(scoped_malloc_t<ser_buffer_t> buf,
