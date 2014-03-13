@@ -90,9 +90,9 @@ public:
 private:
     // current_page_acq_t should not access our fields directly.
     friend class current_page_acq_t;
-    void add_acquirer(current_page_acq_t *acq, cache_account_t *account);
+    void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
-    void pulse_pulsables(current_page_acq_t *acq, cache_account_t *account);
+    void pulse_pulsables(current_page_acq_t *acq);
 
     page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
@@ -110,8 +110,7 @@ private:
     friend class page_txn_t;
 
     // Returns NULL if the page was deleted.
-    page_t *the_page_for_read_or_deleted(current_page_help_t help,
-                                         cache_account_t *account);
+    page_t *the_page_for_read_or_deleted(current_page_help_t help);
 
     // Has access to our fields.
     friend class page_cache_t;
@@ -157,13 +156,11 @@ public:
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        access_t access,
-                       cache_account_t *account,
                        page_create_t create = page_create_t::no);
     current_page_acq_t(page_txn_t *txn,
                        alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       cache_account_t *account,
                        read_access_t read);
     ~current_page_acq_t();
 
@@ -196,13 +193,11 @@ private:
     void init(page_txn_t *txn,
               block_id_t block_id,
               access_t access,
-              cache_account_t *account,
               page_create_t create);
     void init(page_txn_t *txn,
               alt_create_t create);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
-              cache_account_t *account,
               read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
