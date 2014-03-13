@@ -52,6 +52,13 @@ public:
     // using, of course.)
     uint32_t hypothetical_memory_usage();
 
+    bool is_loading() const { return loader_ != NULL; }
+    bool has_waiters() const { return !waiters_.empty(); }
+    bool is_evicted() const { return !buf_.has(); }
+    bool is_disk_backed() const { return block_token_.has(); }
+
+    void evict_self();
+
 private:
     friend class page_ptr_t;
     friend class deferred_page_loader_t;
@@ -89,11 +96,8 @@ private:
                                        cache_account_t *account);
 
     friend class page_cache_t;
-    friend class evicter_t; // RSI remove.
     friend class eviction_bag_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
-
-    void evict_self();
 
     // KSI: Explain this more.
     // One of loader_, buf_, or block_token_ is non-null.

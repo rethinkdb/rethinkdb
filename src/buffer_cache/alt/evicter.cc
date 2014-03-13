@@ -70,11 +70,11 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
     assert_thread();
-    if (page->loader_ != NULL || !page->waiters_.empty()) {
+    if (page->is_loading() || page->has_waiters()) {
         return &unevictable_;
-    } else if (!page->buf_.has()) {
+    } else if (page->is_evicted()) {
         return &evicted_;
-    } else if (page->block_token_.has()) {
+    } else if (page->is_disk_backed()) {
         return &evictable_disk_backed_;
     } else {
         return &evictable_unbacked_;
@@ -83,8 +83,6 @@ eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
 
 void evicter_t::remove_page(page_t *page) {
     assert_thread();
-    rassert(page->waiters_.empty());
-    rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->hypothetical_memory_usage());
     inform_tracker();

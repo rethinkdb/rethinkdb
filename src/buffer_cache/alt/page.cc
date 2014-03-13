@@ -106,6 +106,8 @@ page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *accoun
 }
 
 page_t::~page_t() {
+    rassert(waiters_.empty());
+    rassert(snapshot_refcount_ == 0);
     if (loader_ != NULL) {
         loader_->mark_abandon_page();
     }
@@ -486,7 +488,7 @@ void page_t::remove_waiter(page_acq_t *acq) {
 }
 
 void page_t::evict_self() {
-    // A page_t can only self-evict if it has a block token.
+    // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());
     rassert(buf_.has());
