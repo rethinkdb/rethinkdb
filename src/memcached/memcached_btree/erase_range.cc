@@ -21,7 +21,7 @@ void memcached_erase_range(key_tester_t *tester,
         value_sizer_t<memcached_value_t> *sizer_;
         void delete_value(buf_parent_t leaf_node, const void *value) const {
             // To not destroy constness, we operate on a copy of the value
-            scoped_malloc_t<memcached_value_t> value_copy(sizer_->size(value));
+            scoped_malloc_t<memcached_value_t> value_copy(sizer_->max_possible_size());
             memcpy(value_copy.get(), value, sizer_->size(value));
             blob_t blob(leaf_node.cache()->get_block_size(),
                         value_copy->value_ref(),

@@ -536,7 +536,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) const {
     // To not destroy constness, we operate on a copy of the value
     value_sizer_t<rdb_value_t> sizer(parent.cache()->get_block_size());
-    scoped_malloc_t<rdb_value_t> value_copy(sizer.size(value));
+    scoped_malloc_t<rdb_value_t> value_copy(sizer.max_possible_size());
     memcpy(value_copy.get(), value, sizer.size(value));
     actually_delete_rdb_value(parent, value_copy.get());
 }

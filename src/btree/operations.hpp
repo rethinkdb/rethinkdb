@@ -218,7 +218,8 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 buf_lock_t *buf,
                                 buf_lock_t *last_buf,
                                 superblock_t *sb,
-                                const btree_key_t *key);
+                                const btree_key_t *key,
+                                const value_deleter_t *detacher);
 
 // Metainfo functions
 bool get_superblock_metainfo(buf_lock_t *superblock,
