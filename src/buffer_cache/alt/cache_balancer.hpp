@@ -96,7 +96,7 @@ private:
     static const uint64_t rebalance_access_count_threshold;
     static const uint64_t rebalance_timeout_ms;
     static const uint64_t rebalance_check_interval_ms;
-    
+
     // Constants to determine when to stop read-ahead
     static const uint64_t read_ahead_ratio_numerator;
     static const uint64_t read_ahead_ratio_denominator;
