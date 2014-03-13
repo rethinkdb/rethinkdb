@@ -61,7 +61,7 @@ struct leaf_node_t {
     //Iteration
     typedef leaf::iterator iterator;
     typedef leaf::reverse_iterator reverse_iterator;
-};
+} __attribute__ ((__packed__));
 
 namespace leaf {
 

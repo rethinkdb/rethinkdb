@@ -197,9 +197,10 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             rdb_modification_info_t mod_info;
 
             store_key_t key("foo");
+            rdb_live_deletion_context_t deletion_context;
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid,
-                    sindex_super_block.get(), &response,
+                    sindex_super_block.get(), &deletion_context, &response,
                     &mod_info, static_cast<profile::trace_t *>(NULL));
         }
 
@@ -246,14 +247,14 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
 
-        rdb_value_deleter_t deleter;
-
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
 
-        store.drop_sindex(
-                *it, &sindex_block, &sizer, &deleter, &dummy_interruptor);
+        rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_construction_deletion_context;
+        store.drop_sindex(*it, &sindex_block, &sizer, &live_deletion_context,
+                          &post_construction_deletion_context, &dummy_interruptor);
     }
 }
 

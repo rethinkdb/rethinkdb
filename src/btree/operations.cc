@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "btree/btree_store.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
@@ -369,11 +370,14 @@ buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
+// `detacher` is used to detach any values that are removed from `buf`, in
+// case `buf` is a leaf.
 void check_and_handle_split(value_sizer_t<void> *sizer,
                             buf_lock_t *buf,
                             buf_lock_t *last_buf,
                             superblock_t *sb,
-                            const btree_key_t *key, void *new_value) {
+                            const btree_key_t *key, void *new_value,
+                            const value_deleter_t *detacher) {
     {
         buf_read_t buf_read(buf);
         const node_t *node = static_cast<const node_t *>(buf_read.get_data_read());
@@ -414,6 +418,23 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     // of buf's subtrees.)
     rbuf.manually_touch_recency(superceding_recency(rbuf.get_recency(),
                                                     buf->get_recency()));
+
+    if (detacher != NULL) {
+        // If we split a leaf node, we must detach all values that we have removed
+        // from `buf`.
+        buf_write_t buf_write(buf); // <-- just to guarantee that we still have a
+                                    //     write lock on `buf`.
+        buf_read_t rbuf_read(&rbuf);
+        const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
+        if (node::is_leaf(node)) {
+            const leaf_node_t *leaf =
+                static_cast<const leaf_node_t *>(rbuf_read.get_data_read());
+            // Detach the values that are now in `rbuf` with buf as their parent.
+            for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
+                detacher->delete_value(buf_parent_t(buf), (*it).second);
+            }
+        }
+    }
 
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {

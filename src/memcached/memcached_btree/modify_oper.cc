@@ -17,7 +17,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, store_key.btree_key(),
+    find_keyvalue_location_for_write(superblock, store_key.btree_key(), NULL,
                                      &kv_location, &slice->stats,
                                      static_cast<profile::trace_t *>(NULL),
                                      pass_back_superblock);
@@ -52,7 +52,8 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
         kv_location.value = std::move(the_value);
         null_key_modification_callback_t<memcached_value_t> null_cb;
         apply_keyvalue_change(&kv_location, store_key.btree_key(), timestamp,
-                              expired ? expired_t::YES : expired_t::NO, &null_cb);
+                              expired ? expired_t::YES : expired_t::NO, NULL,
+                              &null_cb);
     }
 }
 

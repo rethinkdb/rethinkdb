@@ -217,8 +217,8 @@ public:
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
-        noop_value_deleter_t no_deleter;
-        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &no_deleter, &no_deleter);
+        rdb_post_construction_deletion_context_t deletion_context;
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deletion_context);
     }
 
     void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {
@@ -1384,9 +1384,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
 
+        rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
-                res, &mod_report.info, ql_env.trace.get_or_null());
+                &deletion_context, res, &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
     }
@@ -1396,9 +1397,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
 
+        rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
-        rdb_delete(d.key, btree, timestamp, superblock->get(), res,
-                &mod_report.info, ql_env.trace.get_or_null());
+        rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
+                res, &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
     }
@@ -1433,12 +1435,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
-        rdb_value_detacher_t deleter;
+        rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_construction_deletion_context;
 
         res.success = store->drop_sindex(d.id,
                                          &sindex_block,
                                          &sizer,
-                                         &deleter,
+                                         &live_deletion_context,
+                                         &post_construction_deletion_context,
                                          &interruptor);
 
         response->response = res;
@@ -1508,7 +1512,8 @@ private:
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
                                                                      &sindexes);
-        rdb_update_sindexes(sindexes, mod_report, txn);
+        rdb_live_deletion_context_t deletion_context;
+        rdb_update_sindexes(sindexes, mod_report, txn, &deletion_context);
     }
 
     btree_slice_t *btree;
@@ -1668,9 +1673,9 @@ void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
                                    promise_t<superblock_t *> *superblock_promise_out) {
     mod_report_out->primary_key = bf_atom.key;
     point_write_response_t response;
+    rdb_live_deletion_context_t deletion_context;
     rdb_set(bf_atom.key, bf_atom.value, true,
-            btree, bf_atom.recency,
-            superblock, &response,
+            btree, bf_atom.recency, superblock, &deletion_context, &response,
             &mod_report_out->info, static_cast<profile::trace_t *>(NULL),
             superblock_promise_out);
 }
@@ -1692,18 +1697,21 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t response;
         std::vector<rdb_modification_report_t> mod_reports(1);
         mod_reports[0].primary_key = delete_key.key;
+        rdb_live_deletion_context_t deletion_context;
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   superblock.get(), &response, &mod_reports[0].info,
-                   static_cast<profile::trace_t *>(NULL));
+                   superblock.get(), &deletion_context, &response,
+                   &mod_reports[0].info, static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
         range_key_tester_t tester(&delete_range.range);
+        rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
         rdb_erase_small_range(&tester, delete_range.range.inner,
-                              superblock.get(), interruptor, &mod_reports);
+                              superblock.get(), &deletion_context, interruptor,
+                              &mod_reports);
         update_sindexes(mod_reports);
     }
 
@@ -1730,9 +1738,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
-        rdb_value_detacher_t deleter;
+        rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_construction_deletion_context;
         std::set<std::string> created_sindexes;
-        store->set_sindexes(s.sindexes, &sindex_block, &sizer, &deleter,
+        store->set_sindexes(s.sindexes, &sindex_block, &sizer,
+                            &live_deletion_context,
+                            &post_construction_deletion_context,
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
@@ -1755,12 +1766,13 @@ private:
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
+        rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_reports[i]);
             store->sindex_queue_push(wm, &acq);
 
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn);
+            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
 

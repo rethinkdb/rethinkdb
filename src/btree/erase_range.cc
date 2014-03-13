@@ -2,13 +2,14 @@
 #include "btree/erase_range.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
+#include "btree/btree_store.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/fifo_checker.hpp"
 
-void noop_value_deleter_t::delete_value(buf_parent_t, void *) const { }
+void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
 
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
