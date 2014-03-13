@@ -441,8 +441,7 @@ void optimizer_t::swap_if_other_better(
         }
     }
 }
-counted_t<const datum_t> optimizer_t::unpack(
-    const char *name) {
+counted_t<const datum_t> optimizer_t::unpack(const char *name) {
     r_sanity_check(val.has() == row.has());
     rcheck_datum(
         row.has(), base_exc_t::NON_EXISTENCE,
