@@ -681,6 +681,10 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
+class Random(RqlTopLevelQuery):
+    tt = p.Term.RANDOM
+    st = "random"
+
 class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT
     st = "default"

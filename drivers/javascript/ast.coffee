@@ -458,6 +458,10 @@ class UserError extends RDBOp
     tt: protoTermType.ERROR
     st: 'error'
 
+class Random extends RDBOp
+    tt: protoTermType.RANDOM
+    st: 'random'
+
 class ImplicitVar extends RDBOp
     tt: protoTermType.IMPLICIT_VAR
     compose: -> ['r.row']
@@ -1003,6 +1007,20 @@ rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
 rethinkdb.json = ar (jsonsrc) -> new Json {}, jsonsrc
 
 rethinkdb.error = varar 0, 1, (args...) -> new UserError {}, args...
+
+rethinkdb.random = (limitsAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        limits = limitsAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = limitsAndOpts[limitsAndOpts.length - 1]
+        if perhapsOptDict and
+                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+            opts = perhapsOptDict
+            limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
+
+        new Random opts, limits...
 
 rethinkdb.row = new ImplicitVar {}
 

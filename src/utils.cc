@@ -244,6 +244,15 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+uint64_t rng_t::randuint64(uint64_t n) {
+    uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
+    uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
+    uint64_t x = x_high;
+    x <<= 32;
+    x += x_low;
+    return x % n;
+}
+
 double rng_t::randdouble() {
     return erand48(xsubi);
 }
@@ -272,6 +281,24 @@ int randint(int n) {
         buffer = TLS_get_rng_data();
     }
     long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
+    TLS_set_rng_data(buffer);
+    return x % n;
+}
+
+uint64_t randuint64(uint64_t n) {
+    nrand_xsubi_t buffer;
+    if (!TLS_get_rng_initialized()) {
+        CT_ASSERT(sizeof(buffer.xsubi) == 6);
+        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
+        TLS_set_rng_initialized(true);
+    } else {
+        buffer = TLS_get_rng_data();
+    }
+    uint32_t x_low = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
+    uint32_t x_high = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
+    uint64_t x = x_high;
+    x <<= 32;
+    x += x_low;
     TLS_set_rng_data(buffer);
     return x % n;
 }

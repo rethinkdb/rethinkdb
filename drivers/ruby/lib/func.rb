@@ -33,7 +33,8 @@ module RethinkDB
       :orderby => -1,
       :group => -1,
       :iso8601 => -1,
-      :index_create => -1
+      :index_create => -1,
+      :random => -1
     }
     @@method_aliases = {
       :lt => :<,

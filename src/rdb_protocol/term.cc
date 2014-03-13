@@ -25,6 +25,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::ERROR:              return make_error_term(env, t);
     case Term::IMPLICIT_VAR:       return make_implicit_var_term(env, t);
+    case Term::RANDOM:             return make_random_term(env, t);
     case Term::DB:                 return make_db_term(env, t);
     case Term::TABLE:              return make_table_term(env, t);
     case Term::GET:                return make_get_term(env, t);
