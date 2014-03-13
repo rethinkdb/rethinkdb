@@ -4,6 +4,7 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <set>
 
 #include "btree/node.hpp"
 #include "repli_timestamp.hpp"
@@ -681,9 +682,12 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
                    std::vector<const void *> *moved_values_out = NULL) {
     rassert(is_underfull(sizer, tow));
     rassert(end >= beg);
-    if (moved_values_out != NULL) {
-        moved_values_out->reserve(end - beg);
-    }
+    // Use a set to store values that should go into moved_values_out,
+    // because we sometimes have to replace offsets in the process and don't
+    // want to do O(n) searches.
+    // For simplicity reasons, we also collect offsets in tow first, and convert
+    // them into value pointer at the end.
+    std::set<int> moved_values_set;
 
     // This assertion is a bit loose.
     rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
@@ -782,7 +786,7 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
 
             if (moved_values_out != NULL && entry_is_live(get_entry(tow, wri_offset))) {
-                moved_values_out->push_back(entry_value(get_entry(tow, wri_offset)));
+                moved_values_set.insert(wri_offset);
             }
 
             wri_offset += sz;
@@ -801,13 +805,16 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
                     break;
                 }
             }
+            if (moved_values_out != NULL) {
+                auto it = moved_values_set.find(tow_offset);
+                if (it != moved_values_set.end()) {
+                    moved_values_set.erase(tow_offset);
+                    moved_values_set.insert(wri_offset);
+                }
+            }
 
             // Make sure we updated something.
             rassert(i != num_adjustable_tow_offsets);
-
-            if (moved_values_out != NULL && entry_is_live(get_entry(tow, wri_offset))) {
-                moved_values_out->push_back(entry_value(get_entry(tow, wri_offset)));
-            }
 
             wri_offset += sz;
             tow_offset += sz;
@@ -829,7 +836,7 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
 
             if (moved_values_out != NULL) {
-                moved_values_out->push_back(entry_value(get_entry(tow, wri_offset)));
+                moved_values_set.insert(wri_offset);
             }
 
             wri_offset += sz;
@@ -866,13 +873,16 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
                     break;
                 }
             }
+            if (moved_values_out != NULL) {
+                auto it = moved_values_set.find(tow_offset);
+                if (it != moved_values_set.end()) {
+                    moved_values_set.erase(tow_offset);
+                    moved_values_set.insert(wri_offset);
+                }
+            }
 
             // Make sure we updated something.
             rassert(i != num_adjustable_tow_offsets);
-
-            if (moved_values_out != NULL) {
-                moved_values_out->push_back(entry_value(get_entry(tow, wri_offset)));
-            }
 
             wri_offset += sz;
         } else {
@@ -930,6 +940,14 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             }
         }
         tow->num_pairs = j;
+    }
+
+    if (moved_values_out != NULL) {
+        moved_values_out->reserve(moved_values_set.size());
+        // Convert offsets into value pointers
+        for (auto it = moved_values_set.begin(); it != moved_values_set.end(); ++it) {
+            moved_values_out->push_back(entry_value(get_entry(tow, *it)));
+        }
     }
 
     validate(sizer, fro);
