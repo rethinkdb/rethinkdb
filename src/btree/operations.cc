@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "btree/btree_store.hpp"
+#include "btree/internal_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
@@ -419,16 +420,24 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                     static_cast<node_t *>(rbuf_write.get_data_write()),
                     median);
 
-        // If we split a leaf node, we must detach all values that we have removed
-        // from `buf`.
+        // We must detach all values that we have removed from `buf`.
         buf_read_t rbuf_read(&rbuf);
         const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
         if (node::is_leaf(node)) {
             const leaf_node_t *leaf =
                 static_cast<const leaf_node_t *>(rbuf_read.get_data_read());
-            // Detach the values that are now in `rbuf` with buf as their parent.
+            // Detach the values that are now in `rbuf` with `buf` as their parent.
             for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
                 detacher->delete_value(buf_parent_t(buf), (*it).second);
+            }
+        } else {
+            const internal_node_t *internal =
+                static_cast<const internal_node_t *>(rbuf_read.get_data_read());
+            // Detach the values that are now in `rbuf` with `buf` as their parent.
+            for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
+                block_id_t child_id =
+                    internal_node::get_pair_by_index(internal, pair_idx)->lnode;
+                buf->detach_child(child_id);
             }
         }
     }
@@ -553,11 +562,15 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 buf_read_t last_buf_read(last_buf);
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                // TODO (daniel): `is_singleton()` is a bad name. What it really
+                //    means is `is_doubleton()`, or
+                //    `will_be_singleton_after_removing_one_more_child()` (not that
+                //    I'm suggesting using that as its name)
                 parent_is_singleton = internal_node::is_singleton(parent_node);
             }
             if (parent_is_singleton) {
                 // `buf` will get a new parent below. Detach it from its old one.
-                // We can't detach it later because it's value will already have
+                // We can't detach it later because its value will already have
                 // been changed by then.
                 // And I guess that would be bad, wouldn't it?
                 last_buf->detach_child(buf->block_id());
@@ -567,7 +580,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 buf_write_t sib_buf_write(&sib_buf);
                 buf_write_t buf_write(buf);
                 buf_read_t last_buf_read(last_buf);
-                // If we merge leaf nodes, detach all values in `sib_buf`
+                // Detach all values / children in `sib_buf`
                 buf_read_t sib_buf_read(&sib_buf);
                 const node_t *node =
                     static_cast<const node_t *>(sib_buf_read.get_data_read());
@@ -576,6 +589,14 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                         static_cast<const leaf_node_t *>(sib_buf_read.get_data_read());
                     for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
                         detacher->delete_value(buf_parent_t(&sib_buf), (*it).second);
+                    }
+                } else {
+                    const internal_node_t *internal =
+                        static_cast<const internal_node_t *>(sib_buf_read.get_data_read());
+                    for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
+                        block_id_t child_id =
+                            internal_node::get_pair_by_index(internal, pair_idx)->lnode;
+                        sib_buf.detach_child(child_id);
                     }
                 }
                 const internal_node_t *parent_node
@@ -613,56 +634,43 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
             bool leveled;
             {
+                bool is_internal;
+                {
+                    buf_read_t buf_read(buf);
+                    const node_t *node =
+                        static_cast<const node_t *>(buf_read.get_data_read());
+                    is_internal = node::is_internal(node);
+                }
                 buf_write_t buf_write(buf);
                 buf_write_t sib_buf_write(&sib_buf);
                 buf_read_t last_buf_read(last_buf);
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
-                leveled
-                    = node::level(sizer, nodecmp_node_with_sib,
-                                  static_cast<node_t *>(buf_write.get_data_write()),
-                                  static_cast<node_t *>(sib_buf_write.get_data_write()),
-                                  replacement_key, parent_node);
-                if (leveled) {
-                    // In case of a leaf node: Detach values that were removed from
-                    // `sib_buf`:
-                    buf_read_t buf_read(buf);
-                    const node_t *node =
-                        static_cast<const node_t *>(buf_read.get_data_read());
-                    if (node::is_leaf(node)) {
-                        const leaf_node_t *leaf =
-                            static_cast<const leaf_node_t *>(buf_read.get_data_read());
-                        if (nodecmp_node_with_sib < 0) {
-                            // We have moved keys from `sib_buf` into `buf`
-                            // and increased the dividing key.
-                            // Any key/value pair in `buf` that is larger than
-                            // `key_in_middle` must have come from `sib_buf`.
-                            rassert(key_in_middle.compare(replacement_key_buffer) <= 0);
-                            for (auto it = leaf::begin(*leaf);
-                                 it != leaf::end(*leaf);
-                                 ++it) {
-                                store_key_t entry_key((*it).first);
-                                if (entry_key.compare(key_in_middle) > 0) {
-                                    detacher->delete_value(buf_parent_t(&sib_buf),
-                                                           (*it).second);
-                                }
-                            }
-                        } else {
-                            // We have moved keys from `sib_buf` into `buf`
-                            // and decreased the dividing key.
-                            // Any key/value pair in `buf` that is smaller than or
-                            // equal to `key_in_middle` must have come from `sib_buf`.
-                            rassert(key_in_middle.compare(replacement_key_buffer) >= 0);
-                            for (auto it = leaf::begin(*leaf);
-                                 it != leaf::end(*leaf);
-                                 ++it) {
-                                store_key_t entry_key((*it).first);
-                                if (entry_key.compare(key_in_middle) <= 0) {
-                                    detacher->delete_value(buf_parent_t(&sib_buf),
-                                                           (*it).second);
-                                }
-                            }
-                        }
+                // We handle internal and leaf nodes separately because of the
+                // different ways their children have to be detached.
+                // (for internal nodes: call detach_child directly vs. for leaf
+                //  nodes: use the supplied value_deleter_t (which might either
+                //  detach the children as well or do nothing))
+                if (is_internal) {
+                    std::vector<block_id_t> moved_children;
+                    leveled = internal_node::level(sizer->block_size(),
+                            static_cast<internal_node_t *>(buf_write.get_data_write()),
+                            static_cast<internal_node_t *>(sib_buf_write.get_data_write()),
+                            replacement_key, parent_node, &moved_children);
+                    // Detach children that have been removed from `sib_buf`:
+                    for (size_t i = 0; i < moved_children.size(); ++i) {
+                        sib_buf.detach_child(moved_children[i]);
+                    }
+                } else {
+                    std::vector<const void *> moved_values;
+                    leveled = leaf::level(sizer, nodecmp_node_with_sib,
+                            static_cast<leaf_node_t *>(buf_write.get_data_write()),
+                            static_cast<leaf_node_t *>(sib_buf_write.get_data_write()),
+                            replacement_key, &moved_values);
+                    // Detach values that have been removed from `sib_buf`:
+                    for (size_t i = 0; i < moved_values.size(); ++i) {
+                        detacher->delete_value(buf_parent_t(&sib_buf),
+                                               moved_values[i]);
                     }
                 }
             }
