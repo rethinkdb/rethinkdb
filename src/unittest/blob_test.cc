@@ -49,7 +49,8 @@ public:
             SCOPED_TRACE(strprintf("buffer %zu/%zu (size %zu)", i, n, buffer.size));
             ASSERT_LE(buffer.size, e - p);
             char *data = reinterpret_cast<char *>(buffer.data);
-            ASSERT_TRUE(std::equal(data, data + buffer.size, p));
+            ASSERT_EQ(std::string(p, p + buffer.size),
+                      std::string(data, data + buffer.size));
             p += buffer.size;
         }
 

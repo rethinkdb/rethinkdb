@@ -45,9 +45,13 @@ temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
                          int64_t offset, int64_t size, const block_id_t *block_ids);
 
+// touches_end_t specifies whether the [offset, offset + size) region given to
+// expose_tree_from_block_ids touches the end of the data in the blob.
+enum class touches_end_t { yes, no };
 void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
                                 int levels, int64_t offset, int64_t size,
                                 temporary_acq_tree_node_t *tree,
+                                touches_end_t touches_end,
                                 buffer_group_t *buffer_group_out,
                                 blob_acq_t *acq_group_out);
 
@@ -330,10 +334,10 @@ void blob_t::expose_region(buf_parent_t parent, access_t mode,
     } else {
         // It's large.
 
-        int levels = blob::ref_info(parent.cache()->max_block_size(),
-                                    ref_, maxreflen_).levels;
+        const int levels = blob::ref_info(parent.cache()->max_block_size(),
+                                          ref_, maxreflen_).levels;
 
-        int64_t real_offset = blob::big_offset(ref_, maxreflen_) + offset;
+        const int64_t real_offset = blob::big_offset(ref_, maxreflen_) + offset;
 
         // Acquiring is done recursively in parallel,
         temporary_acq_tree_node_t *tree
@@ -343,7 +347,11 @@ void blob_t::expose_region(buf_parent_t parent, access_t mode,
 
         // Exposing and writing to the buffer group is done serially.
         blob::expose_tree_from_block_ids(parent, mode, levels, real_offset,
-                                         size, tree, buffer_group_out,
+                                         size, tree,
+                                         size == valuesize()
+                                         ? blob::touches_end_t::yes
+                                         : blob::touches_end_t::no,
+                                         buffer_group_out,
                                          acq_group_out);
     }
 }
@@ -413,6 +421,7 @@ make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
 void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
                                 int levels, int64_t offset, int64_t size,
                                 temporary_acq_tree_node_t *tree,
+                                touches_end_t touches_end,
                                 buffer_group_t *buffer_group_out,
                                 blob_acq_t *acq_group_out) {
     rassert(size > 0);
@@ -427,7 +436,8 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
                      lo + i, &suboffset, &subsize);
         if (levels > 1) {
             expose_tree_from_block_ids(parent, mode, levels - 1, suboffset,
-                                       subsize, tree[i].child, buffer_group_out,
+                                       subsize, tree[i].child, touches_end,
+                                       buffer_group_out,
                                        acq_group_out);
         } else {
             rassert(0 < subsize && subsize <= blob::leaf_size(parent.cache()->max_block_size()));
@@ -443,8 +453,16 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
                 acq_group_out->add_buf(buf, buf_read);
             } else {
                 buf_write_t *buf_write = new buf_write_t(buf);
-                leaf_buf = buf_write->get_data_write(suboffset + subsize
-                                                     + blob::LEAF_NODE_DATA_OFFSET);
+                if (touches_end == touches_end_t::yes) {
+                    // Using suboffset + subsize is valid because we know that, when
+                    // appending, there are no bytes in this block past suboffset +
+                    // subsize that are a valid part of the blob.
+                    leaf_buf = buf_write->get_data_write(suboffset + subsize
+                                                         + blob::LEAF_NODE_DATA_OFFSET);
+                } else {
+                    leaf_buf = buf_write->get_data_write();
+                }
+
                 acq_group_out->add_buf(buf, buf_write);
             }
 
