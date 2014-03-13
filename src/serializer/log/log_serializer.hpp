@@ -123,7 +123,6 @@ public:
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
 
-public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
     static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
@@ -133,10 +132,6 @@ public:
 
     /* Blocks. */
     virtual ~log_serializer_t();
-
-public:
-    /* Implementation of the serializer_t API */
-    scoped_malloc_t<ser_buffer_t> allocate_buffer();
 
 #ifndef SEMANTIC_SERIALIZER_CHECK
     using serializer_t::make_io_account;

@@ -26,7 +26,8 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
                               &file_opener,
                               &get_global_perfmon_collection());
 
-    scoped_malloc_t<ser_buffer_t> buf = ser.allocate_buffer();
+    scoped_malloc_t<ser_buffer_t> buf
+        = serializer_t::allocate_buffer(ser.max_block_size());
     memset(buf->cache_data, 0, ser.max_block_size().value());
 
     scoped_ptr_t<file_account_t> account(ser.make_io_account(1));
