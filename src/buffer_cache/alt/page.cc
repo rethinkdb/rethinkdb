@@ -229,9 +229,7 @@ void page_t::catch_up_with_deferred_load(
     scoped_malloc_t<ser_buffer_t> buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        // Call allocate_buffer() on our home thread because we'll destroy it on our
-        // home thread and tcmalloc likes that.
-        buf = serializer->allocate_buffer();
+        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
 
         // We use the fact that on_thread_t preserves order with the on_thread_t in
         // deferred_load_with_block_id.  This means that it's already run its section
