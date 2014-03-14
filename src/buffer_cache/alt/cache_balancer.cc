@@ -14,7 +14,7 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->get_memory_limit()),
-    bytes_loaded(evicter->get_bytes_loaded()) { }
+    bytes_loaded(std::max<int64_t>(0, evicter->get_bytes_loaded())) { }
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),

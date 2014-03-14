@@ -32,7 +32,7 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
 
 void evicter_t::notify_access() {
     __sync_add_and_fetch(&bytes_loaded_counter_,
-                         page_cache_->max_block_size().ser_value());
+                         static_cast<int64_t>(page_cache_->max_block_size().ser_value()));
     balancer_->notify_access();
 }
 
