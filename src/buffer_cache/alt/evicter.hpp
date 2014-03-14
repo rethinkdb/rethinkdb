@@ -18,7 +18,7 @@ namespace alt {
 class evicter_t : public home_thread_mixin_debug_only_t {
 public:
     void add_not_yet_loaded(page_t *page);
-    void add_now_loaded_size(uint32_t ser_buf_size);
+    void add_now_loaded_size(uint32_t in_memory_block_size);
     void add_to_evictable_unbacked(page_t *page);
     void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
@@ -32,7 +32,7 @@ public:
                        uint64_t memory_limit);
     ~evicter_t();
 
-    bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
+    bool interested_in_read_ahead_block(uint32_t in_memory_block_size) const;
 
     uint64_t next_access_time() {
         return ++access_time_counter_;

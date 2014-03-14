@@ -105,7 +105,8 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
-    if (!evicter_.interested_in_read_ahead_block(token->block_size().ser_value())) {
+    // Right now the in-memory block size of every buf is max_block_size.
+    if (!evicter_.interested_in_read_ahead_block(max_block_size().ser_value())) {
         have_read_ahead_cb_destroyed();
         return;
     }
