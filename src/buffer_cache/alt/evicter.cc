@@ -51,7 +51,7 @@ void evicter_t::add_now_loaded_size(uint32_t in_memory_buf_size) {
     assert_thread();
     unevictable_.add_size(in_memory_buf_size);
     evict_if_necessary();
-    notify_bytes_loaded(ser_buf_size);
+    notify_bytes_loaded(in_memory_buf_size);
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -63,14 +63,14 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->hypothetical_memory_usage());
     evict_if_necessary();
-    notify_bytes_loaded(page->ser_buf_size_);
+    notify_bytes_loaded(page->hypothetical_memory_usage());
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->hypothetical_memory_usage());
     evict_if_necessary();
-    notify_bytes_loaded(page->ser_buf_size_);
+    notify_bytes_loaded(page->hypothetical_memory_usage());
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
@@ -112,7 +112,7 @@ void evicter_t::remove_page(page_t *page) {
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->hypothetical_memory_usage());
     evict_if_necessary();
-    notify_bytes_loaded(-static_cast<int64_t>(page->ser_buf_size_));
+    notify_bytes_loaded(-static_cast<int64_t>(page->hypothetical_memory_usage()));
 }
 
 uint64_t evicter_t::in_memory_size() const {
