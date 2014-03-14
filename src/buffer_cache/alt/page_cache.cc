@@ -85,13 +85,17 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
-    if (!balancer_->is_read_ahead_ok()) {
-        have_read_ahead_cb_destroyed();
+    if (read_ahead_cb_ == NULL) {
         return;
     }
 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] != NULL) {
+        return;
+    }
+
+    if (!balancer_->subtract_read_ahead_bytes(max_block_size().ser_value())) {
+        have_read_ahead_cb_destroyed();
         return;
     }
 
