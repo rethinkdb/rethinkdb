@@ -65,14 +65,25 @@ void alt_cache_balancer_t::on_ring() {
     //  2. At least access_count_threshold accesses have occurred
     // since the last rebalance.
     microtime_t now = current_microtime();
+
     if (last_rebalance_time + (rebalance_timeout_ms * 1000) > now) {
+        // Save the access counts so that we can decrement them after deciding to
+        // rebalance.
+        scoped_array_t<uint64_t> access_counts(thread_info.size());
         uint64_t total_accesses = 0;
         for (size_t i = 0; i < thread_info.size(); ++i) {
-            total_accesses += __sync_fetch_and_add(&thread_info[i].access_count, 0);
+            access_counts[i] = __sync_fetch_and_add(&thread_info[i].access_count, 0);
+            total_accesses += access_counts[i];
         }
 
         if (total_accesses < rebalance_access_count_threshold) {
             return;
+        }
+
+        // We decrement the access counts, we don't set them to zero!  That would
+        // destroy intervening access count information.
+        for (size_t i = 0; i < thread_info.size(); ++i) {
+            __sync_fetch_and_sub(&thread_info[i].access_count, access_counts[i]);
         }
     }
 
@@ -178,9 +189,5 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
             it->evicter->update_memory_limit(it->new_size, it->bytes_loaded);
         }
     }
-
-    // Clear the number of accesses for this thread
-    // RSI: Why do this here with a time delay, eh.
-    __sync_fetch_and_and(&thread_info[index].access_count, 0);
 }
 
