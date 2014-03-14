@@ -316,6 +316,7 @@ module 'DataExplorerView', ->
             value: ['number', 'bool', 'string', 'array', 'object', 'time']
             any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
             sequence: ['table', 'selection', 'stream', 'array']
+            grouped_stream: ['stream', 'array']
 
         # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
         convert_type: (type) =>
@@ -910,11 +911,12 @@ module 'DataExplorerView', ->
 
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
-                            result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
-                            @current_suggestions.push suggestion
-                            @.$('.suggestion_name_list').append @template_suggestion_name
-                                id: i
-                                suggestion: suggestion
+                            if suggestion isnt 'ungroup(' or @grouped_data is true
+                                result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
+                                @current_suggestions.push suggestion
+                                @.$('.suggestion_name_list').append @template_suggestion_name
+                                    id: i
+                                    suggestion: suggestion
                     else if result.description?
                         @description = result.description
 
@@ -1258,12 +1260,15 @@ module 'DataExplorerView', ->
             @grouped_data = @count_group_level(stack).count_group > 0
 
             if result.suggestions?.length > 0
+                show_suggestion = false
                 for suggestion, i in result.suggestions
-                    @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name
-                        id: i
-                        suggestion: suggestion
-                if @state.options.suggestions is true
+                    if suggestion isnt 'ungroup(' or @grouped_data is true
+                        show_suggestion = true
+                        @current_suggestions.push suggestion
+                        @.$('.suggestion_name_list').append @template_suggestion_name
+                            id: i
+                            suggestion: suggestion
+                if @state.options.suggestions is true and show_suggestion is true
                     @show_suggestion()
                 else
                     @hide_suggestion()
