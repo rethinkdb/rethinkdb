@@ -343,12 +343,14 @@ module 'DataExplorerView', ->
                 else
                     full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
-                @descriptions[full_tag] =
+                @descriptions[full_tag] = (grouped_data) =>
                     name: tag
                     args: /.*(\(.*\))/.exec(command['body'])?[1]
-                    description: @description_with_example_template
-                        description: command['description']
-                        example: command['example']
+                    description:
+                        @description_with_example_template
+                            description: command['description']
+                            example: command['example']
+                            grouped_data: grouped_data is true and full_tag isnt 'group(' and full_tag isnt 'ungroup('
 
             parents = {}
             returns = []
@@ -904,6 +906,8 @@ module 'DataExplorerView', ->
                         result: result
                     result.suggestions = @uniq result.suggestions
 
+                    @grouped_data = @count_group_level(stack).count_group > 0
+
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
                             result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
@@ -1176,6 +1180,7 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 position: 0
 
+
             if stack is null # Stack is null if the query was too big for us to parse
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
@@ -1249,6 +1254,8 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 result: result
             result.suggestions = @uniq result.suggestions
+
+            @grouped_data = @count_group_level(stack).count_group > 0
 
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
@@ -1950,6 +1957,42 @@ module 'DataExplorerView', ->
                     return null
             return stack
 
+        # Count the number of `group` commands minus `ungroup` commands in the current level
+        # We count per level because we don't want to report a positive number of group for nested queries, e.g:
+        # r.table("foo").group("bar").map(function(doc) { doc.merge(
+        #
+        # We return an object with two fields
+        #   - count_group: number of `group` commands minus the number of `ungroup` commands
+        #   - parse_level: should we keep parsing the same level
+        count_group_level: (stack) =>
+            count_group = 0
+            if stack.length > 0
+                 # Flag for whether or not we should keep looking for group/ungroup
+                 # we want the warning to appear only at the same level
+                parse_level = true
+
+                element = stack[stack.length-1]
+                if element.body? and element.body.length > 0 and element.complete is false
+                    parse_body = @count_group_level element.body
+                    count_group += parse_body.count_group
+                    parse_level = parse_body.parse_level
+
+                    if element.body[0].type is 'return'
+                        parse_level = false
+                    if element.body[element.body.length-1].type is 'function'
+                        parse_level = false
+
+                if parse_level is true
+                    for i in [stack.length-1..0] by -1
+                        if stack[i].type is 'function' and stack[i].name is 'ungroup('
+                            count_group -= 1
+                        else if stack[i].type is 'function' and stack[i].name is 'group('
+                            count_group += 1
+
+            count_group: count_group
+            parse_level: parse_level
+
+
         # Decide if we have to show a suggestion or a description
         # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
@@ -2231,7 +2274,7 @@ module 'DataExplorerView', ->
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
             if fn is 'db(' or fn is 'dbDrop('
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if databases.length is 0
                     data =
                         no_database: true
@@ -2245,7 +2288,7 @@ module 'DataExplorerView', ->
             else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
                     namespaces_available = []
                     for namespace in namespaces.models
@@ -2265,7 +2308,7 @@ module 'DataExplorerView', ->
 
                 @extra_suggestions= namespaces_available
             else
-                description = @descriptions[fn]
+                description = @descriptions[fn] @grouped_data
                 @extra_suggestions= null
             return description
 

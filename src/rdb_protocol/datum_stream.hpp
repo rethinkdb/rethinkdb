@@ -119,7 +119,7 @@ public:
 
 protected:
     bool batch_cache_exhausted() const;
-    void check_not_grouped();
+    void check_not_grouped(const char *msg);
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
