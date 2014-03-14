@@ -679,15 +679,9 @@ void clean_entry(void *p, int sz) {
 void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int end,
                    int wpoint, leaf_node_t *tow, int fro_copysize,
                    int fro_mand_offset,
-                   std::vector<const void *> *moved_values_out = NULL) {
+                   std::vector<const void *> *moved_values_out) {
     rassert(is_underfull(sizer, tow));
     rassert(end >= beg);
-    // Use a set to store values that should go into moved_values_out,
-    // because we sometimes have to replace offsets in the process and don't
-    // want to do O(n) searches.
-    // For simplicity reasons, we also collect offsets in tow first, and convert
-    // them into value pointer at the end.
-    std::set<int> moved_values_set;
 
     // This assertion is a bit loose.
     rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
@@ -785,10 +779,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             // the newer values to tow later.
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
 
-            if (moved_values_out != NULL && entry_is_live(get_entry(tow, wri_offset))) {
-                moved_values_set.insert(wri_offset);
-            }
-
             wri_offset += sz;
             fro_index++;
 
@@ -803,13 +793,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
                 if (tow->pair_offsets[j] == tow_offset) {
                     tow->pair_offsets[j] = wri_offset;
                     break;
-                }
-            }
-            if (moved_values_out != NULL) {
-                auto it = moved_values_set.find(tow_offset);
-                if (it != moved_values_set.end()) {
-                    moved_values_set.erase(tow_offset);
-                    moved_values_set.insert(wri_offset);
                 }
             }
 
@@ -834,10 +817,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             fro_live_size_adjustment -= sz + sizeof(uint16_t);
 
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
-
-            if (moved_values_out != NULL) {
-                moved_values_set.insert(wri_offset);
-            }
 
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
@@ -871,13 +850,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
                 if (tow->pair_offsets[j] == tow_offset) {
                     tow->pair_offsets[j] = wri_offset;
                     break;
-                }
-            }
-            if (moved_values_out != NULL) {
-                auto it = moved_values_set.find(tow_offset);
-                if (it != moved_values_set.end()) {
-                    moved_values_set.erase(tow_offset);
-                    moved_values_set.insert(wri_offset);
                 }
             }
 
@@ -928,6 +900,23 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
 
     fro->live_size += fro_live_size_adjustment;
 
+    if (moved_values_out != NULL) {
+        // Collect value pointers of the moved values
+        moved_values_out->clear();
+        moved_values_out->reserve(end - beg);
+        for (int pair_idx = wpoint; pair_idx < wpoint + (end - beg); ++pair_idx) {
+            const int offset = tow->pair_offsets[pair_idx];
+            // Skip dead entries
+            if (offset != 0) {
+                const entry_t *entry = get_entry(tow, offset);
+                // Skip deletions
+                if (entry_is_live(entry)) {
+                    moved_values_out->push_back(entry_value(entry));
+                }
+            }
+        }
+    }
+
     {
         // Squash dead entries that we copied pair_offsets from fro,
         // for, and that we removed from tow, as well.
@@ -940,14 +929,6 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             }
         }
         tow->num_pairs = j;
-    }
-
-    if (moved_values_out != NULL) {
-        moved_values_out->reserve(moved_values_set.size());
-        // Convert offsets into value pointers
-        for (auto it = moved_values_set.begin(); it != moved_values_set.end(); ++it) {
-            moved_values_out->push_back(entry_value(get_entry(tow, *it)));
-        }
     }
 
     validate(sizer, fro);
@@ -1024,7 +1005,8 @@ void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *rnode, bt
     init(sizer, rnode);
 
     int node_copysize = end_rcost - num_mandatories * sizeof(uint16_t);
-    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize, tstamp_back_offset);
+    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize,
+                  tstamp_back_offset, NULL);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
@@ -1046,7 +1028,8 @@ void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right) {
         }
     }
 
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize,
+                  tstamp_back_offset, NULL);
 }
 
 // We move keys out of sibling and into node.

@@ -135,7 +135,7 @@ void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right);
 // will be valid as long as `node` remains unchanged.
 bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node,
            leaf_node_t *sibling, btree_key_t *replacement_key_out,
-           std::vector<const void *> *moved_values_out = NULL);
+           std::vector<const void *> *moved_values_out);
 
 bool is_mergable(value_sizer_t<void> *sizer, const leaf_node_t *node, const leaf_node_t *sibling);
 

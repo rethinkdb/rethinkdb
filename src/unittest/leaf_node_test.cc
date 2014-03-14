@@ -151,7 +151,8 @@ public:
         ASSERT_EQ(bs_.ser_value(), sibling->bs_.ser_value());
 
         store_key_t replacement;
-        bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(), replacement.btree_key());
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(),
+                                     replacement.btree_key(), NULL);
 
         if (can_level) {
             ASSERT_TRUE(!sibling->kv_.empty());

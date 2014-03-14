@@ -368,6 +368,29 @@ buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
     }
 }
 
+// Helper function for `check_and_handle_split()` and `check_and_handle_underfull()`.
+// Detaches all values in the given node if it's an internal node, and calls
+// `detacher` on each value if it's a leaf node.
+void detach_all_children(const node_t *node, buf_parent_t parent,
+                         const value_deleter_t *detacher) {
+    if (node::is_leaf(node)) {
+        const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(node);
+        // Detach the values that are now in `rbuf` with `buf` as their parent.
+        for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
+            detacher->delete_value(parent, (*it).second);
+        }
+    } else {
+        const internal_node_t *internal =
+            reinterpret_cast<const internal_node_t *>(node);
+        // Detach the values that are now in `rbuf` with `buf` as their parent.
+        for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
+            block_id_t child_id =
+                internal_node::get_pair_by_index(internal, pair_idx)->lnode;
+            parent.detach_child(child_id);
+        }
+    }
+}
+
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
@@ -420,26 +443,12 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                     static_cast<node_t *>(rbuf_write.get_data_write()),
                     median);
 
-        // We must detach all values that we have removed from `buf`.
+        // We must detach all entries that we have removed from `buf`.
         buf_read_t rbuf_read(&rbuf);
         const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
-        if (node::is_leaf(node)) {
-            const leaf_node_t *leaf =
-                static_cast<const leaf_node_t *>(rbuf_read.get_data_read());
-            // Detach the values that are now in `rbuf` with `buf` as their parent.
-            for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
-                detacher->delete_value(buf_parent_t(buf), (*it).second);
-            }
-        } else {
-            const internal_node_t *internal =
-                static_cast<const internal_node_t *>(rbuf_read.get_data_read());
-            // Detach the values that are now in `rbuf` with `buf` as their parent.
-            for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
-                block_id_t child_id =
-                    internal_node::get_pair_by_index(internal, pair_idx)->lnode;
-                buf->detach_child(child_id);
-            }
-        }
+        // The parent of the entries used to be `buf`, even though they are now in
+        // `rbuf`...
+        detach_all_children(node, buf_parent_t(buf), detacher);
     }
 
     // (Perhaps) increase rbuf's recency to the max of the current txn's recency and
@@ -580,25 +589,13 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 buf_write_t sib_buf_write(&sib_buf);
                 buf_write_t buf_write(buf);
                 buf_read_t last_buf_read(last_buf);
+
                 // Detach all values / children in `sib_buf`
                 buf_read_t sib_buf_read(&sib_buf);
                 const node_t *node =
                     static_cast<const node_t *>(sib_buf_read.get_data_read());
-                if (node::is_leaf(node)) {
-                    const leaf_node_t *leaf =
-                        static_cast<const leaf_node_t *>(sib_buf_read.get_data_read());
-                    for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
-                        detacher->delete_value(buf_parent_t(&sib_buf), (*it).second);
-                    }
-                } else {
-                    const internal_node_t *internal =
-                        static_cast<const internal_node_t *>(sib_buf_read.get_data_read());
-                    for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
-                        block_id_t child_id =
-                            internal_node::get_pair_by_index(internal, pair_idx)->lnode;
-                        sib_buf.detach_child(child_id);
-                    }
-                }
+                detach_all_children(node, buf_parent_t(&sib_buf), detacher);
+
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                 node::merge(sizer,
