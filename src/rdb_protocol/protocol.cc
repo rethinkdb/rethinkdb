@@ -1425,6 +1425,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         if (res.success) {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
+            // Lock the superblock of the new index while we initiate
+            // `bring_sindexes_up_to_date`
+            sindex_access_vector_t sindexes_access;
+            store->acquire_sindex_superblocks_for_write(
+                    sindexes,
+                    &sindex_block,
+                    &sindexes_access);
             rdb_protocol_details::bring_sindexes_up_to_date(
                 sindexes, store, &sindex_block);
         }
@@ -1747,6 +1754,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
+            // Lock the superblocks of the new indexes while we initiate
+            // `bring_sindexes_up_to_date`
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     created_sindexes,
