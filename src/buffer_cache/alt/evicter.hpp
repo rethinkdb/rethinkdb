@@ -28,6 +28,7 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     eviction_bag_t *unevictable_category() { return &unevictable_; }
     void remove_page(page_t *page);
+    void page_was_loaded(page_t *page);
 
     explicit evicter_t(cache_balancer_t *balancer);
     ~evicter_t();

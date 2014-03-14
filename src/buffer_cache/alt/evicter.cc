@@ -54,6 +54,11 @@ void evicter_t::add_now_loaded_size(uint32_t in_memory_buf_size) {
     notify_bytes_loaded(in_memory_buf_size);
 }
 
+void evicter_t::page_was_loaded(page_t *page) {
+    assert_thread();
+    notify_bytes_loaded(page->hypothetical_memory_usage());
+}
+
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
     assert_thread();
     return unevictable_.has_page(page);
