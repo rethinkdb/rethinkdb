@@ -47,20 +47,6 @@ void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const intern
     }
 }
 
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node, node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent) {
-    if (is_leaf(node)) {
-        return leaf::level(sizer, nodecmp_node_with_sib,
-                           reinterpret_cast<leaf_node_t *>(node),
-                           reinterpret_cast<leaf_node_t *>(rnode),
-                           replacement_key);
-    } else {
-        return internal_node::level(sizer->block_size(),
-                                    reinterpret_cast<internal_node_t *>(node),
-                                    reinterpret_cast<internal_node_t *>(rnode),
-                                    replacement_key, parent);
-    }
-}
-
 void validate(DEBUG_VAR value_sizer_t<void> *sizer, DEBUG_VAR const node_t *node) {
 #ifndef NDEBUG
     if (node->magic == sizer->btree_leaf_magic()) {
