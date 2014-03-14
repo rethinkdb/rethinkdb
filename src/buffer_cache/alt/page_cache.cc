@@ -128,7 +128,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       balancer_(balancer),
-      evicter_(this, balancer),
+      evicter_(balancer),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 

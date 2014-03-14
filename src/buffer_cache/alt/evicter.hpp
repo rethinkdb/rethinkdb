@@ -29,8 +29,7 @@ public:
     eviction_bag_t *unevictable_category() { return &unevictable_; }
     void remove_page(page_t *page);
 
-    explicit evicter_t(page_cache_t *page_cache,
-                       cache_balancer_t *balancer);
+    explicit evicter_t(cache_balancer_t *balancer);
     ~evicter_t();
 
     void update_memory_limit(uint64_t new_memory_limit,
@@ -57,12 +56,11 @@ public:
 
 private:
     // Tells the cache balancer about a page being loaded
-    void notify_access();
+    void notify_bytes_loaded(int64_t ser_buf_change);
 
     // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
 
-    page_cache_t *const page_cache_;
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
 
