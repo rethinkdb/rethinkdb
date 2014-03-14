@@ -36,9 +36,9 @@ uint64_t evicter_t::get_clamped_bytes_loaded() const {
     return std::max<int64_t>(res, 0);
 }
 
-void evicter_t::notify_bytes_loaded(int64_t in_memory_buf_size) {
+void evicter_t::notify_bytes_loaded(int64_t in_memory_buf_change) {
     assert_thread();
-    __sync_add_and_fetch(&bytes_loaded_counter_, in_memory_buf_size);
+    __sync_add_and_fetch(&bytes_loaded_counter_, in_memory_buf_change);
     balancer_->notify_access();
 }
 
