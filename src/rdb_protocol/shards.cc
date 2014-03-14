@@ -412,7 +412,9 @@ private:
     virtual counted_t<const datum_t> unpack(
         std::pair<double, uint64_t> *p) {
         rcheck_datum(p->second != 0, base_exc_t::NON_EXISTENCE,
-                     "Cannot take the average of an empty stream.");
+                     "Cannot take the average of an empty stream.  (If you passed "
+                     "`avg` a field name, it may be that no elements of the stream "
+                     "had that field.)");
         return make_counted<const datum_t>(p->first / p->second);
     }
     virtual void unshard_impl(std::pair<double, uint64_t> *out,
@@ -441,8 +443,13 @@ void optimizer_t::swap_if_other_better(
 }
 counted_t<const datum_t> optimizer_t::unpack(const char *name) {
     r_sanity_check(val.has() == row.has());
-    rcheck_datum(row.has(), base_exc_t::NON_EXISTENCE,
-                 strprintf("Cannot take %s of empty stream.", name));
+    rcheck_datum(
+        row.has(), base_exc_t::NON_EXISTENCE,
+        strprintf(
+            "Cannot take the %s of an empty stream.  (If you passed `%s` a field name, "
+            "it may be that no elements of the stream had that field.)",
+            name,
+            name));
     return row;
 }
 

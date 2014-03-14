@@ -91,6 +91,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-description_with_example-template" type="text/x-handlebars-template">
     <p>{{print_safe description}}</p>
+    {{#if grouped_data}}<p class="grouped_data_warning"><strong>Note: </strong>Commands chained after group will operate on each reduction. Call ungroup to operate on the array of groups.</p>{{/if}}
     <div class="db_table_available"></div>
     <div class="separation"></div>
     {{print_safe example}}
