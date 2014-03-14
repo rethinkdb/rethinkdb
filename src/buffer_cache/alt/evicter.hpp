@@ -61,10 +61,10 @@ private:
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
 
-    // This is updated every time a page is loaded or created, and cleared when cache
-    // memory limits are re-evaluated.  May be read from other threads.  This value
-    // could be decreased (possibly negative!) when we remove a page whose value is
-    // zero.
+    // This is updated every time a page is loaded, created, or destroyed, and
+    // cleared when cache memory limits are re-evaluated.  May be read from other
+    // threads.  This value can go negative, if you keep deleting blocks or suddenly
+    // drop a snapshot.
     int64_t bytes_loaded_counter_;
 
     // This gets incremented every time a page is accessed.
