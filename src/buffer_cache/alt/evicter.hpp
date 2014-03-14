@@ -19,7 +19,7 @@ class page_cache_t;
 class evicter_t : public home_thread_mixin_debug_only_t {
 public:
     void add_not_yet_loaded(page_t *page);
-    void add_now_loaded_size(uint32_t ser_buf_size);
+    void add_now_loaded_size(uint32_t in_memory_block_size);
     void add_to_evictable_unbacked(page_t *page);
     void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;

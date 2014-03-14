@@ -732,7 +732,7 @@ const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
                        lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
-    *block_size_out = page_acq_.get_buf_size();
+    *block_size_out = page_acq_.get_buf_size().value();
     return page_acq_.get_buf_read();
 }
 
@@ -748,15 +748,13 @@ buf_write_t::~buf_write_t() {
 }
 
 void *buf_write_t::get_data_write(uint32_t block_size) {
-    // KSI: Use block_size somehow.
-    (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache()->page_cache_,
                        lock_->txn()->account());
     }
     page_acq_.buf_ready_signal()->wait();
-    return page_acq_.get_buf_write();
+    return page_acq_.get_buf_write(block_size_t::make_from_cache(block_size));
 }
 
 void *buf_write_t::get_data_write() {

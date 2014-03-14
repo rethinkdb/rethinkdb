@@ -44,7 +44,20 @@ public:
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
-    uint32_t get_page_buf_size();
+    void set_page_buf_size(block_size_t block_size);
+    block_size_t get_page_buf_size();
+
+    // How much memory the block would use, if it were in memory.  (If the block is
+    // already in memory, this is how much memory the block is currently
+    // using, of course.)
+    uint32_t hypothetical_memory_usage() const;
+
+    bool is_loading() const { return loader_ != NULL; }
+    bool has_waiters() const { return !waiters_.empty(); }
+    bool is_evicted() const { return !buf_.has(); }
+    bool is_disk_backed() const { return block_token_.has(); }
+
+    void evict_self();
 
 private:
     friend class page_ptr_t;
@@ -83,16 +96,19 @@ private:
                                        cache_account_t *account);
 
     friend class page_cache_t;
-    friend class evicter_t;
     friend class eviction_bag_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
-
-    void evict_self();
 
     // KSI: Explain this more.
     // One of loader_, buf_, or block_token_ is non-null.
     page_loader_t *loader_;
+
+    // max_block_size_ is const and named max_block_size_ for now, because we can't
+    // change the in-memory block size of a page (even if we can change the
+    // serialized size).
+    const uint32_t max_ser_block_size_;
     uint32_t ser_buf_size_;
+
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
 
@@ -203,8 +219,8 @@ public:
     bool has() const;
 
     // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
-    uint32_t get_buf_size();
-    void *get_buf_write();
+    block_size_t get_buf_size();
+    void *get_buf_write(block_size_t block_size);
     const void *get_buf_read();
 
 private:
