@@ -458,7 +458,7 @@ block_size_t page_t::get_page_buf_size() {
     return block_size_t::unsafe_make(ser_buf_size_);
 }
 
-uint32_t page_t::hypothetical_memory_usage() {
+uint32_t page_t::hypothetical_memory_usage() const {
     return max_ser_block_size_;
 }
 

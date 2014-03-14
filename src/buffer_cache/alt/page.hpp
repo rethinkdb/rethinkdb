@@ -50,7 +50,7 @@ public:
     // How much memory the block would use, if it were in memory.  (If the block is
     // already in memory, this is how much memory the block is currently
     // using, of course.)
-    uint32_t hypothetical_memory_usage();
+    uint32_t hypothetical_memory_usage() const;
 
     bool is_loading() const { return loader_ != NULL; }
     bool has_waiters() const { return !waiters_.empty(); }
