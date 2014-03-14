@@ -85,16 +85,14 @@ public:
                        block_id_t block_id,
                        access_t access,
                        page_create_t create = page_create_t::no)
-        : current_page_acq_t(txn, block_id, access,
-                             txn->page_cache()->default_reads_account(),
-                             create) { }
+        : current_page_acq_t(txn, block_id, access, create) { }
     current_test_acq_t(page_txn_t *txn,
                        alt_create_t create)
         : current_page_acq_t(txn, create) { }
     current_test_acq_t(page_cache_t *cache,
                        block_id_t block_id,
                        read_access_t read)
-        : current_page_acq_t(cache, block_id, cache->default_reads_account(), read) { }
+        : current_page_acq_t(cache, block_id, read) { }
 
     page_t *current_page_for_write() {
         return current_page_acq_t::current_page_for_write(
@@ -112,6 +110,10 @@ public:
     test_acq_t() : page_acq_t() { }
     void init(page_t *page, page_cache_t *page_cache) {
         page_acq_t::init(page, page_cache, page_cache->default_reads_account());
+    }
+
+    void *get_buf_write() {
+        return page_acq_t::get_buf_write(page_cache()->max_block_size());
     }
 };
 
@@ -1075,13 +1077,13 @@ private:
     void make_empty(const scoped_ptr_t<current_test_acq_t> &acq) {
         test_acq_t page_acq;
         page_acq.init(acq->current_page_for_write(), c);
-        const uint32_t n = page_acq.get_buf_size();
+        const uint32_t n = page_acq.get_buf_size().value();
         ASSERT_EQ(4088u, n);
         memset(page_acq.get_buf_write(), 0, n);
     }
 
     void check_page_acq(page_acq_t *page_acq, const std::string &expected) {
-        const uint32_t n = page_acq->get_buf_size();
+        const uint32_t n = page_acq->get_buf_size().value();
         ASSERT_EQ(4088u, n);
         const char *const p = static_cast<const char *>(page_acq->get_buf_read());
 
@@ -1115,8 +1117,9 @@ private:
             check_page_acq(&page_acq, expected);
 
             char *const p = static_cast<char *>(page_acq.get_buf_write());
-            ASSERT_EQ(4088u, page_acq.get_buf_size());
-            ASSERT_LE(expected.size() + append.size() + 1, page_acq.get_buf_size());
+            ASSERT_EQ(4088u, page_acq.get_buf_size().value());
+            ASSERT_LE(expected.size() + append.size() + 1,
+                      page_acq.get_buf_size().value());
             memcpy(p + expected.size(), append.c_str(), append.size() + 1);
         }
     }

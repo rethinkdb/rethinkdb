@@ -639,7 +639,8 @@ public:
                     continue;
                 }
 
-                scoped_malloc_t<ser_buffer_t> data = parent->serializer->allocate_buffer();
+                scoped_malloc_t<ser_buffer_t> data
+                    = serializer_t::allocate_buffer(parent->serializer->max_block_size());
                 memcpy(data.get(), current_buf, info.ser_block_size);
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 

@@ -46,7 +46,7 @@ public:
                      perfmon_collection_t *perfmon_collection);
     ~cache_t();
 
-    block_size_t max_block_size() const;
+    block_size_t max_block_size() const { return page_cache_.max_block_size(); }
     // KSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
@@ -233,16 +233,14 @@ private:
     void help_construct(buf_parent_t parent, alt_create_t create);
     void help_construct(buf_parent_t parent, block_id_t block_id, alt_create_t create);
 
-    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id,
-                                                cache_account_t *account);
+    static alt_snapshot_node_t *help_make_child(cache_t *cache, block_id_t child_id);
 
 
     static void wait_for_parent(buf_parent_t parent, access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
-                                      block_id_t child_id,
-                                      cache_account_t *account);
+                                      block_id_t child_id);
     static void create_empty_child_snapshot_attachments(
             cache_t *cache,
             alt::block_version_t parent_version,
@@ -251,8 +249,7 @@ private:
     static void create_child_snapshot_attachments(cache_t *cache,
                                                   alt::block_version_t parent_version,
                                                   block_id_t parent_id,
-                                                  block_id_t child_id,
-                                                  cache_account_t *account);
+                                                  block_id_t child_id);
     alt::current_page_acq_t *current_page_acq() const;
 
     friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.

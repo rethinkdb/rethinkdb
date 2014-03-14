@@ -533,14 +533,13 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
 
 counted_t<datum_stream_t> datum_stream_t::add_grouping(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    check_not_grouped();
+    check_not_grouped("Cannot call `group` on the output of `group` "
+                      "(did you mean to `ungroup`?).");
     grouped = true;
     return add_transformation(env, std::move(tv), bt);
 }
-void datum_stream_t::check_not_grouped() {
-    rcheck(!is_grouped(), base_exc_t::GENERIC,
-           "Cannot return grouped stream without a reduction "
-           "(`reduce`, `sum`, etc.) on the end.");
+void datum_stream_t::check_not_grouped(const char *msg) {
+    rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
 }
 
 std::vector<counted_t<const datum_t> >
@@ -549,7 +548,8 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     env->throw_if_interruptor_pulsed();
     // Cannot mix `next` and `next_batch`.
     r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
-    check_not_grouped();
+    check_not_grouped("Cannot treat the output of `group` as a stream "
+                      "(did you mean to `ungroup`?).");
     try {
         return next_batch_impl(env, batchspec);
     } catch (const datum_exc_t &e) {

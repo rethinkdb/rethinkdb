@@ -90,15 +90,20 @@ public:
 private:
     // current_page_acq_t should not access our fields directly.
     friend class current_page_acq_t;
-    void add_acquirer(current_page_acq_t *acq, cache_account_t *account);
+    void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
-    void pulse_pulsables(current_page_acq_t *acq, cache_account_t *account);
+    void pulse_pulsables(current_page_acq_t *acq);
 
     page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
 
+    // Initializes page_ if necessary, providing an account because we know we'd like
+    // to load it ASAP.
     void convert_from_serializer_if_necessary(current_page_help_t help,
                                               cache_account_t *account);
+
+    // Initializes page_ if necessary, deferring loading of the actual block.
+    void convert_from_serializer_if_necessary(current_page_help_t help);
 
     void mark_deleted(current_page_help_t help);
 
@@ -106,8 +111,7 @@ private:
     friend class page_txn_t;
 
     // Returns NULL if the page was deleted.
-    page_t *the_page_for_read_or_deleted(current_page_help_t help,
-                                         cache_account_t *account);
+    page_t *the_page_for_read_or_deleted(current_page_help_t help);
 
     // Has access to our fields.
     friend class page_cache_t;
@@ -153,13 +157,11 @@ public:
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        access_t access,
-                       cache_account_t *account,
                        page_create_t create = page_create_t::no);
     current_page_acq_t(page_txn_t *txn,
                        alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       cache_account_t *account,
                        read_access_t read);
     ~current_page_acq_t();
 
@@ -192,13 +194,11 @@ private:
     void init(page_txn_t *txn,
               block_id_t block_id,
               access_t access,
-              cache_account_t *account,
               page_create_t create);
     void init(page_txn_t *txn,
               alt_create_t create);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
-              cache_account_t *account,
               read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
@@ -310,7 +310,7 @@ public:
     size_t total_page_memory() const;
     size_t evictable_page_memory() const;
 
-    block_size_t max_block_size() const;
+    block_size_t max_block_size() const { return max_block_size_; }
 
     cache_account_t create_cache_account(int priority);
 
@@ -394,6 +394,7 @@ private:
     void resize_current_pages_to_id(block_id_t block_id);
 
     const page_cache_config_t dynamic_config_;
+    const block_size_t max_block_size_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
     // flushes.  The rationale behind this is that reads are almost always blocking

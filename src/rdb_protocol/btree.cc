@@ -1318,6 +1318,7 @@ public:
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
+            store_->btree->stats.pm_keys_set.record();
             coro_t::yield();
         }
     }

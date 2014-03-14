@@ -49,7 +49,8 @@ public:
             SCOPED_TRACE(strprintf("buffer %zu/%zu (size %zu)", i, n, buffer.size));
             ASSERT_LE(buffer.size, e - p);
             char *data = reinterpret_cast<char *>(buffer.data);
-            ASSERT_TRUE(std::equal(data, data + buffer.size, p));
+            ASSERT_EQ(std::string(p, p + buffer.size),
+                      std::string(data, data + buffer.size));
             p += buffer.size;
         }
 
@@ -395,7 +396,7 @@ void run_tests(cache_t *cache) {
     combinations_test(cache);
 }
 
-void run_blob_test() {
+TPTEST(BlobTest, all_tests) {
     mock_file_opener_t file_opener;
     standard_serializer_t::create(
             &file_opener,
@@ -410,10 +411,6 @@ void run_blob_test() {
                   &get_global_perfmon_collection());
 
     run_tests(&cache);
-}
-
-TEST(BlobTest, all_tests) {
-    unittest::run_in_thread_pool(run_blob_test);
 }
 
 }  // namespace unittest
