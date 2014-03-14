@@ -43,15 +43,12 @@ public:
         return memory_limit_;
     }
 
-    uint64_t get_clamped_bytes_loaded() const {
-        __sync_synchronize();
-        int64_t res = bytes_loaded_counter_;
-        __sync_synchronize();
-        return std::max<int64_t>(res, 0);
-    }
+    uint64_t get_clamped_bytes_loaded() const;
 
     uint64_t in_memory_size() const;
 
+    // This is decremented past UINT64_MAX to force code to be aware of access time
+    // rollovers.
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:

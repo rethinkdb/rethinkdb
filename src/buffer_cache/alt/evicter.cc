@@ -29,6 +29,13 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit,
     evict_if_necessary();
 }
 
+uint64_t evicter_t::get_clamped_bytes_loaded() const {
+    __sync_synchronize();
+    int64_t res = bytes_loaded_counter_;
+    __sync_synchronize();
+    return std::max<int64_t>(res, 0);
+}
+
 void evicter_t::notify_bytes_loaded(int64_t ser_buf_change) {
     assert_thread();
     __sync_add_and_fetch(&bytes_loaded_counter_, ser_buf_change);
