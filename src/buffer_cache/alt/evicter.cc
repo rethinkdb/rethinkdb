@@ -23,14 +23,16 @@ evicter_t::~evicter_t() {
     balancer_->remove_evicter(this);
 }
 
-void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
+void evicter_t::update_memory_limit(uint64_t new_memory_limit,
+                                    uint64_t bytes_loaded_accounted_for) {
     assert_thread();
-    __sync_fetch_and_and(&bytes_loaded_counter_, 0);
+    __sync_sub_and_fetch(&bytes_loaded_counter_, bytes_loaded_accounted_for);
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
 }
 
 void evicter_t::notify_access() {
+    assert_thread();
     __sync_add_and_fetch(&bytes_loaded_counter_,
                          static_cast<int64_t>(page_cache_->max_block_size().ser_value()));
     balancer_->notify_access();

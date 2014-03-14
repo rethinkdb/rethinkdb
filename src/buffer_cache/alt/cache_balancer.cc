@@ -14,7 +14,7 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->get_memory_limit()),
-    bytes_loaded(std::max<int64_t>(0, evicter->get_bytes_loaded())) { }
+    bytes_loaded(evicter->get_clamped_bytes_loaded()) { }
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
@@ -164,19 +164,23 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
     on_thread_t rethreader((threadnum_t(index)));
 
     // No need to lock the thread_info's mutex since a new rebalance cannot run
-    // while we are in here
-    std::set<alt::evicter_t *> *evicters = &thread_info[index].evicters;
+    // while we are in here.
+
+    // `thread_info[index].evicters` can't be modified while we use it because it's
+    // modified on this thread.
+    const std::set<alt::evicter_t *> *evicters = &thread_info[index].evicters;
     std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {
         // Make sure the evicter still exists
         if (evicters->find(it->evicter) != evicters->end()) {
-            it->evicter->update_memory_limit(it->new_size);
+            it->evicter->update_memory_limit(it->new_size, it->bytes_loaded);
         }
     }
 
     // Clear the number of accesses for this thread
+    // RSI: Why do this here with a time delay, eh.
     __sync_fetch_and_and(&thread_info[index].access_count, 0);
 }
 
