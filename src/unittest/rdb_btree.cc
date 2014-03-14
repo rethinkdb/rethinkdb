@@ -42,10 +42,11 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 
         store_key_t pk(make_counted<const ql::datum_t>(static_cast<double>(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
+        rdb_live_deletion_context_t deletion_context;
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid,
-                superblock.get(), &response, &mod_report.info,
+                superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
 
         {
@@ -56,7 +57,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      &sindex_block,
                      &sindexes);
-            rdb_update_sindexes(sindexes, &mod_report, txn.get());
+            rdb_update_sindexes(sindexes, &mod_report, txn.get(), &deletion_context);
 
             mutex_t::acq_t acq;
             store->lock_sindex_queue(&sindex_block, &acq);
@@ -128,16 +129,18 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
                                         &txn, &super_block, &dummy_interruptor);
 
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
-    rdb_value_deleter_t deleter;
 
     buf_lock_t sindex_block
         = store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                                 super_block->get_sindex_block_id());
+    rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_construction_deletion_context;
     store->drop_sindex(
             sindex_id,
             &sindex_block,
             &sizer,
-            &deleter,
+            &live_deletion_context,
+            &post_construction_deletion_context,
             &dummy_interruptor);
 }
 
@@ -422,11 +425,11 @@ TPTEST(RDBBtree, SindexEraseRange) {
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
-        rdb_erase_range(&tester,
-                        key_range_t::universe(),
-                        &sindex_block,
-                        super_block.get(), &store,
-                        &dummy_interruptor);
+        rdb_erase_major_range(&tester,
+                              key_range_t::universe(),
+                              &sindex_block,
+                              super_block.get(), &store,
+                              &dummy_interruptor);
     }
 
     check_keys_are_NOT_present(&store, sindex_id);

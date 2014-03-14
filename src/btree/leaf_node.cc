@@ -4,6 +4,7 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <set>
 
 #include "btree/node.hpp"
 #include "repli_timestamp.hpp"
@@ -675,8 +676,12 @@ void clean_entry(void *p, int sz) {
 
 // Moves entries with pair_offsets indices in the clopen range [beg,
 // end) from fro to tow.
-void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int end, int wpoint, leaf_node_t *tow, int fro_copysize, int fro_mand_offset) {
+void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int end,
+                   int wpoint, leaf_node_t *tow, int fro_copysize,
+                   int fro_mand_offset,
+                   std::vector<const void *> *moved_values_out) {
     rassert(is_underfull(sizer, tow));
+    rassert(end >= beg);
 
     // This assertion is a bit loose.
     rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
@@ -812,6 +817,7 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
             fro_live_size_adjustment -= sz + sizeof(uint16_t);
 
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
+
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
         } else {
@@ -893,6 +899,23 @@ void move_elements(value_sizer_t<void> *sizer, leaf_node_t *fro, int beg, int en
     tow->tstamp_cutpoint = new_tstamp_cutpoint;
 
     fro->live_size += fro_live_size_adjustment;
+
+    if (moved_values_out != NULL) {
+        // Collect value pointers of the moved values
+        moved_values_out->clear();
+        moved_values_out->reserve(end - beg);
+        for (int pair_idx = wpoint; pair_idx < wpoint + (end - beg); ++pair_idx) {
+            const int offset = tow->pair_offsets[pair_idx];
+            // Skip dead entries
+            if (offset != 0) {
+                const entry_t *entry = get_entry(tow, offset);
+                // Skip deletions
+                if (entry_is_live(entry)) {
+                    moved_values_out->push_back(entry_value(entry));
+                }
+            }
+        }
+    }
 
     {
         // Squash dead entries that we copied pair_offsets from fro,
@@ -982,7 +1005,8 @@ void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *rnode, bt
     init(sizer, rnode);
 
     int node_copysize = end_rcost - num_mandatories * sizeof(uint16_t);
-    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize, tstamp_back_offset);
+    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize,
+                  tstamp_back_offset, NULL);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
@@ -1004,23 +1028,29 @@ void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right) {
         }
     }
 
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize,
+                  tstamp_back_offset, NULL);
 }
 
 // We move keys out of sibling and into node.
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node, leaf_node_t *sibling, btree_key_t *replacement_key_out) {
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib,
+           leaf_node_t *node, leaf_node_t *sibling,
+           btree_key_t *replacement_key_out,
+           std::vector<const void *> *moved_values_out) {
     rassert(node != sibling);
 
     // If sibling were underfull, we'd just merge the nodes.
     rassert(is_underfull(sizer, node));
     rassert(!is_underfull(sizer, sibling));
 
-    // First figure out the inclusive range [beg, end] of elements we want to move from sibling.
+    // First figure out the inclusive range [beg, end] of elements we want to move
+    // from sibling.
     int beg, end, *w, wstep;
 
     int node_weight = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS);
     int tstamp_back_offset;
-    int sibling_weight = mandatory_cost(sizer, sibling, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+    int sibling_weight = mandatory_cost(sizer, sibling, MANDATORY_TIMESTAMPS,
+                                        &tstamp_back_offset);
 
     rassert(node_weight < sibling_weight);
 
@@ -1099,7 +1129,9 @@ bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *n
     }
 
     int sib_copysize = weight_movement - num_mandatories * sizeof(uint16_t);
-    move_elements(sizer, sibling, beg, end + 1, nodecmp_node_with_sib < 0 ? node->num_pairs : 0, node, sib_copysize, tstamp_back_offset);
+    move_elements(sizer, sibling, beg, end + 1,
+                  nodecmp_node_with_sib < 0 ? node->num_pairs : 0, node,
+                  sib_copysize, tstamp_back_offset, moved_values_out);
 
     guarantee(node->num_pairs > 0);
     guarantee(sibling->num_pairs > 0);

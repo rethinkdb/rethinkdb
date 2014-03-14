@@ -22,6 +22,7 @@
 template <class Value>
 void find_keyvalue_location_for_write(
         superblock_t *superblock, const btree_key_t *key,
+        const value_deleter_t *detacher,
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
@@ -60,13 +61,15 @@ void find_keyvalue_location_for_write(
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            check_and_handle_split(&sizer, &buf, &last_buf, superblock, key, static_cast<Value *>(NULL));
+            check_and_handle_split(&sizer, &buf, &last_buf, superblock, key,
+                                   static_cast<Value *>(NULL), detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
-            check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key);
+            check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key,
+                                       detacher);
         }
 
         // Release the superblock, if we've gone past the root (and haven't
@@ -204,6 +207,7 @@ enum class expired_t { NO, YES };
 template <class Value>
 void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        const value_deleter_t *detacher,
         key_modification_callback_t<Value> *km_callback) {
 
     value_sizer_t<Value> sizer(kv_loc->buf.cache()->get_block_size());
@@ -223,7 +227,8 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         // node won't grow.
 
         check_and_handle_split(&sizer, &kv_loc->buf, &kv_loc->last_buf,
-                               kv_loc->superblock, key, kv_loc->value.get());
+                               kv_loc->superblock, key, kv_loc->value.get(),
+                               detacher);
 
         {
 #ifndef NDEBUG
@@ -289,7 +294,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
-                               kv_loc->superblock, key);
+                               kv_loc->superblock, key, detacher);
 
     // Modify the stats block.  The stats block is detached from the rest of the
     // btree, we don't keep a consistent view of it, so we pass the txn as its

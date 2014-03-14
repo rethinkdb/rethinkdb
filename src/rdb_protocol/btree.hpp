@@ -143,6 +143,7 @@ void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
              bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              superblock_t *superblock,
+             const deletion_context_t *deletion_context,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
@@ -178,22 +179,33 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 timestamp, superblock_t *superblock,
+                const deletion_context_t *deletion_context,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
 
-/* A deleter that doesn't actually delete the values. Needed for secondary
- * indexes which only have references. */
-class rdb_value_detacher_t : public value_deleter_t {
-    void delete_value(buf_parent_t parent, void *value);
-};
+/* `rdb_erase_major_range` has a complexity of O(n) where n is the size of the
+ * btree, if secondary indexes are present. Be careful when to use it. */
+void rdb_erase_major_range(key_tester_t *tester,
+                           const key_range_t &keys,
+                           buf_lock_t *sindex_block,
+                           superblock_t *superblock,
+                           btree_store_t<rdb_protocol_t> *store,
+                           signal_t *interruptor);
 
-void rdb_erase_range(key_tester_t *tester,
-                     const key_range_t &keys,
-                     buf_lock_t *sindex_block,
-                     superblock_t *superblock,
-                     btree_store_t<rdb_protocol_t> *store,
-                     signal_t *interruptor);
+/* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
+ * the btree, and m is the number of documents actually being deleted.
+ * It also requires O(m) memory. 
+ * In contrast to `rdb_erase_major_range()`, it doesn't update secondary indexes
+ * itself, but returns a number of modification reports that should be applied
+ * to secondary indexes separately. Furthermore, it detaches blobs rather than
+ * deleting them. */
+void rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &keys,
+                           superblock_t *superblock,
+                           const deletion_context_t *deletion_context,
+                           signal_t *interruptor,
+                           std::vector<rdb_modification_report_t> *mod_reports_out);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
@@ -252,9 +264,9 @@ struct rdb_modification_report_t {
 };
 
 
-struct rdb_erase_range_report_t {
-    rdb_erase_range_report_t() { }
-    explicit rdb_erase_range_report_t(const key_range_t &_range_to_erase)
+struct rdb_erase_major_range_report_t {
+    rdb_erase_major_range_report_t() { }
+    explicit rdb_erase_major_range_report_t(const key_range_t &_range_to_erase)
         : range_to_erase(_range_to_erase) { }
     key_range_t range_to_erase;
 
@@ -262,7 +274,7 @@ struct rdb_erase_range_report_t {
 };
 
 typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_range_report_t>
+                       rdb_erase_major_range_report_t>
         rdb_sindex_change_t;
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
@@ -291,13 +303,14 @@ private:
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
-        txn_t *txn);
+        txn_t *txn,
+        const deletion_context_t *deletion_context);
 
 
-void rdb_erase_range_sindexes(
+void rdb_erase_major_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_erase_range_report_t *erase_range,
-        signal_t *interruptor);
+        const rdb_erase_major_range_report_t *erase_range,
+        signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
@@ -305,12 +318,42 @@ void post_construct_secondary_indexes(
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+/* This deleter actually deletes the value and all associated blocks. */
 class rdb_value_deleter_t : public value_deleter_t {
-    friend void rdb_update_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification, txn_t *txn);
+public:
+    void delete_value(buf_parent_t parent, const void *_value) const;
+};
 
-    void delete_value(buf_parent_t parent, void *_value);
+/* A deleter that doesn't actually delete the values. Needed for secondary
+ * indexes which only have references. */
+class rdb_value_detacher_t : public value_deleter_t {
+public:
+    void delete_value(buf_parent_t parent, const void *value) const;
+};
+
+/* Used for operations on the live storage.
+ * Each value is first detached in all trees, and then actually deleted through
+ * the post_deleter. */
+class rdb_live_deletion_context_t : public deletion_context_t {
+public:
+    const value_deleter_t *balancing_detacher() const { return &detacher; }
+    const value_deleter_t *in_tree_deleter() const { return &detacher; }
+    const value_deleter_t *post_deleter() const { return &deleter; }
+private:
+    rdb_value_detacher_t detacher;
+    rdb_value_deleter_t deleter;
+};
+
+/* Used for operations on secondary indexes that aren't yet post-constructed.
+ * Since we don't have any guarantees that referenced blob blocks still exist
+ * during that stage, we use noop deleters for everything. */
+class rdb_post_construction_deletion_context_t : public deletion_context_t {
+public:
+    const value_deleter_t *balancing_detacher() const { return &no_deleter; }
+    const value_deleter_t *in_tree_deleter() const { return &no_deleter; }
+    const value_deleter_t *post_deleter() const { return &no_deleter; }
+private:
+    noop_value_deleter_t no_deleter;
 };
 
 

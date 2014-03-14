@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/erase_range.hpp"
 
+#include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
@@ -17,13 +18,18 @@ void memcached_erase_range(key_tester_t *tester,
     value_sizer_t<void> *sizer = &mc_sizer;
 
     struct : public value_deleter_t {
-        void delete_value(buf_parent_t leaf_node, void *value) {
+        value_sizer_t<memcached_value_t> *sizer_;
+        void delete_value(buf_parent_t leaf_node, const void *value) const {
+            // To not destroy constness, we operate on a copy of the value
+            scoped_malloc_t<memcached_value_t> value_copy(sizer_->max_possible_size());
+            memcpy(value_copy.get(), value, sizer_->size(value));
             blob_t blob(leaf_node.cache()->get_block_size(),
-                        static_cast<memcached_value_t *>(value)->value_ref(),
+                        value_copy->value_ref(),
                         blob::btree_maxreflen);
             blob.clear(leaf_node);
         }
     } deleter;
+    deleter.sizer_ = &mc_sizer;
 
     btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,

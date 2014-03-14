@@ -2,21 +2,26 @@
 #include "btree/erase_range.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
+#include "btree/btree_store.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/fifo_checker.hpp"
 
+void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
+
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
-                         value_deleter_t *deleter,
-                         const btree_key_t *left_exclusive_or_null,
-                         const btree_key_t *right_inclusive_or_null)
+            const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
+            const btree_key_t *right_inclusive_or_null,
+            const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+                &on_erase_cb)
         : sizer_(sizer), tester_(tester), deleter_(deleter),
           left_exclusive_or_null_(left_exclusive_or_null),
-          right_inclusive_or_null_(right_inclusive_or_null)
+          right_inclusive_or_null_(right_inclusive_or_null),
+          on_erase_cb_(on_erase_cb)
     { }
 
     void process_a_leaf(buf_lock_t *leaf_node_buf,
@@ -47,8 +52,15 @@ public:
         scoped_malloc_t<char> value(sizer_->max_possible_size());
 
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
-            bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
+            bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(),
+                                      value.get());
             guarantee(found);
+
+            if (on_erase_cb_) {
+                on_erase_cb_(keys_to_delete[i], value.get(),
+                             buf_parent_t(leaf_node_buf));
+            }
+
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
@@ -106,20 +118,25 @@ public:
 private:
     value_sizer_t<void> *sizer_;
     key_tester_t *tester_;
-    value_deleter_t *deleter_;
+    const value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
+    std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+        on_erase_cb_;
 
     DISABLE_COPYING(erase_range_helper_t);
 };
 
 void btree_erase_range_generic(value_sizer_t<void> *sizer,
-        key_tester_t *tester, value_deleter_t *deleter,
+        key_tester_t *tester, const value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
-        superblock_t *superblock, signal_t *interruptor, bool release_superblock) {
+        superblock_t *superblock, signal_t *interruptor, bool release_superblock,
+        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+            &on_erase_cb) {
     erase_range_helper_t helper(sizer, tester, deleter,
-                                left_exclusive_or_null, right_inclusive_or_null);
+                                left_exclusive_or_null, right_inclusive_or_null,
+                                on_erase_cb);
     btree_parallel_traversal(superblock, &helper, interruptor,
                              release_superblock);
 }
@@ -128,7 +145,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer,
 // partially-completed btree erasure operation to be interrupted?  If the tree is
 // already detached, the worst that would happen is that we leak blocks, yes.
 void erase_all(value_sizer_t<void> *sizer,
-               value_deleter_t *deleter,
+               const value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock) {

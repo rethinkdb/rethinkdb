@@ -61,7 +61,7 @@ struct leaf_node_t {
     //Iteration
     typedef leaf::iterator iterator;
     typedef leaf::reverse_iterator reverse_iterator;
-};
+} __attribute__ ((__packed__));
 
 namespace leaf {
 
@@ -131,7 +131,11 @@ void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *sibling,
 
 void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right);
 
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node, leaf_node_t *sibling, btree_key_t *replacement_key_out);
+// The pointers in `moved_values_out` point to positions in `node` and
+// will be valid as long as `node` remains unchanged.
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node,
+           leaf_node_t *sibling, btree_key_t *replacement_key_out,
+           std::vector<const void *> *moved_values_out);
 
 bool is_mergable(value_sizer_t<void> *sizer, const leaf_node_t *node, const leaf_node_t *sibling);
 

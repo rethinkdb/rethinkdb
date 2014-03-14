@@ -43,6 +43,39 @@ private:
     std::string info;
 };
 
+class value_deleter_t {
+public:
+    value_deleter_t() { }
+    virtual void delete_value(buf_parent_t leaf_node, const void *value) const = 0;
+
+protected:
+    virtual ~value_deleter_t() { }
+
+    DISABLE_COPYING(value_deleter_t);
+};
+
+/* A deleter that does absolutely nothing. */
+class noop_value_deleter_t : public value_deleter_t {
+public:
+    void delete_value(buf_parent_t, const void *) const;
+};
+
+class deletion_context_t {
+public:
+    virtual ~deletion_context_t() { }
+
+    // Used by btree balancing operations to detach values
+    virtual const value_deleter_t *balancing_detacher() const = 0;
+
+    // Applied when deleting or erasing a value from a leaf node
+    // (in either secondary index trees or the primary btree)
+    virtual const value_deleter_t *in_tree_deleter() const = 0;
+
+    // Applied after value_deleter() has been applied to all indexes that
+    // reference a value
+    virtual const value_deleter_t *post_deleter() const = 0;
+};
+
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
 public:
@@ -161,7 +194,8 @@ public:
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
+        const deletion_context_t *live_deletion_context,
+        const deletion_context_t *post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
@@ -180,7 +214,8 @@ public:
         const std::string &id,
         buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
+        const deletion_context_t *live_deletion_context,
+        const deletion_context_t *post_construction_deletion_context,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 

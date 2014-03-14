@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -62,9 +63,12 @@ void actually_delete_rdb_value(buf_parent_t parent, void *value) {
     blob.clear(parent);
 }
 
-void detach_rdb_value(buf_parent_t parent, void *value) {
+void detach_rdb_value(buf_parent_t parent, const void *value) {
+    // This const_cast is ok, since `detach_subtrees` is one of the operations
+    // that does not actually change value.
+    void *non_const_value = const_cast<void *>(value);
     blob_t blob(parent.cache()->get_block_size(),
-                static_cast<rdb_value_t *>(value)->value_ref(),
+                static_cast<rdb_value_t *>(non_const_value)->value_ref(),
                 blob::btree_maxreflen);
     blob.detach_subtrees(parent);
 }
@@ -87,15 +91,13 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
+                        const deletion_context_t *deletion_context,
                         rdb_modification_info_t *mod_info_out) {
     // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
 
     // As noted above, we can be sure that buf is valid.
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
-
-    // Detach!!
-    detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
@@ -106,16 +108,21 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                 + kv_location->value->inline_size(block_size));
     }
 
+    // Detach/Delete
+    deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location->buf),
+                                                      kv_location->value.get());
+
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-            expired_t::NO, &null_cb);
+            expired_t::NO, deletion_context->balancing_detacher(), &null_cb);
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      const store_key_t &key,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
+                     const deletion_context_t *deletion_context,
                      rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
@@ -133,7 +140,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     }
 
     if (kv_location->value.has()) {
-        detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
+        deletion_context->in_tree_deleter()->delete_value(
+                buf_parent_t(&kv_location->buf), kv_location->value.get());
         if (mod_info_out != NULL) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
@@ -146,17 +154,19 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-                          expired_t::NO, &null_cb);
+    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+                          deletion_context->balancing_detacher(), &null_cb);
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
-                     repli_timestamp_t timestamp) {
-    // Detach the old value.
+                     repli_timestamp_t timestamp,
+                     const deletion_context_t *deletion_context) {
+    // Detach/Delete the old value.
     if (kv_location->value.has()) {
-        detach_rdb_value(buf_parent_t(&kv_location->buf), kv_location->value.get());
+        deletion_context->in_tree_deleter()->delete_value(
+                buf_parent_t(&kv_location->buf), kv_location->value.get());
     }
 
     scoped_malloc_t<rdb_value_t> new_value(
@@ -166,13 +176,14 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     kv_location->value = std::move(new_value);
 
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-                          expired_t::NO, &null_cb);
+    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+                          deletion_context->balancing_detacher(), &null_cb);
 }
 
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
+    const deletion_context_t *deletion_context,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out,
     profile::trace_t *trace)
@@ -184,6 +195,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(info.superblock, info.key->btree_key(),
+                                         deletion_context->balancing_detacher(),
                                          &kv_location,
                                          &info.btree->slice->stats,
                                          trace,
@@ -249,7 +261,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val, info.btree->timestamp,
+                kv_location_set(&kv_location, *info.key, new_val, 
+                                info.btree->timestamp, deletion_context,
                                 mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
                 guarantee(!mod_info_out->added.second.empty());
@@ -259,7 +272,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   mod_info_out);
+                                   deletion_context, mod_info_out);
                 guarantee(!mod_info_out->deleted.second.empty());
                 guarantee(mod_info_out->added.second.empty());
                 mod_info_out->deleted.first = old_val;
@@ -273,7 +286,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                     kv_location_set(&kv_location, *info.key, new_val,
-                                    info.btree->timestamp,
+                                    info.btree->timestamp, deletion_context,
                                     mod_info_out);
                     guarantee(!mod_info_out->deleted.second.empty());
                     guarantee(!mod_info_out->added.second.empty());
@@ -325,9 +338,11 @@ void do_a_replace_from_batched_replace(
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
+    rdb_live_deletion_context_t deletion_context;
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
-        info, &one_replace, superblock_promise, &mod_report.info, trace);
+        info, &one_replace, &deletion_context, superblock_promise, &mod_report.info,
+        trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
     // KSI: What is this for?  are we waiting to get in line to call on_mod_report?
@@ -388,13 +403,16 @@ void rdb_set(const store_key_t &key,
              btree_slice_t *slice,
              repli_timestamp_t timestamp,
              superblock_t *superblock,
+             const deletion_context_t *deletion_context,
              point_write_response_t *response_out,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
              promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, key.btree_key(), &kv_location,
-                                     &slice->stats, trace, pass_back_superblock);
+    find_keyvalue_location_for_write(superblock, key.btree_key(),
+                                     deletion_context->balancing_detacher(),
+                                     &kv_location, &slice->stats, trace,
+                                     pass_back_superblock);
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -406,7 +424,8 @@ void rdb_set(const store_key_t &key,
     mod_info->added.first = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, data, timestamp, mod_info);
+        kv_location_set(&kv_location, key, data, timestamp, deletion_context,
+                        mod_info);
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
@@ -494,29 +513,35 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp,
-                superblock_t *superblock, point_delete_response_t *response,
+                superblock_t *superblock,
+                const deletion_context_t *deletion_context,
+                point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(superblock, key.btree_key(),
-            &kv_location, &slice->stats, trace);
+            deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
     if (exists) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
                                            buf_parent_t(&kv_location.buf));
-        kv_location_delete(&kv_location, key, timestamp, mod_info);
+        kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
     }
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
-void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
-    actually_delete_rdb_value(parent, value);
+void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) const {
+    // To not destroy constness, we operate on a copy of the value
+    value_sizer_t<rdb_value_t> sizer(parent.cache()->get_block_size());
+    scoped_malloc_t<rdb_value_t> value_copy(sizer.max_possible_size());
+    memcpy(value_copy.get(), value, sizer.size(value));
+    actually_delete_rdb_value(parent, value_copy.get());
 }
 
-void rdb_value_detacher_t::delete_value(buf_parent_t parent, void *value) {
+void rdb_value_detacher_t::delete_value(buf_parent_t parent, const void *value) const {
     detach_rdb_value(parent, value);
 }
 
@@ -540,18 +565,17 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 
 void sindex_erase_range(const key_range_t &key_range,
         superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
+        signal_t *interruptor, bool release_superblock,
+        const value_deleter_t *deleter) THROWS_NOTHING {
 
     value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
-
-    rdb_value_detacher_t deleter;
 
     sindex_key_range_tester_t tester(key_range);
 
     try {
         btree_erase_range_generic(sizer, &tester,
-                                  &deleter, NULL, NULL,
+                                  deleter, NULL, NULL,
                                   superblock, interruptor,
                                   release_superblock);
     } catch (const interrupted_exc_t &) {
@@ -566,24 +590,53 @@ void spawn_sindex_erase_ranges(
         auto_drainer_t *drainer,
         auto_drainer_t::lock_t,
         bool release_superblock,
-        signal_t *interruptor) {
+        signal_t *interruptor,
+        const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(std::bind(
                     &sindex_erase_range, key_range, it->super_block.get(),
                     auto_drainer_t::lock_t(drainer), interruptor,
-                    release_superblock));
+                    release_superblock, deleter));
     }
 }
 
-void rdb_erase_range(key_tester_t *tester,
-                     const key_range_t &key_range,
-                     buf_lock_t *sindex_block,
-                     superblock_t *superblock,
-                     btree_store_t<rdb_protocol_t> *store,
-                     signal_t *interruptor) {
+/* Helper function for rdb_erase_*_range() */
+void rdb_erase_range_convert_keys(const key_range_t &key_range,
+                                  bool *left_key_supplied_out,
+                                  bool *right_key_supplied_out,
+                                  store_key_t *left_key_exclusive_out,
+                                  store_key_t *right_key_inclusive_out) {
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
     guarantee(!key_range.is_empty());
+
+    rassert(left_key_supplied_out != NULL);
+    rassert(right_key_supplied_out != NULL);
+    rassert(left_key_exclusive_out != NULL);
+    rassert(right_key_inclusive_out != NULL);
+
+    /* Twiddle some keys to get the in the form we want. Notice these are keys
+     * which will be made  exclusive and inclusive as their names suggest
+     * below. At the point of construction they aren't. */
+    *left_key_exclusive_out = store_key_t(key_range.left);
+    *right_key_inclusive_out = store_key_t(key_range.right.key);
+
+    *left_key_supplied_out = left_key_exclusive_out->decrement();
+    *right_key_supplied_out = !key_range.right.unbounded;
+    if (*right_key_supplied_out) {
+        right_key_inclusive_out->decrement();
+    }
+
+    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
+     * names. */
+}
+
+void rdb_erase_major_range(key_tester_t *tester,
+                           const key_range_t &key_range,
+                           buf_lock_t *sindex_block,
+                           superblock_t *superblock,
+                           btree_store_t<rdb_protocol_t> *store,
+                           signal_t *interruptor) {
 
     /* Dispatch the erase range to the sindexes. */
     sindex_access_vector_t sindex_superblocks;
@@ -595,15 +648,16 @@ void rdb_erase_range(key_tester_t *tester,
         store->lock_sindex_queue(sindex_block, &acq);
 
         write_message_t wm;
-        wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
+        wm << rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range));
         store->sindex_queue_push(wm, &acq);
     }
 
     {
+        rdb_value_detacher_t detacher;
         auto_drainer_t sindex_erase_drainer;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true /* release the superblock */, interruptor);
+                true /* release the superblock */, interruptor, &detacher);
 
         /* Notice, when we exit this block we destruct the sindex_erase_drainer
          * which means we'll wait until all of the sindex_erase_ranges finish
@@ -619,31 +673,70 @@ void rdb_erase_range(key_tester_t *tester,
          * point. */
     }
 
-    /* Twiddle some keys to get the in the form we want. Notice these are keys
-     * which will be made  exclusive and inclusive as their names suggest
-     * below. At the point of construction they aren't. */
-    store_key_t left_key_exclusive(key_range.left);
-    store_key_t right_key_inclusive(key_range.right.key);
-
-    bool left_key_supplied = left_key_exclusive.decrement();
-    bool right_key_supplied = !key_range.right.unbounded;
-    if (right_key_supplied) {
-        right_key_inclusive.decrement();
-    }
-
-    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
-     * names. */
+    bool left_key_supplied, right_key_supplied;
+    store_key_t left_key_exclusive, right_key_inclusive;
+    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
+            &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
     value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
+    /* Actually delete the values */
     rdb_value_deleter_t deleter;
 
     btree_erase_range_generic(sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
+}
+
+void rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &key_range,
+                           superblock_t *superblock,
+                           const deletion_context_t *deletion_context,
+                           signal_t *interruptor,
+                           std::vector<rdb_modification_report_t> *mod_reports_out) {
+    rassert(mod_reports_out != NULL);
+    mod_reports_out->clear();
+
+    bool left_key_supplied, right_key_supplied;
+    store_key_t left_key_exclusive, right_key_inclusive;
+    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
+             &left_key_exclusive, &right_key_inclusive);
+
+    /* We need these structures to perform the erase range. */
+    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    struct on_erase_cb_t {
+        static void on_erase(const store_key_t &key, const char *data,
+                const buf_parent_t &parent,
+                std::vector<rdb_modification_report_t> *_mod_reports_out) {
+            const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
+
+            // The mod_report we generate is a simple delete. While there is generally
+            // a difference between an erase and a delete (deletes get backfilled,
+            // while an erase is as if the value had never existed), that
+            // difference is irrelevant in the case of secondary indexes.
+            rdb_modification_report_t mod_report;
+            mod_report.primary_key = key;
+            // Get the full data
+            mod_report.info.deleted.first = get_data(value, parent);
+            // Get the inline value
+            block_size_t block_size = parent.cache()->get_block_size();
+            mod_report.info.deleted.second.assign(value->value_ref(),
+                value->value_ref() + value->inline_size(block_size));
+
+            _mod_reports_out->push_back(mod_report);
+        }
+    };
+
+    btree_erase_range_generic(sizer, tester, deletion_context->in_tree_deleter(),
+        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
+        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
+        superblock, interruptor, true /* release_superblock */,
+        std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
 }
 
 // This is actually a kind of misleading name. This function estimates the size
@@ -954,7 +1047,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
@@ -977,7 +1070,9 @@ void rdb_modification_report_cb_t::on_mod_report(
     wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
-    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn());
+    rdb_live_deletion_context_t deletion_context;
+    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
+                        &deletion_context);
 }
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
@@ -1002,6 +1097,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
+        const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
         auto_drainer_t::lock_t) {
     // Note if you get this error it's likely that you've passed in a default
@@ -1041,9 +1137,9 @@ void rdb_update_single_sindex(
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
-
                     find_keyvalue_location_for_write(super_block,
                                                      it->btree_key(),
+                                                     deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
@@ -1051,7 +1147,7 @@ void rdb_update_single_sindex(
 
                     if (kv_location.value.has()) {
                         kv_location_delete(&kv_location, *it,
-                            repli_timestamp_t::distant_past, NULL);
+                            repli_timestamp_t::distant_past, deletion_context, NULL);
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1077,6 +1173,7 @@ void rdb_update_single_sindex(
 
                     find_keyvalue_location_for_write(super_block,
                                                      it->btree_key(),
+                                                     deletion_context->balancing_detacher(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
@@ -1084,7 +1181,8 @@ void rdb_update_single_sindex(
 
                     kv_location_set(&kv_location, *it,
                                     modification->info.added.second,
-                                    repli_timestamp_t::distant_past);
+                                    repli_timestamp_t::distant_past,
+                                    deletion_context);
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();
@@ -1097,7 +1195,7 @@ void rdb_update_single_sindex(
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         txn_t *txn) {
+                         txn_t *txn, const deletion_context_t *deletion_context) {
     {
         auto_drainer_t drainer;
 
@@ -1105,7 +1203,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                                                     it != sindexes.end();
                                                     ++it) {
             coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, &*it,
+                        &rdb_update_single_sindex, &*it, deletion_context,
                         modification, auto_drainer_t::lock_t(&drainer)));
         }
     }
@@ -1120,18 +1218,20 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
-        actually_delete_rdb_value(buf_parent_t(txn), ref_cpy.data());
+        deletion_context->post_deleter()->delete_value(buf_parent_t(txn),
+                                                       ref_cpy.data());
     }
 }
 
-void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
-                              const rdb_erase_range_report_t *erase_range,
-                              signal_t *interruptor) {
+void rdb_erase_major_range_sindexes(const sindex_access_vector_t &sindexes,
+                              const rdb_erase_major_range_report_t *erase_range,
+                              signal_t *interruptor, const value_deleter_t *deleter) {
     auto_drainer_t drainer;
 
     spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
                               &drainer, auto_drainer_t::lock_t(&drainer),
-                              false /* don't release the superblock */, interruptor);
+                              false /* don't release the superblock */, interruptor,
+                              deleter);
 }
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
@@ -1198,6 +1298,7 @@ public:
         const leaf_node_t *leaf_node
             = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
 
+        rdb_post_construction_deletion_context_t deletion_context;
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             store_->btree->stats.pm_keys_read.record();
 
@@ -1216,7 +1317,7 @@ public:
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
-            rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
+            rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
             store_->btree->stats.pm_keys_set.record();
             coro_t::yield();
         }
@@ -1239,7 +1340,7 @@ public:
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
-    signal_t *interruptor_;
+    signal_t *interruptor_;  
 };
 
 void post_construct_secondary_indexes(
