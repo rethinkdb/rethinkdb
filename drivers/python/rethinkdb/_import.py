@@ -188,7 +188,11 @@ def parse_options():
 
         # Verify valid --format option
         if options.import_format is None:
-            res["import_format"] = "json"
+            options.import_format = os.path.split(options.import_file)[1].split(".")[-1]
+            if options.import_format not in ["csv", "json"]:
+                options.import_format = "json"
+
+            res["import_format"] = options.import_format
         elif options.import_format not in ["csv", "json"]:
             raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.import_format)
         else:
