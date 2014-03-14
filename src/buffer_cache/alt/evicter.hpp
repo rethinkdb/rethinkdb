@@ -26,6 +26,7 @@ public:
     void move_unevictable_to_evictable(page_t *page);
     void change_to_correct_eviction_bag(eviction_bag_t *current_bag, page_t *page);
     eviction_bag_t *correct_eviction_category(page_t *page);
+    eviction_bag_t *unevictable_category() { return &unevictable_; }
     void remove_page(page_t *page);
 
     explicit evicter_t(page_cache_t *page_cache,

@@ -13,12 +13,21 @@ namespace alt {
 class page_cache_t;
 class page_acq_t;
 
+class page_loader_t;
+class deferred_page_loader_t;
+class deferred_block_token_t;
+
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
 // in-place, but still a definite known value).
 class page_t {
 public:
+    // Defers loading the block for the given block id (but does go and get its block
+    // token ASAP, so that we can't lose access to the current version of the block).
+    page_t(block_id_t block_id, page_cache_t *page_cache);
+    // Loads the block for the given block id.
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
+
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
     page_t(scoped_malloc_t<ser_buffer_t> buf,
@@ -32,22 +41,34 @@ public:
     void add_waiter(page_acq_t *acq, cache_account_t *account);
     void remove_waiter(page_acq_t *acq);
 
-private:
-    friend class page_acq_t;
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
     uint32_t get_page_buf_size();
 
-    bool is_deleted();
-
+private:
     friend class page_ptr_t;
+    friend class deferred_page_loader_t;
     void add_snapshotter();
     void remove_snapshotter(page_cache_t *page_cache);
     size_t num_snapshot_references();
 
 
     void pulse_waiters_or_make_evictable(page_cache_t *page_cache);
+
+
+    static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
+                                          counted_t<standard_block_token_t> block_token,
+                                          scoped_malloc_t<ser_buffer_t> buf);
+
+    static void catch_up_with_deferred_load(
+            deferred_page_loader_t *deferred_loader,
+            page_cache_t *page_cache,
+            cache_account_t *account);
+
+    static void deferred_load_with_block_id(page_t *page, block_id_t block_id,
+                                            page_cache_t *page_cache);
+
 
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
@@ -69,8 +90,8 @@ private:
     void evict_self();
 
     // KSI: Explain this more.
-    // One of destroy_ptr_, buf_, or block_token_ is non-null.
-    bool *destroy_ptr_;
+    // One of loader_, buf_, or block_token_ is non-null.
+    page_loader_t *loader_;
     uint32_t ser_buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
@@ -89,13 +110,13 @@ private:
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one
     // of unevictable_pages_, etc).  Which bag we should be in:
     //
-    // if destroy_ptr_ is non-null:  unevictable_pages_
+    // if loader_ is non-null:  unevictable_pages_
     // else if waiters_ is non-empty: unevictable_pages_
     // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
     // else if block_token_ is non-null: evictable_disk_backed_pages_
     // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
     //
-    // So, when destroy_ptr_, waiters_, buf_, or block_token_ is touched, we might
+    // So, when loader_, waiters_, buf_, or block_token_ is touched, we might
     // need to change this page's eviction bag.
     //
     // The logic above is implemented in page_cache_t::correct_eviction_category.

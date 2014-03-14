@@ -49,8 +49,6 @@ public:
     semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
-    scoped_malloc_t<ser_buffer_t> allocate_buffer();
-
     using serializer_t::make_io_account;
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
