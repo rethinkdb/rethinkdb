@@ -56,7 +56,8 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->allocate_buffer();
+    scoped_malloc_t<ser_buffer_t> buf
+        = serializer_t::allocate_buffer(ser->max_block_size());
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
@@ -100,7 +101,8 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->allocate_buffer();
+    scoped_malloc_t<ser_buffer_t> buf
+        = serializer_t::allocate_buffer(ser->max_block_size());
     ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
@@ -151,7 +153,8 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        scoped_malloc_t<ser_buffer_t> buf = underlying[0]->allocate_buffer();
+        scoped_malloc_t<ser_buffer_t> buf
+            = serializer_t::allocate_buffer(underlying[0]->max_block_size());
         underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
 
         multiplexer_config_block_t *c
@@ -212,10 +215,6 @@ translator_serializer_t::translator_serializer_t(serializer_t *_inner, int _mod_
     rassert(mod_id < mod_count);
 }
 
-scoped_malloc_t<ser_buffer_t> translator_serializer_t::allocate_buffer() {
-    return inner->allocate_buffer();
-}
-
 file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
@@ -250,7 +249,7 @@ counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_size_t translator_serializer_t::max_block_size()  const {
+block_size_t translator_serializer_t::max_block_size() const {
     return inner->max_block_size();
 }
 

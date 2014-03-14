@@ -48,7 +48,7 @@ public:
     /* The buffers that are used with do_read() and do_write() must be allocated using
     this function. They can be safely called from any thread. */
 
-    virtual scoped_malloc_t<ser_buffer_t> allocate_buffer() = 0;
+    static scoped_malloc_t<ser_buffer_t> allocate_buffer(block_size_t block_size);
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */

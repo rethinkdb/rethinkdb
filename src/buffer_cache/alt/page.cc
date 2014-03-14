@@ -133,7 +133,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
             uint32_t ser_buf_size = copyee->ser_buf_size_;
             rassert(copyee->buf_.has());
-            scoped_malloc_t<ser_buffer_t> buf = page_cache->serializer_->allocate_buffer();
+            scoped_malloc_t<ser_buffer_t> buf
+                = serializer_t::allocate_buffer(page_cache->max_block_size());
 
             memcpy(buf.get(), copyee->buf_.get(), ser_buf_size);
 
@@ -228,9 +229,7 @@ void page_t::catch_up_with_deferred_load(
     scoped_malloc_t<ser_buffer_t> buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        // Call allocate_buffer() on our home thread because we'll destroy it on our
-        // home thread and tcmalloc likes that.
-        buf = serializer->allocate_buffer();
+        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
 
         // We use the fact that on_thread_t preserves order with the on_thread_t in
         // deferred_load_with_block_id.  This means that it's already run its section
@@ -316,9 +315,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
 
     {
         serializer_t *const serializer = page_cache->serializer_;
-        // Call allocate_buffer() on our home thread because we'll destroy it on our
-        // home thread and tcmalloc likes that.
-        buf = serializer->allocate_buffer();
+        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
 
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
@@ -416,9 +413,8 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     scoped_malloc_t<ser_buffer_t> buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        // Call allocate_buffer() on our home thread because we'll destroy it on our
-        // home thread and tcmalloc likes that.
-        buf = serializer->allocate_buffer();
+        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
+
         on_thread_t th(serializer->home_thread());
         serializer->block_read(block_token,
                                buf.get(),

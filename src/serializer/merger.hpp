@@ -27,10 +27,6 @@ public:
     ~merger_serializer_t();
 
 
-    /* serializer_t interface */
-
-    scoped_malloc_t<ser_buffer_t> allocate_buffer() { return inner->allocate_buffer(); }
-
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
     using serializer_t::make_io_account;

@@ -84,10 +84,6 @@ cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
 
 cache_t::~cache_t() { }
 
-block_size_t cache_t::max_block_size() const {
-    return page_cache_.max_block_size();
-}
-
 cache_account_t cache_t::create_cache_account(int priority) {
     return page_cache_.create_cache_account(priority);
 }
