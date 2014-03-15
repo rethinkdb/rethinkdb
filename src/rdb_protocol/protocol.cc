@@ -171,6 +171,13 @@ void bring_sindexes_up_to_date(
      * begins a parallel traversal which releases the superblock. This
      * serves to make sure that every changes which we don't learn about in
      * the parallel traversal we do learn about from the mod queue. */
+    // TODO! Wait, does this even still hold? Doesn't seem like that.
+    // post_construct_secondary_indexes creates a snapshotted read transaction
+    // whenever it feels like it. Is that a problem? Well I guess not, because
+    // we register the queue first, and then traverse the tree. So some entries
+    // will be on the queue though that have already been reflected in the tree.
+    // That's fine I think. However it is stupid that we don't seem to guarantee
+    // anything here. When was that even changed?
     uuid_u post_construct_id = generate_uuid();
 
     /* Keep the store alive for as long as mod_queue exists. It uses its io_backender
