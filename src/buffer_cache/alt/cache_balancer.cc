@@ -13,15 +13,16 @@ const double alt_cache_balancer_t::read_ahead_proportion = 0.9;
 alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
-    old_size(evicter->get_memory_limit()),
-    bytes_loaded(evicter->get_clamped_bytes_loaded()) { }
+    old_size(evicter->memory_limit()),
+    bytes_loaded(evicter->get_clamped_bytes_loaded()),
+    access_count(evicter->access_count()) { }
 
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
     rebalance_timer(rebalance_check_interval_ms, this),
     last_rebalance_time(0),
     read_ahead_bytes_remaining(total_cache_size * read_ahead_proportion),
-    thread_info(get_num_threads()),
+    evicters_per_thread(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) { }
 
 alt_cache_balancer_t::~alt_cache_balancer_t() {
@@ -39,55 +40,18 @@ bool alt_cache_balancer_t::subtract_read_ahead_bytes(int64_t size) {
 
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    thread_info_t *info = &thread_info[get_thread_id().threadnum];
-    cross_thread_mutex_t::acq_t mutex_acq(&info->mutex);
-    auto res = info->evicters.insert(evicter);
+    auto res = evicters_per_thread[get_thread_id().threadnum].insert(evicter);
     guarantee(res.second);
 }
 
 void alt_cache_balancer_t::remove_evicter(alt::evicter_t *evicter) {
     evicter->assert_thread();
-    thread_info_t *info = &thread_info[get_thread_id().threadnum];
-    cross_thread_mutex_t::acq_t mutex_acq(&info->mutex);
-    size_t res = info->evicters.erase(evicter);
+    size_t res = evicters_per_thread[get_thread_id().threadnum].erase(evicter);
     guarantee(res == 1);
-}
-
-void alt_cache_balancer_t::notify_access() {
-    __sync_add_and_fetch(&thread_info[get_thread_id().threadnum].access_count, 1);
 }
 
 void alt_cache_balancer_t::on_ring() {
     assert_thread();
-
-    // Determine if we should do a rebalance, either:
-    //  1. At least rebalance_timeout_ms milliseconds have passed
-    //  2. At least access_count_threshold accesses have occurred
-    // since the last rebalance.
-    microtime_t now = current_microtime();
-
-    if (last_rebalance_time + (rebalance_timeout_ms * 1000) > now) {
-        // Save the access counts so that we can decrement them after deciding to
-        // rebalance.
-        scoped_array_t<uint64_t> access_counts(thread_info.size());
-        uint64_t total_accesses = 0;
-        for (size_t i = 0; i < thread_info.size(); ++i) {
-            access_counts[i] = __sync_fetch_and_add(&thread_info[i].access_count, 0);
-            total_accesses += access_counts[i];
-        }
-
-        if (total_accesses < rebalance_access_count_threshold) {
-            return;
-        }
-
-        // We decrement the access counts, we don't set them to zero!  That would
-        // destroy intervening access count information.
-        for (size_t i = 0; i < thread_info.size(); ++i) {
-            __sync_fetch_and_sub(&thread_info[i].access_count, access_counts[i]);
-        }
-    }
-
-    last_rebalance_time = now;
 
     // Can't block in this callback, spawn a new coroutine
     // Using this coro_pool, we only have one rebalance going at once
@@ -96,27 +60,37 @@ void alt_cache_balancer_t::on_ring() {
 
 void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
     assert_thread();
-    scoped_array_t<std::vector<cache_data_t> > per_thread_data;
-    per_thread_data.init(thread_info.size());
+    scoped_array_t<std::vector<cache_data_t> > per_thread_data(evicters_per_thread.size());
 
     // Get cache sizes from shards on each thread
+    pmap(per_thread_data.size(),
+         std::bind(&alt_cache_balancer_t::collect_stats_from_thread,
+                   this, ph::_1, &per_thread_data));
+
+    // Sum up the number of evicters, bytes loaded, and access counts
     size_t total_evicters = 0;
     uint64_t total_bytes_loaded = 0;
-
-    for (size_t i = 0; i < thread_info.size(); ++i) {
-        std::set<alt::evicter_t*> *current_evicters = &thread_info[i].evicters;
-
-        cross_thread_mutex_t::acq_t mutex_acq(&thread_info[i].mutex);
-
-        per_thread_data[i].reserve(current_evicters->size());
-        total_evicters += current_evicters->size();
-
-        for (auto j = current_evicters->begin(); j != current_evicters->end(); ++j) {
-            cache_data_t data(*j);
-            per_thread_data[i].push_back(data);
-            total_bytes_loaded += data.bytes_loaded;
+    uint64_t total_access_count = 0;
+    for (size_t i = 0; i < per_thread_data.size(); ++i) {
+        total_evicters += per_thread_data[i].size();
+        for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
+            total_bytes_loaded += per_thread_data[i][j].bytes_loaded;
+            total_access_count += per_thread_data[i][j].access_count;
         }
     }
+
+    // Determine if we should do a rebalance, either:
+    //  1. At least rebalance_timeout_ms milliseconds have passed
+    //  2. At least access_count_threshold accesses have occurred
+    // since the last rebalance.
+    microtime_t now = current_microtime();
+
+    if (now < last_rebalance_time + (rebalance_timeout_ms * 1000) &&
+        total_access_count < rebalance_access_count_threshold) {
+        return;
+    }
+
+    last_rebalance_time = now;
 
     // Calculate new cache sizes
     if (total_cache_size > 0 && total_evicters > 0) {
@@ -170,23 +144,33 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
     }
 }
 
+void alt_cache_balancer_t::collect_stats_from_thread(int index,
+        scoped_array_t<std::vector<cache_data_t> > *data_out) {
+    on_thread_t rethreader((threadnum_t(index)));
+
+    ASSERT_NO_CORO_WAITING;
+    std::set<alt::evicter_t*> *evicters = &evicters_per_thread[index];
+    std::vector<cache_data_t> *per_evicter_data = &(*data_out)[index];
+
+    per_evicter_data->reserve(evicters->size());
+    for (auto j = evicters->begin(); j != evicters->end(); ++j) {
+        cache_data_t data(*j);
+        per_evicter_data->push_back(data);
+    }
+}
+
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
         scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
     on_thread_t rethreader((threadnum_t(index)));
 
-    // No need to lock the thread_info's mutex since a new rebalance cannot run
-    // while we are in here.
-
-    // `thread_info[index].evicters` can't be modified while we use it because it's
-    // modified on this thread.
-    const std::set<alt::evicter_t *> *evicters = &thread_info[index].evicters;
+    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
     std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {
         // Make sure the evicter still exists
         if (evicters->find(it->evicter) != evicters->end()) {
-            it->evicter->update_memory_limit(it->new_size, it->bytes_loaded);
+            it->evicter->update_memory_limit(it->new_size, it->bytes_loaded, it->access_count);
         }
     }
 }

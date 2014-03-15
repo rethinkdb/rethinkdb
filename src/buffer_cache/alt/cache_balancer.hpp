@@ -10,8 +10,6 @@
 #include "threading.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/coro_pool.hpp"
-#include "concurrency/cache_line_padded.hpp"
-#include "concurrency/cross_thread_mutex.hpp"
 #include "concurrency/queue/single_value_producer.hpp"
 #include "containers/scoped.hpp"
 
@@ -27,9 +25,6 @@ public:
 
     // Used to determine the initial size of a cache
     virtual uint64_t base_mem_per_store() const = 0;
-
-    // Tell the rebalancer that an access has occurred
-    virtual void notify_access() = 0;
 
     // Check if read-ahead is allowed at the moment
     virtual bool is_read_ahead_ok() = 0;
@@ -54,8 +49,6 @@ public:
     uint64_t base_mem_per_store() const {
         return base_mem_per_store_;
     }
-
-    void notify_access() { }
 
     bool is_read_ahead_ok() { return false; }
     virtual bool subtract_read_ahead_bytes(int64_t) { return false; }
@@ -84,8 +77,6 @@ public:
     uint64_t base_mem_per_store() const {
         return 0;
     }
-
-    void notify_access();
 
     // Both of these functions return true if read ahead is still ok
     bool is_read_ahead_ok();
@@ -129,31 +120,25 @@ private:
         uint64_t new_size;
         uint64_t old_size;
         uint64_t bytes_loaded;
+        uint64_t access_count;
     };
 
+    // Helper function to collect stats from each thread so we don't need
+    //  atomic variables slowing down normal operations
+    void collect_stats_from_thread(int index,
+                                   scoped_array_t<std::vector<cache_data_t> > *data_out);
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
                                    scoped_array_t<std::vector<cache_data_t> > *new_sizes);
-
-    struct thread_info_t {
-        thread_info_t() : access_count(0) { }
-
-        std::set<alt::evicter_t *> evicters;
-        cross_thread_mutex_t mutex; // Controls access to evicters
-
-        // This is set on the evicter's thread in notify_access(), and read during rebalance,
-        // then cleared when the rebalance is sent to the evicter's thread.
-        uint64_t access_count;
-    };
 
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
     microtime_t last_rebalance_time;
     int64_t read_ahead_bytes_remaining;
 
-    // This contains the extant evicter pointers for each thread, and a mutex
-    // to control access
-    scoped_array_t<thread_info_t> thread_info;
+    // This contains the extant evicter pointers for each thread, only accessed
+    // from each thread
+    scoped_array_t<std::set<alt::evicter_t*> > evicters_per_thread;
 
     // Coroutine pool to make sure there is only one rebalance happening at a time
     // The single_value_producer_t makes sure we never build up a backlog
