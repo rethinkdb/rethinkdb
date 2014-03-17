@@ -341,13 +341,18 @@ private:
                           val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
-            // No more info.
+            if (v->as_seq(env->env)->is_grouped()) {
+                bool c = info.add("type", make_counted<datum_t>("GROUPED_STREAM"));
+                r_sanity_check(c);
+            }
         } break;
 
         case FUNC_TYPE: {
             b |= info.add("source_code",
                           make_counted<datum_t>(v->as_func()->print_source()));
         } break;
+
+        case GROUPED_DATA_TYPE: break; // No more info
 
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
