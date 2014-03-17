@@ -41,7 +41,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
-    page_cache->evicter().add_not_yet_loaded(this);
+    page_cache->evicter().add_deferred_loaded(this);
 
     coro_t::spawn_now_dangerously(std::bind(&page_t::deferred_load_with_block_id,
                                             this,
@@ -149,8 +149,6 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->buf_ = std::move(buf);
             page->loader_ = NULL;
 
-            page_cache->evicter().add_now_loaded_size(page->hypothetical_memory_usage());
-
             page->pulse_waiters_or_make_evictable(page_cache);
         }
     }
@@ -167,7 +165,6 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
     page->block_token_ = std::move(block_token);
     page->loader_ = NULL;
 
-    page_cache->evicter().add_now_loaded_size(page->hypothetical_memory_usage());
     page->pulse_waiters_or_make_evictable(page_cache);
 }
 
@@ -216,6 +213,7 @@ void page_t::catch_up_with_deferred_load(
         page_cache_t *page_cache,
         cache_account_t *account) {
     page_t *page = deferred_loader->page();
+    page_cache->evicter().catch_up_deferred_load(page);
 
     // This is called using spawn_now_dangerously.  The deferred_load_with_block_id
     // operation associated with `loader` is on the serializer thread, or being sent
@@ -297,13 +295,14 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     page->block_token_ = std::move(on_heap_token->token);
     page->loader_ = NULL;
 
-    evicter_t *const evicter = &page_cache->evicter();
-    evicter->add_now_loaded_size(page->hypothetical_memory_usage());
-
     rassert(page->waiters_.empty());
-    rassert(evicter->page_is_in_unevictable_bag(page));
-    evicter->change_to_correct_eviction_bag(evicter->unevictable_category(),
-                                            page);
+
+#ifndef NDEBUG
+    evicter_t *const evicter = &page_cache->evicter();
+    rassert(evicter->page_is_in_evicted_bag(page));
+    rassert(evicter->evicted_category()
+            == evicter->correct_eviction_category(page));
+#endif
 }
 
 void page_t::load_with_block_id(page_t *page, block_id_t block_id,
@@ -412,6 +411,8 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     rassert(page->loader_ == NULL);
     page->loader_ = &loader;
 
+    page_cache->evicter().reloading_page(page);
+
     auto_drainer_t::lock_t lock(page_cache->drainer_.get());
 
     counted_t<standard_block_token_t> block_token = page->block_token_;
@@ -439,8 +440,6 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     block_token.reset();
     page->buf_ = std::move(buf);
     page->loader_ = NULL;
-
-    page_cache->evicter().page_was_loaded(page);
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
