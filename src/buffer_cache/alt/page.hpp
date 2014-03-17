@@ -51,6 +51,7 @@ public:
     // already in memory, this is how much memory the block is currently
     // using, of course.)
     uint32_t hypothetical_memory_usage() const;
+    uint64_t access_time() const { return access_time_; }
 
     bool is_loading() const { return loader_ != NULL; }
     bool has_waiters() const { return !waiters_.empty(); }
@@ -96,7 +97,6 @@ private:
                                        cache_account_t *account);
 
     friend class page_cache_t;
-    friend class eviction_bag_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
 
     // KSI: Explain this more.
