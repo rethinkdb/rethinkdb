@@ -4,6 +4,8 @@ class RqlDriverError extends Error
         @msg = msg
         @message = msg
 
+class RqlConnectionError extends RqlDriverError
+
 class RqlServerError extends Error
     constructor: (msg, term, frames) ->
         @name = @constructor.name
