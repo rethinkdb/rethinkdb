@@ -115,10 +115,9 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
     assert_thread();
-    // RSI: is_loading is wrong for deferred loaders.
     if (page->is_loading() || page->has_waiters()) {
         return &unevictable_;
-    } else if (page->is_evicted()) {
+    } else if (page->is_not_loaded()) {
         return &evicted_;
     } else if (page->is_disk_backed()) {
         return &evictable_disk_backed_;

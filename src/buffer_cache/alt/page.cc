@@ -16,6 +16,10 @@ public:
         // Do nothing, in the default case.
     }
 
+    virtual bool is_really_loading() const {
+        return true;
+    }
+
     bool abandon_page() const { return abandon_page_; }
 
     void mark_abandon_page() {
@@ -113,6 +117,11 @@ page_t::~page_t() {
     }
 }
 
+bool page_t::loader_is_loading(page_loader_t *loader) {
+    rassert(loader != NULL);
+    return loader->is_really_loading();
+}
+
 void page_t::load_from_copyee(page_t *page, page_t *copyee,
                               page_cache_t *page_cache,
                               cache_account_t *account) {
@@ -194,6 +203,10 @@ public:
                                                 account));
     }
 
+    bool is_really_loading() const {
+        return false;
+    }
+
     page_t *page() { return page_; }
 
 
@@ -213,7 +226,6 @@ void page_t::catch_up_with_deferred_load(
         page_cache_t *page_cache,
         cache_account_t *account) {
     page_t *page = deferred_loader->page();
-    page_cache->evicter().catch_up_deferred_load(page);
 
     // This is called using spawn_now_dangerously.  The deferred_load_with_block_id
     // operation associated with `loader` is on the serializer thread, or being sent
@@ -230,6 +242,9 @@ void page_t::catch_up_with_deferred_load(
     // Before blocking, tell the deferred loader to abandon the page.  It's before
     // the deferred loader has gotten back to this thread, so we can do that.
     deferred_loader->abandon_page();
+
+    // Before blocking, tell the evicter to put us in the right category.
+    page_cache->evicter().catch_up_deferred_load(page);
 
     scoped_malloc_t<ser_buffer_t> buf;
     {
