@@ -342,8 +342,8 @@ private:
         } break;
         case SEQUENCE_TYPE: {
             if (v->as_seq(env->env)->is_grouped()) {
-                bool c = info.add("type", make_counted<datum_t>("GROUPED_STREAM"));
-                r_sanity_check(c);
+                bool res = info.add("type", make_counted<datum_t>("GROUPED_STREAM"));
+                r_sanity_check(res);
             }
         } break;
 
