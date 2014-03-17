@@ -50,13 +50,13 @@ bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offse
             page_t *page = bag_.access_random(randsize(bag_.size()));
             // We compare relative to the access time offset, so that in the unlikely
             // event of a 64-bit overflow, performance degradation is "smooth".
-            if (access_time_offset - page->access_time_ >
-                access_time_offset - oldest->access_time_) {
+            if (access_time_offset - page->access_time() >
+                access_time_offset - oldest->access_time()) {
                 oldest = page;
             }
         }
 
-        remove(oldest, oldest->ser_buf_size_);
+        remove(oldest, oldest->hypothetical_memory_usage());
         *page_out = oldest;
         return true;
     }

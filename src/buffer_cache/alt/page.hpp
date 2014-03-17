@@ -51,10 +51,13 @@ public:
     // already in memory, this is how much memory the block is currently
     // using, of course.)
     uint32_t hypothetical_memory_usage() const;
+    uint64_t access_time() const { return access_time_; }
 
-    bool is_loading() const { return loader_ != NULL; }
+    bool is_loading() const {
+        return loader_ != NULL && page_t::loader_is_loading(loader_);
+    }
     bool has_waiters() const { return !waiters_.empty(); }
-    bool is_evicted() const { return !buf_.has(); }
+    bool is_not_loaded() const { return !buf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self();
@@ -62,6 +65,7 @@ public:
 private:
     friend class page_ptr_t;
     friend class deferred_page_loader_t;
+    static bool loader_is_loading(page_loader_t *loader);
     void add_snapshotter();
     void remove_snapshotter(page_cache_t *page_cache);
     size_t num_snapshot_references();
@@ -96,7 +100,6 @@ private:
                                        cache_account_t *account);
 
     friend class page_cache_t;
-    friend class eviction_bag_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
 
     // KSI: Explain this more.
