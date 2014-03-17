@@ -14,8 +14,6 @@
 #include "thread_local.hpp"
 #include "protob/protob.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
@@ -67,15 +65,18 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
     case Term::CONCATMAP:          return make_concatmap_term(env, t);
+    case Term::GROUP:              return make_group_term(env, t);
     case Term::ORDERBY:            return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
+    case Term::SUM:                return make_sum_term(env, t);
+    case Term::AVG:                return make_avg_term(env, t);
+    case Term::MIN:                return make_min_term(env, t);
+    case Term::MAX:                return make_max_term(env, t);
     case Term::UNION:              return make_union_term(env, t);
     case Term::NTH:                return make_nth_term(env, t);
-    case Term::GROUPED_MAP_REDUCE: return make_gmr_term(env, t);
     case Term::LIMIT:              return make_limit_term(env, t);
     case Term::SKIP:               return make_skip_term(env, t);
-    case Term::GROUPBY:            return make_groupby_term(env, t);
     case Term::INNER_JOIN:         return make_inner_join_term(env, t);
     case Term::OUTER_JOIN:         return make_outer_join_term(env, t);
     case Term::EQ_JOIN:            return make_eq_join_term(env, t);
@@ -85,6 +86,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::CHANGE_AT:          return make_change_at_term(env, t);
     case Term::SPLICE_AT:          return make_splice_at_term(env, t);
     case Term::COERCE_TO:          return make_coerce_term(env, t);
+    case Term::UNGROUP:            return make_ungroup_term(env, t);
     case Term::TYPEOF:             return make_typeof_term(env, t);
     case Term::UPDATE:             return make_update_term(env, t);
     case Term::DELETE:             return make_delete_term(env, t);
@@ -112,6 +114,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
     case Term::MATCH:              return make_match_term(env, t);
+    case Term::SPLIT:              return make_split_term(env, t);
     case Term::UPCASE:             return make_upcase_term(env, t);
     case Term::DOWNCASE:           return make_downcase_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);
@@ -231,6 +234,15 @@ void run(protob_t<Query> q,
                     env->trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
+            } else if (counted_t<grouped_data_t> gd
+                       = val->maybe_as_promiscuous_grouped_data(scope_env.env)) {
+                res->set_type(Response::SUCCESS_ATOM);
+                datum_t d(std::move(*gd));
+                d.write_to_protobuf(res->add_response(), use_json);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
+                }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(env.get());
                 if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
@@ -247,7 +259,8 @@ void run(protob_t<Query> q,
                 }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
-                               "Query result must be of type DATUM or STREAM (got %s).",
+                               "Query result must be of type "
+                               "DATUM, GROUPED_DATA, or STREAM (got %s).",
                                val->get_type().name());
             }
         } catch (const exc_t &e) {
@@ -347,7 +360,7 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(env, eval_flags);
+            counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;

@@ -1,8 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/incr_decr.hpp"
 
 #include <inttypes.h>
 
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped.hpp"
@@ -15,7 +17,8 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         : increment(_increment), delta(_delta)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
+    bool operate(buf_parent_t leaf,
+                 scoped_malloc_t<memcached_value_t> *value) {
         // If the key didn't exist before, we fail.
         if (!value->has()) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -26,13 +29,14 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         bool valid;
         uint64_t number;
 
-        blob_t b(txn->get_cache()->get_block_size(),
-                 (*value)->value_ref(), blob::btree_maxreflen);
+        blob_t b(leaf.cache()->get_block_size(),
+                      (*value)->value_ref(), blob::btree_maxreflen);
         rassert(50 <= blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
             blob_acq_t acqs;
-            b.expose_region(txn, rwi_read, 0, b.valuesize(), &buffergroup, &acqs);
+            b.expose_region(leaf, access_t::read,
+                            0, b.valuesize(), &buffergroup, &acqs);
             rassert(buffergroup.num_buffers() == 1);
 
             char buffer[50];
@@ -72,11 +76,12 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         result.new_value = number;
 
         printf_buffer_t tmp("%" PRIu64, number);
-        b.clear(txn);
-        b.append_region(txn, tmp.size());
+        b.clear(leaf);
+        b.append_region(leaf, tmp.size());
         buffer_group_t group;
         blob_acq_t acqs;
-        b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
+        b.expose_region(leaf, access_t::write,
+                        0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
         rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
         memcpy(group.get_buffer(0).data, tmp.data(), tmp.size());
@@ -94,9 +99,13 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t memcached_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
+incr_decr_result_t
+memcached_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment,
+                    uint64_t delta, cas_t proposed_cas, exptime_t effective_time,
+                    repli_timestamp_t timestamp, superblock_t *superblock) {
     memcached_incr_decr_oper_t oper(increment, delta);
-    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time,
+                              timestamp, superblock);
     return oper.result;
 }
 

@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -8,7 +11,14 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
-#define MAX_CHUNKS_OUT 5000
+// The number of backfill chunks that may be sent but not yet acknowledged (~processed)
+// by the receiver.
+// Each chunk can contain multiple key/value pairs, but its (approximate) maximum
+// size is limited by BACKFILL_MAX_KVPAIRS_SIZE as defined in btree/backfill.hpp.
+// When setting this value, keep memory consumption in mind.
+// Must be >= ALLOCATION_CHUNK in backfillee.cc, or backfilling will stall and
+// never finish.
+#define MAX_CHUNKS_OUT 64
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
     return vr.earliest.timestamp;
@@ -90,7 +100,7 @@ void do_send_chunk(mailbox_manager_t *mbox_manager,
                    mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
                    const typename protocol_t::backfill_chunk_t &chunk,
                    fifo_enforcer_source_t *fifo_src,
-                   semaphore_t *chunk_semaphore,
+                   co_semaphore_t *chunk_semaphore,
                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     chunk_semaphore->co_lock_interruptible(interruptor);
     send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
@@ -104,7 +114,7 @@ public:
                                         mailbox_manager_t *mailbox_manager,
                                         mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
                                         fifo_enforcer_source_t *fifo_src,
-                                        semaphore_t *chunk_semaphore,
+                                        co_semaphore_t *chunk_semaphore,
                                         backfiller_t<protocol_t> *backfiller)
         : start_point_(start_point),
           end_point_cont_(end_point_cont),
@@ -127,7 +137,7 @@ private:
     mailbox_manager_t *mailbox_manager_;
     mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont_;
     fifo_enforcer_source_t *fifo_src_;
-    semaphore_t *chunk_semaphore_;
+    co_semaphore_t *chunk_semaphore_;
     backfiller_t<protocol_t> *backfiller_;
 
     DISABLE_COPYING(backfiller_send_backfill_callback_t);
@@ -161,7 +171,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
     static_semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
-    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&semaphore_t::unlock, &chunk_semaphore, _1));
+    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&co_semaphore_t::unlock, &chunk_semaphore, _1));
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {

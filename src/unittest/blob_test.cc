@@ -1,15 +1,18 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
-#include "unittest/server_test_helper.hpp"
-#include "buffer_cache/blob.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
+#include "math.hpp"
+#include "unittest/gtest.hpp"
+#include "unittest/mock_file.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "serializer/config.hpp"
 
 namespace unittest {
 
-static const int expected_cache_block_size = 4080;
+static const int expected_cache_block_size = 4088;
 static const int size_after_magic = expected_cache_block_size - sizeof(block_magic_t);
 
 class blob_tracker_t {
@@ -24,7 +27,7 @@ public:
         : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
                                                             buf_.data(), maxreflen) { }
 
-    void check_region(transaction_t *txn, int64_t offset, int64_t size) {
+    void check_region(txn_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
         const int64_t expecteds_size = expected_.size();
         ASSERT_LE(0, offset);
@@ -36,7 +39,8 @@ public:
 
         buffer_group_t bg;
         blob_acq_t bacq;
-        blob_.expose_region(txn, rwi_read, offset, size, &bg, &bacq);
+        blob_.expose_region(buf_parent_t(txn), access_t::read, offset, size,
+                            &bg, &bacq);
 
         ASSERT_EQ(size, static_cast<int64_t>(bg.get_size()));
 
@@ -46,16 +50,17 @@ public:
             SCOPED_TRACE(strprintf("buffer %zu/%zu (size %zu)", i, n, buffer.size));
             ASSERT_LE(buffer.size, e - p);
             char *data = reinterpret_cast<char *>(buffer.data);
-            ASSERT_TRUE(std::equal(data, data + buffer.size, p));
+            ASSERT_EQ(std::string(p, p + buffer.size),
+                      std::string(data, data + buffer.size));
             p += buffer.size;
         }
 
         ASSERT_EQ(e - p_orig, p - p_orig);
     }
 
-    void check_normalization(transaction_t *txn) {
+    void check_normalization(txn_t *txn) {
         size_t size = expected_.size();
-        uint64_t rs = blob_.refsize(txn->get_cache()->get_block_size());
+        uint64_t rs = blob_.refsize(txn->cache()->get_block_size());
         size_t sizesize = buf_.size() <= 255 ? 1 : 2;
         if (size <= buf_.size() - sizesize) {
             ASSERT_EQ(sizesize + size, rs);
@@ -76,23 +81,24 @@ public:
         }
     }
 
-    void check(transaction_t *txn) {
+    void check(txn_t *txn) {
         check_region(txn, 0, expected_.size());
         check_normalization(txn);
     }
 
-    void append(transaction_t *txn, const std::string& x) {
+    void append(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("append (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.append_region(txn, n);
+        blob_.append_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(expected_.size() + n), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(txn, rwi_write, expected_.size(), n, &bg, &bacq);
+            blob_.expose_region(buf_parent_t(txn), access_t::write,
+                                expected_.size(), n, &bg, &bacq);
 
             ASSERT_EQ(static_cast<size_t>(n), bg.get_size());
 
@@ -107,18 +113,19 @@ public:
         check(txn);
     }
 
-    void prepend(transaction_t *txn, const std::string& x) {
+    void prepend(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.prepend_region(txn, n);
+        blob_.prepend_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(n + expected_.size()), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(txn, rwi_write, 0, n, &bg, &bacq);
+            blob_.expose_region(buf_parent_t(txn), access_t::write, 0, n,
+                                &bg, &bacq);
 
             ASSERT_EQ(n, static_cast<int64_t>(bg.get_size()));
 
@@ -133,29 +140,29 @@ public:
         check(txn);
     }
 
-    void unprepend(transaction_t *txn, int64_t n) {
+    void unprepend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unprepend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unprepend_region(txn, n);
+        blob_.unprepend_region(buf_parent_t(txn), n);
         expected_.erase(0, n);
 
         check(txn);
     }
 
-    void unappend(transaction_t *txn, int64_t n) {
+    void unappend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unappend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unappend_region(txn, n);
+        blob_.unappend_region(buf_parent_t(txn), n);
         expected_.erase(expected_.size() - n);
 
         check(txn);
     }
 
-    void clear(transaction_t *txn) {
+    void clear(txn_t *txn) {
         SCOPED_TRACE("clear");
-        blob_.clear(txn);
+        blob_.clear(buf_parent_t(txn));
         expected_.clear();
         check(txn);
     }
@@ -170,233 +177,240 @@ private:
     blob_t blob_;
 };
 
-class blob_tester_t : public server_test_helper_t {
-public:
-    blob_tester_t() { }
-private:
-    void run_tests(cache_t *cache) {
-        // The tests below hard-code constants related to these numbers.
-        EXPECT_EQ(251, blob::btree_maxreflen);
-        EXPECT_EQ(4u, sizeof(block_magic_t));
-        const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
-        EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
-        EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
-                  blob::stepsize(cache->get_block_size(), 2));
+void small_value_test(cache_t *cache) {
+    SCOPED_TRACE("small_value_test");
+    UNUSED block_size_t block_size = cache->get_block_size();
 
-        small_value_test(cache);
-        small_value_boundary_test(cache);
-        special_4080_prepend_4081_test(cache);
-        special_4161600_prepend_12484801_test(cache);
-        combinations_test(cache);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
+
+    blob_tracker_t tk(251);
+
+    tk.append(&txn, "a");
+    tk.append(&txn, "b");
+    tk.prepend(&txn, "c");
+    tk.unappend(&txn, 1);
+    tk.unappend(&txn, 2);
+    tk.append(&txn, std::string(250, 'd'));
+    for (int i = 0; i < 250; ++i) {
+        tk.unappend(&txn, 1);
     }
-
-    void small_value_test(cache_t *cache) {
-        SCOPED_TRACE("small_value_test");
-        UNUSED block_size_t block_size = cache->get_block_size();
-
-        order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"),
-                          WRITE_DURABILITY_SOFT);
-
-        blob_tracker_t tk(251);
-
-        tk.append(&txn, "a");
-        tk.append(&txn, "b");
-        tk.prepend(&txn, "c");
-        tk.unappend(&txn, 1);
-        tk.unappend(&txn, 2);
-        tk.append(&txn, std::string(250, 'd'));
-        for (int i = 0; i < 250; ++i) {
-            tk.unappend(&txn, 1);
-        }
-        tk.prepend(&txn, std::string(250, 'e'));
-        for (int i = 0; i < 125; ++i) {
-            tk.unprepend(&txn, 2);
-        }
-
-        tk.append(&txn, std::string(125, 'f'));
-        tk.prepend(&txn, std::string(125, 'g'));
-        tk.unprepend(&txn, 0);
-        tk.unappend(&txn, 0);
-        tk.unprepend(&txn, 250);
-        tk.unappend(&txn, 0);
-        tk.unprepend(&txn, 0);
-        tk.append(&txn, "");
-        tk.prepend(&txn, "");
-    }
-
-    void small_value_boundary_test(cache_t *cache) {
-        SCOPED_TRACE("small_value_boundary_test");
-        block_size_t block_size = cache->get_block_size();
-
-        order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("small_value_boundary_test"), WRITE_DURABILITY_SOFT);
-
-        blob_tracker_t tk(251);
-
-        tk.append(&txn, std::string(250, 'a'));
-        tk.append(&txn, "b");
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unappend(&txn, 1);
-        ASSERT_EQ(251u, tk.refsize(block_size));
-
-        tk.prepend(&txn, "c");
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unappend(&txn, 1);
-        ASSERT_EQ(251u, tk.refsize(block_size));
-        tk.append(&txn, "d");
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unprepend(&txn, 1);
-        ASSERT_EQ(251u, tk.refsize(block_size));
-        tk.append(&txn, "e");
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.prepend(&txn, std::string(250, 'e'));
+    for (int i = 0; i < 125; ++i) {
         tk.unprepend(&txn, 2);
-        ASSERT_EQ(250u, tk.refsize(block_size));
-        tk.prepend(&txn, "fffff");
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unprepend(&txn, 254);
-        ASSERT_EQ(1u, tk.refsize(block_size));
-
-        tk.append(&txn, std::string(251, 'g'));
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-
-        tk.unappend(&txn, 251);
-        ASSERT_EQ(1u, tk.refsize(block_size));
-        tk.prepend(&txn, std::string(251, 'h'));
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unappend(&txn, 250);
-        ASSERT_EQ(2u, tk.refsize(block_size));
-        tk.prepend(&txn, std::string(250, 'i'));
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unprepend(&txn, 250);
-        ASSERT_EQ(2u, tk.refsize(block_size));
-        tk.append(&txn, std::string(250, 'j'));
-        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-        tk.unappend(&txn, 250);
-        ASSERT_EQ(2u, tk.refsize(block_size));
-        tk.unappend(&txn, 1);
-        ASSERT_EQ(1u, tk.refsize(block_size));
     }
 
-    void special_4080_prepend_4081_test(cache_t *cache) {
-        SCOPED_TRACE("special_4080_prepend_4081_test");
-        block_size_t block_size = cache->get_block_size();
+    tk.append(&txn, std::string(125, 'f'));
+    tk.prepend(&txn, std::string(125, 'g'));
+    tk.unprepend(&txn, 0);
+    tk.unappend(&txn, 0);
+    tk.unprepend(&txn, 250);
+    tk.unappend(&txn, 0);
+    tk.unprepend(&txn, 0);
+    tk.append(&txn, "");
+    tk.prepend(&txn, "");
+}
 
-        ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
+void small_value_boundary_test(cache_t *cache) {
+    SCOPED_TRACE("small_value_boundary_test");
+    block_size_t block_size = cache->get_block_size();
 
-        order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4080_prepend_4081_test"), WRITE_DURABILITY_SOFT);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
-        blob_tracker_t tk(251);
+    blob_tracker_t tk(251);
 
-        tk.append(&txn, std::string(size_after_magic, 'a'));
-        tk.prepend(&txn, "b");
-        tk.unappend(&txn, size_after_magic + 1);
-    }
+    tk.append(&txn, std::string(250, 'a'));
+    tk.append(&txn, "b");
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 1);
+    ASSERT_EQ(251u, tk.refsize(block_size));
 
-    // Regression test - these magic numbers caused failures previously.
-    void special_4161600_prepend_12484801_test(cache_t *cache) {
-        SCOPED_TRACE("special_4080_prepend_4081_test");
-        order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4161600_prepend_12484801_test"), WRITE_DURABILITY_SOFT);
+    tk.prepend(&txn, "c");
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 1);
+    ASSERT_EQ(251u, tk.refsize(block_size));
+    tk.append(&txn, "d");
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unprepend(&txn, 1);
+    ASSERT_EQ(251u, tk.refsize(block_size));
+    tk.append(&txn, "e");
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unprepend(&txn, 2);
+    ASSERT_EQ(250u, tk.refsize(block_size));
+    tk.prepend(&txn, "fffff");
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unprepend(&txn, 254);
+    ASSERT_EQ(1u, tk.refsize(block_size));
 
-        blob_tracker_t tk(251);
+    tk.append(&txn, std::string(251, 'g'));
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
 
-        int64_t lo_size = size_after_magic * (size_after_magic / sizeof(block_id_t));
-        int64_t hi_size = 3 * lo_size + 1;
-        tk.append(&txn, std::string(lo_size, 'a'));
-        tk.prepend(&txn, std::string(hi_size - lo_size, 'b'));
-        tk.unappend(&txn, hi_size);
-    }
+    tk.unappend(&txn, 251);
+    ASSERT_EQ(1u, tk.refsize(block_size));
+    tk.prepend(&txn, std::string(251, 'h'));
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 250);
+    ASSERT_EQ(2u, tk.refsize(block_size));
+    tk.prepend(&txn, std::string(250, 'i'));
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unprepend(&txn, 250);
+    ASSERT_EQ(2u, tk.refsize(block_size));
+    tk.append(&txn, std::string(250, 'j'));
+    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 250);
+    ASSERT_EQ(2u, tk.refsize(block_size));
+    tk.unappend(&txn, 1);
+    ASSERT_EQ(1u, tk.refsize(block_size));
+}
 
-    struct step_t {
-        int64_t size;
-        bool prepend;
-        step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
-    };
+void special_4080_prepend_4081_test(cache_t *cache) {
+    SCOPED_TRACE("special_4080_prepend_4081_test");
+    block_size_t block_size = cache->get_block_size();
 
-    void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
-        UNUSED block_size_t block_size = cache->get_block_size();
+    ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
 
-        order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("general_journey_test"), WRITE_DURABILITY_SOFT);
-        blob_tracker_t tk(251);
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
-        char v = 'A';
-        int64_t size = 0;
-        for (int i = 0, n = steps.size(); i < n; ++i) {
-            if (steps[i].prepend) {
-                if (steps[i].size <= size) {
-                    SCOPED_TRACE(strprintf("unprepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                    tk.unprepend(&txn, size - steps[i].size);
-                } else {
-                    SCOPED_TRACE(strprintf("prepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                    tk.prepend(&txn, std::string(steps[i].size - size, v));
-                }
-            } else {
-                if (steps[i].size <= size) {
-                    SCOPED_TRACE(strprintf("unappending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                    tk.unappend(&txn, size - steps[i].size);
-                } else {
-                    SCOPED_TRACE(strprintf("appending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                    tk.append(&txn, std::string(steps[i].size - size, v));
-                }
-            }
+    blob_tracker_t tk(251);
 
-            size = steps[i].size;
+    tk.append(&txn, std::string(size_after_magic, 'a'));
+    tk.prepend(&txn, "b");
+    tk.unappend(&txn, size_after_magic + 1);
+}
 
-            v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
-        }
-        tk.unappend(&txn, size);
-    }
+// Regression test - these magic numbers caused failures previously.
+void special_4161600_prepend_12484801_test(cache_t *cache) {
+    SCOPED_TRACE("special_4080_prepend_4081_test");
 
-    void combinations_test(cache_t *cache) {
-        SCOPED_TRACE("combinations_test");
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
 
-        int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
-        //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
-        int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+    blob_tracker_t tk(251);
 
-        int n = sizeof(szs) / sizeof(szs[0]);
+    int64_t lo_size = size_after_magic * (size_after_magic / sizeof(block_id_t));
+    int64_t hi_size = 3 * lo_size + 1;
+    tk.append(&txn, std::string(lo_size, 'a'));
+    tk.prepend(&txn, std::string(hi_size - lo_size, 'b'));
+    tk.unappend(&txn, hi_size);
+}
 
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < n; ++j) {
-                SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
-                std::vector<step_t> steps;
-                steps.push_back(step_t(szs[i], false));
-                steps.push_back(step_t(szs[j], false));
-                {
-                    SCOPED_TRACE("ap ap");
-                    general_journey_test(cache, steps);
-                }
-                steps[1].prepend = true;
-                {
-                    SCOPED_TRACE("ap prep");
-                    general_journey_test(cache, steps);
-                }
-                steps[0].prepend = true;
-                {
-                    SCOPED_TRACE("prep prep");
-                    general_journey_test(cache, steps);
-                }
-                steps[1].prepend = false;
-                {
-                    SCOPED_TRACE("prep ap");
-                    general_journey_test(cache, steps);
-                }
-            }
-        }
-    }
-
-    DISABLE_COPYING(blob_tester_t);
+struct step_t {
+    int64_t size;
+    bool prepend;
+    step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
 };
 
-TEST(BlobTest, all_tests) {
-    blob_tester_t().run();
+void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
+    UNUSED block_size_t block_size = cache->get_block_size();
+
+    cache_conn_t cache_conn(cache);
+    txn_t txn(&cache_conn, write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 0);
+    blob_tracker_t tk(251);
+
+    char v = 'A';
+    int64_t size = 0;
+    for (int i = 0, n = steps.size(); i < n; ++i) {
+        if (steps[i].prepend) {
+            if (steps[i].size <= size) {
+                SCOPED_TRACE(strprintf("unprepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
+                tk.unprepend(&txn, size - steps[i].size);
+            } else {
+                SCOPED_TRACE(strprintf("prepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
+                tk.prepend(&txn, std::string(steps[i].size - size, v));
+            }
+        } else {
+            if (steps[i].size <= size) {
+                SCOPED_TRACE(strprintf("unappending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
+                tk.unappend(&txn, size - steps[i].size);
+            } else {
+                SCOPED_TRACE(strprintf("appending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
+                tk.append(&txn, std::string(steps[i].size - size, v));
+            }
+        }
+
+        size = steps[i].size;
+
+        v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
+    }
+    tk.unappend(&txn, size);
+}
+
+void combinations_test(cache_t *cache) {
+    SCOPED_TRACE("combinations_test");
+
+    int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
+    //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
+    int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+
+    int n = sizeof(szs) / sizeof(szs[0]);
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
+            std::vector<step_t> steps;
+            steps.push_back(step_t(szs[i], false));
+            steps.push_back(step_t(szs[j], false));
+            {
+                SCOPED_TRACE("ap ap");
+                general_journey_test(cache, steps);
+            }
+            steps[1].prepend = true;
+            {
+                SCOPED_TRACE("ap prep");
+                general_journey_test(cache, steps);
+            }
+            steps[0].prepend = true;
+            {
+                SCOPED_TRACE("prep prep");
+                general_journey_test(cache, steps);
+            }
+            steps[1].prepend = false;
+            {
+                SCOPED_TRACE("prep ap");
+                general_journey_test(cache, steps);
+            }
+        }
+    }
+}
+
+
+void run_tests(cache_t *cache) {
+    // The tests above hard-code constants related to these numbers.
+    EXPECT_EQ(251, blob::btree_maxreflen);
+    EXPECT_EQ(4u, sizeof(block_magic_t));
+    const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
+    EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
+    EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
+              blob::stepsize(cache->get_block_size(), 2));
+
+    small_value_test(cache);
+    small_value_boundary_test(cache);
+    special_4080_prepend_4081_test(cache);
+    special_4161600_prepend_12484801_test(cache);
+    combinations_test(cache);
+}
+
+TPTEST(BlobTest, all_tests) {
+    mock_file_opener_t file_opener;
+    standard_serializer_t::create(
+            &file_opener,
+            standard_serializer_t::static_config_t());
+    standard_serializer_t log_serializer(
+            standard_serializer_t::dynamic_config_t(),
+            &file_opener,
+            &get_global_perfmon_collection());
+
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    cache_t cache(&log_serializer, &balancer, &get_global_perfmon_collection());
+
+    run_tests(&cache);
 }
 
 }  // namespace unittest

@@ -1,6 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "activity_logger.hpp"
+
+#include <inttypes.h>
+
+#include "debug.hpp"
+#include "utils.hpp"
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
     : timestamp(current_microtime()), msg(_msg) {

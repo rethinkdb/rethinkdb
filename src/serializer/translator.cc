@@ -1,10 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/translator.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "concurrency/pmap.hpp"
+#include "debug.hpp"
 #include "serializer/types.hpp"
 #include "serializer/config.hpp"
 
@@ -26,6 +27,22 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
+                                                         block_size_t block_size,
+                                                         block_id_t block_id, file_account_t *io_account) {
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+
+    std::vector<counted_t<standard_block_token_t> > tokens
+        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+                            io_account, &cb);
+    guarantee(tokens.size() == 1);
+    cb.wait();
+    return tokens[0];
+
+}
+
 void prep_serializer(
         const std::vector<serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,
@@ -39,11 +56,13 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    scoped_malloc_t<ser_buffer_t> buf
+        = serializer_t::allocate_buffer(ser->max_block_size());
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
-    bzero(c, ser->get_block_size().value());
+    const block_size_t config_block_size = ser->max_block_size();
+    memset(c, 0, config_block_size.value());
     c->magic = multiplexer_config_block_t::expected_magic;
     c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
@@ -51,10 +70,14 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), ser->get_block_size(),
+    op.token = serializer_block_write(ser, buf.get(), config_block_size,
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
+    {
+        std::vector<index_write_op_t> ops;
+        ops.push_back(std::move(op));
+        ser->index_write(ops, DEFAULT_DISK_ACCOUNT);
+    }
 }
 
 /* static */
@@ -78,7 +101,8 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    scoped_malloc_t<ser_buffer_t> buf
+        = serializer_t::allocate_buffer(ser->max_block_size());
     ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
@@ -129,7 +153,8 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        scoped_malloc_t<ser_buffer_t> buf = underlying[0]->malloc();
+        scoped_malloc_t<ser_buffer_t> buf
+            = serializer_t::allocate_buffer(underlying[0]->max_block_size());
         underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
 
         multiplexer_config_block_t *c
@@ -190,14 +215,6 @@ translator_serializer_t::translator_serializer_t(serializer_t *_inner, int _mod_
     rassert(mod_id < mod_count);
 }
 
-scoped_malloc_t<ser_buffer_t> translator_serializer_t::malloc() {
-    return inner->malloc();
-}
-
-scoped_malloc_t<ser_buffer_t> translator_serializer_t::clone(const ser_buffer_t *data) {
-    return inner->clone(data);
-}
-
 file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
@@ -232,8 +249,8 @@ counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_size_t translator_serializer_t::get_block_size()  const {
-    return inner->get_block_size();
+block_size_t translator_serializer_t::max_block_size() const {
+    return inner->max_block_size();
 }
 
 bool translator_serializer_t::coop_lock_and_check() {
@@ -260,8 +277,10 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-repli_timestamp_t translator_serializer_t::get_recency(block_id_t id) {
-    return inner->get_recency(translate_block_id(id));
+segmented_vector_t<repli_timestamp_t>
+translator_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
+    return inner->get_all_recencies(translate_block_id(first),
+                                    step * mod_count);
 }
 
 bool translator_serializer_t::get_delete_bit(block_id_t id) {
@@ -271,8 +290,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf,
-        const counted_t<standard_block_token_t> &token,
-        repli_timestamp_t recency_timestamp) {
+        const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
     if (block_id <= CONFIG_BLOCK_ID.ser_id) {
@@ -294,20 +312,20 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf,
-                                                  token, recency_timestamp);
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, &local_buf,
+                                                  token);
     }
 }
 
 void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread());
+    assert_thread();
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(DEBUG_VAR serializer_read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread());
+    assert_thread();
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);

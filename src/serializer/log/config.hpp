@@ -5,6 +5,7 @@
 #include <string>
 
 #include "config/args.hpp"
+#include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
 #include "rpc/serialize_macros.hpp"
 

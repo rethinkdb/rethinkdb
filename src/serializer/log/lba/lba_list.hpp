@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 #define SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 
@@ -47,6 +47,8 @@ public:
     uint32_t get_ser_block_size(block_id_t block);
     block_size_t get_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);
+    segmented_vector_t<repli_timestamp_t> get_block_recencies(block_id_t first,
+                                                              block_id_t step);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
@@ -113,7 +115,7 @@ private:
     void move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn);
     void add_inline_entry(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint32_t ser_block_size);
-    
+
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
     // Garbage-collect the given shard

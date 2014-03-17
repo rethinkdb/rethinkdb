@@ -10,6 +10,7 @@
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "stl_utils.hpp"
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
@@ -42,7 +43,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
-        if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+        if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
     }
 
     switch (code) {
@@ -52,9 +53,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
             fifo_enforcer_state_t metadata_fifo_state;
             {
                 archive_result_t res = deserialize(s, initial_value.get());
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_state);
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -74,9 +75,9 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
                 archive_result_t res = deserialize(s, new_value.get());
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
                 res = deserialize(s, &metadata_fifo_token);
-                if (res != ARCHIVE_SUCCESS) { throw fake_archive_exc_t(); }
+                if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -203,13 +204,8 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
     try {
         /* Wait until we got an initialization message from this peer */
-        {
-            wait_any_t waiter(&session->got_initial_message, session_keepalive.get_drain_signal());
-            waiter.wait_lazily_unordered();
-            if (session_keepalive.get_drain_signal()->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
-        }
+        wait_interruptible(&session->got_initial_message,
+                           session_keepalive.get_drain_signal());
 
         /* Exit this peer's `metadata_fifo_sink` so that we perform the updates
         in the same order as they were performed at the source. */

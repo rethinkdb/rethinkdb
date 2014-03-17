@@ -1,67 +1,57 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/operations.hpp"
 
 #include <stdint.h>
 
+#include "btree/btree_store.hpp"
+#include "btree/internal_node.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/blob.hpp"
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
-    sb_buf_.swap(*sb_buf);
-}
+real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
+    : sb_buf_(std::move(sb_buf)) {}
 
 void real_superblock_t::release() {
-    sb_buf_.release_if_acquired();
+    sb_buf_.reset_buf_lock();
 }
 
-block_id_t real_superblock_t::get_root_block_id() const {
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
+block_id_t real_superblock_t::get_root_block_id() {
+    buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->root_block;
 }
 
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    buf_write_t write(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->root_block = new_root_block;
 }
 
-block_id_t real_superblock_t::get_stat_block_id() const {
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
+block_id_t real_superblock_t::get_stat_block_id() {
+    buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->stat_block;
 }
 
 void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    buf_write_t write(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->stat_block = new_stat_block;
 }
 
-block_id_t real_superblock_t::get_sindex_block_id() const {
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+block_id_t real_superblock_t::get_sindex_block_id() {
+    buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->sindex_block;
 }
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
-    rassert(sb_buf_.is_acquired());
-
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    buf_write_t write(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->sindex_block = new_sindex_block;
 }
-
-void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
-    rassert(sb_buf_.is_acquired());
-    sb_buf_.set_eviction_priority(eviction_priority);
-}
-
-eviction_priority_t real_superblock_t::get_eviction_priority() {
-    rassert(sb_buf_.is_acquired());
-    return sb_buf_.get_eviction_priority();
-}
-
 
 bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char> &key, char **verybeg_ptr_out,  uint32_t **size_ptr_out, char **beg_ptr_out, char **end_ptr_out) {
     superblock_metainfo_iterator_t::sz_t len = static_cast<superblock_metainfo_iterator_t::sz_t>(key.size());
@@ -128,30 +118,39 @@ void superblock_metainfo_iterator_t::operator++() {
     }
 }
 
-bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out) {
-    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
+bool get_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             std::vector<char> *value_out) {
+    std::vector<char> metainfo;
 
-    // The const cast is okay because we access the data with rwi_read
-    // and don't write to the blob.
-    blob_t blob(txn->get_cache()->get_block_size(),
-                const_cast<char *>(data->metainfo_blob),
-                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    {
+        buf_read_t read(superblock);
+        const btree_superblock_t *data
+            = static_cast<const btree_superblock_t *>(read.get_data_read());
 
-    blob_acq_t acq;
-    buffer_group_t group;
-    blob.expose_all(txn, rwi_read, &group, &acq);
+        // The const cast is okay because we access the data with access_t::read.
+        blob_t blob(superblock->cache()->get_block_size(),
+                    const_cast<char *>(data->metainfo_blob),
+                    btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
-    int64_t group_size = group.get_size();
-    std::vector<char> metainfo(group_size);
+        blob_acq_t acq;
+        buffer_group_t group;
+        blob.expose_all(buf_parent_t(superblock), access_t::read, &group, &acq);
 
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, metainfo.data());
+        int64_t group_size = group.get_size();
+        metainfo.resize(group_size);
+        buffer_group_t group_cpy;
+        group_cpy.add_buffer(group_size, metainfo.data());
 
-    buffer_group_copy_data(&group_cpy, const_view(&group));
+        buffer_group_copy_data(&group_cpy, const_view(&group));
+    }
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
-    if (find_superblock_metainfo_entry(metainfo.data(), metainfo.data() + metainfo.size(), key, &verybeg, &size, &info_begin, &info_end)) {
+    if (find_superblock_metainfo_entry(metainfo.data(),
+                                       metainfo.data() + metainfo.size(),
+                                       key, &verybeg, &size,
+                                       &info_begin, &info_end)) {
         value_out->assign(info_begin, info_end);
         return true;
     } else {
@@ -159,25 +158,33 @@ bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     }
 }
 
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
-    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
+void get_superblock_metainfo(
+        buf_lock_t *superblock,
+        std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
+    std::vector<char> metainfo;
+    {
+        buf_read_t read(superblock);
+        const btree_superblock_t *data
+            = static_cast<const btree_superblock_t *>(read.get_data_read());
 
-    // The const cast is okay because we access the data with rwi_read
-    // and don't write to the blob.
-    blob_t blob(txn->get_cache()->get_block_size(),
-                const_cast<char *>(data->metainfo_blob),
-                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-    blob_acq_t acq;
-    buffer_group_t group;
-    blob.expose_all(txn, rwi_read, &group, &acq);
+        // The const cast is okay because we access the data with access_t::read
+        // and don't write to the blob.
+        blob_t blob(superblock->cache()->get_block_size(),
+                    const_cast<char *>(data->metainfo_blob),
+                    btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+        blob_acq_t acq;
+        buffer_group_t group;
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
+                        &group, &acq);
 
-    int64_t group_size = group.get_size();
-    std::vector<char> metainfo(group_size);
+        const int64_t group_size = group.get_size();
+        metainfo.resize(group_size);
 
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, metainfo.data());
+        buffer_group_t group_cpy;
+        group_cpy.add_buffer(group_size, metainfo.data());
 
-    buffer_group_copy_data(&group_cpy, const_view(&group));
+        buffer_group_copy_data(&group_cpy, const_view(&group));
+    }
 
     for (superblock_metainfo_iterator_t kv_iter(metainfo.data(), metainfo.data() + metainfo.size()); !kv_iter.is_end(); ++kv_iter) {
         superblock_metainfo_iterator_t::key_t key = kv_iter.key();
@@ -186,10 +193,14 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
     }
 }
 
-void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
+void set_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             const std::vector<char> &value) {
+    buf_write_t write(superblock);
+    btree_superblock_t *data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    blob_t blob(txn->get_cache()->get_block_size(),
+    blob_t blob(superblock->cache()->get_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
@@ -197,7 +208,8 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(txn, rwi_read, &group, &acq);
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
+                        &group, &acq);
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -208,7 +220,7 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-    blob.clear(txn);
+    blob.clear(buf_parent_t(superblock));
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -239,12 +251,13 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 
-    blob.append_region(txn, metainfo.size());
+    blob.append_region(buf_parent_t(superblock), metainfo.size());
 
     {
         blob_acq_t acq;
         buffer_group_t write_group;
-        blob.expose_all(txn, rwi_write, &write_group, &acq);
+        blob.expose_all(buf_parent_t(superblock), access_t::write,
+                        &write_group, &acq);
 
         buffer_group_t group_cpy;
         group_cpy.add_buffer(metainfo.size(), metainfo.data());
@@ -253,10 +266,13 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     }
 }
 
-void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
+void delete_superblock_metainfo(buf_lock_t *superblock,
+                                const std::vector<char> &key) {
+    buf_write_t write(superblock);
+    btree_superblock_t *const data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    blob_t blob(txn->get_cache()->get_block_size(),
+    blob_t blob(superblock->cache()->get_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
@@ -264,7 +280,8 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(txn, rwi_read, &group, &acq);
+        blob.expose_all(buf_parent_t(superblock), access_t::read,
+                        &group, &acq);
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -275,7 +292,7 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-    blob.clear(txn);
+    blob.clear(buf_parent_t(superblock));
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -289,12 +306,13 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
 
-        blob.append_region(txn, metainfo.size());
+        blob.append_region(buf_parent_t(superblock), metainfo.size());
 
         {
             blob_acq_t acq;
             buffer_group_t write_group;
-            blob.expose_all(txn, rwi_write, &write_group, &acq);
+            blob.expose_all(buf_parent_t(superblock), access_t::write,
+                            &write_group, &acq);
 
             buffer_group_t group_cpy;
             group_cpy.add_buffer(metainfo.size(), metainfo.data());
@@ -304,106 +322,166 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
     }
 }
 
-void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
-    blob_t blob(txn->get_cache()->get_block_size(),
-                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-    blob.clear(txn);
+void clear_superblock_metainfo(buf_lock_t *superblock) {
+    buf_write_t write(superblock);
+    auto data = static_cast<btree_superblock_t *>(write.get_data_write());
+    blob_t blob(superblock->cache()->get_block_size(),
+                data->metainfo_blob,
+                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob.clear(buf_parent_t(superblock));
 }
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }
 
-void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
-    rassert(ZERO_EVICTION_PRIORITY < stat_block_eviction_priority);
-
-    block_id_t node_id = sb->get_stat_block_id();
+void ensure_stat_block(superblock_t *sb) {
+    const block_id_t node_id = sb->get_stat_block_id();
 
     if (node_id == NULL_BLOCK_ID) {
-        //Create a block
-        buf_lock_t temp_lock(txn);
-        //Make the stat block be the default constructed statblock
-        *static_cast<btree_statblock_t *>(temp_lock.get_data_write()) = btree_statblock_t();
-        sb->set_stat_block_id(temp_lock.get_block_id());
+        buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
+                              alt_create_t::create);
+        buf_write_t write(&stats_block);
+        // Make the stat block be the default constructed stats block.
 
-        temp_lock.set_eviction_priority(stat_block_eviction_priority);
+        // TODO: This would only initialize the entire stats block if
+        // sizeof(btree_statblock_t) == block_size.value().
+        *static_cast<btree_statblock_t *>(write.get_data_write())
+            = btree_statblock_t();
+        sb->set_stat_block_id(stats_block.block_id());
     }
 }
 
-// Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
-    rassert(!buf_out->is_acquired());
-    rassert(ZERO_EVICTION_PRIORITY < root_eviction_priority);
-
-    block_id_t node_id = sb->get_root_block_id();
+buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
+    const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        buf_lock_t temp_lock(txn, node_id, rwi_write);
-        buf_out->swap(temp_lock);
+        return buf_lock_t(sb->expose_buf(), node_id, access_t::write);
     } else {
-        buf_lock_t temp_lock(txn);
-        buf_out->swap(temp_lock);
-        leaf::init(sizer, static_cast<leaf_node_t *>(buf_out->get_data_write()));
-        insert_root(buf_out->get_block_id(), sb);
+        buf_lock_t lock(sb->expose_buf(), alt_create_t::create);
+        {
+            buf_write_t write(&lock);
+            leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
+        }
+        insert_root(lock.block_id(), sb);
+        return lock;
     }
+}
 
-    if (buf_out->get_eviction_priority() == DEFAULT_EVICTION_PRIORITY) {
-        buf_out->set_eviction_priority(root_eviction_priority);
+// Helper function for `check_and_handle_split()` and `check_and_handle_underfull()`.
+// Detaches all values in the given node if it's an internal node, and calls
+// `detacher` on each value if it's a leaf node.
+void detach_all_children(const node_t *node, buf_parent_t parent,
+                         const value_deleter_t *detacher) {
+    if (node::is_leaf(node)) {
+        const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(node);
+        // Detach the values that are now in `rbuf` with `buf` as their parent.
+        for (auto it = leaf::begin(*leaf); it != leaf::end(*leaf); ++it) {
+            detacher->delete_value(parent, (*it).second);
+        }
+    } else {
+        const internal_node_t *internal =
+            reinterpret_cast<const internal_node_t *>(node);
+        // Detach the values that are now in `rbuf` with `buf` as their parent.
+        for (int pair_idx = 0; pair_idx < internal->npairs; ++pair_idx) {
+            block_id_t child_id =
+                internal_node::get_pair_by_index(internal, pair_idx)->lnode;
+            parent.detach_child(child_id);
+        }
     }
 }
 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority) {
-    txn->assert_thread();
+// `detacher` is used to detach any values that are removed from `buf`, in
+// case `buf` is a leaf.
+void check_and_handle_split(value_sizer_t<void> *sizer,
+                            buf_lock_t *buf,
+                            buf_lock_t *last_buf,
+                            superblock_t *sb,
+                            const btree_key_t *key, void *new_value,
+                            const value_deleter_t *detacher) {
+    {
+        buf_read_t buf_read(buf);
+        const node_t *node = static_cast<const node_t *>(buf_read.get_data_read());
 
-    const node_t *node = static_cast<const node_t *>(buf->get_data_read());
+        // If the node isn't full, we don't need to split, so we're done.
+        if (!node::is_internal(node)) { // This should only be called when update_needed.
+            rassert(new_value);
+            if (!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(node),
+                               key, new_value)) {
+                return;
+            }
+        } else {
+            rassert(!new_value);
+            if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) {
+                return;
+            }
+        }
+    }
 
-    // If the node isn't full, we don't need to split, so we're done.
-    if (!node::is_internal(node)) { // This should only be called when update_needed.
-        rassert(new_value);
-        if (!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(node), key, new_value)) {
-            return;
-        }
-    } else {
-        rassert(!new_value);
-        if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) {
-            return;
-        }
+    // If we are splitting the root, we must detach it from sb first.
+    // It will later be attached to a newly created root, together with its
+    // newly created sibling.
+    if (last_buf->empty()) {
+        sb->expose_buf().detach_child(buf->block_id());
     }
 
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
-    buf_lock_t rbuf(txn);
+    buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : buf_parent_t(last_buf),
+                    alt_create_t::create);
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
 
-    node::split(sizer,
-                static_cast<node_t *>(buf->get_data_write()),
-                static_cast<node_t *>(rbuf.get_data_write()),
-                median);
-    rbuf.set_eviction_priority(buf->get_eviction_priority());
+    {
+        buf_write_t buf_write(buf);
+        buf_write_t rbuf_write(&rbuf);
+        node::split(sizer,
+                    static_cast<node_t *>(buf_write.get_data_write()),
+                    static_cast<node_t *>(rbuf_write.get_data_write()),
+                    median);
 
-    // Insert the key that sets the two nodes apart into the parent.
-    if (!last_buf->is_acquired()) {
-        // We're splitting what was previously the root, so create a new root to use as the parent.
-        buf_lock_t temp_buf(txn);
-        last_buf->swap(temp_buf);
-        internal_node::init(sizer->block_size(), static_cast<internal_node_t *>(last_buf->get_data_write()));
-        rassert(ZERO_EVICTION_PRIORITY < buf->get_eviction_priority());
-        last_buf->set_eviction_priority(decr_priority(buf->get_eviction_priority()));
-        *root_eviction_priority = last_buf->get_eviction_priority();
-
-        insert_root(last_buf->get_block_id(), sb);
+        // We must detach all entries that we have removed from `buf`.
+        buf_read_t rbuf_read(&rbuf);
+        const node_t *node = static_cast<const node_t *>(rbuf_read.get_data_read());
+        // The parent of the entries used to be `buf`, even though they are now in
+        // `rbuf`...
+        detach_all_children(node, buf_parent_t(buf), detacher);
     }
 
-    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(),
-                                                   static_cast<internal_node_t *>(last_buf->get_data_write()), median,
-                                                   buf->get_block_id(), rbuf.get_block_id());
-    rassert(success, "could not insert internal btree node");
+    // (Perhaps) increase rbuf's recency to the max of the current txn's recency and
+    // buf's subtrees' recencies.  (This is conservative since rbuf doesn't have all
+    // of buf's subtrees.)
+    rbuf.manually_touch_recency(superceding_recency(rbuf.get_recency(),
+                                                    buf->get_recency()));
+
+    // Insert the key that sets the two nodes apart into the parent.
+    if (last_buf->empty()) {
+        // We're splitting what was previously the root, so create a new root to use as the parent.
+        *last_buf = buf_lock_t(sb->expose_buf(), alt_create_t::create);
+        {
+            buf_write_t last_write(last_buf);
+            internal_node::init(sizer->block_size(),
+                                static_cast<internal_node_t *>(last_write.get_data_write()));
+        }
+        // We set the recency of the new root block to the max of the subtrees'
+        // recency and the current transaction's recency.
+        last_buf->manually_touch_recency(buf->get_recency());
+
+        insert_root(last_buf->block_id(), sb);
+    }
+
+    {
+        buf_write_t last_write(last_buf);
+        DEBUG_VAR bool success
+            = internal_node::insert(sizer->block_size(),
+                                    static_cast<internal_node_t *>(last_write.get_data_write()),
+                                    median,
+                                    buf->block_id(), rbuf.block_id());
+        rassert(success, "could not insert internal btree node");
+    }
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
     if (0 >= sized_strcmp(key->contents, key->size, median->contents, median->size)) {
@@ -418,122 +496,249 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
 }
 
 // Merge or level the node if necessary.
-void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                                const btree_key_t *key) {
-    const node_t *node = static_cast<const node_t *>(buf->get_data_read());
-    if (last_buf->is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
-
-        const internal_node_t *parent_node = static_cast<const internal_node_t *>(last_buf->get_data_read());
-
+// `detacher` is used to detach any values that are removed from `buf` or its
+// sibling, in case `buf` is a leaf.
+void check_and_handle_underfull(value_sizer_t<void> *sizer,
+                                buf_lock_t *buf,
+                                buf_lock_t *last_buf,
+                                superblock_t *sb,
+                                const btree_key_t *key,
+                                const value_deleter_t *detacher) {
+    bool node_is_underfull;
+    {
+        if (last_buf->empty()) {
+            // The root node is never underfull.
+            node_is_underfull = false;
+        } else {
+            buf_read_t buf_read(buf);
+            const node_t *const node = static_cast<const node_t *>(buf_read.get_data_read());
+            node_is_underfull = node::is_underfull(sizer, node);
+        }
+    }
+    if (node_is_underfull) {
         // Acquire a sibling to merge or level with.
         store_key_t key_in_middle;
         block_id_t sib_node_id;
-        int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id, &key_in_middle);
+        int nodecmp_node_with_sib;
+
+        {
+            buf_read_t last_buf_read(last_buf);
+            const internal_node_t *parent_node
+                = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+            nodecmp_node_with_sib = internal_node::sibling(parent_node, key,
+                                                           &sib_node_id,
+                                                           &key_in_middle);
+        }
 
         // Now decide whether to merge or level.
-        buf_lock_t sib_buf(txn, sib_node_id, rwi_write);
-        const node_t *sib_node = static_cast<const node_t *>(sib_buf.get_data_read());
+        buf_lock_t sib_buf(last_buf, sib_node_id, access_t::write);
+
+        bool node_is_mergable;
+        {
+            buf_read_t sib_buf_read(&sib_buf);
+            const node_t *sib_node
+                = static_cast<const node_t *>(sib_buf_read.get_data_read());
 
 #ifndef NDEBUG
-        node::validate(sizer, sib_node);
+            node::validate(sizer, sib_node);
 #endif
 
-        if (node::is_mergable(sizer, node, sib_node, parent_node)) { // Merge.
+            buf_read_t buf_read(buf);
+            const node_t *const node
+                = static_cast<const node_t *>(buf_read.get_data_read());
+            buf_read_t last_buf_read(last_buf);
+            const internal_node_t *parent_node
+                = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
 
-            if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node::merge(sizer,
-                            static_cast<node_t *>(buf->get_data_write()),
-                            static_cast<node_t *>(sib_buf.get_data_write()),
-                            parent_node);
-                buf->mark_deleted();
+            node_is_mergable = node::is_mergable(sizer, node, sib_node, parent_node);
+        }
+
+        if (node_is_mergable) {
+            // Merge.
+
+            const repli_timestamp_t buf_recency = buf->get_recency();
+            const repli_timestamp_t sib_buf_recency = sib_buf.get_recency();
+
+            // Nodes must be passed to merge in ascending order.
+            // Make it such that we always merge from sib_buf into buf. It
+            // simplifies the code below.
+            if (nodecmp_node_with_sib < 0) {
                 buf->swap(sib_buf);
-            } else {
-                node::merge(sizer,
-                            static_cast<node_t *>(sib_buf.get_data_write()),
-                            static_cast<node_t *>(buf->get_data_write()),
-                            parent_node);
-                sib_buf.mark_deleted();
             }
 
-            sib_buf.release();
+            bool parent_is_singleton;
+            {
+                buf_read_t last_buf_read(last_buf);
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                // TODO (daniel): `is_singleton()` is a bad name. What it really
+                //    means is `is_doubleton()`, or
+                //    `will_be_singleton_after_removing_one_more_child()` (not that
+                //    I'm suggesting using that as its name)
+                parent_is_singleton = internal_node::is_singleton(parent_node);
+            }
+            if (parent_is_singleton) {
+                // `buf` will get a new parent below. Detach it from its old one.
+                // We can't detach it later because its value will already have
+                // been changed by then.
+                // And I guess that would be bad, wouldn't it?
+                last_buf->detach_child(buf->block_id());
+            }
 
-            if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(sizer->block_size(), static_cast<internal_node_t *>(last_buf->get_data_write()), key_in_middle.btree_key());
+            {
+                buf_write_t sib_buf_write(&sib_buf);
+                buf_write_t buf_write(buf);
+                buf_read_t last_buf_read(last_buf);
+
+                // Detach all values / children in `sib_buf`
+                buf_read_t sib_buf_read(&sib_buf);
+                const node_t *node =
+                    static_cast<const node_t *>(sib_buf_read.get_data_read());
+                detach_all_children(node, buf_parent_t(&sib_buf), detacher);
+
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                node::merge(sizer,
+                            static_cast<node_t *>(sib_buf_write.get_data_write()),
+                            static_cast<node_t *>(buf_write.get_data_write()),
+                            parent_node);
+            }
+            sib_buf.mark_deleted();
+            sib_buf.reset_buf_lock();
+
+            // We moved all of sib_buf's subtrees into buf, so buf's recency needs to
+            // be increased to the max of its new set of subtrees (a superset of what
+            // it was before) and the current txn's recency.
+            buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
+
+            if (!parent_is_singleton) {
+                buf_write_t last_buf_write(last_buf);
+                internal_node::remove(sizer->block_size(),
+                                      static_cast<internal_node_t *>(last_buf_write.get_data_write()),
+                                      key_in_middle.btree_key());
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
+                // This is why we had detached `buf` from `last_buf` earlier.
                 last_buf->mark_deleted();
-                insert_root(buf->get_block_id(), sb);
+                insert_root(buf->block_id(), sb);
             }
-        } else { // Level
+        } else {
+            // Level.
             store_key_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
-            bool leveled = node::level(sizer, nodecmp_node_with_sib,
-                                       static_cast<node_t *>(buf->get_data_write()),
-                                       static_cast<node_t *>(sib_buf.get_data_write()),
-                                       replacement_key, parent_node);
+            bool leveled;
+            {
+                bool is_internal;
+                {
+                    buf_read_t buf_read(buf);
+                    const node_t *node =
+                        static_cast<const node_t *>(buf_read.get_data_read());
+                    is_internal = node::is_internal(node);
+                }
+                buf_write_t buf_write(buf);
+                buf_write_t sib_buf_write(&sib_buf);
+                buf_read_t last_buf_read(last_buf);
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                // We handle internal and leaf nodes separately because of the
+                // different ways their children have to be detached.
+                // (for internal nodes: call detach_child directly vs. for leaf
+                //  nodes: use the supplied value_deleter_t (which might either
+                //  detach the children as well or do nothing))
+                if (is_internal) {
+                    std::vector<block_id_t> moved_children;
+                    leveled = internal_node::level(sizer->block_size(),
+                            static_cast<internal_node_t *>(buf_write.get_data_write()),
+                            static_cast<internal_node_t *>(sib_buf_write.get_data_write()),
+                            replacement_key, parent_node, &moved_children);
+                    // Detach children that have been removed from `sib_buf`:
+                    for (size_t i = 0; i < moved_children.size(); ++i) {
+                        sib_buf.detach_child(moved_children[i]);
+                    }
+                } else {
+                    std::vector<const void *> moved_values;
+                    leveled = leaf::level(sizer, nodecmp_node_with_sib,
+                            static_cast<leaf_node_t *>(buf_write.get_data_write()),
+                            static_cast<leaf_node_t *>(sib_buf_write.get_data_write()),
+                            replacement_key, &moved_values);
+                    // Detach values that have been removed from `sib_buf`:
+                    for (size_t i = 0; i < moved_values.size(); ++i) {
+                        detacher->delete_value(buf_parent_t(&sib_buf),
+                                               moved_values[i]);
+                    }
+                }
+            }
+
+            // We moved new subtrees or values into buf, so its recency may need to
+            // be increased.  (We conservatively update it to the max of our subtrees
+            // and sib_buf's subtrees and our current txn's recency, to simplify the
+            // code.)
+            buf->manually_touch_recency(superceding_recency(sib_buf.get_recency(),
+                                                            buf->get_recency()));
 
             if (leveled) {
-                internal_node::update_key(static_cast<internal_node_t *>(last_buf->get_data_write()), key_in_middle.btree_key(), replacement_key);
+                buf_write_t last_buf_write(last_buf);
+                internal_node::update_key(static_cast<internal_node_t *>(last_buf_write.get_data_write()),
+                                          key_in_middle.btree_key(),
+                                          replacement_key);
             }
         }
     }
 }
 
-void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out) {
-    buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
-    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(&tmp_buf));
-    tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
-    got_superblock_out->init(tmp_sb.release());
+void get_btree_superblock(txn_t *txn, access_t access,
+                          scoped_ptr_t<real_superblock_t> *got_superblock_out) {
+    buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
+    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
+    *got_superblock_out = std::move(tmp_sb);
 }
 
-void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
-                                  access_t superblock_access,
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
+                                  UNUSED write_access_t superblock_access,
                                   int expected_change_count,
-                                  repli_timestamp_t tstamp, order_token_t token,
+                                  repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
+                                  scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, durability, tstamp, expected_change_count);
 
-    const order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
-    transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
-                                           pre_begin_txn_token, durability);
     txn_out->init(txn);
 
-    get_btree_superblock(txn, superblock_access, got_superblock_out);
+    get_btree_superblock(txn, access_t::write, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
+                                                  cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-    transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
-                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+                                                  scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
-    txn->set_account(slice->get_backfill_account());
+    // KSI: Does using a backfill account needlessly slow other operations down?
+    txn->set_account(backfill_account);
 
-    txn->snapshot();
-
-    get_btree_superblock(txn, rwi_read_sync, got_superblock_out);
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
+    // KSI: This is bad -- we want to backfill, we don't want to snapshot from the
+    // superblock (and therefore secondary indexes)-- we really want to snapshot the
+    // subtree underneath the root node.
+    (*got_superblock_out)->get()->snapshot_subdag();
 }
 
-void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
+// KSI: This function is possibly stupid: it's nonsensical to talk about the entire
+// cache being snapshotted -- we want some subtree to be snapshotted, at least.
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-    rassert(is_read_mode(access));
-    transaction_t *txn = new transaction_t(slice->cache(), access,
-                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+                                              scoped_ptr_t<txn_t> *txn_out) {
+    txn_t *txn = new txn_t(cache_conn, read_access_t::read);
     txn_out->init(txn);
 
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        txn->snapshot();
-    }
+    get_btree_superblock(txn, access_t::read, got_superblock_out);
 
-    get_btree_superblock(txn, access, got_superblock_out);
+    // KSI: As mentioned, snapshotting here is stupid.
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
+        (*got_superblock_out)->get()->snapshot_subdag();
+    }
 }

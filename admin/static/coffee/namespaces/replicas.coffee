@@ -13,12 +13,44 @@ module 'NamespaceView', ->
             'click .nav_datacenter': 'handle_click_datacenter'
             'click .toggle-mdc': 'toggle_mdc'
 
+        check_issues: =>
+            # We look for vector clock conflict (cluster configuration conflict) issues related to this table
+            # If there are, the server will reject any attempt to directly change the value, so
+            # so we want to
+            #    - tell them to fix the vector clock conflict
+            #    - forbid users to try to manually change the value
+            can_change_replicas = true
+            for issue in issues.models
+                if issue.get('type') is 'VCLOCK_CONFLICT' and
+                    issue.get('object_id') is @model.get('id') and
+                    issue.get('object_type') is 'namespace' and
+                    (issue.get('field') is 'replica_affinities' or issue.get('field') is 'ack_expectations')
+                        can_change_replicas = false
+            if can_change_replicas is false
+                @primary_datacenter.is_modifiable false
+                @universe_replicas.is_modifiable false
+                @datacenter_view?.is_modifiable false
+
+                if @can_change_replicas is true
+                    @$('.cannot_change_replicas').slideDown 'fast'
+                    @can_change_replicas = can_change_replicas
+            else if can_change_replicas is true
+                @primary_datacenter.is_modifiable true
+                @universe_replicas.is_modifiable true
+                @datacenter_view?.is_modifiable true
+
+                if @can_change_replicas is false # can_change_replicas is true
+                    @$('.cannot_change_replicas').slideUp 'fast'
+                    @can_change_replicas = can_change_replicas
+
         initialize: =>
+            @can_change_replicas = true
             @progress_bar = new UIComponents.OperationProgressBar @replica_status_template
 
             datacenters.on 'add', @render_list
             datacenters.on 'remove', @render_list
             datacenters.on 'reset', @render_list
+            issues.on 'all', @check_issues
 
             @model.on 'change:primary_uuid', @render_primary_not_found
             @model.on 'change:replica_affinities', @global_trigger_for_replica
@@ -37,6 +69,8 @@ module 'NamespaceView', ->
 
             @universe_replicas = new NamespaceView.DatacenterReplicas universe_datacenter.get('id'), @model
             @primary_datacenter = new NamespaceView.PrimaryDatacenter model: @model
+
+            @render_status() # Render the status
 
         # A method that is going to call multiple methods (triggered when replica_affinities are changed
         global_trigger_for_replica: =>
@@ -116,12 +150,18 @@ module 'NamespaceView', ->
                 @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
                 @expected_num_replicas = progress_bar_info.new_value # Let's cache this value for the case when the blueprint was not regenerated (yet)
 
+                # Reset the number of replicated blocks
+                @total_blocks = undefined
+                @replicated_blocks = undefined
             # The server did valid the changes the user just made
             else if progress_bar_info?.got_response is true
                 expected_num_replicas = progress_bar_info.replicas_length*progress_bar_info.shards_length
                 @.$('.replica-status').html @progress_bar.render(0, expected_num_replicas, progress_bar_info).$el
 
+                # Reset the number of replicated blocks
                 @expected_num_replicas = expected_num_replicas # Let's cache this value for the case when the blueprint was not regenerated (yet)
+                @total_blocks = undefined
+                @replicated_blocks = undefined
 
             # If we got an update from progress_list
             else if progress_bar_info?.backfilling_updated is true
@@ -130,22 +170,41 @@ module 'NamespaceView', ->
                     backfilling_info = DataUtils.get_backfill_progress_agg @model.get('id')
 
                     if backfilling_info is null or backfilling_info.total_blocks is -1 # If there is no backfilling
+                        # Backfilling sent back non valid info, so we reset the values for replication
+                        @total_blocks = undefined
+                        @replicated_blocks = undefined
+
                         # We don't know if the backfilling hasn't started yet or is completed, so let's check the directory status
                         if num_replicas_not_ready is 0 # Well, everything is up to date
                             @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready, progress_bar_info).$el
                         else # We are going to backfill
                             @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                     else
+                        # Cache replicated blocks values
+                        @total_blocks = backfilling_info.total_blocks
+                        @replicated_blocks = if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
                         # We can have replicated_blocks > total_blocks sometimes. Need a back end fix.
                         progress_bar_info = _.extend progress_bar_info,
-                            total_blocks: backfilling_info.total_blocks
-                            replicated_blocks: if backfilling_info.replicated_blocks>backfilling_info.replicated_blocks then backfilling_info.total_blocks else backfilling_info.replicated_blocks
+                            total_blocks: @total_blocks
+                            replicated_blocks: @replicated_blocks
                     
                         @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                 else # The blueprint was not regenerated, so we can consider that no replica is up to date
                     @.$('.replica-status').html @progress_bar.render(0, @expected_num_replicas, {}).$el
             else
                 # Blueprint was regenerated, so we can display the bar
+
+                # If a replica is not ready, we must display a progress bar.
+                # In case we don't, se skip to processing (we do not show the "Started stage"
+                if num_replicas_not_ready > 0 and @progress_bar.stage is 'none'
+                    @progress_bar.skip_to_processing() # We set the state to processing
+
+                if @total_blocks? and @replicated_blocks?
+                    # @render_status was called by a change in the directory
+                    progress_bar_info = _.extend progress_bar_info,
+                        total_blocks: @total_blocks
+                        replicated_blocks: @replicated_blocks
+
                 if num_replicas_ready+num_replicas_not_ready is @expected_num_replicas
                     @.$('.replica-status').html @progress_bar.render(num_replicas_ready, num_replicas_ready+num_replicas_not_ready, progress_bar_info).$el
                 else # The blueprint was not regenerated, so we can consider that no replica is up to date
@@ -235,6 +294,7 @@ module 'NamespaceView', ->
             @datacenter_view = new NamespaceView.DatacenterReplicas @datacenter_id_shown, @model
 
             @.$('.datacenter_content').html @datacenter_view.render().$el
+            @datacenter_view.is_modifiable @can_change_replicas
 
         render_primary_not_found: =>
             if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_uuid'))?
@@ -285,8 +345,6 @@ module 'NamespaceView', ->
         render_universe: =>
             @.$('.cluster_container').html @universe_replicas.render().$el
 
-
-
         render: =>
             @.$el.html @template()
 
@@ -297,7 +355,6 @@ module 'NamespaceView', ->
             @render_status()
 
             @.$('.primary-dc').html @primary_datacenter.render().$el
-
             if @model.get('primary_uuid') is universe_datacenter.get('id')
                 if @ordered_datacenters.length > 0
                     @datacenter_picked = @ordered_datacenters[0]
@@ -308,6 +365,7 @@ module 'NamespaceView', ->
             else
                 @render_datacenter @model.get('primary_uuid')
 
+            @check_issues()
             return @
 
         destroy: =>
@@ -319,9 +377,9 @@ module 'NamespaceView', ->
             @model.off 'change:primary_uuid', @render_primary_not_found
             @model.off 'change:replica_affinities', @render_acks_greater_than_replicas
             @model.off 'change:ack_expectations', @render_acks_greater_than_replicas
-            @model.on 'change:shards', @render_progress_server_update
-            progress_list.on 'all', @render_progress
-            directory.on 'all', @render_status
+            @model.off 'change:shards', @render_progress_server_update
+            progress_list.off 'all', @render_progress
+            directory.off 'all', @render_status
 
     class @DatacenterReplicas extends Backbone.View
         className: 'datacenter_view'
@@ -347,6 +405,14 @@ module 'NamespaceView', ->
             'click .cancel.btn': 'cancel_edit'
             'keyup #replicas_value': 'keypress_replicas_acks'
             'keyup #acks_value': 'keypress_replicas_acks'
+
+        is_modifiable: (is_modifiable) =>
+            if is_modifiable is false
+                @$('.edit').prop 'disabled', true
+                @can_change_replicas = is_modifiable
+            else if is_modifiable is true
+                @$('.edit').prop 'disabled', false
+                @can_change_replicas = is_modifiable
 
         keypress_replicas_acks: (event) =>
             if event.which is 13
@@ -439,6 +505,7 @@ module 'NamespaceView', ->
                 if @current_state is @states[1]
                     @.$('#replicas_value').focus()
 
+            @is_modifiable @can_change_replicas
             return @
 
         # Compute how many replica we can set for @datacenter
@@ -455,13 +522,13 @@ module 'NamespaceView', ->
                 @render()
 
         alert_replicas_acks: (msg_errors) =>
-            @.$('.save_replicas_and_acks').prop 'disabled', 'disabled'
+            @.$('.save_replicas_and_acks').prop 'disabled', true
             @.$('.replicas_acks-alert').html @error_template
                 msg_errors: msg_errors
             @.$('.replicas_acks-alert').slideDown 'fast'
 
         remove_alert_replicas_acks: =>
-            @.$('.save_replicas_and_acks').removeProp 'disabled'
+            @.$('.save_replicas_and_acks').prop 'disabled', false
             @.$('.replicas_acks-alert').slideUp 'fast'
             @.$('.replicas_acks-alert').html ''
 
@@ -518,7 +585,7 @@ module 'NamespaceView', ->
             if @sending? and @sending is true
                 return
             @sending = true
-            @.$('.update-replicas').prop 'disabled', 'disabled'
+            @.$('.update-replicas').prop 'disabled', true
 
             num_replicas = parseInt @.$('#replicas_value').val()
             num_acks = parseInt @.$('#acks_value').val()
@@ -563,7 +630,7 @@ module 'NamespaceView', ->
 
         on_success_replicas_and_acks: =>
             @sending = false
-            @.$('.update-replicas').removeProp 'disabled'
+            @.$('.update-replicas').prop 'disabled', false
             window.collect_progress()
             new_replicas = @model.get 'replica_affinities'
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
@@ -597,7 +664,7 @@ module 'NamespaceView', ->
 
         on_error: =>
             @sending = false
-            @.$('.update-replicas').removeProp 'disabled'
+            @.$('.update-replicas').prop 'disabled', false
 
             @.$('.replicas_acks-alert').html @replicas_ajax_error_template()
             @.$('.replicas_acks-alert').slideDown 'fast'
@@ -665,6 +732,14 @@ module 'NamespaceView', ->
         initialize: =>
             @state = 'none'
             @model.on 'change:primary_uuid', @change_pin
+
+        is_modifiable: (is_modifiable) =>
+            if is_modifiable is false
+                @$('.edit').prop 'disabled', true
+                @$('.switch-input, .primary-off, .primary-on').prop 'disabled', true
+            else
+                @$('.edit').prop 'disabled', false
+                @$('.switch-input, .primary-off, .primary-on').prop 'disabled', false
 
         events: ->
             'click label[for=primary-on]': 'turn_primary_on'
@@ -783,18 +858,20 @@ module 'NamespaceView', ->
 
         # Event handlers that change state
         turn_primary_off: =>
-            if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
-                @state = 'none'
-            else
-                @state = 'confirm_off'
-            @render_content()
+            if @$('.switch-input').prop('disabled') isnt true
+                if @model.get('primary_uuid') is universe_datacenter.get('id') # Universe is being used so no need to confirm
+                    @state = 'none'
+                else
+                    @state = 'confirm_off'
+                @render_content()
 
         turn_primary_on: (force_choose) =>
-            if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
-                @state = 'choose_primary'
-            else
-                @state = 'show_primary'
-            @render_content()
+            if @$('.switch-input').prop('disabled') isnt true
+                if @model.get('primary_uuid') is universe_datacenter.get('id') or force_choose is true
+                    @state = 'choose_primary'
+                else
+                    @state = 'show_primary'
+                @render_content()
 
         change_primary: =>
             @state = 'choose_primary'

@@ -758,9 +758,26 @@ TODO: retire this
     .modal-body {
         font-family: @sans;
         padding: 0px 15px 15px 15px;
+        hr{
+            border: 0px;
+            height: 1px;
+            background: #e9e9e9;
+            margin: 20px 0px 0px 0px;
+        }
     }
     .large_input{
         width: 294px;
+    }
+    .error_verification{
+        float: right;
+        padding-right: 10px;
+        margin: 4px 70px 0px 0px;
+        color: #d95b5b;
+        font-weight: bold;
+        display: none;
+    }
+    .first_question{
+        margin-top: 0px;
     }
 }
 
@@ -1299,6 +1316,15 @@ TODO: retire this
                 strong{
                     color: #666;
                 }
+                .grouped_data_warning{
+                    font-family: @monospace;
+                    background: #f8f8f8;
+                    color: #555;
+                    padding: 5px 6px;
+                    border: 1px solid #e4e4e4;
+                    margin: 5px 0px;
+                    .border-radius(3px 3px 3px 3px);
+                }
             }
         }
         .input_query_container{
@@ -1573,6 +1599,10 @@ TODO: retire this
                 width: 530px;
                 float: left;
                 margin: -30px 0px 10px 0px;
+                .execution_time{
+                    border-bottom: 1px dotted #444;
+                    cursor: help;
+                }
             }
         }
         .more_results{
@@ -1972,7 +2002,7 @@ TODO: retire this
                 }
 
                 &.datetime {
-                    right: 125px;
+                    right: 155px;
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
@@ -2650,6 +2680,7 @@ TODO: retire this
                 }
             }
             .add_index_li{
+                clear: both;
                 display: none;
             }
         }

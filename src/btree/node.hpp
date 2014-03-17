@@ -12,7 +12,6 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
-#include "utils.hpp"
 
 template <class Value>
 class value_sizer_t;
@@ -50,7 +49,7 @@ struct btree_superblock_t {
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
-} __attribute__((packed));
+} __attribute__ ((__packed__));
 
 struct btree_statblock_t {
     //The total number of keys in the btree
@@ -59,7 +58,7 @@ struct btree_statblock_t {
     btree_statblock_t()
         : population(0)
     { }
-};
+} __attribute__ ((__packed__));
 
 struct btree_sindex_block_t {
     static const int SINDEX_BLOB_MAXREFLEN = 4076;
@@ -68,7 +67,7 @@ struct btree_sindex_block_t {
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
-};
+} __attribute__ ((__packed__));
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
@@ -78,12 +77,12 @@ struct internal_node_t {
     uint16_t pair_offsets[0];
 
     static const block_magic_t expected_magic;
-};
+} __attribute__ ((__packed__));
 
 // A node_t is either a btree_internal_node or a btree_leaf_node.
 struct node_t {
     block_magic_t magic;
-};
+} __attribute__ ((__packed__));
 
 namespace node {
 
@@ -108,8 +107,6 @@ bool is_underfull(value_sizer_t<void> *sizer, const node_t *node);
 void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t *median);
 
 void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
-
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node, node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void validate(value_sizer_t<void> *sizer, const node_t *node);
 

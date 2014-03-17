@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_time.hpp"
 
 #include <time.h>
@@ -8,6 +8,7 @@
 #include <boost/date_time.hpp>
 
 #include "rdb_protocol/datum.hpp"
+#include "utils.hpp"
 
 namespace ql {
 namespace pseudo {

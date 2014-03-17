@@ -4,11 +4,14 @@
 
 #include <algorithm>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "arch/timing.hpp"
 #include "containers/priority_queue.hpp"
 #include "clustering/generic/multi_throttling_metadata.hpp"
 #include "clustering/generic/registrar.hpp"
+#include "math.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 template <class request_type, class inner_client_business_card_type, class user_data_type, class registrant_type>

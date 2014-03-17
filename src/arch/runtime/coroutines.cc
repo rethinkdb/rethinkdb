@@ -6,6 +6,8 @@
 
 #include <functional>
 #ifndef NDEBUG
+#include <map>
+#include <set>
 #include <stack>
 #endif
 
@@ -51,10 +53,10 @@ struct coro_globals_t {
     number of things that are currently preventing us from `wait()`ing or
     `notify_now_deprecated()`ing or whatever. */
     int assert_no_coro_waiting_counter;
-    std::stack<std::pair<std::string, int> > no_waiting_call_sites;
+    std::stack<std::pair<const char *, int> > no_waiting_call_sites;
 
     int assert_finite_coro_waiting_counter;
-    std::stack<std::pair<std::string, int> > finite_waiting_call_sites;
+    std::stack<std::pair<const char *, int> > finite_waiting_call_sites;
 
     std::map<std::string, size_t> running_coroutine_counts;
     std::map<std::string, size_t> total_coroutine_counts;
@@ -94,8 +96,7 @@ TLS_with_init(coro_globals_t *, cglobals, NULL);
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
     &pm_active_coroutines, "active_coroutines",
-    &pm_allocated_coroutines, "allocated_coroutines",
-    NULLPTR);
+    &pm_allocated_coroutines, "allocated_coroutines");
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");
@@ -187,15 +188,15 @@ void coro_t::run() {
 
 #ifndef NDEBUG
         // Keep track of how many coroutines of each type ran
-        TLS_get_cglobals()->running_coroutine_counts[coro->coroutine_type.c_str()]++;
-        TLS_get_cglobals()->total_coroutine_counts[coro->coroutine_type.c_str()]++;
+        TLS_get_cglobals()->running_coroutine_counts[coro->coroutine_type]++;
+        TLS_get_cglobals()->total_coroutine_counts[coro->coroutine_type]++;
         TLS_get_cglobals()->active_coroutines.insert(coro);
 #endif
         PROFILER_CORO_RESUME;
         coro->action_wrapper.run();
         PROFILER_CORO_YIELD(0);
 #ifndef NDEBUG
-        TLS_get_cglobals()->running_coroutine_counts[coro->coroutine_type.c_str()]--;
+        TLS_get_cglobals()->running_coroutine_counts[coro->coroutine_type]--;
         TLS_get_cglobals()->active_coroutines.erase(coro);
 #endif
 
@@ -236,11 +237,11 @@ void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
     rassert(TLS_get_cglobals()->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        TLS_get_cglobals()->finite_waiting_call_sites.top().first.c_str(), TLS_get_cglobals()->finite_waiting_call_sites.top().second);
+        TLS_get_cglobals()->finite_waiting_call_sites.top().first, TLS_get_cglobals()->finite_waiting_call_sites.top().second);
 
     rassert(TLS_get_cglobals()->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        TLS_get_cglobals()->no_waiting_call_sites.top().first.c_str(), TLS_get_cglobals()->no_waiting_call_sites.top().second);
+        TLS_get_cglobals()->no_waiting_call_sites.top().first, TLS_get_cglobals()->no_waiting_call_sites.top().second);
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
@@ -471,7 +472,7 @@ int coro_t::copy_spawn_backtrace(void **, int) const {
 
 /* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING` */
-assert_no_coro_waiting_t::assert_no_coro_waiting_t(const std::string& filename, int line_no) {
+assert_no_coro_waiting_t::assert_no_coro_waiting_t(const char *filename, int line_no) {
     TLS_get_cglobals()->no_waiting_call_sites.push(std::make_pair(filename, line_no));
     TLS_get_cglobals()->assert_no_coro_waiting_counter++;
 }
@@ -479,7 +480,7 @@ assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
     TLS_get_cglobals()->no_waiting_call_sites.pop();
     TLS_get_cglobals()->assert_no_coro_waiting_counter--;
 }
-assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(const std::string& filename, int line_no) {
+assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(const char *filename, int line_no) {
     TLS_get_cglobals()->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
     TLS_get_cglobals()->assert_finite_coro_waiting_counter++;
 }

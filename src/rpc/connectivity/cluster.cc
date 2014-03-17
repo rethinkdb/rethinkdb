@@ -19,6 +19,7 @@
 #include "containers/uuid.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "rpc/connectivity/heartbeat.hpp"
 
 // Number of messages after which the message handling loop yields
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
@@ -28,7 +29,7 @@ const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION
 
 #if defined (__x86_64__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__)
+#elif defined (__i386__) || defined(__arm__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"
@@ -228,7 +229,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
                                                     boost::optional<peer_id_t> expected_id,
                                                     auto_drainer_t::lock_t drainer_lock,
                                                     bool *successful_join,
-                                                    semaphore_t *rate_control) THROWS_NOTHING {
+                                                    co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
     timeout.start(index * 1000);
@@ -379,16 +380,19 @@ template<typename T>
 static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
     archive_result_t res = deserialize(c, p);
     switch (res) {
-      case ARCHIVE_SUCCESS: return false; // no problem.
+    case archive_result_t::SUCCESS:
+        return false;
 
         // Network error. Report nothing.
-      case ARCHIVE_SOCK_ERROR: case ARCHIVE_SOCK_EOF: return true;
+    case archive_result_t::SOCK_ERROR:
+    case archive_result_t::SOCK_EOF:
+        return true;
 
-      case ARCHIVE_RANGE_ERROR:
+    case archive_result_t::RANGE_ERROR:
         logERR("could not deserialize data received from %s, closing connection", peer);
         return true;
 
-      default: case ARCHIVE_GENERIC_ERROR:
+    default:
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
     }
@@ -416,7 +420,7 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
                                           const char *peer) {
     uint64_t raw_size;
     archive_result_t res = deserialize(conn, &raw_size);
-    if (res != ARCHIVE_SUCCESS) {
+    if (res != archive_result_t::SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
     }

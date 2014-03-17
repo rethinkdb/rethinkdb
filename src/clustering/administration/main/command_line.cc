@@ -18,6 +18,12 @@
 #include <sys/sysctl.h>
 #endif
 
+// Needed for determining available RAM for default cache size
+#if defined(__MACH__)
+#include <mach/host_info.h>
+#include <mach/mach_host.h>
+#endif
+
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -32,10 +38,10 @@
 #include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
+#include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "utils.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -401,6 +407,38 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
     return std::string();
 }
 
+uint64_t get_avail_mem_size() {
+    uint64_t page_size = sysconf(_SC_PAGESIZE);
+
+#if defined(__MACH__)
+    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+    vm_statistics_data_t vmstat;
+    if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+        fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
+        return 1024 * MEGABYTE;
+    }
+    return vmstat.free_count * page_size;
+#else
+    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+    return avail_mem_pages * page_size;
+#endif
+}
+
+uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
+    uint64_t res = get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO;
+
+    if (exists_option(opts, "--cache-size")) {
+        std::string cache_size_opt = get_single_option(opts, "--cache-size");
+        if (!strtou64_strict(cache_size_opt, 10, &res)) {
+            throw std::runtime_error(strprintf("ERROR: could not parse cache-size as number (%s)",
+                                               cache_size_opt.c_str()));
+        }
+        res = res * MEGABYTE;
+    }
+
+    return res;
+}
+
 // Note that this defaults to the peer port if no port is specified
 //  (at the moment, this is only used for parsing --join directives)
 // Possible formats:
@@ -709,6 +747,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const serve_info_t &serve_info,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
+                         const uint64_t total_cache_size,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
@@ -716,6 +755,13 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
+
+    logINF("Using cache size of %" PRIu64 " MB", total_cache_size / static_cast<uint64_t>(MEGABYTE));
+
+    if (total_cache_size > get_avail_mem_size()) {
+        logWRN("Requested cache size is larger than available memory.");
+    }
+
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
@@ -761,6 +807,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                             base_path,
                             cluster_metadata_file.get(),
                             auth_metadata_file.get(),
+                            total_cache_size,
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
                             serve_info.web_assets,
@@ -780,13 +827,14 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
+                             const uint64_t total_cache_size,
                              const bool new_directory,
                              const serve_info_t &serve_info,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info,
-                            direct_io_mode, max_concurrent_io_requests,
+        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+                            max_concurrent_io_requests, total_cache_size,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -818,8 +866,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        run_rethinkdb_serve(base_path, serve_info,
-                            direct_io_mode, max_concurrent_io_requests,
+        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+                            max_concurrent_io_requests, total_cache_size,
                             &our_machine_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -875,6 +923,9 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
     options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("--no-direct-io", "disable direct I/O");
+    options_out->push_back(options::option_t(options::names_t("--cache-size"),
+                                             options::OPTIONAL));
+    help.add("--cache-size mb", "total cache size (in megabytes) for the process");
     return help;
 }
 
@@ -1293,6 +1344,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        uint64_t total_cache_size = get_total_cache_size(opts);
+
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
@@ -1328,6 +1381,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      serve_info,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
+                                     total_cache_size,
                                      static_cast<machine_id_t*>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
                                      &data_directory_lock,
@@ -1549,6 +1603,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        uint64_t total_cache_size = get_total_cache_size(opts);
+
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
         // is called on it.  This will be done after the metadata files have been created.
@@ -1589,6 +1645,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      machine_name,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
+                                     total_cache_size,
                                      is_new_directory,
                                      serve_info,
                                      &data_directory_lock,

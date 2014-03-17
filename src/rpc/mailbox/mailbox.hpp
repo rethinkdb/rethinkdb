@@ -4,6 +4,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"

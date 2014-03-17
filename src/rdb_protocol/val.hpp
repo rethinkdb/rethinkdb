@@ -135,7 +135,8 @@ public:
             SEQUENCE         = 4, // sequence
             SINGLE_SELECTION = 5, // table, datum (object)
             DATUM            = 6, // datum
-            FUNC             = 7  // func
+            FUNC             = 7, // func
+            GROUPED_DATA     = 8  // grouped_data
         };
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
@@ -153,6 +154,8 @@ public:
     const char *get_type_name() const;
 
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
+    val_t(const counted_t<grouped_data_t> &groups,
+          protob_t<const Backtrace> bt);
     val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
           protob_t<const Backtrace> backtrace);
     val_t(counted_t<const datum_t> _datum,
@@ -175,6 +178,17 @@ public:
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+
+    // This set of interfaces is atrocious.  Basically there are some places
+    // where we want grouped_data, some places where we maybe want grouped_data,
+    // and some places where we maybe want grouped data even if we have to
+    // coerce to grouped data from a grouped stream.  (We can't use the usual
+    // `is_convertible` interface because the type information is actually a
+    // property of the stream, because I'm a terrible programmer.)
+    counted_t<grouped_data_t> as_grouped_data();
+    counted_t<grouped_data_t> as_promiscuous_grouped_data(env_t *env);
+    counted_t<grouped_data_t> maybe_as_grouped_data();
+    counted_t<grouped_data_t> maybe_as_promiscuous_grouped_data(env_t *env);
 
     counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
@@ -211,7 +225,8 @@ private:
     boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
-                   counted_t<func_t> > u;
+                   counted_t<func_t>,
+                   counted_t<grouped_data_t> > u;
 
     const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);

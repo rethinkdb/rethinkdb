@@ -10,7 +10,7 @@
 #endif
 
 #include "errors.hpp"
-#include "utils.hpp"
+#include "concurrency/cache_line_padded.hpp"
 
 /*
  * We have to make sure that access to thread local storage (TLS) is only performed

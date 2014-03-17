@@ -2,14 +2,17 @@
 #ifndef CONCURRENCY_WATCHABLE_HPP_
 #define CONCURRENCY_WATCHABLE_HPP_
 
+#include <functional>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
-#include <boost/utility/result_of.hpp>
 
+#include "concurrency/interruptor.hpp"
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/clone_ptr.hpp"
+#include "utils.hpp"
 
 /* `watchable_t` represents a variable that you can get the value of and also
 subscribe to further changes to the value. To get the value of a `watchable_t`,
@@ -120,7 +123,7 @@ public:
     /* `subview()` returns another `watchable_t` whose value is derived from
     this one by calling `lens` on it. */
     template<class callable_type>
-    clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
+    clone_ptr_t<watchable_t<typename std::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
     /* `incremental_subview()` is like `subview()`. However it takes an incremental lens.
     An incremental lens has the signature
     `bool(const input_type &, result_type *current_out)`.

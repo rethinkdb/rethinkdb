@@ -8,8 +8,6 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // This file implements terms that are rewritten into other terms.
@@ -39,7 +37,7 @@ private:
         return real->is_deterministic();
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
         return real->eval(env);
     }
 
@@ -47,125 +45,6 @@ private:
     protob_t<Term> out;
 
     counted_t<term_t> real;
-};
-
-class groupby_term_t : public rewrite_term_t {
-public:
-    groupby_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-
-    static r::reql_t rewrite(protob_t<const Term> in,
-                             const pb_rcheckable_t *bt_src,
-                             protob_t<const Term> optargs_in) {
-        std::string dc;
-        r::reql_t dc_arg = parse_dc(&in->args(2), &dc, bt_src);
-        r::reql_t gmr =
-            r::expr(in->args(0)).grouped_map_reduce(
-                in->args(1),
-                map_fn(dc, &dc_arg),
-                reduce_fn(dc, &dc_arg));
-        r::reql_t term = final_wrap(std::move(gmr), dc, &dc_arg);
-        term.copy_optargs_from_term(*optargs_in);
-        return term;
-    }
-
-private:
-
-    // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
-    // as syntax rather than just parsing them both into an object (since we're
-    // doing this at compile-time rather than runtime).
-    static r::reql_t parse_dc(const Term *t, std::string *dc_out,
-                              const pb_rcheckable_t *bt_src) {
-        std::string errmsg = "Invalid aggregator for GROUPBY.";
-        if (t->type() == Term::MAKE_OBJ) {
-            rcheck_target(bt_src, base_exc_t::GENERIC,
-                          t->optargs_size() == 1, errmsg);
-            const Term_AssocPair *ap = &t->optargs(0);
-            *dc_out = ap->key();
-            rcheck_target(
-                bt_src, base_exc_t::GENERIC,
-                *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            return r::expr(ap->val());
-        } else if (t->type() == Term::DATUM) {
-            rcheck_target(bt_src, base_exc_t::GENERIC, t->has_datum(), errmsg);
-            const Datum *d = &t->datum();
-            rcheck_target(bt_src, base_exc_t::GENERIC,
-                          d->type() == Datum::R_OBJECT, errmsg);
-            rcheck_target(bt_src, base_exc_t::GENERIC,
-                          d->r_object_size() == 1, errmsg);
-            const Datum_AssocPair *ap = &d->r_object(0);
-            *dc_out = ap->key();
-            rcheck_target(
-                bt_src, base_exc_t::GENERIC,
-                *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            return r::expr(ap->val());
-        } else {
-            rcheck_target(bt_src, base_exc_t::GENERIC,
-                          t->type() == Term::MAKE_OBJ, errmsg);
-            unreachable();
-        }
-    }
-
-    static r::reql_t map_fn(const std::string &dc, const r::reql_t *dc_arg) {
-        auto obj = pb::dummy_var_t::GROUPBY_MAP_OBJ;
-        if (dc == "COUNT") {
-            return r::fun(obj, r::expr(1.0));
-        } else if (dc == "SUM") {
-            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
-            return
-                r::fun(obj,
-                    dc_arg->copy().do_(attr,
-                        r::branch(
-                            r::var(obj).has_fields(r::var(attr)),
-                            r::var(obj)[r::var(attr)],
-                            0.0)));
-        } else if (dc == "AVG") {
-            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
-            return
-                r::fun(obj,
-                    dc_arg->copy().do_(attr,
-                        r::branch(
-                            r::var(obj).has_fields(r::var(attr)),
-                            r::array(r::var(obj)[r::var(attr)], 1.0),
-                            r::array(0.0, 0.0))));
-        } else { unreachable(); }
-    }
-    static r::reql_t reduce_fn(const std::string &dc, UNUSED const r::reql_t *dc_arg) {
-        auto a = pb::dummy_var_t::GROUPBY_REDUCE_A;
-        auto b = pb::dummy_var_t::GROUPBY_REDUCE_B;
-        if (dc == "COUNT" || dc == "SUM") {
-            return r::fun(a, b, r::var(a) + r::var(b));
-        } else if (dc == "AVG") {
-            return
-                r::fun(a, b,
-                    r::array(r::var(a).nth(0) + r::var(b).nth(0),
-                        r::var(a).nth(1) + r::var(b).nth(1)));
-        } else { unreachable(); }
-    }
-    static r::reql_t final_wrap(r::reql_t arg,
-                                const std::string &dc, UNUSED const r::reql_t *dc_arg) {
-        if (dc == "COUNT" || dc == "SUM") {
-            return std::move(arg);
-        }
-
-        if (dc == "AVG") {
-            auto obj = pb::dummy_var_t::GROUPBY_FINAL_OBJ;
-            auto val = pb::dummy_var_t::GROUPBY_FINAL_VAL;
-            return
-                std::move(arg).map(
-                    r::fun(obj,
-                        r::object(
-                            r::optarg("group", r::var(obj)["group"]),
-                            r::optarg("reduction",
-                                r::var(obj)["reduction"].do_(val,
-                                    r::var(val).nth(0) / r::var(val).nth(1))))));
-        } else {
-            unreachable();
-        }
-    }
-    virtual const char *name() const { return "groupby"; }
 };
 
 class inner_join_term_t : public rewrite_term_t {
@@ -383,31 +262,36 @@ private:
      virtual const char *name() const { return "with_fields"; }
 };
 
-counted_t<term_t> make_skip_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_skip_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<skip_term_t>(env, term);
 }
-counted_t<term_t> make_groupby_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<groupby_term_t>(env, term);
-}
-counted_t<term_t> make_inner_join_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_inner_join_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<inner_join_term_t>(env, term);
 }
-counted_t<term_t> make_outer_join_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_outer_join_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<outer_join_term_t>(env, term);
 }
-counted_t<term_t> make_eq_join_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_eq_join_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<eq_join_term_t>(env, term);
 }
-counted_t<term_t> make_update_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_update_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<update_term_t>(env, term);
 }
-counted_t<term_t> make_delete_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_delete_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_term_t>(env, term);
 }
-counted_t<term_t> make_difference_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_difference_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<difference_term_t>(env, term);
 }
-counted_t<term_t> make_with_fields_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_with_fields_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<with_fields_term_t>(env, term);
 }
 

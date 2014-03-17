@@ -132,5 +132,17 @@ describe('Javascript date pseudotype conversion', function(){
             done()
         });
     }));
+
+    it("group with times", withConnection(function(done, conn){
+        r.expr([{id:0,time:r.epochTime(896571240)}]).group('time').coerceTo('array').run(conn, function(err, res){
+            var expectedDate = new Date(896571240000)
+            assert.equal(res.length, 1)
+            assert.equal(res[0].group.getTime(), expectedDate.getTime())
+            assert.equal(res[0].reduction.length, 1)
+            assert.equal(res[0].reduction[0].id, 0)
+            assert.equal(res[0].reduction[0].time.getTime(), expectedDate.getTime())
+            done()
+        });
+    }));
 });
 

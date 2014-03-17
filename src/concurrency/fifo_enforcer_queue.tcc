@@ -2,7 +2,8 @@
 #ifndef __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
 #define __CONCURRENCY_FIFO_ENFORCER_QUEUE_TCC__
 
-#include "concurrency/fifo_enforcer.hpp"
+#include "perfmon/perfmon.hpp"
+#include "stl_utils.hpp"
 
 template <class T>
 fifo_enforcer_queue_t<T>::fifo_enforcer_queue_t()

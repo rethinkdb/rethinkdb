@@ -175,8 +175,7 @@ class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
-                        optargspec_t({"datacenter", "primary_key",
-                                    "cache_size", "durability"})) { }
+                        optargspec_t({"datacenter", "primary_key", "durability"})) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u dc_id = nil_uuid();
@@ -197,11 +196,6 @@ private:
         std::string primary_key = "id";
         if (counted_t<val_t> v = optarg(env, "primary_key")) {
             primary_key = v->as_str().to_std();
-        }
-
-        int64_t cache_size = 1073741824;
-        if (counted_t<val_t> v = optarg(env, "cache_size")) {
-            cache_size = v->as_int<int64_t>();
         }
 
         uuid_u db_id;
@@ -229,18 +223,20 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
-            // Create namespace (DB + table pair) and insert into metadata.
-            // The port here is a legacy from the day when memcached ran on a different port.
+            // Create namespace (DB + table pair) and insert into metadata.  The
+            // port here is a legacy from the day when memcached ran on a
+            // different port.
             namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-                new_namespace<rdb_protocol_t>(env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                                              primary_key, port_defaults::reql_port,
-                                              cache_size);
+                new_namespace<rdb_protocol_t>(
+                    env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
+                    primary_key, port_defaults::reql_port);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =
                 &ns.ack_expectations.get_mutable();
             for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
-                it->second = ack_expectation_t(it->second.expectation(), hard_durability);
+                it->second = ack_expectation_t(
+                    it->second.expectation(), hard_durability);
             }
             ns.ack_expectations.upgrade_version(env->env->cluster_access.this_machine);
 
@@ -506,7 +502,7 @@ private:
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream
-                = make_counted<union_datum_stream_t>(streams, backtrace());
+                = make_counted<union_datum_stream_t>(std::move(streams), backtrace());
             return new_val(stream, table);
         } else {
             datum_ptr_t arr(datum_t::R_ARRAY);

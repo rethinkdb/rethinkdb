@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_SERIALIZER_HPP_
 #define SERIALIZER_SERIALIZER_HPP_
 
@@ -9,20 +9,26 @@
 
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
 struct index_write_op_t {
     block_id_t block_id;
-    // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
+    // Buf to write.  boost::none if not to be modified.  Initialized to an empty
+    // counted_t if the block is to be deleted.
     boost::optional<counted_t<standard_block_token_t> > token;
-    boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
+    // Recency, if it should be modified.  (It's unmodified when the data block
+    // manager moves blocks around while garbage collecting.)
+    boost::optional<repli_timestamp_t> recency;
 
     explicit index_write_op_t(block_id_t _block_id,
                               boost::optional<counted_t<standard_block_token_t> > _token = boost::none,
                               boost::optional<repli_timestamp_t> _recency = boost::none)
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
+
+void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op);
 
 /* serializer_t is an abstract interface that describes how each serializer should
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
@@ -40,10 +46,9 @@ public:
     virtual ~serializer_t() { }
 
     /* The buffers that are used with do_read() and do_write() must be allocated using
-    these functions. They can be safely called from any thread. */
+    this function. They can be safely called from any thread. */
 
-    virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
-    virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
+    static scoped_malloc_t<ser_buffer_t> allocate_buffer(block_size_t block_size);
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
@@ -75,10 +80,22 @@ public:
      * created. */
     virtual block_id_t max_block_id() = 0;
 
-    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
-    virtual repli_timestamp_t get_recency(block_id_t id) = 0;
+    /* Returns all recencies, for all block ids of the form first + step * k, for k =
+       0, 1, 2, 3, ..., in order by block id.  Non-existant block ids have recency
+       repli_timestamp_t::invalid.  You must only call this before _writing_ a
+       block to this serializer_t instance, because otherwise the information you get
+       back could be wrong. */
+    virtual segmented_vector_t<repli_timestamp_t>
+    get_all_recencies(block_id_t first, block_id_t step) = 0;
 
-    /* Reads the block's delete bit. */
+    /* Returns all recencies, indexed by block id.  (See above.) */
+    segmented_vector_t<repli_timestamp_t> get_all_recencies() {
+        return get_all_recencies(0, 1);
+    }
+
+    /* Reads the block's delete bit.  You must only call this on startup, before
+       _writing_ a block to this serializer_t instance, because otherwise the
+       information you get back could be wrong. */
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
@@ -94,7 +111,7 @@ public:
                  iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
-    virtual block_size_t get_block_size() const = 0;
+    virtual block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;
@@ -103,54 +120,5 @@ private:
     DISABLE_COPYING(serializer_t);
 };
 
-
-// The do_write interface is now obvious helper functions
-
-struct serializer_write_launched_callback_t {
-    virtual void on_write_launched(const counted_t<standard_block_token_t>& token) = 0;
-    virtual ~serializer_write_launched_callback_t() {}
-};
-struct serializer_write_t {
-    block_id_t block_id;
-
-    enum { UPDATE, DELETE, TOUCH } action_type;
-    union {
-        struct {
-            const void *buf;
-            uint32_t ser_block_size;
-            repli_timestamp_t recency;
-            iocallback_t *io_callback;
-            serializer_write_launched_callback_t *launch_callback;
-        } update;
-        struct {
-            repli_timestamp_t recency;
-        } touch;
-    } action;
-
-    static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-    static serializer_write_t make_update(block_id_t block_id, block_size_t block_size,
-                                          repli_timestamp_t recency, const void *buf,
-                                          iocallback_t *io_callback,
-                                          serializer_write_launched_callback_t *launch_callback);
-    static serializer_write_t make_delete(block_id_t block_id);
-};
-
-/* A bad wrapper for doing block writes and index writes.
- */
-void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account);
-
-
-// Helpers for default implementations that can be used on log_serializer_t.
-
-template <class serializer_type>
-void serializer_index_write(serializer_type *ser, const index_write_op_t& op, file_account_t *io_account) {
-    std::vector<index_write_op_t> ops;
-    ops.push_back(op);
-    return ser->index_write(ops, io_account);
-}
-
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
-                                                         block_size_t block_size,
-                                                         block_id_t block_id, file_account_t *io_account);
 
 #endif /* SERIALIZER_SERIALIZER_HPP_ */

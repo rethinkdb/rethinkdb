@@ -1,5 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/reactor/blueprint.hpp"
+
+#include "debug.hpp"
+#include "protocol_api.hpp"
+#include "stl_utils.hpp"
 
 template <class protocol_t>
 void blueprint_t<protocol_t>::guarantee_valid() const THROWS_NOTHING {

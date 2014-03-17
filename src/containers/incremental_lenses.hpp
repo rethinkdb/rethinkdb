@@ -6,7 +6,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/utility/result_of.hpp>
 
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track

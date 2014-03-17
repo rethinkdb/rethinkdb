@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime.hpp"
 
+#include <inttypes.h>
+
 #include <functional>
 
 #include "arch/runtime/starter.hpp"

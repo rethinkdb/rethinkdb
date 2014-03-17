@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/semantic_checking.hpp"
 
 #include <vector>
@@ -59,18 +59,6 @@ semantic_checking_serializer_t(dynamic_config_t config,
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::~semantic_checking_serializer_t() { }
-
-template<class inner_serializer_t>
-scoped_malloc_t<ser_buffer_t>
-semantic_checking_serializer_t<inner_serializer_t>::malloc() {
-    return inner_serializer.malloc();
-}
-
-template<class inner_serializer_t>
-scoped_malloc_t<ser_buffer_t>
-semantic_checking_serializer_t<inner_serializer_t>::clone(const ser_buffer_t *data) {
-    return inner_serializer.clone(data);
-}
 
 template<class inner_serializer_t>
 file_account_t *semantic_checking_serializer_t<inner_serializer_t>::make_io_account(int priority, int outstanding_requests_limit) {
@@ -204,15 +192,17 @@ bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
 
 template<class inner_serializer_t>
 block_size_t semantic_checking_serializer_t<inner_serializer_t>::
-get_block_size() const { return inner_serializer.get_block_size(); }
+max_block_size() const { return inner_serializer.max_block_size(); }
 
 template<class inner_serializer_t>
 block_id_t semantic_checking_serializer_t<inner_serializer_t>::
 max_block_id() { return inner_serializer.max_block_id(); }
 
 template<class inner_serializer_t>
-repli_timestamp_t semantic_checking_serializer_t<inner_serializer_t>::
-get_recency(block_id_t id) { return inner_serializer.get_recency(id); }
+segmented_vector_t<repli_timestamp_t> semantic_checking_serializer_t<inner_serializer_t>::
+get_all_recencies(block_id_t first, block_id_t step) {
+    return inner_serializer.get_all_recencies(first, step);
+}
 
 template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::

@@ -1,13 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef TIMESTAMPS_HPP_
 #define TIMESTAMPS_HPP_
 
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-
 #include <inttypes.h>
 
+#include "containers/archive/archive.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 

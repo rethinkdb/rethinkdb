@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MOCK_DUMMY_PROTOCOL_HPP_
 #define MOCK_DUMMY_PROTOCOL_HPP_
 
@@ -10,7 +10,6 @@
 
 #include "backfill_progress.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -21,6 +20,7 @@
 class signal_t;
 class io_backender_t;
 class serializer_t;
+class cache_balancer_t;
 
 namespace mock {
 
@@ -107,17 +107,14 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(serializer_t *serializer, const std::string &perfmon_name,
-                UNUSED int64_t cache_size, bool create,
+        store_t(serializer_t *serializer, cache_balancer_t *balancer,
+                const std::string &perfmon_name, bool create,
                 perfmon_collection_t *collection, context_t *ctx,
                 io_backender_t *io, const base_path_t &);
         ~store_t();
 
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
-
-        void new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING;
-        void new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING;
 
         void do_get_metainfo(order_token_t order_token,
                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,

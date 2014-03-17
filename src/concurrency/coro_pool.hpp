@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_CORO_POOL_HPP_
 #define CONCURRENCY_CORO_POOL_HPP_
 
@@ -6,6 +6,7 @@
 #include <boost/function.hpp>
 
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
 /* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it

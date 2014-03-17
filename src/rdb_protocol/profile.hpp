@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROFILE_HPP_
 #define RDB_PROTOCOL_PROFILE_HPP_
 
@@ -8,12 +8,10 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "containers/archive/boost_types.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 namespace ql {
 class datum_t;
@@ -67,7 +65,7 @@ class trace_t {
 public:
     trace_t();
     counted_t<const ql::datum_t> as_datum();
-    event_log_t &&get_event_log() RVALUE_THIS;
+    event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
     friend class splitter_t;

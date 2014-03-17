@@ -1,8 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
-
-// These unit tests need to access some private methods.
-#define private public
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -17,12 +14,11 @@
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "stl_utils.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 
@@ -113,7 +109,7 @@ void run_in_thread_pool_with_broadcaster(
                               order_source_t *)> fun)
 {
     extproc_spawner_t extproc_spawner;
-    run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
 }
 
 
@@ -181,7 +177,8 @@ void run_backfill_test(size_t value_padding_length,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(), _1, _2, _3, _4),
+        std::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(),
+                  ph::_1, ph::_2, ph::_3, ph::_4),
         NULL,
         &mc_key_gen,
         order_source,
@@ -234,11 +231,15 @@ void run_backfill_test(size_t value_padding_length,
 }
 
 TEST(RDBProtocolBackfill, Backfill) {
-     run_in_thread_pool_with_broadcaster(boost::bind(&run_backfill_test, 0, _1, _2, _3, _4, _5, _6, _7, _8));
+     run_in_thread_pool_with_broadcaster(
+             std::bind(&run_backfill_test, 0, ph::_1, ph::_2, ph::_3,
+                       ph::_4, ph::_5, ph::_6, ph::_7, ph::_8));
 }
 
 TEST(RDBProtocolBackfill, BackfillLargeValues) {
-     run_in_thread_pool_with_broadcaster(boost::bind(&run_backfill_test, 300, _1, _2, _3, _4, _5, _6, _7, _8));
+     run_in_thread_pool_with_broadcaster(
+             std::bind(&run_backfill_test, 300, ph::_1, ph::_2, ph::_3, ph::_4,
+                       ph::_5, ph::_6, ph::_7, ph::_8));
 }
 
 void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
@@ -293,7 +294,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, 0, broadcaster->get(), _1, _2, _3, _4),
+        std::bind(&write_to_broadcaster, 0, broadcaster->get(),
+                  ph::_1, ph::_2, ph::_3, ph::_4),
         NULL,
         &mc_key_gen,
         order_source,
@@ -329,7 +331,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(100000);
 
     cond_t dummy_interruptor;
-    ql::env_t dummy_env(&dummy_interruptor);
+    ql::env_t dummy_env(NULL, &dummy_interruptor);
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
@@ -342,8 +344,10 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         rdb_protocol_t::read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
-        auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
-        guarantee(result_stream);
+        auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&get_result.result);
+        ASSERT_TRUE(groups != NULL);
+        ASSERT_EQ(1, groups->size());
+        auto result_stream = &groups->begin()->second;
         ASSERT_EQ(1u, result_stream->size());
         EXPECT_EQ(*generate_document(0, it->second), *result_stream->at(0).data);
     }

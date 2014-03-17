@@ -61,8 +61,8 @@ def generate_async_message_template(nargs):
         print "        void read(read_stream_t *stream) {"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
-        print "            %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
-        print "            if (res) { throw fake_archive_exc_t(); }"
+        print "            %sres = deserialize(stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
+        print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("arg#")
     print "        }"
     print "    private:"
@@ -124,7 +124,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"errors.hpp\""
-    print "#include <boost/bind.hpp>"
     print "#include <boost/function.hpp>"
     print
     print "#include \"containers/archive/archive.hpp\""

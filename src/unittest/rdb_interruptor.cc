@@ -1,8 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <functional>
 #include <stdexcept>
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -200,7 +198,7 @@ private:
     const bool should_exist;
 };
 
-TEST(RdbInterrupt, InsertOp) {
+TEST(RDBInterrupt, InsertOp) {
     ql::protob_t<Term> insert_proto = ql::make_counted_term();
     uint32_t eval_count;
 
@@ -218,22 +216,22 @@ TEST(RdbInterrupt, InsertOp) {
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, true, "key");
-        unittest::run_in_thread_pool(boost::bind(count_evals,
-                                                 &test_env,
-                                                 insert_proto,
-                                                 &eval_count,
-                                                 &verify_callback));
+        unittest::run_in_thread_pool(std::bind(count_evals,
+                                               &test_env,
+                                               insert_proto,
+                                               &eval_count,
+                                               &verify_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, false, "key");
-        unittest::run_in_thread_pool(boost::bind(interrupt_test,
-                                                 &test_env,
-                                                 insert_proto,
-                                                 i,
-                                                 &verify_callback));
+        unittest::run_in_thread_pool(std::bind(interrupt_test,
+                                               &test_env,
+                                               insert_proto,
+                                               i,
+                                               &verify_callback));
     }
 }
 
@@ -245,7 +243,7 @@ public:
     }
 };
 
-TEST(RdbInterrupt, GetOp) {
+TEST(RDBInterrupt, GetOp) {
     ql::protob_t<Term> get_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;
@@ -264,23 +262,23 @@ TEST(RdbInterrupt, GetOp) {
         dummy_callback_t dummy_callback;
         database_id_t db_id = test_env.add_database("db");
         test_env.add_table("table", db_id, "id", initial_data);
-        unittest::run_in_thread_pool(boost::bind(count_evals,
-                                                 &test_env,
-                                                 get_proto,
-                                                 &eval_count,
-                                                 &dummy_callback));
+        unittest::run_in_thread_pool(std::bind(count_evals,
+                                               &test_env,
+                                               get_proto,
+                                               &eval_count,
+                                               &dummy_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         dummy_callback_t dummy_callback;
         database_id_t db_id = test_env.add_database("db");
         test_env.add_table("table", db_id, "id", initial_data);
-        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, get_proto, i,
-                                                 &dummy_callback));
+        unittest::run_in_thread_pool(std::bind(interrupt_test, &test_env, get_proto, i,
+                                               &dummy_callback));
     }
 }
 
-TEST(RdbInterrupt, DeleteOp) {
+TEST(RDBInterrupt, DeleteOp) {
     ql::protob_t<Term> delete_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;
@@ -302,22 +300,22 @@ TEST(RdbInterrupt, DeleteOp) {
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
         exists_verify_callback_t verify_callback(ns_id, false, "key");
-        unittest::run_in_thread_pool(boost::bind(count_evals,
-                                                 &test_env,
-                                                 delete_proto,
-                                                 &eval_count,
-                                                 &verify_callback));
+        unittest::run_in_thread_pool(std::bind(count_evals,
+                                               &test_env,
+                                               delete_proto,
+                                               &eval_count,
+                                               &verify_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
         exists_verify_callback_t verify_callback(ns_id, true, "key");
-        unittest::run_in_thread_pool(boost::bind(interrupt_test,
-                                                 &test_env,
-                                                 delete_proto,
-                                                 i,
-                                                 &verify_callback));
+        unittest::run_in_thread_pool(std::bind(interrupt_test,
+                                               &test_env,
+                                               delete_proto,
+                                               i,
+                                               &verify_callback));
     }
 }
 

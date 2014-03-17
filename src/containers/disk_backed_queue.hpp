@@ -1,33 +1,31 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
-
-#define MAX_REF_SIZE 251
 
 #include <string>
 #include <vector>
 
-#include "buffer_cache/serialize_onto_blob.hpp"
-#include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/buffer_group.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
-class const_buffer_group_t;
+class cache_balancer_t;
+class cache_conn_t;
+class cache_t;
+class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
 
-//TODO there are extra copies all over the place mostly stemming from having a
-//vector<char> from the serialization code and strings from the blob code.
-
 struct queue_block_t {
     block_id_t next;
-    int data_size, live_data_offset;
+    int32_t data_size, live_data_offset;
     char data[0];
-};
+} __attribute__((__packed__));
 
 class value_acquisition_object_t;
 
@@ -58,9 +56,8 @@ public:
     int64_t size();
 
 private:
-    void add_block_to_head(transaction_t *txn);
-
-    void remove_block_from_tail(transaction_t *txn);
+    void add_block_to_head(txn_t *txn);
+    void remove_block_from_tail(txn_t *txn);
 
     mutex_t mutex;
 
@@ -70,9 +67,15 @@ private:
     perfmon_membership_t perfmon_membership;
 
     int64_t queue_size;
-    block_id_t head_block_id, tail_block_id;
+
+    // The end we push onto.
+    block_id_t head_block_id;
+    // The end we pop from.
+    block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<cache_conn_t> cache_conn;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

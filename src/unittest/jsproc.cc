@@ -1,17 +1,13 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
-#include "unittest/unittest_utils.hpp"
-
 #include "containers/archive/archive.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/js_runner.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "unittest/extproc_test.hpp"
 #include "unittest/gtest.hpp"
 
-void run_eval_timeout_test() {
+SPAWNER_TEST(JSProc, EvalTimeout) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -26,12 +22,7 @@ void run_eval_timeout_test() {
     ASSERT_FALSE(js_runner.connected());
 }
 
-TEST(JSProc, EvalTimeout) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_eval_timeout_test));
-}
-
-void run_call_timeout_test() {
+SPAWNER_TEST(JSProc, CallTimeout) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -55,11 +46,6 @@ void run_call_timeout_test() {
     ASSERT_FALSE(js_runner.connected());
 }
 
-TEST(JSProc, CallTimeout) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_call_timeout_test));
-}
-
 void run_datum_test(const std::string &source_code, counted_t<const ql::datum_t> *res_out) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
@@ -77,7 +63,7 @@ void run_datum_test(const std::string &source_code, counted_t<const ql::datum_t>
     *res_out = *res_datum;
 }
 
-void run_literal_number_test() {
+SPAWNER_TEST(JSProc, LiteralNumber) {
     counted_t<const ql::datum_t> result;
     run_datum_test("9467923", &result);
     ASSERT_TRUE(result.has());
@@ -85,12 +71,7 @@ void run_literal_number_test() {
     ASSERT_EQ(result->as_int(), 9467923);
 }
 
-TEST(JSProc, LiteralNumber) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_literal_number_test));
-}
-
-void run_literal_string_test() {
+SPAWNER_TEST(JSProc, LiteralString) {
     counted_t<const ql::datum_t> result;
     run_datum_test("\"string data\"", &result);
     ASSERT_TRUE(result.has());
@@ -98,12 +79,7 @@ void run_literal_string_test() {
     ASSERT_EQ(result->as_str(), "string data");
 }
 
-TEST(JSProc, LiteralString) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_literal_string_test));
-}
-
-void run_eval_and_call_test() {
+SPAWNER_TEST(JSProc, EvalAndCall) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -135,12 +111,7 @@ void run_eval_and_call_test() {
     ASSERT_EQ((*res_datum)->as_int(), 10337);
 }
 
-TEST(JSProc, EvalAndCall) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_eval_and_call_test));
-}
-
-void run_broken_function_test() {
+SPAWNER_TEST(JSProc, BrokenFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -168,12 +139,7 @@ void run_broken_function_test() {
     ASSERT_TRUE(error != NULL);
 }
 
-TEST(JSProc, BrokenFunction) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_broken_function_test));
-}
-
-void run_invalid_function_test() {
+SPAWNER_TEST(JSProc, InvalidFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -191,12 +157,7 @@ void run_invalid_function_test() {
     ASSERT_TRUE(error != NULL);
 }
 
-TEST(JSProc, InvalidFunction) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_invalid_function_test));
-}
-
-void run_infinite_recursion_function_test() {
+SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
     extproc_pool_t extproc_pool(1);
     js_runner_t js_runner;
 
@@ -221,11 +182,6 @@ void run_infinite_recursion_function_test() {
     std::string *err_msg = boost::get<std::string>(&result);
 
     ASSERT_EQ(*err_msg, std::string("RangeError: Maximum call stack size exceeded"));
-}
-
-TEST(JSProc, InfiniteRecursionFunction) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_infinite_recursion_function_test));
 }
 
 void run_overalloc_function_test() {
@@ -262,7 +218,7 @@ void run_overalloc_function_test() {
 /*
 TEST(JSProc, OverallocFunction) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_overalloc_function_test));
+    unittest::run_in_thread_pool(run_overalloc_function_test);
 }
 */
 
@@ -294,7 +250,9 @@ void passthrough_test_internal(extproc_pool_t *pool, const counted_t<const ql::d
     ASSERT_EQ(*res_datum->get(), *arg.get());
 }
 
-void run_passthrough_test() {
+// This test will make sure that conversion of datum_t to and from v8 types works
+// correctly
+SPAWNER_TEST(JSProc, Passthrough) {
     extproc_pool_t pool(1);
 
     // Number
@@ -360,10 +318,4 @@ void run_passthrough_test() {
         nested_datum = make_counted<const ql::datum_t>(std::move(copied_data));
         passthrough_test_internal(&pool, nested_datum);
     }
-}
-
-// This test will make sure that conversion of datum_t to and from v8 types works correctly
-TEST(JSProc, Passthrough) {
-    extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_passthrough_test));
 }

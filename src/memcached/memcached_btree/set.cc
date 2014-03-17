@@ -1,10 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/set.hpp"
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/data_buffer.hpp"
+#include "math.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"
+#include "time.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {
     memcached_set_oper_t(const counted_t<data_buffer_t>& _data,
@@ -18,7 +21,9 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ~memcached_set_oper_t() { }
 
-    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
+    bool operate(buf_parent_t leaf,
+                 scoped_malloc_t<memcached_value_t> *value) {
+        const block_size_t block_size = leaf.cache()->get_block_size();
         // We may be instructed to abort, depending on the old value.
         if (value->has()) {
             switch (replace_policy) {
@@ -55,10 +60,10 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         // Whatever the case, shrink the old value.
         {
-            blob_t b(txn->get_cache()->get_block_size(),
-                     (*value)->value_ref(),
-                     blob::btree_maxreflen);
-            b.clear(txn);
+            blob_t b(block_size,
+                          (*value)->value_ref(),
+                          blob::btree_maxreflen);
+            b.clear(leaf);
         }
 
         if (data->size() > MAX_VALUE_SIZE) {
@@ -75,27 +80,21 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
             } else {
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
             }
-            memcpy(tmp->value_ref(), (*value)->value_ref(), blob::ref_size(txn->get_cache()->get_block_size(), (*value)->value_ref(), blob::btree_maxreflen));
+            memcpy(tmp->value_ref(), (*value)->value_ref(),
+                   blob::ref_size(block_size, (*value)->value_ref(),
+                                       blob::btree_maxreflen));
             *value = std::move(tmp);
         }
 
-        blob_t b(txn->get_cache()->get_block_size(),
-                 (*value)->value_ref(), blob::btree_maxreflen);
+        blob_t b(block_size, (*value)->value_ref(), blob::btree_maxreflen);
 
-        b.append_region(txn, data->size());
+        b.append_region(leaf, data->size());
         buffer_group_t bg;
-        // TODO: We shouldn't have to do the scoped_ptr thing here, let blob_acq_t have a reset method.
-        scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
-        b.expose_region(txn, rwi_write, 0, data->size(), &bg, acq.get());
+        blob_acq_t acq;
+        b.expose_region(leaf, access_t::write,
+                        0, data->size(), &bg, &acq);
 
-        try {
-            buffer_group_copy_data(&bg, data->buf(), data->size());
-        } catch (...) {
-            // Gotta release ownership of all those bufs first.
-            acq.reset();
-            b.clear(txn);
-            throw;
-        }
+        buffer_group_copy_data(&bg, data->buf(), data->size());
 
         result = sr_stored;
         return true;
@@ -134,10 +133,12 @@ set_result_t memcached_set(const store_key_t &key,
                            cas_t proposed_cas,
                            exptime_t effective_time,
                            repli_timestamp_t timestamp,
-                           transaction_t *txn,
-                           superblock_t *superblock) {
-    memcached_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
-    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
+                           superblock_t *superblock,
+                           promise_t<superblock_t *> *pass_back_superblock) {
+    memcached_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy,
+                              req_cas);
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time,
+                              timestamp, superblock, pass_back_superblock);
     return oper.result;
 }
 

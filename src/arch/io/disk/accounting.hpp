@@ -54,7 +54,7 @@ struct accounting_diskmgr_account_t {
 
     void push(action_t *action);
     void on_semaphore_available();
-    semaphore_t *get_outstanding_requests_limiter();
+    co_semaphore_t *get_outstanding_requests_limiter();
 
 private:
     typedef accounting_diskmgr_eager_account_t eager_account_t;

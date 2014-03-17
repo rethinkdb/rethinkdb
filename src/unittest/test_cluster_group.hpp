@@ -13,6 +13,7 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/scoped.hpp"
 #include "clustering/reactor/directory_echo.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
@@ -48,6 +49,7 @@ public:
     const base_path_t base_path;
     boost::ptr_vector<temp_file_t> files;
     scoped_ptr_t<io_backender_t> io_backender;
+    scoped_ptr_t<cache_balancer_t> balancer;
     boost::ptr_vector<serializer_t> serializers;
     boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_OPERATIONS_HPP_
 #define BTREE_OPERATIONS_HPP_
 
@@ -8,7 +8,7 @@
 
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -17,6 +17,7 @@
 #include "utils.hpp"
 
 class btree_slice_t;
+class value_deleter_t;
 
 template <class> class promise_t;
 
@@ -30,17 +31,18 @@ public:
     // Release the superblock if possible (otherwise do nothing)
     virtual void release() = 0;
 
-    virtual block_id_t get_root_block_id() const = 0;
-    virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+    virtual block_id_t get_root_block_id() = 0;
+    virtual void set_root_block_id(block_id_t new_root_block) = 0;
 
-    virtual block_id_t get_stat_block_id() const = 0;
+    virtual block_id_t get_stat_block_id() = 0;
     virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
 
-    virtual block_id_t get_sindex_block_id() const = 0;
+    virtual block_id_t get_sindex_block_id() = 0;
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
-    virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
-    virtual eviction_priority_t get_eviction_priority() = 0;
+    virtual buf_parent_t expose_buf() = 0;
+
+    cache_t *cache() { return expose_buf().cache(); }
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -50,22 +52,21 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
-    explicit real_superblock_t(buf_lock_t *sb_buf);
+    explicit real_superblock_t(buf_lock_t &&sb_buf);
 
     void release();
     buf_lock_t *get() { return &sb_buf_; }
 
-    block_id_t get_root_block_id() const;
-    void set_root_block_id(const block_id_t new_root_block);
+    block_id_t get_root_block_id();
+    void set_root_block_id(block_id_t new_root_block);
 
-    block_id_t get_stat_block_id() const;
+    block_id_t get_stat_block_id();
     void set_stat_block_id(block_id_t new_stat_block);
 
-    block_id_t get_sindex_block_id() const;
+    block_id_t get_sindex_block_id();
     void set_sindex_block_id(block_id_t new_block_id);
 
-    void set_eviction_priority(eviction_priority_t eviction_priority);
-    eviction_priority_t get_eviction_priority();
+    buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
 private:
     buf_lock_t sb_buf_;
@@ -105,7 +106,7 @@ public:
     // value, otherwise NULL.
     scoped_malloc_t<Value> value;
 
-    void swap(keyvalue_location_t& other) {
+    void swap(keyvalue_location_t &other) {
         std::swap(superblock, other.superblock);
         std::swap(stat_block, other.stat_block);
         last_buf.swap(other.last_buf);
@@ -126,7 +127,8 @@ private:
 };
 
 
-
+// KSI: This type is stupid because the only subclass is
+// null_key_modification_callback_t?
 template <class Value>
 class key_modification_callback_t {
 public:
@@ -134,7 +136,7 @@ public:
     // scoped_malloc_t.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
-    virtual key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+    virtual key_modification_proof_t value_modification(keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
 
     key_modification_callback_t() { }
 protected:
@@ -148,7 +150,9 @@ private:
 
 template <class Value>
 class null_key_modification_callback_t : public key_modification_callback_t<Value> {
-    key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+    key_modification_proof_t
+    value_modification(UNUSED keyvalue_location_t<Value> *kv_loc,
+                       UNUSED const btree_key_t *key) {
         // do nothing
         return key_modification_proof_t::real_proof();
     }
@@ -201,47 +205,65 @@ private:
     char *value_ptr;
 };
 
-void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
+buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb);
 
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
+void check_and_handle_split(value_sizer_t<void> *sizer,
+                            buf_lock_t *buf,
+                            buf_lock_t *last_buf,
+                            superblock_t *sb,
+                            const btree_key_t *key, void *new_value,
+                            const value_deleter_t *detacher);
 
-void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                                const btree_key_t *key);
+void check_and_handle_underfull(value_sizer_t<void> *sizer,
+                                buf_lock_t *buf,
+                                buf_lock_t *last_buf,
+                                superblock_t *sb,
+                                const btree_key_t *key,
+                                const value_deleter_t *detacher);
 
 // Metainfo functions
-bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
+bool get_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             std::vector<char> *value_out);
 
-void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+void get_superblock_metainfo(
+    buf_lock_t *superblock,
+    std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
-void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
-void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
+void set_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             const std::vector<char> &value);
+
+void delete_superblock_metainfo(buf_lock_t *superblock,
+                                const std::vector<char> &key);
+void clear_superblock_metainfo(buf_lock_t *superblock);
 
 /* Set sb to have root id as its root block and release sb */
-void insert_root(block_id_t root_id, superblock_t* sb);
+void insert_root(block_id_t root_id, superblock_t *sb);
 
 /* Create a stat block for the superblock if it doesn't already have one. */
-void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
+void ensure_stat_block(superblock_t *sb);
 
-void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
+void get_btree_superblock(txn_t *txn, access_t access,
+                          scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
-                                  access_t superblock_access, int expected_change_count,
-                                  repli_timestamp_t tstamp, order_token_t token,
+void get_btree_superblock_and_txn(cache_conn_t *cache_conn,
+                                  write_access_t superblock_access,
+                                  int expected_change_count,
+                                  repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<transaction_t> *txn_out);
+                                  scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+void get_btree_superblock_and_txn_for_backfilling(cache_conn_t *cache_conn,
+                                                  cache_account_t *backfill_account,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<transaction_t> *txn_out);
+                                                  scoped_ptr_t<txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
+void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<transaction_t> *txn_out);
+                                              scoped_ptr_t<txn_t> *txn_out);
 
 #include "btree/operations.tcc"
 

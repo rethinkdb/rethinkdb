@@ -1,10 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
-
-#include "buffer_cache/buffer_cache.hpp"
-#include "containers/iterators.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/protocol.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "serializer/merger.hpp"
@@ -47,12 +43,14 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));
 
+    dummy_cache_balancer_t balancer(GIGABYTE);
+
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(
-                new memcached_protocol_t::store_t(multiplexer->proxies[i],
+                new memcached_protocol_t::store_t(multiplexer->proxies[i], &balancer,
                     temp_file.name().permanent_path() + strprintf("_%zd", i),
-                    GIGABYTE, true, &get_global_perfmon_collection(), NULL,
+                    true, &get_global_perfmon_collection(), NULL,
                     &io_backender, base_path_t(".")));
     }
 
@@ -70,7 +68,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *, order_source_t *)> fun) {
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun));
 }
 
 /* `SetupTeardown` makes sure that it can start and stop without anything going

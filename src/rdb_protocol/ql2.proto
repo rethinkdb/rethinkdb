@@ -358,19 +358,7 @@ message Term {
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
-        // Takes a sequence, and three functions:
-        // - A function to group the sequence by.
-        // - A function to map over the groups.
-        // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> ARRAY
-        // Groups a sequence by one or more attributes, and then applies a reduction.
-        // The third argument is a special object literal giving the kind of operation to be
-        // performed and any necessary arguments.
-        // At present, GROUPBY suports the following operations
-        // * {'COUNT': <ignored>} - count the size of the group
-        // * {'SUM': attr} - sum the values of the given attribute across the group
-        // * {'AVG': attr} - average the values of the given attribute across the group
-        GROUPBY            = 47; // Sequence, ARRAY, !GROUP_BY_OBJECT -> Sequence
+
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
@@ -423,8 +411,8 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+                           // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -611,6 +599,21 @@ message Term {
 
         // Indicates to MERGE to replace the other object rather than merge it.
         LITERAL = 137; // JSON -> Merging
+
+        // SEQUENCE, STRING -> GROUPED_SEQUENCE | SEQUENCE, FUNCTION -> GROUPED_SEQUENCE
+        GROUP = 144;
+        SUM = 145;
+        AVG = 146;
+        MIN = 147;
+        MAX = 148;
+
+        // `str.split()` splits on whitespace
+        // `str.split(" ")` splits on spaces only
+        // `str.split(" ", 5)` splits on spaces with at most 5 results
+        // `str.split(nil, 5)` splits on whitespace with at most 5 results
+        SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
+
+        UNGROUP = 150; // GROUPED_DATA -> ARRAY
     }
     optional TermType type = 1;
 

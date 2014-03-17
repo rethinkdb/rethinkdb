@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_KEYS_HPP_
 #define BTREE_KEYS_HPP_
 
@@ -9,13 +9,16 @@
 #include <string>
 
 #include "config/args.hpp"
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
 
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
+
+// Fast string compare
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
@@ -28,7 +31,7 @@ struct btree_key_t {
     bool fits(int space) const {
         return space > 0 && space > size;
     }
-};
+} __attribute__((__packed__));
 
 inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
     return sized_strcmp(left->contents, left->size, right->contents, right->size);
@@ -138,17 +141,17 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint8_t sz;
         archive_result_t res = deserialize(s, &sz);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
-            return ARCHIVE_SOCK_ERROR;
+            return archive_result_t::SOCK_ERROR;
         }
         if (num_read < sz) {
-            return ARCHIVE_SOCK_EOF;
+            return archive_result_t::SOCK_EOF;
         }
         rassert(num_read == sz);
         set_size(sz);
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 
 private:

@@ -40,10 +40,10 @@ module 'NamespaceView', ->
 
         update_button_create_namespace: =>
             if databases.length is 0 and @can_create_namespace is true
-                @.$('.add-namespace').prop 'disabled', 'disabled'
+                @.$('.add-namespace').prop 'disabled', true
                 @.$('.user_alert_space-cannot_create_namespace').show()
             else if databases.length > 0 and @can_create_namespace is false
-                @.$('.add-namespace').removeProp 'disabled'
+                @.$('.add-namespace').prop 'disabled', false
                 @.$('.user_alert_space-cannot_create_namespace').hide()
 
         render: (message) =>
@@ -102,7 +102,7 @@ module 'NamespaceView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
             if @get_selected_namespaces().length < 1
-                @.$('.btn.remove-namespace').attr 'disabled', 'disabled'
+                @.$('.btn.remove-namespace').attr 'disabled', true
             else
                 @.$('.btn.remove-namespace').removeAttr 'disabled'
             #@.$('.btn.remove-namespace').is ':disabled', @get_selected_namespaces().length < 1
@@ -236,6 +236,7 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) list view: namespace'
             super @template
+            directory.on 'all', @render
 
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
@@ -246,6 +247,7 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
+            directory.off 'all', @render
             super
 
     class @AddDatabaseModal extends UIComponents.AbstractModal
@@ -346,12 +348,12 @@ module 'NamespaceView', ->
         check_if_can_create_table: =>
             if databases.length is 0
                 if @can_create_table_status
-                    @.$('.btn-primary').prop 'disabled', 'disabled'
+                    @.$('.btn-primary').prop 'disabled', true
                     @.$('.alert_modal').html 'You need to create a database before creating a table.'
             else
                 if @can_create_table_status is false
                     @.$('.alert_modal').empty()
-                    @.$('.btn-primary').removeProp 'disabled'
+                    @.$('.btn-primary').prop 'disabled', false
 
 
         render: ->
@@ -427,19 +429,6 @@ module 'NamespaceView', ->
                 input_error = true
                 template_error.no_database = true
 
-            # Need an integer value for the cache
-            if formdata.cache_size isnt '' and DataUtils.is_integer(formdata.cache_size) is false
-                input_error = true
-                template_error.cache_size_format = true
-            else if formdata.cache_size isnt '' # And need a value not too small or not too big
-                cache_size_int = parseInt formdata.cache_size
-                if cache_size_int < 16
-                    input_error = true
-                    template_error.cache_size_too_small = true
-                else if cache_size_int > 1024*64
-                    input_error = true
-                    template_error.cache_size_too_big = true
-
             if input_error is true
                 $('.alert_modal').html @error_template template_error
                 $('.alert_modal_content').slideDown 'fast'
@@ -460,7 +449,6 @@ module 'NamespaceView', ->
                         primary_uuid: universe_datacenter.get('id')
                         database: formdata.database
                         ack_expectations: ack
-                        cache_size: (parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt '')
                         primary_key: (formdata.primary_key if formdata.primary_key isnt '')
                         )
                     success: @on_success

@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_PUBSUB_HPP_
 #define CONCURRENCY_PUBSUB_HPP_
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/mutex_assertion.hpp"
 #include "containers/intrusive_list.hpp"
-#include "utils.hpp"
+#include "threading.hpp"
 
 /* Forward declaration */
 
@@ -25,9 +25,9 @@ you add or remove subscribers or destroy the publisher while in the middle of
 delivering a notification. */
 
 template<class subscriber_t>
-class publisher_t : public home_thread_mixin_t {
+class publisher_t {
 public:
-    class subscription_t : public intrusive_list_node_t<subscription_t>, public home_thread_mixin_debug_only_t {
+    class subscription_t : public intrusive_list_node_t<subscription_t> {
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
@@ -36,6 +36,13 @@ public:
         /* Construct a `subscription_t` and subscribe to the given publisher. */
         subscription_t(subscriber_t sub, publisher_t *pub) : subscriber(sub), publisher(NULL) {
             reset(pub);
+        }
+
+        subscription_t(subscription_t &&movee)
+            : intrusive_list_node_t<subscription_t>(std::move(movee)),
+              subscriber(std::move(movee.subscriber)),
+              publisher(movee.publisher) {
+            movee.publisher = NULL;
         }
 
         /* Cause us to be subscribed to the given publisher (if any) and not to
@@ -61,6 +68,7 @@ public:
 
     private:
         friend class publisher_controller_t<subscriber_t>;
+        friend class publisher_t<subscriber_t>;
 
         publisher_t *publisher;
 
@@ -68,7 +76,8 @@ public:
     };
 
     void rethread(threadnum_t new_thread) {
-        real_home_thread = new_thread;
+        rassert(subscriptions.empty(),
+                "Cannot rethread a `publisher_t` that has subscribers.");
         mutex.rethread(new_thread);
     }
 
@@ -77,8 +86,20 @@ private:
     friend class publisher_controller_t<subscriber_t>;
 
     publisher_t() { }
-    ~publisher_t() {
+    ~publisher_t() { reset(); }
+
+    void reset() {
         rassert(subscriptions.empty());
+    }
+
+    publisher_t(publisher_t &&movee)
+        : subscriptions(std::move(movee.subscriptions)),
+          mutex(std::move(movee.mutex)) {
+        for (subscription_t *p = subscriptions.head(); p != NULL;
+             p = subscriptions.next(p)) {
+            rassert(p->publisher == &movee);
+            p->publisher = this;
+        }
     }
 
     intrusive_list_t<subscription_t> subscriptions;
@@ -97,9 +118,11 @@ created. `publish()` takes a function, which will be called once for each
 subscription. The function must not block. */
 
 template<class subscriber_t>
-class publisher_controller_t : public home_thread_mixin_t {
+class publisher_controller_t {
 public:
     publisher_controller_t() { }
+    publisher_controller_t(publisher_controller_t &&movee)
+        : publisher(std::move(movee.publisher)) { }
 
     publisher_t<subscriber_t> *get_publisher() {
         return &publisher;
@@ -121,7 +144,10 @@ public:
         rassert(publisher.subscriptions.empty(),
                 "Cannot rethread a `publisher_t` that has subscribers.");
         publisher.rethread(new_thread);
-        real_home_thread = new_thread;
+    }
+
+    void reset() {
+        publisher.reset();
     }
 
 private:

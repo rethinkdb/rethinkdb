@@ -61,6 +61,17 @@ convertPseudotype = (obj, opts) ->
                     obj
                 else
                     throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+        when 'GROUPED_DATA'
+            switch opts.groupFormat
+                when 'native', undefined
+                    # Don't convert the data into a map, because the keys could be objects which doesn't work in JS
+                    # Instead, we have the following format:
+                    # [ { 'group': <group>, 'reduction': <value(s)> } }, ... ]
+                    { group: i[0], reduction: i[1] } for i in obj['data']
+                when 'raw'
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown groupFormat run option #{opts.groupFormat}."
         else
             # Regular object or unknown pseudo type
             obj
@@ -105,18 +116,12 @@ mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
 mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
 
 mkErr = (ErrClass, response, root) ->
-        msg = mkAtom response
-        bt = for frame in response.backtrace.frames
-                if frame.type is "POS"
-                    parseInt frame.pos
-                else
-                    # protobufjs returns Long object that we need to convert to number
-                    if frame.pos?.toInt
-                        frame.pos.toInt()
-                    else
-                        frame.pos
+    msg = mkAtom response
 
-        new ErrClass msg, root, bt
+    bt = for frame in response.backtrace.frames
+        pb.convertFrame frame
+
+    new ErrClass msg, root, bt
 
 module.exports.deconstructDatum = deconstructDatum
 module.exports.mkAtom = mkAtom

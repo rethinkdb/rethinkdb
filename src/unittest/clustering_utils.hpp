@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
@@ -11,6 +11,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -27,7 +28,7 @@ class spawn_write_fake_ack_checker_t : public ack_checker_t {
         return false;
     }
     write_durability_t get_write_durability(const peer_id_t &) const {
-        return WRITE_DURABILITY_SOFT;
+        return write_durability_t::SOFT;
     }
 };
 
@@ -50,8 +51,9 @@ class test_store_t {
 public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
-            store(serializer.get(), temp_file.name().permanent_path(), GIGABYTE,
-                    true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
+            balancer(new dummy_cache_balancer_t(GIGABYTE)),
+            store(serializer.get(), balancer.get(), temp_file.name().permanent_path(), true,
+                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -64,6 +66,7 @@ public:
 
     temp_file_t temp_file;
     scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_balancer_t> balancer;
     typename protocol_t::store_t store;
 };
 

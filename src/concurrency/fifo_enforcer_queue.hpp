@@ -8,8 +8,10 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
+class perfmon_counter_t;
+
 namespace unittest {
-void run_queue_equivalence_test();
+void run_FIFOEnforcer_QueueEquivalence();
 }
 
 /* `fifo_enforcer_queue_t` consumes FIFO read and write tokens just like
@@ -42,7 +44,7 @@ private:
     perfmon_counter_t *read_counter, *write_counter;
 
 private:
-friend void unittest::run_queue_equivalence_test();
+    friend void unittest::run_FIFOEnforcer_QueueEquivalence();
     //passive produce api
     T produce_next_value();
 

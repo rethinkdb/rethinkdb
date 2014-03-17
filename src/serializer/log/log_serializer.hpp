@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 #define SERIALIZER_LOG_LOG_SERIALIZER_HPP_
 
@@ -48,7 +48,6 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
-    block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
@@ -124,7 +123,6 @@ public:
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
 
-public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
     static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
@@ -135,11 +133,6 @@ public:
     /* Blocks. */
     virtual ~log_serializer_t();
 
-public:
-    /* Implementation of the serializer_t API */
-    scoped_malloc_t<ser_buffer_t> malloc();
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
-
 #ifndef SEMANTIC_SERIALIZER_CHECK
     using serializer_t::make_io_account;
 #endif
@@ -148,7 +141,8 @@ public:
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
-    repli_timestamp_t get_recency(block_id_t id);
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step);
 
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
@@ -160,7 +154,7 @@ public:
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);
 
-    block_size_t get_block_size() const;
+    block_size_t max_block_size() const;
 
     bool coop_lock_and_check();
 
@@ -175,8 +169,7 @@ private:
     void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
             scoped_malloc_t<ser_buffer_t> &&buf,
-            const counted_t<standard_block_token_t>& token,
-            repli_timestamp_t recency_timestamp);
+            const counted_t<standard_block_token_t>& token);
     bool should_perform_read_ahead();
 
     /* Starts a new transaction, updates perfmons etc. */
@@ -248,8 +241,6 @@ private:
     std::list<cond_t *> metablock_waiter_queue;
 
     int active_write_count;
-
-    block_sequence_id_t latest_block_sequence_id;
 
     DISABLE_COPYING(log_serializer_t);
 };

@@ -1,12 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "containers/uuid.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "mock/dummy_protocol.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
 using mock::dummy_protocol_t;
@@ -22,8 +22,7 @@ boost::optional<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >
 
 }   /* anonymous namespace */
 
-void run_backfill_test() {
-
+TPTEST(ClusteringBackfill, BackfillTest) {
     order_source_t order_source;
 
     /* Set up two stores */
@@ -92,7 +91,7 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w,
-                &response, WRITE_DURABILITY_SOFT,
+                &response, write_durability_t::SOFT,
                 ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,
@@ -161,9 +160,6 @@ void run_backfill_test() {
     //EXPECT_EQ(1, backfillee_metadata.size());
     //EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
     //EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
-}
-TEST(ClusteringBackfill, BackfillTest) {
-    unittest::run_in_thread_pool(&run_backfill_test);
 }
 
 }   /* namespace unittest */

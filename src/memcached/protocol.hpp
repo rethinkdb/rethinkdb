@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_PROTOCOL_HPP_
 #define MEMCACHED_PROTOCOL_HPP_
 
@@ -133,7 +133,8 @@ public:
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
+            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency)
+                : key(_key), recency(_recency) { }
         };
         struct delete_range_t {
             region_t range;
@@ -141,21 +142,22 @@ public:
             delete_range_t() { }
             explicit delete_range_t(const region_t& _range) : range(_range) { }
         };
-        struct key_value_pair_t {
-            backfill_atom_t backfill_atom;
+        struct key_value_pairs_t {
+            std::vector<backfill_atom_t> backfill_atoms;
 
-            key_value_pair_t() { }
-            explicit key_value_pair_t(const backfill_atom_t& _backfill_atom) : backfill_atom(_backfill_atom) { }
+            key_value_pairs_t() { }
+            explicit key_value_pairs_t(const std::vector<backfill_atom_t>& _backfill_atoms)
+                : backfill_atoms(_backfill_atoms) { }
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> _val) : val(_val) { }
 
         /* This is called by `btree_store_t`; it's not part of the ICL protocol
         API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
-        boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
+        boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> val;
 
         static backfill_chunk_t delete_range(const region_t &range) {
             return backfill_chunk_t(delete_range_t(range));
@@ -163,8 +165,8 @@ public:
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
         }
-        static backfill_chunk_t set_key(const backfill_atom_t& key) {
-            return backfill_chunk_t(key_value_pair_t(key));
+        static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
+            return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
         }
     };
 
@@ -175,8 +177,8 @@ public:
     class store_t : public btree_store_t<memcached_protocol_t> {
     public:
         store_t(serializer_t *serializer,
+                cache_balancer_t *balancer,
                 const std::string &perfmon_name,
-                int64_t cache_quota,
                 bool create,
                 perfmon_collection_t *collection,
                 context_t *,
@@ -188,18 +190,14 @@ public:
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
-                           transaction_t *txn,
                            superblock_t *superblock,
-                           read_token_pair_t *token,
                            signal_t *interruptor);
 
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
-                            transaction_t *txn,
                             scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token,
                             signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
@@ -207,23 +205,18 @@ public:
                                     superblock_t *superblock,
                                     buf_lock_t *sindex_block,
                                     btree_slice_t *btree,
-                                    transaction_t *txn,
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
 
         void protocol_receive_backfill(btree_slice_t *btree,
-                                       transaction_t *txn,
-                                       superblock_t *superblock,
-                                       write_token_pair_t *token_pair,
+                                       scoped_ptr_t<superblock_t> &&superblock,
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
-        void protocol_reset_data(const region_t& subregion,
+        void protocol_reset_data(const region_t &subregion,
                                  btree_slice_t *btree,
-                                 transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair,
                                  signal_t *interruptor);
     };
 
@@ -235,7 +228,7 @@ RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_response_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_key_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_range_t);
-RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pairs_t);
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
 
 

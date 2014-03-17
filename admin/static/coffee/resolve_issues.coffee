@@ -38,18 +38,22 @@ module 'ResolveIssuesView', ->
             @machine_to_kill = _machine_to_kill
             super
                 machine_name: @machine_to_kill.get("name")
-                modal_title: "Declare server dead"
-                btn_primary_text: 'Declare Dead'
+                modal_title: "Permanently remove the server"
+                btn_primary_text: 'Remove'
 
         on_submit: ->
             super
 
-            $.ajax
-                url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
-                type: 'DELETE'
-                contentType: 'application/json'
-                success: @on_success
-                error: @on_error
+            if @$('.verification').val().toLowerCase() is 'remove'
+                $.ajax
+                    url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
+                    type: 'DELETE'
+                    contentType: 'application/json'
+                    success: @on_success
+                    error: @on_error
+            else
+                @.$('.error_verification').slideDown 'fast'
+                @reset_buttons()
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error
@@ -62,7 +66,7 @@ module 'ResolveIssuesView', ->
             @reset_buttons()
 
 
-        on_success: (response) ->
+        on_success: (response) =>
             if (response)
                 @on_success_with_error()
                 return
@@ -72,26 +76,14 @@ module 'ResolveIssuesView', ->
                 machine_dead:
                     machine_name: @machine_to_kill.get("name")
 
-            #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
+                success: =>
+                    set_issues()
+                    super
 
-            super
-
-            # We clean data now to have data fresher than if we were waiting for the next call to ajax/
-            # remove from bluprints
-            for namespace in namespaces.models
-                blueprint = namespace.get('blueprint')
-                if @machine_to_kill.get("id") of blueprint.peers_roles
-                    delete blueprint.peers_roles[@machine_to_kill.get('id')]
-                    namespace.set('blueprint', blueprint)
-
-            # remove the dead machine from the models (this must be last)
-            machines.remove(@machine_to_kill.id)
 
     class @ResolveNameConflictModal extends Backbone.View
         alert_tmpl_: Handlebars.templates['resolve_issues-resolved-template']
@@ -113,10 +105,6 @@ module 'ResolveIssuesView', ->
                 url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
-                async: false
-
-            return @
-
 
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.templates['resolve_vclock-modal-template']
@@ -155,10 +143,9 @@ module 'ResolveIssuesView', ->
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
-            super
-
+                success: =>
+                    set_issues()
+                    super
 
     class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
         template: Handlebars.templates['resolve_unsatisfiable_goals_modal-template']
@@ -218,10 +205,9 @@ module 'ResolveIssuesView', ->
             $.ajax
                 url: 'ajax/issues'
                 contentType: 'application/json'
-                success: set_issues
-                async: false
-
-            super
+                success: =>
+                    set_issues()
+                    super
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
@@ -408,7 +394,6 @@ module 'ResolveIssuesView', ->
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
                 datacenters_with_issues: []
 
-
             namespace = namespaces.get(@model.get('namespace_id'))
             if @model.get('primary_datacenter') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
@@ -443,14 +428,17 @@ module 'ResolveIssuesView', ->
                         else
                             number_machines_in_datacenter = 0
                         if datacenter_id isnt universe_datacenter.get('id') and number_replicas > number_machines_in_datacenter
-                            datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
+                            if datacenter_id is @model.get('primary_datacenter') and number_machines_in_datacenter is 0
+                                json.primary_empty = true
+                            else
+                                datacenter_name = datacenters.get(datacenter_id).get('name') # That's safe, datacenters.get(datacenter_id) is defined
 
-                            json.datacenters_with_issues.push
-                                datacenter_id: datacenter_id
-                                datacenter_name: datacenter_name
-                                num_replicas: number_replicas
-                                num_machines: number_machines_in_datacenter
-                                change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
+                                json.datacenters_with_issues.push
+                                    datacenter_id: datacenter_id
+                                    datacenter_name: datacenter_name
+                                    num_replicas: number_replicas
+                                    num_machines: number_machines_in_datacenter
+                                    change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
@@ -473,12 +461,15 @@ module 'ResolveIssuesView', ->
                         else
                             number_machines_in_datacenter = 0
 
-                        json.datacenters_with_issues.push
-                            datacenter_id: datacenter_id
-                            datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
-                            num_replicas: number_replicas
-                            num_machines: 0
-                            change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
+                        if datacenter_id is @model.get('primary_datacenter') and number_machines_in_datacenter is 0
+                            json.primary_empty = true
+                        else
+                            json.datacenters_with_issues.push
+                                datacenter_id: datacenter_id
+                                datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
+                                num_replicas: number_replicas
+                                num_machines: 0
+                                change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
 
                 number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
@@ -536,6 +527,7 @@ module 'ResolveIssuesView', ->
 
 
                 json.can_solve_issue = json.datacenters_with_issues.length > 0
+
             @.$el.html _template(json)
 
             # bind resolution events

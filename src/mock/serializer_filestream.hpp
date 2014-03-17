@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MOCK_SERIALIZER_FILESTREAM_HPP_
 #define MOCK_SERIALIZER_FILESTREAM_HPP_
 
@@ -7,6 +7,9 @@
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
+class cache_balancer_t;
+class cache_t;
+class cache_conn_t;
 class serializer_t;
 
 namespace mock {
@@ -23,7 +26,10 @@ public:
     MUST_USE int64_t read(void *p, int64_t n);
 
 private:
+    // In this cache, no blocks have parents.
+    scoped_ptr_t<cache_balancer_t> balancer_;
     scoped_ptr_t<cache_t> cache_;
+    scoped_ptr_t<cache_conn_t> cache_conn_;
     int64_t known_size_;
     int64_t position_;
 
@@ -39,9 +45,10 @@ public:
     MUST_USE int64_t write(const void *p, int64_t n);
 
 private:
-    void write_size(int64_t size, transaction_t *txn);
-
+    // In this cache, every block (except block zero) has block zero as its parent.
+    scoped_ptr_t<cache_balancer_t> balancer_;
     scoped_ptr_t<cache_t> cache_;
+    scoped_ptr_t<cache_conn_t> cache_conn_;
     int64_t size_;
 
     DISABLE_COPYING(serializer_file_write_stream_t);

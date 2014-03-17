@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/extent.hpp"
 
 #include <vector>
 
 #include "arch/arch.hpp"
+#include "math.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/stats.hpp"
 

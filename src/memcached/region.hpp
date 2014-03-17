@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "btree/keys.hpp"
-#include "utils.hpp"
+#include "protocol_api.hpp"
 
 /* The protocol API specifies that the following standalone functions must be
 defined for `protocol_t::region_t`. Most of them are thin wrappers around

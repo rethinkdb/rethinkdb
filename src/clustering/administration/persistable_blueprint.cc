@@ -1,10 +1,12 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/persistable_blueprint.hpp"
 
 #include <string>
 
+#include "debug.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
+#include "stl_utils.hpp"
 
 template <class protocol_t>
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {

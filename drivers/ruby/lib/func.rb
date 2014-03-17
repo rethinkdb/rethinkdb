@@ -22,7 +22,6 @@ module RethinkDB
       :delete => -1,
       :reduce => -1,
       :between => 2,
-      :grouped_map_reduce => -1,
       :table => -1,
       :table_create => -1,
       :get_all => -1,
@@ -32,6 +31,7 @@ module RethinkDB
       :slice => -1,
       :during => -1,
       :orderby => -1,
+      :group => -1,
       :iso8601 => -1,
       :index_create => -1
     }
@@ -48,7 +48,6 @@ module RethinkDB
       :any => [:"|", :or],
       :all => [:"&", :and],
       :orderby => :order_by,
-      :groupby => :group_by,
       :concatmap => :concat_map,
       :foreach => :for_each,
       :javascript => :js,
@@ -106,34 +105,10 @@ module RethinkDB
       }
     }
 
-    define_method :_group_by, instance_method(:group_by)
-    protected :_group_by
-    def group_by(*a, &b)
-      a = [self] + a if @body
-      RQL.new._group_by(a[0], a[1..-2], a[-1], &b)
-    end
-    def groupby(*a, &b); group_by(*a, &b); end
-
     def connect(*args, &b)
       unbound_if @body
       c = Connection.new(*args)
       b ? begin b.call(c) ensure c.close end : c
-    end
-
-    def avg(attr)
-      unbound_if @body
-      {:AVG => attr}
-    end
-
-    def sum(attr)
-      unbound_if @body
-      {:SUM => attr}
-    end
-
-    define_method :_count, instance_method(:count)
-    protected :_count
-    def count(*a, &b)
-      !@body && a == [] ? {:COUNT => true} : _count(*a, &b)
     end
 
     def -@; RQL.new.sub(0, self); end

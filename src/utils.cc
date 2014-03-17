@@ -1,7 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include <ftw.h>
@@ -18,19 +15,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/resource.h>
-
-#ifdef __MACH__
-#include <mach/mach_time.h>
-#endif
-
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif
+#include <unistd.h>
 
 #include <google/protobuf/stubs/common.h>
-
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -39,12 +26,14 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
+#include "debug.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
+    install_new_oom_handler();
 
     // Set the locale to C, because some ReQL terms may produce different
     // results in different locales, and we need to avoid data divergence when
@@ -88,16 +77,6 @@ startup_shutdown_t::~startup_shutdown_t() {
     google::protobuf::ShutdownProtobufLibrary();
 }
 
-
-// fast-ish non-null terminated string comparison
-int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
-    int min_len = std::min(len1, len2);
-    int res = memcmp(str1, str2, min_len);
-    if (res == 0) {
-        res = len1 - len2;
-    }
-    return res;
-}
 
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
@@ -203,45 +182,6 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
     return time;
 }
 
-#ifndef NDEBUG
-void home_thread_mixin_debug_only_t::assert_thread() const {
-    rassert(get_thread_id() == real_home_thread);
-}
-#endif
-
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR threadnum_t specified_home_thread)
-#ifndef NDEBUG
-    : real_home_thread(specified_home_thread)
-#endif
-{ }
-
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t()
-#ifndef NDEBUG
-    : real_home_thread(get_thread_id())
-#endif
-{ }
-
-#ifndef NDEBUG
-void home_thread_mixin_t::assert_thread() const {
-    rassert(home_thread() == get_thread_id());
-}
-#endif
-
-home_thread_mixin_t::home_thread_mixin_t(threadnum_t specified_home_thread)
-    : real_home_thread(specified_home_thread) {
-    assert_good_thread_id(specified_home_thread);
-}
-home_thread_mixin_t::home_thread_mixin_t()
-    : real_home_thread(get_thread_id()) { }
-
-
-on_thread_t::on_thread_t(threadnum_t thread) {
-    coro_t::move_to_thread(thread);
-}
-on_thread_t::~on_thread_t() {
-    coro_t::move_to_thread(home_thread());
-}
-
 with_priority_t::with_priority_t(int priority) {
     rassert(coro_t::self() != NULL);
     previous_priority = coro_t::self()->get_priority();
@@ -252,22 +192,14 @@ with_priority_t::~with_priority_t() {
     coro_t::self()->set_priority(previous_priority);
 }
 
-microtime_t current_microtime() {
-    // This could be done more efficiently, surely.
-    struct timeval t;
-    DEBUG_VAR int res = gettimeofday(&t, NULL);
-    rassert(0 == res);
-    return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
-}
-
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);
+    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
             crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
         } else if (res == ENOMEM) {
-            crash_or_trap("Out of memory.");
+            crash_oom();
         } else {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
@@ -275,97 +207,20 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
-void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n) {
-    buf->appendf("\"");
-    for (size_t i = 0; i < n; ++i) {
-        uint8_t ch = s[i];
-
-        switch (ch) {
-        case '\"':
-            buf->appendf("\\\"");
-            break;
-        case '\\':
-            buf->appendf("\\\\");
-            break;
-        case '\n':
-            buf->appendf("\\n");
-            break;
-        case '\t':
-            buf->appendf("\\t");
-            break;
-        case '\r':
-            buf->appendf("\\r");
-            break;
-        default:
-            if (ch <= '~' && ch >= ' ') {
-                // ASCII dependency here
-                buf->appendf("%c", ch);
-            } else {
-                const char *table = "0123456789ABCDEF";
-                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
-            }
-            break;
-        }
+void *rmalloc(size_t size) {
+    void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
+        crash_oom();
     }
-    buf->appendf("\"");
+    return res;
 }
 
-#ifndef NDEBUG
-// Adds the time/thread id prefix to buf.
-void debugf_prefix_buf(printf_buffer_t *buf) {
-    struct timespec t = clock_realtime();
-
-    format_time(t, buf);
-
-    buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
-}
-
-void debugf_dump_buf(printf_buffer_t *buf) {
-    // Writing a single buffer in one shot like this makes it less
-    // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.  (We can't simply
-    // flockfile both stderr and stdout because there's no established
-    // rule about which one should be locked first.)
-    size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
-    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
-    int res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
-}
-
-void debugf(const char *msg, ...) {
-    printf_buffer_t buf;
-    debugf_prefix_buf(&buf);
-
-    va_list ap;
-    va_start(ap, msg);
-
-    buf.vappendf(msg, ap);
-
-    va_end(ap);
-
-    debugf_dump_buf(&buf);
-}
-
-#endif  // NDEBUG
-
-void debug_print(printf_buffer_t *buf, uint64_t x) {
-    buf->appendf("%" PRIu64, x);
-}
-
-void debug_print(printf_buffer_t *buf, const std::string& s) {
-    const char *data = s.data();
-    debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
-}
-
-debugf_in_dtor_t::debugf_in_dtor_t(const char *msg, ...) {
-    va_list arguments;
-    va_start(arguments, msg);
-    message = vstrprintf(msg, arguments);
-    va_end(arguments);
-}
-
-debugf_in_dtor_t::~debugf_in_dtor_t() {
-    debugf("%s", message.c_str());
+void *rrealloc(void *ptr, size_t size) {
+    void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
+        crash_oom();
+    }
+    return res;
 }
 
 rng_t::rng_t(int seed) {
@@ -419,6 +274,17 @@ int randint(int n) {
     long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
+}
+
+size_t randsize(size_t n) {
+    size_t ret = 0;
+    size_t i = SIZE_MAX;
+    while (i != 0) {
+        int x = randint(0x10000);
+        ret = ret * 0x10000 + x;
+        i /= 0x10000;
+    }
+    return ret % n;
 }
 
 double randdouble() {
@@ -502,100 +368,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
         return true;
     }
 }
-
-int gcd(int x, int y) {
-    rassert(x >= 0);
-    rassert(y >= 0);
-
-    while (y != 0) {
-        int tmp = y;
-        y = x % y;
-        x = tmp;
-    }
-
-    return x;
-}
-
-int64_t round_up_to_power_of_two(int64_t x) {
-    rassert(x >= 0);
-
-    --x;
-
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-
-    rassert(x < INT64_MAX);
-
-    return x + 1;
-}
-
-ticks_t secs_to_ticks(time_t secs) {
-    return static_cast<ticks_t>(secs) * BILLION;
-}
-
-#ifdef __MACH__
-TLS(mach_timebase_info_data_t, mach_time_info);
-#endif  // __MACH__
-
-timespec clock_monotonic() {
-#ifdef __MACH__
-    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
-    if (mach_time_info.denom == 0) {
-        mach_timebase_info(&mach_time_info);
-        guarantee(mach_time_info.denom != 0);
-        TLS_set_mach_time_info(mach_time_info);
-    }
-    const uint64_t t = mach_absolute_time();
-    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
-    timespec ret;
-    ret.tv_sec = nanosecs / BILLION;
-    ret.tv_nsec = nanosecs % BILLION;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
-    return ret;
-#endif
-}
-
-timespec clock_realtime() {
-#ifdef __MACH__
-    struct timeval tv;
-    int res = gettimeofday(&tv, NULL);
-    guarantee_err(res == 0, "gettimeofday failed");
-
-    timespec ret;
-    ret.tv_sec = tv.tv_sec;
-    ret.tv_nsec = THOUSAND * tv.tv_usec;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_REALTIME, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-    return ret;
-#endif
-}
-
-
-ticks_t get_ticks() {
-    timespec tv = clock_monotonic();
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
-}
-
-time_t get_secs() {
-    timespec tv = clock_realtime();
-    return tv.tv_sec;
-}
-
-double ticks_to_secs(ticks_t ticks) {
-    return ticks / static_cast<double>(BILLION);
-}
-
 
 bool notf(bool x) {
     return !x;
@@ -691,36 +463,6 @@ std::string blocking_read_file(const char *path) {
 }
 
 
-static const char * unix_path_separator = "/";
-
-path_t parse_as_path(const std::string &path) {
-    path_t res;
-    res.is_absolute = (path[0] == unix_path_separator[0]);
-
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
-    boost::char_separator<char> sep(unix_path_separator);
-    tokenizer tokens(path, sep);
-
-    res.nodes.assign(tokens.begin(), tokens.end());
-
-    return res;
-}
-
-std::string render_as_path(const path_t &path) {
-    std::string res;
-    for (std::vector<std::string>::const_iterator it =  path.nodes.begin();
-                                                  it != path.nodes.end();
-                                                  ++it) {
-        if (it != path.nodes.begin() || path.is_absolute) {
-            res += unix_path_separator;
-        }
-        res += *it;
-    }
-
-    return res;
-}
-
 std::string sanitize_for_logger(const std::string &s) {
     std::string sanitized = s;
     for (size_t i = 0; i < sanitized.length(); ++i) {
@@ -737,15 +479,6 @@ std::string errno_string(int errsv) {
     char buf[250];
     const char *errstr = errno_string_maybe_using_buffer(errsv, buf, sizeof(buf));
     return std::string(errstr);
-}
-
-// The last thread is a service thread that runs an connection acceptor, a log writer, and possibly
-// similar services, and does not run any db code (caches, serializers, etc). The reasoning is that
-// when the acceptor (and possibly other utils) get placed on an event queue with the db code, the
-// latency for these utils can increase significantly. In particular, it causes timeout bugs in
-// clients that expect the acceptor to work faster.
-int get_num_db_threads() {
-    return get_num_threads() - 1;
 }
 
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
@@ -809,30 +542,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
     const uint8_t *p8 = static_cast<const uint8_t *>(p);
     return ptr_in_byte_range(p, range_start, size_in_bytes) &&
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
-}
-
-void pb_print(DEBUG_VAR Term *t) {
-    debugf("%s\n", t->DebugString().c_str());
-}
-
-debug_timer_t::debug_timer_t(std::string _name)
-    : start(current_microtime()), last(start), name(_name), out("\n") {
-    tick("start");
-}
-debug_timer_t::~debug_timer_t() {
-    tick("end");
-#ifndef NDEBUG
-    debugf("%s", out.c_str());
-#else
-    fprintf(stderr, "%s", out.c_str());
-#endif // NDEBUG
-}
-microtime_t debug_timer_t::tick(const std::string &tag) {
-    microtime_t prev = last;
-    last = current_microtime();
-    out += strprintf("TIMER %s: %15s (%" PRIu64 " %12" PRIu64 " %12" PRIu64 ")\n",
-                     name.c_str(), tag.c_str(), last, last - start, last - prev);
-    return last - start;
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.

@@ -1,12 +1,13 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_literal.hpp"
+
+#include "utils.hpp"
 
 namespace ql {
 namespace pseudo {
 
 const char *const literal_string = "LITERAL";
 const char *const value_key = "value";
-
 
 void rcheck_literal_valid(const datum_t *lit) {
     for (auto it = lit->as_object().begin(); it != lit->as_object().end(); ++it) {

@@ -8,6 +8,7 @@
 
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
+#include "containers/printf_buffer.hpp"
 
 int blocker_pool_queue_depth(int max_concurrent_io_requests) {
     guarantee(max_concurrent_io_requests > 0);

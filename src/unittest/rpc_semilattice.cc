@@ -1,6 +1,6 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "containers/archive/archive.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -45,8 +45,7 @@ void assign(T *target, T value) {
 }
 
 /* `SingleMetadata` tests metadata's properties on a single node. */
-
-void run_single_metadata_test() {
+TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
     connectivity_cluster_t c;
     semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
     connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
@@ -59,14 +58,10 @@ void run_single_metadata_test() {
 
     EXPECT_EQ(3u, slm.get_root_view()->get().i);
 }
-TEST(RPCSemilatticeTest, SingleMetadata) {
-    unittest::run_in_thread_pool(&run_single_metadata_test, 2);
-}
 
 /* `MetadataExchange` makes sure that metadata is correctly exchanged between
 nodes. */
-
-void run_metadata_exchange_test() {
+TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm1, 0, NULL);
@@ -113,11 +108,8 @@ void run_metadata_exchange_test() {
     slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor);
     EXPECT_EQ(7u, slm2.get_root_view()->get().i);
 }
-TEST(RPCSemilatticeTest, MetadataExchange) {
-    unittest::run_in_thread_pool(&run_metadata_exchange_test, 2);
-}
 
-void run_sync_from_test() {
+TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm1, 0, NULL);
@@ -163,35 +155,28 @@ void run_sync_from_test() {
     EXPECT_EQ(3u, slm1.get_root_view()->get().i);
     EXPECT_EQ(3u, slm2.get_root_view()->get().i);
 }
-TEST(RPCSemilatticeTest, SyncFrom) {
-    unittest::run_in_thread_pool(&run_sync_from_test, 2);
-}
 
 /* `Watcher` makes sure that metadata watchers get notified when metadata
 changes. */
 
-void run_watcher_test() {
+TPTEST(RPCSemilatticeTest, Watcher, 2) {
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
     connectivity_cluster_t::run_t run(&cluster, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         slm.get_root_view());
 
     slm.get_root_view()->join(sl_int_t(1));
 
     EXPECT_TRUE(have_been_notified);
 }
-TEST(RPCSemilatticeTest, Watcher) {
-    unittest::run_in_thread_pool(&run_watcher_test, 2);
-}
 
 /* `ViewController` tests `dummy_semilattice_controller_t`. */
 
-void run_view_controller_test() {
-
+TPTEST_MULTITHREAD(RPCSemilatticeTest, ViewController, 3) {
     dummy_semilattice_controller_t<sl_int_t> controller(sl_int_t(16));
     EXPECT_EQ(16u, controller.get_view()->get().i);
 
@@ -200,7 +185,7 @@ void run_view_controller_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         controller.get_view());
 
     EXPECT_FALSE(have_been_notified);
@@ -210,17 +195,9 @@ void run_view_controller_test() {
 
     EXPECT_TRUE(have_been_notified);
 }
-TEST(RPCSemilatticeTest, ViewController) {
-    unittest::run_in_thread_pool(&run_view_controller_test);
-}
-TEST(RPCSemilatticeTest, ViewControllerMultiThread) {
-    unittest::run_in_thread_pool(&run_view_controller_test, 3);
-}
 
 /* `FieldView` tests `metadata_field()`. */
-
-void run_field_view_test() {
-
+TPTEST_MULTITHREAD(RPCSemilatticeTest, FieldView, 3) {
     dummy_semilattice_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
@@ -231,7 +208,7 @@ void run_field_view_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         x_view);
 
     EXPECT_FALSE(have_been_notified);
@@ -240,17 +217,10 @@ void run_field_view_test() {
 
     EXPECT_EQ(9u, x_view->get().i);
 }
-TEST(RPCSemilatticeTest, FieldView) {
-    unittest::run_in_thread_pool(&run_field_view_test);
-}
-TEST(RPCSemilatticeTest, FieldViewMultiThread) {
-    unittest::run_in_thread_pool(&run_field_view_test, 3);
-}
 
 /* `MemberView` tests `metadata_member()`. */
 
-void run_member_view_test() {
-
+TPTEST_MULTITHREAD(RPCSemilatticeTest, MemberView, 3) {
     std::map<std::string, sl_int_t> initial_value;
     initial_value["foo"] = sl_int_t(8);
     dummy_semilattice_controller_t<std::map<std::string, sl_int_t> > controller(
@@ -263,7 +233,7 @@ void run_member_view_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         foo_view);
 
     EXPECT_FALSE(have_been_notified);
@@ -273,12 +243,6 @@ void run_member_view_test() {
     EXPECT_TRUE(have_been_notified);
 
     EXPECT_EQ(9u, foo_view->get().i);
-}
-TEST(RPCSemilatticeTest, MemberView) {
-    unittest::run_in_thread_pool(&run_member_view_test);
-}
-TEST(RPCSemilatticeTest, MemberViewMultiThread) {
-    unittest::run_in_thread_pool(&run_member_view_test, 3);
 }
 
 }   /* namespace unittest */

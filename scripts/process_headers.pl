@@ -86,7 +86,7 @@ for my $path (@paths) {
             }
 
             $edges{$path}->{$header} = 1;
-        } elsif (/^#include\s+<(boost\/.*)>/) {
+        } elsif (/^#include\s+<(boost\/.*)>/ || /^#include\s+<([^.]*)>/) {
             my $header = $1;
             $boosts{$path}->{$header} = 1;
         }

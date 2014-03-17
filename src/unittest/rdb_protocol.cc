@@ -1,13 +1,13 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "containers/iterators.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -17,10 +17,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
 #include "rdb_protocol/minidriver.hpp"
-
-#include "memcached/protocol_json_adapter.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
+#include "stl_utils.hpp"
 
 namespace unittest {
 namespace {
@@ -50,6 +47,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -83,8 +81,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(),
-                    temp_files[i].name().permanent_path(), GIGABYTE, true,
+                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                    temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));
     }
@@ -106,7 +104,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun, oversharded));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun, oversharded));
 }
 
 }   /* anonymous namespace */
@@ -215,6 +213,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     counted_t<const ql::datum_t> d(
@@ -256,7 +257,11 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(1, streams->size());
+            auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
@@ -267,9 +272,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Delete the data. */
-        rdb_protocol_t::point_delete_t d(pk);
+        rdb_protocol_t::point_delete_t del(pk);
         rdb_protocol_t::write_t write(
-                d, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
+                del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -291,15 +296,19 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
-            ASSERT_TRUE(stream != NULL);
-            ASSERT_EQ(0u, stream->size());
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(0, streams->size());
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
 
-    ASSERT_TRUE(drop_sindex(nsi, osource, id));
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {
@@ -362,6 +371,9 @@ TEST(RDBProtocol, OvershardedSindexList) {
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
 
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
             std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10,
@@ -418,9 +430,14 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"), &interruptor);
 
                 if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-                    rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+                    auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                        &rget_resp->result);
+                    ASSERT_TRUE(streams != NULL);
+                    ASSERT_EQ(1, streams->size());
+                    auto stream = &streams->begin()->second;
                     ASSERT_TRUE(stream != NULL);
-                    // There should be results equal to the number of iterations performed
+                    // There should be results equal to the number of iterations
+                    // performed
                     ASSERT_EQ(i + 1, stream->size());
                 } else {
                     ADD_FAILURE() << "got wrong type of result back";

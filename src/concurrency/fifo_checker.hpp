@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_CHECKER_HPP_
 #define CONCURRENCY_FIFO_CHECKER_HPP_
 
@@ -6,9 +6,10 @@
 #include <string>
 #include <utility>
 
-#include "rpc/serialize_macros.hpp"
+#include "containers/archive/archive.hpp"
 #include "containers/uuid.hpp"
-#include "utils.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "threading.hpp"
 
 
 

@@ -15,7 +15,6 @@ aropt = util.aropt
 deconstructDatum = util.deconstructDatum
 mkAtom = util.mkAtom
 mkErr = util.mkErr
-mkSeq = util.mkSeq
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -138,7 +137,6 @@ class Connection extends events.EventEmitter
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: (varar 0, 2, (optsOrCallback, callback) ->
-        @open = false
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
@@ -158,6 +156,7 @@ class Connection extends events.EventEmitter
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
+            @open = false
             if cb?
                 cb(args...)
 
@@ -225,7 +224,6 @@ class Connection extends events.EventEmitter
         query.type = "START"
         query.query = term.build()
         query.token = token
-
         # Set global options
         if @db?
             pair =
@@ -255,6 +253,12 @@ class Connection extends events.EventEmitter
             pair =
                 key: 'durability'
                 val: r.expr(opts.durability).build()
+            query.global_optargs.push(pair)
+
+        if opts.batchConf?
+            pair =
+                key: 'batch_conf'
+                val: r.expr(opts.batchConf).build()
             query.global_optargs.push(pair)
 
         # Save callback
@@ -470,7 +474,10 @@ class HttpConnection extends Connection
         xhr.send array
         @xhr = xhr # We allow only one query at a time per HTTP connection
 
-# The only exported function of this module
+module.exports.isConnection = (connection) ->
+    return connection instanceof Connection
+
+# The main function of this module
 module.exports.connect = ar (host, callback) ->
     # Host must be a string or an object
     unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'

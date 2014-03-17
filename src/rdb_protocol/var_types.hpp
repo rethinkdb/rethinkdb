@@ -55,8 +55,9 @@ class var_scope_t {
 public:
     var_scope_t();
 
-    var_scope_t with_func_arg_list(const std::vector<sym_t> &arg_names,
-                                   const std::vector<counted_t<const datum_t> > &arg_values) const;
+    var_scope_t with_func_arg_list(
+        const std::vector<sym_t> &arg_names,
+        const std::vector<counted_t<const datum_t> > &arg_values) const;
 
     var_scope_t filtered_by_captures(const var_captures_t &captures) const;
 

@@ -53,7 +53,7 @@ public:
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) = 0;
+    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t) = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);

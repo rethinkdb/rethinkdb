@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
@@ -11,20 +11,20 @@
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "concurrency/semaphore.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
-#include "containers/uuid.hpp"
+#include "utils.hpp"
 
 namespace boost {
 template <class> class optional;
-template <class> class scoped_ptr;
-template <class> class function;
 }
+
+class co_semaphore_t;
+class heartbeat_manager_t;
 
 class peer_address_set_t {
 public:
@@ -166,7 +166,7 @@ public:
                              boost::optional<peer_id_t> expected_id,
                              auto_drainer_t::lock_t drainer_lock,
                              bool *successful_join,
-                             semaphore_t *rate_control) THROWS_NOTHING;
+                             co_semaphore_t *rate_control) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by

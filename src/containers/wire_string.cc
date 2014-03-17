@@ -12,8 +12,7 @@
 wire_string_t *wire_string_t::create(size_t _size) {
     // This allocates _size + 1 bytes for the data_ field (which is declared as char[1])
     size_t memory_size = sizeof(wire_string_t) + _size;
-    void *raw_result = ::malloc(memory_size);
-    guarantee(raw_result != NULL, "Unable to allocate memory.");
+    void *raw_result = ::rmalloc(memory_size);
     wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);
     result->size_ = _size;
     // Append a 0 character to allow for an efficient `c_str()`
@@ -110,10 +109,10 @@ archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHI
 
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
-    if (res != ARCHIVE_SUCCESS) { return res; }
+    if (res != archive_result_t::SUCCESS) { return res; }
 
     if (sz > std::numeric_limits<size_t>::max()) {
-        return ARCHIVE_RANGE_ERROR;
+        return archive_result_t::RANGE_ERROR;
     }
 
     *out = wire_string_t::create(sz);
@@ -122,13 +121,13 @@ archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHI
     if (num_read == -1) {
         delete *out;
         *out = NULL;
-        return ARCHIVE_SOCK_ERROR;
+        return archive_result_t::SOCK_ERROR;
     }
     if (static_cast<uint64_t>(num_read) < sz) {
         delete *out;
         *out = NULL;
-        return ARCHIVE_SOCK_EOF;
+        return archive_result_t::SOCK_EOF;
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_WIRE_FUNC_HPP_
 #define RDB_PROTOCOL_WIRE_FUNC_HPP_
 
@@ -26,7 +26,7 @@ class wire_func_t {
 public:
     wire_func_t();
     explicit wire_func_t(const counted_t<func_t> &f);
-    ~wire_func_t();
+    virtual ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
 
@@ -42,7 +42,16 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
+    virtual bool func_can_be_null() const { return false; }
     counted_t<func_t> func;
+};
+
+class maybe_wire_func_t : public wire_func_t {
+protected:
+    template<class... Args>
+    explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
+private:
+    virtual bool func_can_be_null() const { return true; }
 };
 
 class map_wire_func_t : public wire_func_t {
@@ -58,6 +67,23 @@ public:
         protob_t<const Backtrace> backtrace);
 };
 
+class filter_wire_func_t {
+public:
+    filter_wire_func_t() { }
+    filter_wire_func_t(const ql::wire_func_t &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+    filter_wire_func_t(const counted_t<func_t> &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+
+    ql::wire_func_t filter_func;
+    boost::optional<ql::wire_func_t> default_filter_val;
+};
+RDB_DECLARE_SERIALIZABLE(filter_wire_func_t);
+
 class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
@@ -70,35 +96,74 @@ public:
     explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-// Count is a fake function because we don't need to send anything.
-class count_wire_func_t {
-public:
-    RDB_MAKE_ME_SERIALIZABLE_0()
+// These are fake functions because we don't need to send anything.
+// TODO: make `count` behave like `sum`, `avg`, etc.
+struct count_wire_func_t {
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-
-// Grouped Map Reduce
-class gmr_wire_func_t {
+class bt_wire_func_t {
 public:
-    gmr_wire_func_t() { }
-    gmr_wire_func_t(counted_t<func_t> _group,
-                    counted_t<func_t> _map,
-                    counted_t<func_t> _reduce);
-    counted_t<func_t> compile_group() const;
-    counted_t<func_t> compile_map() const;
-    counted_t<func_t> compile_reduce() const;
+    bt_wire_func_t() : bt(make_counted_backtrace()) { }
+    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 
-    protob_t<const Backtrace> get_bt() const {
-        // If this goes wrong at the toplevel, it goes wrong in reduce.
-        return reduce.get_bt();
-    }
-
-    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
-
+    void rdb_serialize(write_message_t &msg) const; // NOLINT(runtime/references)
+    archive_result_t rdb_deserialize(read_stream_t *s);
+    protob_t<const Backtrace> get_bt() const { return bt; }
 private:
-    map_wire_func_t group;
-    map_wire_func_t map;
-    reduce_wire_func_t reduce;
+    protob_t<const Backtrace> bt;
+};
+
+class group_wire_func_t {
+public:
+    group_wire_func_t() : bt(make_counted_backtrace()) { }
+    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+                      bool _append_index, bool _multi);
+    std::vector<counted_t<func_t> > compile_funcs() const;
+    bool should_append_index() const;
+    bool is_multi() const;
+    protob_t<const Backtrace> get_bt() const;
+    RDB_DECLARE_ME_SERIALIZABLE;
+private:
+    std::vector<wire_func_t> funcs;
+    bool append_index, multi;
+    bt_wire_func_t bt;
+};
+
+template<class T>
+class skip_terminal_t;
+
+class skip_wire_func_t : public maybe_wire_func_t {
+protected:
+    skip_wire_func_t() { }
+    template<class... Args>
+    explicit skip_wire_func_t(protob_t<const Backtrace> &_bt, Args... args)
+        : maybe_wire_func_t(args...), bt(_bt) { }
+private:
+    template<class T>
+    friend class skip_terminal_t;
+    bt_wire_func_t bt;
+};
+
+class sum_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit sum_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
+};
+class avg_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit avg_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
+};
+class min_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit min_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
+};
+class max_wire_func_t : public skip_wire_func_t {
+public:
+    template<class... Args>
+    explicit max_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 
 }  // namespace ql

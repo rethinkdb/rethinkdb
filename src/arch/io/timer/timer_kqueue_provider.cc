@@ -7,10 +7,13 @@
 #include <sys/event.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "config/args.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "time.hpp"
+#include "containers/printf_buffer.hpp"
 
 timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
     : queue_(queue), kq_fd_(-1), callback_(NULL) {

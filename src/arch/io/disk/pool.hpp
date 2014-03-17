@@ -22,6 +22,7 @@
 
 struct iovec;
 class pool_diskmgr_t;
+class printf_buffer_t;
 
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */

@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/var_types.hpp"
 
+#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
@@ -50,8 +51,9 @@ var_captures_t &var_captures_t::operator=(var_captures_t &&movee) {
 
 var_scope_t::var_scope_t() : implicit_depth(0) { }
 
-var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
-                                            const std::vector<counted_t<const datum_t> > &arg_values) const {
+var_scope_t var_scope_t::with_func_arg_list(
+    const std::vector<sym_t> &arg_names,
+    const std::vector<counted_t<const datum_t> > &arg_values) const {
     r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
     if (function_emits_implicit_variable(arg_names)) {
@@ -64,6 +66,7 @@ var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
     }
 
     for (size_t i = 0; i < arg_names.size(); ++i) {
+        r_sanity_check(arg_values[i].has());
         ret.vars.insert(std::make_pair(arg_names[i], arg_values[i]));
     }
     return ret;
@@ -145,28 +148,28 @@ void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
 archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     std::map<sym_t, counted_t<const datum_t> > local_vars;
     archive_result_t res = deserialize(s, &local_vars);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     uint32_t local_implicit_depth;
     res = deserialize(s, &local_implicit_depth);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     counted_t<const datum_t> local_maybe_implicit;
     if (local_implicit_depth == 1) {
         bool has;
         res = deserialize(s, &has);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
 
         if (has) {
             res = deserialize(s, &local_maybe_implicit);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
         }
     }
 
     vars = std::move(local_vars);
     implicit_depth = local_implicit_depth;
     maybe_implicit = std::move(local_maybe_implicit);
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 

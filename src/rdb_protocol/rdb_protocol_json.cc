@@ -15,11 +15,11 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const sc
     cJSON *data = cJSON_CreateBlank();
 
     archive_result_t res = deserialize(s, data);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     *cjson = std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(data));
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }
 
 namespace query_language {

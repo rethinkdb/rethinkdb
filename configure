@@ -15,7 +15,7 @@ init () {
     min_icc_version=0
     min_lessc_version=1.3.1
     max_lessc_version=1.6.2
-    min_coffee_version=1.6.2
+    min_coffee_version=1.7.0
     max_coffee_version=1.7.1
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
@@ -23,8 +23,8 @@ init () {
     must_fetch_list='protobufjs'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 termcap re2 z"
-    optional_libs="gtest"
+    required_libs="protobuf v8 re2 z"
+    optional_libs="gtest termcap"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
@@ -52,32 +52,40 @@ configure () {
         fi
     done
     var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
-    require "Operating System"
-    var OS $(uname)
-    require "OS Version"
+    require "Use ccache"
+    boolvar USE_CCACHE $use_ccache
+    check_cxx
+    require "Host System"
+    var MACHINE $($CXX -dumpmachine)
+    require "Build System"
     show "`uname -msr`"
-    case "$OS" in
-        Darwin)
+    check_cross_compiling
+    require "Host Operating System"
+    case "${MACHINE#*-}" in
+        *apple-darwin*)
+            var OS "Darwin"
             with_tcmalloc=false ;
             var PTHREAD_LIBS "" ;
             var RT_LIBS "" ;;
-        Linux)
+        *linux*)
+            var OS "Linux"
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
-        *) error "unsupported operating system: $OS" ;;
+        *) error "unsupported operating system: $MACHINE" ;;
+    esac
+    case "${MACHINE%%-*}" in
+        x86_64|i?86) true ;;
+        arm*) final_warning="ARM support is still experimental";;
+        *) error "unsopported architecture: $MACHINE"
     esac
     var M_LIBS -lm
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
     boolvar BUILD_DRIVERS $enable_drivers
-    require "Architecture"
+    require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
-    var DEB_ARCH $(echo "${GCC_ARCH_REDUCED:-}" | sed -e 's/^x86_64$$/amd64/g')
-    require "Use ccache"
-    boolvar USE_CCACHE $use_ccache
-    check_cxx
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
@@ -123,7 +131,7 @@ configure () {
         check_lib tcmalloc_minimal require
     else
         var TCMALLOC_MINIMAL_LIBS ""
-        empty_deps_lib tcmalloc_minimal
+        empty_deps_lib tcmalloc_minimal false
     fi
     test_protobuf
     check_boost
@@ -141,6 +149,9 @@ configure () {
             fetch_pkg $pkg
         fi
     done
+    if [ -n "${final_warning:-}" ]; then
+        echo "* Warning: $final_warning"
+    fi
 }
 
 # Entry point
@@ -291,7 +302,13 @@ handlebars:Handlebars
 unwind:libunwind
 tcmalloc_minimal:Google Perf Tools library
 v8:v8 javascript engine
-protobuf:Protobuf library'
+protobuf:Protobuf library
+browserify:Browserify
+proto2js:ProtoBuf.js
+v8:V8 JavaScript Engine
+re2:RE2
+z:zlib
+gtest:Google Test'
 
 # Output of --help
 show_help () {
@@ -504,10 +521,10 @@ check_cxx () {
     require "C++ Compiler"
     local force_CXX
     lookup "$force_paths" cxx force_CXX || :
-    local test_CXX=${force_CXX:-${CXX:-c++}}
-    local full_CXX=$(which "$test_CXX" 2>/dev/null)
+    local test_CXX="${force_CXX:-${CXX:-c++}}"
+    local full_CXX="$(which "$test_CXX" 2>/dev/null)"
     if [[ ! -x "$full_CXX" ]]; then
-        if [[ -n ${force_CXX:-} ]]; then
+        if [[ -n "${force_CXX:-}" ]]; then
             error "unable to run $force_CXX"
             return
         fi
@@ -546,7 +563,7 @@ check_cxx () {
 # foo --version | extract_version_string
 # find a version string in the output of foo --version
 extract_version_string () {
-    egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1
+    sed 's/([^)]*)//g' | egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1
 }
 
 # read_version "1.2.3" -> 10203
@@ -743,6 +760,7 @@ fetch_lib () {
     local pkg
     local version
     add_fetch "$1"
+    var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS"             "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
@@ -810,7 +828,10 @@ check_lib () {
     if lookup "$force_paths" $1 path; then
         ${info}_dep $1
         check_lib_compile "$path" $1
-        $can_show && show_no "$path"
+        if $can_show; then
+            show_no "$path"
+            empty_deps_lib $1 false
+        fi
         return
     fi
     local check
@@ -828,7 +849,7 @@ check_lib () {
     for lib in $1 $aliases; do
         $check $lib $1
         if ! $can_show; then
-            empty_deps_lib $1
+            empty_deps_lib $1 true
             return
         fi
     done
@@ -836,10 +857,17 @@ check_lib () {
         fetch_lib $1
     else
         show_no "lib$1$static_info"
+        empty_deps_lib $1 false
     fi
 }
 
 empty_deps_lib () {
+    if ! "$2"; then
+        var "HAS_$(uc $1)" 0
+        var "$(uc $1)_LIBS" ""
+    else
+        var "HAS_$(uc $1)" 1
+    fi
     var "$(uc $1)_INCLUDE" ""
     var "$(uc $1)_INCLUDE_DEP" ""
     var "$(uc $1)_LIBS_DEP" ""
@@ -860,23 +888,36 @@ check_lib_compile () {
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         show "${1:-ok}"
         var_append $(uc $2)_LIBS "$1"
+        var HAS_$(uc $2) 1
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
 }
 
-check_static_lib () {
-    local path=$(static_lib_lookup $1)
-    if [[ -n "$path" ]]; then
-        var_append $(uc $2)_LIBS "$path"
+# Test if we are cross-compiling
+check_cross_compiling () {
+    require "Cross-compiling"
+    local bfile="$root/mk/gen/check_cross_compile"
+    echo "int main(){ return 0; }" > "$bfile.cc"
+    if ! "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} "$bfile.cc" -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+        error_details=$(cat "$bfile.log")
+        error "Failed to compile"
+    else
+        if "$bfile.out" >/dev/null 2>&1; then
+            boolvar CROSS_COMPILING false
+        else
+            boolvar CROSS_COMPILING true
+        fi
     fi
 }
 
-# Find a static library and print it's path
-static_lib_lookup () {
+check_static_lib () {
     for path in $try_lib_paths; do
         local l=$path/lib$1.a
-        test -f $l && echo $l && return 0
+        check_lib_compile "$l" "$2"
+        if ! $can_show; then
+            return 0
+        fi
     done
 }
 
@@ -912,6 +953,9 @@ niceabspath () {
 test_protobuf () {
     require "Test protobuf"
     if any "protoc protobuf" contains "$FETCH_LIST"; then
+        if [[ -z "${PROTOC_BIN_DEP:-}" ]]; then
+            fetch_bin protoc
+        fi
         show fetch
         return
     fi
@@ -927,7 +971,7 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
+            "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
@@ -974,6 +1018,15 @@ EOF
 check_boost () {
     require "Test boost"
     check_lib_compile "" boost
+    if $can_show; then
+        if fetch_allowed boost; then
+            fetch_lib boost
+        else
+            show_no "boost"
+        fi
+    else
+        empty_deps_lib boost true
+    fi
 }
 
 # pkg_name <dep>

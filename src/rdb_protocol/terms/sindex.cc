@@ -8,8 +8,6 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // We need to use inheritance rather than composition for

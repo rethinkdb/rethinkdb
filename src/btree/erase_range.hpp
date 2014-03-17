@@ -1,17 +1,20 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_ERASE_RANGE_HPP_
 #define BTREE_ERASE_RANGE_HPP_
+
+#include <functional>
 
 #include "errors.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/types.hpp"
 
-class btree_slice_t;
+class buf_parent_t;
 struct store_key_t;
 struct btree_key_t;
 class order_token_t;
 class superblock_t;
 class signal_t;
+class value_deleter_t;
 
 class key_tester_t {
 public:
@@ -30,28 +33,16 @@ struct always_true_key_tester_t : public key_tester_t {
     }
 };
 
-class value_deleter_t {
-public:
-    value_deleter_t() { }
-    virtual void delete_value(transaction_t *txn, void *value) = 0;
+void btree_erase_range_generic(value_sizer_t<void> *sizer, key_tester_t *tester,
+        const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
+        const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
+        signal_t *interruptor, bool release_superblock = true,
+        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
+            &on_erase_cb =
+                std::function<void(const store_key_t &, const char *, const buf_parent_t &)>());
 
-protected:
-    virtual ~value_deleter_t() { }
-
-    DISABLE_COPYING(value_deleter_t);
-};
-
-void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
-                               key_tester_t *tester,
-                               value_deleter_t *deleter,
-                               const btree_key_t *left_exclusive_or_null,
-                               const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, superblock_t *superblock,
-                               signal_t *interruptor,
-                               bool release_superblock = true);
-
-void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
-               value_deleter_t *deleter, transaction_t *txn,
+void erase_all(value_sizer_t<void> *sizer,
+               const value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock = true);

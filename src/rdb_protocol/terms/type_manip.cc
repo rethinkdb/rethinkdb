@@ -29,6 +29,7 @@ static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
 static const int FUNC_TYPE = val_t::type_t::FUNC * MAX_TYPE;
+static const int GROUPED_DATA_TYPE = val_t::type_t::GROUPED_DATA * MAX_TYPE;
 
 static const int R_NULL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NULL;
 static const int R_BOOL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_BOOL;
@@ -48,7 +49,8 @@ public:
         map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
-        CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
+        map["GROUPED_DATA"] = GROUPED_DATA_TYPE;
+        CT_ASSERT(val_t::type_t::GROUPED_DATA < MAX_TYPE);
 
         map["NULL"] = R_NULL_TYPE;
         map["BOOL"] = R_BOOL_TYPE;
@@ -62,6 +64,7 @@ public:
                  it = map.begin(); it != map.end(); ++it) {
             rmap[it->second] = it->first;
         }
+        guarantee(map.size() == rmap.size());
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
@@ -94,6 +97,7 @@ private:
         case val_t::type_t::SINGLE_SELECTION:
         case val_t::type_t::DATUM:
         case val_t::type_t::FUNC:
+        case val_t::type_t::GROUPED_DATA:
         default: break;
         }
         switch (t2) {
@@ -210,17 +214,7 @@ private:
 
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                datum_ptr_t arr(datum_t::R_ARRAY);
-                batchspec_t batchspec
-                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
-                {
-                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (auto el = ds->next(env->env, batchspec)) {
-                        arr.add(el);
-                        sampler.new_sample();
-                    }
-                }
-                return new_val(arr.to_counted());
+                return ds->to_array(env->env);
             }
 
             // SEQUENCE -> OBJECT
@@ -253,6 +247,27 @@ private:
     virtual const char *name() const { return "coerce_to"; }
 };
 
+class ungroup_term_t : public op_term_t {
+public:
+    ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+        auto groups = arg(env, 0)->as_promiscuous_grouped_data(env->env);
+        std::vector<counted_t<const datum_t> > v;
+        v.reserve(groups->size());
+        for (auto it = groups->begin(); it != groups->end(); ++it) {
+            r_sanity_check(it->first.has() && it->second.has());
+            std::map<std::string, counted_t<const datum_t> > m =
+                {{"group", std::move(it->first)}, {"reduction", std::move(it->second)}};
+            v.push_back(make_counted<const datum_t>(std::move(m)));
+        }
+        return new_val(make_counted<const datum_t>(std::move(v)));
+    }
+    virtual const char *name() const { return "ungroup"; }
+    virtual bool can_be_grouped() { return false; }
+};
+
 int val_type(counted_t<val_t> v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
@@ -275,17 +290,22 @@ private:
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
+        } else if (v->get_type().raw_type == val_t::type_t::SEQUENCE
+                   && v->as_seq(env->env)->is_grouped()) {
+            return new_val(make_counted<const datum_t>("GROUPED_STREAM"));
         } else {
             return new_val(
-                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
+                make_counted<const datum_t>(get_name(val_type(v))));
         }
     }
     virtual const char *name() const { return "typeof"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(val_info(env, arg(env, 0)));
@@ -346,15 +366,23 @@ private:
     }
 
     virtual const char *name() const { return "info"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
-counted_t<term_t> make_coerce_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_coerce_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
-counted_t<term_t> make_typeof_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_ungroup_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<ungroup_term_t>(env, term);
+}
+counted_t<term_t> make_typeof_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
-counted_t<term_t> make_info_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_info_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
 #include <fcntl.h>
@@ -143,8 +143,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
           &pm_serializer_old_garbage_block_bytes, "serializer_old_garbage_block_bytes",
           &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
-          &pm_serializer_lba_gcs, "serializer_lba_gcs",
-          NULLPTR)
+          &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
@@ -162,8 +161,6 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
 
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
-
-    metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
     mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
@@ -258,8 +255,6 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_start_lba) {
             // STATE G
             guarantee(metablock_found, "Could not find any valid metablock.");
-
-            ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
             // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
@@ -403,24 +398,6 @@ log_serializer_t::~log_serializer_t() {
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(metablock_waiter_queue.empty());
     rassert(active_write_count == 0);
-}
-
-scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
-    scoped_malloc_t<ser_buffer_t> buf(
-        malloc_aligned(static_config.block_size().ser_value(),
-                       DEVICE_BLOCK_SIZE));
-
-    // Initialize the block sequence id...
-    buf->ser_header.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-    return buf;
-}
-
-scoped_malloc_t<ser_buffer_t> log_serializer_t::clone(const ser_buffer_t *_data) {
-    scoped_malloc_t<ser_buffer_t> buf(
-        malloc_aligned(static_config.block_size().ser_value(),
-                       DEVICE_BLOCK_SIZE));
-    memcpy(buf.get(), _data, static_config.block_size().ser_value());
-    return buf;
 }
 
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
@@ -616,7 +593,7 @@ log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
     stats->pm_serializer_block_writes += write_infos.size();
 
     std::vector<counted_t<ls_block_token_pointee_t> > result
-        = data_block_manager->many_writes(write_infos, true, io_account, cb);
+        = data_block_manager->many_writes(write_infos, io_account, cb);
     guarantee(result.size() == write_infos.size());
     return result;
 }
@@ -708,8 +685,7 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-// TODO: Make this const.
-block_size_t log_serializer_t::get_block_size() const {
+block_size_t log_serializer_t::max_block_size() const {
     return static_config.block_size();
 }
 
@@ -753,9 +729,10 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     return !offset.has_value();
 }
 
-repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
+segmented_vector_t<repli_timestamp_t>
+log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     assert_thread();
-    return lba_index->get_block_recency(id);
+    return lba_index->get_block_recencies(first, step);
 }
 
 bool log_serializer_t::shutdown(cond_t *cb) {
@@ -862,7 +839,6 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
-    mb_buffer->block_sequence_id = latest_block_sequence_id;
 }
 
 
@@ -885,26 +861,30 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
+    // KSI: read_ahead_callbacks should be an intrusive list.
+
     for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
         if (*cb_it == cb) {
             read_ahead_callbacks.erase(cb_it);
             break;
         }
     }
+
+    // KSI: This should not allow spurious unregister operations the way it currently
+    // does (it should crash here).
 }
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> &&buf,
-        const counted_t<standard_block_token_t>& token,
-        repli_timestamp_t recency_timestamp) {
+        const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
     scoped_malloc_t<ser_buffer_t> local_buf = std::move(buf);
     for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
         read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
                                                       &local_buf,
-                                                      token, recency_timestamp);
+                                                      token);
     }
 }
 
@@ -927,6 +907,16 @@ void ls_block_token_pointee_t::do_destroy() {
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
     delete this;
+}
+
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token) {
+    if (token.has()) {
+        buf->appendf("ls_block_token{%" PRIi64 ", +%" PRIu32 "}",
+                     token->offset(), token->block_size().ser_value());
+    } else {
+        buf->appendf("nil");
+    }
 }
 
 void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {

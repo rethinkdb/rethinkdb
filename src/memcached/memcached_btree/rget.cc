@@ -1,12 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/rget.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-
 #include "btree/depth_first_traversal.hpp"
-#include "containers/iterators.hpp"
+#include "btree/operations.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
@@ -67,33 +63,41 @@ size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair) {
 
 class rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
-        transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
-    bool handle_pair(scoped_key_value_t &&keyvalue) {
+    rget_depth_first_traversal_callback_t(buf_parent_t par,
+                                          int max, exptime_t et) :
+        parent(par), maximum(max), effective_time(et), cumulative_size(0) { }
+    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
         const memcached_value_t *mc_value
             = static_cast<const memcached_value_t *>(keyvalue.value());
         if (mc_value->expired(effective_time)) {
-            return true;
+            return done_traversing_t::NO;
         }
-        counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
+        counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, parent));
         result.pairs.push_back(key_with_data_buffer_t(store_key_t(keyvalue.key()),
                                                       mc_value->mcflags(),
                                                       data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
-        return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
+        if ((static_cast<int64_t>(result.pairs.size()) < maximum)
+            && (cumulative_size < rget_max_chunk_size)) {
+            return done_traversing_t::NO;
+        } else {
+            return done_traversing_t::YES;
+        }
     }
-    transaction_t *transaction;
+    buf_parent_t parent;
     int maximum;
     exptime_t effective_time;
     rget_result_t result;
     size_t cumulative_size;
 };
 
-rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
-        int maximum, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
+rget_result_t memcached_rget_slice(const key_range_t &range,
+                                   int maximum, exptime_t effective_time,
+                                   superblock_t *superblock) {
 
-    rget_depth_first_traversal_callback_t callback(txn, maximum, effective_time);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
+    rget_depth_first_traversal_callback_t callback(superblock->expose_buf(),
+                                                   maximum, effective_time);
+    btree_depth_first_traversal(superblock, range, &callback, FORWARD);
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.result.truncated = true;
     } else {

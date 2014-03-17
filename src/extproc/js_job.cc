@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "extproc/js_job.hpp"
 
-#define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
@@ -13,12 +13,13 @@
 #endif
 
 #include <cmath>
+#include <limits>
 
-#include "extproc/js_job.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "containers/archive/stl_types.hpp"
+#include "extproc/extproc_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "containers/archive/boost_types.hpp"
-#include "extproc/extproc_job.hpp"
 
 #ifdef V8_PRE_3_19
 #define DECLARE_HANDLE_SCOPE(scope) v8::HandleScope scope
@@ -28,7 +29,7 @@
 
 
 const js_id_t MIN_ID = 1;
-const js_id_t MAX_ID = UINT64_MAX;
+const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
 
 // Picked from a hat.
 #define TO_JSON_RECURSION_LIMIT  500
@@ -99,12 +100,17 @@ js_result_t js_job_t::eval(const std::string &source) {
     write_message_t msg;
     msg.append(&task, sizeof(task));
     msg << source;
-    int res = send_write_message(extproc_job.write_stream(), &msg);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    {
+        int res = send_write_message(extproc_job.write_stream(), &msg);
+        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    }
 
     js_result_t result;
-    res = deserialize(extproc_job.read_stream(), &result);
-    if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
+    archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+    if (bad(res)) {
+        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
+                                        archive_result_as_str(res)));
+    }
     return result;
 }
 
@@ -114,12 +120,17 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     msg.append(&task, sizeof(task));
     msg << id;
     msg << args;
-    int res = send_write_message(extproc_job.write_stream(), &msg);
-    if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    {
+        int res = send_write_message(extproc_job.write_stream(), &msg);
+        if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
+    }
 
     js_result_t result;
-    res = deserialize(extproc_job.read_stream(), &result);
-    if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
+    archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+    if (bad(res)) {
+        throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
+                                        archive_result_as_str(res)));
+    }
     return result;
 }
 
@@ -151,20 +162,24 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     while (running) {
         js_task_t task;
         int64_t read_size = sizeof(task);
-        int64_t res = force_read(stream_in, &task, read_size);
-        if (res != read_size) { return false; }
+        {
+            int64_t res = force_read(stream_in, &task, read_size);
+            if (res != read_size) { return false; }
+        }
 
         switch (task) {
         case TASK_EVAL:
             {
                 std::string source;
-                res = deserialize(stream_in, &source);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                {
+                    archive_result_t res = deserialize(stream_in, &source);
+                    if (bad(res)) { return false; }
+                }
 
                 js_result_t js_result = js_env.eval(source);
                 write_message_t msg;
                 msg << js_result;
-                res = send_write_message(stream_out, &msg);
+                int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }
             break;
@@ -172,23 +187,25 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
             {
                 js_id_t id;
                 std::vector<counted_t<const ql::datum_t> > args;
-                res = deserialize(stream_in, &id);
-                if (res != ARCHIVE_SUCCESS) { return false; }
-                res = deserialize(stream_in, &args);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                {
+                    archive_result_t res = deserialize(stream_in, &id);
+                    if (bad(res)) { return false; }
+                    res = deserialize(stream_in, &args);
+                    if (bad(res)) { return false; }
+                }
 
                 js_result_t js_result = js_env.call(id, args);
                 write_message_t msg;
                 msg << js_result;
-                res = send_write_message(stream_out, &msg);
+                int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }
             break;
         case TASK_RELEASE:
             {
                 js_id_t id;
-                res = deserialize(stream_in, &id);
-                if (res != ARCHIVE_SUCCESS) { return false; }
+                archive_result_t res = deserialize(stream_in, &id);
+                if (bad(res)) { return false; }
                 js_env.release(id);
             }
             break;

@@ -35,8 +35,8 @@ def db_drop(db_name):
 def db_list():
     return DbList()
 
-def table_create(table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
-    return TableCreateTL(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
+def table_create(table_name, primary_key=(), datacenter=(), durability=()):
+    return TableCreateTL(table_name, primary_key=primary_key, datacenter=datacenter, durability=durability)
 
 def table_drop(table_name):
     return TableDropTL(table_name)
@@ -46,16 +46,6 @@ def table_list():
 
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)
-
-# groupBy reductions
-
-count = {'COUNT': True}
-
-def sum(attr):
-    return {'SUM': attr}
-
-def avg(attr):
-    return {'AVG': attr}
 
 # orderBy orders
 

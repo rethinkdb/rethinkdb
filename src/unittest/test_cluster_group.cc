@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/test_cluster_group.hpp"
 
 #include <map>
@@ -6,6 +6,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "arch/io/io_utils.hpp"
@@ -16,6 +17,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "concurrency/watchable.hpp"
@@ -92,7 +94,7 @@ public:
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
-        return WRITE_DURABILITY_SOFT;
+        return write_durability_t::SOFT;
     }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
@@ -183,7 +185,8 @@ change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_pt
 
 template <class protocol_t>
 test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
-    : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)) {
+    : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)),
+      balancer(new dummy_cache_balancer_t(GIGABYTE)) {
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t);
         filepath_file_opener_t file_opener(files[i].name(), io_backender.get());
@@ -193,8 +196,8 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
         stores.push_back(
-                new typename protocol_t::store_t(&serializers[i],
-                    files[i].name().permanent_path(), GIGABYTE, true, NULL,
+                new typename protocol_t::store_t(&serializers[i], balancer.get(),
+                    files[i].name().permanent_path(), true, NULL,
                     &ctx, io_backender.get(), base_path_t(".")));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));

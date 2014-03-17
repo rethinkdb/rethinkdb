@@ -1,5 +1,6 @@
 util = require('./util')
 err = require('./errors')
+net = require('./net')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -46,44 +47,60 @@ hasImplicit = (args) ->
 # AST classes
 
 class TermBase
+    showRunWarning: true
     constructor: ->
         self = (ar (field) -> self.getField(field))
         self.__proto__ = @.__proto__
         return self
 
-    run: (connOrOptions, cb) ->
-        useOutdated = undefined
+    run: (connection, options, callback) ->
+        # Valid syntaxes are
+        # connection, callback
+        # connection, options, callback
+        # connection, null, callback
+        # 
+        # Depreciated syntaxes are
+        # optionsWithConnection, callback
+        
+        if net.isConnection(connection) is true
+            # Handle run(connection, callback)
+            if typeof options is "function"
+                callback = options
+                options = {}
+            # else we suppose that we have run(connection, options, callback)
+        else if connection?.constructor is Object
+            if @showRunWarning is true
+                process?.stderr.write("RethinkDB warning: This syntax is deprecated. Please use `run(connection[, options], callback)`.")
+                @showRunWarning = false
+            # Handle run(connectionWithOptions, callback)
+            callback = options
+            options = connection
+            connection = connection.connection
+            delete options["connection"]
 
-        # Parse out run options from connOrOptions object
-        if connOrOptions? and connOrOptions.constructor is Object
-            for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile', 'durability']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
-            conn = connOrOptions.connection
-            opts = connOrOptions
-        else
-            conn = connOrOptions
-            opts = {}
+        options = {} if options is null
 
-        # This only checks that the argument is of the right type, connection
-        # closed errors will be handled elsewhere
-        unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
+        # Check if the arguments are valid types
+        for own key of options
+            unless key in ['useOutdated', 'noreply', 'timeFormat', 'profile', 'durability', 'groupFormat', 'batchConf']
+                throw new err.RqlDriverError "Found "+key+" which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, profile: <bool>, durability: <string>}."
+        if net.isConnection(connection) is false
+            throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
         # We only require a callback if noreply isn't set
-        if not opts.noreply and typeof(cb) isnt 'function'
-            throw new err.RqlDriverError "Second argument to `run` must be a callback to invoke "+
+        if not options.noreply and typeof(callback) isnt 'function'
+            throw new err.RqlDriverError "The last argument to `run` must be a callback to invoke "+
                                          "with either an error or the result of the query."
 
         try
-            conn._start @, cb, opts
+            connection._start @, callback, options
         catch e
             # It was decided that, if we can, we prefer to invoke the callback
             # with any errors rather than throw them as normal exceptions.
             # Thus we catch errors here and invoke the callback instead of
             # letting the error bubble up.
-            if typeof(cb) is 'function'
-                cb(e)
+            if typeof(callback) is 'function'
+                callback(e)
             else
                 throw e
 
@@ -141,15 +158,16 @@ class RDBVal extends TermBase
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
+    split: varar(0, null, (fields...) -> new Split {}, @, fields.map(funcWrap)...)
     upcase: ar () -> new Upcase {}, @
     downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
-    groupedMapReduce: varar(3, 4, (group, map, reduce) -> new GroupedMapReduce {}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, funcWrap(left_attr), right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
+    ungroup: ar () -> new Ungroup {}, @
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: aropt (opts) -> new Delete opts, @
@@ -162,14 +180,28 @@ class RDBVal extends TermBase
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
-    groupBy: (attrs..., collector) ->
-        unless collector? and attrs.length >= 1
-            numArgs = attrs.length + (if collector? then 1 else 0)
-            throw new err.RqlDriverError "Expected 2 or more argument(s) but found #{numArgs}."
-        new GroupBy {}, @, attrs, collector
+    sum: varar(0, null, (fields...) -> new Sum {}, @, fields.map(funcWrap)...)
+    avg: varar(0, null, (fields...) -> new Avg {}, @, fields.map(funcWrap)...)
+    min: varar(0, null, (fields...) -> new Min {}, @, fields.map(funcWrap)...)
+    max: varar(0, null, (fields...) -> new Max {}, @, fields.map(funcWrap)...)
 
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
+
+    group: (fieldsAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        fields = fieldsAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = fieldsAndOpts[fieldsAndOpts.length - 1]
+        if perhapsOptDict and
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
+            opts = perhapsOptDict
+            fields = fieldsAndOpts[0...(fieldsAndOpts.length - 1)]
+
+        new Group opts, @, fields.map(funcWrap)...
 
     orderBy: (attrsAndOpts...) ->
         # Default if no opts dict provided
@@ -297,6 +329,22 @@ class DatumTerm extends RDBVal
             datum: datum
         return term
 
+translateBackOptargs = (optargs) ->
+    result = {}
+    for own key,val of optargs
+        key = switch key
+            when 'primary_key' then 'primaryKey'
+            when 'return_vals' then 'returnVals'
+            when 'use_outdated' then 'useOutdated'
+            when 'non_atomic' then 'nonAtomic'
+            when 'left_bound' then 'leftBound'
+            when 'right_bound' then 'rightBound'
+            when 'default_timezone' then 'defaultTimezone'
+            else key
+
+        result[key] = val
+    return result
+
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
@@ -306,7 +354,6 @@ translateOptargs = (optargs) ->
             when 'returnVals' then 'return_vals'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
-            when 'cacheSize' then 'cache_size'
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
             when 'defaultTimezone' then 'default_timezone'
@@ -365,7 +412,7 @@ intspallargs = (args, optargs) ->
     if Object.keys(optargs).length > 0
         if argrepr.length > 0
             argrepr.push(', ')
-        argrepr.push(kved(optargs))
+        argrepr.push(kved(translateBackOptargs(optargs)))
     return argrepr
 
 shouldWrap = (arg) ->
@@ -422,9 +469,9 @@ class Table extends RDBOp
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
-            [args[0], '.table(', args[1], ')']
+            [args[0], '.table(', intspallargs(args[1..], optargs), ')']
         else
-            ['r.table(', args[0], ')']
+            ['r.table(', intspallargs(args, optargs), ')']
 
 class Get extends RDBOp
     tt: "GET"
@@ -628,6 +675,10 @@ class Match extends RDBOp
     tt: "MATCH"
     mt: 'match'
 
+class Split extends RDBOp
+    tt: "SPLIT"
+    mt: 'split'
+
 class Upcase extends RDBOp
     tt: "UPCASE"
     mt: 'upcase'
@@ -640,17 +691,25 @@ class IsEmpty extends RDBOp
     tt: "IS_EMPTY"
     mt: 'isEmpty'
 
-class GroupedMapReduce extends RDBOp
-    tt: "GROUPED_MAP_REDUCE"
-    mt: 'groupedMapReduce'
+class Group extends RDBOp
+    tt: "GROUP"
+    mt: 'group'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Sum extends RDBOp
+    tt: "SUM"
+    mt: 'sum'
 
-class GroupBy extends RDBOp
-    tt: "GROUPBY"
-    mt: 'groupBy'
+class Avg extends RDBOp
+    tt: "AVG"
+    mt: 'avg'
+
+class Min extends RDBOp
+    tt: "MIN"
+    mt: 'min'
+
+class Max extends RDBOp
+    tt: "MAX"
+    mt: 'max'
 
 class InnerJoin extends RDBOp
     tt: "INNER_JOIN"
@@ -671,6 +730,10 @@ class Zip extends RDBOp
 class CoerceTo extends RDBOp
     tt: "COERCE_TO"
     mt: 'coerceTo'
+
+class Ungroup extends RDBOp
+    tt: "UNGROUP"
+    mt: 'ungroup'
 
 class TypeOf extends RDBOp
     tt: "TYPEOF"
@@ -996,10 +1059,6 @@ rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
 rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
-
-rethinkdb.count =              {'COUNT': true}
-rethinkdb.sum   = ar (attr) -> {'SUM': attr}
-rethinkdb.avg   = ar (attr) -> {'AVG': attr}
 
 rethinkdb.asc = (attr) -> new Asc {}, funcWrap(attr)
 rethinkdb.desc = (attr) -> new Desc {}, funcWrap(attr)

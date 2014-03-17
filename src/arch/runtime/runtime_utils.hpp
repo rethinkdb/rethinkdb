@@ -5,8 +5,6 @@
 #include <signal.h>
 #include <stdint.h>
 
-#include <string>
-
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
@@ -65,11 +63,11 @@ then. */
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
 struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t(const std::string&, int);
+    assert_no_coro_waiting_t(const char *, int);
     ~assert_no_coro_waiting_t();
 };
 struct assert_finite_coro_waiting_t {
-    assert_finite_coro_waiting_t(const std::string&, int);
+    assert_finite_coro_waiting_t(const char *, int);
     ~assert_finite_coro_waiting_t();
 };
 

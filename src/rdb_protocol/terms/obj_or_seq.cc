@@ -11,14 +11,12 @@
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-#pragma GCC diagnostic ignored "-Wshadow"
-
 namespace ql {
 
 // This term is used for functions that are polymorphic on objects and
 // sequences, like `pluck`.  It will handle the polymorphism; terms inheriting
 // from it just need to implement evaluation on objects (`obj_eval`).
-class obj_or_seq_op_term_t : public op_term_t {
+class obj_or_seq_op_term_t : public grouped_seq_op_term_t {
 public:
     enum poly_type_t {
         MAP = 0,
@@ -27,7 +25,7 @@ public:
     };
     obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
-        : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+        : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
 
         auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
@@ -47,7 +45,8 @@ public:
             func->Swap(&r::fun(varnum, std::move(body)).get());
         } break;
         case SKIP_MAP: {
-            func->Swap(&r::fun(varnum, r::array(std::move(body)).default_(r::array())).get());
+            func->Swap(&r::fun(varnum,
+                               r::array(std::move(body)).default_(r::array())).get());
         } break;
         default: unreachable();
         }
@@ -68,26 +67,31 @@ private:
         if (d.has() && d->get_type() == datum_t::R_OBJECT) {
             return obj_eval(env, v0);
         } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
-                   (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
+                   (!d.has()
+                    && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
             if (counted_t<val_t> no_recurse = optarg(env, "_NO_RECURSE_")) {
                 rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
-                       strprintf("Cannot perform %s on a sequence of sequences.", name()));
+                       strprintf("Cannot perform %s on a sequence of sequences.",
+                                 name()));
             }
 
             compile_env_t compile_env(env->scope.compute_visibility());
-            counted_t<func_term_t> func_term = make_counted<func_term_t>(&compile_env, func);
-            counted_t<func_t> func = func_term->eval_to_func(env->scope);
+            counted_t<func_term_t> func_term
+                = make_counted<func_term_t>(&compile_env, func);
+            counted_t<func_t> f = func_term->eval_to_func(env->scope);
 
             switch (poly_type) {
             case MAP:
-                return new_val(env->env, v0->as_seq(env->env)->map(func));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                    env->env, map_wire_func_t(f), backtrace()));
             case FILTER:
-                return new_val(env->env,
-                               v0->as_seq(env->env)->filter(func, counted_t<func_t>()));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                    env->env, filter_wire_func_t(f, boost::none), backtrace()));
             case SKIP_MAP:
-                return new_val(env->env, v0->as_seq(env->env)->concatmap(func));
+                return new_val(env->env, v0->as_seq(env->env)->add_transformation(
+                    env->env, concatmap_wire_func_t(f), backtrace()));
             default: unreachable();
             }
         }
@@ -165,6 +169,7 @@ private:
         return new_val(res.to_counted(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }
+    virtual bool can_be_grouped() { return false; }
 };
 
 class merge_term_t : public obj_or_seq_op_term_t {

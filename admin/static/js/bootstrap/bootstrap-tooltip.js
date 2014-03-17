@@ -1,4 +1,8 @@
 /* ===========================================================
+ * Forked from bootstrap-tooltip to provide a fadeIn (in `show`)
+ * ========================================================== */
+
+/* ===========================================================
  * bootstrap-tooltip.js v2.0.2
  * http://twitter.github.com/bootstrap/javascript.html#tooltips
  * Inspired by the original jQuery.tipsy by Jason Frame
@@ -105,6 +109,10 @@
         , actualHeight
         , placement
         , tp
+        , for_dataexplorer
+
+      // if for_dataexplorer is true, we use a fadein and a special css class
+      for_dataexplorer = this.options.for_dataexplorer || false;
 
       if (this.hasContent() && this.enabled) {
         $tip = this.tip()
@@ -124,6 +132,13 @@
           .remove()
           .css({ top: 0, left: 0, display: 'block' })
           .appendTo(inside ? this.$element : document.body)
+
+        // We need to add this class before computing the position because we need the font of the
+        // size to compute the width
+        if (for_dataexplorer === true) {
+          $tip.addClass('dataexplorer_tooltip')
+        }
+
 
         pos = this.getPosition(inside)
 
@@ -150,10 +165,17 @@
             break
         }
 
+
         $tip
           .css(tp)
           .addClass(placement)
           .addClass('in')
+
+        // Hide then fadeIn
+        if (for_dataexplorer === true) {
+          $tip.css({display: 'none'})
+          $tip.fadeIn('fast')
+        }
       }
     }
 

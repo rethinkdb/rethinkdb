@@ -1,9 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/node.hpp"
 
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
 const block_magic_t btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
 const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } };
@@ -45,20 +44,6 @@ void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const intern
         leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode));
     } else {
         internal_node::merge(sizer->block_size(), reinterpret_cast<internal_node_t *>(node), reinterpret_cast<internal_node_t *>(rnode), parent);
-    }
-}
-
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, node_t *node, node_t *rnode, btree_key_t *replacement_key, const internal_node_t *parent) {
-    if (is_leaf(node)) {
-        return leaf::level(sizer, nodecmp_node_with_sib,
-                           reinterpret_cast<leaf_node_t *>(node),
-                           reinterpret_cast<leaf_node_t *>(rnode),
-                           replacement_key);
-    } else {
-        return internal_node::level(sizer->block_size(),
-                                    reinterpret_cast<internal_node_t *>(node),
-                                    reinterpret_cast<internal_node_t *>(rnode),
-                                    replacement_key, parent);
     }
 }
 

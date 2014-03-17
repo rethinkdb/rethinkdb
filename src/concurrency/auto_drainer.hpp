@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_AUTO_DRAINER_HPP_
 #define CONCURRENCY_AUTO_DRAINER_HPP_
 
@@ -29,13 +29,19 @@ public:
         explicit lock_t(auto_drainer_t *);
         lock_t(const lock_t &);
         lock_t &operator=(const lock_t &);
+        lock_t(lock_t &&);
+        lock_t &operator=(lock_t &&);
+
         void reset();
+        bool has_lock() const;
         signal_t *get_drain_signal() const;
         void assert_is_holding(auto_drainer_t *);
         ~lock_t();
     private:
         auto_drainer_t *parent;
     };
+
+    lock_t lock();
 
     void assert_not_draining() {
         guarantee(!draining.is_pulsed());

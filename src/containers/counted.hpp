@@ -1,11 +1,14 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_COUNTED_HPP_
 #define CONTAINERS_COUNTED_HPP_
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "utils.hpp"
+#include <utility>
+
+#include "errors.hpp"
+#include "threading.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
@@ -122,7 +125,9 @@ public:
     }
 
     bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
+        return (p_ == NULL)
+            ? (other.p_ != NULL ? true : false)
+            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
     }
 
 private:
@@ -199,11 +204,6 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
     p->assert_thread();
     return p->refcount_;
 }
-
-
-
-
-
 
 template <class> class slow_atomic_countable_t;
 

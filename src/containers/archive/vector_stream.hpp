@@ -15,7 +15,7 @@ public:
 
     const std::vector<char> &vector() { return vec_; }
 
-    void swap(std::vector<char> *other);
+    void swap(std::vector<char> *other);  // NOLINT(build/include_what_you_use)
 
     void reserve(size_t reserve_size);
 
@@ -32,7 +32,7 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
-    void swap(std::vector<char> *other_vec, int64_t *other_pos);
+    void swap(std::vector<char> *other_vec, int64_t *other_pos);  // NOLINT(build/include_what_you_use)
 
 private:
     int64_t pos_;

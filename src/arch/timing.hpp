@@ -1,9 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
 
-#include "concurrency/signal.hpp"
 #include "arch/timer.hpp"
+#include "concurrency/interruptor.hpp"
+#include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 
