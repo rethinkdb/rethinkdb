@@ -440,6 +440,8 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     page->buf_ = std::move(buf);
     page->loader_ = NULL;
 
+    page_cache->evicter().page_was_loaded(page);
+
     page->pulse_waiters_or_make_evictable(page_cache);
 }
 

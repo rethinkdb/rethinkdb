@@ -3,17 +3,18 @@
 
 #include <stdint.h>
 
+#include <functional>
+
 #include "buffer_cache/alt/eviction_bag.hpp"
+#include "concurrency/cache_line_padded.hpp"
+#include "concurrency/pubsub.hpp"
 #include "threading.hpp"
 
-class memory_tracker_t {
-public:
-    virtual ~memory_tracker_t() { }
-    virtual void inform_memory_change(uint64_t in_memory_size,
-                                      uint64_t memory_limit) = 0;
-};
+class cache_balancer_t;
 
 namespace alt {
+
+class page_cache_t;
 
 class evicter_t : public home_thread_mixin_debug_only_t {
 public:
@@ -27,33 +28,50 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     eviction_bag_t *unevictable_category() { return &unevictable_; }
     void remove_page(page_t *page);
+    void page_was_loaded(page_t *page);
 
-    explicit evicter_t(memory_tracker_t *tracker,
-                       uint64_t memory_limit);
+    explicit evicter_t(cache_balancer_t *balancer);
     ~evicter_t();
 
-    bool interested_in_read_ahead_block(uint32_t in_memory_block_size) const;
+    void update_memory_limit(uint64_t new_memory_limit,
+                             uint64_t bytes_loaded_accounted_for);
 
     uint64_t next_access_time() {
         return ++access_time_counter_;
     }
 
+    uint64_t get_memory_limit() const {
+        return memory_limit_;
+    }
+
+    uint64_t get_clamped_bytes_loaded() const;
+
+    uint64_t in_memory_size() const;
+
+    // This is decremented past UINT64_MAX to force code to be aware of access time
+    // rollovers.
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
+    // Tells the cache balancer about a page being loaded
+    void notify_bytes_loaded(int64_t ser_buf_change);
+
+    // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
-    uint64_t in_memory_size() const;
 
-    void inform_tracker() const;
-
-    // LSI: Implement issue 97.
-    memory_tracker_t *const tracker_;
+    cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
+
+    // This is updated every time a page is loaded, created, or destroyed, and
+    // cleared when cache memory limits are re-evaluated.  May be read from other
+    // threads.  This value can go negative, if you keep deleting blocks or suddenly
+    // drop a snapshot.
+    int64_t bytes_loaded_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;
 
-    // These track whether every page's eviction status.
+    // These track every page's eviction status.
     eviction_bag_t unevictable_;
     eviction_bag_t evictable_disk_backed_;
     eviction_bag_t evictable_unbacked_;
@@ -61,8 +79,6 @@ private:
 
     DISABLE_COPYING(evicter_t);
 };
-
-
 
 }  // namespace alt
 

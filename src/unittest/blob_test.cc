@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
 #include "math.hpp"
@@ -406,9 +407,8 @@ TPTEST(BlobTest, all_tests) {
             &file_opener,
             &get_global_perfmon_collection());
 
-    cache_t cache(&log_serializer,
-                  alt_cache_config_t(),
-                  &get_global_perfmon_collection());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    cache_t cache(&log_serializer, &balancer, &get_global_perfmon_collection());
 
     run_tests(&cache);
 }

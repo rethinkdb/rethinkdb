@@ -61,7 +61,7 @@ void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
-    namespace_semilattice_metadata_t() : cache_size(GIGABYTE) { }
+    namespace_semilattice_metadata_t() { }
 
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
@@ -74,9 +74,8 @@ public:
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
-    vclock_t<int64_t> cache_size;
 
-    RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+    RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
 template <class protocol_t>
@@ -109,8 +108,7 @@ void debug_print(printf_buffer_t *buf, const namespace_semilattice_metadata_t<pr
 template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key, int port,
-    int64_t cache_size) {
+    const name_string_t &name, const std::string &key, int port) {
 
     namespace_semilattice_metadata_t<protocol_t> ns;
     ns.database           = make_vclock(database, machine);
@@ -136,15 +134,14 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
         protocol_t::region_t::universe(), std::set<machine_id_t>());
     ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
 
-    ns.cache_size = make_vclock(cache_size, machine);
     return ns;
 }
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);

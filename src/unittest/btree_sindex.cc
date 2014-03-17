@@ -6,6 +6,7 @@
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -17,6 +18,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -28,8 +30,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t cache(&serializer, alt_cache_config_t(),
-                  &get_global_perfmon_collection());
+    cache_t cache(&serializer, &balancer, &get_global_perfmon_collection());
     cache_conn_t cache_conn(&cache);
 
     {
@@ -105,6 +106,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -118,8 +120,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
     rdb_protocol_t::store_t store(
             &serializer,
+            &balancer,
             "unit_test_store",
-            GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,

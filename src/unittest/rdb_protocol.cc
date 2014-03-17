@@ -3,6 +3,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
@@ -46,6 +47,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -79,8 +81,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(),
-                    temp_files[i].name().permanent_path(), GIGABYTE, true,
+                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                    temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));
     }

@@ -1,29 +1,62 @@
 #include "buffer_cache/alt/evicter.hpp"
 
 #include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/page_cache.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 
 namespace alt {
 
-evicter_t::evicter_t(memory_tracker_t *tracker, uint64_t memory_limit)
-    : tracker_(tracker), memory_limit_(memory_limit),
-      access_time_counter_(INITIAL_ACCESS_TIME) { }
+evicter_t::evicter_t(cache_balancer_t *balancer)
+    : balancer_(balancer),
+      bytes_loaded_counter_(0),
+      access_time_counter_(INITIAL_ACCESS_TIME)
+{
+    guarantee(balancer_ != NULL);
+    memory_limit_ = balancer_->base_mem_per_store();
+    balancer_->add_evicter(this);
+}
 
 evicter_t::~evicter_t() {
     assert_thread();
+    balancer_->remove_evicter(this);
 }
 
+void evicter_t::update_memory_limit(uint64_t new_memory_limit,
+                                    uint64_t bytes_loaded_accounted_for) {
+    assert_thread();
+    __sync_sub_and_fetch(&bytes_loaded_counter_, bytes_loaded_accounted_for);
+    memory_limit_ = new_memory_limit;
+    evict_if_necessary();
+}
+
+uint64_t evicter_t::get_clamped_bytes_loaded() const {
+    __sync_synchronize();
+    int64_t res = bytes_loaded_counter_;
+    __sync_synchronize();
+    return std::max<int64_t>(res, 0);
+}
+
+void evicter_t::notify_bytes_loaded(int64_t in_memory_buf_change) {
+    assert_thread();
+    __sync_add_and_fetch(&bytes_loaded_counter_, in_memory_buf_change);
+    balancer_->notify_access();
+}
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
     assert_thread();
     unevictable_.add_without_size(page);
-    inform_tracker();
 }
 
 void evicter_t::add_now_loaded_size(uint32_t in_memory_buf_size) {
     assert_thread();
     unevictable_.add_size(in_memory_buf_size);
-    inform_tracker();
     evict_if_necessary();
+    notify_bytes_loaded(in_memory_buf_size);
+}
+
+void evicter_t::page_was_loaded(page_t *page) {
+    assert_thread();
+    notify_bytes_loaded(page->hypothetical_memory_usage());
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -34,15 +67,15 @@ bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->hypothetical_memory_usage());
-    inform_tracker();
     evict_if_necessary();
+    notify_bytes_loaded(page->hypothetical_memory_usage());
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->hypothetical_memory_usage());
-    inform_tracker();
     evict_if_necessary();
+    notify_bytes_loaded(page->hypothetical_memory_usage());
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
@@ -53,7 +86,6 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
     new_bag->add(page, page->hypothetical_memory_usage());
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -64,7 +96,6 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
     current_bag->remove(page, page->hypothetical_memory_usage());
     eviction_bag_t *new_bag = correct_eviction_category(page);
     new_bag->add(page, page->hypothetical_memory_usage());
-    inform_tracker();
     evict_if_necessary();
 }
 
@@ -85,8 +116,8 @@ void evicter_t::remove_page(page_t *page) {
     assert_thread();
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->hypothetical_memory_usage());
-    inform_tracker();
     evict_if_necessary();
+    notify_bytes_loaded(-static_cast<int64_t>(page->hypothetical_memory_usage()));
 }
 
 uint64_t evicter_t::in_memory_size() const {
@@ -94,10 +125,6 @@ uint64_t evicter_t::in_memory_size() const {
     return unevictable_.size()
         + evictable_disk_backed_.size()
         + evictable_unbacked_.size();
-}
-
-bool evicter_t::interested_in_read_ahead_block(uint32_t in_memory_block_size) const {
-    return in_memory_size() + in_memory_block_size < memory_limit_;
 }
 
 void evicter_t::evict_if_necessary() {
@@ -114,11 +141,5 @@ void evicter_t::evict_if_necessary() {
         page->evict_self();
     }
 }
-
-void evicter_t::inform_tracker() const {
-    tracker_->inform_memory_change(in_memory_size(),
-                                   memory_limit_);
-}
-
 
 }  // namespace alt

@@ -86,8 +86,7 @@
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 
 // Ratio of free ram to use for the cache by default
-// TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
-#define DEFAULT_MAX_CACHE_RATIO                   0.5
+#define DEFAULT_MAX_CACHE_RATIO                   2
 
 // The maximum number of concurrently active
 // index writes per merger serializer.

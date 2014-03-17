@@ -33,6 +33,7 @@ public:
         lock_t &operator=(lock_t &&);
 
         void reset();
+        bool has_lock() const;
         signal_t *get_drain_signal() const;
         void assert_is_holding(auto_drainer_t *);
         ~lock_t();

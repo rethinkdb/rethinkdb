@@ -117,7 +117,6 @@ public:
                             io_backender_t *io_backender,
                             reactor_driver_t<protocol_t> *parent,
                             namespace_id_t namespace_id,
-                            int64_t _cache_size,
                             const blueprint_t<protocol_t> &bp,
                             svs_by_namespace_t<protocol_t> *svs_by_namespace,
                             typename protocol_t::context_t *_ctx) :
@@ -126,8 +125,7 @@ public:
         ctx(_ctx),
         parent_(parent),
         namespace_id_(namespace_id),
-        svs_by_namespace_(svs_by_namespace),
-        cache_size(_cache_size)
+        svs_by_namespace_(svs_by_namespace)
     {
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
     }
@@ -305,7 +303,7 @@ private:
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
+        svs_by_namespace_->get_svs(serializers_collection, namespace_id_, &stores_lifetimer_, &svs_, ctx);
 
         auto const extract_reactor_directory_per_peer_fun =
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
@@ -358,7 +356,6 @@ private:
     scoped_ptr_t<reactor_t<protocol_t> > reactor_;
 
     scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t> reactor_directory_subscription_;
-    int64_t cache_size;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
@@ -518,29 +515,8 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * haven't seen before). Or send the new blueprint to the
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
-                    int64_t cache_size;
-                    if (it->second.get_ref().cache_size.in_conflict()) {
-                        cache_size = GIGABYTE;
-                    } else {
-                        cache_size = it->second.get_ref().cache_size.get();
-                    }
-
-                    if (cache_size < 16 * MEGABYTE) {
-                        cache_size = 16 * MEGABYTE;
-                        logINF("Namespace %s(%s) has too small of a cache size. Increasing it to 16 megabytes.\n",
-                                uuid_to_str(it->first).c_str(),
-                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
-                    }
-
-                    if (cache_size > 64 * GIGABYTE) {
-                        cache_size = 64 * GIGABYTE;
-                        logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
-                                uuid_to_str(it->first).c_str(),
-                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
-                    }
-
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx));
                 } else {
                     struct op_closure_t {
                         static bool apply(const blueprint_t<protocol_t> &_bp,
