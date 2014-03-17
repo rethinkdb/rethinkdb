@@ -1211,15 +1211,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     /* All of the sindex have been updated now it's time to actually clear the
      * deleted blob if it exists. */
     if (modification->info.deleted.first) {
-        // Deleting the value unfortunately updates the ref in-place as it operates, so
-        // we need to make a copy of the blob reference that is extended to the
-        // appropriate width.
-        std::vector<char> ref_cpy(modification->info.deleted.second);
-        ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
-        guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
-
         deletion_context->post_deleter()->delete_value(buf_parent_t(txn),
-                                                       ref_cpy.data());
+                modification->info.deleted.second.data());
     }
 }
 
