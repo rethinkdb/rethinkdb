@@ -29,6 +29,10 @@ class RqlDriverError(Exception):
     def __str__(self):
         return self.message
 
+class RqlConnectionError(RqlDriverError):
+    def __init__(self, message):
+        super(RqlConnectionError, self).__init__(message)
+
 class QueryPrinter(object):
     def __init__(self, root, frames=[]):
         self.root = root
