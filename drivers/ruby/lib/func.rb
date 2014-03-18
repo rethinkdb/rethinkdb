@@ -88,16 +88,18 @@ module RethinkDB
 
         args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
 
-        t = {
-          t: Term::TermType.const_get(termtype),
-          a: args.map {|x|
+        t = {t: Term::TermType.const_get(termtype)}
+        if args != []
+          t[:a] = args.map {|x|
             RQL.new.expr(x, :allow_json => @@allow_json[termtype]).to_pb
-          },
-          o: (optargs || {}).map {|k,v|
+          }
+        end
+        if optargs && optargs != {}
+          t[:o] = optargs.map {|k,v|
             { k: k.to_s,
               v: RQL.new.expr(v, :allow_json => @@allow_json[termtype]).to_pb }
           }
-        }
+        end
         return RQL.new(t, bitop)
       }
 

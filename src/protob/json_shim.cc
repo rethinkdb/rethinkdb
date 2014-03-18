@@ -21,55 +21,55 @@ void check_type(cJSON *json, int expected) {
 }
 
 // RSI: parenthesize
-#define TRANSFER(JSON, FIELD, NAME, DEST) do {                           \
-        struct {                                                        \
-            template<class T__, class = void>                           \
-            struct t__;                                                 \
-            template<class T__>                                         \
-            struct t__<T__, typename                                    \
-                       std::enable_if<&T__::set_##FIELD != NULL>::type> { \
-                void operator()(cJSON *json__, T__ *dest__) {           \
-                    decltype(dest__->FIELD()) tmp__;                    \
-                    cJSON *item__ = cJSON_GetObjectItem(json__, NAME);  \
-                    if (item__ == NULL) return;                         \
-                    safe_extractor_t<decltype(tmp__)>()(item__, &tmp__); \
-                    dest__->set_##FIELD(std::move(tmp__));              \
-                }                                                       \
-            };                                                          \
-            template<class T__>                                         \
-            struct t__<T__, typename                                    \
-                       std::enable_if<&T__::release_##FIELD != NULL>::type> { \
-                void operator()(cJSON *json__, T__ *dest__) {           \
-                    cJSON *item__ = cJSON_GetObjectItem(json__, NAME); \
-                    if (item__ == NULL) return;                         \
-                    safe_extractor_t<decltype(dest__->FIELD())>()(      \
-                        item__, dest__->mutable_##FIELD());             \
-                }                                                       \
-            };                                                          \
-            template<class T__>                                         \
-            struct t__<T__, typename                                    \
-                       std::enable_if<&T__::FIELD##_size != NULL>::type> { \
-                void operator()(cJSON *json__, T__ *dest__) {           \
-                    cJSON *arr__ = cJSON_GetObjectItem(json__, NAME); \
-                    if (arr__ == NULL) return;                          \
-                    check_type(arr__, cJSON_Array);                     \
-                    int64_t sz__ = cJSON_GetArraySize(arr__);           \
-                    for (int64_t i__ = 0; i__ < sz__; ++i__) {          \
-                        auto el__ = dest__->add_##FIELD();              \
-                        safe_extractor_t<decltype(dest__->FIELD(0))>()( \
-                            cJSON_GetArrayItem(arr__, i__),             \
-                            el__);                                      \
-                    }                                                   \
-                }                                                       \
-            };                                                          \
-            template<class T>                                           \
-            void operator()(cJSON *json__, T *dest__) {                 \
-                t__<T>()(json__, dest__);                               \
+#define TRANSFER(JSON, FIELD, NAME, DEST) do {                          \
+struct {                                                                \
+    template<class T__, class = void>                                   \
+    struct t__;                                                         \
+    template<class T__>                                                 \
+    struct t__<T__, typename                                            \
+               std::enable_if<&T__::set_##FIELD != NULL>::type> {       \
+        void operator()(cJSON *json__, T__ *dest__) {                   \
+            decltype(dest__->FIELD()) tmp__;                            \
+            cJSON *item__ = cJSON_GetObjectItem(json__, NAME);          \
+            if (item__ == NULL) return;                                 \
+            safe_extractor_t<decltype(tmp__)>()(item__, &tmp__);        \
+            dest__->set_##FIELD(std::move(tmp__));                      \
+        }                                                               \
+    };                                                                  \
+    template<class T__>                                                 \
+    struct t__<T__, typename                                            \
+               std::enable_if<&T__::release_##FIELD != NULL>::type> {   \
+        void operator()(cJSON *json__, T__ *dest__) {                   \
+            cJSON *item__ = cJSON_GetObjectItem(json__, NAME);          \
+            if (item__ == NULL) return;                                 \
+            safe_extractor_t<decltype(dest__->FIELD())>()(              \
+                item__, dest__->mutable_##FIELD());                     \
+        }                                                               \
+    };                                                                  \
+    template<class T__>                                                 \
+    struct t__<T__, typename                                            \
+               std::enable_if<&T__::FIELD##_size != NULL>::type> {      \
+        void operator()(cJSON *json__, T__ *dest__) {                   \
+            cJSON *arr__ = cJSON_GetObjectItem(json__, NAME);           \
+            if (arr__ == NULL) return;                                  \
+            check_type(arr__, cJSON_Array);                             \
+            int64_t sz__ = cJSON_GetArraySize(arr__);                   \
+            for (int64_t i__ = 0; i__ < sz__; ++i__) {                  \
+                auto el__ = dest__->add_##FIELD();                      \
+                safe_extractor_t<decltype(dest__->FIELD(0))>()(         \
+                    cJSON_GetArrayItem(arr__, i__),                     \
+                    el__);                                              \
             }                                                           \
-        } meta_extractor__;                                             \
-        check_type(JSON, cJSON_Object);                                 \
-        meta_extractor__(JSON, DEST);                                   \
-    } while (0)
+        }                                                               \
+    };                                                                  \
+    template<class T>                                                   \
+    void operator()(cJSON *json__, T *dest__) {                         \
+        t__<T>()(json__, dest__);                                       \
+    }                                                                   \
+} meta_extractor__;                                                     \
+check_type(JSON, cJSON_Object);                                         \
+meta_extractor__(JSON, DEST);                                           \
+} while (0)
 
 template<class T, class = void>
 struct extractor_t;
@@ -168,18 +168,18 @@ struct extractor_t<const Datum &> {
         TRANSFER(json, type, "t", d);
         switch (d->type()) {
         case Datum::R_NULL:                                     break;
-        case Datum::R_BOOL:   TRANSFER(json, r_bool, "b", d);   break;
-        case Datum::R_NUM:    TRANSFER(json, r_num, "n", d);    break;
-        case Datum::R_STR:    TRANSFER(json, r_str, "s", d);    break;
-        case Datum::R_ARRAY:  TRANSFER(json, r_array, "a", d);  break;
+        case Datum::R_BOOL:   TRANSFER(json, r_bool,   "b", d); break;
+        case Datum::R_NUM:    TRANSFER(json, r_num,    "n", d); break;
+        case Datum::R_STR:    TRANSFER(json, r_str,    "s", d); break;
+        case Datum::R_ARRAY:  TRANSFER(json, r_array,  "a", d); break;
         case Datum::R_OBJECT: TRANSFER(json, r_object, "o", d); break;
-        case Datum::R_JSON:   TRANSFER(json, r_str, "s", d);    break;
+        case Datum::R_JSON:   TRANSFER(json, r_str,    "s", d); break;
         default: unreachable();
         }
     }
 };
 
-bool parse_json_pb(Query *q, char *str) {
+bool parse_json_pb(Query *q, char *str) throw () {
     // debug_timer_t tm;
     q->Clear();
     scoped_cJSON_t json_holder(cJSON_Parse(str));
@@ -190,5 +190,23 @@ bool parse_json_pb(Query *q, char *str) {
     // tm.tick("SHIM");
     return true;
 }
+
+void write_json_pb(const Response *r, scoped_array_t<char> */*out*/) throw () {
+    scoped_cJSON_t json_holder(cJSON_CreateObject());
+    cJSON *json = json_holder.get();
+    json_holder.AddItemToObject("t", cJSON_CreateNumber(r->type()));
+    json_holder.AddItemToObject("k", cJSON_CreateNumber(r->token()));
+    {
+        scoped_cJSON_t arr(cJSON_CreateArray());
+        for (int i = 0; i < r->response_size(); ++i) {
+            const Datum *d = &r->response(i);
+            guarantee(d->type() == Datum::R_JSON);
+            arr.AddItemToArray(cJSON_CreateString(d->r_str().c_str()));
+        }
+        json_holder.AddItemToObject("r", arr.release());
+    }
+    guarantee(json != NULL);
+}
+
 
 } // namespace json_shim

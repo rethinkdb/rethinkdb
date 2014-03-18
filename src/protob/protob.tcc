@@ -177,6 +177,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
         request_t request;
         make_empty_protob_bearer(&request);
         bool force_response = false;
+        bool use_true_json = (client_magic_number == context_t::json_magic_number);
         response_t forced_response;
         std::string err;
         try {
@@ -192,7 +193,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                 data[size] = 0; // Null terminate in case we have JSON data.
 
                 Query *q = underlying_protob_value(&request);
-                bool res = (client_magic_number == context_t::json_magic_number)
+                bool res = use_true_json
                     ? json_shim::parse_json_pb(q, data.data())
                     : q->ParseFromArray(data.data(), size);
                 if (!res) {
@@ -211,12 +212,12 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
             switch (cb_mode) {
             case INLINE:
                 if (force_response) {
-                    send(forced_response, conn.get(), &ct_keepalive);
+                    send(forced_response, use_true_json, conn.get(), &ct_keepalive);
                 } else {
                     response_t response;
                     bool response_needed = f(request, &response, &ctx);
                     if (response_needed) {
-                        send(response, conn.get(), &ct_keepalive);
+                        send(response, use_true_json, conn.get(), &ct_keepalive);
                     }
                 }
                 break;
@@ -241,14 +242,19 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::send(
     const response_t &res,
+    bool use_true_json,
     tcp_conn_t *conn,
     signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
-    int size = res.ByteSize();
-    conn->write(&size, sizeof(res.ByteSize()), closer);
-    scoped_array_t<char> data(size);
-
-    res.SerializeToArray(data.data(), size);
-    conn->write(data.data(), size, closer);
+    scoped_array_t<char> data;
+    if (use_true_json) {
+        json_shim::write_json_pb(&res, &data);
+    } else {
+        data.init(res.ByteSize());
+        res.SerializeToArray(data.data(), data.size());
+    }
+    int32_t sz = data.size(); // TODO: recover gracefully on overflow.
+    conn->write(&sz, sizeof(sz), closer);
+    conn->write(data.data(), sz, closer);
 }
 
 // Used in protob_server_t::handle(...) below to combine the interruptor from the

@@ -125,37 +125,46 @@ private:
 // "request_t::protob_type" does not actually have to be defined.
 
 
+// TODO: This templating is total bullshit.  We support *one* protobuf API, and
+// we're trying to move away from it.
 template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
-    protob_server_t(const std::set<ip_address_t> &local_addresses,
-                    int port,
-                    boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
-                    response_t (*_on_unparsable_query)(request_t, std::string),
-                    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
-                    protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
+    protob_server_t(
+        const std::set<ip_address_t> &local_addresses,
+        int port,
+        boost::function<bool(request_t, response_t *, context_t *)> _f, // NOLINT
+        response_t (*_on_unparsable_query)(request_t, std::string),
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            _auth_metadata,
+        protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 
     int get_port() const;
 private:
 
-    void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t);
-    void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
+    void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+                     auto_drainer_t::lock_t);
+    void send(const response_t &, bool, tcp_conn_t *conn, signal_t *closer)
+        THROWS_ONLY(tcp_conn_write_closed_exc_t);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
     void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
-    boost::function<bool(request_t, response_t *, context_t *)> f;  // NOLINT(readability/casting)
+    boost::function<bool(request_t, response_t *, context_t *)> f; // NOLINT
     response_t (*on_unparsable_query)(request_t, std::string);
 
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        auth_metadata;
 
     protob_server_callback_mode_t cb_mode;
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id().threadnum]; }
+    signal_t *shutdown_signal() {
+        return &shutting_down_conds[get_thread_id().threadnum];
+    }
     boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
     auto_drainer_t auto_drainer;
     struct pulse_on_destruct_t {
