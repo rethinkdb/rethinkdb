@@ -25,6 +25,10 @@ public:
         return rwlock_in_line_.write_signal();
     }
 
+    void reset() {
+        rwlock_in_line_.reset();
+    }
+
 private:
     rwlock_in_line_t rwlock_in_line_;
 

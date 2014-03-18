@@ -1,5 +1,7 @@
 #include "concurrency/rwlock.hpp"
 
+#include "valgrind.hpp"
+
 rwlock_t::rwlock_t() { }
 
 rwlock_t::~rwlock_t() {
@@ -59,14 +61,23 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
     }
 }
 
-
 rwlock_in_line_t::rwlock_in_line_t(rwlock_t *lock, access_t access)
     : lock_(lock), access_(access) {
     lock_->add_acq(this);
 }
 
 rwlock_in_line_t::~rwlock_in_line_t() {
-    lock_->remove_acq(this);
+    reset();
+}
+
+void rwlock_in_line_t::reset() {
+    if (lock_ != NULL) {
+        lock_->remove_acq(this);
+        lock_ = NULL;
+        access_ = valgrind_undefined(access_t::read);
+        read_cond_.reset();
+        write_cond_.reset();
+    }
 }
 
 
