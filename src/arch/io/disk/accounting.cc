@@ -106,6 +106,6 @@ void accounting_diskmgr_t::done(accounting_payload_t *p) {
     action_t *a = static_cast<action_t *>(p);
     a->account->get_outstanding_requests_limiter()->unlock(1);
     a->account_acq.reset();
-    done_fun(a);
+    done_fun(static_cast<action_t *>(p));
 }
 
