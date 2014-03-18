@@ -1,6 +1,7 @@
 #include "protob/json_shim.hpp"
 
 #include "http/json.hpp"
+#include "debug.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 std::map<std::string, int32_t> resolver;
@@ -179,11 +180,14 @@ struct extractor_t<const Datum &> {
 };
 
 bool parse_json_pb(Query *q, char *str) {
+    // debug_timer_t tm;
     q->Clear();
     scoped_cJSON_t json_holder(cJSON_Parse(str));
+    // tm.tick("JSON");
     cJSON *json = json_holder.get();
     if (json == NULL) return false;
     extractor_t<const Query &>()(json, q);
+    // tm.tick("SHIM");
     return true;
 }
 

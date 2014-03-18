@@ -58,7 +58,7 @@ module RethinkDB
       preview = preview_res.pretty_inspect[0...-1]
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: RSI" + # #{RPP.pp(@msg)}" +
         (@run ? "" : "\n#{preview}") + ">"
     end
 
@@ -158,10 +158,10 @@ module RethinkDB
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q.token, true)
+                   msg, self, opts, q[:token], true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q.token, false)
+                   msg, self, opts, q[:token], false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end

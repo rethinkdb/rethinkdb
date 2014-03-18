@@ -135,7 +135,7 @@ module RethinkDB
     def any_to_pb(x)
       return x.to_pb if x.class == RQL
       json = Shim.native_to_datum_term(x.to_json(max_nesting: 500))
-      return {type: JSON, args: [json]}
+      return {type: Term::TermType::JSON, args: [json]}
     end
 
     def timezone_from_offset(offset)

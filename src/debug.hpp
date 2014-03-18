@@ -4,6 +4,7 @@
 #include <string>
 
 #include "containers/printf_buffer.hpp"
+#include "time.hpp"
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
