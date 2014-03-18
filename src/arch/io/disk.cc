@@ -81,6 +81,7 @@ public:
 
     void delayed_destroy(void *_account) {
         on_thread_t t(home_thread());
+
         // The account destructor can block if there are outstanding requests.
         delete static_cast<accounting_diskmgr_t::account_t *>(_account);
     }
@@ -194,7 +195,7 @@ private:
     pool_diskmgr_t backend;
 
 
-    int outstanding_txn;
+    intptr_t outstanding_txn;
 
     DISABLE_COPYING(linux_disk_manager_t);
 };
