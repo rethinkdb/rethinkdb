@@ -219,10 +219,15 @@ class ArrayResult extends IterableResult
         else
             cb(null, @)
 
+    close: ->
+        return @
+
     makeIterable: (response) ->
+        response.__proto__ = {}
         for name, method of ArrayResult.prototype
             if name isnt 'constructor'
                 response.__proto__[name] = method
+        response.__proto__.__proto__ = [].__proto__
         response
 
 nextCbCheck = (cb) ->
