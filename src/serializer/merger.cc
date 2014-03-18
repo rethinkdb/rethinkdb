@@ -3,9 +3,10 @@
 
 #include "errors.hpp"
 
-#include "serializer/types.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "config/args.hpp"
+#include "serializer/types.hpp"
 
 
 
@@ -80,7 +81,8 @@ void merger_serializer_t::do_index_write() {
         write_complete.swap(on_inner_index_write_complete);
     }
 
-    inner->index_write(NULL /* RSI */, write_ops, index_writes_io_account.get());
+    new_mutex_in_line_t mutex_acq;  // RSI
+    inner->index_write(&mutex_acq, write_ops, index_writes_io_account.get());
 
     write_complete->pulse();
 
