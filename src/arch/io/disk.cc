@@ -71,7 +71,7 @@ public:
 
     ~linux_disk_manager_t() {
         rassert(outstanding_txn == 0,
-                "Closing a file with outstanding txns (%d of them)\n",
+                "Closing a file with outstanding txns (%" PRIiPTR " of them)\n",
                 outstanding_txn);
     }
 
