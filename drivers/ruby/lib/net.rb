@@ -7,11 +7,7 @@ require 'timeout'
 
 module RethinkDB
   def self.new_query(type, token)
-    q = Query.new
-    q.type = type
-    q.accepts_r_json = true
-    q.token = token
-    return q
+    {type: type, token: token}
   end
 
   module Faux_Abort
@@ -136,27 +132,26 @@ module RethinkDB
     @@token_cnt = 0
     def run_internal(q, noreply=false)
       dispatch q
-      noreply ? nil : wait(q.token)
+      noreply ? nil : wait(q[:token])
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
-      q.query = msg
 
+      global_optargs = {}
       all_opts = @default_opts.merge(opts)
       if all_opts.keys.include?(:noreply)
         all_opts[:noreply] = !!all_opts[:noreply]
       end
-      all_opts.each {|k,v|
-        ap = Query::AssocPair.new
-        ap.key = k.to_s
-        if v.class == RQL
-          ap.val = v.to_pb
-        else
-          ap.val = RQL.new.expr(v).to_pb
-        end
-        q.global_optargs << ap
+
+      q = {
+        type: Query::QueryType::START,
+        token: @@token_cnt += 1,
+        global_optargs: all_opts.map {|k,v|
+          { key: k.to_s,
+            val: (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb) }
+        },
+        query: msg
       }
 
       res = run_internal(q, all_opts[:noreply])
@@ -194,11 +189,12 @@ module RethinkDB
     end
 
     def dispatch msg
-      # PP.pp msg if $DEBUG
-      payload = msg.serialize_to_string
+      # PP.pp msg
+      payload = msg.to_json
+      # PP.pp payload
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
-      return msg.token
+      return msg[:token]
     end
 
     def wait token
@@ -231,7 +227,7 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_2
+    @@magic_number = VersionDummy::Version::V0_2_JSON
 
     def debug_socket; @socket; end
 

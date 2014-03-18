@@ -9,7 +9,7 @@ namespace json_shim {
 
 class exc_t : public std::exception {
 public:
-    exc_t(cJSON *) : str("PLACEHOLDER") { }
+    exc_t(cJSON *) : str("PLACEHOLDER") { BREAKPOINT; }
     const char *what() const throw () { return str.c_str(); }
 private:
     std::string str;
@@ -29,8 +29,9 @@ void check_type(cJSON *json, int expected) {
                        std::enable_if<&T__::set_##FIELD != NULL>::type> { \
                 void operator()(cJSON *json__, T__ *dest__) {           \
                     decltype(dest__->FIELD()) tmp__;                    \
-                    extractor_t<decltype(tmp__)>()(                     \
-                        cJSON_GetObjectItem(json__, #FIELD), &tmp__);   \
+                    cJSON *item__ = cJSON_GetObjectItem(json__, #FIELD); \
+                    if (item__ == NULL) return;                         \
+                    safe_extractor_t<decltype(tmp__)>()(item__, &tmp__); \
                     dest__->set_##FIELD(std::move(tmp__));              \
                 }                                                       \
             };                                                          \
@@ -38,9 +39,10 @@ void check_type(cJSON *json, int expected) {
             struct t__<T__, typename                                    \
                        std::enable_if<&T__::release_##FIELD != NULL>::type> { \
                 void operator()(cJSON *json__, T__ *dest__) {           \
-                    extractor_t<decltype(dest__->FIELD())>()(           \
-                        cJSON_GetObjectItem(json__, #FIELD),            \
-                        dest__->mutable_##FIELD());                     \
+                    cJSON *item__ = cJSON_GetObjectItem(json__, #FIELD); \
+                    if (item__ == NULL) return;                         \
+                    safe_extractor_t<decltype(dest__->FIELD())>()(      \
+                        item__, dest__->mutable_##FIELD());             \
                 }                                                       \
             };                                                          \
             template<class T__>                                         \
@@ -48,11 +50,12 @@ void check_type(cJSON *json, int expected) {
                        std::enable_if<&T__::FIELD##_size != NULL>::type> { \
                 void operator()(cJSON *json__, T__ *dest__) {           \
                     cJSON *arr__ = cJSON_GetObjectItem(json__, #FIELD); \
+                    if (arr__ == NULL) return;                          \
                     check_type(arr__, cJSON_Array);                     \
                     int64_t sz__ = cJSON_GetArraySize(arr__);           \
                     for (int64_t i__ = 0; i__ < sz__; ++i__) {          \
                         auto el__ = dest__->add_##FIELD();              \
-                        extractor_t<decltype(dest__->FIELD(0))>()(      \
+                        safe_extractor_t<decltype(dest__->FIELD(0))>()( \
                             cJSON_GetArrayItem(arr__, i__),             \
                             el__);                                      \
                     }                                                   \
@@ -69,6 +72,16 @@ void check_type(cJSON *json, int expected) {
 
 template<class T, class = void>
 struct extractor_t;
+
+template<class T>
+struct safe_extractor_t : public extractor_t<T> {
+    template<class U>
+    void operator()(cJSON *json, U *t) {
+        if (json != NULL && t != NULL) {
+            (*static_cast<extractor_t<T> *>(this))(json, t);
+        }
+    }
+};
 
 template<class T>
 struct extractor_t<

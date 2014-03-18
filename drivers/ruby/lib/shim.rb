@@ -101,30 +101,28 @@ module RethinkDB
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        term = orig_term.deep_dup
-        term.bt_tag(bt)
-        raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
+        # term = orig_term.deep_dup
+        # term.bt_tag(bt)
+        # raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
+        raise e.class, "#{e.message}\nRSI"
       end
     end
 
     def self.native_to_datum_term x
       dt = Datum::DatumType
-      d = Datum.new
+      d = {}
       case x
-      when Fixnum     then d.type = dt::R_NUM;  d.r_num = x
-      when Float      then d.type = dt::R_NUM;  d.r_num = x
-      when Bignum     then d.type = dt::R_NUM;  d.r_num = x
-      when String     then d.type = dt::R_STR;  d.r_str = x
-      when Symbol     then d.type = dt::R_STR;  d.r_str = x.to_s
-      when TrueClass  then d.type = dt::R_BOOL; d.r_bool = x
-      when FalseClass then d.type = dt::R_BOOL; d.r_bool = x
-      when NilClass   then d.type = dt::R_NULL
+      when Fixnum     then d[:type] = dt::R_NUM;  d[:r_num] = x
+      when Float      then d[:type] = dt::R_NUM;  d[:r_num] = x
+      when Bignum     then d[:type] = dt::R_NUM;  d[:r_num] = x
+      when String     then d[:type] = dt::R_STR;  d[:r_str] = x
+      when Symbol     then d[:type] = dt::R_STR;  d[:r_str] = x.to_s
+      when TrueClass  then d[:type] = dt::R_BOOL; d[:r_bool] = x
+      when FalseClass then d[:type] = dt::R_BOOL; d[:r_bool] = x
+      when NilClass   then d[:type] = dt::R_NULL
       else raise RqlRuntimeError, "UNREACHABLE"
       end
-      t = Term.new
-      t.type = Term::TermType::DATUM
-      t.datum = d
-      return t
+      return {type: Term::TermType::DATUM, datum: d}
     end
   end
 
@@ -136,10 +134,8 @@ module RethinkDB
 
     def any_to_pb(x)
       return x.to_pb if x.class == RQL
-      t = Term.new
-      t.type = Term::TermType::JSON
-      t.args = [Shim.native_to_datum_term(x.to_json(:max_nesting => 500))]
-      return t
+      json = Shim.native_to_datum_term(x.to_json(max_nesting: 500))
+      return {type: JSON, args: [json]}
     end
 
     def timezone_from_offset(offset)
@@ -160,29 +156,24 @@ module RethinkDB
       when Array
         args = x.map{|y| fast_expr(y, allow_json)}
         return x if allow_json && args.all?{|y| y.class != RQL}
-        t = Term.new
-        t.type = Term::TermType::MAKE_ARRAY
-        t.args = args.map{|y| any_to_pb(y)}
-        return RQL.new(t, nil)
+        return RQL.new({ type: Term::TermType::MAKE_ARRAY,
+                         args: args.map{|y| any_to_pb(y)} }, nil)
       when Hash
         kvs = x.map{|k,v| [k, fast_expr(v, allow_json)]}
         return x if allow_json && kvs.all? {|k,v|
           (k.class == String || k.class == Symbol) && v.class != RQL
         }
-        t = Term.new
-        t.type = Term::TermType::MAKE_OBJ
-        t.optargs = kvs.map{|k,v|
-          ap = Term::AssocPair.new;
-          if k.class == Symbol || k.class == String
-            ap.key = k.to_s
-          else
-            raise RqlDriverError, "Object keys must be strings or symbols." +
-              "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
-          end
-          ap.val = any_to_pb(v)
-          ap
+        o = {
+          type: Term::TermType::MAKE_OBJ,
+          optargs: kvs.map{|k,v|
+            if k.class != Symbol && k.class != String
+              raise RqlDriverError, "Object keys must be strings or symbols." +
+                "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
+            end
+            { key: k.to_s, val: any_to_pb(v) }
+          }
         }
-        return RQL.new(t, nil)
+        return RQL.new(o, nil)
       when Proc
         t = RQL.new(nil, nil).new_func(&x).to_pb
         return RQL.new(t, nil)

@@ -11,45 +11,6 @@ load 'shim.rb'
 load 'func.rb'
 load 'rpp.rb'
 
-class Term::AssocPair
-  def deep_dup
-    dup.tap { |pair| pair.val = pair.val.deep_dup }
-  end
-end
-
-class Term
-  attr_accessor :is_error
-
-  def deep_dup
-    dup.tap {|term|
-      term.args.map!(&:deep_dup)
-      term.optargs.map!(&:deep_dup)
-    }
-  end
-
-  def bt_tag bt
-    @is_error = true
-    begin
-      return if bt == []
-      frame, sub_bt = bt[0], bt [1..-1]
-      if frame.class == String
-        optargs.each {|optarg|
-          if optarg.key == frame
-            @is_error = false
-            optarg.val.bt_tag(sub_bt)
-          end
-        }
-      else
-        @is_error = false
-        args[frame].bt_tag(sub_bt)
-      end
-    rescue StandardError => e
-      @is_error = true
-      $stderr.puts "ERROR: Failed to parse backtrace (we'll take our best guess)."
-    end
-  end
-end
-
 module RethinkDB
   module Shortcuts
     def r(*args)
