@@ -14,14 +14,15 @@
 
 #include "arch/types.hpp"
 #include "arch/runtime/thread_pool.hpp"
-#include "config/args.hpp"
-#include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/stats.hpp"
 #include "arch/io/disk/accounting.hpp"
+#include "backtrace.hpp"
+#include "config/args.hpp"
+#include "debug.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
@@ -70,7 +71,9 @@ public:
     }
 
     ~linux_disk_manager_t() {
-        rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
+        rassert(outstanding_txn == 0,
+                "Closing a file with outstanding txns (%d of them)\n",
+                outstanding_txn);
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
