@@ -3,6 +3,7 @@
 
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "perfmon/core.hpp"
 #include "serializer/serializer.hpp"
 
@@ -77,7 +78,10 @@ void delete_contiguous_blocks_from_0(serializer_t *serializer) {
             deletes.push_back(index_write_op_t(i,
                                                counted_t<standard_block_token_t>()));
         }
-        serializer->index_write(deletes, account.get());
+
+        // There are no other index_writes to order ourselves with.
+        new_mutex_in_line_t acq;
+        serializer->index_write(&acq, deletes, account.get());
     }
 }
 

@@ -1194,7 +1194,8 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         exiter.end();
 
         rassert(!write_ops.empty());
-        page_cache->serializer_->index_write(write_ops,
+        page_cache->serializer_->index_write(&mutex_acq,
+                                             write_ops,
                                              page_cache->writes_io_account_.get());
     }
 

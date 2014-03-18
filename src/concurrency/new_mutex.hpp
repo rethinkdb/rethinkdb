@@ -18,6 +18,8 @@ private:
 
 class new_mutex_in_line_t {
 public:
+    new_mutex_in_line_t() { }
+
     explicit new_mutex_in_line_t(new_mutex_t *new_mutex)
         : rwlock_in_line_(&new_mutex->rwlock_, access_t::write) { }
 

@@ -149,7 +149,9 @@ public:
 
     void block_read(const counted_t<ls_block_token_pointee_t> &token, ser_buffer_t *buf, file_account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
+    void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::vector<index_write_op_t> &write_ops,
+                     file_account_t *io_account);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);

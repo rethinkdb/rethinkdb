@@ -61,6 +61,9 @@ void rwlock_t::pulse_pulsables(rwlock_in_line_t *p) {
     }
 }
 
+rwlock_in_line_t::rwlock_in_line_t()
+    : lock_(NULL), access_(valgrind_undefined(access_t::read)) { }
+
 rwlock_in_line_t::rwlock_in_line_t(rwlock_t *lock, access_t access)
     : lock_(lock), access_(access) {
     lock_->add_acq(this);

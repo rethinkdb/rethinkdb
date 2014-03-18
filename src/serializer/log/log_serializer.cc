@@ -439,7 +439,9 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
+void log_serializer_t::index_write(UNUSED new_mutex_in_line_t *mutex_acq,  // RSI
+                                   const std::vector<index_write_op_t> &write_ops,
+                                   file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
