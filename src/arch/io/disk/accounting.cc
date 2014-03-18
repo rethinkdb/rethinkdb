@@ -87,8 +87,7 @@ void accounting_diskmgr_account_t::maybe_init(){
 void debug_print(printf_buffer_t *buf,
                  const accounting_diskmgr_action_t &action) {
     buf->appendf("accounting_diskmgr_action{...}<");
-    const accounting_payload_t &parent_action =
-        static_cast<const accounting_payload_t &>(action);
+    const accounting_payload_t &parent_action = action;
     debug_print(buf, parent_action);
 }
 
