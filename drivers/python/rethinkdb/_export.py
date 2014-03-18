@@ -383,7 +383,6 @@ def run_clients(options, db_table_set):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "Traceback: %s" % (error[2])
             print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
             raise RuntimeError("Errors occurred during export")
 
