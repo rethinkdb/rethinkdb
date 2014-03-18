@@ -30,6 +30,7 @@ public:
         context_t() : interruptor(0) { }
         static const int32_t no_auth_magic_number = VersionDummy::V0_1;
         static const int32_t auth_magic_number = VersionDummy::V0_2;
+        static const int32_t json_magic_number = VersionDummy::V0_2_JSON;
         ql::stream_cache2_t stream_cache2;
         signal_t *interruptor;
     };

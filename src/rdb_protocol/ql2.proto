@@ -38,8 +38,9 @@
 message VersionDummy { // We need to wrap it like this for some
                        // non-conforming protobuf libraries
     enum Version {
-        V0_1 = 0x3f61ba36;
-        V0_2 = 0x723081e1;
+        V0_1      = 0x3f61ba36;
+        V0_2      = 0x723081e1;
+        V0_2_JSON = 0x5e72273a;
     }
 }
 

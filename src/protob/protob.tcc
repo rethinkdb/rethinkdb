@@ -18,9 +18,10 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/auth_key.hpp"
+#include "protob/json_shim.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rdb_protocol/env.hpp"
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
@@ -122,30 +123,34 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
 #endif  // __linux
 
     std::string init_error;
+    int32_t client_magic_number = -1;
 
     try {
         if (auth_vclock.in_conflict()) {
-            throw protob_server_exc_t("authorization key is in conflict, resolve it through the admin UI before connecting clients");
+            throw protob_server_exc_t(
+                "Authorization key is in conflict, "
+                "resolve it through the admin UI before connecting clients.");
         }
 
-        int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
 
         if (client_magic_number == context_t::no_auth_magic_number) {
             if (!auth_vclock.get().str().empty()) {
-                throw protob_server_exc_t("authorization required, client does not support it");
+                throw protob_server_exc_t(
+                    "Authorization required but client does not support it.");
             }
-        } else if (client_magic_number == context_t::auth_magic_number) {
+        } else if (client_magic_number == context_t::auth_magic_number
+                   || client_magic_number == context_t::json_magic_number) {
             auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
             if (!timing_sensitive_equals(provided_auth, auth_vclock.get())) {
-                throw protob_server_exc_t("incorrect authorization key");
+                throw protob_server_exc_t("Incorrect authorization key.");
             }
             const char *success_msg = "SUCCESS";
             conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
         } else {
-            throw protob_server_exc_t("this is the rdb protocol port (bad magic number)");
+            throw protob_server_exc_t(
+                "This is the rdb protocol port (bad magic number).");
         }
-
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());
@@ -154,6 +159,8 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     } catch (const tcp_conn_write_closed_exc_t &) {
         return;
     }
+
+    guarantee(client_magic_number != -1);
 
     try {
         if (!init_error.empty()) {
@@ -180,11 +187,14 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                 forced_response = on_unparsable_query(request_t(), err);
                 force_response = true;
             } else {
-                scoped_array_t<char> data(size);
+                scoped_array_t<char> data(size + 1);
                 conn->read(data.data(), size, &ct_keepalive);
+                data[size] = 0; // Null terminate in case we have JSON data.
 
-                const bool res
-                    = underlying_protob_value(&request)->ParseFromArray(data.data(), size);
+                Query *q = underlying_protob_value(&request);
+                bool res = (client_magic_number == context_t::json_magic_number)
+                    ? json_shim::parse_json_pb(q, data.data())
+                    : q->ParseFromArray(data.data(), size);
                 if (!res) {
                     err = "Client is buggy (failed to deserialize protobuf).";
                     forced_response = on_unparsable_query(request, err);
