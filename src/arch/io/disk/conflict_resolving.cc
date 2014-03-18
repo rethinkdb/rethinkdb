@@ -197,10 +197,16 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
     action_t *action = static_cast<action_t *>(payload);
 
     if (action->get_is_resize()) {
-        bool submitted_another_resize = false;
+        /* Mark the resize as done. */
+        rassert(resize_active[action->get_fd()] > 0);
+        --resize_active[action->get_fd()];
 
         /* Resume all operations that were waiting for us. */
         std::deque<action_t *> &waiter_queue = resize_waiter_queues[action->get_fd()];
+
+        std::vector<action_t *> waiters_to_unblock;
+        waiters_to_unblock.reserve(waiter_queue.size());
+
         while (!waiter_queue.empty()) {
             /* Decrease the conflict count for the oldest remaining waiter. */
             action_t *waiter = waiter_queue.front();
@@ -214,49 +220,33 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
             rassert(!waiter->get_is_resize() || waiter->conflict_count == 0);
 
             if (waiter->conflict_count == 0) {
+                /* The waiter isn't waiting on anything else. Unblock it. */
+                waiters_to_unblock.push_back(waiter);
+
                 if (waiter->get_is_resize()) {
                     /* We are about to submit another resize. waiters that come after
                     this must remain on the resize_waiter_queue, because they
                     are still waiting for that resize. Continue by
                     just decrementing the conflict_count, but not
-                    popping the waiters off the queue. */
-                    for (auto it = waiter_queue.begin(); it != waiter_queue.end(); ++it) {
+                    popping the waiters off the queue nor unblocking them. */
+                    for (auto it = waiter_queue.begin();
+                         it != waiter_queue.end();
+                         ++it) {
                         --(*it)->conflict_count;
                         /* The waiter must at least still be waiting for the
-                        resize we are about to submit now. */
+                        resize we are about to unblock. */
                         rassert((*it)->conflict_count > 0);
                     }
 
-                    /* Mark resize as done. We are not going to unblock any waiters
-                    should they come in after this point. So let's make sure
-                    new waiters are not going to wait for us. */
-                    rassert(resize_active[action->get_fd()] > 0);
-                    --resize_active[action->get_fd()];
-                    submitted_another_resize = true;
-                }
-
-                /* The waiter isn't waiting on anything else. Submit it. */
-                submit_action_downwards(waiter);
-
-                if (submitted_another_resize) {
                     /* Sorry, the remaining waiters must wait for a little longer. */
                     break;
                 }
             }
         }
 
-        if (!submitted_another_resize) {
-            /* Mark the resize as done.
-            We cannot do that earlier for the following reason:
-            Suppose we have a second resize operation currently waiting for us to finish.
-            Now if `submit()` gets called in the middle of above loop (it probably
-            cannot happen, but who knows), the submitted operation's `conflict_count`
-            would incorporate all the resizes that are currently accounted for in
-            `resize_active`. If we already had removed ourselves from `resize_active`,
-            we would decrement the `conflict_count` of an operation that was actually
-            waiting for the later resize, not for us. */
-            rassert(resize_active[action->get_fd()] > 0);
-            --resize_active[action->get_fd()];
+        /* Now actually unblock some waiters. */
+        for (size_t i = 0; i < waiters_to_unblock.size(); ++i) {
+            submit_action_downwards(waiters_to_unblock[i]);
         }
 
     } else {

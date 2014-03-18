@@ -59,7 +59,7 @@ accounting_diskmgr_account_t::~accounting_diskmgr_account_t() {
 
 void accounting_diskmgr_account_t::push(action_t *action) {
     maybe_init();
-    action->account_acq = auto_drainer_t::lock_t(&requests_drainer);
+    action->account_acq = requests_drainer.lock();
     eager_account->push(action);
 }
 
