@@ -74,20 +74,21 @@ Styx""".splitlines()
 
 
 parser = OptionParser()
+parser.add_option("--cache-size", dest="cache_size", metavar="MEGABYTES", default=1000, type="int")
 parser.add_option("--cores", dest="cores", metavar="THREAD_COUNT", default=0, type="int")
 parser.add_option("--keep", dest="keep_data", action="store_true", default=False)
 parser.add_option("--dir", dest="build_dir", metavar="DIRNAME", default="debug")
 (options, args) = parser.parse_args()
 
 def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--dir <build_dir>] [--cores <thread_count>]"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--dir <build_dir>] [--cores <thread_count>] [--cache-size <MB>]"
     print """Where:
     p is the port you want the cluster to use
     N is the number of machines you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
     --keep preserve the data directories between runs (by default, they are deleted)
     --dir tells which build directory to use (by default, 'debug')
-    --cores will be passed through to rethinkdb
+    --cores and --cache-size will be passed through to rethinkdb
     if --dir contains 'valgrind', the cluster will be run under valgrind. """
 
 
@@ -104,6 +105,7 @@ build_dir = options.build_dir
 keep_data = options.keep_data
 hostname = socket.gethostname()
 cores = options.cores
+cache_size = options.cache_size
 
 valgrind_options = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp"]
 
@@ -124,7 +126,12 @@ for i, machine_name in enumerate(machine_names):
 
     binary = "../build/" + build_dir + "/rethinkdb"
 
-    rdb_options = [binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--bind", "all"]
+    rdb_options = [binary]
+    rdb_options.extend(["--directory", directory])
+    rdb_options.extend(["--machine-name", machine_name])
+    rdb_options.extend(["--port-offset", str(i+port)])
+    rdb_options.extend(["--bind", "all"])
+    rdb_options.extend(["--cache-size", str(cache_size)])
 
     if cores != 0:
         rdb_options += ["--cores", str(cores)]

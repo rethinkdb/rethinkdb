@@ -27,7 +27,7 @@ struct accounting_diskmgr_eager_account_t : public semaphore_available_callback_
         throttled_queue.pop_front();
         queue.push(action);
     }
-    semaphore_t *get_outstanding_requests_limiter() {
+    co_semaphore_t *get_outstanding_requests_limiter() {
         return &outstanding_requests_limiter;
     }
 
@@ -59,6 +59,14 @@ accounting_diskmgr_account_t::~accounting_diskmgr_account_t() {
 
 void accounting_diskmgr_account_t::push(action_t *action) {
     maybe_init();
+    if (!requests_drainer.has()) {
+        // Create the requests_drainer now rather than during construction of the
+        // accounting_diskmgr_account_t. We are doing that since
+        // accounting_diskmgr_account_t can be constructed on any thread, and
+        // auto_drainer_t doesn't like that.
+        requests_drainer.init(new auto_drainer_t());
+    }
+    action->account_acq = requests_drainer->lock();
     eager_account->push(action);
 }
 
@@ -67,7 +75,7 @@ void accounting_diskmgr_account_t::on_semaphore_available() {
     eager_account->on_semaphore_available();
 }
 
-semaphore_t *accounting_diskmgr_account_t::get_outstanding_requests_limiter() {
+co_semaphore_t *accounting_diskmgr_account_t::get_outstanding_requests_limiter() {
     maybe_init();
     return eager_account->get_outstanding_requests_limiter();
 }
@@ -103,6 +111,7 @@ void accounting_diskmgr_t::done(accounting_payload_t *p) {
     // p really is an action_t...
     action_t *a = static_cast<action_t *>(p);
     a->account->get_outstanding_requests_limiter()->unlock(1);
+    a->account_acq.reset();
     done_fun(static_cast<action_t *>(p));
 }
 

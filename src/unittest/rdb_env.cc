@@ -266,8 +266,7 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
                                       nil_uuid(),
                                       table_name_string,
                                       primary_key,
-                                      port_defaults::reql_port,
-                                      GIGABYTE);
+                                      port_defaults::reql_port);
 
     // Set up initial data
     std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();

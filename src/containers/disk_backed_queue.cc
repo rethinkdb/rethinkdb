@@ -4,6 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "serializer/config.hpp"
 
@@ -31,10 +32,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
        crashes. */
     file_opener.unlink_serializer_file();
 
-    alt_cache_config_t cache_dynamic_config;
-    cache_dynamic_config.page_config.memory_limit = MEGABYTE;
-    cache.init(new cache_t(serializer.get(), cache_dynamic_config,
-                           &perfmon_collection));
+    balancer.init(new dummy_cache_balancer_t(MEGABYTE));
+    cache.init(new cache_t(serializer.get(), balancer.get(), &perfmon_collection));
     cache_conn.init(new cache_conn_t(cache.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     txn_t txn(cache_conn.get(), write_durability_t::HARD,

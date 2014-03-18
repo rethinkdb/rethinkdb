@@ -2,6 +2,7 @@
 #include "mock/serializer_filestream.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "perfmon/core.hpp"
 #include "serializer/serializer.hpp"
 
@@ -16,8 +17,8 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
         on_thread_t th(serializer->home_thread());
         has_block_zero = !serializer->get_delete_bit(0);
     }
-    cache_.init(new cache_t(serializer, alt_cache_config_t(),
-                            &get_global_perfmon_collection()));
+    balancer_.init(new dummy_cache_balancer_t(GIGABYTE));
+    cache_.init(new cache_t(serializer, balancer_.get(), &get_global_perfmon_collection()));
     cache_conn_.init(new cache_conn_t(cache_.get()));
     if (has_block_zero) {
         txn_t txn(cache_conn_.get(), read_access_t::read);
@@ -87,8 +88,8 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     // problematic.)
     delete_contiguous_blocks_from_0(serializer);
 
-    cache_.init(new cache_t(serializer, alt_cache_config_t(),
-                            &get_global_perfmon_collection()));
+    balancer_.init(new dummy_cache_balancer_t(GIGABYTE));
+    cache_.init(new cache_t(serializer, balancer_.get(), &get_global_perfmon_collection()));
     cache_conn_.init(new cache_conn_t(cache_.get()));
 
     txn_t txn(cache_conn_.get(), write_durability_t::HARD,

@@ -10,6 +10,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
 
+class cache_balancer_t;
 class cache_conn_t;
 class cache_t;
 class txn_t;
@@ -48,6 +49,7 @@ private:
                                         perfmon_collection_t *perfmon_parent);
 
     scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<cache_conn_t> cache_conn;
 };

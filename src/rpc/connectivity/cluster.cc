@@ -229,7 +229,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
                                                     boost::optional<peer_id_t> expected_id,
                                                     auto_drainer_t::lock_t drainer_lock,
                                                     bool *successful_join,
-                                                    semaphore_t *rate_control) THROWS_NOTHING {
+                                                    co_semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
     signal_timer_t timeout;
     timeout.start(index * 1000);

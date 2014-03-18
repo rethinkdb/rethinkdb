@@ -1047,14 +1047,14 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 store_t::store_t(serializer_t *serializer,
+                 cache_balancer_t *balancer,
                  const std::string &perfmon_name,
-                 int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *_ctx,
                  io_backender_t *io,
                  const base_path_t &base_path) :
-    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target,
+    btree_store_t<rdb_protocol_t>(serializer, balancer, perfmon_name,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
