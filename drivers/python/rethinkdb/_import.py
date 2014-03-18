@@ -584,13 +584,6 @@ def spawn_import_clients(options, files_info):
         error_queue.put((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
 
     if not error_queue.empty():
-        # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
-        while not error_queue.empty():
-            error = error_queue.get()
-            print >> sys.stderr, "Traceback: %s" % (error[2])
-            print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
-            if len(error) == 4:
-                print >> sys.stderr, "In file: %s" % (error[3])
         raise RuntimeError("Errors occurred during import")
 
 def get_import_info_for_file(filename, db_filter, table_filter):
