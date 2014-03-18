@@ -112,17 +112,17 @@ module RethinkDB
       dt = Datum::DatumType
       d = {}
       case x
-      when Fixnum     then d[:type] = dt::R_NUM;  d[:r_num] = x
-      when Float      then d[:type] = dt::R_NUM;  d[:r_num] = x
-      when Bignum     then d[:type] = dt::R_NUM;  d[:r_num] = x
-      when String     then d[:type] = dt::R_STR;  d[:r_str] = x
-      when Symbol     then d[:type] = dt::R_STR;  d[:r_str] = x.to_s
-      when TrueClass  then d[:type] = dt::R_BOOL; d[:r_bool] = x
-      when FalseClass then d[:type] = dt::R_BOOL; d[:r_bool] = x
-      when NilClass   then d[:type] = dt::R_NULL
+      when Fixnum     then d[:t] = dt::R_NUM;  d[:n] = x
+      when Float      then d[:t] = dt::R_NUM;  d[:n] = x
+      when Bignum     then d[:t] = dt::R_NUM;  d[:n] = x
+      when String     then d[:t] = dt::R_STR;  d[:s] = x
+      when Symbol     then d[:t] = dt::R_STR;  d[:s] = x.to_s
+      when TrueClass  then d[:t] = dt::R_BOOL; d[:b] = x
+      when FalseClass then d[:t] = dt::R_BOOL; d[:b] = x
+      when NilClass   then d[:t] = dt::R_NULL
       else raise RqlRuntimeError, "UNREACHABLE"
       end
-      return {type: Term::TermType::DATUM, datum: d}
+      return {t: Term::TermType::DATUM, d: d}
     end
   end
 
@@ -135,7 +135,7 @@ module RethinkDB
     def any_to_pb(x)
       return x.to_pb if x.class == RQL
       json = Shim.native_to_datum_term(x.to_json(max_nesting: 500))
-      return {type: Term::TermType::JSON, args: [json]}
+      return {t: Term::TermType::JSON, a: [json]}
     end
 
     def timezone_from_offset(offset)
@@ -156,21 +156,21 @@ module RethinkDB
       when Array
         args = x.map{|y| fast_expr(y, allow_json)}
         return x if allow_json && args.all?{|y| y.class != RQL}
-        return RQL.new({ type: Term::TermType::MAKE_ARRAY,
-                         args: args.map{|y| any_to_pb(y)} }, nil)
+        return RQL.new({ t: Term::TermType::MAKE_ARRAY,
+                         a: args.map{|y| any_to_pb(y)} }, nil)
       when Hash
         kvs = x.map{|k,v| [k, fast_expr(v, allow_json)]}
         return x if allow_json && kvs.all? {|k,v|
           (k.class == String || k.class == Symbol) && v.class != RQL
         }
         o = {
-          type: Term::TermType::MAKE_OBJ,
-          optargs: kvs.map{|k,v|
+          t: Term::TermType::MAKE_OBJ,
+          o: kvs.map{|k,v|
             if k.class != Symbol && k.class != String
               raise RqlDriverError, "Object keys must be strings or symbols." +
                 "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
             end
-            { key: k.to_s, val: any_to_pb(v) }
+            { k: k.to_s, v: any_to_pb(v) }
           }
         }
         return RQL.new(o, nil)

@@ -45,7 +45,8 @@ module RethinkDB
       RethinkDB::RPP.pp(@body)
     end
     def inspect
-      @body ? pp : super
+      @body ? @body : super
+      # @body ? pp : super
     end
   end
 end

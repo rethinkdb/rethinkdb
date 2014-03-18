@@ -7,7 +7,7 @@ require 'timeout'
 
 module RethinkDB
   def self.new_query(type, token)
-    {type: type, token: token}
+    {t: type, k: token}
   end
 
   module Faux_Abort
@@ -132,7 +132,7 @@ module RethinkDB
     @@token_cnt = 0
     def run_internal(q, noreply=false)
       dispatch q
-      noreply ? nil : wait(q[:token])
+      noreply ? nil : wait(q[:k])
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
@@ -145,23 +145,23 @@ module RethinkDB
       end
 
       q = {
-        type: Query::QueryType::START,
-        token: @@token_cnt += 1,
-        global_optargs: all_opts.map {|k,v|
-          { key: k.to_s,
-            val: (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb) }
+        t: Query::QueryType::START,
+        k: @@token_cnt += 1,
+        g: all_opts.map {|k,v|
+          { k: k.to_s,
+            v: (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb) }
         },
-        query: msg
+        q: msg
       }
 
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[:token], true)
+                   msg, self, opts, q[:k], true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[:token], false)
+                   msg, self, opts, q[:k], false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end
@@ -194,7 +194,7 @@ module RethinkDB
       # PP.pp payload
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
-      return msg[:token]
+      return msg[:k]
     end
 
     def wait token
