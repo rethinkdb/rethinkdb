@@ -13,7 +13,7 @@ class mutex_t;
 void co_lock_mutex(mutex_t *mutex);
 void unlock_mutex(mutex_t *mutex, bool eager = false);
 
-
+// Deprecated.  You should use new_mutex_t in new_mutex.hpp instead.
 class mutex_t {
 public:
     class acq_t {
