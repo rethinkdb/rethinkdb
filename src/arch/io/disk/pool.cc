@@ -54,8 +54,23 @@ void pool_diskmgr_t::action_t::run() {
         }
     }
 
-    ssize_t sum = 0;
-    {
+    switch (type) {
+    case ACTION_RESIZE: {
+        CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
+        int res;
+        do {
+            res = ftruncate(fd, offset);
+        } while (res == -1 && get_errno() == EINTR);
+        if (res == 0) {
+            io_result = 0;
+        } else {
+            io_result = -get_errno();
+        }
+    } break;
+    case ACTION_READ:
+    case ACTION_WRITE: {
+        ssize_t sum = 0;
+
         iovec *vecs;
         size_t vecs_len;
         get_bufs(&vecs, &vecs_len);
@@ -69,9 +84,10 @@ void pool_diskmgr_t::action_t::run() {
             len = std::min(vecs_increment, vecs_len - i);
             ssize_t res;
             do {
-                if (is_read) {
+                if (type == ACTION_READ) {
                     res = preadv(fd, vecs + i, len, partial_offset);
                 } else {
+                    rassert(type == ACTION_WRITE);
                     res = pwritev(fd, vecs + i, len, partial_offset);
                 }
             } while (res == -1 && get_errno() == EINTR);
@@ -94,9 +110,10 @@ void pool_diskmgr_t::action_t::run() {
         guarantee(vecs_len == 1);
         ssize_t res;
         do {
-            if (is_read) {
+            if (type == ACTION_READ) {
                 res = pread(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
             } else {
+                rassert(type == ACTION_WRITE);
                 res = pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
             }
         } while (res == -1 && get_errno() == EINTR);
@@ -108,9 +125,12 @@ void pool_diskmgr_t::action_t::run() {
 
         sum = res;
 #endif  // USE_WRITEV
-    }
 
-    io_result = sum;
+        io_result = sum;
+    } break;
+    default:
+        unreachable("Unknown I/O action");
+    }
 
     if (wrap_in_datasyncs) {
         int errcode = perform_datasync(fd);
