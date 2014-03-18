@@ -104,7 +104,8 @@ public:
     virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     // Applies all given index operations in an atomic way.  The mutex_acq is for a
-    // mutex belonging to the _caller_.
+    // mutex belonging to the _caller_, used by the caller for pipelining, for
+    // ensuring that different index write operations do not cross each other.
     virtual void index_write(new_mutex_in_line_t *mutex_acq,
                              const std::vector<index_write_op_t> &write_ops,
                              file_account_t *io_account) = 0;

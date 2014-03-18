@@ -5,12 +5,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #include <functional>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/data_block_manager.hpp"
@@ -237,8 +239,8 @@ struct ls_start_existing_fsm_t :
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_list_t(ser->extent_manager,
-                    std::bind(&log_serializer_t::write_metablock, ser,
-                              std::placeholders::_1, std::placeholders::_2));
+                    std::bind(&log_serializer_t::write_metablock_sans_pipelining,
+                              ser, ph::_1, ph::_2));
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
@@ -439,7 +441,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(UNUSED new_mutex_in_line_t *mutex_acq,
+void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                    const std::vector<index_write_op_t> &write_ops,
                                    file_account_t *io_account) {
     assert_thread();
@@ -495,7 +497,7 @@ void log_serializer_t::index_write(UNUSED new_mutex_in_line_t *mutex_acq,
         }
     }
 
-    index_write_finish(&txn, io_account);
+    index_write_finish(mutex_acq, &txn, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -511,7 +513,9 @@ void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
     extent_manager->begin_transaction(txn);
 }
 
-void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_account_t *io_account) {
+void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
+                                          extent_transaction_t *txn,
+                                          file_account_t *io_account) {
     /* Sync the LBA */
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
@@ -523,7 +527,7 @@ void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_accoun
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(on_lba_sync, io_account);
+    write_metablock(mutex_acq, on_lba_sync, io_account);
 
     active_write_count--;
 
@@ -544,7 +548,9 @@ void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_accoun
     }
 }
 
-void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
+// RSI: Silly const reference, braces.
+void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
+                                       const signal_t &safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
     metablock_t mb_buffer;
@@ -558,6 +564,10 @@ void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
     bool waiting_for_prev_write = !metablock_waiter_queue.empty();
     cond_t on_prev_write_submitted_metablock;
     metablock_waiter_queue.push_back(&on_prev_write_submitted_metablock);
+
+    // This operation is in line with the metablock manager.  Now another index write
+    // may commence.
+    mutex_acq->reset();
 
     safe_to_write_cond.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
@@ -579,6 +589,13 @@ void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
     }
 
     if (!done_with_metablock) on_metablock_write.wait();
+}
+
+void log_serializer_t::write_metablock_sans_pipelining(const signal_t &safe_to_write_cond,
+                                                       file_account_t *io_account) {
+    new_mutex_in_line_t dummy_acq;
+    write_metablock(&dummy_acq, safe_to_write_cond, io_account);
+
 }
 
 counted_t<ls_block_token_pointee_t>

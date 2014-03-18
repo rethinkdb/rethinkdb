@@ -176,8 +176,11 @@ private:
 
     /* Starts a new transaction, updates perfmons etc. */
     void index_write_prepare(extent_transaction_t *txn);
-    /* Finishes a write transaction */
-    void index_write_finish(extent_transaction_t *txn, file_account_t *io_account);
+    /* Finishes a write transaction.  Resets `*mutex_acq` once it's okay to send
+       another index_write. */
+    void index_write_finish(new_mutex_in_line_t *mutex_acq,
+                            extent_transaction_t *txn,
+                            file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
@@ -185,11 +188,22 @@ private:
 
     virtual void on_datablock_manager_shutdown();
 
-    /* Prepare a new metablock, then wait until safe_to_write_cond is pulsed.
-    Finally write the new metablock to disk. Returns once the write is complete.
-    This function writes the metablock in the state that it has when called, i.e.
-    it does not block between calling and preparing the new metablock. */
-    void write_metablock(const signal_t &safe_to_write_cond, file_account_t *io_account);
+    /* Prepares a new metablock, then resets `*mutex_acq` once it's safe for another
+    pipelined call to write_metablock.  Then waits until safe_to_write_cond is
+    pulsed.  Finally write the new metablock to disk. Returns once the write is
+    complete.  This function writes the metablock in the state that it has when
+    called, i.e.  it does not block between calling and preparing the new metablock.
+    Use mutex_acq with a mutex you control if you want to extra-safely pipeline
+    operations from your caller. */
+    void write_metablock(new_mutex_in_line_t *mutex_acq,
+                         const signal_t &safe_to_write_cond,
+                         file_account_t *io_account);
+
+    // Used by the LBA gc operations to write metablocks -- it doesn't care to
+    // pipeline operations and so we don't expose that facility.
+    void write_metablock_sans_pipelining(const signal_t &safe_to_write_cond,
+                                         file_account_t *io_account);
+
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
