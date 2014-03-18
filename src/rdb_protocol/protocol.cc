@@ -165,19 +165,16 @@ void bring_sindexes_up_to_date(
 {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
 
-    /* We register our modification queue here. An important point about
-     * correctness here: we've held the superblock this whole time and will
-     * continue to do so until the call to post_construct_secondary_indexes
-     * begins a parallel traversal which releases the superblock. This
-     * serves to make sure that every changes which we don't learn about in
-     * the parallel traversal we do learn about from the mod queue. */
-    // TODO! Wait, does this even still hold? Doesn't seem like that.
-    // post_construct_secondary_indexes creates a snapshotted read transaction
-    // whenever it feels like it. Is that a problem? Well I guess not, because
-    // we register the queue first, and then traverse the tree. So some entries
-    // will be on the queue though that have already been reflected in the tree.
-    // That's fine I think. However it is stupid that we don't seem to guarantee
-    // anything here. When was that even changed?
+    /* We register our modification queue here.
+     * We must register it before calling post_construct_and_drain_queue to
+     * make sure that every changes which we don't learn about in
+     * the parallel traversal that's started there, we do learn about from the mod
+     * queue. Changes that happen between the mod queue registration and
+     * the parallel traversal will be accounted for twice. That is ok though,
+     * since every modification can be applied repeatedly without causing any
+     * damage (if that should ever not true for any of the modifications, that
+     * modification must be fixed or this code would have to be changed to account
+     * for that). */
     uuid_u post_construct_id = generate_uuid();
 
     /* Keep the store alive for as long as mod_queue exists. It uses its io_backender
@@ -1432,13 +1429,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         if (res.success) {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
-            // Lock the superblock of the new index while we initiate
-            // `bring_sindexes_up_to_date`
-            sindex_access_vector_t sindexes_access;
-            store->acquire_sindex_superblocks_for_write(
-                    sindexes,
-                    &sindex_block,
-                    &sindexes_access);
             rdb_protocol_details::bring_sindexes_up_to_date(
                 sindexes, store, &sindex_block);
         }
@@ -1755,20 +1745,29 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
         std::set<std::string> created_sindexes;
-        store->set_sindexes(s.sindexes, &sindex_block, &sizer,
+
+        // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
+        // secondary indexes. This can cause problems if indexes are deleted
+        // and recreated very quickly. The very reason for why we have UUIDs
+        // in the sindexes is to avoid two post-constructions to interfere with
+        // each other in such cases.
+        // More information:
+        // https://github.com/rethinkdb/rethinkdb/issues/657
+        // https://github.com/rethinkdb/rethinkdb/issues/2087
+        //
+        // Assign new random UUIDs to the secondary indexes to avoid collisions
+        // during post construction:
+        std::map<std::string, secondary_index_t> sindexes = s.sindexes;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            it->second.id = generate_uuid();
+        }
+
+        store->set_sindexes(sindexes, &sindex_block, &sizer,
                             &live_deletion_context,
                             &post_construction_deletion_context,
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
-            // Lock the superblocks of the new indexes while we initiate
-            // `bring_sindexes_up_to_date`
-            sindex_access_vector_t sindexes;
-            store->acquire_sindex_superblocks_for_write(
-                    created_sindexes,
-                    &sindex_block,
-                    &sindexes);
-
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                                                             &sindex_block);
         }
