@@ -65,6 +65,7 @@ private:
     int pri;
     int outstanding_requests_limit;
     scoped_ptr_t<eager_account_t> eager_account;
+    auto_drainer_t requests_drainer;
 
     DISABLE_COPYING(accounting_diskmgr_account_t);
 };
@@ -73,6 +74,7 @@ struct accounting_diskmgr_action_t
     : public intrusive_list_node_t<accounting_diskmgr_action_t>,
       public accounting_payload_t {
     accounting_diskmgr_account_t *account;
+    auto_drainer_t::lock_t account_acq;
 };
 
 void debug_print(printf_buffer_t *buf,

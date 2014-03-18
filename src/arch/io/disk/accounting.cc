@@ -59,6 +59,7 @@ accounting_diskmgr_account_t::~accounting_diskmgr_account_t() {
 
 void accounting_diskmgr_account_t::push(action_t *action) {
     maybe_init();
+    action->account_acq = auto_drainer_t::lock_t(&requests_drainer);
     eager_account->push(action);
 }
 
@@ -86,7 +87,8 @@ void accounting_diskmgr_account_t::maybe_init(){
 void debug_print(printf_buffer_t *buf,
                  const accounting_diskmgr_action_t &action) {
     buf->appendf("accounting_diskmgr_action{...}<");
-    const accounting_payload_t &parent_action = action;
+    const accounting_payload_t &parent_action =
+        static_cast<const accounting_payload_t &>(action);
     debug_print(buf, parent_action);
 }
 
@@ -103,6 +105,7 @@ void accounting_diskmgr_t::done(accounting_payload_t *p) {
     // p really is an action_t...
     action_t *a = static_cast<action_t *>(p);
     a->account->get_outstanding_requests_limiter()->unlock(1);
-    done_fun(static_cast<action_t *>(p));
+    a->account_acq.reset();
+    done_fun(a);
 }
 
