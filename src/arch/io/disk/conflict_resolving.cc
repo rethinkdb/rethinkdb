@@ -22,6 +22,7 @@ conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t 
 
 conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
     /* Make sure there are no requests still out. */
+#ifndef NDEBUG
     for (std::map<fd_t, std::map<int64_t, std::deque<action_t *> > >::iterator
              fd_t_chunk_queues = all_chunk_queues.begin();
          fd_t_chunk_queues != all_chunk_queues.end();
@@ -36,6 +37,7 @@ conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
     for (auto it = resize_active.begin(); it != resize_active.end(); ++it) {
         rassert(it->second == 0);
     }
+#endif
 }
 
 // Fills dest's bufs with data from source.  source's range is a superset of dest's.

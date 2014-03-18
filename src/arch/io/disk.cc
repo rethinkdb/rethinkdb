@@ -236,7 +236,7 @@ void linux_file_t::set_size(int64_t size) {
             delete this;
         }
 
-        virtual void on_io_failure(int errsv, int64_t offset, int64_t) {
+        void on_io_failure(int errsv, int64_t offset, int64_t) {
             crash("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
                   errno_string(errsv).c_str(), offset);
         }
