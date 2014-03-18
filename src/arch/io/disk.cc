@@ -22,7 +22,6 @@
 #include "arch/io/disk/accounting.hpp"
 #include "backtrace.hpp"
 #include "config/args.hpp"
-#include "debug.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
