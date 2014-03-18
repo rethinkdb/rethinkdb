@@ -7,6 +7,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
@@ -121,6 +122,13 @@ void page_cache_t::read_ahead_cb_is_destroyed() {
     read_ahead_cb_existence_.reset();
 }
 
+class page_cache_index_write_sink_t {
+public:
+    // When sink is acquired, we get in line for mutex_ right away and release the
+    // sink.  The serializer_t interface uses new_mutex_t.
+    fifo_enforcer_sink_t sink;
+    new_mutex_t mutex;
+};
 
 page_cache_t::page_cache_t(serializer_t *serializer,
                            cache_balancer_t *balancer)
@@ -145,7 +153,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account_.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
-        index_write_sink_.init(new fifo_enforcer_sink_t);
+        index_write_sink_.init(new page_cache_index_write_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
 }
@@ -1175,13 +1183,15 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // LSI: Pass in the exiter to index_write, so that subsequent index_write
+        // LSI: Pass in the mutex_acq to index_write, so that subsequent index_write
         // operations don't have to wait for one another to finish.  (Note: Doing
         // this requires some sort of semaphore to prevent a zillion index_writes to
         // queue up.)
-        fifo_enforcer_sink_t::exit_write_t exiter(page_cache->index_write_sink_.get(),
+        fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
         exiter.wait();
+        new_mutex_in_line_t mutex_acq(&page_cache->index_write_sink_->mutex);
+        exiter.end();
 
         rassert(!write_ops.empty());
         page_cache->serializer_->index_write(write_ops,
