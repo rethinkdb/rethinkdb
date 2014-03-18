@@ -26,7 +26,7 @@ merger_serializer_t::~merger_serializer_t() {
     rassert(outstanding_index_write_ops.empty());
 }
 
-void merger_serializer_t::index_write(UNUSED new_mutex_in_line_t *mutex_acq,  // RSI
+void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                       const std::vector<index_write_op_t> &write_ops,
                                       file_account_t *) {
     rassert(coro_t::self() != NULL);
@@ -45,6 +45,10 @@ void merger_serializer_t::index_write(UNUSED new_mutex_in_line_t *mutex_acq,  //
         write_complete = on_inner_index_write_complete;
         unhandled_index_write_waiter_exists = true;
     }
+
+    // The caller is definitely "in line" for this merger serializer -- subsequent
+    // index_write calls will get logically committed after ours.
+    mutex_acq->reset();
 
     // Check if we can initiate a new index write
     if (num_active_writes < max_active_writes) {
@@ -81,7 +85,7 @@ void merger_serializer_t::do_index_write() {
         write_complete.swap(on_inner_index_write_complete);
     }
 
-    new_mutex_in_line_t mutex_acq;  // RSI
+    new_mutex_in_line_t mutex_acq(&inner_index_write_mutex);
     inner->index_write(&mutex_acq, write_ops, index_writes_io_account.get());
 
     write_complete->pulse();
