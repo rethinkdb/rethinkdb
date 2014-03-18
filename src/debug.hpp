@@ -67,6 +67,15 @@ private:
 class Term;
 void pb_print(Term *t);
 
+class debug_timer_t {
+public:
+    explicit debug_timer_t(std::string _name = "");
+    ~debug_timer_t();
+    microtime_t tick(const std::string &tag);
+private:
+    microtime_t start, last;
+    std::string name, out;
+};
 
 #endif  // DEBUG_HPP_
 
