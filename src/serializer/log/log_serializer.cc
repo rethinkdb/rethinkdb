@@ -527,7 +527,7 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(mutex_acq, on_lba_sync, io_account);
+    write_metablock(mutex_acq, &on_lba_sync, io_account);
 
     active_write_count--;
 
@@ -548,9 +548,8 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     }
 }
 
-// RSI: Silly const reference, braces.
 void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
-                                       const signal_t &safe_to_write_cond,
+                                       const signal_t *safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
     metablock_t mb_buffer;
@@ -569,8 +568,10 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     // may commence.
     mutex_acq->reset();
 
-    safe_to_write_cond.wait();
-    if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
+    safe_to_write_cond->wait();
+    if (waiting_for_prev_write) {
+        on_prev_write_submitted_metablock.wait();
+    }
     guarantee(metablock_waiter_queue.front() == &on_prev_write_submitted_metablock);
 
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
@@ -591,7 +592,7 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     if (!done_with_metablock) on_metablock_write.wait();
 }
 
-void log_serializer_t::write_metablock_sans_pipelining(const signal_t &safe_to_write_cond,
+void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_write_cond,
                                                        file_account_t *io_account) {
     new_mutex_in_line_t dummy_acq;
     write_metablock(&dummy_acq, safe_to_write_cond, io_account);

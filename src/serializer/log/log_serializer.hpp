@@ -196,12 +196,12 @@ private:
     Use mutex_acq with a mutex you control if you want to extra-safely pipeline
     operations from your caller. */
     void write_metablock(new_mutex_in_line_t *mutex_acq,
-                         const signal_t &safe_to_write_cond,
+                         const signal_t *safe_to_write_cond,
                          file_account_t *io_account);
 
     // Used by the LBA gc operations to write metablocks -- it doesn't care to
     // pipeline operations and so we don't expose that facility.
-    void write_metablock_sans_pipelining(const signal_t &safe_to_write_cond,
+    void write_metablock_sans_pipelining(const signal_t *safe_to_write_cond,
                                          file_account_t *io_account);
 
 
