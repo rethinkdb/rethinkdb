@@ -102,7 +102,7 @@ public:
     virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
+    virtual void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >

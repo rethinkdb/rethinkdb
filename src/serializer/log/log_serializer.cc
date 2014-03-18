@@ -429,7 +429,7 @@ get_ls_block_token(const counted_t<ls_block_token_pointee_t> &tok) {
 }
 #else
 counted_t<ls_block_token_pointee_t>
-get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
+get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
     if (tok) {
         return tok->inner_token;
     } else {
@@ -457,7 +457,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_op
         for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
              write_op_it != write_ops.end();
              ++write_op_it) {
-            const index_write_op_t& op = *write_op_it;
+            const index_write_op_t &op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
             uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
