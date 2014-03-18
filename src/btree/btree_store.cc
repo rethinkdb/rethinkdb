@@ -187,7 +187,7 @@ void btree_store_t<protocol_t>::receive_backfill(
     // wants chunk-by-chunk acks.
     acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
-                                 write_durability_t::SOFT,
+                                 write_durability_t::HARD, // TODO!
                                  token_pair,
                                  &txn,
                                  &real_superblock,

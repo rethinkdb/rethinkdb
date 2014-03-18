@@ -24,6 +24,7 @@
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
+#include "debug.hpp"
 
 class alt_txn_throttler_t;
 class cache_balancer_t;
@@ -264,7 +265,12 @@ private:
 class throttler_acq_t {
 public:
     throttler_acq_t() { }
-    ~throttler_acq_t() { }
+    ~throttler_acq_t() {
+        // TODO! Print if the transaction has dirtied a lot of pages.
+        if (semaphore_acq_.count() >= 100) {
+            debugf("A txn dirtied %i pages\n", (int)semaphore_acq_.count());
+        }
+    }
     throttler_acq_t(throttler_acq_t &&movee)
         : semaphore_acq_(std::move(movee.semaphore_acq_)) {
         movee.semaphore_acq_.reset();

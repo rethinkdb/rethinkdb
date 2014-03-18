@@ -933,8 +933,8 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                         d.block_id,
                         change.version.debug_value());
                 if (jt->second.version < change.version) {
-                    rassert(change.page == NULL ||
-                            change.tstamp == superceding_recency(jt->second.tstamp, change.tstamp));
+                    //rassert(change.page == NULL ||
+                    //        change.tstamp == superceding_recency(jt->second.tstamp, change.tstamp));
                     jt->second = change;
                 }
             }

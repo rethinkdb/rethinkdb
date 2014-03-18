@@ -1243,56 +1243,67 @@ public:
     void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
-        write_token_pair_t token_pair;
-        store_->new_write_token_pair(&token_pair);
 
         // KSI: FML
         scoped_ptr_t<txn_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
-        try {
-            scoped_ptr_t<real_superblock_t> superblock;
-
-            // We want soft durability because having a partially constructed
-            // secondary index is okay -- we wipe it and rebuild it, if it has not
-            // been marked completely constructed.
-            store_->acquire_superblock_for_write(
-                    repli_timestamp_t::distant_past,
-                    2,  // KSI: This is not the right value.
-                    write_durability_t::SOFT,
-                    &token_pair,
-                    &wtxn,
-                    &superblock,
-                    interruptor_);
-
-            // Acquire the sindex block.
-            const block_id_t sindex_block_id = superblock->get_sindex_block_id();
-
-            buf_lock_t sindex_block
-                = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                         sindex_block_id);
-
-            superblock.reset();
-
-            store_->acquire_sindex_superblocks_for_write(
-                    sindexes_to_post_construct_,
-                    &sindex_block,
-                    &sindexes);
-
-            if (sindexes.empty()) {
-                interrupt_myself_->pulse_if_not_already_pulsed();
-                return;
-            }
-        } catch (const interrupted_exc_t &e) {
-            return;
-        }
-
         buf_read_t leaf_read(leaf_node_buf);
         const leaf_node_t *leaf_node
             = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
 
+        // Number of key/value pairs we process before yielding
+        const int MAX_CHUNK_SIZE = 10;
+        int current_chunk_size = 0;
         rdb_post_construction_deletion_context_t deletion_context;
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
+            if (current_chunk_size == 0) {
+                // Start a write transaction and acquire the secondary index
+                // at the beginning of each chunk. We reset the transaction
+                // after each chunk because large write transactions can cause
+                // the cache to go into throttling, and that would interfere
+                // with other transactions on this table.
+                try {
+                    write_token_pair_t token_pair;
+                    store_->new_write_token_pair(&token_pair);
+
+                    scoped_ptr_t<real_superblock_t> superblock;
+
+                    // We want soft durability because having a partially constructed
+                    // secondary index is okay -- we wipe it and rebuild it, if it has not
+                    // been marked completely constructed.
+                    store_->acquire_superblock_for_write(
+                            repli_timestamp_t::distant_past,
+                            2,  // KSI: This is not the right value.
+                            write_durability_t::HARD, // TODO!
+                            &token_pair,
+                            &wtxn,
+                            &superblock,
+                            interruptor_);
+
+                    // Acquire the sindex block.
+                    const block_id_t sindex_block_id = superblock->get_sindex_block_id();
+
+                    buf_lock_t sindex_block
+                        = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
+                                                                 sindex_block_id);
+
+                    superblock.reset();
+
+                    store_->acquire_sindex_superblocks_for_write(
+                            sindexes_to_post_construct_,
+                            &sindex_block,
+                            &sindexes);
+
+                    if (sindexes.empty()) {
+                        interrupt_myself_->pulse_if_not_already_pulsed();
+                        return;
+                    }
+                } catch (const interrupted_exc_t &e) {
+                    return;
+                }
+            }
+
             store_->btree->stats.pm_keys_read.record();
 
             /* Grab relevant values from the leaf node. */
@@ -1312,7 +1323,16 @@ public:
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
             store_->btree->stats.pm_keys_set.record();
-            coro_t::yield();
+
+            ++current_chunk_size;
+            if (current_chunk_size >= MAX_CHUNK_SIZE) {
+                current_chunk_size = 0;
+                // Release the write transaction and yield.
+                // We continue later where we have left off.
+                sindexes.clear();
+                wtxn.reset();
+                coro_t::yield();
+            }
         }
     }
 
