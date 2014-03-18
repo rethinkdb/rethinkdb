@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "concurrency/new_mutex.hpp"
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"
 #include "serializer/types.hpp"
@@ -76,7 +77,10 @@ void prep_serializer(
     {
         std::vector<index_write_op_t> ops;
         ops.push_back(std::move(op));
-        ser->index_write(NULL /* RSI */, ops, DEFAULT_DISK_ACCOUNT);
+
+        new_mutex_in_line_t dummy_acq;  // We don't have ordering concerns between
+                                        // this and any other index_write call.
+        ser->index_write(&dummy_acq, ops, DEFAULT_DISK_ACCOUNT);
     }
 }
 
