@@ -71,22 +71,15 @@ template<class T, class = void>
 struct extractor_t;
 
 template<class T>
-struct extractor_t<T, typename std::enable_if<std::is_enum<T>::value
-                                              || std::is_integral<T>::value>::type> {
+struct extractor_t<
+    T, typename std::enable_if<std::is_enum<T>::value
+                               || std::is_fundamental<T>::value>::type> {
     void operator()(cJSON *field, T *dest) {
         if (field->type != cJSON_Number) throw exc_t(field);
         T t = static_cast<T>(field->valuedouble);
         if (static_cast<double>(t) != field->valuedouble) throw exc_t(field);
         *dest = t;
     }
-};
-
-template<>
-struct extractor_t<const Query::AssocPair &> {
-    void operator()(cJSON *field, Query::AssocPair *ap) {
-        TRANSFER(field, key, ap);
-        // TRANSFER(field, val, ap);
-    };
 };
 
 template<>
@@ -110,16 +103,74 @@ struct extractor_t<bool> {
     }
 };
 
+template<>
+struct extractor_t<const Query::AssocPair &> {
+    void operator()(cJSON *json, Query::AssocPair *ap) {
+        TRANSFER(json, key, ap);
+        TRANSFER(json, val, ap);
+    };
+};
+
+template<>
+struct extractor_t<const Term::AssocPair &> {
+    void operator()(cJSON *json, Term::AssocPair *ap) {
+        TRANSFER(json, key, ap);
+        TRANSFER(json, val, ap);
+    };
+};
+
+template<>
+struct extractor_t<const Datum::AssocPair &> {
+    void operator()(cJSON *json, Datum::AssocPair *ap) {
+        TRANSFER(json, key, ap);
+        TRANSFER(json, val, ap);
+    };
+};
+
+template<>
+struct extractor_t<const Query &> {
+    void operator()(cJSON *json, Query *q) {
+        TRANSFER(json, type, q);
+        TRANSFER(json, query, q);
+        TRANSFER(json, token, q);
+        q->set_accepts_r_json(true); // RSI: response should be true JSON
+        TRANSFER(json, global_optargs, q);
+    };
+};
+
+template<>
+struct extractor_t<const Term &> {
+    void operator()(cJSON *json, Term *t) {
+        TRANSFER(json, type, t);
+        TRANSFER(json, datum, t);
+        TRANSFER(json, args, t);
+        TRANSFER(json, optargs, t);
+    }
+};
+
+template<>
+struct extractor_t<const Datum &> {
+    void operator()(cJSON *json, Datum *d) {
+        TRANSFER(json, type, d);
+        switch (d->type()) {
+        case Datum::R_NULL:                                break;
+        case Datum::R_BOOL:   TRANSFER(json, r_bool, d);   break;
+        case Datum::R_NUM:    TRANSFER(json, r_num, d);    break;
+        case Datum::R_STR:    TRANSFER(json, r_str, d);    break;
+        case Datum::R_ARRAY:  TRANSFER(json, r_array, d);  break;
+        case Datum::R_OBJECT: TRANSFER(json, r_object, d); break;
+        case Datum::R_JSON:   TRANSFER(json, r_str, d);    break;
+        default: unreachable();
+        }
+    }
+};
+
 bool parse_json_pb(Query *q, char *str) {
     q->Clear();
     scoped_cJSON_t json_holder(cJSON_Parse(str));
     cJSON *json = json_holder.get();
     if (json == NULL) return false;
-    TRANSFER(json, type, q);
-    // query
-    TRANSFER(json, token, q);
-    TRANSFER(json, global_optargs, q);
-
+    extractor_t<const Query &>()(json, q);
     return true;
 }
 
