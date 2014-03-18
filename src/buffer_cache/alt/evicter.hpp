@@ -19,16 +19,19 @@ class page_cache_t;
 class evicter_t : public home_thread_mixin_debug_only_t {
 public:
     void add_not_yet_loaded(page_t *page);
-    void add_now_loaded_size(uint32_t in_memory_block_size);
+    void add_deferred_loaded(page_t *page);
+    void catch_up_deferred_load(page_t *page);
     void add_to_evictable_unbacked(page_t *page);
     void add_to_evictable_disk_backed(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
+    bool page_is_in_evicted_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
     void change_to_correct_eviction_bag(eviction_bag_t *current_bag, page_t *page);
     eviction_bag_t *correct_eviction_category(page_t *page);
     eviction_bag_t *unevictable_category() { return &unevictable_; }
+    eviction_bag_t *evicted_category() { return &evicted_; }
     void remove_page(page_t *page);
-    void page_was_loaded(page_t *page);
+    void reloading_page(page_t *page);
 
     explicit evicter_t(cache_balancer_t *balancer);
     ~evicter_t();
@@ -54,7 +57,7 @@ public:
 
 private:
     // Tells the cache balancer about a page being loaded
-    void notify_bytes_loaded(int64_t ser_buf_change);
+    void notify_bytes_loading(int64_t ser_buf_change);
 
     // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
