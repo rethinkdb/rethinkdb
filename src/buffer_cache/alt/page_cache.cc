@@ -1181,10 +1181,6 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // LSI: Pass in the mutex_acq to index_write, so that subsequent index_write
-        // operations don't have to wait for one another to finish.  (Note: Doing
-        // this requires some sort of semaphore to prevent a zillion index_writes to
-        // queue up.)
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
         exiter.wait();
