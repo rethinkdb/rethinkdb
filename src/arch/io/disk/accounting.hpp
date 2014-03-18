@@ -65,7 +65,8 @@ private:
     int pri;
     int outstanding_requests_limit;
     scoped_ptr_t<eager_account_t> eager_account;
-    auto_drainer_t requests_drainer;
+    // A scoped pointer because we create the drainer lazily on first use.
+    scoped_ptr_t<auto_drainer_t> requests_drainer;
 
     DISABLE_COPYING(accounting_diskmgr_account_t);
 };

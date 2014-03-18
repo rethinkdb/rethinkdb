@@ -59,7 +59,14 @@ accounting_diskmgr_account_t::~accounting_diskmgr_account_t() {
 
 void accounting_diskmgr_account_t::push(action_t *action) {
     maybe_init();
-    action->account_acq = requests_drainer.lock();
+    if (!requests_drainer.has()) {
+        // Create the requests_drainer now rather than during construction of the
+        // accounting_diskmgr_account_t. We are doing that since
+        // accounting_diskmgr_account_t can be constructed on any thread, and
+        // auto_drainer_t doesn't like that.
+        requests_drainer.init(new auto_drainer_t());
+    }
+    action->account_acq = requests_drainer->lock();
     eager_account->push(action);
 }
 
