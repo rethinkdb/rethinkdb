@@ -20,7 +20,7 @@ public:
         return true;
     }
 
-    bool abandon_page() const { return abandon_page_; }
+    MUST_USE bool abandon_page() const { return abandon_page_; }
 
     void mark_abandon_page() {
         rassert(!abandon_page_);
@@ -241,7 +241,7 @@ void page_t::catch_up_with_deferred_load(
 
     // Before blocking, tell the deferred loader to abandon the page.  It's before
     // the deferred loader has gotten back to this thread, so we can do that.
-    deferred_loader->abandon_page();
+    deferred_loader->mark_abandon_page();
 
     // Before blocking, tell the evicter to put us in the right category.
     page_cache->evicter().catch_up_deferred_load(page);
