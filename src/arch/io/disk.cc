@@ -230,7 +230,7 @@ int64_t linux_file_t::get_file_size() {
 }
 
 /* If you want to use this for downsizing a file, please check the WARNING about
-`set_file_size()` in disk.hpp  <- Is this still true? */
+`set_file_size()` in disk.hpp. */
 void linux_file_t::set_file_size(int64_t size) {
     assert_thread();
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");

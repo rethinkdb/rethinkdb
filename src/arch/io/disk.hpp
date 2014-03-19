@@ -76,7 +76,6 @@ public:
     Only issue a `set_file_size()` with a size smaller than the current one if you can
     make absolutely sure that no ongoing I/O operation wants to access the space
     that gets truncated anymore. */
-    // ^ Is this still true?
     void set_file_size(int64_t size);
     void set_file_size_at_least(int64_t size);
 
