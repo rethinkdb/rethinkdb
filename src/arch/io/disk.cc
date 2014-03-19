@@ -232,6 +232,7 @@ int64_t linux_file_t::get_size() {
 /* If you want to use this for downsizing a file, please check the WARNING about
 `set_size()` in disk.hpp */
 void linux_file_t::set_size(int64_t size) {
+    assert_thread();
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     struct rs_callback_t : public linux_iocallback_t, cond_t {
@@ -252,6 +253,7 @@ void linux_file_t::set_size(int64_t size) {
 }
 
 void linux_file_t::set_size_at_least(int64_t size) {
+    assert_thread();
     /* Grow in large chunks at a time */
     if (file_size < size) {
         set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
@@ -345,10 +347,12 @@ bool linux_file_t::coop_lock_and_check() {
 }
 
 void *linux_file_t::create_account(int priority, int outstanding_requests_limit) {
+    assert_thread();
     return diskmgr->create_account(priority, outstanding_requests_limit);
 }
 
 void linux_file_t::destroy_account(void *account) {
+    assert_thread();
     diskmgr->destroy_account(account);
 }
 

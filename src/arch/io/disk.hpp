@@ -59,7 +59,7 @@ struct file_open_result_t {
     file_open_result_t() : outcome(ERROR), errsv(0) { }
 };
 
-class linux_file_t : public file_t {
+class linux_file_t : public file_t, public home_thread_mixin_debug_only_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
