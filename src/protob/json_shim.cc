@@ -186,7 +186,7 @@ struct extractor_t<const Datum &> {
         } break;
         case cJSON_String: {
             d->set_type(Datum::R_STR);
-            d->set_r_str(json->string);
+            d->set_r_str(json->valuestring);
         } break;
         case cJSON_Array: {
             d->set_type(Datum::R_ARRAY);
@@ -220,6 +220,7 @@ bool parse_json_pb(Query *q, char *str) throw () {
     if (json == NULL) return false;
     extractor_t<const Query &>()(json, q);
     // tm.tick("SHIM");
+    debugf("%s\n", q->DebugString().c_str());
     return true;
 }
 

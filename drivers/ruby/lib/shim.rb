@@ -103,14 +103,22 @@ module RethinkDB
     end
     def to_pb; @body; end
 
+    def self.safe_to_s(x)
+      case x
+      when String then x
+      when Symbol then x.to_s
+      else raise RqlRuntimeError, "RSI"
+      end
+    end
+
     def self.fast_expr(x)
       case x
       when RQL then x
       when Array then RQL.new({ t: Term::TermType::MAKE_ARRAY,
                                 a: x.map{|y| fast_expr(y)} })
       when Hash then RQL.new({ t: Term::TermType::MAKE_OBJ,
-                               a: x.map {|k,v|
-                                 { k: fast_expr(k),
+                               o: x.map {|k,v|
+                                 { k: safe_to_s(k),
                                    v: fast_expr(v) }
                                } })
       else RQL.new({t: Term::TermType::DATUM, d: x})

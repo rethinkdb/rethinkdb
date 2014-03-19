@@ -189,7 +189,7 @@ module RethinkDB
     end
 
     def dispatch msg
-      $x = msg
+      # PP.pp msg
       payload = msg.to_json
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
