@@ -86,6 +86,7 @@ void merger_serializer_t::do_index_write() {
     }
 
     new_mutex_in_line_t mutex_acq(&inner_index_write_mutex);
+    mutex_acq.acq_signal()->wait();
     inner->index_write(&mutex_acq, write_ops, index_writes_io_account.get());
 
     write_complete->pulse();
