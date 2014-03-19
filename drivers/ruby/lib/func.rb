@@ -53,7 +53,6 @@ module RethinkDB
       :javascript => :js,
       :typeof => :type_of
     }
-    @@allow_json = {:INSERT => true}
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
     termtypes.each {|termtype|
@@ -91,13 +90,13 @@ module RethinkDB
         t = {t: Term::TermType.const_get(termtype)}
         if args != []
           t[:a] = args.map {|x|
-            RQL.new.expr(x, :allow_json => @@allow_json[termtype]).to_pb
+            RQL.new.expr(x).to_pb
           }
         end
         if optargs && optargs != {}
           t[:o] = optargs.map {|k,v|
             { k: k.to_s,
-              v: RQL.new.expr(v, :allow_json => @@allow_json[termtype]).to_pb }
+              v: RQL.new.expr(v).to_pb }
           }
         end
         return RQL.new(t, bitop)

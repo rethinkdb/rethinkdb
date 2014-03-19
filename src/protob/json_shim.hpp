@@ -10,7 +10,7 @@ class scoped_array_t;
 
 namespace json_shim {
 bool parse_json_pb(Query *q, char *str) throw ();
-std::string write_json_pb(const Response *r) throw ();
+void write_json_pb(const Response *r, std::string *out) throw ();
 } // namespace json_shim;
 
 #endif // PROTOB_JSON_SHIM_HEPP_

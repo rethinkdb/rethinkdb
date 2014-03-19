@@ -2,6 +2,7 @@
 #include "protob/json_shim.hpp"
 
 #include "utils.hpp"
+#include "debug.hpp"
 
 #include "http/json.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -167,15 +168,44 @@ struct extractor_t<const Term &> {
 template<>
 struct extractor_t<const Datum &> {
     void operator()(cJSON *json, Datum *d) {
-        TRANSFER(json, type, "t", d);
-        switch (d->type()) {
-        case Datum::R_NULL:                                     break;
-        case Datum::R_BOOL:   TRANSFER(json, r_bool,   "b", d); break;
-        case Datum::R_NUM:    TRANSFER(json, r_num,    "n", d); break;
-        case Datum::R_STR:    TRANSFER(json, r_str,    "s", d); break;
-        case Datum::R_ARRAY:  TRANSFER(json, r_array,  "a", d); break;
-        case Datum::R_OBJECT: TRANSFER(json, r_object, "o", d); break;
-        case Datum::R_JSON:   TRANSFER(json, r_str,    "s", d); break;
+        switch(json->type) {
+        case cJSON_False: {
+            d->set_type(Datum::R_BOOL);
+            d->set_r_bool(false);
+        } break;
+        case cJSON_True: {
+            d->set_type(Datum::R_BOOL);
+            d->set_r_bool(true);
+        } break;
+        case cJSON_NULL: {
+            d->set_type(Datum::R_NULL);
+        } break;
+        case cJSON_Number: {
+            d->set_type(Datum::R_NUM);
+            d->set_r_num(json->valuedouble);
+        } break;
+        case cJSON_String: {
+            d->set_type(Datum::R_STR);
+            d->set_r_str(json->string);
+        } break;
+        case cJSON_Array: {
+            d->set_type(Datum::R_ARRAY);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                (*this)(item, d->add_r_array());
+            }
+        } break;
+        case cJSON_Object: {
+            d->set_type(Datum::R_OBJECT);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                Datum::AssocPair *ap = d->add_r_object();
+                ap->set_key(item->string);
+                (*this)(item, ap->mutable_val());
+            }
+        } break;
         default: unreachable();
         }
     }
@@ -193,25 +223,24 @@ bool parse_json_pb(Query *q, char *str) throw () {
     return true;
 }
 
-std::string write_json_pb(const Response *r) throw () {
-    std::string s;
-    s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
+void write_json_pb(const Response *r, std::string *s) throw () {
+    *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
     for (int i = 0; i < r->response_size(); ++i) {
-        s += (i == 0) ? "" : ",";
+        *s += (i == 0) ? "" : ",";
         const Datum *d = &r->response(i);
         if (d->type() == Datum::R_JSON) {
-            s += d->r_str();
+            *s += d->r_str();
         } else if (d->type() == Datum::R_STR) {
             scoped_cJSON_t tmp(cJSON_CreateString(d->r_str().c_str()));
-            s += tmp.PrintUnformatted();
+            *s += tmp.PrintUnformatted();
         } else {
             unreachable();
         }
     }
-    s += "]";
+    *s += "]";
 
     if (r->has_backtrace()) {
-        s += ",\"b\":";
+        *s += ",\"b\":";
         const Backtrace *bt = &r->backtrace();
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (int i = 0; i < bt->frames_size(); ++i) {
@@ -226,19 +255,17 @@ std::string write_json_pb(const Response *r) throw () {
             default: unreachable();
             }
         }
-        s += arr.PrintUnformatted();
+        *s += arr.PrintUnformatted();
     }
 
     if (r->has_profile()) {
-        s += ",\"p\":";
+        *s += ",\"p\":";
         const Datum *d = &r->profile();
         guarantee(d->type() == Datum::R_JSON);
-        s += d->r_str();
+        *s += d->r_str();
     }
 
-    s += "}";
-
-    return std::move(s);
+    *s += "}";
 }
 
 

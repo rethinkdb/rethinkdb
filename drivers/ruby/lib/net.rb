@@ -189,9 +189,8 @@ module RethinkDB
     end
 
     def dispatch msg
-      # PP.pp msg
+      $x = msg
       payload = msg.to_json
-      # PP.pp payload
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
       return msg[:k]
@@ -326,9 +325,9 @@ module RethinkDB
           end
 
           begin
-            PP.pp response
+            # PP.pp response
             protob = JSON.parse(response)
-            PP.pp protob
+            # PP.pp protob
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
