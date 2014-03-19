@@ -95,7 +95,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
-    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
+    dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
     scoped_malloc_t<crc_metablock_t> buffer(malloc_aligned(METABLOCK_SIZE,
@@ -137,7 +137,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
 
     startup_values.version = MB_BAD_VERSION;
 
-    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
+    dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
     // Reading metablocks by issuing one I/O request at a time is
     // slow. Read all of them in one batch, and check them later.

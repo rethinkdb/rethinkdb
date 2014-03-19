@@ -20,9 +20,9 @@ public:
     mock_file_t(mode_t mode, std::vector<char> *data);
     ~mock_file_t();
 
-    int64_t get_size();
-    void set_size(int64_t size);
-    void set_size_at_least(int64_t size);
+    int64_t get_file_size();
+    void set_file_size(int64_t size);
+    void set_file_size_at_least(int64_t size);
 
     void read_async(int64_t offset, size_t length, void *buf,
                     file_account_t *account, linux_iocallback_t *cb);

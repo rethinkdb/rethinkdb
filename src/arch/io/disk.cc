@@ -225,13 +225,13 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_man
     }
 }
 
-int64_t linux_file_t::get_size() {
+int64_t linux_file_t::get_file_size() {
     return file_size;
 }
 
 /* If you want to use this for downsizing a file, please check the WARNING about
-`set_size()` in disk.hpp */
-void linux_file_t::set_size(int64_t size) {
+`set_file_size()` in disk.hpp  <- Is this still true? */
+void linux_file_t::set_file_size(int64_t size) {
     assert_thread();
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
@@ -252,11 +252,11 @@ void linux_file_t::set_size(int64_t size) {
     file_size = size;
 }
 
-void linux_file_t::set_size_at_least(int64_t size) {
+void linux_file_t::set_file_size_at_least(int64_t size) {
     assert_thread();
     /* Grow in large chunks at a time */
     if (file_size < size) {
-        set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
+        set_file_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
     }
 }
 
