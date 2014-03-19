@@ -186,6 +186,8 @@ private:
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
 
+    void delete_dbfile_and_continue_shutdown();
+
     virtual void on_datablock_manager_shutdown();
 
     /* Prepares a new metablock, then resets `*mutex_acq` once it's safe for another
@@ -232,7 +234,8 @@ private:
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_block_tokens
+        shutdown_waiting_on_block_tokens,
+        shutdown_waiting_on_dbfile_destruction,
     } shutdown_state;
     bool shutdown_in_one_shot;
 

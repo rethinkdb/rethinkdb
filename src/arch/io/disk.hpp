@@ -4,6 +4,7 @@
 
 #include "arch/io/io_utils.hpp"
 #include "arch/types.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
 
@@ -106,6 +107,10 @@ private:
     linux_disk_manager_t *diskmgr;
 
     scoped_ptr_t<file_account_t> default_account;
+
+    // Used to make sure we do not destruct the linux_file_t until all file size
+    // operations have completed.
+    auto_drainer_t file_size_ops_drainer;
 
     DISABLE_COPYING(linux_file_t);
 };

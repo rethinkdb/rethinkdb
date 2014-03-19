@@ -830,9 +830,18 @@ bool log_serializer_t::next_shutdown_step() {
         delete extent_manager;
         extent_manager = NULL;
 
-        delete dbfile;
-        dbfile = NULL;
+        shutdown_state = shutdown_waiting_on_dbfile_destruction;
+        coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
+                                         this));
+        // TODO: Get rid of the useless shutdown_in_one_shot variable -- we never
+        // shut down in one shot.
+        shutdown_in_one_shot = false;
+        return false;
+    }
 
+    rassert(dbfile == NULL);
+
+    if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
 
         // Don't call the callback if we went through the entire
@@ -846,6 +855,13 @@ bool log_serializer_t::next_shutdown_step() {
 
     unreachable("Invalid state.");
     return true; // make compiler happy
+}
+
+void log_serializer_t::delete_dbfile_and_continue_shutdown() {
+    rassert(dbfile != NULL);
+    delete dbfile;
+    dbfile = NULL;
+    next_shutdown_step();
 }
 
 void log_serializer_t::on_datablock_manager_shutdown() {

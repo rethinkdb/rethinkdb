@@ -244,8 +244,11 @@ void linux_file_t::set_file_size(int64_t size) {
             crash("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
                   errno_string(errsv).c_str(), offset);
         }
+
+        auto_drainer_t::lock_t lock;
     };
     rs_callback_t *rs_callback = new rs_callback_t();
+    rs_callback->lock = file_size_ops_drainer.lock();
     diskmgr->submit_resize(fd.get(), size, default_account->get_account(),
                            rs_callback, true);
 
