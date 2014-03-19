@@ -245,16 +245,23 @@ void protob_server_t<request_t, response_t, context_t>::send(
     bool use_true_json,
     tcp_conn_t *conn,
     signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
-    scoped_array_t<char> data;
+
+    scoped_array_t<char> scoped_array;
+    std::string str;
+    const char *data;
+    int32_t sz;
     if (use_true_json) {
-        json_shim::write_json_pb(&res, &data);
+        str = json_shim::write_json_pb(&res);
+        data = str.data();
+        sz = str.size();
     } else {
-        data.init(res.ByteSize());
-        res.SerializeToArray(data.data(), data.size());
+        sz = res.ByteSize();
+        scoped_array.init(sz);
+        res.SerializeToArray(scoped_array.data(), sz);
+        data = scoped_array.data();
     }
-    int32_t sz = data.size(); // TODO: recover gracefully on overflow.
     conn->write(&sz, sizeof(sz), closer);
-    conn->write(data.data(), sz, closer);
+    conn->write(data, sz, closer);
 }
 
 // Used in protob_server_t::handle(...) below to combine the interruptor from the

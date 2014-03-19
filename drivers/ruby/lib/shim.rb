@@ -79,25 +79,27 @@ module RethinkDB
 
     def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
-      if r.backtrace
-        bt = r.backtrace.frames.map {|x|
-          x.type == Frame::FrameType::POS ? x.pos : x.opt
-        }
-      else
-        bt = []
-      end
+      # if r.backtrace
+      #   bt = r.backtrace.frames.map {|x|
+      #     x.type == Frame::FrameType::POS ? x.pos : x.opt
+      #   }
+      # else
+      #   bt = []
+      # end
+
+      # RSI: pseudotypes
 
       begin
-        case r.type
-        when rt::SUCCESS_ATOM then datum_to_native(r.response[0], opts)
-        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d, opts)}
-        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d, opts)}
+        case r['t']
+        when rt::SUCCESS_ATOM then r['r'][0]
+        when rt::SUCCESS_PARTIAL then r['r']
+        when rt::SUCCESS_SEQUENCE then r['r']
         when rt::RUNTIME_ERROR then
-          raise RqlRuntimeError, "#{r.response[0].r_str}"
+          raise RqlRuntimeError, "#{r['r'][0]}"
         when rt::COMPILE_ERROR then # TODO: remove?
-          raise RqlCompileError, "#{r.response[0].r_str}"
+          raise RqlCompileError, "#{r['r'][0]}"
         when rt::CLIENT_ERROR then
-          raise RqlDriverError, "#{r.response[0].r_str}"
+          raise RqlDriverError, "#{r['r'][0]}"
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e

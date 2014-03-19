@@ -83,7 +83,7 @@ module RethinkDB
         q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
         res = @conn.run_internal q
         @results = Shim.response_to_native(res, @msg, @opts)
-        if res.type == Response::ResponseType::SUCCESS_SEQUENCE
+        if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
       end
@@ -94,7 +94,7 @@ module RethinkDB
         @more = false
         q = RethinkDB::new_query(Query::QueryType::STOP, @token)
         res = @conn.run_internal q
-        if res.type != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
+        if res['t'] != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
         return true
@@ -156,10 +156,10 @@ module RethinkDB
 
       res = run_internal(q, all_opts[:noreply])
       return res if !res
-      if res.type == Response::ResponseType::SUCCESS_PARTIAL
+      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q[:k], true)
-      elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
+      elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q[:k], false)
       else
@@ -272,7 +272,7 @@ module RethinkDB
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
       res = run_internal(q)
-      if res.type != Response::ResponseType::WAIT_COMPLETE
+      if res['t'] != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
       nil
@@ -324,13 +324,15 @@ module RethinkDB
             Thread.current.terminate
             abort("unreachable")
           end
-          #TODO: Recovery
+
           begin
-            protob = Response.parse(response)
+            PP.pp response
+            protob = JSON.parse(response)
+            PP.pp protob
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
-          if protob.token == -1
+          if protob['k'] == -1
             @mutex.synchronize {
               @waiters.keys.each {|k|
                 @data[k] = protob
@@ -342,9 +344,9 @@ module RethinkDB
             }
           else
             @mutex.synchronize {
-              @data[protob.token] = protob
-              if @waiters[protob.token]
-                cond = @waiters.delete protob.token
+              @data[protob['k']] = protob
+              if @waiters[protob['k']]
+                cond = @waiters.delete protob['k']
                 cond.signal
               end
             }

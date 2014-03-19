@@ -1,7 +1,9 @@
+#include <inttypes.h>
 #include "protob/json_shim.hpp"
 
+#include "utils.hpp"
+
 #include "http/json.hpp"
-#include "debug.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 std::map<std::string, int32_t> resolver;
@@ -191,21 +193,52 @@ bool parse_json_pb(Query *q, char *str) throw () {
     return true;
 }
 
-void write_json_pb(const Response *r, scoped_array_t<char> */*out*/) throw () {
-    scoped_cJSON_t json_holder(cJSON_CreateObject());
-    cJSON *json = json_holder.get();
-    json_holder.AddItemToObject("t", cJSON_CreateNumber(r->type()));
-    json_holder.AddItemToObject("k", cJSON_CreateNumber(r->token()));
-    {
-        scoped_cJSON_t arr(cJSON_CreateArray());
-        for (int i = 0; i < r->response_size(); ++i) {
-            const Datum *d = &r->response(i);
-            guarantee(d->type() == Datum::R_JSON);
-            arr.AddItemToArray(cJSON_CreateString(d->r_str().c_str()));
+std::string write_json_pb(const Response *r) throw () {
+    std::string s;
+    s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
+    for (int i = 0; i < r->response_size(); ++i) {
+        s += (i == 0) ? "" : ",";
+        const Datum *d = &r->response(i);
+        if (d->type() == Datum::R_JSON) {
+            s += d->r_str();
+        } else if (d->type() == Datum::R_STR) {
+            scoped_cJSON_t tmp(cJSON_CreateString(d->r_str().c_str()));
+            s += tmp.PrintUnformatted();
+        } else {
+            unreachable();
         }
-        json_holder.AddItemToObject("r", arr.release());
     }
-    guarantee(json != NULL);
+    s += "]";
+
+    if (r->has_backtrace()) {
+        s += ",\"b\":";
+        const Backtrace *bt = &r->backtrace();
+        scoped_cJSON_t arr(cJSON_CreateArray());
+        for (int i = 0; i < bt->frames_size(); ++i) {
+            const Frame *f = &bt->frames(i);
+            switch (f->type()) {
+            case Frame::POS: {
+                arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
+            } break;
+            case Frame::OPT: {
+                arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
+            } break;
+            default: unreachable();
+            }
+        }
+        s += arr.PrintUnformatted();
+    }
+
+    if (r->has_profile()) {
+        s += ",\"p\":";
+        const Datum *d = &r->profile();
+        guarantee(d->type() == Datum::R_JSON);
+        s += d->r_str();
+    }
+
+    s += "}";
+
+    return std::move(s);
 }
 
 
