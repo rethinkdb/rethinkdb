@@ -43,6 +43,6 @@ last_tested_versions
 /drivers/python/ql2.proto
 /scripts/cluster_directory_*
 /packaging/ami/build-ami-files/static-web
-test/performance/comparisons/
+test/performance/comparisons/comparison*
 test/performance/results/
 test/performance/run/

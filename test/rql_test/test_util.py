@@ -10,11 +10,12 @@ null = open('/dev/null', 'w')
 
 # Manages a cluster of RethinkDB servers
 class RethinkDBTestServers(object):
-    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False):
+    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False, cache_size=1024):
         assert num_servers >= 1
         self.num_servers = num_servers
         self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
+        self.cache_size = cache_size
 
     def __enter__(self):
         self.start()
@@ -24,7 +25,7 @@ class RethinkDBTestServers(object):
         self.stop()
 
     def start(self):
-        self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port)
+        self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port, self.cache_size)
                             for i in xrange(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
@@ -61,9 +62,10 @@ class RethinkDBTestServers(object):
 
 # Manages starting and stopping an instance of the Rethindb server
 class RethinkDBTestServer(object):
-    def __init__(self, server_build_dir=None, use_default_port=False):
+    def __init__(self, server_build_dir=None, use_default_port=False, cache_size=1024):
         self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
+        self.cache_size = cache_size
 
     # Implement `with` methods to ensure proper lifetime management
     def __enter__(self):
@@ -105,6 +107,7 @@ class RethinkDBTestServer(object):
                                  '--driver-port', str(self.cpp_port),
                                  '--directory', directory,
                                  '--http-port', '0',
+                                 '--cache-size', str(self.cache_size),
                                  '--cluster-port', str(self.cluster_port)],
                                 stdout=log_out, stderr=log_out)
         sleep(2)
