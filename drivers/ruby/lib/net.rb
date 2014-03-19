@@ -190,7 +190,7 @@ module RethinkDB
 
     def dispatch msg
       # PP.pp msg
-      payload = msg.to_json
+      payload = Shim.dump_json(msg)
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
       return msg[:k]
@@ -326,7 +326,7 @@ module RethinkDB
 
           begin
             # PP.pp response
-            protob = JSON.parse(response)
+            protob = Shim.load_json(response)
             # PP.pp protob
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
