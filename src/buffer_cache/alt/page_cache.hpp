@@ -561,12 +561,19 @@ private:
     // at this page_txn_t.  (And vice versa for each page_txn_t pointed at by
     // preceders_.)
 
+    // PERFORMANCE(preceders_): PERFORMANCE(subseqers_):
+    //
+    // Performance on operations linear in the number of preceders_ and subseqers_
+    // should be _okay_ in any case, because we throttle transactions based on the
+    // number of dirty blocks.  But also, the number of preceders_ and subseqers_
+    // would generally be very low, because relationships for users of the same block
+    // or cache connection form a chain, not a giant clique.
+
     // The transactions that must be committed before or at the same time as this
     // transaction.
     std::vector<page_txn_t *> preceders_;
 
-    // txn's that we precede.
-    // RSP: Performance?
+    // txn's that we precede -- preceders_[i]->subseqers_ always contains us once.
     std::vector<page_txn_t *> subseqers_;
 
     // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
@@ -576,11 +583,13 @@ private:
     size_t live_acqs_;
 
     // Saved pages (by block id).
-    // RSP: Right now we put multiple dirtied_page_t's if we reacquire the same block and modify it again.
+    // KSI: Right now we put multiple dirtied_page_t's if we reacquire the same block
+    // and modify it again.
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
     // Touched pages (by block id).
-    // RSP: Right now we put multiple touched_page_t's if we reacquire the same block and modify it again.
+    // KSI: Right now we put multiple touched_page_t's if we reacquire the same block
+    // and modify it again.
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
     // KSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a

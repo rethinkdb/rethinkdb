@@ -823,7 +823,7 @@ void page_txn_t::connect_preceder(page_txn_t *preceder) {
     // entirely from the txn graph, so we can't be adding preceders after that point.
     rassert(!preceder->flush_complete_cond_.is_pulsed());
 
-    // RSP: performance
+    // See "PERFORMANCE(preceders_)".
     if (std::find(preceders_.begin(), preceders_.end(), preceder)
         == preceders_.end()) {
         preceders_.push_back(preceder);
@@ -832,14 +832,14 @@ void page_txn_t::connect_preceder(page_txn_t *preceder) {
 }
 
 void page_txn_t::remove_preceder(page_txn_t *preceder) {
-    // RSP: performance
+    // See "PERFORMANCE(preceders_)".
     auto it = std::find(preceders_.begin(), preceders_.end(), preceder);
     rassert(it != preceders_.end());
     preceders_.erase(it);
 }
 
 void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
-    // RSP: performance
+    // See "PERFORMANCE(subseqers_)".
     auto it = std::find(subseqers_.begin(), subseqers_.end(), subseqer);
     rassert(it != subseqers_.end());
     subseqers_.erase(it);
@@ -1149,7 +1149,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                                             ancillary_infos[i].page));
         }
 
-        // RSP: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
+        // KSI: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
         // representation of deletion/touched blocks in blocks_by_tokens.
         std::vector<index_write_op_t> write_ops;
         write_ops.reserve(blocks_by_tokens.size());
