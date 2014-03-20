@@ -123,7 +123,7 @@ private:
 
     // A list of waiters that expect the value to be loaded, and (as long as there
     // are waiters) expect the value to never be evicted.
-    // RSP: This could be a single pointer instead of two.
+    // KSI: This could be a single pointer instead of two.
     intrusive_list_t<page_acq_t> waiters_;
 
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one

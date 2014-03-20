@@ -142,7 +142,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
         ASSERT_FINITE_CORO_WAITING;
         if (!loader.abandon_page()) {
-            // RSP: If somehow there are no snapshotters of copyee now (besides
+            // KSI: If somehow there are no snapshotters of copyee now (besides
             // ourself), maybe we could avoid copying this memory.  We need to
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.

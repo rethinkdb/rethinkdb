@@ -42,7 +42,7 @@ private:
     // declare_snapshotted() called).
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
-    // RSP: std::map memory usage.
+    // KSI: std::map memory usage.  Just use a vector of pairs?
     // A NULL pointer associated with a block id indicates that the block is deleted.
     std::map<block_id_t, alt_snapshot_node_t *> children_;
 
