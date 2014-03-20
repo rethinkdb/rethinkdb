@@ -354,17 +354,21 @@ private:
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
                                  std::map<block_id_t, block_change_t> *changes_ptr,
-                                 const std::vector<page_txn_t *> &txns);
+                                 const std::set<page_txn_t *> &txns);
 
-    static void remove_txn_set_from_graph(page_cache_t *page_cache,
-                                          const std::vector<page_txn_t *> &txns);
+    // Returns the set of page_txn_t's that have been unblocked.  The caller must
+    // call im_waiting_for_flush on them (or somehow replicate its behavior).
+    static MUST_USE std::set<page_txn_t *>
+    remove_txn_set_from_graph(page_cache_t *page_cache,
+                              const std::set<page_txn_t *> &txns);
 
     static std::map<block_id_t, block_change_t>
-    compute_changes(const std::vector<page_txn_t *> &txns);
+    compute_changes(const std::set<page_txn_t *> &txns);
 
-    static std::vector<page_txn_t *> maximal_flushable_txn_set(page_txn_t *base);
+    bool exists_flushable_txn_set(page_txn_t *txn,
+                                  std::set<page_txn_t *> *flush_set_out);
 
-    void im_waiting_for_flush(page_txn_t *txns);
+    void im_waiting_for_flush(std::set<page_txn_t *> txns);
 
     friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
@@ -594,16 +598,6 @@ private:
     // waiting for a flush.
     bool began_waiting_for_flush_;
     bool spawned_flush_;
-
-    enum mark_state_t {
-        marked_not,
-        marked_red,
-        marked_blue,
-        marked_green,
-    };
-    // Always `marked_not`, except temporarily ASSERT_NO_CORO_WAITING graph
-    // algorithms.
-    mark_state_t mark_;
 
     // This gets pulsed when the flush is complete or when the txn has no reason to
     // exist any more.
