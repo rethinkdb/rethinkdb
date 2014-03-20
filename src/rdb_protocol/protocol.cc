@@ -300,7 +300,7 @@ void post_construct_and_drain_queue(
             mutex_t::acq_t acq;
             store->lock_sindex_queue(&queue_sindex_block, &acq);
 
-            const int MAX_CHUNK_SIZE = 100;
+            const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
             while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
                 rdb_sindex_change_t sindex_change;
@@ -1789,6 +1789,7 @@ private:
             sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                     &sindex_block, &sindexes);
+            sindex_block.reset_buf_lock();
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
@@ -1796,7 +1797,6 @@ private:
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }
         }
-        sindex_block.reset_buf_lock();
 
         // Write mod reports onto the sindex queue. While we need to hold on to
         // the sindex_queue mutex, we can already release all remaining locks.
