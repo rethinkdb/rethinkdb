@@ -907,10 +907,9 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 void page_txn_t::announce_waiting_for_flush() {
     rassert(live_acqs_.empty());
     rassert(!began_waiting_for_flush_);
+    rassert(!spawned_flush_);
     began_waiting_for_flush_ = true;
-    std::set<page_txn_t *> txns;
-    txns.insert(this);
-    page_cache_->im_waiting_for_flush(std::move(txns));
+    page_cache_->im_waiting_for_flush(this);
 }
 
 std::map<block_id_t, page_cache_t::block_change_t>
@@ -976,12 +975,9 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
     return changes;
 }
 
-std::set<page_txn_t *>
-page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
-                                        const std::set<page_txn_t *> &txns) {
+void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
+                                             const std::set<page_txn_t *> &txns) {
     page_cache->assert_thread();
-
-    std::set<page_txn_t *> unblocked;
 
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         // We want detaching the subsequers and preceders to happen at the same time
@@ -992,18 +988,15 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         {
             for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
                 (*jt)->remove_preceder(txn);
-                if (txns.find(*jt) == txns.end()) {
-                    if ((*jt)->began_waiting_for_flush_ && !(*jt)->spawned_flush_) {
-                        unblocked.insert(*jt);
-                    }
-                }
             }
             txn->subseqers_.clear();
         }
 
+        // We could have preceders outside this txn set, because transactions that
+        // don't make any modifications don't get flushed, and they don't wait for
+        // their preceding transactions to get flushed and then removed from the
+        // graph.
         for (auto jt = txn->preceders_.begin(); jt != txn->preceders_.end(); ++jt) {
-            // All our preceders should be from our own txn set.
-            rassert(txns.find(*jt) != txns.end());
             (*jt)->remove_subseqer(txn);
         }
         txn->preceders_.clear();
@@ -1038,8 +1031,6 @@ page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 
         txn->flush_complete_cond_.pulse();
     }
-
-    return unblocked;
 }
 
 struct block_token_tstamp_t {
@@ -1244,17 +1235,14 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // Flush complete.
 
-    // KSI: Can't we remove_txn_set_from_graph before flushing?  Make pulsing
-    // flush_complete_cond_ a separate thing to do?
-    std::set<page_txn_t *> unblocked
-        = page_cache_t::remove_txn_set_from_graph(page_cache, txns);
-
-    page_cache->im_waiting_for_flush(std::move(unblocked));
+    // KSI: Can't we remove_txn_set_from_graph before flushing?  It would make some
+    // data structures smaller.
+    page_cache_t::remove_txn_set_from_graph(page_cache, txns);
 }
 
-std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn_t *> base) {
-    // Returns all transactions that can presently be flushed, given the newest set
-    // of transactions whose flushability has become more promising.  (We assume all
+std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(page_txn_t *base) {
+    // Returns all transactions that can presently be flushed, given the newest
+    // transaction that has had began_waiting_for_flush_ set.  (We assume all
     // previous such sets of transactions had flushing begin on them.)
     //
     // page_txn_t's `mark` fields can be in the following states:
@@ -1287,15 +1275,12 @@ std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn
     // construct the return vector at the end of the function.
     std::vector<page_txn_t *> colored;
 
-    for (auto it = base.begin(); it != base.end(); ++it) {
-        page_txn_t *txn = *it;
-        rassert(!txn->spawned_flush_);
-        rassert(txn->began_waiting_for_flush_);
-        rassert(txn->mark_ == page_txn_t::marked_not);
-        txn->mark_ = page_txn_t::marked_blue;
-        blue.push_back(txn);
-        colored.push_back(txn);
-    }
+    rassert(!base->spawned_flush_);
+    rassert(base->began_waiting_for_flush_);
+    rassert(base->mark_ == page_txn_t::marked_not);
+    base->mark_ = page_txn_t::marked_blue;
+    blue.push_back(base);
+    colored.push_back(base);
 
     while (!blue.empty()) {
         page_txn_t *txn = blue.back();
@@ -1362,34 +1347,31 @@ std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn
     return ret;
 }
 
-void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> base) {
+void page_cache_t::im_waiting_for_flush(page_txn_t *base) {
     assert_thread();
+    rassert(base->began_waiting_for_flush_);
+    rassert(!base->spawned_flush_);
     ASSERT_FINITE_CORO_WAITING;
 
-    while (!base.empty()) {
-        std::set<page_txn_t *> flush_set
-            = page_cache_t::maximal_flushable_txn_set(std::move(base));
-        if (!flush_set.empty()) {
-            for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
-                rassert(!(*it)->spawned_flush_);
-                (*it)->spawned_flush_ = true;
-            }
+    std::set<page_txn_t *> flush_set
+        = page_cache_t::maximal_flushable_txn_set(base);
+    if (!flush_set.empty()) {
+        for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
+            rassert(!(*it)->spawned_flush_);
+            (*it)->spawned_flush_ = true;
+        }
 
-            std::map<block_id_t, block_change_t> changes
-                = page_cache_t::compute_changes(flush_set);
+        std::map<block_id_t, block_change_t> changes
+            = page_cache_t::compute_changes(flush_set);
 
-            if (!changes.empty()) {
-                coro_t::spawn_now_dangerously(std::bind(&page_cache_t::do_flush_txn_set,
-                                                        this,
-                                                        &changes,
-                                                        flush_set));
-            } else {
-                // RSI: Improve the logic, remove_txn_set_from_graph shouldn't return
-                // anything.
-
-                // Flush complete.  do_flush_txn_set does this in the write case.
-                base = page_cache_t::remove_txn_set_from_graph(this, flush_set);
-            }
+        if (!changes.empty()) {
+            coro_t::spawn_now_dangerously(std::bind(&page_cache_t::do_flush_txn_set,
+                                                    this,
+                                                    &changes,
+                                                    flush_set));
+        } else {
+            // Flush complete.  do_flush_txn_set does this in the write case.
+            page_cache_t::remove_txn_set_from_graph(this, flush_set);
         }
     }
 }

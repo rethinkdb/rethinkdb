@@ -356,18 +356,15 @@ private:
                                  std::map<block_id_t, block_change_t> *changes_ptr,
                                  const std::set<page_txn_t *> &txns);
 
-    // Returns the set of page_txn_t's that have been unblocked.  The caller must
-    // call im_waiting_for_flush on them (or somehow replicate its behavior).
-    static MUST_USE std::set<page_txn_t *>
-    remove_txn_set_from_graph(page_cache_t *page_cache,
-                              const std::set<page_txn_t *> &txns);
+    static void remove_txn_set_from_graph(page_cache_t *page_cache,
+                                          const std::set<page_txn_t *> &txns);
 
     static std::map<block_id_t, block_change_t>
     compute_changes(const std::set<page_txn_t *> &txns);
 
-    static std::set<page_txn_t *> maximal_flushable_txn_set(std::set<page_txn_t *> base);
+    static std::set<page_txn_t *> maximal_flushable_txn_set(page_txn_t *base);
 
-    void im_waiting_for_flush(std::set<page_txn_t *> txns);
+    void im_waiting_for_flush(page_txn_t *txns);
 
     friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
