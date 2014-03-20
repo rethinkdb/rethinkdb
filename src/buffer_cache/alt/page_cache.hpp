@@ -365,10 +365,6 @@ private:
     static std::map<block_id_t, block_change_t>
     compute_changes(const std::set<page_txn_t *> &txns);
 
-    // RSI: Remove this.
-    bool exists_flushable_txn_set(page_txn_t *txn,
-                                  std::set<page_txn_t *> *flush_set_out);
-
     static std::set<page_txn_t *> maximal_flushable_txn_set(std::set<page_txn_t *> base);
 
     void im_waiting_for_flush(std::set<page_txn_t *> txns);

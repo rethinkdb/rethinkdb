@@ -1252,46 +1252,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     page_cache->im_waiting_for_flush(std::move(unblocked));
 }
 
-bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
-                                            std::set<page_txn_t *> *flush_set_out) {
-    assert_thread();
-    std::set<page_txn_t *> builder;
-    std::stack<page_txn_t *> stack;
-    stack.push(txn);
-
-    while (!stack.empty()) {
-        page_txn_t *t = stack.top();
-        stack.pop();
-
-        if (!t->began_waiting_for_flush_) {
-            // We can't flush this txn or the others if there's a preceder that
-            // hasn't begun waiting for flush.
-            return false;
-        }
-
-        if (t->spawned_flush_) {
-            // We ignore (and don't continue to traverse) nodes that are already
-            // spawned flushing.  They aren't part of our txn set, and they didn't
-            // depend on txn before they started flushing.
-            continue;
-        }
-
-        auto res = builder.insert(t);
-        if (res.second) {
-            // An insertion actually took place -- it's newly processed!  Add its
-            // preceders to the stack so that we can process them.
-            for (auto it = t->preceders_.begin(); it != t->preceders_.end(); ++it) {
-                stack.push(*it);
-            }
-        }
-    }
-
-    // We built up some txn set.  We know it's non-empty because at least txn is in
-    // there.  Success!
-    *flush_set_out = std::move(builder);
-    return true;
-}
-
 std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn_t *> base) {
     // Returns all transactions that can presently be flushed, given the newest set
     // of transactions whose flushability has become more promising.  (We assume all
