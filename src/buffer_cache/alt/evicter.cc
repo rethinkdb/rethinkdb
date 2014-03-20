@@ -34,7 +34,7 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit,
 
 uint64_t evicter_t::get_clamped_bytes_loaded() const {
     assert_thread();
-    return std::max<int64_t>( bytes_loaded_counter_, 0);
+    return std::max<int64_t>(bytes_loaded_counter_, 0);
 }
 
 uint64_t evicter_t::memory_limit() const {

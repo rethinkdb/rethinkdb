@@ -34,7 +34,7 @@ bool alt_cache_balancer_t::is_read_ahead_ok() {
 }
 
 bool alt_cache_balancer_t::subtract_read_ahead_bytes(int64_t size) {
-    int64_t res = __sync_sub_and_fetch(&read_ahead_bytes_remaining, size);
+    intptr_t res = __sync_sub_and_fetch(&read_ahead_bytes_remaining, size);
     return res <= 0;
 }
 

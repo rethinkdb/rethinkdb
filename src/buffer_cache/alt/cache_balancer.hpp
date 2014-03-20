@@ -134,7 +134,7 @@ private:
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
     microtime_t last_rebalance_time;
-    int64_t read_ahead_bytes_remaining;
+    intptr_t read_ahead_bytes_remaining;
 
     // This contains the extant evicter pointers for each thread, only accessed
     // from each thread
