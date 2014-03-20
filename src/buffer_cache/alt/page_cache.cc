@@ -1316,10 +1316,11 @@ std::vector<page_txn_t *> page_cache_t::maximal_flushable_txn_set(page_txn_t *ba
             if (!subs->began_waiting_for_flush_) {
                 rassert(subs->mark_ == page_txn_t::marked_not);
             } else if (subs->mark_ == page_txn_t::marked_not) {
-                // RSI: We could add if(poisoned) around this.
-                subs->mark_ = page_txn_t::marked_blue;
-                blue.push_back(subs);
-                colored.push_back(subs);
+                if (!poisoned) {
+                    subs->mark_ = page_txn_t::marked_blue;
+                    blue.push_back(subs);
+                    colored.push_back(subs);
+                }
             } else if (subs->mark_ == page_txn_t::marked_green) {
                 if (poisoned) {
                     subs->mark_ = page_txn_t::marked_blue;
