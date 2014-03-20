@@ -1591,7 +1591,6 @@ repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOT
     return boost::apply_visitor(v, val);
 }
 
-#include "debug.hpp"
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;

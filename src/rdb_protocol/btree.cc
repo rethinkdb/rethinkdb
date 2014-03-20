@@ -1275,7 +1275,7 @@ public:
                     store_->acquire_superblock_for_write(
                             repli_timestamp_t::distant_past,
                             2,  // KSI: This is not the right value.
-                            write_durability_t::HARD, // TODO!
+                            write_durability_t::SOFT,
                             &token_pair,
                             &wtxn,
                             &superblock,

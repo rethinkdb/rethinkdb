@@ -61,8 +61,7 @@ alt_txn_throttler_t::~alt_txn_throttler_t() { }
 throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
     throttler_acq_t acq;
     acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
-    // TODO!
-    //acq.semaphore_acq_.acquisition_signal()->wait();
+    acq.semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
