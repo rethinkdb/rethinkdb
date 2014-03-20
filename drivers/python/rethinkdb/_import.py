@@ -587,7 +587,6 @@ def spawn_import_clients(options, files_info):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "Traceback: %s" % (error[2])
             print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
             if len(error) == 4:
                 print >> sys.stderr, "In file: %s" % (error[3])
