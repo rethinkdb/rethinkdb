@@ -166,7 +166,15 @@ segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t
     rassert(state == state_ready);
     segmented_vector_t<repli_timestamp_t> ret;
     block_id_t end = in_memory_index.end_block_id();
+    block_id_t count = 0;
     for (block_id_t i = first; i < end; i += step) {
+        ++count;
+        if (count % 1024 == 0) {
+            coro_t::yield();
+            // Nothing interesting should happen, this is called when the cache is
+            // starting up.
+            rassert(state == state_ready);
+        }
         ret.push_back(in_memory_index.get_block_info(i).recency);
     }
     return ret;
