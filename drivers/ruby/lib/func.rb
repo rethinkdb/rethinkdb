@@ -94,10 +94,7 @@ module RethinkDB
           }
         end
         if optargs && optargs != {}
-          t[:o] = optargs.map {|k,v|
-            { k: k.to_s,
-              v: RQL.new.expr(v).to_pb }
-          }
+          t[:o] = Hash[optargs.map {|k,v| [k.to_s, RQL.new.expr(v).to_pb]}]
         end
         return RQL.new(t, bitop)
       }

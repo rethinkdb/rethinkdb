@@ -147,10 +147,9 @@ module RethinkDB
       q = {
         t: Query::QueryType::START,
         k: @@token_cnt += 1,
-        g: all_opts.map {|k,v|
-          { k: k.to_s,
-            v: (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb) }
-        },
+        g: Hash[all_opts.map {|k,v|
+                  [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
+                }],
         q: msg
       }
 

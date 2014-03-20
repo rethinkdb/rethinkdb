@@ -14,6 +14,7 @@ namespace json_shim {
 class exc_t : public std::exception {
 public:
     exc_t(cJSON *) : str("PLACEHOLDER") { BREAKPOINT; }
+    ~exc_t() throw () { }
     const char *what() const throw () { return str.c_str(); }
 private:
     std::string str;
@@ -55,9 +56,11 @@ struct {                                                                \
         void operator()(cJSON *json__, T__ *dest__) {                   \
             cJSON *arr__ = cJSON_GetObjectItem(json__, NAME);           \
             if (arr__ == NULL) return;                                  \
-            check_type(arr__, cJSON_Array);                             \
-            int64_t sz__ = cJSON_GetArraySize(arr__);                   \
-            for (int64_t i__ = 0; i__ < sz__; ++i__) {                  \
+            if (arr__->type != cJSON_Object) {                          \
+                check_type(arr__, cJSON_Array);                         \
+            }                                                           \
+            int sz__ = cJSON_GetArraySize(arr__);                       \
+            for (int i__ = 0; i__ < sz__; ++i__) {                      \
                 auto el__ = dest__->add_##FIELD();                      \
                 safe_extractor_t<decltype(dest__->FIELD(0))>()(         \
                     cJSON_GetArrayItem(arr__, i__),                     \
@@ -121,41 +124,6 @@ struct extractor_t<bool> {
 };
 
 template<>
-struct extractor_t<const Query::AssocPair &> {
-    void operator()(cJSON *json, Query::AssocPair *ap) {
-        TRANSFER(json, key, "k", ap);
-        TRANSFER(json, val, "v", ap);
-    };
-};
-
-template<>
-struct extractor_t<const Term::AssocPair &> {
-    void operator()(cJSON *json, Term::AssocPair *ap) {
-        TRANSFER(json, key, "k", ap);
-        TRANSFER(json, val, "v", ap);
-    };
-};
-
-template<>
-struct extractor_t<const Datum::AssocPair &> {
-    void operator()(cJSON *json, Datum::AssocPair *ap) {
-        TRANSFER(json, key, "k", ap);
-        TRANSFER(json, val, "v", ap);
-    };
-};
-
-template<>
-struct extractor_t<const Query &> {
-    void operator()(cJSON *json, Query *q) {
-        TRANSFER(json, type, "t", q);
-        TRANSFER(json, query, "q", q);
-        TRANSFER(json, token, "k", q);
-        q->set_accepts_r_json(true); // RSI: response should be true JSON
-        TRANSFER(json, global_optargs, "g", q);
-    };
-};
-
-template<>
 struct extractor_t<const Term &> {
     void operator()(cJSON *json, Term *t) {
         TRANSFER(json, type, "t", t);
@@ -211,6 +179,41 @@ struct extractor_t<const Datum &> {
     }
 };
 
+template<>
+struct extractor_t<const Query::AssocPair &> {
+    void operator()(cJSON *json, Query::AssocPair *ap) {
+        ap->set_key(json->string);
+        extractor_t<const Term &>()(json, ap->mutable_val());
+    };
+};
+
+template<>
+struct extractor_t<const Term::AssocPair &> {
+    void operator()(cJSON *json, Term::AssocPair *ap) {
+        ap->set_key(json->string);
+        extractor_t<const Term &>()(json, ap->mutable_val());
+    };
+};
+
+template<>
+struct extractor_t<const Datum::AssocPair &> {
+    void operator()(cJSON *json, Datum::AssocPair *ap) {
+        ap->set_key(json->string);
+        extractor_t<const Datum &>()(json, ap->mutable_val());
+    };
+};
+
+template<>
+struct extractor_t<const Query &> {
+    void operator()(cJSON *json, Query *q) {
+        TRANSFER(json, type, "t", q);
+        TRANSFER(json, query, "q", q);
+        TRANSFER(json, token, "k", q);
+        q->set_accepts_r_json(true); // RSI: response should be true JSON
+        TRANSFER(json, global_optargs, "g", q);
+    };
+};
+
 bool parse_json_pb(Query *q, char *str) throw () {
     // debug_timer_t tm;
     q->Clear();
@@ -220,7 +223,7 @@ bool parse_json_pb(Query *q, char *str) throw () {
     if (json == NULL) return false;
     extractor_t<const Query &>()(json, q);
     // tm.tick("SHIM");
-    debugf("%s\n", q->DebugString().c_str());
+    // debugf("%s\n", q->DebugString().c_str());
     return true;
 }
 

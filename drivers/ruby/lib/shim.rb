@@ -117,10 +117,7 @@ module RethinkDB
       when Array then RQL.new({ t: Term::TermType::MAKE_ARRAY,
                                 a: x.map{|y| fast_expr(y)} })
       when Hash then RQL.new({ t: Term::TermType::MAKE_OBJ,
-                               o: x.map {|k,v|
-                                 { k: safe_to_s(k),
-                                   v: fast_expr(v) }
-                               } })
+                               o: Hash[x.map{|k,v| [safe_to_s(k), fast_expr(v)]}] })
       else RQL.new({t: Term::TermType::DATUM, d: x})
       end
     end
