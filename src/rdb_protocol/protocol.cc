@@ -1577,6 +1577,10 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         return most_recent;
     }
 
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        return kv.backfill_atom.recency;
+    }
+
     repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
         return repli_timestamp_t::invalid;
     }
@@ -1587,6 +1591,7 @@ repli_timestamp_t backfill_chunk_t::get_btree_repli_timestamp() const THROWS_NOT
     return boost::apply_visitor(v, val);
 }
 
+#include "debug.hpp"
 struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
@@ -1602,12 +1607,21 @@ public:
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency),
+                                 interruptor);
     }
 
     void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
+        // TODO!
+        for (size_t i = 0; i < atoms.size(); ++i) {
+            // While less efficient, we insert each key/value pair separately
+            // to reduce the latency impact of backfills on other operations.
+            chunk_fun_cb->send_chunk(chunk_t::set_key(std::move(atoms[i])),
+                                     interruptor);
+            coro_t::yield();
+        }
+        //chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes,
@@ -1705,7 +1719,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    superblock.get(), &deletion_context, &response,
                    &mod_reports[0].info, static_cast<profile::trace_t *>(NULL));
-
+        superblock.reset();
         update_sindexes(mod_reports);
     }
 
@@ -1716,6 +1730,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_erase_small_range(&tester, delete_range.range.inner,
                               superblock.get(), &deletion_context, interruptor,
                               &mod_reports);
+        superblock.reset();
         update_sindexes(mod_reports);
     }
 
@@ -1735,12 +1750,26 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                         &superblock_promise));
                 superblock.init(superblock_promise.wait());
             }
-            superblock->release();
+            superblock.reset();
         }
         update_sindexes(mod_reports);
     }
 
+    void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        std::vector<rdb_modification_report_t> mod_reports(1);
+        // TODO!
+        auto_drainer_t dummy;
+        backfill_chunk_single_rdb_set(kv.backfill_atom, btree,
+                                      superblock.get(), dummy.lock(),
+                                      &mod_reports[0], NULL);
+        superblock.reset();
+        update_sindexes(mod_reports);
+    }
+
     void operator()(const backfill_chunk_t::sindexes_t &s) {
+        // Release the superblock. We don't need it for this.
+        superblock.reset();
+
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
@@ -1775,19 +1804,25 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                &sindex_block, &sindexes);
-
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
-        rdb_live_deletion_context_t deletion_context;
+        {
+            sindex_access_vector_t sindexes;
+            store->acquire_post_constructed_sindex_superblocks_for_write(
+                    &sindex_block, &sindexes);
+
+            rdb_live_deletion_context_t deletion_context;
+            for (size_t i = 0; i < mod_reports.size(); ++i) {
+                rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            }
+        }
+
+        // Write mod reports onto the sindex queue. While we need to hold on to
+        // the sindex_queue mutex, we can already release all remaining locks.
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_reports[i]);
             store->sindex_queue_push(wm, &acq);
-
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
 
@@ -1906,6 +1941,9 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, ran
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
                            backfill_atoms);
+
+RDB_IMPL_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
+                        backfill_atom);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 
