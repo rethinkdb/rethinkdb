@@ -911,7 +911,7 @@ module 'DataExplorerView', ->
 
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
-                            if suggestion isnt 'ungroup(' or @grouped_data is true
+                            if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
                                 result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
                                 @current_suggestions.push suggestion
                                 @.$('.suggestion_name_list').append @template_suggestion_name
@@ -1262,7 +1262,7 @@ module 'DataExplorerView', ->
             if result.suggestions?.length > 0
                 show_suggestion = false
                 for suggestion, i in result.suggestions
-                    if suggestion isnt 'ungroup(' or @grouped_data is true
+                    if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
                         show_suggestion = true
                         @current_suggestions.push suggestion
                         @.$('.suggestion_name_list').append @template_suggestion_name
