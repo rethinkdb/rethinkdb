@@ -164,8 +164,11 @@ page_cache_t::~page_cache_t() {
     have_read_ahead_cb_destroyed();
 
     drainer_.reset();
-    for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
-        delete *it;
+    for (size_t i = 0, e = current_pages_.size(); i < e; ++i) {
+        if (i % 256 == 255) {
+            coro_t::yield();
+        }
+        delete current_pages_[i];
     }
 
     {
