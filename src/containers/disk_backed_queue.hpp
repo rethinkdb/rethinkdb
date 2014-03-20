@@ -47,6 +47,7 @@ public:
 
     // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t &value);
+    void push(const std::vector<write_message_t> &values);
 
     // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(buffer_group_viewer_t *viewer);
@@ -58,6 +59,7 @@ public:
 private:
     void add_block_to_head(txn_t *txn);
     void remove_block_from_tail(txn_t *txn);
+    void push_single(txn_t *txn, const write_message_t &value);
 
     mutex_t mutex;
 
