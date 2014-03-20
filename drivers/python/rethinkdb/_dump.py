@@ -38,6 +38,7 @@ def parse_options():
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
 
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
+    parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -76,6 +77,7 @@ def parse_options():
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
+    res["debug"] = options.debug
     return res
 
 def do_export(temp_dir, options):
@@ -85,8 +87,12 @@ def do_export(temp_dir, options):
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
     export_args.extend(["--clients", str(options["clients"])])
+
     for table in options["tables"]:
         export_args.extend(["--export", table])
+
+    if options["debug"]:
+        export_args.extend(["--debug"])
 
     res = subprocess.call(export_args)
     if res != 0:
