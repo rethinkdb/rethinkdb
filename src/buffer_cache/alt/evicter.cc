@@ -49,10 +49,7 @@ void evicter_t::add_deferred_loaded(page_t *page) {
 
 void evicter_t::catch_up_deferred_load(page_t *page) {
     assert_thread();
-    rassert(evicted_.has_page(page));
-    evicted_.remove(page, page->hypothetical_memory_usage());
-    unevictable_.add(page, page->hypothetical_memory_usage());
-    evict_if_necessary();
+    rassert(unevictable_.has_page(page));
     notify_bytes_loading(page->hypothetical_memory_usage());
 }
 
