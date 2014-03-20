@@ -1577,10 +1577,6 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         return most_recent;
     }
 
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return kv.backfill_atom.recency;
-    }
-
     repli_timestamp_t operator()(const backfill_chunk_t::sindexes_t &) {
         return repli_timestamp_t::invalid;
     }
@@ -1612,15 +1608,7 @@ public:
 
     void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        // TODO!
-        for (size_t i = 0; i < atoms.size(); ++i) {
-            // While less efficient, we insert each key/value pair separately
-            // to reduce the latency impact of backfills on other operations.
-            chunk_fun_cb->send_chunk(chunk_t::set_key(std::move(atoms[i])),
-                                     interruptor);
-            coro_t::yield();
-        }
-        //chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
+        chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes,
@@ -1751,17 +1739,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
             }
             superblock.reset();
         }
-        update_sindexes(mod_reports);
-    }
-
-    void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        std::vector<rdb_modification_report_t> mod_reports(1);
-        // TODO!
-        auto_drainer_t dummy;
-        backfill_chunk_single_rdb_set(kv.backfill_atom, btree,
-                                      superblock.get(), dummy.lock(),
-                                      &mod_reports[0], NULL);
-        superblock.reset();
         update_sindexes(mod_reports);
     }
 
@@ -1940,9 +1917,6 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, ran
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
                            backfill_atoms);
-
-RDB_IMPL_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
-                        backfill_atom);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 
