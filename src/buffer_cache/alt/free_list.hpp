@@ -1,8 +1,7 @@
 #ifndef BUFFER_CACHE_ALT_FREE_LIST_HPP_
 #define BUFFER_CACHE_ALT_FREE_LIST_HPP_
 
-#include <vector>
-
+#include "containers/segmented_vector.hpp"
 #include "serializer/types.hpp"
 
 namespace alt {
@@ -23,8 +22,7 @@ public:
 
 private:
     block_id_t next_new_block_id_;
-    // RSP: std::vector performance.
-    std::vector<block_id_t> free_ids_;
+    segmented_vector_t<block_id_t> free_ids_;
     DISABLE_COPYING(free_list_t);
 };
 

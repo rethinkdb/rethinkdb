@@ -37,12 +37,14 @@ void free_list_t::acquire_chosen_block_id(block_id_t block_id) {
             free_ids_.push_back(i);
         }
     } else {
-        for (auto it = free_ids_.begin(); it != free_ids_.end(); ++it) {
-            if (*it == block_id) {
-                free_ids_.erase(it);
+        for (size_t i = 0, e = free_ids_.size(); i < e; ++i) {
+            if (free_ids_[i] == block_id) {
+                free_ids_[i] = free_ids_.back();
+                free_ids_.pop_back();
                 return;
             }
         }
+
         crash("acquire_chosen_block_id tried to use %" PR_BLOCK_ID
               ", but it was taken.", block_id);
     }
