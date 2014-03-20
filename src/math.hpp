@@ -25,6 +25,11 @@ T1 ceil_modulo(T1 value, T2 alignment) {
     return value + alignment - ((x < 0 ? x + alignment : x) + 1);
 }
 
+template <class T>
+T clamp(T x, T lo, T hi) {
+    return x < lo ? lo : x > hi ? hi : x;
+}
+
 inline bool divides(int64_t x, int64_t y) {
     return y % x == 0;
 }

@@ -31,6 +31,8 @@ private:
 // signal pulsed before their write signal.)
 class rwlock_in_line_t : public intrusive_list_node_t<rwlock_in_line_t> {
 public:
+    rwlock_in_line_t();
+
     // The constructor does not block.  Use read_signal() or write_signal() to wait
     // for acquisition.
     rwlock_in_line_t(rwlock_t *lock, access_t access);
@@ -45,10 +47,12 @@ public:
         return &write_cond_;
     }
 
+    void reset();
+
 private:
     friend class rwlock_t;
-    rwlock_t *const lock_;
-    const access_t access_;
+    rwlock_t *lock_;
+    access_t access_;
     cond_t read_cond_;
     cond_t write_cond_;
 
