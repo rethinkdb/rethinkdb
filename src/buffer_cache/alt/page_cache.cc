@@ -220,8 +220,8 @@ private:
 void page_cache_t::flush_and_destroy_txn(
         scoped_ptr_t<page_txn_t> txn,
         std::function<void(throttler_acq_t *)> on_flush_complete) {
-    rassert(txn->live_acqs_.empty(),
-            "current_page_acq_t lifespan exceeds its page_txn_t's");
+    guarantee(txn->live_acqs_ == 0,
+              "A current_page_acq_t lifespan exceeds its page_txn_t's.");
     guarantee(!txn->began_waiting_for_flush_);
 
     txn->announce_waiting_for_flush();
@@ -801,6 +801,7 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
       cache_conn_(cache_conn),
       throttler_acq_(std::move(throttler_acq)),
       this_txn_recency_(txn_recency),
+      live_acqs_(0),
       began_waiting_for_flush_(false),
       spawned_flush_(false),
       mark_(marked_not) {
@@ -853,16 +854,15 @@ page_txn_t::~page_txn_t() {
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
     rassert(acq->access_ == access_t::write);
-    live_acqs_.push_back(acq);
+    ++live_acqs_;
 }
 
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     guarantee(acq->access_ == access_t::write);
     // This is called by acq's destructor.
     {
-        auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
-        rassert(it != live_acqs_.end());
-        live_acqs_.erase(it);
+        rassert(live_acqs_ > 0);
+        --live_acqs_;
     }
 
     // It's not snapshotted because you can't snapshot write acqs.  (We
@@ -905,7 +905,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 }
 
 void page_txn_t::announce_waiting_for_flush() {
-    rassert(live_acqs_.empty());
+    rassert(live_acqs_ == 0);
     rassert(!began_waiting_for_flush_);
     rassert(!spawned_flush_);
     began_waiting_for_flush_ = true;

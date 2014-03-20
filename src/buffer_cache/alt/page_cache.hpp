@@ -572,9 +572,8 @@ private:
     // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
     std::vector<current_page_t *> pages_write_acquired_last_;
 
-    // acqs that are currently alive.
-    // RSP: Performance?  remove_acquirer takes linear time.
-    std::vector<current_page_acq_t *> live_acqs_;
+    // How many current_page_acq_t's for this transaction that are currently alive.
+    size_t live_acqs_;
 
     // Saved pages (by block id).
     // RSP: Right now we put multiple dirtied_page_t's if we reacquire the same block and modify it again.
