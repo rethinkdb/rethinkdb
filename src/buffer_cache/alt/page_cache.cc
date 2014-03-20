@@ -997,6 +997,8 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         }
         txn->preceders_.clear();
 
+        // KSI: Maybe we could remove pages_write_acquired_last_ earlier?  Like when
+        // we begin the index write (but that's on the wrong thread) or earlier?
         while (txn->pages_write_acquired_last_.size() != 0) {
             current_page_t *current_page
                 = txn->pages_write_acquired_last_.access_random(0);
