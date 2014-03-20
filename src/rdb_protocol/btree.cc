@@ -1255,7 +1255,7 @@ public:
         // Number of key/value pairs we process before yielding
         const int MAX_CHUNK_SIZE = 10;
         int current_chunk_size = 0;
-        rdb_post_construction_deletion_context_t deletion_context;
+        const rdb_post_construction_deletion_context_t deletion_context;
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             if (current_chunk_size == 0) {
                 // Start a write transaction and acquire the secondary index
@@ -1311,7 +1311,7 @@ public:
             const void *value = (*it).second;
             guarantee(key);
 
-            store_key_t pk(key);
+            const store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
             const block_size_t block_size = leaf_node_buf->cache()->get_block_size();

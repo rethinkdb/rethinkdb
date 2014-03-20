@@ -336,6 +336,7 @@ public:
  * the post_deleter. */
 class rdb_live_deletion_context_t : public deletion_context_t {
 public:
+    rdb_live_deletion_context_t() { }
     const value_deleter_t *balancing_detacher() const { return &detacher; }
     const value_deleter_t *in_tree_deleter() const { return &detacher; }
     const value_deleter_t *post_deleter() const { return &deleter; }
@@ -349,6 +350,7 @@ private:
  * during that stage, we use noop deleters for everything. */
 class rdb_post_construction_deletion_context_t : public deletion_context_t {
 public:
+    rdb_post_construction_deletion_context_t() { }
     const value_deleter_t *balancing_detacher() const { return &no_deleter; }
     const value_deleter_t *in_tree_deleter() const { return &no_deleter; }
     const value_deleter_t *post_deleter() const { return &no_deleter; }

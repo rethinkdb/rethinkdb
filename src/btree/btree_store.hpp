@@ -58,6 +58,7 @@ protected:
 /* A deleter that does absolutely nothing. */
 class noop_value_deleter_t : public value_deleter_t {
 public:
+    noop_value_deleter_t() { }
     void delete_value(buf_parent_t, const void *) const;
 };
 
