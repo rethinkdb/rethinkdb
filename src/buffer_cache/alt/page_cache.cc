@@ -1293,8 +1293,38 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
 }
 
 std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn_t *> base) {
+    // Returns all transactions that can presently be flushed, given the newest set
+    // of transactions whose flushability has become more promising.  (We assume all
+    // previous such sets of transactions had flushing begin on them.)
+    //
+    // page_txn_t's `mark` fields can be in the following states:
+    //  - not: the page has not yet been considered for processing
+    //  - blue: the page is going to be considered for processing
+    //  - green: the page _has_ been considered for processing, nothing bad so far
+    //  - red: the page _has_ been considered for processing, and it is unflushable.
+    //
+    // By the end of the function (before we construct the return value), no
+    // page_txn_t's are blue, and all subseqers of red pages are either red or not
+    // marked.  All flushable page_txn_t's are green.
+    //
+    // Here are all possible transitions of the mark.  The states blue(1) and blue(2)
+    // both have a blue mark, but the latter is known to have a red parent.
+    //
+    // not -> blue(1)
+    // blue(1) -> red
+    // blue(1) -> green
+    // green -> blue(2)
+    // blue(2) -> red
+    //
+    // From this transition table you can see that every page_txn_t is processed at
+    // most twice.
+
+
     ASSERT_NO_CORO_WAITING;
+    // An element is marked blue iff it's in `blue`.
     std::vector<page_txn_t *> blue;
+    // All elements marked red, green, or blue are in `colored` -- we unmark them and
+    // construct the return vector at the end of the function.
     std::vector<page_txn_t *> colored;
 
     for (auto it = base.begin(); it != base.end(); ++it) {
