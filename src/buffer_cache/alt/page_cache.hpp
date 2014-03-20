@@ -116,6 +116,8 @@ private:
     // Has access to our fields.
     friend class page_cache_t;
 
+    friend backindex_bag_index_t *access_backindex(current_page_t *current_page);
+
     bool is_deleted() const { return is_deleted_; }
 
     void make_non_deleted(block_size_t block_size,
@@ -133,6 +135,8 @@ private:
 
     // The last write acquirer for this page.
     page_txn_t *last_write_acquirer_;
+    // Our index into the last_write_acquirer_->pages_write_acquired_last_.
+    backindex_bag_index_t last_write_acquirer_index_;
 
     // The version of the page, that the last write acquirer had.
     block_version_t last_write_acquirer_version_;
@@ -144,6 +148,10 @@ private:
 
     DISABLE_COPYING(current_page_t);
 };
+
+inline backindex_bag_index_t *access_backindex(current_page_t *current_page) {
+    return &current_page->last_write_acquirer_index_;
+}
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
                            public home_thread_mixin_debug_only_t {
@@ -576,7 +584,7 @@ private:
     std::vector<page_txn_t *> subseqers_;
 
     // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
-    std::vector<current_page_t *> pages_write_acquired_last_;
+    backindex_bag_t<current_page_t *> pages_write_acquired_last_;
 
     // How many current_page_acq_t's for this transaction that are currently alive.
     size_t live_acqs_;
