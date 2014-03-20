@@ -5,14 +5,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
 #include <functional>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/new_mutex.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/data_block_manager.hpp"
@@ -239,8 +237,8 @@ struct ls_start_existing_fsm_t :
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_list_t(ser->extent_manager,
-                    std::bind(&log_serializer_t::write_metablock_sans_pipelining,
-                              ser, ph::_1, ph::_2));
+                    std::bind(&log_serializer_t::write_metablock, ser,
+                              std::placeholders::_1, std::placeholders::_2));
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
@@ -431,7 +429,7 @@ get_ls_block_token(const counted_t<ls_block_token_pointee_t> &tok) {
 }
 #else
 counted_t<ls_block_token_pointee_t>
-get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
+get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
     if (tok) {
         return tok->inner_token;
     } else {
@@ -441,9 +439,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                   const std::vector<index_write_op_t> &write_ops,
-                                   file_account_t *io_account) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -461,7 +457,7 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
         for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
              write_op_it != write_ops.end();
              ++write_op_it) {
-            const index_write_op_t &op = *write_op_it;
+            const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
             uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
@@ -497,7 +493,7 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
         }
     }
 
-    index_write_finish(mutex_acq, &txn, io_account);
+    index_write_finish(&txn, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -513,9 +509,7 @@ void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
     extent_manager->begin_transaction(txn);
 }
 
-void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
-                                          extent_transaction_t *txn,
-                                          file_account_t *io_account) {
+void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_account_t *io_account) {
     /* Sync the LBA */
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
@@ -527,7 +521,7 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(mutex_acq, &on_lba_sync, io_account);
+    write_metablock(on_lba_sync, io_account);
 
     active_write_count--;
 
@@ -548,8 +542,7 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     }
 }
 
-void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
-                                       const signal_t *safe_to_write_cond,
+void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
     metablock_t mb_buffer;
@@ -564,14 +557,8 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     cond_t on_prev_write_submitted_metablock;
     metablock_waiter_queue.push_back(&on_prev_write_submitted_metablock);
 
-    // This operation is in line with the metablock manager.  Now another index write
-    // may commence.
-    mutex_acq->reset();
-
-    safe_to_write_cond->wait();
-    if (waiting_for_prev_write) {
-        on_prev_write_submitted_metablock.wait();
-    }
+    safe_to_write_cond.wait();
+    if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
     guarantee(metablock_waiter_queue.front() == &on_prev_write_submitted_metablock);
 
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
@@ -590,13 +577,6 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     }
 
     if (!done_with_metablock) on_metablock_write.wait();
-}
-
-void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_write_cond,
-                                                       file_account_t *io_account) {
-    new_mutex_in_line_t dummy_acq;
-    write_metablock(&dummy_acq, safe_to_write_cond, io_account);
-
 }
 
 counted_t<ls_block_token_pointee_t>
@@ -830,18 +810,9 @@ bool log_serializer_t::next_shutdown_step() {
         delete extent_manager;
         extent_manager = NULL;
 
-        shutdown_state = shutdown_waiting_on_dbfile_destruction;
-        coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
-                                         this));
-        // TODO: Get rid of the useless shutdown_in_one_shot variable -- we never
-        // shut down in one shot.
-        shutdown_in_one_shot = false;
-        return false;
-    }
+        delete dbfile;
+        dbfile = NULL;
 
-    rassert(dbfile == NULL);
-
-    if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
 
         // Don't call the callback if we went through the entire
@@ -855,13 +826,6 @@ bool log_serializer_t::next_shutdown_step() {
 
     unreachable("Invalid state.");
     return true; // make compiler happy
-}
-
-void log_serializer_t::delete_dbfile_and_continue_shutdown() {
-    rassert(dbfile != NULL);
-    delete dbfile;
-    dbfile = NULL;
-    next_shutdown_step();
 }
 
 void log_serializer_t::on_datablock_manager_shutdown() {

@@ -13,8 +13,6 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
-class new_mutex_in_line_t;
-
 struct index_write_op_t {
     block_id_t block_id;
     // Buf to write.  boost::none if not to be modified.  Initialized to an empty
@@ -103,12 +101,8 @@ public:
     /* Reads the block's actual data */
     virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
-    // Applies all given index operations in an atomic way.  The mutex_acq is for a
-    // mutex belonging to the _caller_, used by the caller for pipelining, for
-    // ensuring that different index write operations do not cross each other.
-    virtual void index_write(new_mutex_in_line_t *mutex_acq,
-                             const std::vector<index_write_op_t> &write_ops,
-                             file_account_t *io_account) = 0;
+    /* index_write() applies all given index operations in an atomic way */
+    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >

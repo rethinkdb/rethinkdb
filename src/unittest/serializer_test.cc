@@ -1,7 +1,6 @@
 #include <functional>
 
 #include "arch/runtime/starter.hpp"
-#include "concurrency/new_mutex.hpp"
 #include "serializer/config.hpp"
 #include "unittest/mock_file.hpp"
 #include "unittest/gtest.hpp"
@@ -59,20 +58,14 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
             {
                 std::vector<index_write_op_t> write_ops;
                 write_ops.push_back(index_write_op_t(block_id, tokens[0], repli_timestamp_t::distant_past));
-
-                // There are no other index_write operations to maintain ordering with.
-                new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops, account.get());
+                ser.index_write(write_ops, account.get());
             }
             // Now delete the only block token and delete the index reference.
             tokens.clear();
             {
                 std::vector<index_write_op_t> write_ops;
                 write_ops.push_back(index_write_op_t(block_id, counted_t<standard_block_token_t>()));
-
-                // There are no other index_write operations to maintain ordering with.
-                new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops, account.get());
+                ser.index_write(write_ops, account.get());
             }
 
         } else {

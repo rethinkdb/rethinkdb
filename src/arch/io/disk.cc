@@ -14,14 +14,14 @@
 
 #include "arch/types.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "config/args.hpp"
+#include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/stats.hpp"
 #include "arch/io/disk/accounting.hpp"
-#include "backtrace.hpp"
-#include "config/args.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
@@ -70,9 +70,7 @@ public:
     }
 
     ~linux_disk_manager_t() {
-        rassert(outstanding_txn == 0,
-                "Closing a file with outstanding txns (%" PRIiPTR " of them)\n",
-                outstanding_txn);
+        rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
@@ -81,7 +79,6 @@ public:
 
     void delayed_destroy(void *_account) {
         on_thread_t t(home_thread());
-
         // The account destructor can block if there are outstanding requests.
         delete static_cast<accounting_diskmgr_t::account_t *>(_account);
     }
@@ -195,7 +192,7 @@ private:
     pool_diskmgr_t backend;
 
 
-    intptr_t outstanding_txn;
+    int outstanding_txn;
 
     DISABLE_COPYING(linux_disk_manager_t);
 };
@@ -225,14 +222,13 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_man
     }
 }
 
-int64_t linux_file_t::get_file_size() {
+int64_t linux_file_t::get_size() {
     return file_size;
 }
 
 /* If you want to use this for downsizing a file, please check the WARNING about
-`set_file_size()` in disk.hpp. */
-void linux_file_t::set_file_size(int64_t size) {
-    assert_thread();
+`set_size()` in disk.hpp */
+void linux_file_t::set_size(int64_t size) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     struct rs_callback_t : public linux_iocallback_t, cond_t {
@@ -244,29 +240,18 @@ void linux_file_t::set_file_size(int64_t size) {
             crash("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
                   errno_string(errsv).c_str(), offset);
         }
-
-        auto_drainer_t::lock_t lock;
     };
     rs_callback_t *rs_callback = new rs_callback_t();
-    rs_callback->lock = file_size_ops_drainer.lock();
     diskmgr->submit_resize(fd.get(), size, default_account->get_account(),
                            rs_callback, true);
 
     file_size = size;
 }
 
-// For growing in large chunks at a time.
-int64_t chunk_factor(int64_t size) {
-    // x is at most 6.25% of size.
-    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 16)) * DEFAULT_EXTENT_SIZE;
-    return clamp<int64_t>(x, DEVICE_BLOCK_SIZE * 128, DEFAULT_EXTENT_SIZE * 64);
-}
-
-void linux_file_t::set_file_size_at_least(int64_t size) {
-    assert_thread();
+void linux_file_t::set_size_at_least(int64_t size) {
+    /* Grow in large chunks at a time */
     if (file_size < size) {
-        /* Grow in large chunks at a time */
-        set_file_size(ceil_aligned(size, chunk_factor(size)));
+        set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
     }
 }
 
@@ -357,12 +342,10 @@ bool linux_file_t::coop_lock_and_check() {
 }
 
 void *linux_file_t::create_account(int priority, int outstanding_requests_limit) {
-    assert_thread();
     return diskmgr->create_account(priority, outstanding_requests_limit);
 }
 
 void linux_file_t::destroy_account(void *account) {
-    assert_thread();
     diskmgr->destroy_account(account);
 }
 

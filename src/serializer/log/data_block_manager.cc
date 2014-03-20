@@ -10,7 +10,6 @@
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/mutex.hpp"
-#include "concurrency/new_mutex.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "stl_utils.hpp"
@@ -1019,11 +1018,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
 
         // Step 4B: Commit the transaction to the serializer, emptying
         // out all the i_array bits.
-        new_mutex_in_line_t dummy_acq;  // We don't use the precise-locking feature
-                                        // of index_write.
-        parent->serializer->index_write(&dummy_acq,
-                                        index_write_ops,
-                                        parent->choose_gc_io_account());
+        parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
 
         ASSERT_NO_CORO_WAITING;
 

@@ -4,7 +4,6 @@
 
 #include "arch/io/io_utils.hpp"
 #include "arch/types.hpp"
-#include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
 
@@ -60,7 +59,7 @@ struct file_open_result_t {
     file_open_result_t() : outcome(ERROR), errsv(0) { }
 };
 
-class linux_file_t : public file_t, public home_thread_mixin_debug_only_t {
+class linux_file_t : public file_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
@@ -69,15 +68,15 @@ public:
         mode_truncate = 1 << 3
     };
 
-    int64_t get_file_size();
+    int64_t get_size();
     /* WARNING: resize operations do not wait for other operations to finish (with
     the exception of other resize operations).
     They do block other operations, but are not blocked themselves.
-    Only issue a `set_file_size()` with a size smaller than the current one if you can
+    Only issue a `set_size()` with a size smaller than the current one if you can
     make absolutely sure that no ongoing I/O operation wants to access the space
     that gets truncated anymore. */
-    void set_file_size(int64_t size);
-    void set_file_size_at_least(int64_t size);
+    void set_size(int64_t size);
+    void set_size_at_least(int64_t size);
 
     void read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
     void write_async(int64_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
@@ -106,10 +105,6 @@ private:
     linux_disk_manager_t *diskmgr;
 
     scoped_ptr_t<file_account_t> default_account;
-
-    // Used to make sure we do not destruct the linux_file_t until all file size
-    // operations have completed.
-    auto_drainer_t file_size_ops_drainer;
 
     DISABLE_COPYING(linux_file_t);
 };
