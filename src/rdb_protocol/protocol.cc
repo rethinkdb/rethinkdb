@@ -300,7 +300,7 @@ void post_construct_and_drain_queue(
             mutex_t::acq_t acq;
             store->lock_sindex_queue(&queue_sindex_block, &acq);
 
-            const int MAX_CHUNK_SIZE = 100;
+            const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
             while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
                 rdb_sindex_change_t sindex_change;
@@ -1602,7 +1602,8 @@ public:
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency),
+                                 interruptor);
     }
 
     void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
@@ -1705,7 +1706,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    superblock.get(), &deletion_context, &response,
                    &mod_reports[0].info, static_cast<profile::trace_t *>(NULL));
-
+        superblock.reset();
         update_sindexes(mod_reports);
     }
 
@@ -1716,7 +1717,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_erase_small_range(&tester, delete_range.range.inner,
                               superblock.get(), &deletion_context, interruptor,
                               &mod_reports);
-        update_sindexes(mod_reports);
+        superblock.reset();
+        if (!mod_reports.empty()) {
+            update_sindexes(mod_reports);
+        }
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
@@ -1735,12 +1739,15 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                         &superblock_promise));
                 superblock.init(superblock_promise.wait());
             }
-            superblock->release();
+            superblock.reset();
         }
         update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
+        // Release the superblock. We don't need it for this.
+        superblock.reset();
+
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
@@ -1775,20 +1782,25 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                &sindex_block, &sindexes);
-
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
-        rdb_live_deletion_context_t deletion_context;
-        for (size_t i = 0; i < mod_reports.size(); ++i) {
-            write_message_t wm;
-            wm << rdb_sindex_change_t(mod_reports[i]);
-            store->sindex_queue_push(wm, &acq);
+        std::vector<write_message_t> queue_wms(mod_reports.size());
+        {
+            sindex_access_vector_t sindexes;
+            store->acquire_post_constructed_sindex_superblocks_for_write(
+                    &sindex_block, &sindexes);
+            sindex_block.reset_buf_lock();
 
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            rdb_live_deletion_context_t deletion_context;
+            for (size_t i = 0; i < mod_reports.size(); ++i) {
+                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
+                rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            }
         }
+
+        // Write mod reports onto the sindex queue. While we need to hold on to
+        // the sindex_queue mutex, we can already release all remaining locks.
+        store->sindex_queue_push(queue_wms, &acq);
     }
 
     btree_store_t<rdb_protocol_t> *store;

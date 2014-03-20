@@ -54,11 +54,27 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     txn_t txn(cache_conn.get(), write_durability_t::SOFT,
               repli_timestamp_t::distant_past, 2);
 
+    push_single(&txn, wm);
+}
+
+void internal_disk_backed_queue_t::push(const std::vector<write_message_t> &wms) {
+    mutex_t::acq_t mutex_acq(&mutex);
+
+    // There's no need for hard durability with an unlinked dbq file.
+    txn_t txn(cache_conn.get(), write_durability_t::SOFT,
+              repli_timestamp_t::distant_past, 2);
+
+    for (size_t i = 0; i < wms.size(); ++i) {
+        push_single(&txn, wms[i]);
+    }
+}
+
+void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t &wm) {
     if (head_block_id == NULL_BLOCK_ID) {
-        add_block_to_head(&txn);
+        add_block_to_head(txn);
     }
 
-    auto _head = make_scoped<buf_lock_t>(buf_parent_t(&txn), head_block_id,
+    auto _head = make_scoped<buf_lock_t>(buf_parent_t(txn), head_block_id,
                                          access_t::write);
     auto write = make_scoped<buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
@@ -75,8 +91,8 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         head = NULL;
         write.reset();
         _head.reset();
-        add_block_to_head(&txn);
-        _head.init(new buf_lock_t(buf_parent_t(&txn), head_block_id,
+        add_block_to_head(txn);
+        _head.init(new buf_lock_t(buf_parent_t(txn), head_block_id,
                                   access_t::write));
         write.init(new buf_write_t(_head.get()));
         head = static_cast<queue_block_t *>(write->get_data_write());
