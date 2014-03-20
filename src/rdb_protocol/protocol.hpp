@@ -706,6 +706,15 @@ struct rdb_protocol_t {
 
             RDB_DECLARE_ME_SERIALIZABLE;
         };
+        struct key_value_pairs_t {
+            std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
+
+            key_value_pairs_t() { }
+            explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
+                : backfill_atoms(std::move(_backfill_atoms)) { }
+
+            RDB_DECLARE_ME_SERIALIZABLE;
+        };
         struct key_value_pair_t {
             rdb_protocol_details::backfill_atom_t backfill_atom;
 
@@ -725,7 +734,7 @@ struct rdb_protocol_t {
             RDB_DECLARE_ME_SERIALIZABLE;
         };
 
-        typedef boost::variant<delete_range_t, delete_key_t, key_value_pair_t, sindexes_t> value_t;
+        typedef boost::variant<delete_range_t, delete_key_t, key_value_pair_t, key_value_pairs_t, sindexes_t> value_t;
 
         backfill_chunk_t() { }
         explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
@@ -736,6 +745,9 @@ struct rdb_protocol_t {
         }
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
+        }
+        static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
+            return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
         }
         static backfill_chunk_t set_key(rdb_protocol_details::backfill_atom_t &&kv) {
             return backfill_chunk_t(key_value_pair_t(std::move(kv)));

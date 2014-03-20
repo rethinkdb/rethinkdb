@@ -1564,6 +1564,19 @@ struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::st
         return repli_timestamp_t::invalid;
     }
 
+    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        repli_timestamp_t most_recent = repli_timestamp_t::invalid;
+        rassert(!kv.backfill_atoms.empty());
+        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+            if (most_recent == repli_timestamp_t::invalid
+                || most_recent < kv.backfill_atoms[i].recency) {
+
+                most_recent = kv.backfill_atoms[i].recency;
+            }
+        }
+        return most_recent;
+    }
+
     repli_timestamp_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         return kv.backfill_atom.recency;
     }
@@ -1599,6 +1612,7 @@ public:
 
     void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        // TODO!
         for (size_t i = 0; i < atoms.size(); ++i) {
             // While less efficient, we insert each key/value pair separately
             // to reduce the latency impact of backfills on other operations.
@@ -1606,6 +1620,7 @@ public:
                                      interruptor);
             coro_t::yield();
         }
+        //chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
 
     void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes,
@@ -1668,6 +1683,20 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     }
 }
 
+void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
+                                   btree_slice_t *btree, superblock_t *superblock,
+                                   UNUSED auto_drainer_t::lock_t drainer_acq,
+                                   rdb_modification_report_t *mod_report_out,
+                                   promise_t<superblock_t *> *superblock_promise_out) {
+    mod_report_out->primary_key = bf_atom.key;
+    point_write_response_t response;
+    rdb_live_deletion_context_t deletion_context;
+    rdb_set(bf_atom.key, bf_atom.value, true,
+            btree, bf_atom.recency, superblock, &deletion_context, &response,
+            &mod_report_out->info, static_cast<profile::trace_t *>(NULL),
+            superblock_promise_out);
+}
+
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
@@ -1704,15 +1733,34 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         update_sindexes(mod_reports);
     }
 
+    void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
+        std::vector<rdb_modification_report_t> mod_reports(kv.backfill_atoms.size());
+        {
+            auto_drainer_t drainer;
+            for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
+                promise_t<superblock_t *> superblock_promise;
+                // `spawn_now_dangerously` so that we don't have to wait for the
+                // superblock if it's immediately available.
+                coro_t::spawn_now_dangerously(std::bind(&backfill_chunk_single_rdb_set,
+                                                        kv.backfill_atoms[i], btree,
+                                                        superblock.release(),
+                                                        auto_drainer_t::lock_t(&drainer),
+                                                        &mod_reports[i],
+                                                        &superblock_promise));
+                superblock.init(superblock_promise.wait());
+            }
+            superblock.reset();
+        }
+        update_sindexes(mod_reports);
+    }
+
     void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         std::vector<rdb_modification_report_t> mod_reports(1);
-        mod_reports[0].primary_key = kv.backfill_atom.key;
-        point_write_response_t response;
-        rdb_live_deletion_context_t deletion_context;
-        rdb_set(kv.backfill_atom.key, kv.backfill_atom.value, true,
-                btree, kv.backfill_atom.recency, superblock.get(), &deletion_context,
-                &response, &mod_reports[0].info,
-                static_cast<profile::trace_t *>(NULL));
+        // TODO!
+        auto_drainer_t dummy;
+        backfill_chunk_single_rdb_set(kv.backfill_atom, btree,
+                                      superblock.get(), dummy.lock(),
+                                      &mod_reports[0], NULL);
         superblock.reset();
         update_sindexes(mod_reports);
     }
@@ -1755,8 +1803,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        // We must hold the mutex on the sindex queue while updating the indexes
-        // and until we have pushed all modification onto the queue.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
         {
@@ -1771,8 +1817,7 @@ private:
         }
 
         // Write mod reports onto the sindex queue. While we need to hold on to
-        // the sindex_queue mutex, all remaining locks have been released at this
-        // point.
+        // the sindex_queue mutex, we can already release all remaining locks.
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_reports[i]);
@@ -1892,6 +1937,9 @@ RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t,
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
+                           backfill_atoms);
 
 RDB_IMPL_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
                         backfill_atom);
