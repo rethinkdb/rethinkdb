@@ -81,6 +81,7 @@ def parse_options():
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("--debug", dest="debug", action="store_true", default=False)
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -121,6 +122,7 @@ def parse_options():
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
     res["force"] = options.force
+    res["debug"] = options.debug
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -587,7 +589,9 @@ def spawn_import_clients(options, files_info):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
+            print >> sys.stderr, "%s" % (error[1])
+            if options["debug"]:
+                print >> sys.stderr, "%s traceback: %s" % (error[0].__name__, error[2])
             if len(error) == 4:
                 print >> sys.stderr, "In file: %s" % (error[3])
         raise RuntimeError("Errors occurred during import")
