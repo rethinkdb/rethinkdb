@@ -11,15 +11,15 @@ module RethinkDB
     def self.pp_int_optargs(q, optargs, pre_dot = false)
       q.text("r(") if pre_dot
       q.group(1, "{", "}") {
-        optargs.each_with_index {|optarg, i|
+        optargs.to_a.each_with_index {|optarg, i|
           if i != 0
             q.text(",")
             q.breakable
           end
-          q.text(":#{optarg.key} =>")
+          q.text("#{optarg[0].inspect} =>")
           q.nest(2) {
             q.breakable
-            pp_int(q, optarg.val)
+            pp_int(q, optarg[1])
           }
         }
       }
@@ -42,13 +42,14 @@ module RethinkDB
 
     def self.pp_int_datum(q, dat, pre_dot)
       q.text("r(") if pre_dot
-      q.text(Shim.datum_to_native(dat, :time_format => 'raw').inspect)
+      q.text(dat.inspect)
       q.text(")") if pre_dot
     end
 
     def self.pp_int_func(q, func)
-      func_args = func.args[0].args.map{|x| x.datum.r_num}
-      func_body = func.args[1]
+      # PP.pp func
+      func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
+      func_body = func[:a][1]
       q.text(" ")
       q.group(0, "{", "}") {
         if func_args != []
@@ -64,43 +65,44 @@ module RethinkDB
 
     def self.can_prefix (name, args)
       return false if name == "db" || name == "funcall"
-      return false if args.size == 1 && args[0].type == Term::TermType::DATUM
+      return false if args.size == 1 && args[0][:t] == Term::TermType::DATUM
       return true
     end
     def self.pp_int(q, term, pre_dot=false)
-      q.text("\x7", 0) if term.is_error
+      q.text("\x7", 0) if false #term.is_error
 
-      if term.type == Term::TermType::DATUM
-        res = pp_int_datum(q, term.datum, pre_dot)
-        q.text("\x7", 0) if term.is_error
+      term = term.to_pb if term.class == RQL
+      if term[:t] == Term::TermType::DATUM
+        res = pp_int_datum(q, term[:d], pre_dot)
+        q.text("\x7", 0) if false #term.is_error
         return res
       end
 
-      if term.type == Term::TermType::VAR
+      if term[:t] == Term::TermType::VAR
         q.text("var_")
-        res = pp_int_datum(q, term.args[0].datum, false)
-        q.text("\x7", 0) if term.is_error
+        res = pp_int_datum(q, term[:a][0][:d], false)
+        q.text("\x7", 0) if false #term.is_error
         return res
-      elsif term.type == Term::TermType::FUNC
+      elsif term[:t] == Term::TermType::FUNC
         q.text("r(") if pre_dot
         q.text("lambda")
         res = pp_int_func(q, term)
         q.text(")") if pre_dot
-        q.text("\x7", 0) if term.is_error
+        q.text("\x7", 0) if false #term.is_error
         return res
-      elsif term.type == Term::TermType::MAKE_OBJ
-        res = pp_int_optargs(q, term.optargs, pre_dot)
-        q.text("\x7", 0) if term.is_error
+      elsif term[:t] == Term::TermType::MAKE_OBJ
+        res = pp_int_optargs(q, term[:o], pre_dot)
+        q.text("\x7", 0) if false #term.is_error
         return res
-      elsif term.type == Term::TermType::MAKE_ARRAY
-        res = pp_int_args(q, term.args, pre_dot)
-        q.text("\x7", 0) if term.is_error
+      elsif term[:t] == Term::TermType::MAKE_ARRAY
+        res = pp_int_args(q, term[:a], pre_dot)
+        q.text("\x7", 0) if false #term.is_error
         return res
       end
 
-      name = @@termtype_to_str[term.type].downcase
-      args = term.args.dup
-      optargs = term.optargs.dup
+      name = @@termtype_to_str[term[:t]].downcase
+      args = term[:a].dup
+      optargs = (term[:o] || {}).dup
 
       if can_prefix(name, args) && first_arg = args.shift
         pp_int(q, first_arg, true)
@@ -115,9 +117,9 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      func = args[-1] && args[-1].type == Term::TermType::FUNC && args.pop
+      func = args[-1] && args[-1][:t] == Term::TermType::FUNC && args.pop
 
-      if args != [] || optargs != []
+      if args != [] || optargs != {}
         q.group(0, argstart, argstop) {
           pushed = nil
           q.nest(2) {
@@ -131,7 +133,7 @@ module RethinkDB
               end
               pp_int(q, arg)
             }
-            if optargs != []
+            if optargs != {}
               if pushed
                 q.text(",")
                 q.breakable
@@ -151,7 +153,7 @@ module RethinkDB
       end
 
       pp_int_func(q, func) if func
-      q.text("\x7", 0) if term.is_error
+      q.text("\x7", 0) if false #term.is_error
     end
 
     def self.pp term
