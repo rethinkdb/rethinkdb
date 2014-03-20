@@ -1,5 +1,6 @@
 import uuid
 import random
+import time
 
 def gen_doc(size_doc, i):
     if size_doc == "small":
@@ -33,11 +34,51 @@ def gen_num_docs(size_doc):
     if size_doc == "small":
         #335.000 fits in memory for the table with the small cache
         #21.000.000 fits in memory for the table with the big cache
-        return 10000
-        #return 1000000
+        return 1000000
     else:
         #1000 fits in memory for the table with the small cache
         #58000 fits in memory for the table with the big cache
-        return 300
-        #return 30000
+        return 30000
 
+def compare(new_results, previous_results):
+    str_date = time.strftime("%y.%m.%d-%H:%M:%S")
+
+    f = open("comparisons/comparison_"+str_date+".html", "w")
+    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body><table>")
+    f.write("<thead><tr><th>Query</th><th>Previous avg q/s</th><th>Avg q/s</th><th>Previous 1st centile q/s</th><th>1st centile q/s</th><th>Previous 99 centile q/s</th><th>99 centile q/s</th><th>Diff</th><th>Status</th></tr></thead><tbody>")
+    for key in new_results:
+        if key in previous_results:
+            if new_results[key]["average"] > 0:
+                diff = 1.*(previous_results[key]["average"]-new_results[key]["average"])/(new_results[key]["average"])
+            else:
+                diff = "undefined"
+
+            if (type(diff) == type(0.)):
+                if(diff < 0.2):
+                    status = "Success"
+                    color = "green"
+                else:
+                    status = "Fail"
+                    color = "red"
+            else:
+                status = "Bug"
+                color = "gray"
+            try:
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(1/previous_results[key]["average"], 1/new_results[key]["average"], 1/previous_results[key]["first_centile"], 1/new_results[key]["first_centile"], 1/previous_results[key]["last_centile"], 1/new_results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+            except:
+                print key
+
+        else:
+            status = "Unknown"
+            color = "gray"
+
+            try:
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>%.4f</td>"%(1/new_results[key]["average"], 1/new_results[key]["first_centile"], 1/new_results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+            except:
+                print kem
+
+
+    f.write("</tbody></table></body></html>")
+    f.close()
+
+    print "HTML file saved in comparisons/comparison_"+str_date+".html"
