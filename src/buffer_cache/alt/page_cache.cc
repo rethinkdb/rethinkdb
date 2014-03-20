@@ -802,7 +802,8 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
       throttler_acq_(std::move(throttler_acq)),
       this_txn_recency_(txn_recency),
       began_waiting_for_flush_(false),
-      spawned_flush_(false) {
+      spawned_flush_(false),
+      mark_(marked_not) {
     if (cache_conn != NULL) {
         page_txn_t *old_newest_txn = cache_conn->newest_txn_;
         cache_conn->newest_txn_ = this;
@@ -1291,43 +1292,94 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
     return true;
 }
 
-void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> queue) {
+std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn_t *> base) {
+    ASSERT_NO_CORO_WAITING;
+    std::vector<page_txn_t *> blue;
+    std::vector<page_txn_t *> colored;
+
+    for (auto it = base.begin(); it != base.end(); ++it) {
+        page_txn_t *txn = *it;
+        rassert(!txn->spawned_flush_);
+        rassert(txn->began_waiting_for_flush_);
+        rassert(txn->mark_ == page_txn_t::marked_not);
+        txn->mark_ = page_txn_t::marked_blue;
+        blue.push_back(txn);
+        colored.push_back(txn);
+    }
+
+    while (!blue.empty()) {
+        page_txn_t *txn = blue.back();
+        blue.pop_back();
+
+        rassert(!txn->spawned_flush_);
+        rassert(txn->began_waiting_for_flush_);
+        rassert(txn->mark_ == page_txn_t::marked_blue);
+
+        bool poisoned = false;
+        for (auto it = txn->preceders_.begin(); it != txn->preceders_.end(); ++it) {
+            page_txn_t *prec = *it;
+            if (prec->spawned_flush_) {
+                rassert(prec->mark_ == page_txn_t::marked_not);
+            } else if (!prec->began_waiting_for_flush_
+                       || prec->mark_ == page_txn_t::marked_red) {
+                poisoned = true;
+            } else if (prec->mark_ == page_txn_t::marked_not) {
+                prec->mark_ = page_txn_t::marked_blue;
+                blue.push_back(prec);
+                colored.push_back(prec);
+            } else {
+                rassert(prec->mark_ == page_txn_t::marked_green
+                        || prec->mark_ == page_txn_t::marked_blue);
+            }
+        }
+
+        txn->mark_ = poisoned ? page_txn_t::marked_red : page_txn_t::marked_green;
+
+        for (auto it = txn->subseqers_.begin(); it != txn->subseqers_.end(); ++it) {
+            page_txn_t *subs = *it;
+            rassert(!subs->spawned_flush_);
+            if (subs->began_waiting_for_flush_) {
+                rassert(subs->mark_ == page_txn_t::marked_not);
+            } else if (subs->mark_ == page_txn_t::marked_not) {
+                // RSI: We could add if(poisoned) around this.
+                subs->mark_ = page_txn_t::marked_blue;
+                blue.push_back(subs);
+                colored.push_back(subs);
+            } else if (subs->mark_ == page_txn_t::marked_green) {
+                if (poisoned) {
+                    subs->mark_ = page_txn_t::marked_blue;
+                    blue.push_back(subs);
+                }
+            } else {
+                rassert(subs->mark_ == page_txn_t::marked_red
+                        || subs->mark_ == page_txn_t::marked_blue);
+            }
+        }
+    }
+
+    // RSI: We could optimize this.
+    std::set<page_txn_t *> ret;
+    for (auto it = colored.begin(); it != colored.end(); ++it) {
+        if ((*it)->mark_ == page_txn_t::marked_green) {
+            DEBUG_VAR bool inserted = ret.insert(*it).second;
+            rassert(inserted);
+        } else {
+            rassert((*it)->mark_ == page_txn_t::marked_red);
+        }
+        (*it)->mark_ = page_txn_t::marked_not;
+    }
+
+    return ret;
+}
+
+void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> base) {
     assert_thread();
     ASSERT_FINITE_CORO_WAITING;
 
-    while (!queue.empty()) {
-        // The only reason we know this page_txn_t isn't destructed is because we
-        // know the coroutine doesn't block, and destructing the page_txn_t doesn't
-        // happen after some condition variable gets pulsed.
-        page_txn_t *txn;
-        {
-            auto it = queue.begin();
-            txn = *it;
-            queue.erase(it);
-        }
-
-        rassert(txn->began_waiting_for_flush_);
-        rassert(txn->live_acqs_.empty());
-
-        if (txn->spawned_flush_) {
-            continue;
-        }
-
-        // We have a new node that's waiting for flush.  Before this node is flushed, we
-        // will have started to flush all preceders (recursively) of this node (that are
-        // waiting for flush) that this node doesn't itself precede (recursively).  Now
-        // we need to ask: Are all this node's preceders (recursively) (that are ready to
-        // flush and haven't started flushing yet) ready to flush?  If so, this node must
-        // have been the one that pushed them over the line (since they haven't started
-        // flushing yet).  So we begin flushing this node and all of its preceders
-        // (recursively) in one atomic flush.
-
-
-        // LSI: Every transaction is getting its own flush, basically, the way things are
-        // right now.
-
-        std::set<page_txn_t *> flush_set;
-        if (exists_flushable_txn_set(txn, &flush_set)) {
+    while (!base.empty()) {
+        std::set<page_txn_t *> flush_set
+            = page_cache_t::maximal_flushable_txn_set(std::move(base));
+        if (!flush_set.empty()) {
             for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
                 rassert(!(*it)->spawned_flush_);
                 (*it)->spawned_flush_ = true;
@@ -1342,13 +1394,11 @@ void page_cache_t::im_waiting_for_flush(std::set<page_txn_t *> queue) {
                                                         &changes,
                                                         flush_set));
             } else {
-                // Flush complete.  do_flush_txn_set does this in the write case.
-                std::set<page_txn_t *> unblocked
-                    = page_cache_t::remove_txn_set_from_graph(this, flush_set);
+                // RSI: Improve the logic, remove_txn_set_from_graph shouldn't return
+                // anything.
 
-                for (auto it = unblocked.begin(); it != unblocked.end(); ++it) {
-                    queue.insert(*it);
-                }
+                // Flush complete.  do_flush_txn_set does this in the write case.
+                base = page_cache_t::remove_txn_set_from_graph(this, flush_set);
             }
         }
     }

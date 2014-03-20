@@ -365,8 +365,11 @@ private:
     static std::map<block_id_t, block_change_t>
     compute_changes(const std::set<page_txn_t *> &txns);
 
+    // RSI: Remove this.
     bool exists_flushable_txn_set(page_txn_t *txn,
                                   std::set<page_txn_t *> *flush_set_out);
+
+    static std::set<page_txn_t *> maximal_flushable_txn_set(std::set<page_txn_t *> base);
 
     void im_waiting_for_flush(std::set<page_txn_t *> txns);
 
@@ -598,6 +601,16 @@ private:
     // waiting for a flush.
     bool began_waiting_for_flush_;
     bool spawned_flush_;
+
+    enum mark_state_t {
+        marked_not,
+        marked_red,
+        marked_blue,
+        marked_green,
+    };
+    // Always `marked_not`, except temporarily ASSERT_NO_CORO_WAITING graph
+    // algorithms.
+    mark_state_t mark_;
 
     // This gets pulsed when the flush is complete or when the txn has no reason to
     // exist any more.
