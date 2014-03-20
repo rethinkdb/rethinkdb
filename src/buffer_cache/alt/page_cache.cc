@@ -75,7 +75,7 @@ void page_read_ahead_cb_t::destroy_self() {
 
 void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
-        current_pages_.resize(block_id + 1, NULL);
+        current_pages_.resize_with_zeros(block_id + 1);
     }
 }
 

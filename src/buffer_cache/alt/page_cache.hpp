@@ -410,8 +410,7 @@ private:
     serializer_t *serializer_;
     segmented_vector_t<repli_timestamp_t> recencies_;
 
-    // RSP: Array growth slow.
-    std::vector<current_page_t *> current_pages_;
+    segmented_vector_t<current_page_t *> current_pages_;
 
     free_list_t free_list_;
 
