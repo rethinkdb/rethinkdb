@@ -37,16 +37,15 @@ public:
     ~evicter_t();
 
     void update_memory_limit(uint64_t new_memory_limit,
-                             uint64_t bytes_loaded_accounted_for);
+                             uint64_t bytes_loaded_accounted_for,
+                             uint64_t access_count_accounted_for);
 
     uint64_t next_access_time() {
         return ++access_time_counter_;
     }
 
-    uint64_t get_memory_limit() const {
-        return memory_limit_;
-    }
-
+    uint64_t memory_limit() const;
+    uint64_t access_count() const;
     uint64_t get_clamped_bytes_loaded() const;
 
     uint64_t in_memory_size() const;
@@ -65,11 +64,11 @@ private:
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
 
-    // This is updated every time a page is loaded, created, or destroyed, and
-    // cleared when cache memory limits are re-evaluated.  May be read from other
-    // threads.  This value can go negative, if you keep deleting blocks or suddenly
-    // drop a snapshot.
+    // These are updated every time a page is loaded, created, or destroyed, and
+    // cleared when cache memory limits are re-evaluated.  This value can go
+    // negative, if you keep deleting blocks or suddenly drop a snapshot.
     int64_t bytes_loaded_counter_;
+    uint64_t access_count_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;

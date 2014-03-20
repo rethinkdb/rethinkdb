@@ -25,6 +25,7 @@
 #endif
 
 #include <functional>
+#include <limits>
 
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
@@ -425,15 +426,25 @@ uint64_t get_avail_mem_size() {
 }
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
-    uint64_t res = get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO;
+    uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
+    uint64_t res = std::min<uint64_t>(get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO,
+                                      cache_limit);
 
     if (exists_option(opts, "--cache-size")) {
         std::string cache_size_opt = get_single_option(opts, "--cache-size");
         if (!strtou64_strict(cache_size_opt, 10, &res)) {
-            throw std::runtime_error(strprintf("ERROR: could not parse cache-size as number (%s)",
-                                               cache_size_opt.c_str()));
+            throw std::runtime_error(strprintf(
+                    "ERROR: could not parse cache-size as a number (%s)",
+                    cache_size_opt.c_str()));
         }
         res = res * MEGABYTE;
+
+        if (res > cache_limit) {
+            throw std::runtime_error(strprintf(
+                    "Requested cache size (%" PRIu64 " MB) is higher than the "
+                    "expected upper-bound for this platform (%" PRIu64" MB).",
+                    res / 1024 / 1024, cache_limit / 1024 / 1024));
+        }
     }
 
     return res;

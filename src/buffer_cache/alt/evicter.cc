@@ -9,6 +9,7 @@ namespace alt {
 evicter_t::evicter_t(cache_balancer_t *balancer)
     : balancer_(balancer),
       bytes_loaded_counter_(0),
+      access_count_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
 {
     guarantee(balancer_ != NULL);
@@ -22,24 +23,34 @@ evicter_t::~evicter_t() {
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit,
-                                    uint64_t bytes_loaded_accounted_for) {
+                                    uint64_t bytes_loaded_accounted_for,
+                                    uint64_t access_count_accounted_for) {
     assert_thread();
-    __sync_sub_and_fetch(&bytes_loaded_counter_, bytes_loaded_accounted_for);
+    bytes_loaded_counter_ -= bytes_loaded_accounted_for;
+    access_count_counter_ -= access_count_accounted_for;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
 }
 
 uint64_t evicter_t::get_clamped_bytes_loaded() const {
-    __sync_synchronize();
-    int64_t res = bytes_loaded_counter_;
-    __sync_synchronize();
-    return std::max<int64_t>(res, 0);
+    assert_thread();
+    return std::max<int64_t>(bytes_loaded_counter_, 0);
+}
+
+uint64_t evicter_t::memory_limit() const {
+    assert_thread();
+    return memory_limit_;
+}
+
+uint64_t evicter_t::access_count() const {
+    assert_thread();
+    return access_count_counter_;
 }
 
 void evicter_t::notify_bytes_loading(int64_t in_memory_buf_change) {
     assert_thread();
-    __sync_add_and_fetch(&bytes_loaded_counter_, in_memory_buf_change);
-    balancer_->notify_access();
+    bytes_loaded_counter_ += in_memory_buf_change;
+    access_count_counter_ += 1;
 }
 
 void evicter_t::add_deferred_loaded(page_t *page) {
