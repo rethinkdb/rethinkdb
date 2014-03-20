@@ -913,7 +913,7 @@ void page_txn_t::announce_waiting_for_flush() {
 }
 
 std::map<block_id_t, page_cache_t::block_change_t>
-page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
+page_cache_t::compute_changes(const std::vector<page_txn_t *> &txns) {
     // We combine changes, using the block_version_t value to see which change
     // happened later.  This even works if a single transaction acquired the same
     // block twice.
@@ -976,7 +976,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
 }
 
 void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
-                                             const std::set<page_txn_t *> &txns) {
+                                             const std::vector<page_txn_t *> &txns) {
     page_cache->assert_thread();
 
     for (auto it = txns.begin(); it != txns.end(); ++it) {
@@ -1212,7 +1212,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                     std::map<block_id_t, block_change_t> *changes_ptr,
-                                    const std::set<page_txn_t *> &txns) {
+                                    const std::vector<page_txn_t *> &txns) {
     // This is called with spawn_now_dangerously!  The reason is partly so that we
     // don't put a zillion coroutines on the message loop when doing a bunch of
     // reads.  The other reason is that passing changes through a std::bind without
@@ -1240,7 +1240,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     page_cache_t::remove_txn_set_from_graph(page_cache, txns);
 }
 
-std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(page_txn_t *base) {
+std::vector<page_txn_t *> page_cache_t::maximal_flushable_txn_set(page_txn_t *base) {
     // Returns all transactions that can presently be flushed, given the newest
     // transaction that has had began_waiting_for_flush_ set.  (We assume all
     // previous such sets of transactions had flushing begin on them.)
@@ -1332,19 +1332,22 @@ std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(page_txn_t *base)
         }
     }
 
-    // RSI: We could optimize this.
-    std::set<page_txn_t *> ret;
-    for (auto it = colored.begin(); it != colored.end(); ++it) {
-        if ((*it)->mark_ == page_txn_t::marked_green) {
-            DEBUG_VAR bool inserted = ret.insert(*it).second;
-            rassert(inserted);
+    auto it = colored.begin();
+    auto jt = it;
+
+    while (jt != colored.end()) {
+        page_txn_t::mark_state_t mark = (*jt)->mark_;
+        (*jt)->mark_ = page_txn_t::marked_not;
+        if (mark == page_txn_t::marked_green) {
+            *it++ = *jt++;
         } else {
-            rassert((*it)->mark_ == page_txn_t::marked_red);
+            rassert(mark == page_txn_t::marked_red);
+            ++jt;
         }
-        (*it)->mark_ = page_txn_t::marked_not;
     }
 
-    return ret;
+    colored.erase(it, colored.end());
+    return colored;
 }
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *base) {
@@ -1353,7 +1356,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *base) {
     rassert(!base->spawned_flush_);
     ASSERT_FINITE_CORO_WAITING;
 
-    std::set<page_txn_t *> flush_set
+    std::vector<page_txn_t *> flush_set
         = page_cache_t::maximal_flushable_txn_set(base);
     if (!flush_set.empty()) {
         for (auto it = flush_set.begin(); it != flush_set.end(); ++it) {
