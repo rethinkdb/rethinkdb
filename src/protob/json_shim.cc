@@ -209,7 +209,7 @@ struct extractor_t<const Query &> {
         TRANSFER(json, type, "t", q);
         TRANSFER(json, query, "q", q);
         TRANSFER(json, token, "k", q);
-        q->set_accepts_r_json(true); // RSI: response should be true JSON
+        q->set_accepts_r_json(true);
         TRANSFER(json, global_optargs, "g", q);
     };
 };
