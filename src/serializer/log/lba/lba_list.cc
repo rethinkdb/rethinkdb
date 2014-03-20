@@ -163,6 +163,7 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
 
 segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t first,
                                                                       block_id_t step) {
+    guarantee(coro_t::self() != NULL);
     rassert(state == state_ready);
     segmented_vector_t<repli_timestamp_t> ret;
     block_id_t end = in_memory_index.end_block_id();
