@@ -169,7 +169,10 @@ public:
             internal_disk_backed_queue_t *disk_backed_queue);
 
     void sindex_queue_push(
-            const write_message_t& value,
+            const write_message_t &value,
+            const mutex_t::acq_t *acq);
+    void sindex_queue_push(
+            const std::vector<write_message_t> &values,
             const mutex_t::acq_t *acq);
 
     void add_progress_tracker(

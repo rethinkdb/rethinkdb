@@ -1718,7 +1718,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                               superblock.get(), &deletion_context, interruptor,
                               &mod_reports);
         superblock.reset();
-        update_sindexes(mod_reports);
+        if (!mod_reports.empty()) {
+            update_sindexes(mod_reports);
+        }
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
@@ -1782,6 +1784,7 @@ private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
+        std::vector<write_message_t> queue_wms(mod_reports.size());
         {
             sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
@@ -1789,17 +1792,15 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
+                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }
         }
+        sindex_block.reset_buf_lock();
 
         // Write mod reports onto the sindex queue. While we need to hold on to
         // the sindex_queue mutex, we can already release all remaining locks.
-        for (size_t i = 0; i < mod_reports.size(); ++i) {
-            write_message_t wm;
-            wm << rdb_sindex_change_t(mod_reports[i]);
-            store->sindex_queue_push(wm, &acq);
-        }
+        store->sindex_queue_push(queue_wms, &acq);
     }
 
     btree_store_t<rdb_protocol_t> *store;
