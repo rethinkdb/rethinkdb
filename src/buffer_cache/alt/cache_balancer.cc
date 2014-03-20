@@ -1,5 +1,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 
+#include <limits>
+
 #include "buffer_cache/alt/evicter.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
@@ -23,7 +25,13 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     last_rebalance_time(0),
     read_ahead_bytes_remaining(total_cache_size * read_ahead_proportion),
     evicters_per_thread(get_num_threads()),
-    rebalance_pool(1, &pool_queue, this) { }
+    rebalance_pool(1, &pool_queue, this) {
+
+    // We do some signed arithmetic with cache sizes, so the total cache size
+    // must fit into a signed value based on the native pointer type or bad
+    // things happen.
+    guarantee(total_cache_size <= static_cast<uint64_t>(std::numeric_limits<intptr_t>::max()));
+}
 
 alt_cache_balancer_t::~alt_cache_balancer_t() {
     assert_thread();
@@ -149,8 +157,8 @@ void alt_cache_balancer_t::collect_stats_from_thread(int index,
     on_thread_t rethreader((threadnum_t(index)));
 
     ASSERT_NO_CORO_WAITING;
-    std::set<alt::evicter_t*> *evicters = &evicters_per_thread[index];
-    std::vector<cache_data_t> *per_evicter_data = &(*data_out)[index];
+    const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
+    std::vector<cache_data_t> * per_evicter_data = &(*data_out)[index];
 
     per_evicter_data->reserve(evicters->size());
     for (auto j = evicters->begin(); j != evicters->end(); ++j) {
@@ -160,11 +168,11 @@ void alt_cache_balancer_t::collect_stats_from_thread(int index,
 }
 
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
-        scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
+        const scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
     on_thread_t rethreader((threadnum_t(index)));
 
     const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
-    std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
+    const std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {

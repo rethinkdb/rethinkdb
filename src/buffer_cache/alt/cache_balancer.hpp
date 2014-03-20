@@ -129,7 +129,7 @@ private:
                                    scoped_array_t<std::vector<cache_data_t> > *data_out);
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
-                                   scoped_array_t<std::vector<cache_data_t> > *new_sizes);
+                                   const scoped_array_t<std::vector<cache_data_t> > *new_sizes);
 
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
