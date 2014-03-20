@@ -255,11 +255,18 @@ void linux_file_t::set_file_size(int64_t size) {
     file_size = size;
 }
 
+// For growing in large chunks at a time.
+int64_t chunk_factor(int64_t size) {
+    // x is at most 6.25% of size.
+    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 16)) * DEFAULT_EXTENT_SIZE;
+    return clamp<int64_t>(x, DEVICE_BLOCK_SIZE * 128, DEFAULT_EXTENT_SIZE * 64);
+}
+
 void linux_file_t::set_file_size_at_least(int64_t size) {
     assert_thread();
-    /* Grow in large chunks at a time */
     if (file_size < size) {
-        set_file_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
+        /* Grow in large chunks at a time */
+        set_file_size(ceil_aligned(size, chunk_factor(size)));
     }
 }
 
