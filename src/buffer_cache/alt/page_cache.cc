@@ -1338,7 +1338,7 @@ std::set<page_txn_t *> page_cache_t::maximal_flushable_txn_set(std::set<page_txn
         for (auto it = txn->subseqers_.begin(); it != txn->subseqers_.end(); ++it) {
             page_txn_t *subs = *it;
             rassert(!subs->spawned_flush_);
-            if (subs->began_waiting_for_flush_) {
+            if (!subs->began_waiting_for_flush_) {
                 rassert(subs->mark_ == page_txn_t::marked_not);
             } else if (subs->mark_ == page_txn_t::marked_not) {
                 // RSI: We could add if(poisoned) around this.
