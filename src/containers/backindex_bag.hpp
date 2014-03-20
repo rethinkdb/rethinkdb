@@ -140,7 +140,6 @@ public:
     }
 
 private:
-    // RSP: Huge block size, shitty data structure for a bag.
     segmented_vector_t<T> vector_;
 
     DISABLE_COPYING(backindex_bag_t);
