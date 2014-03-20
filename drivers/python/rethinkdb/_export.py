@@ -64,6 +64,7 @@ def parse_options():
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
+    parser.add_option("--debug", dest="debug", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
@@ -131,6 +132,7 @@ def parse_options():
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
+    res["debug"] = options.debug
     return res
 
 def get_tables(host, port, auth_key, tables):
@@ -383,7 +385,9 @@ def run_clients(options, db_table_set):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
+            print >> sys.stderr, "%s" % (error[1])
+            if options["debug"]:
+                print >> sys.stderr, "%s traceback: %s" % (error[0].__name__, error[2])
             raise RuntimeError("Errors occurred during export")
 
 def main():

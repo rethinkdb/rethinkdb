@@ -44,6 +44,7 @@ def parse_options():
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -88,8 +89,9 @@ def parse_options():
             raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
 
     res["auth_key"] = options.auth_key
-    res["force"] = options.force
     res["clients"] = options.clients
+    res["force"] = options.force
+    res["debug"] = options.debug
     return res
 
 def do_unzip(temp_dir, options):
@@ -132,6 +134,8 @@ def do_import(temp_dir, options):
 
     if options["force"]:
         import_args.append("--force")
+    if options["debug"]:
+        export_args.extend(["--debug"])
 
     res = subprocess.call(import_args)
     if res != 0:
