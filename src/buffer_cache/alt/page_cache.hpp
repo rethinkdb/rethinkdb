@@ -608,7 +608,7 @@ private:
         marked_blue,
         marked_green,
     };
-    // Always `marked_not`, except temporarily ASSERT_NO_CORO_WAITING graph
+    // Always `marked_not`, except temporarily, during ASSERT_NO_CORO_WAITING graph
     // algorithms.
     mark_state_t mark_;
 
