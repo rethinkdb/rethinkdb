@@ -284,6 +284,8 @@ private:
     DISABLE_COPYING(throttler_acq_t);
 };
 
+class page_cache_index_write_sink_t;
+
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
@@ -407,7 +409,7 @@ private:
     // move to the serializer thread and get a bunch of blocks written.
     // index_write_sink's pointee's home thread is on the serializer.
     fifo_enforcer_source_t index_write_source_;
-    scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink_;
+    scoped_ptr_t<page_cache_index_write_sink_t> index_write_sink_;
 
     serializer_t *serializer_;
     segmented_vector_t<repli_timestamp_t> recencies_;

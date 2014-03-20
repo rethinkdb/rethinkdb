@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "buffer_cache/types.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 
@@ -81,7 +82,8 @@ public:
 
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
-    void index_write(const std::vector<index_write_op_t> &write_ops,
+    void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::vector<index_write_op_t> &write_ops,
                      file_account_t *io_account);
 
     // Returns block tokens in the same order as write_infos.
@@ -110,6 +112,10 @@ private:
 
     const scoped_ptr_t<serializer_t> inner;
     const scoped_ptr_t<file_account_t> index_writes_io_account;
+
+    // Used to obey the index_write API and make sure we can't possibly make
+    // simultaneous racing index_write calls.
+    new_mutex_t inner_index_write_mutex;
 
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
