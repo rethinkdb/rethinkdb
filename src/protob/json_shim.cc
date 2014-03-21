@@ -227,7 +227,7 @@ bool parse_json_pb(Query *q, char *str) throw () {
     return true;
 }
 
-void write_json_pb(const Response *r, std::string *s) throw () {
+int64_t write_json_pb(const Response *r, std::string *s) throw () {
     *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
     for (int i = 0; i < r->response_size(); ++i) {
         *s += (i == 0) ? "" : ",";
@@ -270,6 +270,7 @@ void write_json_pb(const Response *r, std::string *s) throw () {
     }
 
     *s += "}";
+    return r->token();
 }
 
 

@@ -163,10 +163,13 @@ module RethinkDB
       end
 
       if res.respond_to? :has_profile? and res.has_profile?
-          real_val = {"profile" => Shim.datum_to_native(res.profile(), opts),
-                      "value" => value}
+        # RSI: check this
+        real_val = {
+          "profile" => Shim.datum_to_native(res.profile(), opts),
+          "value" => value
+        }
       else
-          real_val = value
+        real_val = value
       end
 
       if b
@@ -241,6 +244,7 @@ module RethinkDB
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
+      @opts = {}
       @data = {}
       @mutex = Mutex.new
       @conn_id += 1
@@ -278,6 +282,22 @@ module RethinkDB
       raise RqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end
 
+    def note_data(token, data) # Synchronize around this!
+      @data[token] = data
+      @opts.delete(token)
+      @waiters.delete(token).signal if @waiters[token]
+    end
+
+    def note_error(token, e) # Synchronize around this!
+      data = {
+        't' => 16,
+        'k' => token,
+        'r' => [e.inspect],
+        'b' => []
+      }
+      note_data(token, data)
+    end
+
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
@@ -309,42 +329,32 @@ module RethinkDB
       @listener = Thread.new {
         loop {
           begin
+            token = -1
+            token = @socket.read_exn(8).unpack('q<')[0]
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
-          rescue RqlRuntimeError => e
-            @mutex.synchronize {
-              @listener = nil
-              @waiters.each {|kv| kv[1].signal}
-            }
-            Thread.current.terminate
-            abort("unreachable")
-          end
-
-          begin
-            # PP.pp response
-            protob = Shim.load_json(response)
-            # PP.pp protob
-          rescue
-            raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
-          end
-          if protob['k'] == -1
-            @mutex.synchronize {
-              @waiters.keys.each {|k|
-                @data[k] = protob
-                if @waiters[k]
-                  cond = @waiters.delete k
-                  cond.signal
-                end
+            begin
+              data = Shim.load_json(response, @opts[token])
+            rescue Exception => e
+              raise RqlRuntimeError, "Bad response, server is buggy.\n" +
+                "#{e.inspect}\n" + response
+            end
+            if token == -1
+              @mutex.synchronize{@waiters.keys.each{|k| note_data(k, data)}}
+            else
+              @mutex.synchronize{note_data(token, data)}
+            end
+          rescue Exception => e
+            if token == -1
+              @mutex.synchronize {
+                @listener = nil
+                @waiters.keys.each{|k| note_error(k, e)}
               }
-            }
-          else
-            @mutex.synchronize {
-              @data[protob['k']] = protob
-              if @waiters[protob['k']]
-                cond = @waiters.delete protob['k']
-                cond.signal
-              end
-            }
+              Thread.current.terminate
+              abort("unreachable")
+            else
+              @mutex.synchronize{note_error(token, e)}
+            end
           end
         }
       }

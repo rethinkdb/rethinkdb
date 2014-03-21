@@ -251,7 +251,8 @@ void protob_server_t<request_t, response_t, context_t>::send(
     const char *data;
     int32_t sz;
     if (use_true_json) {
-        json_shim::write_json_pb(&res, &str);
+        int64_t token = json_shim::write_json_pb(&res, &str);
+        conn->write(&token, sizeof(token), closer);
         data = str.data();
         sz = str.size();
     } else {
