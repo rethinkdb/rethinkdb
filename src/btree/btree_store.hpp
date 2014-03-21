@@ -19,6 +19,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "utils.hpp"
