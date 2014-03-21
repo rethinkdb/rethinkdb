@@ -54,7 +54,7 @@ executions_per_query = 1000 # 1000 executions max per query
 results = {} # Save the time per query (average, min, max etc.)
 connection = None
 
-def run_tests(build="../../build/release"):
+def run_tests(build="../../build/release", data_dir='./'):
     global connection, servers_data
     for i in range(0, len(servers_data)):
         server_data = servers_data[i]
@@ -62,7 +62,7 @@ def run_tests(build="../../build/release"):
         print "Starting server with cache_size "+str(server_data["cache_size"])+" MB...",
         sys.stdout.flush()
 
-        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"]) as servers:
+        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"], data_dir=data_dir) as servers:
             print " Done."
             sys.stdout.flush()
 
@@ -422,12 +422,15 @@ def save_compare_results():
     compare(results, previous_results)
 
 
-def main():
+def main(data_directory):
     """
     Main method
     """
     check_driver()
-    run_tests()
+    run_tests(data_directory=data_dir)
 
 if __name__ == "__main__":
-    main()
+    data_dir = ''
+    if len(sys.argv) > 1
+        data_dir = sys.argv[1]
+    main(data_dir)
