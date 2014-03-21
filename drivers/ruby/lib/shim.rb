@@ -23,7 +23,10 @@ class Time
       'timezone'    => timezone
     }.to_json(*a, &b)
   end
-  alias_method :__rdb_old_to_json, :__rdb_new_to_json
+  if !methods.include?(:to_json)
+    alias_method :to_json, :__rdb_new_to_json
+  end
+  # alias_method :__rdb_old_to_json, :__rdb_new_to_json
 end
 
 module RethinkDB
@@ -33,20 +36,19 @@ module RethinkDB
     def self.load_json(target, opts=nil)
       old_create_id = JSON.create_id
       begin
-        if opts && opts[:time_format] != 'raw'
-          ::TIME.singleton_class.send(:alias_method,
-                                      :__rdb_old_json_create, :json_create)
-          ::TIME.singleton_class.send(:alias_method,
-                                      :json_create, :__rdb_new_json_create)
+        ::TIME.singleton_class.send(:alias_method,
+                                    :__rdb_old_json_create, :json_create)
+        ::TIME.singleton_class.send(:alias_method,
+                                    :json_create, :__rdb_new_json_create)
+        if opts && opts[:time_format] == 'raw'
+          ::TIME.singleton_class.send(:remove_method, :json_create)
         end
         JSON.create_id = '$reql_type$'
         JSON.load(target)
       ensure
         JSON.create_id = old_create_id
-        if opts && opts[:time_format] != 'raw'
-          ::TIME.singleton_class.send(:alias_method,
-                                      :json_create, :__rdb_old_json_create)
-        end
+        ::TIME.singleton_class.send(:alias_method,
+                                    :json_create, :__rdb_old_json_create)
       end
     end
 

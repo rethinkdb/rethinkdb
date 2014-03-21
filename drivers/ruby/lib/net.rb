@@ -78,7 +78,7 @@ module RethinkDB
         @results.each(&block)
         return self if !@more
         q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
-        res = @conn.run_internal q
+        res = @conn.run_internal(q, @opts)
         @results = Shim.response_to_native(res, @msg, @opts)
         if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
@@ -90,7 +90,7 @@ module RethinkDB
       if @more
         @more = false
         q = RethinkDB::new_query(Query::QueryType::STOP, @token)
-        res = @conn.run_internal q
+        res = @conn.run_internal(q, @opts)
         if res['t'] != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
@@ -127,8 +127,10 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
-    def run_internal(q, noreply=false)
-      dispatch q
+    def run_internal(q, opts)
+      @mutex.synchronize{@opts[q[:k]] = opts}
+      noreply = opts[:noreply]
+      dispatch(q)
       noreply ? nil : wait(q[:k])
     end
     def run(msg, opts, &b)
@@ -150,7 +152,7 @@ module RethinkDB
         q: msg
       }
 
-      res = run_internal(q, all_opts[:noreply])
+      res = run_internal(q, all_opts)
       return res if !res
       if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
@@ -270,7 +272,7 @@ module RethinkDB
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
-      res = run_internal(q)
+      res = run_internal(q, {noreply: false})
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
