@@ -18,7 +18,8 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::throttler_acq_t;
 
-const int SOFT_UNWRITTEN_CHANGES_LIMIT = 200;
+// TODO!
+const int SOFT_UNWRITTEN_CHANGES_LIMIT = 2000;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the

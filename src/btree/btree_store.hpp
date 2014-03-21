@@ -17,7 +17,7 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "concurrency/mutex.hpp"
+#include "concurrency/new_mutex.hpp"
 #include "containers/map_sentries.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
@@ -157,25 +157,26 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+    scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
+            buf_lock_t *sindex_block);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            const mutex_t::acq_t *acq);
+            const new_mutex_in_line_t *acq);
 
     void deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            const mutex_t::acq_t *acq);
+            const new_mutex_in_line_t *acq);
 
     void emergency_deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue);
 
     void sindex_queue_push(
             const write_message_t &value,
-            const mutex_t::acq_t *acq);
+            const new_mutex_in_line_t *acq);
     void sindex_queue_push(
             const scoped_array_t<write_message_t> &values,
-            const mutex_t::acq_t *acq);
+            const new_mutex_in_line_t *acq);
 
     void add_progress_tracker(
         map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
@@ -388,8 +389,7 @@ public:
     boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
-    // KSI: mutex_t is a horrible type.
-    mutex_t sindex_queue_mutex;
+    new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     // Mind the constructor ordering. We must destruct drainer before destructing

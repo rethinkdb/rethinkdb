@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <set>
+#include <vector>
 
 #include "errors.hpp"
 #include "time.hpp"
@@ -42,7 +43,7 @@ protected:
 // Dummy balancer that does nothing but provide the initial size of a cache
 class dummy_cache_balancer_t : public cache_balancer_t {
 public:
-    dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
+    explicit dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
         base_mem_per_store_(_base_mem_per_store) { }
     ~dummy_cache_balancer_t() { }
 
@@ -71,7 +72,7 @@ class alt_cache_balancer_t :
     public repeating_timer_callback_t
 {
 public:
-    alt_cache_balancer_t(uint64_t _total_cache_size);
+    explicit alt_cache_balancer_t(uint64_t _total_cache_size);
     ~alt_cache_balancer_t();
 
     uint64_t base_mem_per_store() const {
