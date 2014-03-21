@@ -848,6 +848,7 @@ page_txn_t::~page_txn_t() {
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
+    (void)acq;
     rassert(acq->access_ == access_t::write);
     ++live_acqs_;
 }
