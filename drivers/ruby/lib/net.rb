@@ -164,10 +164,9 @@ module RethinkDB
         value = Shim.response_to_native(res, msg, opts)
       end
 
-      if res.respond_to? :has_profile? and res.has_profile?
-        # RSI: check this
+      if res['p']
         real_val = {
-          "profile" => Shim.datum_to_native(res.profile(), opts),
+          "profile" => res['p'],
           "value" => value
         }
       else
@@ -337,6 +336,7 @@ module RethinkDB
             response = @socket.read_exn(response_length)
             begin
               data = Shim.load_json(response, @opts[token])
+              PP.pp data
             rescue Exception => e
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
