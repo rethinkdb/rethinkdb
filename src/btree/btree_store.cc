@@ -324,8 +324,9 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::sindex_queue_push(const std::vector<write_message_t> &values,
-                                                  const mutex_t::acq_t *acq) {
+void btree_store_t<protocol_t>::sindex_queue_push(
+        const scoped_array_t<write_message_t> &values,
+        const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 

@@ -47,7 +47,7 @@ public:
 
     // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t &value);
-    void push(const std::vector<write_message_t> &values);
+    void push(const scoped_array_t<write_message_t> &values);
 
     // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(buffer_group_viewer_t *viewer);

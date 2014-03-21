@@ -19,6 +19,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "utils.hpp"
@@ -173,7 +174,7 @@ public:
             const write_message_t &value,
             const mutex_t::acq_t *acq);
     void sindex_queue_push(
-            const std::vector<write_message_t> &values,
+            const scoped_array_t<write_message_t> &values,
             const mutex_t::acq_t *acq);
 
     void add_progress_tracker(

@@ -57,7 +57,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     push_single(&txn, wm);
 }
 
-void internal_disk_backed_queue_t::push(const std::vector<write_message_t> &wms) {
+void internal_disk_backed_queue_t::push(const scoped_array_t<write_message_t> &wms) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     // There's no need for hard durability with an unlinked dbq file.
