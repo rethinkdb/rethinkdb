@@ -9,6 +9,15 @@ class TIME
   end
 end
 
+class GROUPED_DATA
+  def self.__rdb_new_json_create(o)
+    Hash[o['data']]
+  end
+  if !methods.include?(:json_create)
+    singleton_class.send(:alias_method, :json_create, :__rdb_new_json_create)
+  end
+end
+
 class Time
   def __rdb_new_to_json(*a, &b)
     epoch_time = self.to_f
@@ -17,16 +26,10 @@ class Time
     raw_hours = raw_offset / 3600
     raw_minutes = (raw_offset / 60) - (raw_hours * 60)
     timezone = (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
-    {
-      '$reql_type$' => 'TIME',
+    { '$reql_type$' => 'TIME',
       'epoch_time'  => epoch_time,
-      'timezone'    => timezone
-    }.to_json(*a, &b)
+      'timezone'    => timezone }.to_json(*a, &b)
   end
-  if !methods.include?(:to_json)
-    alias_method :to_json, :__rdb_new_to_json
-  end
-  # alias_method :__rdb_old_to_json, :__rdb_new_to_json
 end
 
 module RethinkDB
@@ -43,25 +46,38 @@ module RethinkDB
         if opts && opts[:time_format] == 'raw'
           ::TIME.singleton_class.send(:remove_method, :json_create)
         end
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :__rdb_old_json_create, :json_create)
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :json_create, :__rdb_new_json_create)
+        if opts && opts[:group_format] == 'raw'
+          ::GROUPED_DATA.singleton_class.send(:remove_method, :json_create)
+        end
         JSON.create_id = '$reql_type$'
         JSON.load(target)
       ensure
         JSON.create_id = old_create_id
         ::TIME.singleton_class.send(:alias_method,
                                     :json_create, :__rdb_old_json_create)
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :json_create, :__rdb_old_json_create)
       end
     end
 
     def self.dump_json(*a, &b)
       begin
         ::Time.class_eval {
-          alias_method :__rdb_old_to_json, :to_json
+          alias_method :__rdb_old_to_json, :to_json if methods.include?(:to_json)
           alias_method :to_json, :__rdb_new_to_json
         }
         JSON.dump(*a, &b)
       ensure
         ::Time.class_eval {
-          alias_method :to_json, :__rdb_old_to_json
+          if methods.include?(:__rdb_old_to_json)
+            alias_method :to_json, :__rdb_old_to_json
+          else
+            remove_method :to_json
+          end
         }
       end
     end
