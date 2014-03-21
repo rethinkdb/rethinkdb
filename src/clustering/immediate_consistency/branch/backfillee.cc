@@ -54,11 +54,10 @@ public:
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
         done_message_arrived(false), num_outstanding_chunks(0),
-        chunk_processing_semaphore(1) // TODO!
+        chunk_processing_semaphore(1)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        // TODO! Have a semaphore here to not process more than a few at a time.
         new_semaphore_acq_t sem_acq(&chunk_processing_semaphore, 1);
         sem_acq.acquisition_signal()->wait_lazily_unordered();
 

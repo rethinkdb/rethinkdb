@@ -1270,13 +1270,16 @@ public:
 
                     scoped_ptr_t<real_superblock_t> superblock;
 
-                    // We want soft durability because having a partially constructed
-                    // secondary index is okay -- we wipe it and rebuild it, if it has not
-                    // been marked completely constructed.
+                    // We use HARD durability because we want post construction
+                    // to be throttled if we insert data faster than it can
+                    // be written to disk. Otherwise we might exhaust the cache's
+                    // dirty page limit and bring down the whole table.
+                    // Other than that, the hard durability guarantee is not actually
+                    // needed here.
                     store_->acquire_superblock_for_write(
                             repli_timestamp_t::distant_past,
                             2 + MAX_CHUNK_SIZE,
-                            write_durability_t::HARD, // TODO!
+                            write_durability_t::HARD,
                             &token_pair,
                             &wtxn,
                             &superblock,

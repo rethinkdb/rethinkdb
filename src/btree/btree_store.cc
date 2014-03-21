@@ -181,13 +181,16 @@ void btree_store_t<protocol_t>::receive_backfill(
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
-    const int expected_change_count = 1; // FIXME: this is probably not correct
+    const int expected_change_count = 1; // TODO: this is not correct
 
-    // We don't want hard durability, this is a backfill chunk, and nobody
-    // wants chunk-by-chunk acks.
+    // We use HARD durability because we want backfilling to be throttled if we
+    // receive data faster than it can be written to disk. Otherwise we might
+    // exhaust the cache's dirty page limit and bring down the whole table.
+    // Other than that, the hard durability guarantee is not actually
+    // needed here.
     acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
-                                 write_durability_t::HARD, // TODO!
+                                 write_durability_t::HARD,
                                  token_pair,
                                  &txn,
                                  &real_superblock,
