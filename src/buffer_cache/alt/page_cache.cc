@@ -75,7 +75,7 @@ void page_read_ahead_cb_t::destroy_self() {
 
 void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
-        current_pages_.resize(block_id + 1, NULL);
+        current_pages_.resize_with_zeros(block_id + 1);
     }
 }
 
@@ -164,8 +164,11 @@ page_cache_t::~page_cache_t() {
     have_read_ahead_cb_destroyed();
 
     drainer_.reset();
-    for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
-        delete *it;
+    for (size_t i = 0, e = current_pages_.size(); i < e; ++i) {
+        if (i % 256 == 255) {
+            coro_t::yield();
+        }
+        delete current_pages_[i];
     }
 
     {
@@ -220,8 +223,8 @@ private:
 void page_cache_t::flush_and_destroy_txn(
         scoped_ptr_t<page_txn_t> txn,
         std::function<void(throttler_acq_t *)> on_flush_complete) {
-    rassert(txn->live_acqs_.empty(),
-            "current_page_acq_t lifespan exceeds its page_txn_t's");
+    guarantee(txn->live_acqs_ == 0,
+              "A current_page_acq_t lifespan exceeds its page_txn_t's.");
     guarantee(!txn->began_waiting_for_flush_);
 
     txn->announce_waiting_for_flush();
@@ -801,6 +804,7 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
       cache_conn_(cache_conn),
       throttler_acq_(std::move(throttler_acq)),
       this_txn_recency_(txn_recency),
+      live_acqs_(0),
       began_waiting_for_flush_(false),
       spawned_flush_(false),
       mark_(marked_not) {
@@ -822,7 +826,7 @@ void page_txn_t::connect_preceder(page_txn_t *preceder) {
     // entirely from the txn graph, so we can't be adding preceders after that point.
     rassert(!preceder->flush_complete_cond_.is_pulsed());
 
-    // RSP: performance
+    // See "PERFORMANCE(preceders_)".
     if (std::find(preceders_.begin(), preceders_.end(), preceder)
         == preceders_.end()) {
         preceders_.push_back(preceder);
@@ -831,14 +835,14 @@ void page_txn_t::connect_preceder(page_txn_t *preceder) {
 }
 
 void page_txn_t::remove_preceder(page_txn_t *preceder) {
-    // RSP: performance
+    // See "PERFORMANCE(preceders_)".
     auto it = std::find(preceders_.begin(), preceders_.end(), preceder);
     rassert(it != preceders_.end());
     preceders_.erase(it);
 }
 
 void page_txn_t::remove_subseqer(page_txn_t *subseqer) {
-    // RSP: performance
+    // See "PERFORMANCE(subseqers_)".
     auto it = std::find(subseqers_.begin(), subseqers_.end(), subseqer);
     rassert(it != subseqers_.end());
     subseqers_.erase(it);
@@ -853,16 +857,15 @@ page_txn_t::~page_txn_t() {
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
     rassert(acq->access_ == access_t::write);
-    live_acqs_.push_back(acq);
+    ++live_acqs_;
 }
 
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     guarantee(acq->access_ == access_t::write);
     // This is called by acq's destructor.
     {
-        auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
-        rassert(it != live_acqs_.end());
-        live_acqs_.erase(it);
+        rassert(live_acqs_ > 0);
+        --live_acqs_;
     }
 
     // It's not snapshotted because you can't snapshot write acqs.  (We
@@ -905,7 +908,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 }
 
 void page_txn_t::announce_waiting_for_flush() {
-    rassert(live_acqs_.empty());
+    rassert(live_acqs_ == 0);
     rassert(!began_waiting_for_flush_);
     rassert(!spawned_flush_);
     began_waiting_for_flush_ = true;
@@ -1149,7 +1152,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                                             ancillary_infos[i].page));
         }
 
-        // RSP: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
+        // KSI: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
         // representation of deletion/touched blocks in blocks_by_tokens.
         std::vector<index_write_op_t> write_ops;
         write_ops.reserve(blocks_by_tokens.size());
