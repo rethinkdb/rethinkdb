@@ -18,6 +18,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/scoped.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
@@ -1784,7 +1785,7 @@ private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&sindex_block, &acq);
-        std::vector<write_message_t> queue_wms(mod_reports.size());
+        scoped_array_t<write_message_t> queue_wms(mod_reports.size());
         {
             sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
