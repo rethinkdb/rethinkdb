@@ -583,8 +583,11 @@ private:
     // txn's that we precede -- preceders_[i]->subseqers_ always contains us once.
     std::vector<page_txn_t *> subseqers_;
 
-    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
-    backindex_bag_t<current_page_t *> pages_write_acquired_last_;
+    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.  We
+    // wouldn't mind a std::vector inside the backindex_bag_t, but it's a
+    // segmented_vector_t -- we give it a segment size big enough to not be obnoxious
+    // about memory usage.
+    backindex_bag_t<current_page_t *, 16> pages_write_acquired_last_;
 
     // How many current_page_acq_t's for this transaction that are currently alive.
     size_t live_acqs_;
