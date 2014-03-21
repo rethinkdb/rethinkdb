@@ -607,7 +607,6 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         last_write_acquirer_version_ = v;
 
         if (last_write_acquirer_ != acq_txn) {
-            // RSP: Performance (in the assertion).
             rassert(!acq_txn->pages_write_acquired_last_.has_element(this));
 
             if (last_write_acquirer_ != NULL) {
