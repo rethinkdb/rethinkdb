@@ -14,7 +14,7 @@ defaults () {
     ssh_control_path='~/.ssh/master-%l-%r@%h:%p'
     ssh_user=ubuntu
     setup_files=$(dirname "$0")/build-ami-files
-    ami_name=
+    ami_name=rethinkdb
     ami_description="RethinkDB"
     ssh_key_name=
 }
@@ -50,9 +50,6 @@ main () {
 
     # ensure_ami_group
 
-    if test -z "$ami_name"; then
-        ami_name=rethinkdb-`../../scripts/gen-version.sh`
-    fi
     echo "Creating AMI named $ami_name..."
 
     local ami_id

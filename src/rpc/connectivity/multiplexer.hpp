@@ -4,6 +4,10 @@
 
 #include "rpc/connectivity/messages.hpp"
 #include "rpc/connectivity/heartbeat.hpp"
+#include "concurrency/semaphore.hpp"
+#include "concurrency/one_per_thread.hpp"
+
+#define DEFAULT_MAX_OUTSTANDING_WRITES_PER_THREAD 4
 
 /* `message_multiplexer_t` is used when you want multiple components to share a
 `message_service_t`. Here's an example of how one might use it:
@@ -51,7 +55,8 @@ public:
             client_t *const parent;
             message_handler_t *const message_handler;
         };
-        client_t(message_multiplexer_t *, tag_t tag);
+        client_t(message_multiplexer_t *, tag_t tag,
+                 int max_outstanding = DEFAULT_MAX_OUTSTANDING_WRITES_PER_THREAD);
         ~client_t();
         connectivity_service_t *get_connectivity_service();
         void send_message(peer_id_t, send_message_write_callback_t *callback);
@@ -61,6 +66,7 @@ public:
         message_multiplexer_t *const parent;
         const tag_t tag;
         run_t *run;
+        one_per_thread_t<static_semaphore_t> outstanding_writes_semaphores;
     };
     explicit message_multiplexer_t(message_service_t *super_ms);
     ~message_multiplexer_t();

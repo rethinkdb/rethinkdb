@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_
 
@@ -11,6 +11,7 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* There is one `master_business_card_t` per branch. It's created by the master.
@@ -73,5 +74,19 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(region, multi_throttling);
 };
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(master_business_card_t<protocol_t>,
+    region, multi_throttling);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_4(
+    typename master_business_card_t<protocol_t>::read_request_t,
+    read, order_token, fifo_token, cont_addr);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_4(
+    typename master_business_card_t<protocol_t>::write_request_t,
+    write, order_token, fifo_token, cont_addr);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_ */

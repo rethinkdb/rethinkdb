@@ -6,9 +6,6 @@
 
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/administration/machine_metadata.hpp"
-#include "rdb_protocol/protocol.hpp"
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
 
 
 /* This is like `blueprint_t`, except that it is indexed by `machine_id_t`

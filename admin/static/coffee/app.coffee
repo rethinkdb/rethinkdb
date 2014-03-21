@@ -3,6 +3,7 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
+
 modal_registry = []
 clear_modals = ->
     modal.hide_modal() for modal in modal_registry
@@ -19,11 +20,6 @@ progress_short_interval = 1000
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
-            if data.protocol? and data.protocol is 'rdb'  # We check that the machines in the blueprint do exist
-                if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
-                    for machine_uuid of collection_data[id].blueprint.peers_roles
-                        if !machines.get(machine_uuid)?
-                            delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 collection.get(id).set(data)
             else
@@ -72,6 +68,7 @@ apply_diffs = (updates) ->
             when 'me' then continue
             else
                 #console.log "Unhandled element update: " + collection_id + "."
+    DataUtils.reset_directory_activities()
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -149,7 +146,7 @@ collections_ready = ->
 
 collect_reql_doc = ->
     $.ajax
-        url: '/js/reql_docs.json?v='+window.VERSION
+        url: 'js/reql_docs.json?v='+window.VERSION
         dataType: 'json'
         contentType: 'application/json'
         success: set_reql_docs
@@ -216,6 +213,8 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
+    window.r = require('rethinkdb')
+
     render_loading()
     bind_dev_tools()
 
@@ -235,7 +234,7 @@ $ ->
     window.universe_datacenter = new Datacenter
         id: '00000000-0000-0000-0000-000000000000'
         name: 'Universe'
-
+    
     # Override the default Backbone.sync behavior to allow reading diff
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'

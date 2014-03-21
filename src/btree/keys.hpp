@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_KEYS_HPP_
 #define BTREE_KEYS_HPP_
 
@@ -9,13 +9,16 @@
 #include <string>
 
 #include "config/args.hpp"
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
 
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
+
+// Fast string compare
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
@@ -28,7 +31,7 @@ struct btree_key_t {
     bool fits(int space) const {
         return space > 0 && space > size;
     }
-};
+} __attribute__((__packed__));
 
 inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
     return sized_strcmp(left->contents, left->size, right->contents, right->size);
@@ -44,7 +47,7 @@ public:
         assign(sz, buf);
     }
 
-    store_key_t(const store_key_t& _key) {
+    store_key_t(const store_key_t &_key) {
         assign(_key.size(), _key.contents());
     }
 
@@ -52,12 +55,14 @@ public:
         assign(key->size, key->contents);
     }
 
-    explicit store_key_t(const std::string& s) {
+    explicit store_key_t(const std::string &s) {
         assign(s.size(), reinterpret_cast<const uint8_t *>(s.data()));
     }
 
     btree_key_t *btree_key() { return reinterpret_cast<btree_key_t *>(buffer); }
-    const btree_key_t *btree_key() const { return reinterpret_cast<const btree_key_t *>(buffer); }
+    const btree_key_t *btree_key() const {
+        return reinterpret_cast<const btree_key_t *>(buffer);
+    }
     void set_size(int s) {
         rassert(s <= MAX_KEY_SIZE);
         btree_key()->size = s;
@@ -136,17 +141,17 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint8_t sz;
         archive_result_t res = deserialize(s, &sz);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
-            return ARCHIVE_SOCK_ERROR;
+            return archive_result_t::SOCK_ERROR;
         }
         if (num_read < sz) {
-            return ARCHIVE_SOCK_EOF;
+            return archive_result_t::SOCK_EOF;
         }
         rassert(num_read == sz);
         set_size(sz);
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
     }
 
 private:
@@ -203,7 +208,8 @@ struct key_range_t {
     };
 
     key_range_t();   /* creates a range containing no keys */
-    key_range_t(bound_t, const store_key_t&, bound_t, const store_key_t&);
+    key_range_t(bound_t lm, const store_key_t &l,
+                bound_t rm, const store_key_t &r);
 
     static key_range_t empty() THROWS_NOTHING {
         return key_range_t();
@@ -257,6 +263,7 @@ RDB_DECLARE_SERIALIZABLE(key_range_t);
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);
 void debug_print(printf_buffer_t *buf, const key_range_t &kr);
+std::string key_range_to_string(const key_range_t &kr);
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);

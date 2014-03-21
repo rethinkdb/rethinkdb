@@ -1,4 +1,7 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pathspec.hpp"
+
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 
@@ -22,7 +25,7 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
 {
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
-        str = new std::string(datum->as_str());
+        str = new std::string(datum->as_str().to_std());
     } else if (datum->get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
@@ -53,8 +56,8 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
             }
         }
     } else {
-        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument of `%s` to %s.",
-                datum->print().c_str(), creator->name());
+        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument `%s`.",
+                datum->print().c_str());
     }
 
     if (type == VEC && vec->size() == 1) {
@@ -108,11 +111,12 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         return res.to_counted();
     } else {
         datum_ptr_t res(datum_t::R_OBJECT);
-        if (const std::string *str = pathspec.as_str()) {
-            if (counted_t<const datum_t> val = datum->get(*str, NOTHROW)) {
+        if (pathspec.as_str() != NULL) {
+            const std::string str = static_cast<std::string>(*pathspec.as_str());
+            if (counted_t<const datum_t> val = datum->get(str, NOTHROW)) {
                 // This bool indicates if things were clobbered. We're fine
                 // with things being clobbered so we ignore it.
-                UNUSED bool b = res.add(*str, val, CLOBBER);
+                UNUSED bool b = res.add(str, val, CLOBBER);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {

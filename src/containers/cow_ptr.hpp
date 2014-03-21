@@ -32,6 +32,8 @@ public:
 
     void set(const T &new_value);
 
+    bool operator==(const cow_ptr_t<T> &other) const;
+
     class change_t {
     public:
         explicit change_t(cow_ptr_t *parent);

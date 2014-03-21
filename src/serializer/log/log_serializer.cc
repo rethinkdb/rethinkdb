@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
 #include <fcntl.h>
@@ -6,14 +6,22 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <functional>
+
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/new_mutex.hpp"
+#include "logger.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
-filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender)
-    : filepath_(filepath), backender_(backender), opened_temporary_(false) { }
+filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath,
+                                               io_backender_t *backender)
+    : filepath_(filepath),
+      backender_(backender),
+      opened_temporary_(false) { }
 
 filepath_file_opener_t::~filepath_file_opener_t() { }
 
@@ -30,15 +38,15 @@ std::string filepath_file_opener_t::current_file_name() const {
 }
 
 void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
-    const file_open_result_t res = open_direct_file(path.c_str(),
-                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
-                                                    backender_,
-                                                    file_out);
+    const file_open_result_t res = open_file(path.c_str(),
+                                             linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
+                                             backender_,
+                                             file_out);
     if (res.outcome == file_open_result_t::ERROR) {
         crash_due_to_inaccessible_database_file(path.c_str(), res);
     }
 
-    if (res.outcome == file_open_result_t::BUFFERED) {
+    if (res.outcome == file_open_result_t::BUFFERED_FALLBACK) {
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "
                "(e.g. some encrypted or journaled file systems)?) "
@@ -67,6 +75,8 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
               temporary_file_name().c_str(), file_name().c_str());
     }
 
+    guarantee_fsync_parent_directory(file_name().c_str());
+
     opened_temporary_ = false;
 }
 
@@ -86,18 +96,18 @@ void filepath_file_opener_t::unlink_serializer_file() {
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) {
     const std::string semantic_filepath = filepath_.permanent_path() + "_semantic";
     int semantic_fd;
     do {
         semantic_fd = open(semantic_filepath.c_str(),
                            O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    } while (semantic_fd == -1 && errno == EINTR);
+    } while (semantic_fd == -1 && get_errno() == EINTR);
 
     if (semantic_fd == INVALID_FD) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(get_errno()).c_str());
     } else {
-        *fd_out = semantic_fd;
+        file_out->init(new linux_semantic_checking_file_t(semantic_fd));
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -116,11 +126,9 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_lba_extents(),
       pm_serializer_data_extents(),
       pm_serializer_data_extents_allocated(),
-      pm_serializer_data_extents_reclaimed(),
       pm_serializer_data_extents_gced(),
-      pm_serializer_data_blocks_written(),
-      pm_serializer_old_garbage_blocks(),
-      pm_serializer_old_total_blocks(),
+      pm_serializer_old_garbage_block_bytes(),
+      pm_serializer_old_total_block_bytes(),
       pm_serializer_lba_gcs(),
       parent_collection_membership(parent, &serializer_collection, "serializer"),
       stats_membership(&serializer_collection,
@@ -134,13 +142,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_lba_extents, "serializer_lba_extents",
           &pm_serializer_data_extents, "serializer_data_extents",
           &pm_serializer_data_extents_allocated, "serializer_data_extents_allocated",
-          &pm_serializer_data_extents_reclaimed, "serializer_data_extents_reclaimed",
           &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
-          &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
-          &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
-          &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
-          &pm_serializer_lba_gcs, "serializer_lba_gcs",
-          NULLPTR)
+          &pm_serializer_old_garbage_block_bytes, "serializer_old_garbage_block_bytes",
+          &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
+          &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
@@ -159,8 +164,6 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener, static_conf
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_list_t::prepare_initial_metablock(&metablock.lba_index_part);
 
-    metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-
     mb_manager_t::create(file.get(), static_config.extent_size(), &metablock);
 }
 
@@ -172,7 +175,8 @@ are involved in startup and which parts are not. */
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
     public mb_manager_t::metablock_read_callback_t,
-    public lba_list_t::ready_callback_t
+    public lba_list_t::ready_callback_t,
+    public thread_message_t
 {
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), start_existing_state(state_start) {
@@ -234,7 +238,9 @@ struct ls_start_existing_fsm_t :
             }
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_list_t(ser->extent_manager);
+            ser->lba_index = new lba_list_t(ser->extent_manager,
+                    std::bind(&log_serializer_t::write_metablock_sans_pipelining,
+                              ser, ph::_1, ph::_2));
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
@@ -252,8 +258,6 @@ struct ls_start_existing_fsm_t :
             // STATE G
             guarantee(metablock_found, "Could not find any valid metablock.");
 
-            ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
-
             // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 start_existing_state = state_reconstruct;
@@ -268,10 +272,23 @@ struct ls_start_existing_fsm_t :
 
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+            start_existing_state = state_reconstruct_ongoing;
+            num_blocks_reconstructed = 0;
+            // Fall through into state_reconstruct_ongoing
+        }
+
+        if (start_existing_state == state_reconstruct_ongoing) {
+            int batch = 0;
+            for (; num_blocks_reconstructed < ser->lba_index->end_block_id(); num_blocks_reconstructed++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(num_blocks_reconstructed);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value());
+                    ser->data_block_manager->mark_live(offset.get_value(),
+                        ser->lba_index->get_block_size(num_blocks_reconstructed));
+                }
+                ++batch;
+                if (batch >= LBA_RECONSTRUCTION_BATCH_SIZE) {
+                    call_later_on_this_thread(this);
+                    return false;
                 }
             }
             ser->data_block_manager->end_reconstruct();
@@ -318,6 +335,12 @@ struct ls_start_existing_fsm_t :
         next_starting_up_step();
     }
 
+    void on_thread_switch() {
+        // Continue a previously started LBA reconstruction
+        rassert(start_existing_state == state_reconstruct_ongoing);
+        next_starting_up_step();
+    }
+
     log_serializer_t *ser;
     cond_t *to_signal_when_done;
 
@@ -330,9 +353,14 @@ struct ls_start_existing_fsm_t :
         state_start_lba,
         state_waiting_for_lba,
         state_reconstruct,
+        state_reconstruct_ongoing,
         state_finish,
         state_done
     } start_existing_state;
+
+    // When in state_reconstruct_ongoing, we keep track of how many blocks we
+    // already have reconstructed.
+    block_id_t num_blocks_reconstructed;
 
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
@@ -356,7 +384,6 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
       metablock_manager(NULL),
       lba_index(NULL),
       data_block_manager(NULL),
-      last_write(NULL),
       active_write_count(0) {
     // STATE A
     /* This is because the serializer is not completely converted to coroutines yet. */
@@ -371,42 +398,8 @@ log_serializer_t::~log_serializer_t() {
     if (!shutdown(&cond)) cond.wait();
 
     rassert(state == state_unstarted || state == state_shut_down);
-    rassert(last_write == NULL);
+    rassert(metablock_waiter_queue.empty());
     rassert(active_write_count == 0);
-}
-
-void *log_serializer_t::malloc() {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
-
-    // Initialize the block sequence id...
-    reinterpret_cast<ls_buf_data_t *>(data)->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
-}
-
-// TODO: Make this parameter const void.
-void *log_serializer_t::clone(void *_data) {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char*>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
-    memcpy(data, reinterpret_cast<char*>(_data) - sizeof(ls_buf_data_t), static_config.block_size().ser_value());
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
-}
-
-void log_serializer_t::free(void *ptr) {
-    char *data = reinterpret_cast<char *>(ptr);
-    data -= sizeof(ls_buf_data_t);
-    ::free(reinterpret_cast<void *>(data));
 }
 
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
@@ -415,49 +408,19 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
+                                  ser_buffer_t *buf, file_account_t *io_account) {
     assert_thread();
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    block_read(token, buf, io_account, &cb);
-    cb.wait();
-}
+    guarantee(token.has());
+    guarantee(state == state_ready);
 
-// TODO(sam): block_read can call the callback before it returns. Is this acceptable?
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
-    assert_thread();
-    struct my_cb_t : public iocallback_t {
-        void on_io_complete() {
-            stats->pm_serializer_block_reads.end(&pm_time);
-            if (cb) cb->on_io_complete();
-            delete this;
-        }
-        my_cb_t(iocallback_t *_cb, const counted_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
-        iocallback_t *cb;
-        // tok is needed to ensure the block remains alive for appropriate period of time.
-        counted_t<ls_block_token_pointee_t> tok;
-        ticks_t pm_time;
-        log_serializer_stats_t *stats;
-    };
+    ticks_t pm_time;
+    stats->pm_serializer_block_reads.begin(&pm_time);
 
-    my_cb_t *readcb = new my_cb_t(cb, token, stats.get());
+    data_block_manager->read(token->offset_, token->block_size().ser_value(),
+                             buf, io_account);
 
-    stats->pm_serializer_block_reads.begin(&readcb->pm_time);
-
-    ls_block_token_pointee_t *ls_token = token.get();
-    rassert(ls_token);
-    assert_thread();
-    rassert(state == state_ready);
-    rassert(token_offsets.find(ls_token) != token_offsets.end());
-
-    rassert(state == state_ready);
-
-    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator token_offsets_it = token_offsets.find(ls_token);
-    rassert(token_offsets_it != token_offsets.end());
-
-    const int64_t offset = token_offsets_it->second;
-    data_block_manager->read(offset, buf, io_account, readcb);
+    stats->pm_serializer_block_reads.end(&pm_time);
 }
 
 // God this is such a hack.
@@ -468,7 +431,7 @@ get_ls_block_token(const counted_t<ls_block_token_pointee_t> &tok) {
 }
 #else
 counted_t<ls_block_token_pointee_t>
-get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
+get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
     if (tok) {
         return tok->inner_token;
     } else {
@@ -478,14 +441,16 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
+                                   const std::vector<index_write_op_t> &write_ops,
+                                   file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
     stats->pm_serializer_index_writes_size.record(write_ops.size());
 
-    index_write_context_t context;
-    index_write_prepare(&context, io_account);
+    extent_transaction_t txn;
+    index_write_prepare(&txn);
 
     {
         // The in-memory index updates, at least due to the needs of
@@ -496,8 +461,9 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
         for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
              write_op_it != write_ops.end();
              ++write_op_it) {
-            const index_write_op_t& op = *write_op_it;
+            const index_write_op_t &op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+            uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
@@ -506,100 +472,67 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
-                    data_block_manager->mark_garbage(offset.get_value(), &context.extent_txn);
+                    data_block_manager->mark_garbage(offset.get_value(), &txn);
                 }
 
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
-                    ls_block_token_pointee_t *ls_token = token.get();
-                    rassert(ls_token);
-                    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator to_it = token_offsets.find(ls_token);
-                    rassert(to_it != token_offsets.end());
-                    offset = flagged_off64_t::make(to_it->second);
+                    offset = flagged_off64_t::make(token->offset_);
+                    ser_block_size = token->block_size().ser_value();
 
                     /* mark the life */
-                    data_block_manager->mark_live(offset.get_value());
+                    data_block_manager->mark_live(offset.get_value(), token->block_size());
                 } else {
                     offset = flagged_off64_t::unused();
+                    ser_block_size = 0;
                 }
             }
 
             repli_timestamp_t recency = op.recency ? op.recency.get()
                 : lba_index->get_block_recency(op.block_id);
 
-            lba_index->set_block_info(op.block_id, recency, offset, io_account, &context.extent_txn);
+            lba_index->set_block_info(op.block_id, recency,
+                                      offset, ser_block_size,
+                                      io_account, &txn);
         }
     }
 
-    index_write_finish(&context, io_account);
+    index_write_finish(mutex_acq, &txn, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
 
-void log_serializer_t::index_write_prepare(index_write_context_t *context, file_account_t *io_account) {
+void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
     assert_thread();
     active_write_count++;
 
-    /* Start an extent manager transaction so we can allocate and release extents */
-    extent_manager->begin_transaction(&context->extent_txn);
-
     /* Just to make sure that the LBA GC gets exercised */
-    lba_index->consider_gc(io_account, &context->extent_txn);
+    lba_index->consider_gc();
+
+    /* Start an extent manager transaction so we can allocate and release extents */
+    extent_manager->begin_transaction(txn);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
-    assert_thread();
-    metablock_t mb_buffer;
-
+void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
+                                          extent_transaction_t *txn,
+                                          file_account_t *io_account) {
     /* Sync the LBA */
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
-    const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);
-
-    /* Prepare metablock now instead of in when we write it so that we will have the correct
-    metablock information for this write even if another write starts before we finish writing
-    our data and LBA. */
-    prepare_metablock(&mb_buffer);
+    lba_index->sync(io_account, &on_lba_sync);
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(&context->extent_txn);
+    extent_manager->end_transaction(txn);
 
-    /* Get in line for the metablock manager */
-    bool waiting_for_prev_write;
-    cond_t on_prev_write_submitted_metablock;
-    if (last_write) {
-        last_write->next_metablock_write = &on_prev_write_submitted_metablock;
-        waiting_for_prev_write = true;
-    } else {
-        waiting_for_prev_write = false;
-    }
-    last_write = context;
-
-    if (!offsets_were_written) on_lba_sync.wait();
-    if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
-
-    struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
-        void on_metablock_write() { pulse(); }
-    } on_metablock_write;
-    const bool done_with_metablock = metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
-
-    /* If there was another transaction waiting for us to write our metablock so it could
-    write its metablock, notify it now so it can write its metablock. */
-    if (context->next_metablock_write) {
-        context->next_metablock_write->pulse();
-    } else {
-        rassert(context == last_write);
-        last_write = NULL;
-    }
-
-    if (!done_with_metablock) on_metablock_write.wait();
+    /* Write the metablock */
+    write_metablock(mutex_acq, &on_lba_sync, io_account);
 
     active_write_count--;
 
     /* End the extent manager transaction so the extents can actually get reused. */
-    extent_manager->commit_transaction(&context->extent_txn);
+    extent_manager->commit_transaction(txn);
 
     //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
     consider_start_gc();
@@ -608,52 +541,93 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     // last transaction, shut ourselves down for good.
     if (state == log_serializer_t::state_shutting_down
         && shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
-        && last_write == NULL
+        && metablock_waiter_queue.empty()
         && active_write_count == 0) {
 
         next_shutdown_step();
     }
 }
 
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::generate_block_token(int64_t offset) {
+void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
+                                       const signal_t *safe_to_write_cond,
+                                       file_account_t *io_account) {
     assert_thread();
-    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset));
+    metablock_t mb_buffer;
+
+    /* Prepare metablock now instead of in when we write it so that we will have the correct
+    metablock information for this write even if another write starts before we finish
+    waiting on `safe_to_write_cond`. */
+    prepare_metablock(&mb_buffer);
+
+    /* Get in line for the metablock manager */
+    bool waiting_for_prev_write = !metablock_waiter_queue.empty();
+    cond_t on_prev_write_submitted_metablock;
+    metablock_waiter_queue.push_back(&on_prev_write_submitted_metablock);
+
+    // This operation is in line with the metablock manager.  Now another index write
+    // may commence.
+    mutex_acq->reset();
+
+    safe_to_write_cond->wait();
+    if (waiting_for_prev_write) {
+        on_prev_write_submitted_metablock.wait();
+    }
+    guarantee(metablock_waiter_queue.front() == &on_prev_write_submitted_metablock);
+
+    struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
+        void on_metablock_write() { pulse(); }
+    } on_metablock_write;
+    const bool done_with_metablock =
+        metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
+
+    /* Remove ourselves from the list of metablock waiters. */
+    metablock_waiter_queue.pop_front();
+
+    /* If there was another transaction waiting for us to write our metablock so it could
+    write its metablock, notify it now so it can write its metablock. */
+    if (!metablock_waiter_queue.empty()) {
+        metablock_waiter_queue.front()->pulse();
+    }
+
+    if (!done_with_metablock) on_metablock_write.wait();
+}
+
+void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_write_cond,
+                                                       file_account_t *io_account) {
+    new_mutex_in_line_t dummy_acq;
+    write_metablock(&dummy_acq, safe_to_write_cond, io_account);
+
+}
+
+counted_t<ls_block_token_pointee_t>
+log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) {
+    assert_thread();
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset, block_size));
     return ret;
 }
 
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+std::vector<counted_t<ls_block_token_pointee_t> >
+log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
+                               file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
-    // TODO: Implement a duration sampler perfmon for this
-    ++stats->pm_serializer_block_writes;
+    stats->pm_serializer_block_writes += write_infos.size();
 
-    const int64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
-
-    return generate_block_token(offset);
+    std::vector<counted_t<ls_block_token_pointee_t> > result
+        = data_block_manager->many_writes(write_infos, io_account, cb);
+    guarantee(result.size() == write_infos.size());
+    return result;
 }
-
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    assert_thread();
-    rassert(block_id != NULL_BLOCK_ID, "If this assertion fails, inform Sam and remove the assertion.");
-    return serializer_block_write(this, buf, block_id, io_account);
-}
-
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int64_t offset) {
     assert_thread();
-    DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, int64_t>::iterator, bool> insert_res
-        = token_offsets.insert(std::make_pair(token, offset));
-    rassert(insert_res.second);
+    rassert(token->offset_ == offset);  // Assert *token was constructed properly.
 
-    const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
-    if (first_token_for_offset) {
-        // Mark offset live in GC
-        data_block_manager->mark_token_live(offset);
+    auto location = offset_tokens.find(offset);
+    if (location == offset_tokens.end()) {
+        data_block_manager->mark_live_tokenwise_with_offset(offset);
     }
 
-    offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
+    offset_tokens.insert(location, std::make_pair(offset, token));
 }
 
 bool log_serializer_t::tokens_exist_for_offset(int64_t off) {
@@ -667,13 +641,11 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     ASSERT_NO_CORO_WAITING;
 
     rassert(!expecting_no_more_tokens);
-    std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offset_it = token_offsets.find(token);
-    rassert(token_offset_it != token_offsets.end());
 
     {
         typedef std::multimap<int64_t, ls_block_token_pointee_t *>::iterator ot_iter;
         ot_iter erase_it = offset_tokens.end();
-        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token->offset_);
              range.first != range.second;
              ++range.first) {
             if (range.first->second == token) {
@@ -686,16 +658,13 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
         offset_tokens.erase(erase_it);
     }
 
-    const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
+    const bool last_token_for_offset = offset_tokens.find(token->offset_) == offset_tokens.end();
     if (last_token_for_offset) {
         // Mark offset garbage in GC
-        data_block_manager->mark_token_garbage(token_offset_it->second);
+        data_block_manager->mark_garbage_tokenwise_with_offset(token->offset_);
     }
 
-    token_offsets.erase(token_offset_it);
-
-    rassert(token_offsets.empty() == offset_tokens.empty());
-    if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
 #endif
@@ -713,30 +682,30 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
     if (range.first != range.second) {
+        // We need this weird inclusive-range logic because we modify offset_tokens
+        // while we iterate over the range.
         --range.second;
 
         bool last_time = false;
         while (!last_time) {
             last_time = (range.first == range.second);
-            std::map<ls_block_token_pointee_t*, int64_t>::iterator token_offsets_iter = token_offsets.find(range.first->second);
-            guarantee(token_offsets_iter != token_offsets.end());
-            guarantee(token_offsets_iter->second == current_offset);
+            ls_block_token_pointee_t *const token = range.first->second;
+            guarantee(token->offset_ == current_offset);
 
-            token_offsets_iter->second = new_offset;
-            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
+            token->offset_ = new_offset;
+            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, token));
 
             ot_iter prev = range.first;
             ++range.first;
             offset_tokens.erase(prev);
         }
 
-        data_block_manager->mark_token_garbage(current_offset);
-        data_block_manager->mark_token_live(new_offset);
+        data_block_manager->mark_garbage_tokenwise_with_offset(current_offset);
+        data_block_manager->mark_live_tokenwise_with_offset(new_offset);
     }
 }
 
-// TODO: Make this const.
-block_size_t log_serializer_t::get_block_size() const {
+block_size_t log_serializer_t::max_block_size() const {
     return static_config.block_size();
 }
 
@@ -764,11 +733,9 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
         return counted_t<ls_block_token_pointee_t>();
     }
 
-    flagged_off64_t offset = lba_index->get_block_offset(block_id);
-    if (offset.has_value()) {
-        counted_t<ls_block_token_pointee_t> ret(
-            new ls_block_token_pointee_t(this, offset.get_value()));
-        return ret;
+    index_block_info_t info = lba_index->get_block_info(block_id);
+    if (info.offset.has_value()) {
+        return generate_block_token(info.offset.get_value(), block_size_t::unsafe_make(info.ser_block_size));
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }
@@ -782,9 +749,10 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     return !offset.has_value();
 }
 
-repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
+segmented_vector_t<repli_timestamp_t>
+log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     assert_thread();
-    return lba_index->get_block_recency(id);
+    return lba_index->get_block_recencies(first, step);
 }
 
 bool log_serializer_t::shutdown(cond_t *cb) {
@@ -798,6 +766,13 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     shutdown_state = shutdown_begin;
     shutdown_in_one_shot = true;
 
+    // We must shutdown the LBA GC before we shut down
+    // the data_block_manager or metablock_manager, because the LBA GC
+    // uses our `write_metablock()` method which depends on those.
+    // `shutdown_gc()` might block, but uses coroutine waiting in contrast
+    // to most of the remaining shutdown process which is still FSM-based.
+    lba_index->shutdown_gc();
+
     return next_shutdown_step();
 }
 
@@ -807,7 +782,7 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
-        if (last_write || active_write_count > 0) {
+        if (!metablock_waiter_queue.empty() || active_write_count > 0) {
             state = state_shutting_down;
             shutdown_in_one_shot = false;
             return false;
@@ -826,8 +801,7 @@ bool log_serializer_t::next_shutdown_step() {
     // The datablock manager uses block tokens, so it goes before.
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
-        rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-        if (!(token_offsets.empty() && offset_tokens.empty())) {
+        if (!offset_tokens.empty()) {
             shutdown_in_one_shot = false;
             return false;
         } else {
@@ -840,14 +814,7 @@ bool log_serializer_t::next_shutdown_step() {
     rassert(expecting_no_more_tokens);
 
     if (shutdown_state == shutdown_waiting_on_block_tokens) {
-        shutdown_state = shutdown_waiting_on_lba;
-        if (!lba_index->shutdown(this)) {
-            shutdown_in_one_shot = false;
-            return false;
-        }
-    }
-
-    if (shutdown_state == shutdown_waiting_on_lba) {
+        lba_index->shutdown();
         metablock_manager->shutdown();
         extent_manager->shutdown();
 
@@ -863,9 +830,18 @@ bool log_serializer_t::next_shutdown_step() {
         delete extent_manager;
         extent_manager = NULL;
 
-        delete dbfile;
-        dbfile = NULL;
+        shutdown_state = shutdown_waiting_on_dbfile_destruction;
+        coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
+                                         this));
+        // TODO: Get rid of the useless shutdown_in_one_shot variable -- we never
+        // shut down in one shot.
+        shutdown_in_one_shot = false;
+        return false;
+    }
 
+    rassert(dbfile == NULL);
+
+    if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
 
         // Don't call the callback if we went through the entire
@@ -881,12 +857,14 @@ bool log_serializer_t::next_shutdown_step() {
     return true; // make compiler happy
 }
 
-void log_serializer_t::on_datablock_manager_shutdown() {
-    assert_thread();
+void log_serializer_t::delete_dbfile_and_continue_shutdown() {
+    rassert(dbfile != NULL);
+    delete dbfile;
+    dbfile = NULL;
     next_shutdown_step();
 }
 
-void log_serializer_t::on_lba_shutdown() {
+void log_serializer_t::on_datablock_manager_shutdown() {
     assert_thread();
     next_shutdown_step();
 }
@@ -897,7 +875,6 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
-    mb_buffer->block_sequence_id = latest_block_sequence_id;
 }
 
 
@@ -911,16 +888,6 @@ void log_serializer_t::consider_start_gc() {
 }
 
 
-bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
-    assert_thread();
-    return data_block_manager->disable_gc(cb);
-}
-
-void log_serializer_t::enable_gc() {
-    assert_thread();
-    data_block_manager->enable_gc();
-}
-
 void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
@@ -930,22 +897,31 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
+    // KSI: read_ahead_callbacks should be an intrusive list.
+
     for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
         if (*cb_it == cb) {
             read_ahead_callbacks.erase(cb_it);
             break;
         }
     }
+
+    // KSI: This should not allow spurious unregister operations the way it currently
+    // does (it should crash here).
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void log_serializer_t::offer_buf_to_read_ahead_callbacks(
+        block_id_t block_id,
+        scoped_malloc_t<ser_buffer_t> &&buf,
+        const counted_t<standard_block_token_t> &token) {
     assert_thread();
-    for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
-            return true;
-        }
+
+    scoped_malloc_t<ser_buffer_t> local_buf = std::move(buf);
+    for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
+        read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
+                                                      &local_buf,
+                                                      token);
     }
-    return false;
 }
 
 bool log_serializer_t::should_perform_read_ahead() {
@@ -953,8 +929,11 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
-ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset)
-    : serializer_(serializer), ref_count_(0) {
+ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
+                                                   int64_t initial_offset,
+                                                   block_size_t initial_block_size)
+    : serializer_(serializer), ref_count_(0),
+      block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }
@@ -964,6 +943,16 @@ void ls_block_token_pointee_t::do_destroy() {
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
     delete this;
+}
+
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token) {
+    if (token.has()) {
+        buf->appendf("ls_block_token{%" PRIi64 ", +%" PRIu32 "}",
+                     token->offset(), token->block_size().ser_value());
+    } else {
+        buf->appendf("nil");
+    }
 }
 
 void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {

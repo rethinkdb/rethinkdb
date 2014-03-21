@@ -85,7 +85,7 @@ module 'DashboardView', ->
                 namespace_id = namespace.get('id')
                 blueprint = namespace.get('blueprint').peers_roles
                 for machine_id of blueprint
-                    machine_name = machine_name = machines.get(machine_id)?.get('name') #TODO check later if defined
+                    machine_name = machines.get(machine_id)?.get('name')
                     if not machine_name?
                         machine_name = machine_id
 

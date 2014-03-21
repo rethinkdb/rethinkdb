@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
 
-#include "concurrency/signal.hpp"
 #include "arch/timer.hpp"
+#include "concurrency/interruptor.hpp"
+#include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 
@@ -20,10 +21,20 @@ class timer_token_t;
 the signal will be pulsed. It is safe to destroy the `signal_timer_t` before the
 timer "rings". */
 
-struct signal_timer_t : public signal_t, private timer_callback_t {
-
-    explicit signal_timer_t(int64_t ms);
+class signal_timer_t : public signal_t, private timer_callback_t {
+public:
+    explicit signal_timer_t();
     ~signal_timer_t();
+
+    // Starts the timer, cannot be called if the timer is already running
+    void start(int64_t ms);
+
+    // Stops the timer from running
+    // Returns true if the timer was canceled, false if there was no timer to cancel
+    bool cancel();
+
+    // Returns true if the timer is running or has been pulsed
+    bool is_running() const;
 
 private:
     void on_timer();

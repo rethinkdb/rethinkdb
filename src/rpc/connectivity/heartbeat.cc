@@ -1,7 +1,6 @@
 #include "rpc/connectivity/heartbeat.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "logger.hpp"
 
@@ -78,16 +77,16 @@ void heartbeat_manager_t::on_timer() {
         if (it->second.outstanding >= HEARTBEAT_TIMEOUT_INTERVALS) {
             const std::string peer_str(uuid_to_str(it->first.get_uuid()).c_str());
             logERR("Heartbeat timeout, killing connection to peer: %s.", peer_str.c_str());
-            coro_t::spawn_later_ordered(boost::bind(&heartbeat_manager_t::kill_connection_wrapper,
-                                                    self,
-                                                    it->first,
-                                                    auto_drainer_t::lock_t(&data->drainer)));
+            coro_t::spawn_later_ordered(std::bind(&heartbeat_manager_t::kill_connection_wrapper,
+                                                  self,
+                                                  it->first,
+                                                  auto_drainer_t::lock_t(&data->drainer)));
         } else if (!write_done) {
             // Only send a heartbeat if nothing was sent since the last timer
-            coro_t::spawn_later_ordered(boost::bind(&heartbeat_manager_t::send_message_wrapper,
-                                                    self,
-                                                    it->first,
-                                                    auto_drainer_t::lock_t(&data->drainer)));
+            coro_t::spawn_later_ordered(std::bind(&heartbeat_manager_t::send_message_wrapper,
+                                                  self,
+                                                  it->first,
+                                                  auto_drainer_t::lock_t(&data->drainer)));
         }
 
         if (read_done) {

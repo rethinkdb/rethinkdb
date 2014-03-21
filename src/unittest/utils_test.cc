@@ -3,6 +3,7 @@
 
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "btree/keys.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
@@ -80,7 +81,7 @@ TEST(UtilsTest, Time) {
     tzset();
 }
 
-TEST(UtilsTest, SizedStrcmp) {
+TEST(BtreeUtilsTest, SizedStrcmp) {
     uint8_t test1[] = "foobarbazn\nqux";
     uint8_t test2[] = "foobarbazn\nquxr";
     uint8_t test3[] = "hello world";
@@ -96,14 +97,29 @@ TEST(UtilsTest, SizedStrcmp) {
 /* This doesn't quite belong in `utils_test.cc`, but I don't want to create a
 new file just for it. */
 
-void run_ip_address_test() {
-    std::set<ip_address_t> ips = ip_address_t::from_hostname("111.112.113.114");
-    EXPECT_EQ("111.112.113.114", ips.begin()->as_dotted_decimal());
-}
+// Since ip_address_t may block, it requires a thread_pool_t to exist
+TPTEST(UtilsTest, IPAddress) {
+    std::set<ip_address_t> ips = hostname_to_ips("203.0.113.59");
+    EXPECT_EQ(static_cast<size_t>(1), ips.size());
+    EXPECT_EQ("203.0.113.59", ips.begin()->to_string());
 
-TEST(UtilsTest, IPAddress) {
-    // Since ip_address_t may block, it requires a thread_pool_t to exist
-    unittest::run_in_thread_pool(&run_ip_address_test);
+    ips = hostname_to_ips("::DEAD:0:BEEF");
+    EXPECT_EQ(static_cast<size_t>(1), ips.size());
+    EXPECT_EQ("::dead:0:beef", ips.begin()->to_string());
+
+    ips = hostname_to_ips("::FFFF:203.0.113.59");
+
+    std::set<std::string> ip_strings;
+    for (auto ip_it = ips.begin(); ip_it != ips.end(); ++ip_it) {
+        ip_strings.insert(ip_it->to_string());
+    }
+
+    // Some platforms may give us the IPv4 and IPv6 address, so handle both cases
+    EXPECT_TRUE(ip_strings.find("::ffff:203.0.113.59") != ip_strings.end());
+    if (ip_strings.size() > 1) {
+        EXPECT_EQ(static_cast<size_t>(2), ips.size());
+        EXPECT_TRUE(ip_strings.find("203.0.113.59") != ip_strings.end());
+    }
 }
 
 }  // namespace unittest

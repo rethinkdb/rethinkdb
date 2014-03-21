@@ -22,8 +22,12 @@ tests:
         - r.expr(False).not()
         - r.not(False)
       py:
-        - r.all(True, True)
-        - r.any(True, True)
+        - r.expr(True).and_(True)
+        - r.expr(True).or_(True)
+        - r.and_(True, True)
+        - r.or_(True, True)
+        - r.expr(False).not_()
+        - r.not_(False)
       ot: True
 
     - cd:

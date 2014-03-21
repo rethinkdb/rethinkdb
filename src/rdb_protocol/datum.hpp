@@ -1,18 +1,22 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
 #include <map>
+#include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"
 
@@ -28,10 +32,11 @@ class val_t;
 namespace pseudo {
 class datum_cmp_t;
 void time_to_str_key(const datum_t &d, std::string *str_out);
+void sanitize_time(datum_t *time);
 } // namespace pseudo
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
-// They should be passed to functions that have multiple behaviors (like `el` or
+// They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
 
 // NOTHROW: Return NULL
@@ -42,9 +47,12 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1};
 // CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
+enum class use_json_t { NO = 0, YES = 1 };
+
+class grouped_data_t;
+
 // A `datum_t` is basically a JSON value, although we may extend it later.
-// TODO: When we optimize for memory, this needs to stop inheriting from `rcheckable_t`
-class datum_t : public slow_atomic_countable_t<datum_t>, public rcheckable_t {
+class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
@@ -60,37 +68,49 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
-    datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
-    explicit datum_t(const std::string &_str);
+    // TODO: Eventually get rid of the std::string constructor (in favor of
+    //   wire_string_t *)
+    explicit datum_t(std::string &&str);
+    explicit datum_t(wire_string_t *str);
     explicit datum_t(const char *cstr);
-    explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
-    explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
-    datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
+
+    // This should only be used to send responses to the client.
+    explicit datum_t(grouped_data_t &&gd);
 
     // These construct a datum from an equivalent representation.
     datum_t();
     explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
     explicit datum_t(cJSON *json);
-    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(const scoped_cJSON_t &json);
 
     ~datum_t();
 
-    void write_to_protobuf(Datum *out) const;
+    void write_to_protobuf(Datum *out, use_json_t use_json) const;
 
     type_t get_type() const;
-    bool is_pt() const;
-    bool is_pt(const std::string &reql_type) const;
+    bool is_ptype() const;
+    bool is_ptype(const std::string &reql_type) const;
     std::string get_reql_type() const;
     std::string get_type_name() const;
     std::string print() const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
-    std::string print_secondary(const store_key_t &key) const;
+    static std::string mangle_secondary(const std::string &secondary,
+            const std::string &primary, const std::string &tag);
+    std::string print_secondary(const store_key_t &key,
+            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
-    static std::string unprint_secondary(const std::string &secondary_and_primary);
+    static std::string extract_primary(const std::string &secondary_and_primary);
+    static store_key_t extract_primary(const store_key_t &secondary_key);
+    static std::string extract_secondary(const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(
+        const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const store_key_t &key);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -98,9 +118,9 @@ public:
     bool as_bool() const;
     double as_num() const;
     int64_t as_int() const;
-    const std::string &as_str() const;
+    const wire_string_t &as_str() const;
 
-    // Use of `size` and `el` is preferred to `as_array` when possible.
+    // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
     size_t size() const;
     // Access an element of an array.
@@ -112,21 +132,16 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    typedef counted_t<const datum_t> (*merge_res_f)(const std::string &key,
-                                                    counted_t<const datum_t> l,
-                                                    counted_t<const datum_t> r,
-                                                    const rcheckable_t *caller);
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
+    typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
+                                                          counted_t<const datum_t> l,
+                                                          counted_t<const datum_t> r);
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
+                                   merge_resoluter_t f) const;
 
-    cJSON *as_raw_json() const;
-    boost::shared_ptr<scoped_cJSON_t> as_json() const;
+    cJSON *as_json_raw() const;
+    scoped_cJSON_t as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
-        env_t *env, const protob_t<const Backtrace> &backtrace) const;
-
-    // Check that we have a valid pseudotype.  Implies `rcheck_is_pt`.
-    void rcheck_valid_pt(const std::string s = "") const;
-    // If we have a pseudotype, check that it's valid.
-    void maybe_rcheck_valid_pt(const std::string s = "") const;
+            const protob_t<const Backtrace> &backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -141,16 +156,28 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    virtual void runtime_check(base_exc_t::type_t exc_type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(exc_type, test, file, line, pred, msg);
-    }
+    void runtime_fail(base_exc_t::type_t exc_type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const NORETURN;
 
-    void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    static size_t max_trunc_size();
+    static size_t trunc_size(size_t primary_key_size);
+    /* Note key_is_truncated returns true if the key is of max size. This gives
+     * a false positive if the sum sizes of the keys is exactly the maximum but
+     * not over at all. This means that a key of exactly max_trunc_size counts
+     * as truncated by this function. Unfortunately there isn't a general way
+     * to tell if keys of max_trunc_size were exactly that size or longer and
+     * thus truncated. */
+    static bool key_is_truncated(const store_key_t &key);
+
+    void rcheck_is_ptype(const std::string s = "") const;
+    void rcheck_valid_replace(counted_t<const datum_t> old_val,
+                              counted_t<const datum_t> orig_key,
+                              const std::string &pkey) const;
+
 private:
     friend class datum_ptr_t;
+    friend void pseudo::sanitize_time(datum_t *time);
     void add(counted_t<const datum_t> val); // add to an array
     // change an element of an array
     void change(size_t index, counted_t<const datum_t> val);
@@ -164,11 +191,12 @@ private:
     MUST_USE bool delete_field(const std::string &key);
 
     void init_empty();
-    void init_str();
+    void init_str(size_t size, const char *data);
     void init_array();
     void init_object();
     void init_json(cJSON *json);
 
+    void check_str_validity(const wire_string_t *str);
     void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
@@ -179,14 +207,14 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
-    void rcheck_is_pt(const std::string s = "") const; // prefer `rcheck_valid_pt`
+    static const std::set<std::string> _allowed_pts;
+    void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
     type_t type;
     union {
         bool r_bool;
         double r_num;
-        // TODO: Make this a char vector
-        std::string *r_str;
+        wire_string_t *r_str;
         std::vector<counted_t<const datum_t> > *r_array;
         std::map<std::string, counted_t<const datum_t> > *r_object;
     };
@@ -198,6 +226,20 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+size_t serialized_size(const counted_t<const datum_t> &datum);
+
+write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
+archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
+
+write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
+archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
+
+// Converts a double to int, but returns false if it's not an integer or out of range.
+bool number_as_integer(double d, int64_t *i_out);
+
+// Converts a double to int, calling number_as_integer and throwing if it fails.
+int64_t checked_convert_to_int(const rcheckable_t *target, double d);
+
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
 // checks for pseudotype validity when you turn it into a `counted_t<const
@@ -205,12 +247,22 @@ private:
 class datum_ptr_t {
 public:
     template<class... Args>
-    datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
-    counted_t<const datum_t> to_counted() {
-        ptr()->maybe_rcheck_valid_pt();
-        return counted_t<const datum_t>(_p.release());
+    explicit datum_ptr_t(Args... args)
+        : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
+    counted_t<const datum_t> to_counted(
+            const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
+        ptr()->maybe_sanitize_ptype(allowed_ptypes);
+        return counted_t<const datum_t>(ptr_.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
+    void add_error(const char *msg) {
+        counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
+        double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
+        UNUSED bool errors_clobber =
+            ptr()->add("errors", make_counted<const datum_t>(ecount), CLOBBER);
+        UNUSED bool first_error_clobber =
+            ptr()->add("first_error", make_counted<const datum_t>(msg), NOCLOBBER);
+    }
     void add(counted_t<const datum_t> val) { ptr()->add(val); }
     void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
     void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
@@ -226,23 +278,20 @@ public:
     MUST_USE bool delete_field(const std::string &key) {
         return ptr()->delete_field(key);
     }
+
 private:
     datum_t *ptr() {
-        r_sanity_check(_p.has());
-        return _p.get();
+        r_sanity_check(ptr_.has());
+        return ptr_.get();
     }
     const datum_t *const_ptr() const {
-        r_sanity_check(_p.has());
-        return _p.get();
+        r_sanity_check(ptr_.has());
+        return ptr_.get();
     }
-    scoped_ptr_t<datum_t> _p;
-};
 
-#ifndef NDEBUG
-static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
-#else
-static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
-#endif // NDEBUG
+    scoped_ptr_t<datum_t> ptr_;
+    DISABLE_COPYING(datum_ptr_t);
+};
 
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
@@ -280,10 +329,17 @@ private:
     enum { SERIALIZABLE, COMPILED } state;
 };
 
+
+// This function is used by e.g. foreach to merge statistics from multiple write
+// operations.
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r);
+
 namespace pseudo {
 class datum_cmp_t {
 public:
-    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual int operator()(const datum_t &x, const datum_t &y) const = 0;
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo

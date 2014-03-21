@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -30,7 +30,7 @@ void run_with_broadcaster(
     in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
 
     // io backender
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a broadcaster and initial listener */
     test_store_t<memcached_protocol_t> initial_store(&io_backender, &order_source, static_cast<memcached_protocol_t::context_t *>(NULL));
@@ -78,7 +78,7 @@ void run_in_thread_pool_with_broadcaster(
                               scoped_ptr_t<listener_t<memcached_protocol_t> > *,
                               order_source_t *)> fun)
 {
-    unittest::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
 }
 
 
@@ -129,7 +129,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
+        std::bind(&write_to_broadcaster, broadcaster->get(),
+                  ph::_1, ph::_2, ph::_3, ph::_4),
         NULL,
         &mc_key_gen,
         order_source,

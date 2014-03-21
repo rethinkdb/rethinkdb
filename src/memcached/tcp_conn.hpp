@@ -11,6 +11,8 @@
 #include "memcached/stats.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 
+class ip_address_t;
+
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
 

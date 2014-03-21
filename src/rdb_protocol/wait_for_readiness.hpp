@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "utils.hpp"
+#include "concurrency/interruptor.hpp"
 
 class cluster_semilattice_metadata_t;
 template <class protocol_t> class base_namespace_repo_t;

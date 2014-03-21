@@ -44,7 +44,7 @@ tests:
   - rb: r.db('d469').table('t469').filter{true}.info
     py: r.db('d469').table('t469').filter(lambda x:True).info()
     js: r.db('d469').table('t469').filter(function(x) { return true; }).info()
-    ot: ({'type':'SELECTION',
+    ot: ({'type':'SELECTION<STREAM>',
           'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
                    'primary_key':'id', 'indexes':['x']}})
   - rb: r.db('d469').table('t469').map{1}.info

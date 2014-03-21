@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_conflict.hpp"
 
+#include "stl_utils.hpp"
+
 name_conflict_issue_t::name_conflict_issue_t(
         const std::string &_type,
         const std::string &_contested_name,
@@ -62,7 +64,7 @@ public:
     }
 
 private:
-    std::map<name_string_t, std::set<uuid_u>> by_name;
+    std::map<name_string_t, std::set<uuid_u> > by_name;
 };
 
 class namespace_map_t {

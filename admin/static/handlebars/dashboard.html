@@ -1,10 +1,12 @@
 <script id="dashboard_view-template" type="text/x-handlebars-template">
-        <div class="section" id="cluster_status_container" class="cluster_status">
-            <div class="panel availability"></div>
-            <div class="panel redundancy"></div>
-            <div class="panel reachability"></div>
-            <div class="panel consistency"></div>
-        </div>
+        <table class="section" id="cluster_status_container" class="cluster_status">
+            <tr>
+                <td class="panel availability"></td>
+                <td class="panel redundancy"></td>
+                <td class="panel reachability"></td>
+                <td class="panel consistency"></td>
+            </tr>
+        </table>
 
         <div class="section" id="cluster_performance_container"></div>
         <div class="section" id="log-view">
@@ -76,7 +78,7 @@
         {{#if has_namespaces_down}}
         <p class="details"><span class="bad">{{num_replicas_down}}/{{num_replicas}}</span> <a href="#" class="show_details">replicas</a> not up to date</p>
         {{else}}
-        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> replicas are online</p>
+        <p class="details"><span class="bad">{{num_replicas}}/{{num_replicas}}</span> replicas are offline</p>
         {{/if}}
     {{/if}}
 </script>
@@ -195,7 +197,7 @@
     {{#if has_multiple_types}}
     <p class="details"><span class="bad">{{num_types_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "conflict type" num_types_conflicts}}</a> </p>
     {{else}}
-    <p class="details"><span class="bad">{{num_conflicts}}</span> {{type}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
+    <p class="details"><span class="bad">{{num_conflicts}}</span> {{pluralize_noun type num_conflicts}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
     {{/if}}
     {{else}}
     <p class="message"><span class="good">0</span> issues detected</p>

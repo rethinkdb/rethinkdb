@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TRANSLATOR_HPP_
 #define SERIALIZER_TRANSLATOR_HPP_
 
@@ -14,11 +14,11 @@ class serializer_multiplexer_t {
 public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
-    static void create(const std::vector<standard_serializer_t *>& underlying, int n_proxies);
+    static void create(const std::vector<serializer_t *> &underlying, int n_proxies);
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    explicit serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
+    explicit serializer_multiplexer_t(const std::vector<serializer_t *> &underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */
@@ -26,9 +26,6 @@ public:
 
     /* Blocking call. */
     ~serializer_multiplexer_t();
-
-    /* Used internally and used by fsck & friends */
-    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
 
     creation_timestamp_t creation_timestamp;
 };
@@ -73,7 +70,7 @@ struct multiplexer_config_block_t {
     int32_t n_proxies;
 
     static const block_magic_t expected_magic;
-};
+} __attribute__((packed));
 
 /* The translator serializer is a wrapper around another serializer. It uses some subset
 of the block IDs available on the inner serializer, but presents the illusion of a complete
@@ -88,7 +85,7 @@ public:
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
 
 private:
-    standard_serializer_t *inner;
+    serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
 
@@ -111,22 +108,21 @@ public:
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
-    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
+    translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
 
-    void *malloc();
-    void *clone(void*);
-    void free(void *ptr);
+    scoped_malloc_t<ser_buffer_t> allocate_buffer();
 
     /* Allocates a new io account for the underlying file */
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::vector<index_write_op_t> &write_ops,
+                     file_account_t *io_account);
 
-    /* Non-blocking variant */
-    counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    using serializer_t::block_write;
+    std::vector<counted_t<standard_block_token_t> >
+    block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 
-    block_size_t get_block_size() const;
+    block_size_t max_block_size() const;
 
     bool coop_lock_and_check();
 
@@ -137,15 +133,17 @@ public:
     // block id contiguity will be ensured.
     block_id_t max_block_id();
 
-    repli_timestamp_t get_recency(block_id_t id);
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step);
     bool get_delete_bit(block_id_t id);
 
-    void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
-    void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account);
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
+                              const counted_t<standard_block_token_t> &token);
 };
 
 #endif /* SERIALIZER_TRANSLATOR_HPP_ */

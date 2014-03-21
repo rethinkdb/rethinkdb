@@ -1,34 +1,26 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif
-
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif  // VALGRIND
-
+#include <functional>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
-#include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 #include "config/args.hpp"
 
-class Term;
-void pb_print(Term *t);
+class printf_buffer_t;
 
-void run_generic_global_startup_behavior();
+namespace ph = std::placeholders;
+
+class startup_shutdown_t {
+public:
+    startup_shutdown_t();
+    ~startup_shutdown_t();
+};
 
 struct const_charslice {
     const char *beg, *end;
@@ -36,117 +28,20 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
-typedef uint64_t microtime_t;
-
-microtime_t current_microtime();
-
-/* General exception to be thrown when some process is interrupted. It's in
-`utils.hpp` because I can't think where else to put it */
-class interrupted_exc_t : public std::exception {
-public:
-    const char *what() const throw () {
-        return "interrupted";
-    }
-};
-
-/* Pad a value to the size of a cache line to avoid false sharing.
- * TODO: This is implemented as a struct with subtraction rather than a union
- * so that it gives an error when trying to pad a value bigger than
- * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+/* Forbid the following function definition to be inlined
+ * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
  */
-template<typename value_t>
-struct cache_line_padded_t {
-    value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
-};
+#define NOINLINE __attribute__ ((noinline))
 
-void *malloc_aligned(size_t size, size_t alignment = 64);
+void *malloc_aligned(size_t size, size_t alignment);
 
-template <class T1, class T2>
-T1 ceil_aligned(T1 value, T2 alignment) {
-    return value + alignment - (((value + alignment - 1) % alignment) + 1);
-}
-
-template <class T1, class T2>
-T1 ceil_divide(T1 dividend, T2 alignment) {
-    return (dividend + alignment - 1) / alignment;
-}
-
-template <class T1, class T2>
-T1 floor_aligned(T1 value, T2 alignment) {
-    return value - (value % alignment);
-}
-
-template <class T1, class T2>
-T1 ceil_modulo(T1 value, T2 alignment) {
-    T1 x = (value + alignment - 1) % alignment;
-    return value + alignment - ((x < 0 ? x + alignment : x) + 1);
-}
-
-inline bool divides(int64_t x, int64_t y) {
-    return y % x == 0;
-}
-
-int gcd(int x, int y);
-
-int64_t round_up_to_power_of_two(int64_t x);
-
-timespec clock_monotonic();
-timespec clock_realtime();
-
-typedef uint64_t ticks_t;
-ticks_t secs_to_ticks(time_t secs);
-ticks_t get_ticks();
-time_t get_secs();
-double ticks_to_secs(ticks_t ticks);
+/* Calls `malloc()` and checks its return value to crash if the allocation fails. */
+void *rmalloc(size_t size);
+/* Calls `realloc()` and checks its return value to crash if the allocation fails. */
+void *rrealloc(void *ptr, size_t size);
 
 
-#ifndef NDEBUG
-#define trace_call(fn, args...) do {                                          \
-        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
-        fn(args);                                                           \
-        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
-    } while (0)
-#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
-#else
-#define trace_call(fn, args...) fn(args)
-// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
-#endif
 
-// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
-// debugf.hpp (and debugf.cc).
-/* Debugging printing API (prints current thread in addition to message) */
-void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n);
-void debugf_prefix_buf(printf_buffer_t *buf);
-void debugf_dump_buf(printf_buffer_t *buf);
-
-// Primitive debug_print declarations.
-void debug_print(printf_buffer_t *buf, uint64_t x);
-void debug_print(printf_buffer_t *buf, const std::string& s);
-
-#ifndef NDEBUG
-void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
-template <class T>
-void debugf_print(const char *msg, const T& obj) {
-    printf_buffer_t buf;
-    debugf_prefix_buf(&buf);
-    buf.appendf("%s: ", msg);
-    debug_print(&buf, obj);
-    buf.appendf("\n");
-    debugf_dump_buf(&buf);
-}
-#else
-#define debugf(...) ((void)0)
-#define debugf_print(...) ((void)0)
-#endif  // NDEBUG
-
-class debugf_in_dtor_t {
-public:
-    explicit debugf_in_dtor_t(const char *msg, ...) __attribute__((format (printf, 2, 3)));
-    ~debugf_in_dtor_t();
-private:
-    std::string message;
-};
 
 class rng_t {
 public:
@@ -164,6 +59,7 @@ private:
 void get_dev_urandom(void *out, int64_t nbytes);
 
 int randint(int n);
+size_t randsize(size_t n);
 double randdouble();
 std::string rand_string(int len);
 
@@ -192,81 +88,21 @@ std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
 
-/* Printing binary data to stdout in a nice format */
-
+/* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
 
-// Fast string compare
-
-int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
-/* The home thread mixin is a mixin for objects that can only be used
-on a single thread. Its thread ID is exposed as the `home_thread()`
-method. Some subclasses of `home_thread_mixin_debug_only_t` can move themselves to
-another thread, modifying the field real_home_thread. */
+/* `with_priority_t` changes the priority of the current coroutine to the
+ value given in its constructor. When it is destructed, it restores the
+ original priority of the coroutine. */
 
-#define INVALID_THREAD (-1)
-
-class home_thread_mixin_debug_only_t {
+class with_priority_t {
 public:
-#ifndef NDEBUG
-    void assert_thread() const;
-#else
-    void assert_thread() const { }
-#endif
-
-protected:
-    explicit home_thread_mixin_debug_only_t(int specified_home_thread);
-    home_thread_mixin_debug_only_t();
-    virtual ~home_thread_mixin_debug_only_t() { }
-
+    explicit with_priority_t(int priority);
+    ~with_priority_t();
 private:
-    DISABLE_COPYING(home_thread_mixin_debug_only_t);
-
-#ifndef NDEBUG
-    int real_home_thread;
-#endif
-};
-
-class home_thread_mixin_t {
-public:
-    int home_thread() const { return real_home_thread; }
-#ifndef NDEBUG
-    void assert_thread() const;
-#else
-    void assert_thread() const { }
-#endif
-
-protected:
-    explicit home_thread_mixin_t(int specified_home_thread);
-    home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
-
-    int real_home_thread;
-
-private:
-    // Things with home threads should not be copyable, since we don't
-    // want to nonchalantly copy their real_home_thread variable.
-    DISABLE_COPYING(home_thread_mixin_t);
-};
-
-/* `on_thread_t` switches to the given thread in its constructor, then switches
-back in its destructor. For example:
-
-    printf("Suppose we are on thread 1.\n");
-    {
-        on_thread_t thread_switcher(2);
-        printf("Now we are on thread 2.\n");
-    }
-    printf("And now we are on thread 1 again.\n");
-
-*/
-
-class on_thread_t : public home_thread_mixin_t {
-public:
-    explicit on_thread_t(int thread);
-    ~on_thread_t();
+    int previous_priority;
 };
 
 
@@ -293,16 +129,6 @@ char int_to_hex(int i);
 std::string blocking_read_file(const char *path);
 bool blocking_read_file(const char *path, std::string *contents_out);
 
-struct path_t {
-    std::vector<std::string> nodes;
-    bool is_absolute;
-};
-
-path_t parse_as_path(const std::string &);
-std::string render_as_path(const path_t &);
-
-enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
-
 template <class T>
 class assignment_sentry_t {
 public:
@@ -327,16 +153,6 @@ static inline std::string time2str(const time_t &t) {
 
 std::string errno_string(int errsv);
 
-
-int get_num_db_threads();
-
-template <class T>
-T valgrind_undefined(T value) {
-#ifdef VALGRIND
-    UNUSED auto x = VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
-#endif
-    return value;
-}
 
 
 // Contains the name of the directory in which all data is stored.
@@ -391,16 +207,18 @@ void recreate_temporary_directory(const base_path_t& base_path);
 // This will be thrown by remove_directory_recursive if a file cannot be removed
 class remove_directory_exc_t : public std::exception {
 public:
-    remove_directory_exc_t(const std::string &path, int err) :
-        info(strprintf("Fatal error: failed to delete file '%s': %s.",
-                       path.c_str(), strerror(err)))
-    { }
+    remove_directory_exc_t(const std::string &path, int errsv) {
+        char buf[512];
+        info = strprintf("Fatal error: failed to delete file '%s': %s.",
+                         path.c_str(),
+                         errno_string_maybe_using_buffer(errsv, buf, sizeof(buf)));
+    }
     ~remove_directory_exc_t() throw () { }
     const char *what() const throw () {
         return info.c_str();
     }
 private:
-    const std::string info;
+    std::string info;
 };
 
 void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
@@ -408,10 +226,7 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 
-
-
-#define STR(x) #x
-#define MSTR(x) STR(x) // Stringify a macro
+#define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
 #define COMPILER "CLANG " __clang_version__
 #elif defined __GNUC__
@@ -425,8 +240,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #else
 #define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
 #endif
-
-#define NULLPTR (static_cast<void *>(0))
 
 #define DBLPRI "%.20g"
 

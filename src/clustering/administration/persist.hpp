@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
@@ -10,7 +10,13 @@
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
 
+class cache_balancer_t;
+class cache_conn_t;
+class cache_t;
+class txn_t;
+
 template <class> class branch_history_manager_t;
+class io_backender_t;
 
 namespace metadata_persistence {
 
@@ -32,11 +38,8 @@ public:
     virtual void update_metadata(const metadata_t &metadata) = 0;
 
 protected:
-    void get_write_transaction(object_buffer_t<transaction_t> *txn_out,
-                               const std::string &info);
-
-    void get_read_transaction(object_buffer_t<transaction_t> *txn_out,
-                              const std::string &info);
+    void get_write_transaction(object_buffer_t<txn_t> *txn_out);
+    void get_read_transaction(object_buffer_t<txn_t> *txn_out);
 
     block_size_t get_cache_block_size() const;
 
@@ -45,10 +48,10 @@ private:
     void construct_serializer_and_cache(bool create, serializer_file_opener_t *file_opener,
                                         perfmon_collection_t *perfmon_parent);
 
-    order_source_t cache_order_source;  // order_token_t::ignore?
     scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
-    mirrored_cache_config_t cache_dynamic_config;
+    scoped_ptr_t<cache_conn_t> cache_conn;
 };
 
 

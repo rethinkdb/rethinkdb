@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include <functional>
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -39,16 +39,16 @@ struct test_driver_t {
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
         /* Fake thread-context to make perfmons work. */
-        old_thread_id = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread_id = 0;
+        old_thread_id = linux_thread_pool_t::get_thread_id();
+        linux_thread_pool_t::set_thread_id(0);
 
-        conflict_resolver.submit_fun = boost::bind(
-            &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
-        conflict_resolver.done_fun = boost::bind(
-            &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
+        conflict_resolver.submit_fun = std::bind(
+                &test_driver_t::submit_from_conflict_resolving_diskmgr, this, ph::_1);
+        conflict_resolver.done_fun = std::bind(
+                &test_driver_t::done_from_conflict_resolving_diskmgr, this, ph::_1);
     }
     ~test_driver_t() {
-        linux_thread_pool_t::thread_id = old_thread_id;
+        linux_thread_pool_t::set_thread_id(old_thread_id);
     }
 
     void submit(action_t *a) {
@@ -101,9 +101,17 @@ struct test_driver_t {
             data.resize(a->get_offset() + a->get_count(), 0);
         }
         if (a->get_is_read()) {
-            memcpy(a->get_buf(), data.data() + a->get_offset(), a->get_count());
-        } else {
-            memcpy(data.data() + a->get_offset(), a->get_buf(), a->get_count());
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec source_vecs[1] = { { data.data(), data.size() } };
+            fill_bufs_from_source(a_vecs, a_size, source_vecs, 1, a->get_offset());
+        } else if (a->get_is_write()) {
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec dest_vecs[1] = { { data.data() + a->get_offset(), a->get_count() } };
+            fill_bufs_from_source(dest_vecs, 1, a_vecs, a_size, 0);
         }
 
         conflict_resolver.done(a);
@@ -176,6 +184,34 @@ struct write_test_t {
         ASSERT_TRUE(was_completed());
     }
     ~write_test_t() {
+        EXPECT_TRUE(was_completed());
+    }
+};
+
+struct resize_test_t {
+
+    resize_test_t(test_driver_t *_driver) :
+        driver(_driver),
+        action(driver->make_action()) {
+        action->make_resize(IRRELEVANT_DEFAULT_FD, DEVICE_BLOCK_SIZE, false);
+        driver->submit(action);
+    }
+
+    test_driver_t *driver;
+    test_driver_t::action_t *action;
+
+    bool was_sent() {
+        return driver->action_is_done(action) || driver->action_has_begun(action);
+    }
+    bool was_completed() {
+        return driver->action_is_done(action);
+    }
+    void go() {
+        ASSERT_TRUE(was_sent());
+        driver->permit(action);
+        ASSERT_TRUE(was_completed());
+    }
+    ~resize_test_t() {
         EXPECT_TRUE(was_completed());
     }
 };
@@ -270,6 +306,106 @@ TEST(DiskConflictTest, WriteReadSuperrange) {
     r.go();
 }
 
+/* ResizeResizeConflict verifies that a resize operation waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeResizeConflict) {
+    test_driver_t d;
+    resize_test_t resize1(&d);
+    resize_test_t resize2(&d);
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_FALSE(resize2.was_sent());
+    resize1.go();
+    ASSERT_TRUE(resize2.was_sent());
+    resize2.go();
+}
+
+/* WriteResizeNonConflict verifies that resize doesn't wait for a previous write
+(while waiting would be ok, the current conflict_resolving queue doesn't do that
+and it is important for its implementation to work correctly) */
+
+TEST(DiskConflictTest, WriteResizeNonConflict) {
+    test_driver_t d;
+    write_test_t w(&d, 0, "foo");
+    resize_test_t resize(&d);
+    ASSERT_TRUE(w.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    w.go();
+    resize.go();
+}
+
+/* ReadResizeNonConflict verifies that resize doesn't wait for a previous read
+(while waiting would be ok, the current conflict_resolving queue doesn't do that
+and it is important for its implementation to work correctly) */
+
+TEST(DiskConflictTest, ReadResizeNonConflict) {
+    test_driver_t d;
+    write_test_t initial_write(&d, 0, "foo");
+    initial_write.go();
+    read_test_t r(&d, 0, "foo");
+    resize_test_t resize(&d);
+    ASSERT_TRUE(r.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    r.go();
+    resize.go();
+}
+
+/* ResizeWriteConflict verifies that a write waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeWriteConflict) {
+    test_driver_t d;
+    resize_test_t resize(&d);
+    write_test_t w(&d, 0, "foo");
+    ASSERT_FALSE(w.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    resize.go();
+    w.go();
+}
+
+/* ResizeReadConflict verifies that a read waits for a previous resize */
+
+TEST(DiskConflictTest, ResizeReadConflict) {
+    test_driver_t d;
+    write_test_t initial_write(&d, 0, "foo");
+    initial_write.go();
+    resize_test_t resize(&d);
+    read_test_t r(&d, 0, "foo");
+    ASSERT_FALSE(r.was_sent());
+    ASSERT_TRUE(resize.was_sent());
+    resize.go();
+    r.go();
+}
+
+/* ResizeSequenceConflict verifies that in case of multiple resize operations,
+writes wait exactly for all previous resizes. */
+
+TEST(DiskConflictTest, ResizeSequenceConflict) {
+    test_driver_t d;
+    resize_test_t resize1(&d);
+    write_test_t w1(&d, 0, "foo");
+    resize_test_t resize2(&d);
+    write_test_t w2(&d, 0, "foo");
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_FALSE(w1.was_sent());
+    ASSERT_FALSE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    resize1.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    w1.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_FALSE(w2.was_sent());
+    resize2.go();
+    ASSERT_TRUE(resize1.was_sent());
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(resize2.was_sent());
+    ASSERT_TRUE(w2.was_sent());
+    w2.go();
+}
+
 /* MetaTest is a sanity check to make sure that the above tests are actually testing something. */
 
 void cause_test_failure() {
@@ -283,6 +419,29 @@ void cause_test_failure() {
 TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
+
+TEST(DiskConflictTest, FillBufsFromSource) {
+    // A 27-element array.
+    char s[] = "abcdefghijklmnopqrstuvwxyz";
+
+    iovec source[5] = { { s + 0, 5 },
+                        { s + 5, 5 },
+                        { s + 10, 7 },
+                        { s + 17, 9 },
+                        { s + 26, 1 } };
+
+    // A 20-element array.
+    char t[sizeof(s) - 7];
+    memset(t, 'A', sizeof(t));
+    iovec dest[3] = { { t + 0, 5 },
+                      { t + 5, 5 },
+                      { t + 10, 10 } };
+
+    fill_bufs_from_source(dest, 3, source, 5, 7);
+
+    ASSERT_EQ('\0', t[sizeof(t) - 1]);
+    ASSERT_EQ(std::string(s + 7), std::string(t));
+}
 
 }  // namespace unittest
 

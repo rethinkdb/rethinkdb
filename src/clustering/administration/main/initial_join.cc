@@ -77,7 +77,7 @@ initial_joiner_t::initial_joiner_t(
     }
 
     if (timeout_ms != -1) {
-        grace_period_timer.init(new signal_timer_t(timeout_ms));
+        grace_period_timer.start(timeout_ms);
     }
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
@@ -104,14 +104,15 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             for (peer_address_set_t::iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
                 cluster_run->join(*it);
             }
-            signal_timer_t retry_timer(retry_interval_ms);
+            signal_timer_t retry_timer;
+            retry_timer.start(retry_interval_ms);
             wait_any_t waiter(&retry_timer);
-            if (grace_period_timer.has()) {
-                waiter.add(grace_period_timer.get());
+            if (grace_period_timer.is_running()) {
+                waiter.add(&grace_period_timer);
             }
             wait_interruptible(&waiter, keepalive.get_drain_signal());
             retry_interval_ms = std::min(static_cast<int>(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
-        } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
+        } while (!peers_not_heard_from.empty() && !grace_period_timer.is_pulsed());
         if (!peers_not_heard_from.empty()) {
             peer_address_set_t::iterator it = peers_not_heard_from.begin();
             printf_buffer_t buffer;
@@ -144,8 +145,8 @@ void initial_joiner_t::on_connect(peer_id_t peer) {
         if (!done_signal.is_pulsed()) {
             done_signal.pulse();
 
-            if (!grace_period_timer.has()) {
-                grace_period_timer.init(new signal_timer_t(grace_period_before_warn_ms));
+            if (!grace_period_timer.is_running()) {
+                grace_period_timer.start(grace_period_before_warn_ms);
             }
         }
     }

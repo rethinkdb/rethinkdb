@@ -1,4 +1,4 @@
-import ql2_pb2 as p
+from . import ql2_pb2 as p
 
 class RqlError(Exception):
     def __init__(self, message, term, frames):

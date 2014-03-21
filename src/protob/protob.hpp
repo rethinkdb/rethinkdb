@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
@@ -17,6 +18,10 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
+
+class auth_key_t;
+class auth_semilattice_metadata_t;
+template <class> class semilattice_readwrite_view_t;
 
 enum protob_server_callback_mode_t {
     INLINE, //protobs that arrive will be called inline
@@ -29,7 +34,7 @@ class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t() : last_accessed(time(0)) {
+        http_conn_t() : in_use(false), last_accessed(time(0)) {
             ctx.interruptor = &interruptor;
         }
         context_t *get_ctx() {
@@ -43,14 +48,26 @@ public:
         bool is_expired() {
             return difftime(time(0), last_accessed) > TIMEOUT_SEC;
         }
+        bool acquire() {
+            if (in_use) {
+                return false;
+            }
+            in_use = true;
+            return true;
+        }
+        void release() {
+            in_use = false;
+        }
+
     private:
+        bool in_use;
         cond_t interruptor;
         context_t ctx;
         time_t last_accessed;
         DISABLE_COPYING(http_conn_t);
     };
 
-    http_conn_cache_t() : next_id(0), http_timeout_timer(TIMEOUT_MS, this) { }
+    http_conn_cache_t() : next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
     ~http_conn_cache_t() {
         typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
         for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
@@ -67,12 +84,17 @@ public:
         cache.insert(std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
         return key;
     }
-    size_t erase(int32_t key) { return cache.erase(key); }
+    void erase(int32_t key) {
+        auto it = cache.find(key);
+        if (it != cache.end()) {
+            it->second->pulse();
+            cache.erase(it);
+        }
+    }
 
     void on_ring() {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it, tmp;
-        for (it = cache.begin(); it != cache.end();) {
-            tmp = it++;
+        for (auto it = cache.begin(); it != cache.end();) {
+            auto tmp = it++;
             if (tmp->second->is_expired()) {
                 tmp->second->pulse();
                 cache.erase(tmp);
@@ -80,8 +102,9 @@ public:
         }
     }
 private:
-        static const int TIMEOUT_SEC = 5*60;
-        static const int TIMEOUT_MS = TIMEOUT_SEC*1000;
+    static const time_t TIMEOUT_SEC = 5*60;
+    static const int64_t TIMER_RESOLUTION_MS = 5000;
+
     std::map<int32_t, boost::shared_ptr<http_conn_t> > cache;
     int32_t next_id;
     repeating_timer_t http_timeout_timer;
@@ -105,7 +128,6 @@ private:
 template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
-    // TODO: Function pointers?  Really?
     protob_server_t(const std::set<ip_address_t> &local_addresses,
                     int port,
                     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
@@ -122,7 +144,7 @@ private:
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
-    http_res_t handle(const http_req_t &);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
     boost::function<bool(request_t, response_t *, context_t *)> f;  // NOLINT(readability/casting)
     response_t (*on_unparsable_query)(request_t, std::string);
@@ -133,7 +155,7 @@ private:
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id()]; }
+    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id().threadnum]; }
     boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
     auto_drainer_t auto_drainer;
     struct pulse_on_destruct_t {
@@ -166,13 +188,13 @@ private:
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
         archive_result_t res = deserialize(s, &size);                   \
-        if (res) { return res; }                                        \
-        if (size < 0) { return ARCHIVE_RANGE_ERROR; }                   \
+        if (bad(res)) { return res; }                                        \
+        if (size < 0) { return archive_result_t::RANGE_ERROR; }                   \
         scoped_array_t<char> data(size);                                \
         int64_t read_res = force_read(s, data.data(), data.size());     \
-        if (read_res != size) { return ARCHIVE_SOCK_ERROR; }            \
+        if (read_res != size) { return archive_result_t::SOCK_ERROR; }            \
         p->ParseFromArray(data.data(), data.size());                    \
-        return ARCHIVE_SUCCESS;                                         \
+        return archive_result_t::SUCCESS;                                         \
     }
 
 #define RDB_MAKE_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, inline)

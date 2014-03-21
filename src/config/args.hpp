@@ -16,11 +16,16 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.6"
+#define SERIALIZER_VERSION_STRING "1.12"
 
 /**
  * Basic configuration parameters.
  */
+
+// The number of hash-based CPU shards per table.
+// This "must" be hard-coded because a cluster cannot run with
+// differing cpu sharding factors.
+#define CPU_SHARDING_FACTOR                       8
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -35,23 +40,24 @@
 // sequential set of i/o operations though. If access patterns are random
 // for all accounts, a low io batch factor does just as well (as bad) when it comes
 // to the number of random seeks, but might still provide a lower latency
-// than a high batch factor. Our serializer writes usually generate a sequential
-// access pattern and therefore take considerable advantage from a high io batch
-// factor.
-#define DEFAULT_IO_BATCH_FACTOR                   8
+// than a high batch factor. Our serializer now groups data writes into
+// a single large write operation by itself, making a high value here less
+// useful.
+#define DEFAULT_IO_BATCH_FACTOR                   1
 
 // Currently, each cache uses two IO accounts:
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
 // can be prioritized over writes or the other way around.
-//
-// This is a one-per-serializer/file priority.
-// The per-cache priorities are dynamically derived by dividing these priorities
-// by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   512
-#define CACHE_WRITES_IO_PRIORITY                  64
+#define CACHE_READS_IO_PRIORITY                   (512 / CPU_SHARDING_FACTOR)
+#define CACHE_WRITES_IO_PRIORITY                  (64 / CPU_SHARDING_FACTOR)
 
-// Garbage Colletion uses its own two IO accounts.
+// The cache priority to use for secondary index post construction
+// 100 = same priority as all other read operations in the cache together.
+// 0 = minimal priority
+#define SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY   5
+
+// Garbage Collection uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
 // (performance-wise) unintrusive garbage collection.
 // If the garbage ratio keeps growing,
@@ -62,29 +68,38 @@
 //
 // This is a one-per-serializer/file priority.
 #define GC_IO_PRIORITY_NICE                       8
-#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY)
+#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR)
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 
 // Size of the device block size (in bytes)
-#define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
+#define DEVICE_BLOCK_SIZE                         512
+
+// Size of the metablock (in bytes)
+#define METABLOCK_SIZE                            (4 * KILOBYTE)
 
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
-// Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
-
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 
-// Max number of blocks which can be read ahead in one i/o transaction (if enabled)
-#define MAX_READ_AHEAD_BLOCKS 32
-
 // Ratio of free ram to use for the cache by default
-// TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
-#define DEFAULT_MAX_CACHE_RATIO                   0.5
+#define DEFAULT_MAX_CACHE_RATIO                   2
+
+// The maximum number of concurrently active
+// index writes per merger serializer.
+// The smaller the number, the more effective
+// the merger serializer is in merging index writes
+// together. This is favorable especially on rotational drives.
+// There is a theoretic chance of increased latencies on SSDs for
+// small values of this variable.
+#define MERGER_SERIALIZER_MAX_ACTIVE_WRITES       1
+
+// I/O priority of (merged) index writes used by the
+// merger serializer.
+#define MERGED_INDEX_WRITE_IO_PRIORITY            128
 
 
 // Maximum number of threads we support
@@ -101,18 +116,6 @@
 // latency of each single flush. max_concurrent_flushes controls how many flushes can be active
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
-
-// If more than this many bytes of dirty data accumulate in the cache, then write
-// transactions will be throttled.
-// A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
-// times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                (4096 * MEGABYTE)
-
-// The unsaved data limit cannot exceed this fraction of the max cache size
-#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
-
-// We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
-#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
@@ -145,15 +148,6 @@
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               4
 
-// We assume there will never be more than this many blocks. The value
-// is computed by dividing 1 TB by the smallest reasonable block size.
-// This value currently fits in 32 bits, and so block_id_t is a uint32_t.
-#define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
-
-// We assume that there will never be more than this many blocks held in memory by the cache at
-// any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
-#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
-
 
 // Special block IDs.  These don't really belong here because they're
 // more magic constants than tunable parameters.
@@ -162,23 +156,11 @@
 // id.
 #define SUPERBLOCK_ID                             0
 
-// The ratio at which we should start GCing.  (HEY: What's the extra
-// 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
-// that 0.99 was too high?)
+// The ratio at which we should start GCing.
 #define DEFAULT_GC_HIGH_RATIO                     0.20
-// TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
-// TODO: Probably this value is way too high.
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.15
-// TODO: MIN_GC_LOW_RATIO is unused.  Use it!
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MIN_GC_LOW_RATIO                          0.099999
-
 
 // What's the maximum number of "young" extents we can have?
 #define GC_YOUNG_EXTENT_MAX_SIZE                  50
@@ -187,32 +169,88 @@
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
-// TODO: Maybe change this back to 20 megabytes?
 #define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
-// TODO: This used to be 0.15 but we figured why not do the opposite of our well-tested parameter?
-#define LBA_MIN_UNGARBAGE_FRACTION                0.85
+#define LBA_MIN_UNGARBAGE_FRACTION                0.5
+
+// I/O priority for LBA garbage collection
+#define LBA_GC_IO_PRIORITY                        8
+
+// How many block ids should the LBA garbage collector rewrite before yielding?
+#define LBA_GC_BATCH_SIZE                         (1024 * 8)
 
 // How many LBA structures to have for each file
-// TODO: LBA_SHARD_FACTOR used to be 16.
 #define LBA_SHARD_FACTOR                          4
+
+// How much space to reserve in the metablock to store inline LBA entries
+// Make sure that it fits into METABLOCK_SIZE, including all other meta data
+// TODO (daniel): Tune
+#define LBA_INLINE_SIZE                           (METABLOCK_SIZE - 512)
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
-#define LBA_READ_BUFFER_SIZE                      GIGABYTE
+#define LBA_READ_BUFFER_SIZE                      (128 * MEGABYTE)
 
-// How many different places in each file we should be writing to at once, not counting the
-// metablock or LBA
-#define MAX_ACTIVE_DATA_EXTENTS                   64
-#define DEFAULT_ACTIVE_DATA_EXTENTS               1
+// After the LBA has been read, we reconstruct the in-memory LBA index.
+// For huge tables, this can take some considerable CPU time. We break the reconstruction
+// up into smaller batches, each batch reconstructing up to `LBA_RECONSTRUCTION_BATCH_SIZE`
+// block infos.
+#define LBA_RECONSTRUCTION_BATCH_SIZE             1024
 
 #define COROUTINE_STACK_SIZE                      131072
+
+// How many unused coroutine stacks to keep around (maximally), before they are
+// freed. This value is per thread.
+#define COROUTINE_FREE_LIST_SIZE                  64
 
 #define MAX_COROS_PER_THREAD                      10000
 
 
-// Size of a cache line (used in cache_line_padded_t).
-#define CACHE_LINE_SIZE                           64
+// Minimal time we nap before re-checking if a goal is satisfied in the reactor (in ms).
+// This is an optimization to save CPU time. Checking for whether the goal is
+// satisfied can be an expensive operation. By napping we increase our chances
+// that the event we are waiting for has occurred in the meantime.
+#define REACTOR_RUN_UNTIL_SATISFIED_NAP           100
+
+
+/**
+ * Message scheduler configuration
+ */
+
+// Each message on the message hup can have a priority between
+// MESSAGE_SCHEDULER_MIN_PRIORITY and MESSAGE_SCHEDULER_MAX_PRIORITY (both inclusive).
+#define MESSAGE_SCHEDULER_MIN_PRIORITY          (-2)
+#define MESSAGE_SCHEDULER_MAX_PRIORITY          2
+
+// If no priority is specified, messages will get MESSAGE_SCHEDULER_DEFAULT_PRIORITY.
+#define MESSAGE_SCHEDULER_DEFAULT_PRIORITY      0
+
+// Ordered messages cannot currently have different priorities, because that would mean
+// that ordered messages of a high priority could bypass those of a lower priority.
+// (our current implementation does not support re-ordering messages within a given
+// priority)
+// MESSAGE_SCHEDULER_ORDERED_PRIORITY is the effective priority at which ordered
+// messages are scheduled.
+#define MESSAGE_SCHEDULER_ORDERED_PRIORITY      0
+
+// MESSAGE_SCHEDULER_GRANULARITY specifies how many messages (of
+// MESSAGE_SCHEDULER_MAX_PRIORITY) the message scheduler processes before it
+// can take in new incoming messages. A smaller value means that high-priority
+// messages can bypass lower-priority ones faster, but decreases the efficiency
+// of the message hub.
+// MESSAGE_SCHEDULER_GRANULARITY should be least
+// 2^(MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1)
+#define MESSAGE_SCHEDULER_GRANULARITY           32
+
+// Priorities for specific tasks
+#define CORO_PRIORITY_SINDEX_CONSTRUCTION       (-2)
+#define CORO_PRIORITY_BACKFILL_SENDER           (-2)
+#define CORO_PRIORITY_BACKFILL_RECEIVER         (-2)
+#define CORO_PRIORITY_RESET_DATA                (-2)
+#define CORO_PRIORITY_REACTOR                   (-1)
+#define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
+#define CORO_PRIORITY_LBA_GC                    (-2)
+
 
 #endif  // CONFIG_ARGS_HPP_
 

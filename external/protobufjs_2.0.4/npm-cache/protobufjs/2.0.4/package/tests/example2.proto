@@ -1,0 +1,5 @@
+message Test2 {
+  required string b = 2;
+}
+
+// Test2 should encode to "12 07 74 65 73 74 69 6e 67" with Test2#b="testing"

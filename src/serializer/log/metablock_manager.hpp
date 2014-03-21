@@ -74,7 +74,7 @@ public:
             crc_computer.process_bytes(&metablock, sizeof(metablock));
             return crc_computer.checksum();
         }
-    };
+    } __attribute__((packed));
 
     explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();

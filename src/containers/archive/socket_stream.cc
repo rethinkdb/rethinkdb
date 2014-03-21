@@ -10,6 +10,7 @@
 
 #include "arch/fd_send_recv.hpp"
 #include "arch/runtime/event_queue.hpp" // format_poll_event
+#include "concurrency/interruptor.hpp"
 #include "concurrency/wait_any.hpp"     // wait_any_t
 #include "errors.hpp"
 #include "logger.hpp"  // logERR
@@ -54,8 +55,8 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
       event_callback_(NULL),
       event_watcher_(fd, this)
 {
-    guarantee_err(0 == fcntl(fd, F_SETFL, O_NONBLOCK),
-                  "Could not make fd non-blocking.");
+    int res = fcntl(fd, F_SETFL, O_NONBLOCK);
+    guarantee_err(res == 0, "Could not make fd non-blocking.");
 }
 
 void linux_event_fd_watcher_t::init_callback(linux_event_callback_t *cb) {
@@ -94,7 +95,9 @@ bool linux_event_fd_watcher_t::wait_for_read(signal_t *interruptor) {
 
     linux_event_watcher_t::watch_t watch(&event_watcher_, poll_event_in);
     wait_any_t waiter(&watch, &read_closed_);
-    if (interruptor) waiter.add(interruptor);
+    if (interruptor) {
+        waiter.add(interruptor);
+    }
     waiter.wait_lazily_unordered();
 
     guarantee(io_in_progress_);
@@ -114,7 +117,9 @@ bool linux_event_fd_watcher_t::wait_for_write(signal_t *interruptor) {
 
     linux_event_watcher_t::watch_t watch(&event_watcher_, poll_event_out);
     wait_any_t waiter(&watch, &write_closed_);
-    if (interruptor) waiter.add(interruptor);
+    if (interruptor) {
+        waiter.add(interruptor);
+    }
     waiter.wait_lazily_unordered();
 
     guarantee(io_in_progress_);
@@ -128,61 +133,57 @@ bool linux_event_fd_watcher_t::wait_for_write(signal_t *interruptor) {
 
 linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
     assert_thread();
-
-    rassert(!is_read_open());
-    rassert(!is_write_open());
 }
 
 
 // -------------------- socket_stream_t --------------------
-socket_stream_t::socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher)
-    : fd_(fd->release()),
-      fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd_.get()))
+socket_stream_t::socket_stream_t(fd_t fd, fd_watcher_t *watcher)
+    : fd_(fd),
+      fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd)),
+      interruptor(NULL)
 {
-    guarantee(fd_.get() != INVALID_FD);
+    guarantee(fd != INVALID_FD);
     fd_watcher_->init_callback(this);
 }
 
 socket_stream_t::~socket_stream_t() {
     assert_thread();
-
-    if (is_read_open()) shutdown_read();
-    if (is_write_open()) shutdown_write();
 }
 
-int64_t socket_stream_t::read_interruptible(void *buf, int64_t size, signal_t *interruptor) {
+int64_t socket_stream_t::read(void *buf, int64_t size) {
     assert_thread();
     guarantee(size > 0);
 
-    if (!check_can_read(interruptor))
+    if (!check_can_read()) {
         return -1;
+    }
 
     char *bufp = static_cast<char *>(buf);
     for (;;) {
         rassert(is_read_open());
 
-        ssize_t res = ::read(fd_.get(), bufp, size);
+        ssize_t res = ::read(fd_, bufp, size);
 
         if (res > 0) {
             // We read some data.
             guarantee(res <= size);
             return res;
 
-        } else if (res == -1 && errno == EINTR) {
+        } else if (res == -1 && get_errno() == EINTR) {
             // Go around loop & retry system call.
 
-        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             // Wait until we can read, or we shut down, or we're interrupted.
-            if (!wait_for_read(interruptor))
+            if (!wait_for_read())
                 return -1;      // we shut down.
             // Go around the loop to try to read again
 
         } else {
             // EOF or error
             if (res == -1) {
-                if (errno != EPIPE && errno != ECONNRESET && errno != ENOTCONN) {
+                if (get_errno() != EPIPE && get_errno() != ECONNRESET && get_errno() != ENOTCONN) {
                     // Unexpected error (not just "we closed").
-                    logERR("Could not read from socket: %s", errno_string(errno).c_str());
+                    logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
                 }
             } else {
                 guarantee(res == 0); // sanity
@@ -194,11 +195,11 @@ int64_t socket_stream_t::read_interruptible(void *buf, int64_t size, signal_t *i
     }
 }
 
-int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, signal_t *interruptor) {
+int64_t socket_stream_t::write(const void *buf, int64_t size) {
     assert_thread();
     guarantee(size > 0);
 
-    if (!check_can_write(interruptor))
+    if (!check_can_write())
         return -1;
 
     int64_t orig_size = size;
@@ -206,7 +207,7 @@ int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, sign
     while (size > 0) {
         rassert(is_write_open());
 
-        ssize_t res = ::write(fd_.get(), bufp, size);
+        ssize_t res = ::write(fd_, bufp, size);
 
         if (res > 0) {
             // We wrote something!
@@ -215,20 +216,20 @@ int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, sign
             size -= res;
             // Go around the loop; keep writing until done.
 
-        } else if (res == -1 && errno == EINTR) {
+        } else if (res == -1 && get_errno() == EINTR) {
             // Go around the loop & retry system call
 
-        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             // Wait until we can write, or we shut down, or we're interrupted.
-            if (!wait_for_write(interruptor))
+            if (!wait_for_write())
                 return -1;      // we shut down.
             // Go around the loop and write some more.
 
         } else {
             if (res == -1) {
-                if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
+                if (get_errno() != EPIPE && get_errno() != ENOTCONN && get_errno() != ECONNRESET) {
                     // Unexpected error (not just "we closed")
-                    logERR("Could not write to socket: %s", errno_string(errno).c_str());
+                    logERR("Could not write to socket: %s", errno_string(get_errno()).c_str());
                 }
             } else {
                 logERR("Didn't expect write() to return %zd.", res);
@@ -245,9 +246,9 @@ int64_t socket_stream_t::write_interruptible(const void *buf, int64_t size, sign
 void socket_stream_t::shutdown_read() {
     assert_thread();
 
-    int res = ::shutdown(fd_.get(), SHUT_RD);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
+    int res = ::shutdown(fd_, SHUT_RD);
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", errno_string(get_errno()).c_str());
     }
 
     if (fd_watcher_->is_read_open())
@@ -257,40 +258,48 @@ void socket_stream_t::shutdown_read() {
 void socket_stream_t::shutdown_write() {
     assert_thread();
 
-    int res = ::shutdown(fd_.get(), SHUT_WR);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
+    int res = ::shutdown(fd_, SHUT_WR);
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", errno_string(get_errno()).c_str());
     }
 
     if (fd_watcher_->is_write_open())
         fd_watcher_->on_shutdown_write();
 }
 
-bool socket_stream_t::wait_for_read(signal_t *interruptor) {
+bool socket_stream_t::wait_for_read() {
+    interrupted_exc_t saved_exception;
     try {
         return fd_watcher_->wait_for_read(interruptor);
-    } catch (const interrupted_exc_t &) {
-        shutdown_read();
-        throw;
+    } catch (const interrupted_exc_t &ex) {
+        // Don't shutdown_read here, as is it possible that it may cause a coroutine
+        //  switch, which we are not allowed to do in a catch statement
+        saved_exception = ex;
     }
+    shutdown_read();
+    throw saved_exception;
 }
 
-bool socket_stream_t::wait_for_write(signal_t *interruptor) {
+bool socket_stream_t::wait_for_write() {
+    interrupted_exc_t saved_exception;
     try {
         return fd_watcher_->wait_for_write(interruptor);
-    } catch (const interrupted_exc_t &) {
-        shutdown_write();
-        throw;
+    } catch (const interrupted_exc_t &ex) {
+        // Don't shutdown_write here, as is it possible that it may cause a coroutine
+        //  switch, which we are not allowed to do in a catch statement
+        saved_exception = ex;
     }
+    shutdown_write();
+    throw saved_exception;
 }
 
-bool socket_stream_t::check_can_read(signal_t *interruptor) {
+bool socket_stream_t::check_can_read() {
     if (!is_read_open()) return false;
     if (interruptor && interruptor->is_pulsed()) throw interrupted_exc_t();
     return true;
 }
 
-bool socket_stream_t::check_can_write(signal_t *interruptor) {
+bool socket_stream_t::check_can_write() {
     if (!is_write_open()) return false;
     if (interruptor && interruptor->is_pulsed()) throw interrupted_exc_t();
     return true;
@@ -312,68 +321,3 @@ void socket_stream_t::on_event(int events) {
     if (fd_watcher_->is_read_open()) shutdown_read();
 }
 
-
-// -------------------- unix_socket_stream_t --------------------
-unix_socket_stream_t::unix_socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher)
-    : socket_stream_t(fd, watcher) {}
-
-int unix_socket_stream_t::send_fd(int fd, signal_t *interruptor) {
-    return send_fds(1, &fd, interruptor);
-}
-
-archive_result_t unix_socket_stream_t::recv_fd(int *fd, signal_t *interruptor) {
-    return recv_fds(1, fd, interruptor);
-}
-
-int unix_socket_stream_t::send_fds(size_t num_fds, int *fds, signal_t *interruptor) {
-    if (!check_can_write(interruptor))
-        return -1;
-
-    while (-1 == ::send_fds(fd_.get(), num_fds, fds)) {
-        // Retry on interruption
-        if (errno == EINTR) continue;
-
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
-                // Unexpected error (not just "we closed")
-                logERR("Could not send fds on socket: %s", errno_string(errno).c_str());
-            }
-            shutdown_write();
-            return -1;
-        }
-
-        // Wait until we can write, or we shut down, or we're interrupted.
-        if (!wait_for_write(interruptor))
-            return -1;          // we shut down
-    }
-
-    return 0;
-}
-
-archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds, signal_t *interruptor) {
-    if (!check_can_read(interruptor))
-        return ARCHIVE_SOCK_ERROR;
-
-    for (;;) {
-        switch (::recv_fds(fd_.get(), num_fds, fds)) {
-          case FD_RECV_OK: return ARCHIVE_SUCCESS;
-
-          case FD_RECV_EOF: return ARCHIVE_SOCK_EOF;
-
-          case FD_RECV_ERROR:
-            if (errno == EINTR // retry if interrupted
-                || ((errno == EAGAIN || errno == EWOULDBLOCK)
-                    // Wait until we can read, or we shut down.
-                    && wait_for_read(interruptor)))
-            {
-                // Go around the loop and try again.
-                continue;
-            }
-
-            // Socket error, or we shut down.
-            return ARCHIVE_SOCK_ERROR;
-
-          default: unreachable();
-        }
-    }
-}

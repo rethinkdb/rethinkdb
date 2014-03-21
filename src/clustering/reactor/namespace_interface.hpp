@@ -122,9 +122,13 @@ private:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
+    // The exception specification of `how_to_run_query` is commented out in
+    // order to bypass a clang bug seen on certain versions for OS X, or perhaps
+    // fix a confusing violation of C++.  This function is called only by
+    // dispatch_immediate_op, which still has the exception specification.
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
-            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
             boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *masters_to_contact,
             std::vector<op_response_type> *results,
             std::vector<std::string> *failures,

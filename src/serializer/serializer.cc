@@ -1,128 +1,39 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/serializer.hpp"
+
 #include "arch/arch.hpp"
+#include "boost_utils.hpp"
+#include "math.hpp"
+
+scoped_malloc_t<ser_buffer_t>
+serializer_t::allocate_buffer(block_size_t block_size) {
+    scoped_malloc_t<ser_buffer_t> buf(
+            malloc_aligned(ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE),
+                           DEVICE_BLOCK_SIZE));
+
+    return buf;
+}
+
+
+
+void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op) {
+    buf->appendf("iwop{id=%" PRIu64 ", token=", write_op.block_id);
+    debug_print(buf, write_op.token);
+    buf->appendf(", recency=");
+    debug_print(buf, write_op.recency);
+    buf->appendf("}");
+}
 
 file_account_t *serializer_t::make_io_account(int priority) {
     assert_thread();
     return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
 }
 
-// Blocking block_read implementation
-void serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    block_read(token, buf, io_account, &cb);
-    cb.wait();
+ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
+    return static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
 }
 
-counted_t<standard_block_token_t>
-serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return serializer_block_write(this, buf, block_id, io_account);
-}
-
-serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
-    serializer_write_t w;
-    w.block_id = block_id;
-    w.action_type = TOUCH;
-    w.action.touch.recency = recency;
-    return w;
-}
-
-serializer_write_t serializer_write_t::make_update(
-        block_id_t block_id, repli_timestamp_t recency, const void *buf,
-        iocallback_t *io_callback, serializer_write_launched_callback_t *launch_callback)
-{
-    serializer_write_t w;
-    w.block_id = block_id;
-    w.action_type = UPDATE;
-    w.action.update.buf = buf;
-    w.action.update.recency = recency;
-    w.action.update.io_callback = io_callback;
-    w.action.update.launch_callback = launch_callback;
-    return w;
-}
-
-serializer_write_t serializer_write_t::make_delete(block_id_t block_id) {
-    serializer_write_t w;
-    w.block_id = block_id;
-    w.action_type = DELETE;
-    return w;
-}
-
-struct write_cond_t : public cond_t, public iocallback_t {
-    explicit write_cond_t(iocallback_t *cb) : callback(cb) { }
-    void on_io_complete() {
-        if (callback)
-            callback->on_io_complete();
-        pulse();
-    }
-    iocallback_t *callback;
-};
-
-void perform_write(const serializer_write_t *write, serializer_t *ser, file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
-    switch (write->action_type) {
-    case serializer_write_t::UPDATE: {
-        conds->push_back(new write_cond_t(write->action.update.io_callback));
-        op->token = ser->block_write(write->action.update.buf, op->block_id, acct, conds->back());
-        if (write->action.update.launch_callback) {
-            write->action.update.launch_callback->on_write_launched(op->token.get());
-        }
-        op->recency = write->action.update.recency;
-    } break;
-    case serializer_write_t::DELETE: {
-        op->token = counted_t<standard_block_token_t>();
-        op->recency = repli_timestamp_t::invalid;
-    } break;
-    case serializer_write_t::TOUCH: {
-        op->recency = write->action.touch.recency;
-    } break;
-    default:
-        unreachable();
-    }
-}
-
-void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account) {
-    ser->assert_thread();
-    std::vector<write_cond_t*> block_write_conds;
-    std::vector<index_write_op_t> index_write_ops;
-    block_write_conds.reserve(writes.size());
-    index_write_ops.reserve(writes.size());
-
-    // Step 1: Write buffers to disk and assemble index operations
-    for (size_t i = 0; i < writes.size(); ++i) {
-        const serializer_write_t *write = &writes[i];
-        index_write_op_t op(write->block_id);
-
-        perform_write(write, ser, io_account, &block_write_conds, &op);
-
-        index_write_ops.push_back(op);
-    }
-
-    // Step 2: Wait on all writes to finish
-    for (size_t i = 0; i < block_write_conds.size(); ++i) {
-        block_write_conds[i]->wait();
-        delete block_write_conds[i];
-    }
-    block_write_conds.clear();
-
-    // Step 3: Commit the transaction to the serializer
-    ser->index_write(index_write_ops, io_account);
-}
-
-void serializer_data_ptr_t::free(serializer_t *ser) {
-    rassert(ptr_);
-    ser->free(ptr_);
-    ptr_ = NULL;
-}
-
-void serializer_data_ptr_t::init_malloc(serializer_t *ser) {
-    rassert(!ptr_);
-    ptr_ = ser->malloc();
-}
-
-void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_ptr_t& other) {
-    rassert(other.ptr_);
-    rassert(!ptr_);
-    ptr_ = ser->clone(other.ptr_);
+void debug_print(printf_buffer_t *buf, const buf_write_info_t &info) {
+    buf->appendf("bwi{buf=%p, size=%" PRIu32 ", id=%" PRIu64 "}",
+                 info.buf, info.block_size.ser_value(), info.block_id);
 }

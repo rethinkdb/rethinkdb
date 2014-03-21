@@ -1,0 +1,5 @@
+import "import_common.proto";
+
+message B {
+    optional Common common = 1;
+}

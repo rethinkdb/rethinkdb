@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "arch/timing.hpp"
@@ -24,17 +24,9 @@ void walk_wait_times(int i) {
 
 }
 
-void run_TestApproximateWaitTimes() {
+TPTEST(TimerTest, TestApproximateWaitTimes) {
     pmap(2, walk_wait_times);
 }
-
-
-TEST(TimerTest, TestApproximateWaitTimes) {
-    unittest::run_in_thread_pool(run_TestApproximateWaitTimes);
-}
-
-
-
 
 
 }  // namespace unittest

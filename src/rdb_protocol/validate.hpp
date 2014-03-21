@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VALIDATE_HPP_
 #define RDB_PROTOCOL_VALIDATE_HPP_
 

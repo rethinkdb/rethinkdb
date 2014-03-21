@@ -5,11 +5,13 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 
-#define ALLOCATION_CHUNK 50
+// Must be <= than MAX_CHUNKS_OUT in backfiller.cc
+#define ALLOCATION_CHUNK 8
 
 template <class protocol_t>
 struct backfill_queue_entry_t {
@@ -51,10 +53,14 @@ public:
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
-        done_message_arrived(false), num_outstanding_chunks(0)
+        done_message_arrived(false), num_outstanding_chunks(0),
+        chunk_processing_semaphore(1)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        new_semaphore_acq_t sem_acq(&chunk_processing_semaphore, 1);
+        sem_acq.acquisition_signal()->wait_lazily_unordered();
+
         write_token_pair_t token_pair;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token_pair(&token_pair);
@@ -131,6 +137,8 @@ private:
     int unacked_chunks;
     bool done_message_arrived;
     int num_outstanding_chunks;
+    // Limits the number of chunks that are processed in parallel at any given time
+    new_semaphore_t chunk_processing_semaphore;
 
     DISABLE_COPYING(chunk_callback_t);
 };
@@ -181,8 +189,7 @@ void backfillee(
     promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > end_point_cond;
     mailbox_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_mailbox(
         mailbox_manager,
-        boost::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2),
-        mailbox_callback_mode_inline);
+        boost::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2));
 
     {
         typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
@@ -197,19 +204,18 @@ void backfillee(
         and the version described in `end_point_mailbox` has been achieved. */
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
-            boost::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1),
-            mailbox_callback_mode_inline);
+            boost::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1));
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2), mailbox_callback_mode_inline);
+            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
         promise_t<mailbox_addr_t<void(int)> > alloc_mailbox_promise;
         mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
-                mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1), mailbox_callback_mode_inline);
+                mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1));
 
         /* Send off the backfill request */
         send(mailbox_manager,

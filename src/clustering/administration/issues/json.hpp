@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
 
@@ -6,7 +6,7 @@
 
 #include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 class issue_json_t {
 public:
@@ -14,7 +14,6 @@ public:
     std::string description;
     std::string type;
     ticks_t time;
-
 };
 
 // ctx-less json adapter concept for issue_json_t

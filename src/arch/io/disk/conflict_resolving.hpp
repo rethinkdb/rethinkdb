@@ -90,6 +90,9 @@ private:
         *end = ceil_aligned(a->get_offset() + a->get_count(), DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
     }
 
+    /* Does a type cast and calls submit_fun. */
+    void submit_action_downwards(action_t *action);
+
     /* For each chunk B in the file FD: all_chunk_queues[FD][B] contains a deque
     of things that are either (a) waiting to operate on that chunk but cannot
     because something else is currently operating on that chunk, or (b) which
@@ -100,6 +103,12 @@ private:
     properties of multimaps that are not guaranteed by the C++ standard. */
 
     std::map<fd_t, std::map<int64_t, std::deque<action_t *> > > all_chunk_queues;
+
+    /* `resize_waiter_queues` contains actions that are waiting for an ongoing
+    resize to finish. Right now, a resize operation blocks the whole file. */
+    std::map<fd_t, std::deque<action_t *> > resize_waiter_queues;
+    /* Contains an entry > 0 for as long as any resize operation is active. */
+    std::map<fd_t, int> resize_active;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;

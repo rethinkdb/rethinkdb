@@ -9,7 +9,7 @@
 class last_seen_http_app_t : public http_json_app_t {
 public:
     explicit last_seen_http_app_t(last_seen_tracker_t *last_seen_tracker);
-    http_res_t handle(const http_req_t &);
+    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
     void get_root(scoped_cJSON_t *json_out);
 
 private:

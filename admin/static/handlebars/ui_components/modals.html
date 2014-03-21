@@ -96,15 +96,6 @@
     {{#if machine_exists}}
         <p>The chosen server's name is already being used. please choose another one.</p>
     {{/if}}
-    {{#if cache_size_format}}
-        <p>The cache size must be an intger.</p>
-    {{/if}}
-    {{#if cache_size_too_small}}
-        <p>The cache size must be bigger than 16MB.</p>
-    {{/if}}
-    {{#if cache_size_too_big}}
-        <p>The cache size must be smaller than 64GB.</p>
-    {{/if}}
     {{#if special_char_detected}}
     <p>You can only use alphanumeric characters and underscores for a {{type}}'s name.</p>
     {{/if}}

@@ -6,6 +6,3 @@ static_cluster-rdb-javascript
 
 # This test tries to use the stress client in rdb mode, which was removed
 regression-659
-
-# This test occasionally fails (Issue #668)
-ql-js-connect

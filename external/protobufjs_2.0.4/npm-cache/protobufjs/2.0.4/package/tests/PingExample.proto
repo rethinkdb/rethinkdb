@@ -1,0 +1,12 @@
+message Message {
+    optional Ping ping = 1;
+    optional Pong pong = 2;
+    
+    message Ping {
+        required uint32 time = 1;
+    }
+    
+    message Pong {
+        required uint32 time = 1;
+    }
+}

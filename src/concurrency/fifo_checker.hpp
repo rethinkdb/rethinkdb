@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_CHECKER_HPP_
 #define CONCURRENCY_FIFO_CHECKER_HPP_
 
@@ -6,9 +6,10 @@
 #include <string>
 #include <utility>
 
-#include "rpc/serialize_macros.hpp"
+#include "containers/archive/archive.hpp"
 #include "containers/uuid.hpp"
-#include "utils.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "threading.hpp"
 
 
 
@@ -27,9 +28,9 @@ private:
 
 
 
-bool operator==(const order_bucket_t& a, const order_bucket_t& b);
-bool operator!=(const order_bucket_t& a, const order_bucket_t& b);
-bool operator<(const order_bucket_t& a, const order_bucket_t& b);
+bool operator==(const order_bucket_t &a, const order_bucket_t &b);
+bool operator!=(const order_bucket_t &a, const order_bucket_t &b);
+bool operator<(const order_bucket_t &a, const order_bucket_t &b);
 
 
 /* Order tokens of the same bucket need to arrive at order sinks in a
@@ -50,7 +51,7 @@ public:
     order_token_t with_read_mode() const;
     void assert_read_mode() const;
     void assert_write_mode() const;
-    const std::string& tag() const;
+    const std::string &tag() const;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
@@ -61,7 +62,7 @@ public:
 
 private:
 #ifndef NDEBUG
-    order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag);
+    order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string &tag);
 
     bool is_invalid() const;
     bool is_ignore() const;
@@ -74,8 +75,8 @@ private:
     // std::string implementation, since we copy by value.
     std::string tag_;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
-#else  // ifndef NDEBUG
+    RDB_DECLARE_ME_SERIALIZABLE;
+#else
     RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
@@ -92,14 +93,14 @@ class order_source_t : public home_thread_mixin_debug_only_t {
 public:
 #ifndef NDEBUG
     order_source_t();
-    explicit order_source_t(int specified_home_thread);
+    explicit order_source_t(threadnum_t specified_home_thread);
     ~order_source_t();
 
     // Makes a write-mode order token.
-    order_token_t check_in(const std::string& tag);
+    order_token_t check_in(const std::string &tag);
 #else
     order_source_t() { }
-    explicit order_source_t(int specified_home_thread) : home_thread_mixin_debug_only_t(specified_home_thread) { }
+    explicit order_source_t(threadnum_t specified_home_thread) : home_thread_mixin_debug_only_t(specified_home_thread) { }
     ~order_source_t() { }
 
     order_token_t check_in(const std::string&) { return order_token_t(); }
@@ -118,7 +119,7 @@ struct tagged_seen_t {
     int64_t value;
     std::string tag;
 
-    tagged_seen_t(int64_t _value, const std::string& _tag) : value(_value), tag(_tag) { }
+    tagged_seen_t(int64_t _value, const std::string &_tag) : value(_value), tag(_tag) { }
 };
 
 /* Eventually order tokens get to an order sink, and those of the same
@@ -166,8 +167,8 @@ public:
 #else
     plain_sink_t() { }
 
-    void check_out(UNUSED  order_token_t token) { }
-#endif  // ifndef NDEBUG
+    void check_out(UNUSED order_token_t token) { }
+#endif  // NDEBUG
 
 private:
 #ifndef NDEBUG
@@ -178,9 +179,7 @@ private:
     If we get an order token from a different bucket we crap out. */
     bool have_bucket_;
     order_bucket_t bucket_;
-#endif
-
-    DISABLE_COPYING(plain_sink_t);
+#endif  // NDEBUG
 };
 
 
@@ -189,13 +188,13 @@ class order_checkpoint_t : public home_thread_mixin_debug_only_t {
 public:
     order_checkpoint_t() { }
 #ifndef NDEBUG
-    explicit order_checkpoint_t(const std::string& tagappend) : tagappend_(tagappend) { }
-    void set_tagappend(const std::string& tagappend);
+    explicit order_checkpoint_t(const std::string &tagappend) : tagappend_(tagappend) { }
+    void set_tagappend(const std::string &tagappend);
     order_token_t check_through(order_token_t token);
     order_token_t checkpoint_raw_check_in();
 #else
-    explicit order_checkpoint_t(UNUSED const std::string& tagappend) { }
-    void set_tagappend(UNUSED const std::string& tagappend) { }
+    explicit order_checkpoint_t(UNUSED const std::string &tagappend) { }
+    void set_tagappend(UNUSED const std::string &tagappend) { }
     order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
     order_token_t checkpoint_raw_check_in() { return order_token_t(); }
 #endif  // ndef NDEBUG

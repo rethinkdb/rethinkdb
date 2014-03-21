@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "concurrency/fifo_checker.hpp"
 
 #include <vector>
 
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
+#include "containers/archive/stl_types.hpp"
 
 #ifndef NDEBUG
 
@@ -21,15 +21,15 @@ const order_token_t order_token_t::ignore;
 
 #ifndef NDEBUG
 
-bool operator==(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator==(const order_bucket_t &a, const order_bucket_t &b) {
     return a.uuid_ == b.uuid_;
 }
 
-bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator!=(const order_bucket_t &a, const order_bucket_t &b) {
     return !(a == b);
 }
 
-bool operator<(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator<(const order_bucket_t &a, const order_bucket_t &b) {
     return a.uuid_ < b.uuid_;
 }
 
@@ -41,7 +41,7 @@ bool order_bucket_t::valid() const {
 
 order_token_t::order_token_t() : bucket_(order_bucket_t::invalid()), value_(ORDER_INVALID) { }
 
-order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag)
+order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string &tag)
     : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(tag) { }
 
 order_token_t order_token_t::with_read_mode() const {
@@ -56,20 +56,24 @@ void order_token_t::assert_write_mode() const {
     rassert(is_ignore() || !read_mode_, "Expected an order token in write mode");
 }
 
-const std::string& order_token_t::tag() const { return tag_; }
+const std::string &order_token_t::tag() const { return tag_; }
 
 bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == ORDER_INVALID; }
 bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORDER_IGNORE; }
 
+#ifndef NDEBUG
+RDB_IMPL_ME_SERIALIZABLE_4(order_token_t, bucket_, read_mode_, value_, tag_);
+#endif
 
 
 order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
-order_source_t::order_source_t(int specified_home_thread)
-    : home_thread_mixin_debug_only_t(specified_home_thread), bucket_(order_bucket_t::create()), counter_(0) { }
+order_source_t::order_source_t(threadnum_t specified_home_thread)
+    : home_thread_mixin_debug_only_t(specified_home_thread),
+      bucket_(order_bucket_t::create()), counter_(0) { }
 
 order_source_t::~order_source_t() { }
 
-order_token_t order_source_t::check_in(const std::string& tag) {
+order_token_t order_source_t::check_in(const std::string &tag) {
     assert_thread();
     ++counter_;
     return order_token_t(bucket_, counter_, false, tag);
@@ -127,8 +131,7 @@ void plain_sink_t::check_out(order_token_t token) {
     }
 }
 
-
-void order_checkpoint_t::set_tagappend(const std::string& tagappend) {
+void order_checkpoint_t::set_tagappend(const std::string &tagappend) {
     rassert(tagappend_.empty());
     tagappend_ = "+" + tagappend;
 }

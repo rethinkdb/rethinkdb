@@ -1,31 +1,41 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <time.h>
 
-#include <algorithm>
 #include <string>
+#include <utility>
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
-typedef uint32_t block_id_t;
+class printf_buffer_t;
+
+typedef uint64_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
-/* Each time we write a block to disk, that block receives a new unique block sequence id */
-typedef uint64_t block_sequence_id_t;
-#define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
-#define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
+#define PR_BLOCK_ID PRIu64
 
-// A struct that
+// The first bytes of any block stored on disk or (as it happens) cached in memory.
 struct ls_buf_data_t {
     block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
+} __attribute__((__packed__));
+
+// For use via scoped_malloc_t, a buffer that represents a block on disk.  Contains
+// convenient access to the serializer header and cache portion of the block.  This
+// is better than (e.g.) performing arithmetic on void pointers when passing bufs
+// between the cache and serializer.  When used in memory, this structure _might_ be
+// aligned to a device block size boundary, to save copying when reading from disk.
+// Since block sizes can vary, don't generally assume this to be the case.
+struct ser_buffer_t {
+    ls_buf_data_t ser_header;
+    char cache_data[];
 } __attribute__((__packed__));
 
 
@@ -35,10 +45,20 @@ public:
     // things could call value() instead of ser_value() or vice versa.
 
     // The "block size" used by things above the serializer.
-    uint32_t value() const { return ser_bs_ - sizeof(ls_buf_data_t); }
+    uint32_t value() const {
+        rassert(ser_bs_ != 0);
+        return ser_bs_ - sizeof(ls_buf_data_t);
+    }
 
     // The "block size" used by things in the serializer.
-    uint32_t ser_value() const { return ser_bs_; }
+    uint32_t ser_value() const {
+        rassert(ser_bs_ != 0);
+        return ser_bs_;
+    }
+
+    static block_size_t make_from_cache(uint32_t cache_block_size) {
+        return block_size_t(cache_block_size + sizeof(ls_buf_data_t));
+    }
 
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
@@ -46,10 +66,23 @@ public:
     static block_size_t unsafe_make(uint32_t ser_bs) {
         return block_size_t(ser_bs);
     }
+
+    // Returns an undefined value that you may not use.
+    static block_size_t undefined() {
+        return valgrind_undefined<block_size_t>(unsafe_make(0));
+    }
 private:
     explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }
     uint32_t ser_bs_;
 };
+
+inline bool operator==(block_size_t x, block_size_t y) {
+    return x.ser_value() == y.ser_value();
+}
+
+inline bool operator!=(block_size_t x, block_size_t y) {
+    return !(x == y);
+}
 
 class repli_timestamp_t;
 
@@ -58,20 +91,36 @@ template <class serializer_type> struct serializer_traits_t;
 class log_serializer_t;
 
 class ls_block_token_pointee_t {
+public:
+    int64_t offset() const { return offset_; }
+    block_size_t block_size() const { return block_size_; }
+
+private:
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
     friend void adjust_ref(ls_block_token_pointee_t *p, int adjustment);
 
-    ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset);
+    ls_block_token_pointee_t(log_serializer_t *serializer,
+                             int64_t initial_offset,
+                             block_size_t initial_ser_block_size);
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
+
+    // The block's size.
+    block_size_t block_size_;
+
+    // The block's offset on disk.
+    int64_t offset_;
 
     void do_destroy();
 
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
+
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token);
 
 void counted_add_ref(ls_block_token_pointee_t *p);
 void counted_release(ls_block_token_pointee_t *p);
@@ -82,6 +131,7 @@ struct serializer_traits_t<log_serializer_t> {
 };
 
 class file_t;
+class semantic_checking_file_t;
 
 class serializer_file_opener_t {
 public:
@@ -96,7 +146,7 @@ public:
     virtual void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
     virtual void unlink_serializer_file() = 0;
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    virtual void open_semantic_checking_file(int *fd_out) = 0;
+    virtual void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) = 0;
 #endif
 };
 
@@ -117,9 +167,9 @@ struct scs_block_info_t {
 
     explicit scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
 
-    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
-    // uninitialized memory lying around, which annoys valgrind when we try to write
-    // persisted_block_info_ts to disk.
+    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid
+    // having uninitialized memory lying around, which annoys valgrind when we try to
+    // write persisted_block_info_ts to disk.
     scs_block_info_t() : state(state_unknown), crc(0) {}
     operator bool() { return state != state_unknown; }
 };
@@ -130,6 +180,10 @@ struct scs_block_token_t {
                       const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> &tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
         rassert(inner_token, "scs_block_token wrapping null token");
+    }
+
+    block_size_t block_size() const {
+        return inner_token->block_size();
     }
 
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
@@ -146,7 +200,7 @@ private:
 
 template <class inner_serializer_t>
 void counted_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    UNUSED const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
@@ -160,7 +214,6 @@ void counted_release(scs_block_token_t<inner_serializer_t> *p) {
 }
 
 
-
 template <class inner_serializer_type>
 struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
     typedef scs_block_token_t<inner_serializer_type> block_token_type;
@@ -172,6 +225,15 @@ inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(
                                                               scs_block_info_t(),
                                                               tok);
 }
+
+template <class inner_serializer_t>
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<scs_block_token_t<inner_serializer_t> > &token) {
+    debug_print(buf, token->inner_token);
+}
+
+
+
 
 #else
 
@@ -196,54 +258,32 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
-// TODO: time_t's size is system-dependent.
-typedef time_t creation_timestamp_t;
-
-
-class serializer_data_ptr_t {
-public:
-    serializer_data_ptr_t() : ptr_(0) { }
-    // TODO: Get rid of this constructor.
-    explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
-    ~serializer_data_ptr_t() {
-        rassert(!ptr_);
-    }
-
-    void free(serializer_t *ser);
-    void init_malloc(serializer_t *ser);
-    void init_clone(serializer_t *ser, const serializer_data_ptr_t& other);
-
-    void swap(serializer_data_ptr_t& other) {
-        void *tmp = ptr_;
-        ptr_ = other.ptr_;
-        other.ptr_ = tmp;
-    }
-
-    bool has() const {
-        return ptr_;
-    }
-
-    void *get() const {
-        rassert(ptr_);
-        return ptr_;
-    }
-
-    // TODO: All uses of this function are disgusting.
-    bool equals(const void *buf) const {
-        return ptr_ == buf;
-    }
-
-private:
-    void *ptr_;
-    DISABLE_COPYING(serializer_data_ptr_t);
-};
+// TODO: This is obsolete because the serializer multiplexer isn't used with multiple
+// files any more.
+typedef int64_t creation_timestamp_t;
 
 
 class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
-    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
+
+    // Offers a ser_buffer_t pointer to the callback.  The callee is free to take
+    // ownership of the `ser_buffer_t *` from `*buf`.  It's also free to decline
+    // ownership, by leaving the pointer owned by `*buf`.
+    virtual void offer_read_ahead_buf(block_id_t block_id,
+                                      scoped_malloc_t<ser_buffer_t> *buf,
+                                      const counted_t<standard_block_token_t> &token) = 0;
 };
+
+struct buf_write_info_t {
+    buf_write_info_t(ser_buffer_t *_buf, block_size_t _block_size,
+                     block_id_t _block_id)
+        : buf(_buf), block_size(_block_size), block_id(_block_id) { }
+    ser_buffer_t *buf;
+    block_size_t block_size;
+    block_id_t block_id;
+};
+
+void debug_print(printf_buffer_t *buf, const buf_write_info_t &info);
 
 #endif  // SERIALIZER_TYPES_HPP_

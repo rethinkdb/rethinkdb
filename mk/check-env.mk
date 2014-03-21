@@ -5,14 +5,14 @@
 
 # This file is included by both Makefile and by mk/main.mk
 
-# Generate the list of variables defined in mk/way/default.mk
-# All variables that can be set by users should be listed and documented in mk/way/default.mk
-$(TOP)/mk/gen/allowed-variables.mk: $(TOP)/mk/way/default.mk
+# Generate the list of variables defined in mk/defaults.mk
+# All variables that can be set by users should be listed and documented in mk/defaults.mk
+$(TOP)/mk/gen/allowed-variables.mk: $(TOP)/mk/defaults.mk
 	-@echo "allowed-variables :=" `cat $< | egrep -o '[ \t]*[A-Z_0-9]+[ \t]*[:?+]?=' | egrep -o '[A-Z_0-9]+'` > $@
 
 allowed-variables :=
 -include $(TOP)/mk/gen/allowed-variables.mk
-allowed-variables += WAY TOP CWD NO_CONFIGURE JUST_SCAN_MAKEFILES COUNTDOWN_TOTAL
+allowed-variables += TOP CWD JUST_SCAN_MAKEFILES COUNTDOWN_TOTAL
 
 STRICT_MAKE_VARIABLE_CHECK ?= 0
 
@@ -32,7 +32,7 @@ define CHECK_ARG_VARIABLES_RUN
       endif
     endif
   endif
-endef 
+endef
 
 # These variables need to be set here so they appear in $(.VARIABLES)
 old-env-variables ?=

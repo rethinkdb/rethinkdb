@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import yaml
 import json
@@ -73,7 +73,10 @@ class JsLang(SrcLang):
 
     # Converts cannonical form (underscore separation) to camel case
     def nametranslate(self, name):
-        return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
+        if not re.search('__', name):
+            return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
+        else:
+            return re.sub('__', '_', name)
 
 class RbLang(SrcLang):
     def rb_str_repr(self, string):
@@ -91,7 +94,7 @@ class RbLang(SrcLang):
 
     def dicttranslate(self, dic):
         # print dic
-        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\\1=>", dic)
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
         # print dicnew
         return dicnew
@@ -170,7 +173,7 @@ class TestGroup:
             out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
 
             if runopts:
-                runoptsrepr = Langs.translate_expected_for(lang, repr(runopts))
+                runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
                 out.write(', '+runoptsrepr)
 
             out.write(')\n')
@@ -228,8 +231,6 @@ class TestGroup:
             code = [code]
         elif code == None:
             code = []
-            if not (isinstance(obj, dict) and obj.keys() == ['def']):
-                print 'Missing %s test for %s' % (lang, '-'.join(self.path) + '-' + str(index))
 
         # Construct the appropriate representation for each test in this language
         return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)
@@ -303,6 +304,10 @@ def run_tests(lang, servers):
         interpreter = os.getenv('NODE') or 'node'
     elif lang is 'rb':
         interpreter = os.getenv('RUBY') or 'ruby'
+    elif lang is 'rb_server':
+        interpreter = os.getenv('RUBY') or 'ruby'
+        res = call([interpreter, 'server_test.rb', str(servers.driver_port())])
+        return
     else:
         exit("Unkown language: " + lang)
 
@@ -313,7 +318,7 @@ def run_tests(lang, servers):
     res = call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
     if res != 0:
         exit("Failed %s tests" % lang)
-    print "Successfully Passed "+lang+" tests\n"
+    print "Successfully Passed "+lang+" polyglot tests\n"
     stdout.flush()
 
 # Run all language tests

@@ -2,11 +2,10 @@
 #ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
-#include "arch/io/event_watcher.hpp" // linux_event_watcher_t
-#include "arch/io/io_utils.hpp"      // scoped_fd_t
+#include "arch/io/event_watcher.hpp"
+#include "arch/io/io_utils.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/archive/archive.hpp"
-#include "containers/archive/interruptible_stream.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
@@ -101,73 +100,52 @@ class linux_event_fd_watcher_t :
 };
 
 class socket_stream_t :
-    public interruptible_read_stream_t, public interruptible_write_stream_t,
+    public read_stream_t,
+    public write_stream_t,
     private linux_event_callback_t
 {
   public:
-    // calls `fd->release()` & takes ownership of its fd.
-    // takes ownership of watcher (if supplied); by default constructs a
-    // linux_event_fd_watcher_t.
-    explicit socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher = NULL);
+    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
     virtual ~socket_stream_t();
 
-    // interruptible_{read,write}_stream_t functions
-    virtual MUST_USE int64_t read_interruptible(void *p, int64_t n, signal_t *interruptor);
-    virtual int64_t write_interruptible(const void *p, int64_t n, signal_t *interruptor);
+    // interruptible {read,write}_stream_t functions
+    virtual MUST_USE int64_t read(void *p, int64_t n);
+    virtual int64_t write(const void *p, int64_t n);
+
+    void set_interruptor(signal_t *_interruptor) { interruptor = _interruptor; }
 
     void assert_thread() { fd_watcher_->assert_thread(); }
 
     bool is_read_open() { return fd_watcher_->is_read_open(); }
     bool is_write_open() { return fd_watcher_->is_write_open(); }
 
-  protected:
+  private:
     void shutdown_read();
     void shutdown_write();
 
     // Returns false if we are closed for {read,write}.
     // Raises interrupted_exc_t if we are open but interruptor is pulsed.
     // Returns true otherwise.
-    bool check_can_read(signal_t *interruptor);
-    bool check_can_write(signal_t *interruptor);
+    bool check_can_read();
+    bool check_can_write();
 
     // Wrappers for fd_watcher_->wait_for_{read,write} that shut us down if
     // interrupted.
-    bool wait_for_read(signal_t *interruptor);
-    bool wait_for_write(signal_t *interruptor);
+    bool wait_for_read();
+    bool wait_for_write();
 
     // Member fields
     // For subclasses to override on_event behavior.  Is evaluated as the first
     // thing done in on_event.
     virtual void do_on_event(int events);
 
-    scoped_fd_t fd_;
+    fd_t fd_;
     scoped_ptr_t<fd_watcher_t> fd_watcher_;
+    signal_t *interruptor;
 
-  private:
     void on_event(int events); // for linux_callback_t
 
     DISABLE_COPYING(socket_stream_t);
-};
-
-class unix_socket_stream_t : public socket_stream_t {
-  public:
-    explicit unix_socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher = NULL);
-
-    // WARNING. Sending large numbers of fds at once is contraindicated. See
-    // arch/fd_send_recv.hpp. TODO(rntz): fix this.
-
-    // Sends open file descriptors. Must be matched by a call to recv_fd{s,} on
-    // the other end, or weird shit could happen.
-    //
-    // Returns -1 on error, 0 on success. Blocks until all fds are written.
-    int send_fds(size_t num_fds, fd_t *fds, signal_t *interruptor = NULL);
-    int send_fd(fd_t fd, signal_t *interruptor = NULL);
-
-    // Receives open file descriptors. Must only be called to match a call to
-    // write_fd{s,} on the other end; otherwise undefined behavior could result!
-    // Blocks until all fds are received.
-    MUST_USE archive_result_t recv_fds(size_t num_fds, fd_t *fds, signal_t *interruptor = NULL);
-    MUST_USE archive_result_t recv_fd(fd_t *fd, signal_t *interruptor = NULL);
 };
 
 #endif  // CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_

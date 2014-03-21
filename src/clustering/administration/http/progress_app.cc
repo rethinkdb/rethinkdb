@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
@@ -15,6 +16,7 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol_json_adapter.hpp"
+#include "stl_utils.hpp"
 
 static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 2000;
@@ -85,7 +87,7 @@ public:
 /* A visitor to send out requests for the backfill progress of a reactor activity. */
 class send_backfill_requests_t : public boost::static_visitor<void> {
 public:
-    send_backfill_requests_t(std::map<peer_id_t, cluster_directory_metadata_t> _directory,
+    send_backfill_requests_t(const boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > &_directory,
                              namespace_id_t _n_id,
                              machine_id_t _m_id,
                              reactor_activity_id_t _a_id,
@@ -110,7 +112,7 @@ private:
 
     void handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const;
 
-    std::map<peer_id_t, cluster_directory_metadata_t> directory;
+    boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory;
     namespace_id_t n_id;
     machine_id_t m_id;
     reactor_activity_id_t a_id;
@@ -121,8 +123,8 @@ private:
 };
 
 void send_backfill_requests_t::handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const {
-    auto directory_it = directory.find(loc.peer_id);
-    if (directory_it == directory.end()) {
+    auto directory_it = directory->find(loc.peer_id);
+    if (directory_it == directory->end()) {
         return;
     }
 
@@ -150,8 +152,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
             mbox_manager,
-            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
-            mailbox_callback_mode_inline);
+            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
 
         send(mbox_manager, backfiller->request_progress_mailbox, loc.backfill_session_id, resp_mbox->get_address());
 
@@ -183,13 +184,14 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t
 static const char *any_machine_id_wildcard = "_";
 
 //TODO why is this not const?
-progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager)
+progress_app_t::progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager)
     : directory_metadata(_directory_metadata), mbox_manager(_mbox_manager)
 { }
 
-http_res_t progress_app_t::handle(const http_req_t &req) {
+void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
 
     /* This function is an absolute mess, basically because we need to hack
@@ -253,20 +255,22 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         ++it;
     }
 
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get();
+    boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory(
+        new std::map<peer_id_t, cluster_directory_metadata_t>());
+    *directory = directory_metadata->get().get_inner();
     /* Iterate through the peers. */
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory.begin();
-         p_it != directory.end();
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory->begin();
+         p_it != directory->end();
          ++p_it) {
         /* Check to see if this matches the requested machine_id (or if we
          * didn't specify a specific machine but want all the machines). */
         if (!requested_machine_id || requested_machine_id == p_it->second.machine_id) {
 
             typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcard_map_t;
-            reactor_bcard_map_t bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
+            const reactor_bcard_map_t &bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
 
             /* Iterate through the machine's reactor's business_cards to see which ones are doing backfills. */
-            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::iterator n_it = bcard_map.begin();
+            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::const_iterator n_it = bcard_map.begin();
                  n_it != bcard_map.end();
                  ++n_it) {
                 /* Check to see if this matches the requested namespace (or
@@ -309,11 +313,13 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
         if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
-            return http_error_res("Invalid timeout value.");
+            *result = http_error_res("Invalid timeout value.");
+            return;
         }
     }
 
-    signal_timer_t timer(timeout);
+    signal_timer_t timer;
+    timer.start(timeout);
 
     /* Now we write a bunch of nested for loops to iterate through each layer,
      * this is annoying but hopefully it's pretty clear what's going on. */
@@ -357,7 +363,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                      * that the promise is pulsed, not that the timer isn't So
                      * eacho request is guarunteed to get at least 500ms to
                      * complete. */
-                    wait_any_t waiter(&timer, r_it->second->promise->get_ready_signal());
+                    wait_any_t waiter(&timer, r_it->second->promise->get_ready_signal(), interruptor);
                     waiter.wait();
 
                     if (r_it->second->promise->get_ready_signal()->is_pulsed()) {
@@ -367,6 +373,8 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.first));
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.second));
                         cJSON_AddItemToArray(region_info, pair);
+                    } else if (interruptor->is_pulsed()) {
+                        throw interrupted_exc_t();
                     } else {
                         /* The promise is not pulsed.. we timed out. */
                         cJSON_AddItemToArray(region_info, cJSON_CreateString("Timeout"));
@@ -376,5 +384,5 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    return http_json_res(body.get());
+    http_json_res(body.get(), result);
 }

@@ -1,9 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_
 
+#include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "memcached/memcached_btree/node.hpp"
+
+class buf_parent_t;
 
 class btree_slice_t;
 
@@ -22,7 +25,8 @@ public:
     // value to NULL would mean to delete the key-value pair (but if
     // you do so make sure to wipe out the blob, too).  The return
     // value is true if the leaf node needs to be updated.
-    virtual MUST_USE bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) = 0;
+    virtual MUST_USE bool operate(buf_parent_t leaf,
+                                  scoped_malloc_t<memcached_value_t> *value) = 0;
 
 
     virtual MUST_USE int compute_expected_change_count(block_size_t block_size) = 0;
@@ -31,8 +35,10 @@ public:
 class superblock_t;
 
 // Runs a memcached_modify_oper_t.
-void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
-    transaction_t *txn, superblock_t *superblock);
-
+void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice,
+                               const store_key_t &key, cas_t proposed_cas,
+                               exptime_t effective_time, repli_timestamp_t timestamp,
+                               superblock_t *superblock,
+                               promise_t<superblock_t *> *pass_back_superblock = NULL);
 
 #endif // MEMCACHED_MEMCACHED_BTREE_MODIFY_OPER_HPP_

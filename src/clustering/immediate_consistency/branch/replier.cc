@@ -12,11 +12,11 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
     listener_(li),
 
     synchronize_mailbox_(mailbox_manager_,
-                         boost::bind(&replier_t<protocol_t>::on_synchronize,
-                                    this,
-                                    _1,
-                                    _2,
-                                    auto_drainer_t::lock_t(&drainer_))),
+                         std::bind(&replier_t<protocol_t>::on_synchronize,
+                                   this,
+                                   ph::_1,
+                                   ph::_2,
+                                   auto_drainer_t::lock_t(&drainer_))),
 
     /* Start serving backfills */
     backfiller_(mailbox_manager_,

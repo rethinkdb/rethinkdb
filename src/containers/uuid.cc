@@ -6,9 +6,11 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
+#include <array>
 
 #include "containers/printf_buffer.hpp"
 #include "utils.hpp"
+#include "thread_local.hpp"
 
 // We keep the sha1 functions in this .cc file to avoid encouraging others from using it.
 namespace sha1 {
@@ -40,15 +42,18 @@ bool operator<(const uuid_u& x, const uuid_u& y) {
     return memcmp(x.data(), y.data(), uuid_u::static_size()) < 0;
 }
 
-static __thread bool next_uuid_initialized = false;
-static __thread uint8_t next_uuid[uuid_u::kStaticSize];
+TLS_with_init(bool, next_uuid_initialized, false);
+typedef std::array<uint8_t, uuid_u::kStaticSize> next_uuid_t;
+TLS(next_uuid_t, next_uuid);
 
 uuid_u get_and_increment_uuid() {
     uuid_u result;
 
+    next_uuid_t next_uuid = TLS_get_next_uuid();
+
     // Copy over the next_uuid buffer
     uint8_t *result_buffer = result.data();
-    memcpy(result_buffer, next_uuid, uuid_u::static_size());
+    memcpy(result_buffer, next_uuid.data(), uuid_u::static_size());
 
     // Increment the next_uuid buffer
     bool carry = true;
@@ -56,6 +61,7 @@ uuid_u get_and_increment_uuid() {
         next_uuid[i - 1] = next_uuid[i - 1] + 1;
         carry = (next_uuid[i - 1] == 0);
     }
+    TLS_set_next_uuid(next_uuid);
 
     return result;
 }
@@ -76,13 +82,15 @@ void hash_uuid(uuid_u *uuid) {
 }
 
 void initialize_dev_random_uuid() {
-    get_dev_urandom(next_uuid, uuid_u::static_size());
+    next_uuid_t next_uuid;
+    get_dev_urandom(next_uuid.data(), uuid_u::static_size());
+    TLS_set_next_uuid(next_uuid);
 }
 
 uuid_u generate_uuid() {
-    if (!next_uuid_initialized) {
+    if (!TLS_get_next_uuid_initialized()) {
         initialize_dev_random_uuid();
-        next_uuid_initialized = true;
+        TLS_set_next_uuid_initialized(true);
     }
     uuid_u result = get_and_increment_uuid();
     hash_uuid(&result);

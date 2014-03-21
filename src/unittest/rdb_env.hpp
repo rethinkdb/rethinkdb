@@ -10,19 +10,22 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "unittest/test_cluster_group.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
-#include "concurrency/watchable.hpp"
+#include "clustering/administration/main/ports.hpp"
+#include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rpc/semilattice/watchable.hpp"
-#include "rpc/semilattice/view/field.hpp"
+#include "concurrency/watchable.hpp"
+#include "extproc/extproc_pool.hpp"
+#include "extproc/extproc_spawner.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
-#include "clustering/administration/main/ports.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rdb_protocol/env.hpp"
-#include "clustering/administration/main/watchable_fields.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/watchable.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/test_cluster_group.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -66,6 +69,7 @@ private:
         void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
         void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss);
 
         read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
 
@@ -74,12 +78,13 @@ private:
     };
 
     struct write_visitor_t : public boost::static_visitor<void> {
-        void operator()(const rdb_protocol_t::point_replace_t &r);
-        void NORETURN operator()(const rdb_protocol_t::batched_replaces_t &br);
+        void operator()(const rdb_protocol_t::batched_replace_t &br);
+        void operator()(const rdb_protocol_t::batched_insert_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sync_t &s);
 
         write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, rdb_protocol_t::write_response_t *_response);
 
@@ -155,7 +160,6 @@ public:
     public:
         explicit instance_t(test_rdb_env_t *test_env);
 
-        extproc::pool_group_t *create_pool_group(test_rdb_env_t *test_env);
         ql::env_t *get();
         void interrupt();
 
@@ -165,7 +169,7 @@ public:
         dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
         clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_metadata;
         clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> > databases_metadata;
-        scoped_ptr_t<extproc::pool_group_t> pool_group;
+        extproc_pool_t extproc_pool;
         scoped_ptr_t<ql::env_t> env;
         reactor_test_cluster_t<rdb_protocol_t> test_cluster;
         mock_namespace_repo_t rdb_ns_repo;
@@ -177,11 +181,9 @@ public:
 private:
     friend class instance_t;
 
-    extproc::spawner_info_t spawner_info;
-
     uuid_u machine_id;
-    boost::shared_ptr<js::runner_t> js_runner;
     cluster_semilattice_metadata_t metadata;
+    extproc_spawner_t extproc_spawner;
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.

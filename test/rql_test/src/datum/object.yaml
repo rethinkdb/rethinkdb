@@ -58,3 +58,25 @@ tests:
 
     - js: r({'a':{'b':undefined}})
       ot: err("RqlDriverError", "Object field 'b' may not be undefined")
+
+    # r.object
+    - cd: r.object()
+      ot: ({})
+
+    - cd: r.object('a', 1, 'b', 2)
+      ot: ({'a':1,'b':2})
+
+    - cd: r.object('c'+'d', 3)
+      ot: ({'cd':3})
+
+    - cd: r.object('o','d','d')
+      ot: err("RqlCompileError", "OBJECT expects an even number of arguments (but found 3).", [])
+
+    - cd: r.object(1, 1)
+      ot: err("RqlRuntimeError","Expected type STRING but found NUMBER.",[])
+
+    - cd: r.object('e', 4, 'e', 5)
+      ot: err("RqlRuntimeError","Duplicate key `e` in object.  (got `4` and `5` as values)",[])
+
+    - cd: r.object('g', r.db('test'))
+      ot: err("RqlRuntimeError","Expected type DATUM but found DATABASE.",[])

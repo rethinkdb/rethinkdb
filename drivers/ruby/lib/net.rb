@@ -6,6 +6,14 @@ require 'timeout'
 # $f = File.open("fuzz_seed.rb", "w")
 
 module RethinkDB
+  def self.new_query(type, token)
+    q = Query.new
+    q.type = type
+    q.accepts_r_json = true
+    q.token = token
+    return q
+  end
+
   module Faux_Abort
     class Abort
     end
@@ -14,17 +22,29 @@ module RethinkDB
   class RQL
     @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
-    def run(c=@@default_conn, opts=nil)
+    def run(c=@@default_conn, opts=nil, &b)
       # $f.puts "("+RPP::pp(@body)+"),"
       unbound_if !@body
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
+      if (tf = opts[:time_format])
+        opts[:time_format] = (tf = tf.to_s)
+        if tf != 'raw' && tf != 'native'
+          raise ArgumentError, "`time_format` must be 'raw' or 'native' (got `#{tf}`)."
+        end
+      end
+      if (gf = opts[:group_format])
+        opts[:group_format] = (gf = gf.to_s)
+        if gf != 'raw' && gf != 'native'
+          raise ArgumentError, "`group_format` must be 'raw' or 'native' (got `#{gf}`)."
+        end
+      end
       if !c
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."
       end
-      c.run(@body, opts)
+      c.run(@body, opts, &b)
     end
   end
 
@@ -46,13 +66,14 @@ module RethinkDB
         (@run ? "" : "\n#{preview}") + ">"
     end
 
-    def initialize(results, msg, connection, token, more = true) # :nodoc:
+    def initialize(results, msg, connection, opts, token, more = true) # :nodoc:
       @more = more
       @results = results
       @msg = msg
       @run = false
       @conn_id = connection.conn_id
       @conn = connection
+      @opts = opts
       @token = token
     end
 
@@ -63,14 +84,24 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = Query.new
-        q.type = Query::QueryType::CONTINUE
-        q.token = @token
+        q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
         res = @conn.run_internal q
-        @results = Shim.response_to_native(res, @msg)
+        @results = Shim.response_to_native(res, @msg, @opts)
         if res.type == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
+      end
+    end
+
+    def close
+      if @more
+        @more = false
+        q = RethinkDB::new_query(Query::QueryType::STOP, @token)
+        res = @conn.run_internal q
+        if res.type != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
+          raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
+        end
+        return true
       end
     end
   end
@@ -98,7 +129,7 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
-      reconnect
+      reconnect(:noreply_wait => false)
     end
     attr_reader :default_db, :conn_id
 
@@ -107,13 +138,11 @@ module RethinkDB
       dispatch q
       noreply ? nil : wait(q.token)
     end
-    def run(msg, opts)
-      reconnect if @auto_reconnect && (!@socket || !@listener)
-      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = Query.new
-      q.type = Query::QueryType::START
+    def run(msg, opts, &b)
+      reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
+      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
       q.query = msg
-      q.token = @@token_cnt += 1
 
       all_opts = @default_opts.merge(opts)
       if all_opts.keys.include?(:noreply)
@@ -133,11 +162,30 @@ module RethinkDB
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
+        value = Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
+        value = Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, false)
       else
-        Shim.response_to_native(res, msg)
+        value = Shim.response_to_native(res, msg, opts)
+      end
+
+      if res.respond_to? :has_profile? and res.has_profile?
+          real_val = {"profile" => Shim.datum_to_native(res.profile(), opts),
+                      "value" => value}
+      else
+          real_val = value
+      end
+
+      if b
+        begin
+          b.call(real_val)
+        ensure
+          value.close if value.class == Cursor
+        end
+      else
+        real_val
       end
     end
 
@@ -157,15 +205,15 @@ module RethinkDB
       begin
         res = nil
         raise RqlRuntimeError, "Connection closed by server!" if not @listener
-        @mutex.synchronize do
+        @mutex.synchronize {
           (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
           res = @data.delete token if @data[token]
-        end
+        }
         raise RqlRuntimeError, "Connection closed by server!" if !@listener or !res
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
-        reconnect
+        reconnect(:noreply_wait => false)
         raise e
       end
     end
@@ -188,8 +236,17 @@ module RethinkDB
     def debug_socket; @socket; end
 
     # Reconnect to the server.  This will interrupt all queries on the
-    # server and invalidate all outstanding enumerables on the client.
-    def reconnect
+    # server (if :noreply_wait => false) and invalidate all outstanding
+    # enumerables on the client.
+    def reconnect(opts={})
+      raise ArgumentError, "Argument to reconnect must be a hash." if opts.class != Hash
+      if not (opts.keys - [:noreply_wait]).empty?
+        raise ArgumentError, "reconnect does not understand these options: " +
+          (opts.keys - [:noreply_wait]).to_s
+      end
+      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
+
+      self.noreply_wait() if opts[:noreply_wait]
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -200,11 +257,29 @@ module RethinkDB
       self
     end
 
-    def close
+    def close(opts={})
+      raise ArgumentError, "Argument to close must be a hash." if opts.class != Hash
+      if not (opts.keys - [:noreply_wait]).empty?
+        raise ArgumentError, "close does not understand these options: " +
+          (opts.keys - [:noreply_wait]).to_s
+      end
+      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
+
+      self.noreply_wait() if opts[:noreply_wait]
       @listener.terminate if @listener
       @listener = nil
       @socket.close
       @socket = nil
+    end
+
+    def noreply_wait
+      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
+      res = run_internal(q)
+      if res.type != Response::ResponseType::WAIT_COMPLETE
+        raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
+      end
+      nil
     end
 
     def self.last
@@ -240,16 +315,16 @@ module RethinkDB
       end
 
       @listener.terminate if @listener
-      @listener = Thread.new do
-        loop do
+      @listener = Thread.new {
+        loop {
           begin
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
           rescue RqlRuntimeError => e
-            @mutex.synchronize do
+            @mutex.synchronize {
               @listener = nil
               @waiters.each {|kv| kv[1].signal}
-            end
+            }
             Thread.current.terminate
             abort("unreachable")
           end
@@ -259,15 +334,27 @@ module RethinkDB
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
-          @mutex.synchronize do
-            @data[protob.token] = protob
-            if (@waiters[protob.token])
-              cond = @waiters.delete protob.token
-              cond.signal
-            end
+          if protob.token == -1
+            @mutex.synchronize {
+              @waiters.keys.each {|k|
+                @data[k] = protob
+                if @waiters[k]
+                  cond = @waiters.delete k
+                  cond.signal
+                end
+              }
+            }
+          else
+            @mutex.synchronize {
+              @data[protob.token] = protob
+              if @waiters[protob.token]
+                cond = @waiters.delete protob.token
+                cond.signal
+              end
+            }
           end
-        end
-      end
+        }
+      }
     end
   end
 end

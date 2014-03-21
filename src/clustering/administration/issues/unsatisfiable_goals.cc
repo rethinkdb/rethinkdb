@@ -2,6 +2,7 @@
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 
 #include "rpc/semilattice/view.hpp"
+#include "stl_utils.hpp"
 
 unsatisfiable_goals_issue_t::unsatisfiable_goals_issue_t(
         const namespace_id_t &ni,

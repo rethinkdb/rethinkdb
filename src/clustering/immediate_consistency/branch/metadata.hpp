@@ -13,6 +13,7 @@
 #include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
 
@@ -95,8 +96,6 @@ public:
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */
 
-typedef uuid_u backfill_session_id_t;
-
 template<class protocol_t>
 struct backfiller_business_card_t {
 
@@ -134,6 +133,10 @@ struct backfiller_business_card_t {
     RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
 
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_3(backfiller_business_card_t<protocol_t>, backfill_mailbox,
+    cancel_backfill_mailbox, request_progress_mailbox);
+
 /* `broadcaster_business_card_t` is the way that listeners find the broadcaster.
 It appears in the directory. */
 
@@ -155,6 +158,10 @@ struct broadcaster_business_card_t {
     RDB_MAKE_ME_SERIALIZABLE_3(branch_id, branch_id_associated_branch_history, registrar);
 };
 
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_3(broadcaster_business_card_t<protocol_t>, branch_id,
+    branch_id_associated_branch_history, registrar);
+
 template<class protocol_t>
 struct replier_business_card_t {
     /* This mailbox is used to check that the replier is at least as up to date
@@ -174,5 +181,9 @@ struct replier_business_card_t {
 
     RDB_MAKE_ME_SERIALIZABLE_2(synchronize_mailbox, backfiller_bcard);
 };
+
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(replier_business_card_t<protocol_t>,
+    synchronize_mailbox, backfiller_bcard);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */

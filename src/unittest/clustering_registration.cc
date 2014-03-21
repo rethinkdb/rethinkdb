@@ -41,9 +41,7 @@ boost::optional<boost::optional<registrar_business_card_t<std::string> > > wrap_
 
 /* `Register` tests registration, updating, and deregistration of a single
 registrant. */
-
-void run_register_test() {
-
+TPTEST(ClusteringRegistration, Register) {
     simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
@@ -71,15 +69,10 @@ void run_register_test() {
 
     EXPECT_FALSE(controller.has_registrant);
 }
-TEST(ClusteringRegistration, Register) {
-    unittest::run_in_thread_pool(&run_register_test);
-}
 
 /* `RegistrarDeath` tests the case where the registrar dies while the registrant
 is registered. */
-
-void run_registrar_death_test() {
-
+TPTEST(ClusteringRegistration, RegistrarDeath) {
     simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
@@ -115,15 +108,10 @@ void run_registrar_death_test() {
     EXPECT_TRUE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_FALSE(controller.has_registrant);
 }
-TEST(ClusteringRegistration, RegistrarDeath) {
-    unittest::run_in_thread_pool(&run_registrar_death_test);
-}
 
 /* `QuickDisconnect` is to expose a bug that could appear if the registrant is
 deleted immediately after being created. */
-
-void run_quick_disconnect_test() {
-
+TPTEST(ClusteringRegistration, QuickDisconnect) {
     simple_mailbox_cluster_t cluster;
 
     monitoring_controller_t controller;
@@ -145,9 +133,6 @@ void run_quick_disconnect_test() {
     let_stuff_happen();
 
     EXPECT_FALSE(controller.has_registrant);
-}
-TEST(ClusteringRegistration, QuickDisconnect) {
-    unittest::run_in_thread_pool(&run_quick_disconnect_test);
 }
 
 }   /* namespace unittest */

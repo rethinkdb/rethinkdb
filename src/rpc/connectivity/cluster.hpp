@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
@@ -11,20 +11,20 @@
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "concurrency/semaphore.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
-#include "containers/uuid.hpp"
+#include "utils.hpp"
 
 namespace boost {
 template <class> class optional;
-template <class> class scoped_ptr;
-template <class> class function;
 }
+
+class co_semaphore_t;
+class heartbeat_manager_t;
 
 class peer_address_set_t {
 public:
@@ -74,7 +74,8 @@ public:
               int port,
               message_handler_t *message_handler,
               int client_port,
-              heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
+              heartbeat_manager_t *_heartbeat_manager)
+            THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
 
@@ -82,6 +83,8 @@ public:
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
         void join(const peer_address_t &address) THROWS_NOTHING;
+
+        std::set<ip_and_port_t> get_ips() const;
         int get_port();
 
     private:
@@ -163,7 +166,7 @@ public:
                              boost::optional<peer_id_t> expected_id,
                              auto_drainer_t::lock_t drainer_lock,
                              bool *successful_join,
-                             semaphore_t *rate_control) THROWS_NOTHING;
+                             co_semaphore_t *rate_control) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by

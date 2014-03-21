@@ -1,16 +1,17 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "backfill_progress.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
+#include "utils.hpp"
 
 traversal_progress_combiner_t::~traversal_progress_combiner_t() {
     guarantee(!is_destructing);
     is_destructing = true;
-    pmap(constituents.size(), boost::bind(&traversal_progress_combiner_t::destroy_constituent, this, _1));
+    pmap(constituents.size(),
+         std::bind(&traversal_progress_combiner_t::destroy_constituent, this, ph::_1));
 }
 
 void traversal_progress_combiner_t::destroy_constituent(int i) {
@@ -39,14 +40,14 @@ progress_completion_fraction_t traversal_progress_combiner_t::guess_completion()
 
     int released = 0, total = 0;
 
-    std::vector<progress_completion_fraction_t> fractions(constituents.size(), progress_completion_fraction_t::make_invalid());
-    pmap(fractions.size(), boost::bind(&traversal_progress_combiner_t::get_constituent_fraction, this, _1, &fractions));
+    std::vector<progress_completion_fraction_t> fractions(constituents.size(), progress_completion_fraction_t());
+    pmap(fractions.size(), std::bind(&traversal_progress_combiner_t::get_constituent_fraction, this, ph::_1, &fractions));
 
     for (std::vector<progress_completion_fraction_t>::const_iterator it = fractions.begin();
          it != fractions.end();
          ++it) {
         if (it->invalid()) {
-            return progress_completion_fraction_t::make_invalid();
+            return progress_completion_fraction_t();
         }
 
         released += it->estimate_of_released_nodes;

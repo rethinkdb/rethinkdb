@@ -1,4 +1,8 @@
 /* ===========================================================
+ * Forked from bootstrap-tooltip to provide a fadeIn (in `show`)
+ * ========================================================== */
+
+/* ===========================================================
  * bootstrap-tooltip.js v2.0.2
  * http://twitter.github.com/bootstrap/javascript.html#tooltips
  * Inspired by the original jQuery.tipsy by Jason Frame
@@ -105,6 +109,10 @@
         , actualHeight
         , placement
         , tp
+        , for_dataexplorer
+
+      // if for_dataexplorer is true, we use a fadein and a special css class
+      for_dataexplorer = this.options.for_dataexplorer || false;
 
       if (this.hasContent() && this.enabled) {
         $tip = this.tip()
@@ -125,6 +133,13 @@
           .css({ top: 0, left: 0, display: 'block' })
           .appendTo(inside ? this.$element : document.body)
 
+        // We need to add this class before computing the position because we need the font of the
+        // size to compute the width
+        if (for_dataexplorer === true) {
+          $tip.addClass('dataexplorer_tooltip')
+        }
+
+
         pos = this.getPosition(inside)
 
         actualWidth = $tip[0].offsetWidth
@@ -133,7 +148,6 @@
         if ((actualWidth == undefined || actualWidth == 0) && ($tip[0] !== undefined) && ($tip[0].getBBox !== undefined)) {
             actualWidth = $tip[0].getBBox().width
             actualWidth = $tip[0].getBBox().height
-            console.log(actualWidth)
         }
 
         switch (inside ? placement.split(' ')[1] : placement) {
@@ -151,10 +165,17 @@
             break
         }
 
+
         $tip
           .css(tp)
           .addClass(placement)
           .addClass('in')
+
+        // Hide then fadeIn
+        if (for_dataexplorer === true) {
+          $tip.css({display: 'none'})
+          $tip.fadeIn('fast')
+        }
       }
     }
 
@@ -204,11 +225,13 @@
         box_width = this.$element[0].getBBox().width;
         box_height = this.$element[0].getBBox().height;
       }
-
-      return $.extend({}, (inside ? {top: 0, left: 0} : this.$element.offset()), {
-        width: Math.max(this.$element[0].offsetWidth, box_width)
-      , height: Math.max(this.$element[0].offsetHeight, box_height)
-      })
+      // offsetWidth/offsetHeight can be undefined for a SVGRectElement in Firefox
+      // Math.max(undefined, 1) returns NaN...
+      var size = {
+        width: (this.$element[0].offsetWidth != null) ? Math.max(this.$element[0].offsetWidth, box_width) : box_width,
+        height: (this.$element[0].offsetHeight != null) ? Math.max(this.$element[0].offsetHeight, box_height) : box_height
+      }
+      return $.extend({}, (inside ? {top: 0, left: 0} : this.$element.offset()), size)
     }
 
   , getTitle: function () {

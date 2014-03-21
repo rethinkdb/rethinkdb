@@ -47,7 +47,7 @@ void run_with_broadcaster(
     /* Set up branch history manager */
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a broadcaster and initial listener */
     test_store_t<dummy_protocol_t> initial_store(&io_backender, &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
@@ -96,7 +96,7 @@ void run_in_thread_pool_with_broadcaster(
                              scoped_ptr_t<listener_t<dummy_protocol_t> > *,
                              order_source_t *)> fun)
 {
-    unittest::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
 }
 
 }   /* anonymous namespace */
@@ -204,7 +204,8 @@ void run_backfill_test(io_backender_t *io_backender,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
+        std::bind(&write_to_broadcaster, broadcaster->get(),
+                  ph::_1, ph::_2, ph::_3, ph::_4),
         NULL,
         &dummy_key_gen,
         order_source,
@@ -269,7 +270,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
+        std::bind(&write_to_broadcaster, broadcaster->get(),
+                  ph::_1, ph::_2, ph::_3, ph::_4),
         NULL,
         &dummy_key_gen,
         order_source,

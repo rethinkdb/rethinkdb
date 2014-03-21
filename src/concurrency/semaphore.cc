@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/semaphore.hpp"
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/interruptor.hpp"
 
-void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
+void static_semaphore_t::lock(semaphore_available_callback_t *cb, int64_t count) {
     rassert(!in_callback);
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
@@ -21,7 +22,7 @@ void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
     }
 }
 
-void semaphore_t::co_lock(int count) {
+void static_semaphore_t::co_lock(int64_t count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public one_waiter_cond_t {
         void on_semaphore_available() { pulse(); }
@@ -29,15 +30,15 @@ void semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: Remove the need for in_callback checks.
-    coro_t::yield();
+    coro_t::yield_ordered();
 }
 
-void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void static_semaphore_t::co_lock_interruptible(signal_t *interruptor, int64_t count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);
@@ -54,7 +55,7 @@ void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
     }
 }
 
-void semaphore_t::unlock(int count) {
+void static_semaphore_t::unlock(int64_t count) {
     rassert(!in_callback);
     rassert(current >= count);
     current -= count;
@@ -73,13 +74,17 @@ void semaphore_t::unlock(int count) {
     }
 }
 
-void semaphore_t::lock_now(int count) {
+void static_semaphore_t::lock_now(int64_t count) {
     rassert(!in_callback);
     rassert(current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     current += count;
 }
 
-void adjustable_semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
+void static_semaphore_t::force_lock(int64_t count) {
+    current += count;
+}
+
+void adjustable_semaphore_t::lock(semaphore_available_callback_t *cb, int64_t count) {
     rassert(!in_callback);
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     if (try_lock(count)) {
@@ -96,7 +101,7 @@ void adjustable_semaphore_t::lock(semaphore_available_callback_t *cb, int count)
     }
 }
 
-void adjustable_semaphore_t::co_lock(int count) {
+void adjustable_semaphore_t::co_lock(int64_t count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public one_waiter_cond_t {
         void on_semaphore_available() { pulse(); }
@@ -104,15 +109,15 @@ void adjustable_semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: remove need for in_callback checks
-    coro_t::yield();
+    coro_t::yield_ordered();
 }
 
-void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor, int64_t count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);
@@ -129,7 +134,7 @@ void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
     }
 }
 
-void adjustable_semaphore_t::unlock(int count) {
+void adjustable_semaphore_t::unlock(int64_t count) {
     rassert(!in_callback);
     rassert(current >= count);
     current -= count;
@@ -139,25 +144,25 @@ void adjustable_semaphore_t::unlock(int count) {
     pump();
 }
 
-void adjustable_semaphore_t::lock_now(int count) {
+void adjustable_semaphore_t::lock_now(int64_t count) {
     rassert(!in_callback);
     if (!try_lock(count)) {
         crash("lock_now() can't lock now.\n");
     }
 }
 
-void adjustable_semaphore_t::force_lock(int count) {
+void adjustable_semaphore_t::force_lock(int64_t count) {
     current += count;
 }
 
-void adjustable_semaphore_t::set_capacity(int new_capacity) {
+void adjustable_semaphore_t::set_capacity(int64_t new_capacity) {
     rassert(!in_callback);
     capacity = new_capacity;
     rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     pump();
 }
 
-bool adjustable_semaphore_t::try_lock(int count) {
+bool adjustable_semaphore_t::try_lock(int64_t count) {
     if (current + count > capacity && capacity != SEMAPHORE_NO_LIMIT) {
         if (trickle_points >= count) {
             trickle_points -= count;

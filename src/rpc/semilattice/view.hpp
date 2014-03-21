@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_SEMILATTICE_VIEW_HPP_
 #define RPC_SEMILATTICE_VIEW_HPP_
 
@@ -6,6 +6,7 @@
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "concurrency/interruptor.hpp"
 #include "concurrency/pubsub.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "utils.hpp"

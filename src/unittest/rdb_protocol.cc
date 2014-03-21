@@ -1,15 +1,14 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "containers/iterators.hpp"
-#include "extproc/pool.hpp"
-#include "extproc/spawner.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
+#include "extproc/extproc_pool.hpp"
+#include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -17,10 +16,8 @@
 #include "serializer/translator.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
-
-#include "memcached/protocol_json_adapter.hpp"
-
-#pragma GCC diagnostic ignored "-Wshadow"
+#include "rdb_protocol/minidriver.hpp"
+#include "stl_utils.hpp"
 
 namespace unittest {
 namespace {
@@ -49,7 +46,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new temp_file_t);
     }
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -66,9 +64,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
-    extproc::spawner_info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-    extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
+    extproc_pool_t extproc_pool(2);
 
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
@@ -79,13 +75,14 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
-    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
-                                  dummy_auth, &read_manager, generate_uuid());
+    rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
+                                  dummy_auth, &read_manager, generate_uuid(),
+                                  &get_global_perfmon_collection());
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(),
-                    temp_files[i].name().permanent_path(), GIGABYTE, true,
+                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                    temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));
     }
@@ -106,7 +103,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun, oversharded));
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun, oversharded));
 }
 
 }   /* anonymous namespace */
@@ -126,32 +124,35 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data),
-                                      DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::write_t write(
+                rdb_protocol_t::point_write_t(store_key_t("a"),
+                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
+                DURABILITY_REQUIREMENT_DEFAULT,
+                profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response_t->result, STORED);
+            ASSERT_EQ(maybe_point_write_response_t->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
 
     {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")));
+        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")),
+                profile_bool_t::PROFILE);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
         nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
 
         if (rdb_protocol_t::point_read_response_t *maybe_point_read_response = boost::get<rdb_protocol_t::point_read_response_t>(&response.response)) {
-            ASSERT_TRUE(maybe_point_read_response->data->get() != NULL);
-            ASSERT_TRUE(cJSON_Equal(data->get(), maybe_point_read_response->data->get()));
+            ASSERT_TRUE(maybe_point_read_response->data.has());
+            ASSERT_EQ(ql::datum_t(ql::datum_t::R_NULL), *maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -169,13 +170,13 @@ TEST(RDBProtocol, OvershardedGetSet) {
 std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                           order_source_t *osource) {
     std::string id = uuid_to_str(generate_uuid());
-    Term mapping;
-    Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
+    const ql::sym_t arg(1);
+    ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
+    ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
+
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -192,7 +193,7 @@ bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                  order_source_t *osource,
                  const std::string &id) {
     rdb_protocol_t::sindex_drop_t d(id);
-    rdb_protocol_t::write_t write(d);
+    rdb_protocol_t::write_t write(d, profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -209,28 +210,39 @@ bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 }
 
 void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    query_language::backtrace_t b;
-
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
-    store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
+
+    std::shared_ptr<const scoped_cJSON_t> data(
+        new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
+    counted_t<const ql::datum_t> d(
+        new ql::datum_t(cJSON_GetObjectItem(data->get(), "id")));
+    store_key_t pk = store_key_t(d->print_primary());
     counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
-                                      DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+        nsi->write(write,
+                   &response,
+                   osource->check_in(
+                       "unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"),
+                   &interruptor);
 
-        if (rdb_protocol_t::point_write_response_t *maybe_point_write_response = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response->result, STORED);
+        if (rdb_protocol_t::point_write_response_t *maybe_point_write_response
+            = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+            ASSERT_EQ(maybe_point_write_response->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -238,19 +250,21 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            id, rdb_protocol_t::sindex_range_t(
-                sindex_key_literal, false, sindex_key_literal, false)));
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(1, streams->size());
+            auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).second->get(), data->get()));
+            ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -258,15 +272,16 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Delete the data. */
-        rdb_protocol_t::point_delete_t d(pk);
-        rdb_protocol_t::write_t write(d, DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::point_delete_t del(pk);
+        rdb_protocol_t::write_t write(
+                del, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::point_delete_response_t *maybe_point_delete_response = boost::get<rdb_protocol_t::point_delete_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_delete_response->result, DELETED);
+            ASSERT_EQ(maybe_point_delete_response->result, point_delete_result_t::DELETED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -274,25 +289,26 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            id, rdb_protocol_t::sindex_range_t(
-                sindex_key_literal, false, sindex_key_literal, false)));
-
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
         nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
-            ASSERT_TRUE(stream != NULL);
-            ASSERT_EQ(0u, stream->size());
+            auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                &rget_resp->result);
+            ASSERT_TRUE(streams != NULL);
+            ASSERT_EQ(0, streams->size());
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
 
-    ASSERT_TRUE(drop_sindex(nsi, osource, id));
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {
@@ -305,7 +321,7 @@ TEST(RDBProtocol, OvershardedSindexCreateDrop) {
 
 std::set<std::string> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     rdb_protocol_t::sindex_list_t l;
-    rdb_protocol_t::read_t read(l);
+    rdb_protocol_t::read_t read(l, profile_bool_t::PROFILE);
     rdb_protocol_t::read_response_t response;
 
     cond_t interruptor;
@@ -353,23 +369,27 @@ TEST(RDBProtocol, OvershardedSindexList) {
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    query_language::backtrace_t b;
     std::string sindex_id = create_sindex(nsi, osource);
+
+    // KSI: Ugh, why is sindex creation so slow that we need a nap?
+    nap(100);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
-            std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, static_cast<char>(j));
+            std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10,
+                           static_cast<char>(j));
             std::string sid(j, 'a');
-            auto sindex_key_literal = make_counted<const ql::datum_t>(sid);
-            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
+            auto sindex_key_literal = make_counted<const ql::datum_t>(std::string(sid));
+            std::shared_ptr<const scoped_cJSON_t> data(
+                new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
             store_key_t pk;
             try {
-                pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
-            } catch (const query_language::runtime_exc_t &ex) {
-                const size_t max_primary_key_size = rdb_protocol_t::MAX_PRIMARY_KEY_SIZE;
-                ASSERT_TRUE(id.length() >= max_primary_key_size);
+                pk = store_key_t(make_counted<const ql::datum_t>(
+                    cJSON_GetObjectItem(data->get(), "id"))->print_primary());
+            } catch (const ql::base_exc_t &ex) {
+                ASSERT_TRUE(id.length() >= rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
                 continue;
             }
             ASSERT_TRUE(data->get());
@@ -377,36 +397,47 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
-                                              DURABILITY_REQUIREMENT_DEFAULT);
+                rdb_protocol_t::write_t write(
+                    rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
+                    DURABILITY_REQUIREMENT_DEFAULT,
+                    profile_bool_t::PROFILE);
                 rdb_protocol_t::write_response_t response;
 
                 cond_t interruptor;
                 nsi->write(write,
                            &response,
-                           osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"),
+                           osource->check_in(
+                               "unittest::run_sindex_oversized_keys_test("
+                               "rdb_protocol_t.cc-A"),
                            &interruptor);
 
-                if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+                auto resp = boost::get<rdb_protocol_t::point_write_response_t>(
+                        &response.response);
+                if (!resp) {
                     ADD_FAILURE() << "got wrong type of result back";
+                } else {
+                    ASSERT_EQ(resp->result, point_write_result_t::STORED);
                 }
             }
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::rget_read_t rget(
-                    sindex_id, rdb_protocol_t::sindex_range_t(
-                        sindex_key_literal, false, sindex_key_literal, false));
-                rdb_protocol_t::read_t read(rget);
+                rdb_protocol_t::read_t read
+                    = make_sindex_read(sindex_key_literal, sindex_id);
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
                 nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"), &interruptor);
 
                 if (rdb_protocol_t::rget_read_response_t *rget_resp = boost::get<rdb_protocol_t::rget_read_response_t>(&response.response)) {
-                    rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
+                    auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
+                        &rget_resp->result);
+                    ASSERT_TRUE(streams != NULL);
+                    ASSERT_EQ(1, streams->size());
+                    auto stream = &streams->begin()->second;
                     ASSERT_TRUE(stream != NULL);
-                    // There should be results equal to the number of iterations performed
+                    // There should be results equal to the number of iterations
+                    // performed
                     ASSERT_EQ(i + 1, stream->size());
                 } else {
                     ADD_FAILURE() << "got wrong type of result back";
@@ -426,21 +457,28 @@ TEST(RDBProtocol, OvershardedOverSizedKeys) {
 }
 
 void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    query_language::backtrace_t b;
     create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
-    store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
+    std::shared_ptr<const scoped_cJSON_t> data(
+        new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
+    store_key_t pk = store_key_t(make_counted<const ql::datum_t>(
+        cJSON_GetObjectItem(data->get(), "id"))->print_primary());
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
-                                      DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+        nsi->write(write,
+                   &response,
+                   osource->check_in(
+                       "unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"),
+                   &interruptor);
 
         if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
             ADD_FAILURE() << "got wrong type of result back";

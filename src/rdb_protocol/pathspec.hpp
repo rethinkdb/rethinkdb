@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PATHSPEC_HPP_
 #define RDB_PROTOCOL_PATHSPEC_HPP_
 
@@ -7,9 +7,10 @@
 #include <vector>
 
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/term.hpp"
+#include "utils.hpp"
 
 namespace ql {
+class term_t;
 
 class pathspec_t {
 public:

@@ -22,14 +22,14 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1))
     { }
     promise_t<perfmon_result_t> stats;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
 stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
-                                 clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory,
+                                 clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory,
                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice
                                  )
     : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice)
@@ -51,6 +51,16 @@ cJSON *render_as_json(perfmon_result_t *target) {
     }
 }
 
+template<class A, class B>
+std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection) {
+    std::map<B, A> inverted;
+    for (typename std::map<A, B>::const_iterator it = bijection.begin(); it != bijection.end(); ++it) {
+        DEBUG_VAR bool inserted = inverted.insert(std::make_pair(it->second, it->first)).second;
+        rassert(inserted, "The map that was given is not a bijection and can't be inverted");
+    }
+    return inverted;
+}
+
 cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &not_replied) {
     scoped_cJSON_t machines(cJSON_CreateObject());
 
@@ -59,10 +69,10 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     scoped_cJSON_t ghosts(cJSON_CreateArray());
     scoped_cJSON_t timed_out(cJSON_CreateArray());
 
-    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(
+    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->incremental_subview(
+            incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::machine_id
-            ))->get());
+            ))->get().get_inner());
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
 
     machines_semilattice_metadata_t::machine_map_t machines_ids = semilattice->get().machines.machines;
@@ -122,9 +132,9 @@ boost::optional<http_res_t> parse_query_params(
                     out_set->insert(*s);
                 }
             } catch (const boost::escaped_list_error &e) {
-                return boost::optional<http_res_t>(http_error_res(
-                    "Boost tokenizer error: "+std::string(e.what())
-                    +" ("+it->key+"="+it->val+")"));
+                std::string msg = strprintf("Boost tokenizer error: %s (%s=%s)",
+                                            e.what(), it->key.c_str(), it->val.c_str());
+                return boost::optional<http_res_t>(http_error_res(msg));
             }
         } else {
             return boost::optional<http_res_t>(http_error_res(
@@ -135,9 +145,10 @@ boost::optional<http_res_t> parse_query_params(
     return boost::none;
 }
 
-http_res_t stat_http_app_t::handle(const http_req_t &req) {
+void stat_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
-        return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
     }
     std::set<std::string> filter_paths;
     std::set<std::string> machine_whitelist;
@@ -146,14 +157,20 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 #else
     uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS*10;
 #endif
-    if (req.method != GET) return http_res_t(HTTP_METHOD_NOT_ALLOWED);
+    if (req.method != GET) {
+        *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        return;
+    }
     boost::optional<http_res_t> maybe_error_res =
         parse_query_params(req, &filter_paths, &machine_whitelist, &timeout);
-    if (maybe_error_res) return *maybe_error_res;
+    if (maybe_error_res) {
+        *result = *maybe_error_res;
+        return;
+    }
 
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    peers_to_metadata_t peers_to_metadata = directory->get();
+    peers_to_metadata_t peers_to_metadata = directory->get().get_inner();
 
     typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
     stats_promises_t stats_promises;
@@ -162,7 +179,8 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
      * get_stat function  has gone out of existence we'll never get a response.
      * Thus we need to have a time out.
      */
-    signal_timer_t timer(static_cast<int>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
+    signal_timer_t timer;
+    timer.start(static_cast<int64_t>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
 
     for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
                                        it != peers_to_metadata.end();
@@ -182,7 +200,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         machine_id_t machine = it->first;
 
         const signal_t * stats_ready = it->second->stats.get_ready_signal();
-        wait_any_t waiter(&timer, stats_ready);
+        wait_any_t waiter(&timer, stats_ready, interruptor);
         waiter.wait();
 
         if (stats_ready->is_pulsed()) {
@@ -190,6 +208,8 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
             if (stats.get_map_size() != 0) {
                 body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
             }
+        } else if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
         } else {
             not_replied.push_back(machine);
         }
@@ -197,5 +217,5 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
     cJSON_AddItemToObject(body.get(), "machines", prepare_machine_info(not_replied));
 
-    return http_json_res(body.get());
+    http_json_res(body.get(), result);
 }

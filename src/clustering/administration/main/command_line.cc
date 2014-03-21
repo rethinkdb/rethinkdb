@@ -18,12 +18,19 @@
 #include <sys/sysctl.h>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+// Needed for determining available RAM for default cache size
+#if defined(__MACH__)
+#include <mach/host_info.h>
+#include <mach/mach_host.h>
+#endif
+
+#include <functional>
+#include <limits>
 
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
+#include "extproc/extproc_spawner.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/options.hpp"
@@ -32,12 +39,10 @@
 #include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
+#include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
-#include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "utils.hpp"
-#include "help.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -235,11 +240,11 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t group_id;
         if (!get_group_id(rungroup->c_str(), &group_id)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (setgid(group_id) != 0) {
             throw std::runtime_error(strprintf("Could not set group to '%s': %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 
@@ -248,18 +253,18 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t user_group_id;
         if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
             if (setgid(user_group_id) != 0) {
                 throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
-                                                   runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                                   runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
             }
         }
         if (setuid(user_id) != 0) {
             throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 }
@@ -307,18 +312,15 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
 
 class serve_info_t {
 public:
-    serve_info_t(extproc::spawner_info_t *_spawner_info,
-                 const std::vector<host_and_port_t> &_joins,
+    serve_info_t(const std::vector<host_and_port_t> &_joins,
                  service_address_ports_t _ports,
                  std::string _web_assets,
                  boost::optional<std::string> _config_file):
-        spawner_info(_spawner_info),
         joins(&_joins),
         ports(_ports),
         web_assets(_web_assets),
         config_file(_config_file) { }
 
-    extproc::spawner_info_t *spawner_info;
     const std::vector<host_and_port_t> *joins;
     service_address_ports_t ports;
     std::string web_assets;
@@ -399,27 +401,121 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
 }
 
 std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
-    boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
-    return get_web_path(web_static_directory, argv);
+    if (!exists_option(opts, "--no-http-admin")) {
+        boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
+        return get_web_path(web_static_directory, argv);
+    }
+    return std::string();
+}
+
+uint64_t get_avail_mem_size() {
+    uint64_t page_size = sysconf(_SC_PAGESIZE);
+
+#if defined(__MACH__)
+    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+    vm_statistics_data_t vmstat;
+    if (KERN_SUCCESS != host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+        fprintf(stderr, "ERROR: could not determine available RAM for the default cache size (errno=%d).\n", get_errno());
+        return 1024 * MEGABYTE;
+    }
+    return vmstat.free_count * page_size;
+#else
+    uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+    return avail_mem_pages * page_size;
+#endif
+}
+
+uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
+    uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
+    uint64_t res = std::min<uint64_t>(get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO,
+                                      cache_limit);
+
+    if (exists_option(opts, "--cache-size")) {
+        std::string cache_size_opt = get_single_option(opts, "--cache-size");
+        if (!strtou64_strict(cache_size_opt, 10, &res)) {
+            throw std::runtime_error(strprintf(
+                    "ERROR: could not parse cache-size as a number (%s)",
+                    cache_size_opt.c_str()));
+        }
+        res = res * MEGABYTE;
+
+        if (res > cache_limit) {
+            throw std::runtime_error(strprintf(
+                    "Requested cache size (%" PRIu64 " MB) is higher than the "
+                    "expected upper-bound for this platform (%" PRIu64" MB).",
+                    res / 1024 / 1024, cache_limit / 1024 / 1024));
+        }
+    }
+
+    return res;
 }
 
 // Note that this defaults to the peer port if no port is specified
 //  (at the moment, this is only used for parsing --join directives)
+// Possible formats:
+//  host only: newton
+//  host and port: newton:60435
+//  IPv4 addr only: 192.168.0.1
+//  IPv4 addr and port: 192.168.0.1:60435
+//  IPv6 addr only: ::dead:beef
+//  IPv6 addr only: [::dead:beef]
+//  IPv6 addr and port: [::dead:beef]:60435
+//  IPv4-mapped IPv6 addr only: ::ffff:192.168.0.1
+//  IPv4-mapped IPv6 addr only: [::ffff:192.168.0.1]
+//  IPv4-mapped IPv6 addr and port: [::ffff:192.168.0.1]:60435
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value, int default_port) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
-            return host_and_port_t(host, port_t(port));
+    // First disambiguate IPv4 vs IPv6
+    size_t colon_count = std::count(value.begin(), value.end(), ':');
+
+    if (colon_count < 2) {
+        // IPv4 will have 1 or less colons
+        size_t colon_loc = value.find_last_of(':');
+        if (colon_loc != std::string::npos) {
+            std::string host = value.substr(0, colon_loc);
+            int port = atoi(value.substr(colon_loc + 1).c_str());
+            if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+                return host_and_port_t(host, port_t(port));
+            }
+        } else if (value.size() != 0) {
+            return host_and_port_t(value, port_t(default_port));
         }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_t(default_port));
+    } else {
+        // IPv6 will have 2 or more colons
+        size_t last_colon_loc = value.find_last_of(':');
+        size_t start_bracket_loc = value.find_first_of('[');
+        size_t end_bracket_loc = value.find_last_of(']');
+
+        if (start_bracket_loc > end_bracket_loc) {
+            // Error condition fallthrough
+        } else if (start_bracket_loc == std::string::npos || end_bracket_loc == std::string::npos) {
+            // No brackets, therefore no port, just parse the whole thing as a hostname
+            return host_and_port_t(value, port_t(default_port));
+        } else if (last_colon_loc < end_bracket_loc) {
+            // Brackets, but no port, verify no other characters outside the brackets
+            if (value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos &&
+                value.find_first_not_of(" \t\r\n]", end_bracket_loc) == std::string::npos) {
+                std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+                return host_and_port_t(host, port_t(default_port));
+            }
+        } else {
+            // Brackets and port
+            std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+            std::string remainder = value.substr(end_bracket_loc + 1);
+            size_t remainder_colon_loc = remainder.find_first_of(':');
+            int port = atoi(remainder.substr(remainder_colon_loc + 1).c_str());
+
+            // Verify no characters before the brackets and up to the port colon
+            if (port != 0 && port <= MAX_PORT && remainder_colon_loc == 0 &&
+                value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos) {
+                return host_and_port_t(host, port_t(port));
+            }
+        }
     }
 
+
     throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                 strprintf("Option '%s' has invalid host and port format '%s'",
                                            option_name.c_str(), value.c_str()));
 }
 
@@ -442,25 +538,31 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
-            struct in_addr addr;
-            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
-                if (addr.s_addr == INADDR_ANY) {
+            try {
+                ip_address_t addr(bind_options[i]);
+                if (addr.is_any()) {
                     all = true;
                 } else {
-                    set_filter.insert(ip_address_t(addr));
+                    set_filter.insert(addr);
                 }
-            } else {
-                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
+            } catch (const std::exception &ex) {
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed: %s",
+                                                     bind_options[i].c_str(),
+                                                     ex.what()));
             }
         }
     }
 
-    std::set<ip_address_t> result = ip_address_t::get_local_addresses(set_filter, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, all);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->as_dotted_decimal().c_str()));
+            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            if (i->is_ipv6_link_local()) {
+                errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
+            }
+            throw address_lookup_exc_t(errmsg);
         }
     }
 
@@ -538,11 +640,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
                                    get_canonical_addresses(opts, cluster_port),
                                    cluster_port,
-#ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
-#else
-                                   port_defaults::client_port,
-#endif
                                    exists_option(opts, "--no-http-admin"),
                                    offseted_port(get_single_int(opts, "--http-port"), port_offset),
                                    offseted_port(get_single_int(opts, "--driver-port"), port_offset),
@@ -550,7 +648,10 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 }
 
 
-void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name,
+void run_rethinkdb_create(const base_path_t &base_path,
+                          const name_string_t &machine_name,
+                          const file_direct_io_mode_t direct_io_mode,
+                          const int max_concurrent_io_requests,
                           bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
 
@@ -562,7 +663,7 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -645,14 +746,19 @@ std::string uname_msr() {
     static const std::string unknown = "unknown operating system\n";
     FILE *out = popen("uname -msr", "r");
     if (!out) return unknown;
-    if (!fgets(buf, sizeof(buf), out)) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) {
+        pclose(out);    
+        return unknown;
+    }
     pclose(out);
     return buf;
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,
-                         const serve_info_t& serve_info,
+                         const serve_info_t &serve_info,
+                         const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
+                         const uint64_t total_cache_size,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
@@ -661,9 +767,16 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
+    logINF("Using cache size of %" PRIu64 " MB", total_cache_size / static_cast<uint64_t>(MEGABYTE));
+
+    if (total_cache_size > get_avail_mem_size()) {
+        logWRN("Requested cache size is larger than available memory.");
+    }
+
+
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    io_backender_t io_backender(max_concurrent_io_requests);
+    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -701,11 +814,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         //  otherwise delete an uninitialized directory
         data_directory_lock->directory_initialized();
 
-        *result_out = serve(serve_info.spawner_info,
-                            &io_backender,
+        *result_out = serve(&io_backender,
                             base_path,
                             cluster_metadata_file.get(),
                             auth_metadata_file.get(),
+                            total_cache_size,
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
                             serve_info.web_assets,
@@ -723,13 +836,16 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
+                             const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
+                             const uint64_t total_cache_size,
                              const bool new_directory,
                              const serve_info_t &serve_info,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info, max_concurrent_io_requests,
+        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+                            max_concurrent_io_requests, total_cache_size,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -761,8 +877,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        run_rethinkdb_serve(base_path, serve_info,
-                            max_concurrent_io_requests,
+        run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
+                            max_concurrent_io_requests, total_cache_size,
                             &our_machine_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -773,8 +889,7 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
     guarantee(!serve_info.joins->empty());
 
     try {
-        *result_out = serve_proxy(serve_info.spawner_info,
-                                  look_up_peers_addresses(*serve_info.joins),
+        *result_out = serve_proxy(look_up_peers_addresses(*serve_info.joins),
                                   serve_info.ports,
                                   serve_info.web_assets,
                                   &sigint_cond,
@@ -816,6 +931,12 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
     help.add("--io-threads n",
              "how many simultaneous I/O operations can happen at the same time");
+    options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-direct-io", "disable direct I/O");
+    options_out->push_back(options::option_t(options::names_t("--cache-size"),
+                                             options::OPTIONAL));
+    help.add("--cache-size mb", "total cache size (in megabytes) for the process");
     return help;
 }
 
@@ -864,10 +985,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
                                              strprintf("%d", port_defaults::peer_port)));
     help.add("--cluster-port port", "port for receiving connections from other nodes");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -887,7 +1008,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     return help;
 }
@@ -984,10 +1105,10 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                  std::vector<options::option_t> *options_out) {
     options::help_section_t help("Allowed options");
 
-#ifndef NDEBUG
     options_out->push_back(options::option_t(options::names_t("--client-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
+#ifndef NDEBUG
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
@@ -998,7 +1119,7 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));
@@ -1074,6 +1195,24 @@ void output_named_error(const options::named_error_t &ex, const std::vector<opti
     }
 }
 
+MUST_USE bool parse_io_threads_option(const std::map<std::string, options::values_t> &opts,
+                                      int *max_concurrent_io_requests_out) {
+    int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
+    if (max_concurrent_io_requests <= 0
+        || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
+        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
+                MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
+        return false;
+    }
+    *max_concurrent_io_requests_out = max_concurrent_io_requests;
+    return true;
+}
+
+file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
+    return exists_option(opts, "--no-direct-io") ?
+        file_direct_io_mode_t::buffered_desired :
+        file_direct_io_mode_t::direct_desired;
+}
 
 int main_rethinkdb_create(int argc, char *argv[]) {
     std::vector<options::option_t> options;
@@ -1100,6 +1239,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        int max_concurrent_io_requests;
+        if (!parse_io_threads_option(opts, &max_concurrent_io_requests)) {
+            return EXIT_FAILURE;
+        }
+
         const int num_workers = get_cpu_count();
 
         bool is_new_directory = false;
@@ -1114,8 +1258,14 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         initialize_logfile(opts, base_path);
 
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
+
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
+                                     machine_name,
+                                     direct_io_mode,
+                                     max_concurrent_io_requests,
+                                     &result),
                            num_workers);
 
         if (result) {
@@ -1140,7 +1290,7 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
         pid_t pid = fork();
         if (pid < 0) {
-            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (pid > 0) {
@@ -1151,36 +1301,23 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
 
         pid_t sid = setsid();
         if (sid == 0) {
-            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (chdir("/") < 0) {
-            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (freopen("/dev/null", "r", stdin) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stdout) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stderr) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
     }
-    return true;
-}
-
-MUST_USE bool parse_io_threads_option(const std::map<std::string, options::values_t> &opts,
-                                      int *max_concurrent_io_requests_out) {
-    int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
-    if (max_concurrent_io_requests <= 0
-        || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
-                MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
-        return false;
-    }
-    *max_concurrent_io_requests_out = max_concurrent_io_requests;
     return true;
 }
 
@@ -1218,6 +1355,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        uint64_t total_cache_size = get_total_cache_size(opts);
+
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
@@ -1241,20 +1380,23 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
+
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
-                                       serve_info,
-                                       max_concurrent_io_requests,
-                                       static_cast<machine_id_t*>(NULL),
-                                       static_cast<cluster_semilattice_metadata_t*>(NULL),
-                                       &data_directory_lock,
-                                       &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_serve, base_path,
+                                     serve_info,
+                                     direct_io_mode,
+                                     max_concurrent_io_requests,
+                                     total_cache_size,
+                                     static_cast<machine_id_t*>(NULL),
+                                     static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                     &data_directory_lock,
+                                     &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1288,17 +1430,14 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
-#ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
-#else
-        const int client_port = port_defaults::client_port;
-#endif
+
         const bool exit_on_failure = exists_option(opts, "--exit-failure");
 
         const int num_workers = get_cpu_count();
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1359,14 +1498,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, serve_info, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1399,106 +1537,19 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-#if defined(__linux__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    char buffer[PATH_MAX + 1];
-    ssize_t len = readlink("/proc/self/exe", buffer, PATH_MAX);
-
-    if (len == -1) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    buffer[len] = '\0';
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__MACH__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    uint32_t buffer_size = PATH_MAX;
-    char buffer[PATH_MAX + 1];
-
-    if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-        buffer[0] = 0;
-
-        if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-            fprintf(stderr, "Error when determining rethinkdb directory\n");
-            return false;
-        }
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__FreeBSD_version)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    // Taken from http://stackoverflow.com/questions/799679, completely untested
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    char buf[2048];
-    size_t cb = sizeof(buf);
-    int res = sysctl(mib, 4, buf, &cb, NULL, 0);
-
-    if (res != 0) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(res).c_str());
-        return false;
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#else
-#error "no implementation for 'get_rethinkdb_exe_directory()' available for this operating system"
-#endif
-
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
-    std::string exe_dir;
-
-    if (!get_rethinkdb_exe_directory(&exe_dir)) {
-        return;
-    }
-
-    // First attempt to launch the script from the same directory as us
-    std::string local_script = exe_dir + "/" + script_name;
-    int res = execvp(local_script.c_str(), arguments);
-
-    fprintf(stderr, "Warning: error when running %s: %s\n",
-            local_script.c_str(), errno_string(errno).c_str());
-    fprintf(stderr, "  attempting to run using PATH\n");
-
-    // If that fails, try to run it from the system path
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr, "Error when launching %s: %s\n",
-                script_name.c_str(),
-                errno_string(errno).c_str());
+
+        fprintf(stderr, "Error when launching '%s': %s\n",
+                script_name.c_str(), errno_string(get_errno()).c_str());
+        fprintf(stderr, "The %s command depends on the RethinkDB Python driver, which must be installed.\n",
+                script_name.c_str());
+        fprintf(stderr, "If the Python driver is already installed, make sure that the PATH environment variable\n"
+                "includes the location of the backup scripts, and that the current user has permission to\n"
+                "access and run the scripts.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n");
     }
 }
 
@@ -1563,6 +1614,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        uint64_t total_cache_size = get_total_cache_size(opts);
+
         // Attempt to create the directory early so that the log file can use it.
         // If we create the file, it will be cleaned up unless directory_initialized()
         // is called on it.  This will be done after the metadata files have been created.
@@ -1590,21 +1643,24 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
+
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                       base_path,
-                                       machine_name,
-                                       max_concurrent_io_requests,
-                                       is_new_directory,
-                                       serve_info,
-                                       &data_directory_lock,
-                                       &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_porcelain,
+                                     base_path,
+                                     machine_name,
+                                     direct_io_mode,
+                                     max_concurrent_io_requests,
+                                     total_cache_size,
+                                     is_new_directory,
+                                     serve_info,
+                                     &data_directory_lock,
+                                     &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -1628,19 +1684,21 @@ void help_rethinkdb_porcelain() {
         get_rethinkdb_porcelain_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
-    help.pagef("  and serve as a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
-    help.pagef("\n");
-    help.pagef("There are a number of subcommands for more specific tasks:\n");
-    help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
-    help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
-    help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
-    help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
-    help.pagef("    'rethinkdb import': import data from from a file into an existing cluster\n");
-    help.pagef("\n");
-    help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
+    printf("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
+    printf("  and serve as a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
+    printf("\n");
+    printf("There are a number of subcommands for more specific tasks:\n");
+    printf("    'rethinkdb create': prepare files on disk for a new server instance\n");
+    printf("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
+    printf("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
+    printf("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
+    printf("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
+    printf("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
+    printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
+    printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
+    printf("\n");
+    printf("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
 
 void help_rethinkdb_create() {
@@ -1650,10 +1708,9 @@ void help_rethinkdb_create() {
         get_rethinkdb_create_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb create' is used to prepare a directory to act"
+    printf("'rethinkdb create' is used to prepare a directory to act"
                 " as the storage location for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_serve() {
@@ -1663,9 +1720,8 @@ void help_rethinkdb_serve() {
         get_rethinkdb_serve_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_proxy() {
@@ -1675,9 +1731,8 @@ void help_rethinkdb_proxy() {
         get_rethinkdb_proxy_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_export() {

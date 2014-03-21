@@ -7,6 +7,7 @@
 
 #include "rpc/connectivity/connectivity.hpp"
 
+
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     guarantee(parent->run == NULL);
     parent->run = this;
@@ -27,7 +28,7 @@ message_multiplexer_t::run_t::~run_t() {
 void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *stream) {
     tag_t tag;
     archive_result_t res = deserialize(stream, &tag);
-    if (res) { throw fake_archive_exc_t(); }
+    if (bad(res)) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
     guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
         "we aren't compatible with the cluster on the other end.");
@@ -48,8 +49,13 @@ message_multiplexer_t::client_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
-    parent(p), tag(t), run(NULL)
+message_multiplexer_t::client_t::client_t(message_multiplexer_t *p,
+                                          tag_t t,
+                                          int max_outstanding) :
+    parent(p),
+    tag(t),
+    run(NULL),
+    outstanding_writes_semaphores(max_outstanding)
 {
     guarantee(parent->run == NULL);
     guarantee(parent->clients[tag] == NULL);
@@ -87,7 +93,11 @@ private:
 
 void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) {
     tagged_message_writer_t writer(tag, callback);
-    parent->message_service->send_message(dest, &writer);
+    {
+        semaphore_acq_t outstanding_write_acq (outstanding_writes_semaphores.get());
+        parent->message_service->send_message(dest, &writer);
+        // Release outstanding_writes_semaphore
+    }
 }
 
 void message_multiplexer_t::client_t::kill_connection(peer_id_t peer) {

@@ -1,0 +1,11 @@
+enum Formats {
+    DEC = 1;
+    HEX = 0x1F;
+    OCT = 017;
+}
+
+message Msg {
+    required int32 dec = 1 [default=-1];
+    required int32 hex = 2 [default=-0x1F];
+    required int32 oct = 3 [default=-017];
+}

@@ -1,5 +1,29 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
+    @state =
+        current_query: null
+        query: null
+        results: null
+        profile: null
+        cursor: null
+        metadata: null
+        cursor_timed_out: true
+        view: 'tree'
+        history_state: 'hidden'
+        last_keys: []
+        last_columns_size: {}
+        options_state: 'hidden'
+        options:
+            suggestions: true
+            electric_punctuation: false # False by default
+            profiler: false
+        history: []
+        focus_on_codemirror: true
+        last_query_has_profile: true
+        #saved_data: {}
+
+
+
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
@@ -8,7 +32,6 @@ module 'DataExplorerView', ->
         template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
         alert_connection_fail_template: Handlebars.templates['alert-connection_fail-template']
-        alert_reconnection_success_template: Handlebars.templates['alert-reconnection_success-template']
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
@@ -22,6 +45,8 @@ module 'DataExplorerView', ->
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
+        delay_show_abort: 70 # If a query didn't return during this period (ms) we let people abort the query
+
         events:
             'mouseup .CodeMirror': 'handle_click'
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
@@ -29,14 +54,34 @@ module 'DataExplorerView', ->
             'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
+            'click .abort_query': 'abort_query'
             'click .change_size': 'toggle_size'
-            'click #reconnect': 'reconnect'
-            'click .more_valid_results': 'show_more_results'
+            'click #reconnect': 'execute_query'
+            'click .more_results': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
             'click .toggle_options_link': 'toggle_options'
             'mousedown .nano_border_bottom': 'start_resize_history'
+            # Let people click on the description and select text
+            'mousedown .suggestion_description': 'mouse_down_description'
+            'click .suggestion_description': 'stop_propagation'
+            'mouseup .suggestion_description': 'mouse_up_description'
+            'mousedown .suggestion_full_container': 'mouse_down_description'
+            'click .suggestion_full_container': 'stop_propagation'
+            'mousedown .CodeMirror': 'mouse_down_description'
+            'click .CodeMirror': 'stop_propagation'
+
+        mouse_down_description: (event) =>
+            @keep_suggestions_on_blur = true
+            @stop_propagation event
+
+        stop_propagation: (event) =>
+            event.stopPropagation()
+
+        mouse_up_description: (event) =>
+            @keep_suggestions_on_blur = false
+            @stop_propagation event
 
         start_resize_history: (event) =>
             @history_view.start_resize event
@@ -52,17 +97,19 @@ module 'DataExplorerView', ->
         # We give this button an "active" class that make it looks like it's pressed.
         toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
-                @saved_data.history_state = 'visible'
+                @state.history_state = 'visible'
                 @$('.clear_queries_link').fadeIn 'fast'
                 @$('.close_queries_link').addClass 'active'
             else
-                @saved_data.history_state = 'hidden'
+                @state.history_state = 'hidden'
                 @$('.clear_queries_link').fadeOut 'fast'
                 @$('.close_queries_link').removeClass 'active'
 
             if @options_view.state is 'visible'
+                @state.options_state = 'visible'
                 @$('.toggle_options_link').addClass 'active'
             else
+                @state.options_state = 'hidden'
                 @$('.toggle_options_link').removeClass 'active'
 
         # Show/hide the history view
@@ -109,11 +156,21 @@ module 'DataExplorerView', ->
             @toggle_pressed_buttons()
 
         # Show/hide the options view
-        toggle_options: =>
+        toggle_options: (args) =>
             that = @
 
             @deactivate_overflow()
-            if @history_view.state is 'visible'
+            if args?.no_animation is true
+                @options_view.state = 'visible'
+                @$('.content').html @options_view.render(true).$el
+                @options_view.delegateEvents()
+                @move_arrow
+                    type: 'options'
+                    move_arrow: 'show'
+                @adjust_collapsible_panel_height
+                    no_animation: true
+                    is_at_bottom: true
+            else if @history_view.state is 'visible'
                 @history_view.state = 'hidden'
                 @move_arrow
                     type: 'options'
@@ -124,6 +181,8 @@ module 'DataExplorerView', ->
                     that.options_view.$el.fadeIn 'fast'
                     that.adjust_collapsible_panel_height()
                     that.toggle_pressed_buttons()
+                    that.$('.profiler_enabled').css 'visibility', 'hidden'
+                    that.$('.profiler_enabled').hide()
             else if @options_view.state is 'hidden'
                 @options_view.state = 'visible'
                 @$('.content').html @options_view.render(true).$el
@@ -131,7 +190,8 @@ module 'DataExplorerView', ->
                 @move_arrow
                     type: 'options'
                     move_arrow: 'show'
-                @adjust_collapsible_panel_height()
+                @adjust_collapsible_panel_height
+                    cb: args?.cb
             else if @options_view.state is 'visible'
                 @options_view.state = 'hidden'
                 @hide_collapsible_panel 'options'
@@ -220,6 +280,8 @@ module 'DataExplorerView', ->
                             that.$('.nano > .content').animate
                                 scrollTop: that.$('.nano > .content > div').height()
                                 , 200
+                        if args?.cb?
+                            args.cb()
 
                 if args? and args.delay_scroll isnt true and args.is_at_bottom is true
                     that.$('.nano > .content').animate
@@ -251,9 +313,10 @@ module 'DataExplorerView', ->
         suggestions: {} # Suggestions[state] = function for this state
 
         types:
-            value: ['number', 'bool', 'string', 'array', 'object']
+            value: ['number', 'bool', 'string', 'array', 'object', 'time']
             any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
             sequence: ['table', 'selection', 'stream', 'array']
+            grouped_stream: ['stream', 'array']
 
         # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
         convert_type: (type) =>
@@ -274,19 +337,21 @@ module 'DataExplorerView', ->
 
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
-            if command['langs']['js']['body']?
-                if command['langs']['js']['body'].match(/(\)(\s)*)$/)
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                else
+            if command['body']?
+                dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
+                if dont_need_parenthesis
                     full_tag = tag # Here full_tag is just the name of the tag
+                else
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
-                @descriptions[full_tag] =
+                @descriptions[full_tag] = (grouped_data) =>
                     name: tag
-                    dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$PARENT', 'parentType')
-                    description: @description_with_example_template
-                        description: command['description']
-                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
+                    args: /.*(\(.*\))/.exec(command['body'])?[1]
+                    description:
+                        @description_with_example_template
+                            description: command['description']
+                            example: command['example']
+                            grouped_data: grouped_data is true and full_tag isnt 'group(' and full_tag isnt 'ungroup('
 
             parents = {}
             returns = []
@@ -308,6 +373,7 @@ module 'DataExplorerView', ->
 
             @map_state[full_tag] = returns # We use full_tag because we need to differentiate between r. and r(
 
+
         # All the commands we are going to ignore
         # TODO update the set of ignored commands for 1.4
         ignored_commands:
@@ -323,14 +389,14 @@ module 'DataExplorerView', ->
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
-            for group in data['sections']
-                for command in group['commands']
-                    tag = command['langs']['js']['name']
-                    if tag of @ignored_commands
-                        continue
-                    if tag is '()' # The parentheses will be added later
-                        tag = ''
-                    @set_doc_description command, tag, @suggestions
+            for key of data
+                command = data[key]
+                tag = command['name']
+                if tag of @ignored_commands
+                    continue
+                if tag is '()' # The parentheses will be added later
+                    tag = ''
+                @set_doc_description command, tag, @suggestions
 
             relations = data['types']
 
@@ -351,62 +417,38 @@ module 'DataExplorerView', ->
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
             if window.localStorage?
-                if @history.length is 0 or @history[@history.length-1].query isnt query and @regex.white.test(query) is false
-                    @history.push
+                if @state.history.length is 0 or @state.history[@state.history.length-1].query isnt query and @regex.white.test(query) is false
+                    @state.history.push
                         query: query
                         broken_query: broken_query
-                    if @history.length>@size_history
-                        window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
+                    if @state.history.length>@size_history
+                        window.localStorage.rethinkdb_history = JSON.stringify @state.history.slice @state.history.length-@size_history
                     else
-                        window.localStorage.rethinkdb_history = JSON.stringify @history
+                        window.localStorage.rethinkdb_history = JSON.stringify @state.history
                     @history_view.add_query
                         query: query
                         broken_query: broken_query
 
         clear_history: =>
-            @history.length = 0
-            window.localStorage.rethinkdb_history = JSON.stringify @history
+            @state.history.length = 0
+            window.localStorage.rethinkdb_history = JSON.stringify @state.history
 
         initialize: (args) =>
+            @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
+
+            @state = args.state
+            @executing = false
+
             # Load options from local storage
             if window.localStorage?.options?
-                @options = JSON.parse window.localStorage.options
-            else
-                @options =
-                    suggestions: true
-                    electric_punctuation: false # False by default
+                @state.options = JSON.parse window.localStorage.options
 
-            # We do not load the rest of data from localStorage.
-            if not DataExplorerView.Container.prototype.saved_data?
-                DataExplorerView.Container.prototype.saved_data =
-                    current_query: null
-                    query: null
-                    results: null
-                    cursor: null
-                    metadata: null
-                    cursor_timed_out: true
-                    view: 'tree'
-                    history_state: 'hidden'
-                    last_keys: []
-                    last_columns_size: {}
-                    options: @options
+            if window.localStorage?.rethinkdb_history?
+                @state.history = JSON.parse window.localStorage.rethinkdb_history
 
-            # Load history, keep it in memory for the session
-            if not DataExplorerView.Container.prototype.history?
-                if window.localStorage?.rethinkdb_history?
-                    try
-                        DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
-                    catch err
-                        DataExplorerView.Container.prototype.history = []
-                else
-                    DataExplorerView.Container.prototype.history = []
-            @history = DataExplorerView.Container.prototype.history
-
-            # Let's have a shortcut
-            @prototype = DataExplorerView.Container.prototype
-            @saved_data = DataExplorerView.Container.prototype.saved_data
-            @show_query_warning = @saved_data.query isnt @saved_data.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
-            @current_results = @saved_data.results
+            @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
+            @current_results = @state.results
+            @profile = @state.profile
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -432,25 +474,25 @@ module 'DataExplorerView', ->
             @results_view = new DataExplorerView.ResultView
                 container: @
                 limit: @limit
-                view: @saved_data.view
+                view: @state.view
 
             @options_view = new DataExplorerView.OptionsView
                 container: @
-                options: @saved_data.options
+                options: @state.options
 
             @history_view = new DataExplorerView.HistoryView
                 container: @
-                history: @history
+                history: @state.history
 
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
-                on_success: @success_on_connect
-                on_fail: @error_on_connect
 
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+            $(window).mousedown @handle_mousedown
             @id_execution = 0
+            @keep_suggestions_on_blur = false
 
             @render()
 
@@ -462,6 +504,12 @@ module 'DataExplorerView', ->
             @results_view.handle_mouseup event
             @history_view.handle_mouseup event
 
+        handle_mousedown: (event) =>
+            # $(window) caught a mousedown event, so it wasn't caught by $('.suggestion_description')
+            # Let's hide the suggestion/description
+            @keep_suggestions_on_blur = false
+            @hide_suggestion_and_description()
+
         render: =>
             @$el.html @template()
             @$('.input_query_full_container').html @input_query_template()
@@ -472,23 +520,24 @@ module 'DataExplorerView', ->
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     is_internet_explorer: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if (not DataView?) or (not Uint8Array?) # The main two components that the javascript driver requires.
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
             else if not window.r? # In case the javascript driver is not found (if build from source for example)
                 @$('.reason_dataexplorer_broken').html @reason_dataexplorer_broken_template
                     no_driver: true
                 @$('.reason_dataexplorer_broken').slideDown 'fast'
-                @$('.button_query').prop 'disabled', 'disabled'
+                @$('.button_query').prop 'disabled', true
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @saved_data?.query? and @saved_data?.results? and @saved_data?.metadata?
+            if @state?.query? and @state?.results? and @state?.metadata?
                 @$('.results_container').html @results_view.render_result({
                     show_query_warning: @show_query_warning
-                    results: @saved_data.results
-                    metadata: @saved_data.metadata
+                    results: @state.results
+                    metadata: @state.metadata
+                    profile: @state.profile
                 }).$el
                 # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
@@ -515,13 +564,13 @@ module 'DataExplorerView', ->
             @codemirror.on 'gutterClick', @handle_gutter_click
 
             @codemirror.setSize '100%', 'auto'
-            if @saved_data.current_query?
-                @codemirror.setValue @saved_data.current_query
+            if @state.current_query?
+                @codemirror.setValue @state.current_query
             @codemirror.focus() # Give focus
             
             # Track if the focus is on codemirror
             # We use it to refresh the docs once the reql_docs.json is loaded
-            @prototype.focus_on_codemirror = true
+            @state.focus_on_codemirror = true
 
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
@@ -530,13 +579,19 @@ module 'DataExplorerView', ->
 
             @draft = @codemirror.getValue()
 
-            if @saved_data.history_state is 'visible' # If the history was visible, we show it
+            if @state.history_state is 'visible' # If the history was visible, we show it
                 @toggle_history
                     no_animation: true
 
+            if @state.options_state is 'visible' # If the history was visible, we show it
+                @toggle_options
+                    no_animation: true
+
         on_blur: =>
-            @prototype.focus_on_codemirror = false
-            @hide_suggestion_and_description()
+            @state.focus_on_codemirror = false
+            # We hide the description only if the user isn't selecting text from a description.
+            if @keep_suggestions_on_blur is false
+                @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
@@ -701,7 +756,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -725,12 +779,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -754,7 +806,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -778,12 +829,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -797,14 +846,14 @@ module 'DataExplorerView', ->
                     @ignored_next_keyup = false
                 return true
 
-            @prototype.focus_on_codemirror = true
+            @state.focus_on_codemirror = true
 
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
 
             # Save the last query (even incomplete)
-            @saved_data.current_query = @codemirror.getValue()
+            @state.current_query = @codemirror.getValue()
 
             # Look for special commands
             if event?.which?
@@ -858,13 +907,16 @@ module 'DataExplorerView', ->
                         result: result
                     result.suggestions = @uniq result.suggestions
 
+                    @grouped_data = @count_group_level(stack).count_group > 0
+
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
-                            result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
-                            @current_suggestions.push suggestion
-                            @.$('.suggestion_name_list').append @template_suggestion_name
-                                id: i
-                                suggestion: suggestion
+                            if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
+                                result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
+                                @current_suggestions.push suggestion
+                                @.$('.suggestion_name_list').append @template_suggestion_name
+                                    id: i
+                                    suggestion: suggestion
                     else if result.description?
                         @description = result.description
 
@@ -1017,7 +1069,7 @@ module 'DataExplorerView', ->
                                             else if /^\s*"/.test(@current_extra_suggestion) is true
                                                 suggestion = @current_extra_suggestion+'"'
                                     else
-                                        if @options.electric_punctuation is false
+                                        if @state.options.electric_punctuation is false
                                             move_outside = true
                                         if /^\s*'/.test(@current_extra_suggestion) is true
                                             string_delimiter = "'"
@@ -1065,15 +1117,15 @@ module 'DataExplorerView', ->
                     return true
                 # Catching history navigation
                 else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
-                    if @history_displayed_id < @history.length
+                    if @history_displayed_id < @state.history.length
                         @history_displayed_id++
-                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                        @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                 else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
-                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                        @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                     else if @history_displayed_id is 1
@@ -1081,13 +1133,13 @@ module 'DataExplorerView', ->
                         @codemirror.setValue @draft
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
-                    @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                    @history_displayed_id = @state.history.length
+                    @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                    @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                     event.preventDefault()
                     return true
@@ -1130,12 +1182,13 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 position: 0
 
+
             if stack is null # Stack is null if the query was too big for us to parse
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
                 return false
 
-            if @options.electric_punctuation is true
+            if @state.options.electric_punctuation is true
                 @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
@@ -1204,13 +1257,18 @@ module 'DataExplorerView', ->
                 result: result
             result.suggestions = @uniq result.suggestions
 
+            @grouped_data = @count_group_level(stack).count_group > 0
+
             if result.suggestions?.length > 0
+                show_suggestion = false
                 for suggestion, i in result.suggestions
-                    @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name
-                        id: i
-                        suggestion: suggestion
-                if @options.suggestions is true
+                    if suggestion isnt 'ungroup(' or @grouped_data is true # We add the suggestion for `ungroup` only if we are in a group_stream/data (using the flag @grouped_data)
+                        show_suggestion = true
+                        @current_suggestions.push suggestion
+                        @.$('.suggestion_name_list').append @template_suggestion_name
+                            id: i
+                            suggestion: suggestion
+                if @state.options.suggestions is true and show_suggestion is true
                     @show_suggestion()
                 else
                     @hide_suggestion()
@@ -1218,7 +1276,7 @@ module 'DataExplorerView', ->
             else if result.description?
                 @hide_suggestion()
                 @description = result.description
-                if @options.suggestions is true and event?.type isnt 'mouseup'
+                if @state.options.suggestions is true and event?.type isnt 'mouseup'
                     @show_description()
                 else
                     @hide_description()
@@ -1250,7 +1308,7 @@ module 'DataExplorerView', ->
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
-            method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
+            method: /^(\s)*([a-zA-Z0-9]*)\(/ # forEach( merge( filter(
             row: /^(\s)*row\(/
             method_var: /^(\s)*(\d*[a-zA-Z][a-zA-Z0-9]*)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
@@ -1264,7 +1322,7 @@ module 'DataExplorerView', ->
             semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             inline_comment: /^(\s)*\/\/.*\n/
-            multiple_line_comment: /^(\s)*\/\*[^]*\*\//
+            multiple_line_comment: /^(\s)*\/\*[^(\*\/)]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
@@ -1352,19 +1410,20 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                    
-                    result_inline_comment = @regex.inline_comment.exec query.slice i
-                    if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
-                        continue
-                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
-                    if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
-                        continue
+
 
                     if element.type is null
+                        result_inline_comment = @regex.inline_comment.exec query.slice i
+                        if result_inline_comment?
+                            to_skip = result_inline_comment[0].length-1
+                            start += result_inline_comment[0].length
+                            continue
+                        result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                        if result_multiple_line_comment?
+                            to_skip = result_multiple_line_comment[0].length-1
+                            start += result_multiple_line_comment[0].length
+                            continue
+
                         if start is i
                             result_white = @regex.white_start.exec query.slice i
                             if result_white?
@@ -1903,6 +1962,42 @@ module 'DataExplorerView', ->
                     return null
             return stack
 
+        # Count the number of `group` commands minus `ungroup` commands in the current level
+        # We count per level because we don't want to report a positive number of group for nested queries, e.g:
+        # r.table("foo").group("bar").map(function(doc) { doc.merge(
+        #
+        # We return an object with two fields
+        #   - count_group: number of `group` commands minus the number of `ungroup` commands
+        #   - parse_level: should we keep parsing the same level
+        count_group_level: (stack) =>
+            count_group = 0
+            if stack.length > 0
+                 # Flag for whether or not we should keep looking for group/ungroup
+                 # we want the warning to appear only at the same level
+                parse_level = true
+
+                element = stack[stack.length-1]
+                if element.body? and element.body.length > 0 and element.complete is false
+                    parse_body = @count_group_level element.body
+                    count_group += parse_body.count_group
+                    parse_level = parse_body.parse_level
+
+                    if element.body[0].type is 'return'
+                        parse_level = false
+                    if element.body[element.body.length-1].type is 'function'
+                        parse_level = false
+
+                if parse_level is true
+                    for i in [stack.length-1..0] by -1
+                        if stack[i].type is 'function' and stack[i].name is 'ungroup('
+                            count_group -= 1
+                        else if stack[i].type is 'function' and stack[i].name is 'group('
+                            count_group += 1
+
+            count_group: count_group
+            parse_level: parse_level
+
+
         # Decide if we have to show a suggestion or a description
         # Mainly use the stack created by extract_data_from_query
         create_suggestion: (args) =>
@@ -2134,7 +2229,7 @@ module 'DataExplorerView', ->
 
             ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
 
-            if @options.electric_punctuation is true
+            if @state.options.electric_punctuation is true
                 if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                     @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
                     @written_suggestion = suggestion_to_write+')'
@@ -2167,10 +2262,11 @@ module 'DataExplorerView', ->
             # Give back focus to code mirror
             @hide_suggestion()
 
-            @handle_keypress() # That's going to describe the function the user just selected
-
-            @codemirror.focus() # Useful if the user used the mouse to select a suggestion
-
+            # Put back in the stack
+            setTimeout =>
+                @handle_keypress() # That's going to describe the function the user just selected
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+            , 0 # Useful if the user used the mouse to select a suggestion
 
         # Highlight a suggestion in case of a mouseover
         mouseover_suggestion: (event) =>
@@ -2182,12 +2278,8 @@ module 'DataExplorerView', ->
 
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
-            if @options?.can_extend? and @options?.can_extend is false
-                @extra_suggestions= null
-                return @descriptions[fn]
-
             if fn is 'db(' or fn is 'dbDrop('
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if databases.length is 0
                     data =
                         no_database: true
@@ -2201,7 +2293,7 @@ module 'DataExplorerView', ->
             else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
-                description = _.extend {}, @descriptions[fn]
+                description = _.extend {}, @descriptions[fn]()
                 if database_used.error is false
                     namespaces_available = []
                     for namespace in namespaces.models
@@ -2221,7 +2313,7 @@ module 'DataExplorerView', ->
 
                 @extra_suggestions= namespaces_available
             else
-                description = @descriptions[fn]
+                description = @descriptions[fn] @grouped_data
                 @extra_suggestions= null
             return description
 
@@ -2281,29 +2373,40 @@ module 'DataExplorerView', ->
 
                 @id_execution++
                 get_result_callback = @generate_get_result_callback @id_execution
-                @saved_data.cursor.next get_result_callback
+                @state.cursor.next get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
-                @.$('.loading_query_img').css 'display', 'none'
+                @toggle_executing false
+                # We print the query here (the user just hit `more data`)
                 @results_view.render_error(@query, err)
+
+        abort_query: =>
+            @driver_handler.close_connection()
+            @id_execution++
+            @toggle_executing false
 
         # Function that execute the queries in a synchronous way.
         execute_query: =>
-            # The user just executed a query, so we reset cursor_timed_out to false
-            @saved_data.cursor_timed_out = false
-            @saved_data.show_query_warning = false
+            # We don't let people execute more than one query at a time on the same connection
+            # While we remove the button run, `execute_query` could still be called with Shift+Enter
+            if @executing is true
+                return
 
-            # postpone reconnection
-            @driver_handler.postpone_reconnection()
+            # Hide the option, if already hidden, nothing happens.
+            @$('.profiler_enabled').slideUp 'fast'
+
+            # The user just executed a query, so we reset cursor_timed_out to false
+            @state.cursor_timed_out = false
+            @state.show_query_warning = false
 
             @raw_query = @codemirror.getValue()
 
-            @query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
-            @query = @query.replace(/(\s)*\/\*[^]*\*\//g, '')
-            @query = @replace_new_lines_in_query @query # Save it because we'll use it in @callback_multilples_queries
+            @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
+                if @state.cursor?
+                    @state.cursor.close?
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
@@ -2314,21 +2417,38 @@ module 'DataExplorerView', ->
                 if @queries.length is 0
                     error = @query_error_template
                         no_query: true
-                    @results_view.render_error(null, error)
+                    @results_view.render_error(null, error, true)
                 else
-                    @.$('.loading_query_img').show()
+                    @toggle_executing true
                     @execute_portion()
 
             catch err
-                @.$('.loading_query_img').hide()
-                @results_view.render_error(@query, err)
+                @toggle_executing false
+                # Missing brackets, so we display everything (we don't know if we properly splitted the query)
+                @results_view.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
 
+        toggle_executing: (executing) =>
+            if executing is true
+                @executing = true
+                @timeout_show_abort = setTimeout =>
+                    #TODO Delay a few ms
+                    @.$('.loading_query_img').show()
+                    @$('.execute_query').hide()
+                    @$('.abort_query').show()
+                , @delay_show_abort
+            else if executing is false
+                clearTimeout @timeout_show_abort
+                @executing = false
+                @.$('.loading_query_img').hide()
+                @$('.execute_query').show()
+                @$('.abort_query').hide()
+
         # A portion is one query of the whole input.
         execute_portion: =>
-            @saved_data.cursor = null
+            @state.cursor = null
             while @queries[@index]?
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
@@ -2336,23 +2456,34 @@ module 'DataExplorerView', ->
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
-                    @.$('.loading_query_img').hide()
-                    @results_view.render_error(@raw_queries[@index], err)
+                    @toggle_executing false
+                    if @queries.length > 1
+                        @results_view.render_error(@raw_queries[@index], err, true)
+                    else
+                        @results_view.render_error(null, err, true)
+
                     @save_query
                         query: @raw_query
                         broken_query: true
                     return false
 
                 @index++
-
-                if rdb_query instanceof TermBase
+                if rdb_query instanceof @TermBaseConstructor
                     @skip_value = 0
                     @start_time = new Date()
                     @current_results = []
 
                     @id_execution++ # Update the id_execution and use it to tag the callbacks
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
-                    rdb_query.private_run @driver_handler.connection, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    # Date are displayed in their raw format for now.
+                    @state.last_query_has_profile = @state.options.profiler
+                    @driver_handler.create_connection (error, connection) =>
+                        if (error)
+                            @error_on_connect error
+                        else
+                            rdb_query.private_run connection, {timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fired more than once
+                    , @id_execution, @error_on_connect
+
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do
@@ -2360,10 +2491,11 @@ module 'DataExplorerView', ->
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        @.$('.loading_query_img').hide()
+                        @toggle_executing false
                         error = @query_error_template
                             last_non_query: true
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @results_view.render_error(@raw_queries[@index-1], error, true)
+
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2372,39 +2504,49 @@ module 'DataExplorerView', ->
         # Create a callback for when a query returns
         # We tag the callback to make sure that we display the results only of the last query executed by the user
         generate_rdb_global_callback: (id_execution) =>
-            rdb_global_callback = (error, cursor) =>
+            rdb_global_callback = (error, results) =>
                 if @id_execution is id_execution # We execute the query only if it is the last one
                     get_result_callback = @generate_get_result_callback id_execution
 
                     if error?
-                        @.$('.loading_query_img').hide()
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @toggle_executing false
+                        if @queries.length > 1
+                            @results_view.render_error(@raw_queries[@index-1], error)
+                        else
+                            @results_view.render_error(null, error)
                         @save_query
                             query: @raw_query
                             broken_query: true
 
                         return false
+
+                    if results?.profile? and @state.last_query_has_profile is true
+                        cursor = results.value
+                        @profile = results.profile
+                        @state.profile = @profile
+                    else
+                        cursor = results
+                        @profile = null # @profile is null if the user deactivated the profiler
+                        @state.profile = @profile
+
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor?
-                            @saved_data.cursor = @cursor
-
                         if cursor?.hasNext?
-                            @cursor = cursor
+                            @state.cursor = cursor
                             if cursor.hasNext() is true
-                                @cursor.next get_result_callback
+                                @state.cursor.next get_result_callback
                             else
                                 get_result_callback() # Display results
                         else
-                            @.$('.loading_query_img').hide()
+                            @toggle_executing false
 
                             # Save the last executed query and the last displayed results
                             @current_results = cursor
 
-                            @saved_data.query = @query
-                            @saved_data.results = @current_results
-                            @saved_data.metadata =
-                                limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
+                            @state.query = @query
+                            @state.results = @current_results
+                            @state.metadata =
+                                limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                                 skip_value: @skip_value
                                 execution_time: new Date() - @start_time
                                 query: @query
@@ -2412,7 +2554,8 @@ module 'DataExplorerView', ->
 
                             @results_view.render_result
                                 results: @current_results # The first parameter is null ( = query, so we don't display it)
-                                metadata: @saved_data.metadata
+                                metadata: @state.metadata
+                                profile: @profile
 
                             # Successful query, let's save it in the history
                             @save_query
@@ -2429,74 +2572,39 @@ module 'DataExplorerView', ->
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
                     if error?
-                        @results_view.render_error(@query, error)
+                        if @queries.length > 1
+                            @results_view.render_error(@query, error)
+                        else
+                            @results_view.render_error(null, error)
                         return false
 
                     if data isnt undefined
                         @current_results.push data
-                        if @current_results.length < @limit and @cursor.hasNext() is true
-                            @cursor.next get_result_callback
+                        if @current_results.length < @limit and @state.cursor.hasNext() is true
+                            @state.cursor.next get_result_callback
                             return true
 
-                    @.$('.loading_query_img').hide()
+                    @toggle_executing false
 
                     # if data is undefined or @current_results.length is @limit
-                    @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-                    @saved_data.query = @query
-                    @saved_data.results = @current_results
-                    @saved_data.metadata =
+                    @state.query = @query
+                    @state.results = @current_results
+                    @state.metadata =
                         limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: @cursor.hasNext()
+                        has_more_data: @state.cursor.hasNext()
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
-                        metadata: @saved_data.metadata
+                        metadata: @state.metadata
+                        profile: @profile
 
                     # Successful query, let's save it in the history
                     @save_query
                         query: @raw_query
                         broken_query: false
-                else
-                    @execute_portion()
-
-        get_result_callback: (error, data) =>
-            if error?
-                @results_view.render_error(@query, error)
-                @save_query
-                    query: @raw_query
-                    broken_query: true
-                return false
-
-            if data isnt undefined
-                @current_results.push data
-                if @current_results.length < @limit and @cursor.hasNext() is true
-                    @cursor.next @get_result_callback
-                    return true
-
-            # if data is undefined or @current_results.length is @limit
-            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-            @saved_data.query = @query
-            @saved_data.results = @current_results
-            @saved_data.metadata =
-                limit_value: @current_results.length
-                skip_value: @skip_value
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: @cursor.hasNext()
-
-            @results_view.render_result
-                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                metadata: @saved_data.metadata
-
-            # Successful query, let's save it in the history
-            @save_query
-                query: @raw_query
-                broken_query: false
-
-            return get_result_callback
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2504,13 +2612,14 @@ module 'DataExplorerView', ->
             "use strict"
             return eval(query)
 
-        # In a string \n becomes \\\\n, outside a string we just remove \n, so
+        # In a string \n becomes \\n, outside a string we just remove \n, so
         #   r
         #   .expr('hello
         #   world')
         # becomes
         #   r.expr('hello\nworld')
-        replace_new_lines_in_query: (query) ->
+        #  We also remove comments from the query
+        clean_query: (query) ->
             is_parsing_string = false
             start = 0
 
@@ -2522,7 +2631,7 @@ module 'DataExplorerView', ->
 
                 if is_parsing_string is true
                     if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
-                        result_query += query.slice(start, i+1).replace(/\n/g, '\\\\n')
+                        result_query += query.slice(start, i+1).replace(/\n/g, '\\n')
                         start = i+1
                         is_parsing_string = false
                         continue
@@ -2536,11 +2645,17 @@ module 'DataExplorerView', ->
 
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
                         continue
             if is_parsing_string
                 result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
@@ -2618,28 +2733,28 @@ module 'DataExplorerView', ->
             @codemirror.setValue ''
             @codemirror.focus()
 
-        # Called if the driver could connect
-        success_on_connect: (connection) =>
-            @connection = connection
-
-            @results_view.cursor_timed_out()
-            if @reconnecting is true
-                @.$('#user-alert-space').hide()
-                @.$('#user-alert-space').html @alert_reconnection_success_template()
-                @.$('#user-alert-space').slideDown 'fast'
-            @reconnecting = false
-            @driver_connected = 'connected'
-
         # Called if the driver could not connect
-        error_on_connect: =>
-            @results_view.cursor_timed_out()
-            # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
-            # So if the user fails to reconnect after a failure, the alert will still flash
-            @.$('#user-alert-space').hide()
-            @.$('#user-alert-space').html @alert_connection_fail_template({})
-            @.$('#user-alert-space').slideDown 'fast'
-            @reconnecting = false
-            @driver_connected = 'error'
+        error_on_connect: (error) =>
+            if /^(Unexpected token)/.test(error.message)
+                # Unexpected token, the server couldn't parse the protobuf message
+                # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
+                @toggle_executing false
+                @results_view.render_error(null, error)
+
+                # We save the query since the callback will never be called.
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+
+            else
+                @results_view.cursor_timed_out()
+                # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
+                # So if the user fails to reconnect after a failure, the alert will still flash
+                @$('#user-alert-space').hide()
+                @$('#user-alert-space').html @alert_connection_fail_template({})
+                @$('#user-alert-space').slideDown 'fast'
+                @reconnecting = false
+                @driver_connected = 'error'
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
@@ -2695,13 +2810,7 @@ module 'DataExplorerView', ->
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
     
-    class @ResultView extends Backbone.View
-        className: 'result_view'
-        template: Handlebars.templates['dataexplorer_result_container-template']
-        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
-        option_template: Handlebars.templates['dataexplorer-option_page-template']
-        error_template: Handlebars.templates['dataexplorer-error-template']
-        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
+    class @SharedResultView extends Backbone.View
         template_json_tree:
             'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
             'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
@@ -2719,40 +2828,89 @@ module 'DataExplorerView', ->
             'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
-        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
-        events:
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+        mouse_down: false
+
+        events: ->
+            'click .link_to_profile_view': 'show_profile'
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
             'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
-            'click .link_to_tree_view': 'show_tree'
-            'click .link_to_table_view': 'show_table'
-            'click .link_to_raw_view': 'show_raw'
 
-        current_result: []
+        expand_raw_textarea: =>
+            if $('.raw_view_textarea').length > 0
+                height = $('.raw_view_textarea')[0].scrollHeight
+                $('.raw_view_textarea').height(height)
 
-        initialize: (args) =>
-            @container = args.container
-            @set_limit args.limit
-            @set_skip 0
-            if args.view?
-                @view = args.view
+
+        toggle_collapse: (event) =>
+            @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
+            @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
+            @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
+            @.$(event.target).toggleClass('jt_arrow_hidden')
+            @set_scrollbar()
+
+        handle_mousedown: (event) =>
+            if event?.target?.className is 'click_detector'
+                @col_resizing = @$(event.target).parent().data('col')
+                @start_width = @$(event.target).parent().width()
+                @start_x = event.pageX
+                @mouse_down = true
+                $('body').toggleClass('resizing', true)
+
+        handle_mousemove: (event) =>
+            if @mouse_down
+                @container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @container.state.last_columns_size[@col_resizing] # Resize
+
+        resize_column: (col, size) =>
+            @$('.col-'+col).css 'max-width', size
+            @$('.value-'+col).css 'max-width', size-20
+            @$('.col-'+col).css 'width', size
+            @$('.value-'+col).css 'width', size-20
+            if size < 20
+                @$('.value-'+col).css 'padding-left', (size-5)+'px'
+                @$('.value-'+col).css 'visibility', 'hidden'
             else
-                @view = 'tree'
+                @$('.value-'+col).css 'padding-left', '15px'
+                @$('.value-'+col).css 'visibility', 'visible'
 
-            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
-            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+        handle_mouseup: (event) =>
+            if @mouse_down is true
+                @mouse_down = false
+                $('body').toggleClass('resizing', false)
+                @set_scrollbar()
 
-        set_limit: (limit) =>
-            @limit = limit
-        set_skip: (skip) =>
-            @skip = skip
+
+
+        # Expand a JSON object in a table. We just call the @json_to_tree
+        expand_tree_in_table: (event) =>
+            dom_element = @.$(event.target).parent()
+            @.$(event.target).remove()
+            data = dom_element.data('json_data')
+            result = @json_to_tree data
+            dom_element.html result
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
+            $('.'+classname_to_change).css 'max-width', 'none'
+            classname_to_change = dom_element.parent().parent().attr('class')
+            $('.'+classname_to_change).css 'max-width', 'none'
+            dom_element.css 'max-width', 'none'
+            @set_scrollbar()
+
+
 
         show_tree: (event) =>
             event.preventDefault()
             @set_view 'tree'
+        show_profile: (event) =>
+            event.preventDefault()
+            @set_view 'profile'
         show_table: (event) =>
             event.preventDefault()
             @set_view 'table'
@@ -2762,18 +2920,10 @@ module 'DataExplorerView', ->
 
         set_view: (view) =>
             @view = view
-            @container.saved_data.view = view
+            @container.state.view = view
             @render_result()
 
-        render_error: (query, err) =>
-            @.$el.html @error_template
-                query: query
-                error: err.toString().replace(/^(\s*)/, '')
-            return @
 
-        json_to_tree: (result) =>
-            return @template_json_tree.container
-                tree: @json_to_node(result)
 
         # We build the tree in a recursive way
         json_to_node: (value) =>
@@ -2784,7 +2934,7 @@ module 'DataExplorerView', ->
                 return @template_json_tree.span
                     classname: 'jt_null'
                     value: 'null'
-            else if Object.prototype.toString.call(value) is '[object Array]'
+            else if Object::toString.call(value) is '[object Array]'
                 if value.length is 0
                     return '[ ]'
                 else
@@ -2799,6 +2949,10 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                return @template_json_tree.span
+                    classname: 'jt_date'
+                    value: @date_to_string(value)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -2858,15 +3012,18 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                for key, row of result
-                    if not keys_count['object']?
-                        keys_count['object'] = {} # That's define only if there are keys!
-                    if not keys_count['object'][key]?
-                        keys_count['object'][key] =
-                            primitive_value_count: 0
-                    @build_map_keys
-                        keys_count: keys_count['object'][key]
-                        result: row
+                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                    keys_count.primitive_value_count++
+                else
+                    for key, row of result
+                        if not keys_count['object']?
+                            keys_count['object'] = {} # That's define only if there are keys!
+                        if not keys_count['object'][key]?
+                            keys_count['object'][key] =
+                                primitive_value_count: 0
+                        @build_map_keys
+                            keys_count: keys_count['object'][key]
+                            result: row
             else
                 keys_count.primitive_value_count++
 
@@ -2909,10 +3066,11 @@ module 'DataExplorerView', ->
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
-        json_to_table: (result) =>
+        # if indexes is null, it means that we can order all fields
+        json_to_table: (result, primary_key, can_sort, indexes) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
+            if not result.constructor? or result.constructor isnt Array
                 result = [result]
 
             keys_count =
@@ -2923,8 +3081,8 @@ module 'DataExplorerView', ->
                     keys_count: keys_count
                     result: result_entry
             @compute_occurrence keys_count
+
             @order_keys keys_count
-        
 
             flatten_attr = []
 
@@ -2936,17 +3094,9 @@ module 'DataExplorerView', ->
             for value, index in flatten_attr
                 value.col = index
 
-            @last_keys = flatten_attr.map (attr, i) ->
-                if attr.prefix_str isnt ''
-                    return attr.prefix_str+attr.key
-                return attr.key
-            @container.saved_data.last_keys = @last_keys
+            flatten_attr: flatten_attr
+            result: result
 
-            return @template_json_table.container
-                table_attr: @json_to_table_get_attr flatten_attr
-                table_data: @json_to_table_get_values
-                    result: result
-                    flatten_attr: flatten_attr
 
         # Flatten the object returns by build_map_keys().
         # We get back an array of keys
@@ -2979,6 +3129,11 @@ module 'DataExplorerView', ->
                             prefix_str: prefix_str
                             key: key
 
+
+        json_to_tree: (result) =>
+            return @template_json_tree.container
+                tree: @json_to_node(result)
+
         json_to_table_get_attr: (flatten_attr) =>
             return @template_json_table.tr_attr
                 attr: flatten_attr
@@ -3002,7 +3157,7 @@ module 'DataExplorerView', ->
                         else
                             value = undefined
                     new_document.cells.push @json_to_table_get_td_value value, col
-                new_document.record = @container.saved_data.start_record + i
+                @tag_record new_document, i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -3026,13 +3181,16 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and (value.constructor is ArrayResult or value.constructor is Array)
+            else if value.constructor? and value.constructor is Array
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                data['value'] = @date_to_string(value)
+                data['classname'] = 'jta_date'
             else if value_type is 'object'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
@@ -3051,20 +3209,6 @@ module 'DataExplorerView', ->
 
             return data
 
-        # Expand a JSON object in a table. We just call the @json_to_tree
-        expand_tree_in_table: (event) =>
-            dom_element = @.$(event.target).parent()
-            @.$(event.target).remove()
-            data = dom_element.data('json_data')
-            result = @json_to_tree data
-            dom_element.html result
-            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
-            $('.'+classname_to_change).css 'max-width', 'none'
-            classname_to_change = dom_element.parent().parent().attr('class')
-            $('.'+classname_to_change).css 'max-width', 'none'
-            dom_element.css 'max-width', 'none'
-            @set_scrollbar()
-
         # Helper for expanding a table when showing an object (creating new columns)
         join_table: (data) =>
             result = ''
@@ -3078,77 +3222,260 @@ module 'DataExplorerView', ->
                  
             return result
 
-        mouse_down: false
-        handle_mousedown: (event) =>
-            if event?.target?.className is 'click_detector'
-                @col_resizing = @$(event.target).parent().data('col')
-                @start_width = @$(event.target).parent().width()
-                @start_x = event.pageX
-                @mouse_down = true
-                $('body').toggleClass('resizing', true)
+        set_scrollbar: =>
+            if @view is 'table'
+                content_name = '.json_table'
+                content_container = '.table_view_container'
+            else if @view is 'tree'
+                content_name = '.json_tree'
+                content_container = '.tree_view_container'
+            else if @view is 'profile'
+                content_name = '.json_tree'
+                content_container = '.profile_view_container'
+            else if @view is 'raw'
+                @$('.wrapper_scrollbar').hide()
+                # There is no scrolbar with the raw view
+                return
 
-        handle_mousemove: (event) =>
-            if @mouse_down
-                @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
-                @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
-
-        resize_column: (col, size) =>
-            @$('.col-'+col).css 'max-width', size
-            @$('.value-'+col).css 'max-width', size-20
-            @$('.col-'+col).css 'width', size
-            @$('.value-'+col).css 'width', size-20
-            if size < 20
-                @$('.value-'+col).css 'padding-left', (size-5)+'px'
-                @$('.value-'+col).css 'visibility', 'hidden'
+            # Set the floating scrollbar
+            width_value = @$(content_name).innerWidth() # Include padding
+            if width_value < @$(content_container).width()
+                # If there is no need for scrollbar, we hide the one on the top
+                @$('.wrapper_scrollbar').hide()
+                $(window).unbind 'scroll'
             else
-                @$('.value-'+col).css 'padding-left', '15px'
-                @$('.value-'+col).css 'visibility', 'visible'
+                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
+                @$('.wrapper_scrollbar').show()
+                @$('.scrollbar_fake_content').width width_value
+
+                $(".wrapper_scrollbar").scroll ->
+                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
+                $(content_container).scroll ->
+                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
+
+                position_scrollbar = ->
+                    if $(content_container).offset()?
+                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
+                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
+                            that.$('.wrapper_scrollbar').hide()
+                        # We show the scrollbar and stick it to the bottom of the window because there ismore content below
+                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
+                            that.$('.wrapper_scrollbar').show()
+                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
+                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
+                        # And sometimes we "hide" it
+                        else
+                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
+                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
+
+                that = @
+                position_scrollbar()
+                $(window).scroll ->
+                    position_scrollbar()
+                $(window).resize ->
+                    position_scrollbar()
+
+ 
+        # JavaScript doesn't let us set a timezone
+        # So we create a date shifted of the timezone difference
+        # Then replace the timezone of the JS date with the one from the ReQL object
+        date_to_string: (date) =>
+            timezone = date.timezone
+            
+            # Extract data from the timezone
+            timezone_array = date.timezone.split(':')
+            sign = timezone_array[0][0] # Keep the sign
+            timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+
+            # Save the timezone in minutes
+            timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+            if sign is '-'
+                timezone_int = -1*timezone_int
+
+            # d = real date with user's timezone
+            d = new Date(date.epoch_time*1000)
+
+            # Add the user local timezone
+            timezone_int += d.getTimezoneOffset()*60
+
+            # d_shifted = date shifted with the difference between the two timezones
+            # (user's one and the one in the ReQL object)
+            d_shifted = new Date((date.epoch_time+timezone_int)*1000)
+
+            # If the timezone between the two dates is not the same,
+            # it means that we changed time between (e.g because of daylight savings)
+            if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
+                # d_shifted_bis = date shifted with the timezone of d_shifted and not d
+                d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
+
+                if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
+                    # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
+                    # Let's create the date outselves...
+                    str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
+                    hours = parseInt(str_pieces[5])
+                    hours++
+                    if hours.toString().length is 1
+                        hours = "0"+hours.toString()
+                    else
+                        hours = hours.toString()
+                    #Note str_pieces[0] is the whole string
+                    raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
+                else
+                    raw_date_str = d_shifted_bis.toString()
+            else
+                raw_date_str = d_shifted.toString()
+
+            # Remove the timezone and replace it with the good one
+            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
 
-        handle_mouseup: (event) =>
-            if @mouse_down is true
-                @mouse_down = false
-                $('body').toggleClass('resizing', false)
-                @set_scrollbar()
 
-        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+
+
+    class @ResultView extends DataExplorerView.SharedResultView
+        className: 'result_view'
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+        no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
+        profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
+
+        events: ->
+            _.extend super,
+                'click .activate_profiler': 'activate_profiler'
+
+        current_result: []
+
+        initialize: (args) =>
+            @container = args.container
+            @limit = args.limit
+            @skip = 0
+            if args.view?
+                @view = args.view
+            else
+                @view = 'tree'
+
+            @last_keys = @container.state.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
+            ZeroClipboard.setDefaults
+                moviePath: 'js/ZeroClipboard.swf'
+                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
+            @clip = new ZeroClipboard()
+
+        activate_profiler: (event) =>
+            event.preventDefault()
+            if @container.options_view.state is 'hidden'
+                @container.toggle_options
+                    cb: =>
+                        setTimeout( =>
+                            if @container.state.options.profiler is false
+                                @container.options_view.$('.option_description[data-option="profiler"]').click()
+                            @container.options_view.$('.profiler_enabled').show()
+                            @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                        , 100)
+            else
+                if @container.state.options.profiler is false
+                    @container.options_view.$('.option_description[data-option="profiler"]').click()
+                @container.options_view.$('.profiler_enabled').hide()
+                @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                @container.options_view.$('.profiler_enabled').slideDown 'fast'
+
+
+
+        render_error: (query, err, js_error) =>
+            @.$el.html @error_template
+                query: query
+                error: err.toString().replace(/^(\s*)/, '')
+                js_error: js_error is true
+            return @
+
+        json_to_table: (result) =>
+            {flatten_attr, result} = super result
+
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @container.state.last_keys = @last_keys
+
+
+            return @template_json_table.container
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
+
+        tag_record: (doc, i) =>
+            doc.record = @metadata.skip_value + i
 
         render_result: (args) =>
             if args? and args.results isnt undefined
                 @results = args.results
                 @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
+            if args? and args.profile isnt undefined
+                @profile = args.profile
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
-                # @container.saved_data.start_record is the old value of @container.saved_data.skip_value
+                # @container.state.start_record is the old value of @container.state.skip_value
                 # Here we just deal with start_record
-                @container.saved_data.start_record = args.metadata.skip_value
+                # TODO May have to remove this line as we have metadata.start now
+                @container.state.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
-                    if args.metadata.execution_time < 1000
-                        @metadata.execution_time_pretty = args.metadata.execution_time+"ms"
-                    else if args.metadata.execution_time < 60*1000
-                        @metadata.execution_time_pretty = (args.metadata.execution_time/1000).toFixed(2)+"s"
-                    else # We do not expect query to last one hour.
-                        minutes = Math.floor(args.metadata.execution_time/(60*1000))
-                        @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
+                    @metadata.execution_time_pretty = @prettify_duration args.metadata.execution_time
 
             num_results = @metadata.skip_value
             if @metadata.has_more_data isnt true
-                if @results?.length?
+                if Object::toString.call(@results) is '[object Array]'
                     num_results += @results.length
                 else # @results can be a single value or null
                     num_results += 1
 
             @.$el.html @template _.extend @metadata,
                 show_query_warning: args?.show_query_warning
-                show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
-                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
+                show_more_data: @metadata.has_more_data is true and @container.state.cursor_timed_out is false
+                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.state.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
                 no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
                 num_results: num_results
 
+
+            # Set the text to copy
+            @$('.copy_profile').attr('data-clipboard-text', JSON.stringify(@profile, null, 2))
+
+            if @view is 'profile'
+                @$('.more_results').hide()
+                @$('.profile_summary').show()
+            else
+                @$('.more_results').show()
+                @$('.profile_summary').hide()
+                @$('.copy_profile').hide()
+
             switch @view
+                when 'profile'
+                    if @profile is null
+                        @$('.profile_container').html @no_profile_template()
+                        @$('.copy_profile').hide()
+                    else
+                        @.$('.profile_container').html @json_to_tree @profile
+                        @$('.copy_profile').show()
+                        @$('.profile_summary_container').html @profile_header_template
+                            total_duration: @metadata.execution_time_pretty
+                            server_duration: @prettify_duration @compute_total_duration @profile
+                            num_shard_accesses: @compute_num_shard_accesses @profile
+
+                        @clip.glue($('button.copy_profile'))
+
+                    @$('.results').hide()
+                    @$('.profile_view_container').show()
+                    @.$('.link_to_profile_view').addClass 'active'
+                    @.$('.link_to_profile_view').parent().addClass 'active'
                 when 'tree'
                     @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
@@ -3156,9 +3483,12 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').addClass 'active'
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    if Object.prototype.toString.call(@results) is '[object Array]'
-                        @.$('.table_view').html @json_to_table @results
+                    previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+                    if Object::toString.call(@results) is '[object Array]'
+                        if @results.length is 0
+                            @.$('.table_view').html @template_no_result()
+                        else
+                            @.$('.table_view').html @json_to_table @results
                     else
                         if not @results_array?
                             @results_array = []
@@ -3170,17 +3500,18 @@ module 'DataExplorerView', ->
                     @.$('.link_to_table_view').parent().addClass 'active'
 
                     # Check if the keys are the same
-                    if @last_keys.length isnt previous_keys.length
+                    if @container.state.last_keys.length isnt previous_keys.length
                         same_keys = false
                     else
                         same_keys = true
-                        for keys, index in @last_keys
-                            if @last_keys[index] isnt previous_keys[index]
+                        for keys, index in @container.state.last_keys
+                            if @container.state.last_keys[index] isnt previous_keys[index]
                                 same_keys = false
 
+                    # TODO we should just check if previous_keys is included in last_keys
                     # If the keys are the same, we are going to resize the columns as they were before
                     if same_keys is true
-                        for col, value of @last_columns_size
+                        for col, value of @container.state.last_columns_size
                             @resize_column col, value
                     else
                         # Reinitialize @last_columns_size
@@ -3227,63 +3558,17 @@ module 'DataExplorerView', ->
 
             @set_scrollbar()
             @delegateEvents()
+            @$('.execution_time').tooltip
+                for_dataexplorer: true
+                trigger: 'hover'
+                placement: 'bottom'
             return @
  
-        set_scrollbar: =>
-            if @view is 'table'
-                content_name = '.json_table'
-                content_container = '.table_view_container'
-            else if @view is 'tree'
-                content_name = '.json_tree'
-                content_container = '.tree_view_container'
-            else if @view is 'raw'
-                @$('.wrapper_scrollbar').hide()
-                # There is no scrolbar with the raw view
-                return
-
-            # Set the floating scrollbar
-            width_value = @$(content_name).innerWidth() # Include padding
-            if width_value < @$(content_container).width()
-                # If there is no need for scrollbar, we hide the one on the top
-                @$('.wrapper_scrollbar').hide()
-                $(window).unbind 'scroll'
-            else
-                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
-                @$('.wrapper_scrollbar').show()
-                @$('.scrollbar_fake_content').width width_value
-
-                $(".wrapper_scrollbar").scroll ->
-                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
-                $(content_container).scroll ->
-                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
-
-                position_scrollbar = ->
-                    if $(content_container).offset()?
-                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
-                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
-                            that.$('.wrapper_scrollbar').hide()
-                        # We show the scrollbar and stick it to the bottom of the window because there ismore content below
-                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
-                            that.$('.wrapper_scrollbar').show()
-                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
-                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
-                        # And sometimes we "hide" it
-                        else
-                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
-                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
-
-                that = @
-                position_scrollbar()
-                $(window).scroll ->
-                    position_scrollbar()
-                $(window).resize ->
-                    position_scrollbar()
-
-            
+           
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
-            @container.saved_data.cursor_timed_out = true
-            if @container.saved_data.metadata?.has_more_data is true
+            @container.state.cursor_timed_out = true
+            if @container.state.metadata?.has_more_data is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
@@ -3293,17 +3578,45 @@ module 'DataExplorerView', ->
         render_default: =>
             return @
 
-        toggle_collapse: (event) =>
-            @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
-            @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
-            @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
-            @.$(event.target).toggleClass('jt_arrow_hidden')
-            @set_scrollbar()
+        prettify_duration: (duration) ->
+            if duration < 1
+                return '<1ms'
+            else if duration < 1000
+                return duration.toFixed(0)+"ms"
+            else if duration < 60*1000
+                return (duration/1000).toFixed(2)+"s"
+            else # We do not expect query to last one hour.
+                minutes = Math.floor(duration/(60*1000))
+                return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
 
-        expand_raw_textarea: =>
-            if $('.raw_view_textarea').length > 0
-                height = $('.raw_view_textarea')[0].scrollHeight
-                $('.raw_view_textarea').height(height)
+        compute_total_duration: (profile) ->
+            total_duration = 0
+            for task in profile
+                if task['duration(ms)']?
+                    total_duration += task['duration(ms)']
+                else if task['mean_duration(ms)']?
+                    total_duration += task['mean_duration(ms)']
+
+            total_duration
+
+
+        compute_num_shard_accesses: (profile) ->
+            num_shard_accesses = 0
+            for task in profile
+                if task['description'] is 'Perform read on shard.'
+                    num_shard_accesses += 1
+                if Object::toString.call(task['sub_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
+                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
+
+                # In parallel tasks, we get arrays of tasks instead of a super task
+                if Object::toString.call(task) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task
+
+            return num_shard_accesses
+
+
 
         destroy: =>
             $(window).unbind 'scroll'
@@ -3330,25 +3643,8 @@ module 'DataExplorerView', ->
                 @options[new_target] = new_value
                 if window.localStorage?
                     window.localStorage.options = JSON.stringify @options
-
-        toggle_suggestions: =>
-            @options.suggestions = not @options.suggestions
-            if @$('.content').css('display') is 'block'
-                @$('#suggestions').prop 'checked', @options.suggestions
-
-        toggle_view: =>
-            that = @
-            if @state is 'visible'
-                @state = 'hidden'
-                @$('.content').slideUp 'fast', ->
-                    if that.state is 'hidden'
-                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
-                        that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
-            else
-                @state = 'visible'
-                @$('.arrow_options').show()
-                @$('.nano_border').show()
-                @$('.content').slideDown 'fast'
+                if new_target is 'profiler' and new_value is false
+                    @$('.profiler_enabled').slideUp 'fast'
 
         render: (displayed) =>
             @$el.html @dataexplorer_options_template @options
@@ -3368,6 +3664,7 @@ module 'DataExplorerView', ->
 
         events:
             'click .load_query': 'load_query'
+            'click .delete_query': 'delete_query'
 
         start_resize: (event) =>
             @start_y = event.pageY
@@ -3413,7 +3710,24 @@ module 'DataExplorerView', ->
             id = @$(event.target).data().id
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
-            @container.saved_data.current_query = @history[parseInt(id)].query
+            @container.state.current_query = @history[parseInt(id)].query
+
+        delete_query: (event) =>
+            that = @
+
+            # Remove the query and overwrite localStorage.rethinkdb_history
+            id = parseInt(@$(event.target).data().id)
+            @history.splice(id, 1)
+            window.localStorage.rethinkdb_history = JSON.stringify @history
+
+            # Animate the deletion
+            is_at_bottom = @$('.history_list').height() is $('.nano > .content').scrollTop()+$('.nano').height()
+            @$('#query_history_'+id).slideUp 'fast', =>
+                that.$(this).remove()
+                that.render()
+                that.container.adjust_collapsible_panel_height
+                    is_at_bottom: is_at_bottom
+
 
         add_query: (args) =>
             query = args.query
@@ -3457,15 +3771,12 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
+        ping_time: 5*60*1000
+
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # I don't want that thing in window
         constructor: (args) ->
-            @container = args.container
-            @on_success = args.on_success
-            @on_fail = args.on_fail
-            @dont_timeout_connection = if args.dont_timeout_connection? then args.dont_timeout_connection else false
-
             if window.location.port is ''
                 if window.location.protocol is 'https:'
                     port = 443
@@ -3477,54 +3788,43 @@ module 'DataExplorerView', ->
                 host: window.location.hostname
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
+                pathname: window.location.pathname
 
             @hack_driver()
-            @connect()
         
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
-            if not TermBase.prototype.private_run?
+            TermBase = r.expr(1).constructor.__super__.constructor.__super__
+            if not TermBase.private_run?
                 that = @
-                TermBase.prototype.private_run = TermBase.prototype.run
-                TermBase.prototype.run = ->
+                TermBase.private_run = TermBase.run
+                TermBase.run = ->
                     throw that.query_error_template
                         found_run: true
 
-        connect: =>
-            that = @
-            # Whether we are going to reconnect or not, the cursor might have timed out.
-            if @container?
-                @container.saved_data.cursor_timed_out = true
-            if @timeout?
-                clearTimeout @timeout
+        close_connection: =>
+            if @connection?.open is true
+                @connection.close {noreplyWait: false}
+                @connection = null
 
-            if @connection?
-                if @driver_status is 'connected'
-                    try
-                        @connection.close()
-                    catch err
-                        # Nothing bad here, let's just not pollute the console
+        create_connection: (cb, id_execution, connection_cb) =>
+            that = @
+            @id_execution = id_execution
+
             try
-                r.connect @server, (err, connection) ->
-                    if err?
-                        that.on_fail()
-                    else
-                        that.connection = connection
-                        that.on_success(connection)
-                if @container?
-                    @container.results_view.cursor_timed_out()
-                unless @dont_timeout_connection
-                    @timeout = setTimeout @connect, 5*60*1000
+                ((_id_execution) =>
+                    r.connect @server, (error, connection) =>
+                        if _id_execution is @id_execution
+                            connection.removeAllListeners 'error' # See issue 1347
+                            connection.on 'error', connection_cb
+                            @connection = connection
+                            cb(error, connection)
+                        else
+                            connection.cancel()
+                )(id_execution)
+   
             catch err
-                @on_fail()
-    
-        postpone_reconnection: =>
-            clearTimeout @timeout
-            @timeout = setTimeout @connect, 5*60*1000
+                @on_fail(err)
 
         destroy: =>
-            try
-                @connection.close()
-            catch err
-                # Nothing bad here, let's just not pollute the console
-            clearTimeout @timeout
+            @close_connection()

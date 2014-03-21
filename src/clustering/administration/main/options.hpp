@@ -151,6 +151,11 @@ private:
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
     friend void verify_option_counts(const std::vector<option_t> &options,
                                      const std::map<std::string, values_t> &names_by_values);
+    friend std::map<std::string, values_t> parse_config_file(const std::string &contents,
+                                                             const std::string &filepath,
+                                                             const std::vector<option_t> &options,
+                                                             const std::vector<option_t> &options_superset);
+
     // Names for the option, e.g. "-j", "--join"
     std::vector<std::string> names;
 

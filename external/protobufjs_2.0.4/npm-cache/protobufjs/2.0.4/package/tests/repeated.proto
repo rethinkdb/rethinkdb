@@ -1,0 +1,17 @@
+message Outer {
+	// As of: https://developers.google.com/protocol-buffers/docs/encoding#optional
+	
+	repeated Inner inner = 1;
+	// "If your message definition has repeated elements (without the [packed=true] option), the encoded message has
+	// zero or more key-value pairs with the same tag number."
+	
+	repeated Inner innerPacked = 2 [packed = true];
+	// "A packed repeated field containing zero elements does not appear in the encoded message. Otherwise, all of the
+	// elements of the field are packed into a single key-value pair with wire type 2 (length-delimited). Each element
+	// is encoded the same way it would be normally, except without a tag preceding it." 
+	
+}
+
+message Inner {
+	optional uint32 inner_value = 1;
+}

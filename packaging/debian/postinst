@@ -1,45 +1,28 @@
 #!/bin/sh
 set -e
 
-dnl This file is preprocessed my m4
-
-dnl set m4 quotes to avoid conflict with shell backquotes
-changequote(`.oO{', `}Oo.')
-
-bin_dir=BIN_DIR
-man1_dir=MAN1_DIR
-bash_completion_dir=BASH_COMPLETION_DIR
-internal_bash_completion_dir=INTERNAL_BASH_COMPLETION_DIR
-server_exec_name=SERVER_EXEC_NAME
-server_exec_name_versioned=SERVER_EXEC_NAME_VERSIONED
-priority=PRIORITY
-
-install_links=0
-case "$1" in
-  configure|abort-upgrade|abort-remove|abort-deconfigure)
-    # update-alternatives is idempotent (in the sense described in the Debian Policy Manual: Package maintainer scripts and installation procedure)
-    # prerm script could delete the link in case of abort-*, so we need to recreate it again.
-  if [ "$1" = "configure" ]; then
+create_rethinkdb_user () {
     adduser --system --quiet --group --no-create-home rethinkdb || true
-  fi
-  if [ UPDATE_ALTERNATIVES = 1 ] ;
-  then
-    update-alternatives \
-      --install $bin_dir/$server_exec_name $server_exec_name $bin_dir/$server_exec_name_versioned $priority \
-      --slave $man1_dir/$server_exec_name.1.gz $server_exec_name.1.gz $man1_dir/$server_exec_name_versioned.1.gz \
-      --slave $bash_completion_dir/$server_exec_name.bash $server_exec_name.bash $internal_bash_completion_dir/$server_exec_name.bash
-  fi ;
-    update-rc.d rethinkdb defaults ;
-    invoke-rc.d rethinkdb start ;
+}
 
-  if [ "`find /etc/rethinkdb/instances.d -maxdepth 1 -type f -name '*.conf'`" = "" ]; then
-    echo The RethinkDB startup service is installed but disabled. To enable it,
-    echo follow the instructions in the guide located at http://www.rethinkdb.com/docs/guides/startup/
-  fi
-  ;;
+rethinkdb_enable_init () {
+    update-rc.d rethinkdb defaults
+    invoke-rc.d rethinkdb start
+    if [ "`find /etc/rethinkdb/instances.d -maxdepth 1 -type f -name '*.conf'`" = "" ]; then
+        echo The RethinkDB startup service is installed but disabled. To enable it,
+        echo follow the instructions in the guide located at http://www.rethinkdb.com/docs/guides/startup/
+    fi
+}
 
-  *)
-    echo "Warning: RethinkDB postinst script called with unknown set of arguments: $*"
-    ;;
+case "$1" in
+    configure)
+        create_rethinkdb_user
+        rethinkdb_enable_init ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        rethinkdb_enable_init ;;
+
+    *)
+        echo "Warning: RethinkDB postinst script called with unknown set of arguments: $*" >&2 ;;
 esac
 

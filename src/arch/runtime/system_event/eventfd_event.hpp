@@ -14,7 +14,9 @@ public:
 
     // Consumes all the pings from the eventfd.
     void consume_wakey_wakeys();
-    // Pings an eventfd.
+
+    // Pings an eventfd.  You may call this from any thread (as long as you know
+    // nobody will destroy the eventfd_event_t object simultaneously).
     void wakey_wakey();
 
     int get_notify_fd() {

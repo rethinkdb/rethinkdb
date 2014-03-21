@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_TCP_CONN_STREAM_HPP_
 
-#include "containers/archive/archive.hpp"
 #include "arch/address.hpp"
 #include "arch/types.hpp"
+#include "containers/archive/archive.hpp"
+#include "threading.hpp"
 
 class signal_t;
 
@@ -19,9 +20,9 @@ public:
     virtual MUST_USE int64_t read(void *p, int64_t n);
     virtual MUST_USE int64_t write(const void *p, int64_t n);
 
-    void rethread(int new_thread);
+    void rethread(threadnum_t new_thread);
 
-    int home_thread() const;
+    threadnum_t home_thread() const;
 
     void shutdown_read();
     void shutdown_write();
@@ -65,12 +66,12 @@ private:
 
 class rethread_tcp_conn_stream_t {
 public:
-    rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread);
+    rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, threadnum_t thread);
     ~rethread_tcp_conn_stream_t();
 private:
     tcp_conn_stream_t *conn_;
-    int old_thread_;
-    int new_thread_;
+    threadnum_t old_thread_;
+    threadnum_t new_thread_;
     DISABLE_COPYING(rethread_tcp_conn_stream_t);
 };
 

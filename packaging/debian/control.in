@@ -1,0 +1,33 @@
+Source: VERSIONED_QUALIFIED_PACKAGE_NAME
+Section: database
+Priority: optional
+Maintainer: RethinkDB <packaging@rethinkdb.com>
+Build-Depends: DEB_BUILD_DEPENDS
+Homepage: http://www.rethinkdb.com
+
+Package: VERSIONED_QUALIFIED_PACKAGE_NAME
+Architecture: i386 amd64
+Pre-Depends: adduser (>= 3.40)
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
+Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
+Provides: PACKAGE_NAME
+Description:
+  RethinkDB is built to store JSON documents, and scale to multiple
+  machines with very little effort. It has a pleasant query language
+  that supports really useful queries like table joins and group by,
+  and is easy to setup and learn.
+
+Package: VERSIONED_QUALIFIED_PACKAGE_NAME-dbg
+Architecture: i386 amd64
+Depends: VERSIONED_QUALIFIED_PACKAGE_NAME (= PACKAGE_VERSION)
+Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
+Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
+Provides: PACKAGE_NAME-dbg
+Description:
+  RethinkDB is built to store JSON documents, and scale to multiple
+  machines with very little effort. It has a pleasant query language
+  that supports really useful queries like table joins and group by,
+  and is easy to setup and learn.
+  .
+  This package contains the debugging symbols for RethinkDB.

@@ -136,15 +136,26 @@
 }
 
 {
-    GoogleProtobuf
+    v8Globals
     Memcheck:Leak
     ...
-    fun:_ZN6google8protobuf*
+    fun:_ZN2v88internal*
+    ...
+    fun:call_init
 }
 
 {
-    BoostProgramOptions
+    v8hashmap
     Memcheck:Leak
     ...
-    fun:_ZN5boost15program_options*
+    fun:_GLOBAL__sub_I_hashmap.cc
+    fun:call_init
+}
+
+{
+    v8scopes
+    Memcheck:Leak
+    ...
+    fun:_GLOBAL__sub_I_scopes.cc
+    fun:call_init
 }

@@ -4,6 +4,9 @@
 
 #include <map>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/suggester/suggester.hpp"
 #include "clustering/administration/metadata.hpp"
 
@@ -19,7 +22,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        bool prioritize_disribution)
+        bool prioritize_distribution)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
 
 template<class protocol_t>
@@ -28,7 +31,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        bool prioritize_disribution)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 template<class protocol_t>
@@ -38,12 +41,12 @@ void fill_in_blueprints_for_protocol(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,
-        bool prioritize_disribution)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
-                        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
-                        const uuid_u &us,
-                        bool prioritize_disribution);
+        const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
+        const uuid_u &us,
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns);
 
 #endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

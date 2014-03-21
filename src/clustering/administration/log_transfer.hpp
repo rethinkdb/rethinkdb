@@ -21,6 +21,8 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(log_server_business_card_t);
 
+RDB_MAKE_EQUALITY_COMPARABLE_1(log_server_business_card_t, address);
+
 class log_server_t {
 public:
     log_server_t(mailbox_manager_t *mm, thread_pool_log_writer_t *w);

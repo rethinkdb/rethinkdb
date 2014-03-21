@@ -24,15 +24,16 @@
 /* cJSON */
 /* JSON parser in C. */
 
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include "http/json/cJSON.hpp"
+#include <ctype.h>
 #include <float.h>
 #include <limits.h>
-#include <ctype.h>
-#include "http/json/cJSON.hpp"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "errors.hpp"
+#include "utils.hpp"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunreachable-code"
@@ -49,7 +50,7 @@ static int cJSON_strcasecmp(const char *s1,const char *s2)
         return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
 
-static void *(*cJSON_malloc)(size_t sz) = malloc;
+static void *(*cJSON_malloc)(size_t sz) = rmalloc;
 static void (*cJSON_free)(void *ptr) = free;
 
 static char* cJSON_strdup(const char* str)
@@ -62,18 +63,6 @@ static char* cJSON_strdup(const char* str)
       memcpy(copy,str,len);
       return copy;
 }
-
-//void cJSON_InitHooks(cJSON_Hooks* hooks)
-//{
-//    if (!hooks) { /* Reset hooks */
-//        cJSON_malloc = malloc;
-//        cJSON_free = free;
-//        return;
-//    }
-//
-//        cJSON_malloc = (hooks->malloc_fn)?hooks->malloc_fn:malloc;
-//        cJSON_free         = (hooks->free_fn)?hooks->free_fn:free;
-//}
 
 /* Internal constructor. */
 static cJSON *cJSON_New_Item()
@@ -111,7 +100,12 @@ static const char *parse_number(cJSON *item, const char *num) {
         n = 0;
         offset = 1;
     } else {
-        sscanf(num, "%lg%n", &n, &offset);
+        char *end;
+        n = strtod(num, &end);
+        if (end == num) {
+            return 0;
+        }
+        offset = end - num;
     }
     item->valuedouble = n;
     item->valueint = (int)n;
@@ -124,7 +118,8 @@ static char *print_number(cJSON *item) {
     char *str;
     double d = item->valuedouble;
     guarantee(isfinite(d));
-    asprintf(&str, "%.20g", d);
+    int ret = asprintf(&str, "%.20g", d);
+    guarantee(ret);
     return str;
 }
 
@@ -345,7 +340,7 @@ static char *print_array(cJSON *item,int depth,int fmt)
                 node=node->next;
         }
 
-        /* If we didn't fail, try to malloc the output string */
+        /* If we didn't fail, try to rmalloc the output string */
         if (!fail) out=(char*)cJSON_malloc(len);
         /* If that fails, we fail. */
         if (!out) fail=1;

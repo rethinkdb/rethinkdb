@@ -1,1 +1,1 @@
-recursive-include rethinkdb *.pb.h
+include ql2.proto

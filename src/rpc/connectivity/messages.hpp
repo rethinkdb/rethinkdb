@@ -4,8 +4,9 @@
 
 class connectivity_service_t;
 class peer_id_t;
-class read_stream_t;
 class write_stream_t;
+
+#include "containers/archive/string_stream.hpp"
 
 namespace boost {
 template <class> class function;

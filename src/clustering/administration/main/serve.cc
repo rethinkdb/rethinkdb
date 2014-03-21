@@ -14,6 +14,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
@@ -23,11 +24,10 @@
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
-#include "extproc/pool.hpp"
+#include "extproc/extproc_pool.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
-#include "rdb_protocol/parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -37,6 +37,7 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 
 std::string service_address_ports_t::get_addresses_string() const {
     std::set<ip_address_t> actual_addresses = local_addresses;
@@ -45,11 +46,11 @@ std::string service_address_ports_t::get_addresses_string() const {
 
     // Get the actual list for printing if we're listening on all addresses.
     if (is_bind_all()) {
-        actual_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
+        actual_addresses = get_local_ips(std::set<ip_address_t>(), true);
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
-        result += (first ? "" : ", " ) + i->as_dotted_decimal();
+        result += (first ? "" : ", " ) + i->to_string();
         first = false;
     }
 
@@ -62,21 +63,20 @@ bool service_address_ports_t::is_bind_all() const {
 }
 
 bool do_serve(
-    extproc::spawner_info_t *spawner_info,
     io_backender_t *io_backender,
     bool i_am_a_server,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const base_path_t &base_path,
     metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
     metadata_persistence::auth_persistent_file_t *auth_metadata_file,
+    uint64_t total_cache_size,
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
     std::string web_assets,
-    signal_t *stop_cond,
+    os_signal_cond_t *stop_cond,
     const boost::optional<std::string> &config_file) {
     try {
-        guarantee(spawner_info);
-        extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
+        extproc_pool_t extproc_pool(get_num_threads());
 
         local_issue_tracker_t local_issue_tracker;
 
@@ -100,7 +100,7 @@ bool do_serve(
         connectivity_cluster_t connectivity_cluster;
         message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
-        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H');
+        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H', SEMAPHORE_NO_LIMIT);
         heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
         message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
 
@@ -126,16 +126,18 @@ bool do_serve(
         metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
         metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
 
-        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
-            cluster_directory_metadata_t(
-                machine_id,
-                connectivity_cluster.get_me(),
-                get_ips(),
-                stat_manager.get_address(),
-                metadata_change_handler.get_request_mailbox_address(),
-                auth_change_handler.get_request_mailbox_address(),
-                log_server.get_business_card(),
-                i_am_a_server ? SERVER_PEER : PROXY_PEER));
+        scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
+            new cluster_directory_metadata_t(machine_id,
+                                             connectivity_cluster.get_me(),
+                                             total_cache_size,
+                                             get_ips(),
+                                             stat_manager.get_address(),
+                                             metadata_change_handler.get_request_mailbox_address(),
+                                             auth_change_handler.get_request_mailbox_address(),
+                                             log_server.get_business_card(),
+                                             i_am_a_server ? SERVER_PEER : PROXY_PEER));
+
+        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
         message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
@@ -148,16 +150,26 @@ bool do_serve(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
         message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-        object_buffer_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
+        scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
         try {
-            connectivity_cluster_run.create(&connectivity_cluster,
-                                            address_ports.local_addresses,
-                                            address_ports.canonical_addresses,
-                                            address_ports.port,
-                                            &message_multiplexer_run,
-                                            address_ports.client_port,
-                                            &heartbeat_manager);
+            connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
+                &connectivity_cluster,
+                address_ports.local_addresses,
+                address_ports.canonical_addresses,
+                address_ports.port,
+                &message_multiplexer_run,
+                address_ports.client_port,
+                &heartbeat_manager));
+
+            // Update the directory with the ip addresses that we are passing to peers
+            std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
+            initial_directory->ips.clear();
+            for (auto it = ips.begin(); it != ips.end(); ++it) {
+                initial_directory->ips.push_back(it->ip().to_string());
+            }
+            our_root_directory_variable.set_value(*initial_directory);
+            initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -171,8 +183,8 @@ bool do_serve(
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
         field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
@@ -189,14 +201,24 @@ bool do_serve(
 
         proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
-        perfmon_collection_t sys_stats_collection;
-        perfmon_membership_t sys_stats_membership(&get_global_perfmon_collection(), &sys_stats_collection, "sys");
-
-        sys_stats_collector_t sys_stats_collector(base_path, &sys_stats_collection);
+        scoped_ptr_t<perfmon_collection_t> sys_stats_collection;
+        scoped_ptr_t<perfmon_membership_t> sys_stats_membership;
+        scoped_ptr_t<sys_stats_collector_t> sys_stats_collector;
+        if (i_am_a_server) {
+            sys_stats_collection.init(new perfmon_collection_t);
+            sys_stats_membership.init(new perfmon_membership_t(
+                &get_global_perfmon_collection(),
+                sys_stats_collection.get(),
+                "sys"));
+            sys_stats_collector.init(new sys_stats_collector_t(
+                base_path, sys_stats_collection.get()));
+        }
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!joins.empty()) {
-            initial_joiner.init(new initial_joiner_t(&connectivity_cluster, connectivity_cluster_run.get(), joins));
+            initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
+                                                     connectivity_cluster_run.get(),
+                                                     joins));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -210,105 +232,140 @@ bool do_serve(
 
         mock::dummy_protocol_t::context_t dummy_ctx;
         namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
             &dummy_ctx);
 
         memcached_protocol_t::context_t mc_ctx;
         namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
             &mc_ctx);
 
-        rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
+        rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
                                           auth_manager_cluster.get_root_view(),
                                           &directory_read_manager,
-                                          machine_id);
+                                          machine_id,
+                                          &get_global_perfmon_collection());
 
         namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);
 
         //This is an annoying chicken and egg problem here
         rdb_ctx.ns_repo = &rdb_namespace_repo;
 
         {
+            scoped_ptr_t<cache_balancer_t> cache_balancer;
+
+            if (i_am_a_server) {
+                // Proxies do not have caches to balance
+                cache_balancer.init(new alt_cache_balancer_t(total_cache_size));
+            }
+
             // Reactor drivers
 
             // Dummy
-            file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, base_path);
-            scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
-                new reactor_driver_t<mock::dummy_protocol_t>(
+            scoped_ptr_t<file_based_svs_by_namespace_t<mock::dummy_protocol_t> > dummy_svs_source;
+            scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver;
+            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
+                dummy_reactor_directory_copier;
+
+            if (i_am_a_server) {
+                dummy_svs_source.init(new file_based_svs_by_namespace_t<mock::dummy_protocol_t>(
+                    io_backender, cache_balancer.get(), base_path));
+                dummy_reactor_driver.init(new reactor_driver_t<mock::dummy_protocol_t>(
                     base_path,
                     io_backender,
                     &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
                     cluster_metadata_file->get_dummy_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    &dummy_svs_source,
+                    metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces,
+                                   semilattice_manager_cluster.get_root_view()),
+                    metadata_field(&cluster_semilattice_metadata_t::machines,
+                                   semilattice_manager_cluster.get_root_view()),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<machine_id_t,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                    dummy_svs_source.get(),
                     &perfmon_repo,
-                    NULL));
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
-                dummy_reactor_directory_copier(!i_am_a_server ? NULL :
-                    new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
-                        &cluster_directory_metadata_t::dummy_namespaces,
-                        dummy_reactor_driver->get_watchable(),
-                        &our_root_directory_variable));
+                    reinterpret_cast<mock::dummy_protocol_t::context_t *>(NULL)));
+                dummy_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::dummy_namespaces,
+                    dummy_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
+            }
 
             // Memcached
-            file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, base_path);
-            scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
-                new reactor_driver_t<memcached_protocol_t>(
+            scoped_ptr_t<file_based_svs_by_namespace_t<memcached_protocol_t> > memcached_svs_source;
+            scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver;
+            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
+                memcached_reactor_directory_copier;
+
+            if (i_am_a_server) {
+                memcached_svs_source.init(new file_based_svs_by_namespace_t<memcached_protocol_t>(
+                    io_backender, cache_balancer.get(), base_path));
+                memcached_reactor_driver.init(new reactor_driver_t<memcached_protocol_t>(
                     base_path,
                     io_backender,
                     &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
                     cluster_metadata_file->get_memcached_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    &memcached_svs_source,
+                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces,
+                                   semilattice_manager_cluster.get_root_view()),
+                    metadata_field(&cluster_semilattice_metadata_t::machines,
+                                   semilattice_manager_cluster.get_root_view()),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<machine_id_t,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                    memcached_svs_source.get(),
                     &perfmon_repo,
-                    NULL));
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-                memcached_reactor_directory_copier(!i_am_a_server ? NULL :
-                    new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
-                        &cluster_directory_metadata_t::memcached_namespaces,
-                        memcached_reactor_driver->get_watchable(),
-                        &our_root_directory_variable));
+                    reinterpret_cast<memcached_protocol_t::context_t *>(NULL)));
+                memcached_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::memcached_namespaces,
+                    memcached_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
+            }
 
             // RDB
-            file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, base_path);
-            scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
-                new reactor_driver_t<rdb_protocol_t>(
-                    base_path,
-                    io_backender,
-                    &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-                    cluster_metadata_file->get_rdb_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    &rdb_svs_source,
-                    &perfmon_repo,
-                    &rdb_ctx));
+            scoped_ptr_t<file_based_svs_by_namespace_t<rdb_protocol_t> > rdb_svs_source;
+            scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver;
             scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
-                rdb_reactor_directory_copier(!i_am_a_server ? NULL :
-                    new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
-                        &cluster_directory_metadata_t::rdb_namespaces,
-                        rdb_reactor_driver->get_watchable(),
-                        &our_root_directory_variable));
+                rdb_reactor_directory_copier;
+
+            if (i_am_a_server) {
+                rdb_svs_source.init(new file_based_svs_by_namespace_t<rdb_protocol_t>(
+                    io_backender, cache_balancer.get(), base_path));
+                rdb_reactor_driver.init(new reactor_driver_t<rdb_protocol_t>(
+                        base_path,
+                        io_backender,
+                        &mailbox_manager,
+                        directory_read_manager.get_root_view()->incremental_subview(
+                            incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>,
+                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                        cluster_metadata_file->get_rdb_branch_history_manager(),
+                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+                                       semilattice_manager_cluster.get_root_view()),
+                        metadata_field(&cluster_semilattice_metadata_t::machines,
+                                       semilattice_manager_cluster.get_root_view()),
+                        directory_read_manager.get_root_view()->incremental_subview(
+                            incremental_field_getter_t<machine_id_t,
+                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                        rdb_svs_source.get(),
+                        &perfmon_repo,
+                        &rdb_ctx));
+                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
+                    &cluster_directory_metadata_t::rdb_namespaces,
+                    rdb_reactor_driver->get_watchable(),
+                    &our_root_directory_variable));
+            }
 
             {
                 parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
@@ -329,24 +386,24 @@ bool do_serve(
                     &local_issue_tracker,
                     &perfmon_repo);
 
-                rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
-
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_pb2_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
-                    cluster_metadata_persister(!i_am_a_server ? NULL :
-                                               new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
-                                                   cluster_metadata_file,
-                                                   semilattice_manager_cluster.get_root_view()));
-
+                    cluster_metadata_persister;
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> >
-                    auth_metadata_persister(!i_am_a_server ? NULL :
-                                            new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
-                                                auth_metadata_file,
-                                                auth_manager_cluster.get_root_view()));
+                    auth_metadata_persister;
+
+                if (i_am_a_server) {
+                    cluster_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
+                        cluster_metadata_file,
+                        semilattice_manager_cluster.get_root_view()));
+                    auth_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
+                        auth_metadata_file,
+                        auth_manager_cluster.get_root_view()));
+                }
 
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
@@ -389,7 +446,20 @@ bool do_serve(
 
                     stop_cond->wait_lazily_unordered();
 
-                    logINF("Server got SIGINT; shutting down...\n");
+
+                    if (stop_cond->get_source_signo() == SIGINT) {
+                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    } else if (stop_cond->get_source_signo() == SIGTERM) {
+                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+
+                    } else {
+                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_signo(),
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    }
+
                 }
 
                 cond_t non_interruptor;
@@ -409,27 +479,30 @@ bool do_serve(
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());
         return false;
+    } catch (const tcp_socket_exc_t &ex) {
+        logERR("%s.\n", ex.what());
+        return false;
     }
 
     return true;
 }
 
-bool serve(extproc::spawner_info_t *spawner_info,
-           io_backender_t *io_backender,
+bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
+           uint64_t total_cache_size,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
            std::string web_assets,
-           signal_t *stop_cond,
+           os_signal_cond_t *stop_cond,
            const boost::optional<std::string>& config_file) {
-    return do_serve(spawner_info,
-                    io_backender,
+    return do_serve(io_backender,
                     true,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
+                    total_cache_size,
                     joins,
                     address_ports,
                     web_assets,
@@ -437,20 +510,19 @@ bool serve(extproc::spawner_info_t *spawner_info,
                     config_file);
 }
 
-bool serve_proxy(extproc::spawner_info_t *spawner_info,
-                 const peer_address_set_t &joins,
+bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
                  std::string web_assets,
-                 signal_t *stop_cond,
+                 os_signal_cond_t *stop_cond,
                  const boost::optional<std::string>& config_file) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(spawner_info,
-                    NULL,
+    return do_serve(NULL,
                     false,
                     base_path_t(""),
                     NULL,
                     NULL,
+                    0,
                     joins,
                     address_ports,
                     web_assets,

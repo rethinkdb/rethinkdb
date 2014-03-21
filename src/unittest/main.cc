@@ -3,7 +3,7 @@
 #include "unittest/gtest.hpp"
 
 int main(int argc, char **argv) {
-    run_generic_global_startup_behavior();
+    startup_shutdown_t startup_shutdown;
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -6,9 +6,10 @@ import random
 import socket
 import threading
 import SocketServer
+import datetime
 from sys import argv
 from subprocess import Popen
-from time import sleep
+from time import sleep, time
 from sys import path, exit
 import unittest
 path.insert(0, '.')
@@ -196,6 +197,46 @@ class TestConnection(TestWithConnection):
             r.RqlDriverError, "Connection is closed.",
             r.expr(1).run, c)
 
+    def test_noreply_wait_waits(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.noreply_wait()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_close_waits_by_default(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.close()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_reconnect_waits_by_default(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.reconnect()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_close_does_not_wait_if_requested(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.close(noreply_wait=False)
+        duration = time() - t
+        self.assertLess(duration, 0.5)
+
+    def test_reconnect_does_not_wait_if_requested(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.reconnect(noreply_wait=False)
+        duration = time() - t
+        self.assertLess(duration, 0.5)
+
     def test_db(self):
         c = r.connect(port=self.port)
 
@@ -314,14 +355,14 @@ class TestBatching(TestWithConnection):
         # If this test fails in the future check first if the structure of the object has changed.
 
         # Only the first chunk (of either 1 or 2) should have loaded
-        self.assertEqual(len(cursor.chunks), 1)
+        self.assertEqual(len(cursor.responses), 1)
 
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
-            self.assertEqual(len(cursor.chunks[0]), batch_size)
+            self.assertEqual(len(cursor.responses[0].response), batch_size)
         else:
-            assertLess(len(cursor.chunks[0]), batch_size)
+            self.assertLess(len(cursor.responses[0].response), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):
@@ -329,10 +370,33 @@ class TestBatching(TestWithConnection):
 
         # In both cases now there should at least one element left in the last chunk
         self.assertTrue(cursor.end_flag)
-        self.assertGreaterEqual(len(cursor.chunks), 1)
-        self.assertGreaterEqual(len(cursor.chunks[0]), 1)
+        self.assertGreaterEqual(len(cursor.responses), 1)
+        self.assertGreaterEqual(len(cursor.responses[0].response), 1)
 
-# # TODO: test cursors, streaming large values
+class TestGroupWithTimeKey(TestWithConnection):
+    def runTest(self):
+        c = r.connect(port=self.port)
+
+        r.db('test').table_create('times').run(c)
+
+        time1 = 1375115782.24
+        rt1 = r.epoch_time(time1).in_timezone('+00:00')
+        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.RqlTzinfo('+00:00'))
+        time2 = 1375147296.68
+        rt2 = r.epoch_time(time2).in_timezone('+00:00')
+        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
+
+        res = r.table('times').insert({'id':0,'time':rt1}).run(c)
+        self.assertEqual(res['inserted'], 1)
+        res = r.table('times').insert({'id':1,'time':rt2}).run(c)
+        self.assertEqual(res['inserted'], 1)
+
+        expected_row1 = {'id':0,'time':dt1}
+        expected_row2 = {'id':1,'time':dt2}
+
+        groups = r.table('times').group('time').coerce_to('array').run(c)
+        self.assertEqual(groups, {dt1:[expected_row1],dt2:[expected_row2]})
+
 
 if __name__ == '__main__':
     print "Running py connection tests"
@@ -347,6 +411,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
     suite.addTest(TestPrinting())
     suite.addTest(TestBatching())
+    suite.addTest(TestGroupWithTimeKey())
 
     res = unittest.TextTestRunner(verbosity=2).run(suite)
 

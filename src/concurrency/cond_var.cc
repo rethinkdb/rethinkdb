@@ -7,18 +7,11 @@
 #include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 
-void cond_t::pulse() {
-    do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
-}
-
 void cond_t::pulse_if_not_already_pulsed() {
+    assert_thread();
     if (!is_pulsed()) {
         pulse();
     }
-}
-
-void cond_t::do_pulse() {
-    signal_t::pulse();
 }
 
 void one_waiter_cond_t::pulse() {

@@ -1,10 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 #define CLUSTERING_ADMINISTRATION_SYS_STATS_HPP_
 
 #include <string>
 
 #include "perfmon/perfmon.hpp"
+#include "utils.hpp"
 
 /* Class to get system statistics, such as disk space usage.
 Similar to proc_stats_collector_t, but not based on /proc. */

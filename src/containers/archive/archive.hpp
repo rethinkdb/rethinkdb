@@ -1,11 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 #define CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 
 #include <stdint.h>
 
+#include <type_traits>
+
+#include "containers/printf_buffer.hpp"
 #include "containers/intrusive_list.hpp"
-#include "utils.hpp"
+#include "valgrind.hpp"
 
 class uuid_u;
 
@@ -26,17 +29,30 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
-// Deserialize functions return 0 upon success, a positive or negative error
-// code upon failure. -1 means there was an error on the socket, -2 means EOF on
-// the socket, -3 means a "range error", +1 means specific error info was
-// discarded, the error code got used as a boolean.
-enum archive_result_t {
-    ARCHIVE_SUCCESS = 0,
-    ARCHIVE_SOCK_ERROR = -1,
-    ARCHIVE_SOCK_EOF = -2,
-    ARCHIVE_RANGE_ERROR = -3,
-    ARCHIVE_GENERIC_ERROR = 1,
+// The return value of deserialization functions.
+enum class archive_result_t {
+    // Success.
+    SUCCESS,
+    // An error on the socket happened.
+    SOCK_ERROR,
+    // An EOF on the socket happened.
+    SOCK_EOF,
+    // The value deserialized was out of range.
+    RANGE_ERROR,
 };
+
+inline bool bad(archive_result_t res) {
+    return res != archive_result_t::SUCCESS;
+}
+
+const char *archive_result_as_str(archive_result_t archive_result);
+
+#define guarantee_deserialization(result, ...) do {                     \
+        guarantee(result == archive_result_t::SUCCESS,                  \
+                  "Deserialization of %s failed with error %s.",        \
+                  strprintf(__VA_ARGS__).c_str(),                       \
+                  archive_result_as_str(result));                       \
+    } while (0)
 
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
@@ -65,7 +81,7 @@ class write_stream_t {
 public:
     write_stream_t() { }
     // Returns n, or -1 upon error. Blocks until all bytes are written.
-    virtual int64_t write(const void *p, int64_t n) = 0;
+    virtual MUST_USE int64_t write(const void *p, int64_t n) = 0;
 protected:
     virtual ~write_stream_t() { }
 private:
@@ -97,6 +113,8 @@ public:
 
     void append(const void *p, int64_t n);
 
+    size_t size() const;
+
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
     template <class T>
@@ -118,18 +136,76 @@ write_message_t &operator<<(write_message_t& msg, const T &x) {
     return msg;
 }
 
+// Returns 0 upon success, -1 upon failure.
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
+template <class T>
+T *deserialize_deref(T &val) {  // NOLINT(runtime/references)
+    return &val;
+}
+
+template <class T>
+class empty_ok_t;
+
+template <class T>
+class empty_ok_ref_t {
+public:
+    T *get() const { return ptr_; }
+
+private:
+    template <class U>
+    friend empty_ok_ref_t<U> deserialize_deref(const empty_ok_t<U> &val);
+
+    explicit empty_ok_ref_t(T *ptr) : ptr_(ptr) { }
+
+    T *ptr_;
+};
+
+// Used by empty_ok.
+template <class T>
+class empty_ok_t {
+public:
+    T *get() const { return ptr_; }
+
+private:
+    template <class U>
+    friend empty_ok_t<U> empty_ok(U &field);  // NOLINT(runtime/references)
+
+    explicit empty_ok_t(T *ptr) : ptr_(ptr) { }
+
+    T *ptr_;
+};
+
+template <class T>
+empty_ok_ref_t<T> deserialize_deref(const empty_ok_t<T> &val) {
+    return empty_ok_ref_t<T>(val.get());
+}
+
+// A convenient wrapper for marking fields (of smart pointer types, typically) as being
+// allowed to be serialized empty.  For example, counted_t<const datum_t> typically
+// must be non-empty when serialized, but a special implementation for type
+// empty_ok_t<counted_t<const datum_t> > is made that lets you serialize empty datum's.
+// Simply wrap the name with empty_ok(...) in the serialization macro.
+template <class T>
+empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
+    return empty_ok_t<T>(&field);
+}
+
+template <class T>
+struct serialized_size_t;
+
+// Keep in sync with serialized_size_t defined below.
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
         union {                                                         \
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
-        u.v = x;                                                        \
+        u.v = static_cast<typ2>(x);                                     \
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }
+
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
@@ -143,16 +219,16 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ2));               \
         if (res == -1) {                                                \
-            return ARCHIVE_SOCK_ERROR;                                  \
+            return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
         if (res < int64_t(sizeof(typ2))) {                              \
-            return ARCHIVE_SOCK_EOF;                                    \
+            return archive_result_t::SOCK_EOF;                          \
         }                                                               \
         if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
-            return ARCHIVE_RANGE_ERROR;                                 \
+            return archive_result_t::RANGE_ERROR;                       \
         }                                                               \
         *x = typ1(u.v);                                                 \
-        return ARCHIVE_SUCCESS;                                         \
+        return archive_result_t::SUCCESS;                               \
     }
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
@@ -168,15 +244,20 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
         int64_t res = force_read(s, u.buf, sizeof(typ));                \
         if (res == -1) {                                                \
             *x = valgrind_undefined<typ>(0);                            \
-            return ARCHIVE_SOCK_ERROR;                                  \
+            return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
             *x = valgrind_undefined<typ>(0);                            \
-            return ARCHIVE_SOCK_EOF;                                    \
+            return archive_result_t::SOCK_EOF;                          \
         }                                                               \
         *x = u.v;                                                       \
-        return ARCHIVE_SUCCESS;                                         \
-    }
+        return archive_result_t::SUCCESS;                               \
+    }                                                                   \
+                                                                        \
+    template <>                                                         \
+    struct serialized_size_t<typ>                                       \
+        : public std::integral_constant<size_t, sizeof(typ)> { }
+
 
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(char);          // NOLINT(runtime/int)
@@ -195,9 +276,19 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 // change your code to use doubles.
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
+template <>
+struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
+struct in_addr;
+struct in6_addr;
+
+write_message_t &operator<<(write_message_t &msg, const in_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
+
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

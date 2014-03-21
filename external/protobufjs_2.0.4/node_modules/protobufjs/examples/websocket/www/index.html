@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>                                    <!-- Please copy the following files into here: -->
+<script src="./Long.min.js"></script>       <!-- https://raw.github.com/dcodeIO/Long.js/master/Long.min.js -->
+<script src="./ByteBuffer.min.js"></script> <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/ByteBuffer.min.js -->
+<script src="./ProtoBuf.min.js"></script>   <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/ProtoBuf.min.js -->
+<script>
+if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
+    throw(new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
+}
+// Initialize ProtoBuf.js
+var ProtoBuf = dcodeIO.ProtoBuf;
+var Message = ProtoBuf.loadProtoFile("./example.proto").build("Message");
+</script>
+</head>
+<body>
+<textarea id="log" style="width: 100%; height: 200px"></textarea><br />
+<input type="text" id="text" value="hello world!" /> <button onclick="send()">Send</button>
+
+<script>
+var log = document.getElementById("log");
+var text = document.getElementById("text");
+
+// Connect to our server: node server.js
+var socket = new WebSocket("ws://localhost:8080/ws");
+socket.binaryType = "arraybuffer"; // We are talking binary
+
+function send() {
+    if (socket.readyState == WebSocket.OPEN) {
+        var msg = new Message(text.value);
+        socket.send(msg.toArrayBuffer());
+        log.value += "Sent: "+msg.text+"\n";
+    } else {
+        log.value += "Not connected\n";
+    }
+}
+
+socket.onopen = function() {
+    log.value += "Connected\n";
+};
+
+socket.onclose = function() {
+    log.value += "Disconnected\n";
+};
+    
+socket.onmessage = function(evt) {
+    try {
+        // Decode the Message
+        var msg = Message.decode(evt.data);
+        log.value += "Received: "+msg.text+"\n";
+    } catch (err) {
+        log.value += "Error: "+err+"\n";
+    }
+};
+
+log.value = ""; // Clear log on reload
+</script>
+</body>
+</html>

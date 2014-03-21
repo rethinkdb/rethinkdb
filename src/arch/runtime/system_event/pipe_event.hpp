@@ -12,6 +12,9 @@ public:
     ~pipe_event_t();
 
     void consume_wakey_wakeys();
+
+    // You may call this from any thread (as long as you know nobody will destroy the
+    // eventfd_event_t object simultaneously).
     void wakey_wakey();
 
     int get_notify_fd() {

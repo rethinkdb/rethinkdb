@@ -1,0 +1,13 @@
+import "toplevel.proto";
+
+package My;
+
+enum MyEnum1 {
+    ONE = 1;
+    TWO = 2;
+}
+
+message Test1 {
+    required MyEnum num = 1 [default=ONE];
+    required MyEnum1 num1 = 2 [default=ONE];
+}

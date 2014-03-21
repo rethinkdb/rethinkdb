@@ -7,7 +7,7 @@ var spawn = require('child_process').spawn
 
 var assert = require('assert');
 
-var r = require('../../../drivers/javascript/build/rethinkdb');
+var r = require('../../../build/packages/js/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
@@ -93,18 +93,17 @@ describe('Javascript connection API', function(){
         it("fails when trying to connect", function(done){
             ifTestDefault(
                 function(cont){
-                    console.log('FOO');
-                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
-                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", cont))})); },
+                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.\nconnect ECONNREFUSED", function(){
+                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.\nconnect ECONNREFUSED", cont))})); },
                 function(){
-                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
-                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))});
+                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.\nconnect ECONNREFUSED", function(){
+                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.\nconnect ECONNREFUSED", done))}))});
         });
 
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."));
+                                   "First argument to `run` must be an open connection."));
           done();
         });
     });
@@ -179,8 +178,69 @@ describe('Javascript connection API', function(){
         }));
 
         it("fails to query after close", withConnection(function(done, c){
-            c.close();
+            c.close({noreplyWait: false});
             r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
+        }));
+
+        it("noreplyWait waits", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.noreplyWait(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("close waits by default", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.close(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("reconnect waits by default", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.reconnect(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("close does not wait if we want it not to", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.close({'noreplyWait': false}, function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration < 500);
+                done();
+            });
+        }));
+
+        it("reconnect does not wait if we want it not to", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.reconnect({'noreplyWait': false}, function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration < 500);
+                done();
+            });
+        }));
+
+        it("close waits even without callback", withConnection(function(done, c){
+            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
+            c.close();
+            r(1).run(c, noError(done));
         }));
 
         it("test use", withConnection(function(done, c){
@@ -194,10 +254,42 @@ describe('Javascript connection API', function(){
                                                             done));
                         }));}));}));}));}));
 
-        it("useOutdated", withConnection(function(done ,c){
+        it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1', {useOutdated:true}).run(c, function(){
-                    r.table('t1').run({connection: c, useOutdated: true}, done);});});
+                    r.table('t1').run(c, {useOutdated: true}, done);});});
+        }));
+
+        it("test default durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "default"},
+                    givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\").", done));
+            });
+        }));
+
+        it("test wrong durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "wrong"},
+                    givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", done))
+            });
+        }));
+
+        it("test soft durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "soft"}, noError(done));
+            });
+        }));
+
+        it("test hard durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
+            });
+        }));
+
+        it("test non-deterministic durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: r.js("'so' + 'ft'")}, noError(done));
+            });
         }));
 
         it("fails to query after kill", withConnection(function(done, c){

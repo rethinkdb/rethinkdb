@@ -7,21 +7,36 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <stdio.h>
 
 #include <typeinfo>
 
 #include "logger.hpp"
 #include "utils.hpp"
 #include "backtrace.hpp"
+#include "thread_local.hpp"
 #include "clustering/administration/logger.hpp"
 #include "arch/timing.hpp"
 
-static __thread bool crashed = false; // to prevent crashing within crashes
+TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
+
+NOINLINE int get_errno() {
+    return errno;
+}
+NOINLINE void set_errno(int new_errno) {
+    errno = new_errno;
+}
+
+NORETURN void crash_oom() {
+    const char *message = "rethinkdb: Memory allocation failed. This usually means "
+                          "that we have run out of RAM. Aborting.\n";
+    fwrite(message, 1, strlen(message), stderr);
+    abort();
+}
 
 void report_user_error(const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
-    if (crashed) {
+    if (TLS_get_crashed()) {
         va_list args;
         va_start(args, msg);
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
@@ -30,7 +45,7 @@ void report_user_error(const char *msg, ...) {
         return;
     }
 
-    crashed = true;
+    TLS_set_crashed(true);
 
     thread_log_writer_disabler_t disabler;
 
@@ -42,7 +57,7 @@ void report_user_error(const char *msg, ...) {
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
-    if (crashed) {
+    if (TLS_get_crashed()) {
         va_list args;
         va_start(args, msg);
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
@@ -51,7 +66,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
         return;
     }
 
-    crashed = true;
+    TLS_set_crashed(true);
 
     thread_log_writer_disabler_t disabler;
 
@@ -131,6 +146,19 @@ void install_generic_crash_handler() {
     guarantee_err(res == 0, "Could not install PIPE handler");
 
     std::set_terminate(&terminate_handler);
+}
+
+/* If a call to `operator new()` or `operator new[]()` fails, we have to crash
+immediately.
+The default behavior of this handler is to throw an `std::bad_alloc` exception.
+However that is dangerous because it unwinds the stack and can cause side-effects
+including data corruption. */
+NORETURN void new_oom_handler() {
+    crash_oom();
+}
+
+void install_new_oom_handler() {
+    std::set_new_handler(&new_oom_handler);
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_COUNTED_HPP_
 #define CONTAINERS_COUNTED_HPP_
 
@@ -8,10 +8,7 @@
 #include <utility>
 
 #include "errors.hpp"
-#include <boost/type_traits/remove_const.hpp>
-
-#include "containers/archive/archive.hpp"
-#include "containers/scoped.hpp"
+#include "threading.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
@@ -47,9 +44,19 @@ public:
         movee.p_ = NULL;
     }
 
+// Avoid a spurious warning when building on Saucy. See issue #1674
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 408)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
     ~counted_t() {
         if (p_) { counted_release(p_); }
     }
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 408)
+#pragma GCC diagnostic pop
+#endif
 
     void swap(counted_t &other) {
         T *tmp = p_;
@@ -118,27 +125,9 @@ public:
     }
 
     bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
-    }
-
-    void rdb_serialize(write_message_t &msg /*NOLINT*/) const {
-        msg << has();
-        if (has()) {
-            msg << *get();
-        }
-    }
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        bool wire_has;
-        archive_result_t res = deserialize(s, &wire_has);
-        if (res) return res;
-        if (wire_has) {
-            typedef typename boost::remove_const<T>::type unconst_T;
-            scoped_ptr_t<unconst_T> t(new unconst_T());
-            res = deserialize(s, t.get());
-            if (res) return res;
-            reset(const_cast<T *>(t.release()));
-        }
-        return ARCHIVE_SUCCESS;
+        return (p_ == NULL)
+            ? (other.p_ != NULL ? true : false)
+            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
     }
 
 private:
@@ -148,7 +137,7 @@ private:
 };
 
 template <class T, class... Args>
-counted_t<T> make_counted(Args&&... args) {
+counted_t<T> make_counted(Args &&... args) {
     return counted_t<T>(new T(std::forward<Args>(args)...));
 }
 
@@ -216,11 +205,6 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
     return p->refcount_;
 }
 
-
-
-
-
-
 template <class> class slow_atomic_countable_t;
 
 template <class T>
@@ -282,5 +266,29 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
     return tmp;
 }
 
+
+// A noncopyable reference to a reference-counted object.
+template <class T>
+class movable_t {
+public:
+    explicit movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
+    movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
+    movable_t &operator=(movable_t &&movee) {
+        ptr_ = std::move(movee.ptr_);
+        return *this;
+    }
+
+    void reset() { ptr_.reset(); }
+
+    T *get() const { return ptr_.get(); }
+    T *operator->() const { return ptr_.get(); }
+    T &operator*() const { return *ptr_; }
+
+    bool has() const { return ptr_.has(); }
+
+private:
+    counted_t<T> ptr_;
+    DISABLE_COPYING(movable_t);
+};
 
 #endif  // CONTAINERS_COUNTED_HPP_

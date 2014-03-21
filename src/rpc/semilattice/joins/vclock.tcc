@@ -6,8 +6,6 @@
 
 #include <vector>
 
-#include "stl_utils.hpp"
-
 template <class T>
 vclock_t<T>::vclock_t(const stamped_value_t &_value) {
     values.insert(_value);
@@ -98,6 +96,12 @@ void vclock_t<T>::upgrade_version(const uuid_u &us) {
 
 template <class T>
 T vclock_t<T>::get() const {
+    throw_if_conflict();
+    return values.begin()->second;
+}
+
+template <class T>
+const T &vclock_t<T>::get_ref() const {
     throw_if_conflict();
     return values.begin()->second;
 }

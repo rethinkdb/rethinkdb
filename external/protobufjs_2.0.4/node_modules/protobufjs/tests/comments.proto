@@ -1,0 +1,10 @@
+// single line comment
+
+/**
+ * Naranjas.
+ */
+message TestC { // one more
+    required /***** uncommon block ****/int32 a = 1; // another more
+}
+
+// the end.

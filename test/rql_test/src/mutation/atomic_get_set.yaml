@@ -13,7 +13,7 @@ tests:
       py: r.table('asg').insert({'id':0}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
       js: r.table('asg').insert({'id':0}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
       # We still return the old value if there's an error.
-      ot: ({'first_error':'Duplicate primary key.','old_val':{'id':0},'new_val':{'id':0}})
+      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}",'old_val':{'id':0},'new_val':{'id':0}})
     - cd: r.table('asg').insert([{'id':0}], :return_vals => true)
       py: r.table('asg').insert([{'id':0}], return_vals=True)
       js: r.table('asg').insert([{'id':0}], {'return_vals':true})

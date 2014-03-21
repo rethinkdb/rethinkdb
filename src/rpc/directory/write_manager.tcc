@@ -6,6 +6,7 @@
 
 #include <set>
 
+#include "arch/runtime/coroutines.hpp"
 #include "rpc/connectivity/messages.hpp"
 
 template<class metadata_t>
@@ -45,11 +46,12 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
     fifo_enforcer_write_token_t metadata_fifo_token = metadata_fifo_source.enter_write();
     std::set<peer_id_t> peers = message_service->get_connectivity_service()->get_peers_list();
+    boost::shared_ptr<metadata_t> new_value(new metadata_t(std::move(value_watchable->get())));
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         coro_t::spawn_sometime(boost::bind(
             &directory_write_manager_t::send_update, this,
             *it,
-            value_watchable->get(), metadata_fifo_token,
+            new_value, metadata_fifo_token,
             auto_drainer_t::lock_t(&drainer)));
     }
 }
@@ -107,8 +109,8 @@ void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, 
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
-    update_writer_t writer(new_value, metadata_fifo_token);
+void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
+    update_writer_t writer(*new_value, metadata_fifo_token);
     message_service->send_message(peer, &writer);
 }
 

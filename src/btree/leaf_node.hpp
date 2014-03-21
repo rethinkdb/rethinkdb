@@ -4,6 +4,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
@@ -60,7 +61,7 @@ struct leaf_node_t {
     //Iteration
     typedef leaf::iterator iterator;
     typedef leaf::reverse_iterator reverse_iterator;
-};
+} __attribute__ ((__packed__));
 
 namespace leaf {
 
@@ -125,11 +126,16 @@ bool is_full(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_ke
 
 bool is_underfull(value_sizer_t<void> *sizer, const leaf_node_t *node);
 
-void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree_key_t *median_out);
+void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *sibling,
+           btree_key_t *median_out);
 
 void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right);
 
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node, leaf_node_t *sibling, btree_key_t *replacement_key_out);
+// The pointers in `moved_values_out` point to positions in `node` and
+// will be valid as long as `node` remains unchanged.
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node,
+           leaf_node_t *sibling, btree_key_t *replacement_key_out,
+           std::vector<const void *> *moved_values_out);
 
 bool is_mergable(value_sizer_t<void> *sizer, const leaf_node_t *node, const leaf_node_t *sibling);
 
@@ -155,8 +161,8 @@ public:
     // Sends a deletion in the deletion history.
     virtual void deletion(const btree_key_t *k, repli_timestamp_t tstamp) = 0;
 
-    // Sends a key/value pair in the leaf.
-    virtual void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) = 0;
+    // Sends the key/value pairs in the leaf.
+    virtual void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &tstamps) = 0;
 
 protected:
     virtual ~entry_reception_callback_t() { }

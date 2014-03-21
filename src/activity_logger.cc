@@ -1,10 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "activity_logger.hpp"
+
+#include <inttypes.h>
+
+#include "debug.hpp"
+#include "utils.hpp"
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
     : timestamp(current_microtime()), msg(_msg) {
-    if (log_bt) bt.init(new lazy_backtrace_t());
+    if (log_bt) bt.init(new lazy_backtrace_formatter_t());
 }
 std::string log_event_t::print(bool print_bt) {
     std::string bt_str = print_bt && bt.has() ? bt->addrs() : "";

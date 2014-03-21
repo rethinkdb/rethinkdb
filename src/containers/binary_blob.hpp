@@ -1,9 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_BINARY_BLOB_HPP_
 #define CONTAINERS_BINARY_BLOB_HPP_
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #include <vector>
 
+#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class printf_buffer_t;
@@ -32,7 +36,7 @@ public:
 
     template<class obj_t>
     static const obj_t &get(const binary_blob_t &blob) {
-        rassert(blob.size() == sizeof(obj_t), "blob.size() = %zu, sizeof(obj_t) = %zu", blob.size(), sizeof(obj_t));
+        guarantee(blob.size() == sizeof(obj_t), "blob.size() = %zu, sizeof(obj_t) = %zu", blob.size(), sizeof(obj_t));
         return *reinterpret_cast<const obj_t *>(blob.data());
     }
 
@@ -46,7 +50,7 @@ public:
 
 private:
     std::vector<uint8_t> storage;
-    RDB_MAKE_ME_SERIALIZABLE_1(storage);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 inline bool operator==(const binary_blob_t &left, const binary_blob_t &right) {

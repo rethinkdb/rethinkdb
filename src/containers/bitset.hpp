@@ -6,7 +6,8 @@
 
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
+#include "math.hpp"
 
 class bitset_t {
 private:

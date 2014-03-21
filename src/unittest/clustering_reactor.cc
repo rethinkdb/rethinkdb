@@ -13,7 +13,7 @@ using mock::dummy_protocol_t;
 
 namespace unittest {
 
-void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
+TPTEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
@@ -23,11 +23,7 @@ void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
-    unittest::run_in_thread_pool(&runOneShardOnePrimaryOneNodeStartupShutdowntest);
-}
-
-void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
+TPTEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(3);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
@@ -37,11 +33,7 @@ void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
-    unittest::run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
-}
-
-void runTwoShardsTwoNodes() {
+TPTEST(ClusteringReactor, TwoShardsTwoNodes) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("ps,sp"));
@@ -51,11 +43,7 @@ void runTwoShardsTwoNodes() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, TwoShardsTwoNodes) {
-    unittest::run_in_thread_pool(&runTwoShardsTwoNodes);
-}
-
-void runRoleSwitchingTest() {
+TPTEST(ClusteringReactor, RoleSwitchingTest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
@@ -69,11 +57,7 @@ void runRoleSwitchingTest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, RoleSwitchingTest) {
-    unittest::run_in_thread_pool(&runRoleSwitchingTest);
-}
-
-void runOtherRoleSwitchingTest() {
+TPTEST(ClusteringReactor, OtherRoleSwitchingTest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
@@ -86,11 +70,7 @@ void runOtherRoleSwitchingTest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, OtherRoleSwitchingTest) {
-    unittest::run_in_thread_pool(&runOtherRoleSwitchingTest);
-}
-
-void runAddSecondaryTest() {
+TPTEST(ClusteringReactor, AddSecondaryTest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(3);
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,s,n");
@@ -101,11 +81,7 @@ void runAddSecondaryTest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, AddSecondaryTest) {
-    unittest::run_in_thread_pool(&runAddSecondaryTest);
-}
-
-void runReshardingTest() {
+TPTEST(ClusteringReactor, ReshardingTest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
@@ -121,11 +97,7 @@ void runReshardingTest() {
     cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, ReshardingTest) {
-    unittest::run_in_thread_pool(&runReshardingTest);
-}
-
-void runLessGracefulReshardingTest() {
+TPTEST(ClusteringReactor, LessGracefulReshardingTest) {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
@@ -135,10 +107,6 @@ void runLessGracefulReshardingTest() {
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pn,np"));
     cluster_group.wait_until_blueprint_is_satisfied("pn,np");
     cluster_group.run_queries();
-}
-
-TEST(ClusteringReactor, LessGracefulReshardingTest) {
-    unittest::run_in_thread_pool(&runLessGracefulReshardingTest);
 }
 
 } // namespace unittest

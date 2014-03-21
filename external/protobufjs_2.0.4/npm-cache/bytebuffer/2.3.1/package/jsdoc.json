@@ -1,0 +1,13 @@
+{
+    "tags": {
+        "allowUnknownTags": true
+    },
+    "source": {
+        "include": ["ByteBuffer.js"]
+    },
+    "opts": {
+        "template": "templates/esoccer",
+        "destination": "docs"
+    },
+    "plugins": ["plugins/markdown"]
+}

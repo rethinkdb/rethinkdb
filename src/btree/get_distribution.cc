@@ -1,11 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/get_distribution.hpp"
-#include "btree/parallel_traversal.hpp"
+
+#include "btree/internal_node.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/parallel_traversal.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "utils.hpp"
-#include "buffer_cache/buffer_cache.hpp"
-#include "btree/internal_node.hpp"
 
 class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
 public:
@@ -14,20 +15,23 @@ public:
     { }
 
     void read_stat_block(buf_lock_t *stat_block) {
-        if (stat_block) {
-            key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
+        if (stat_block != NULL) {
+            buf_read_t read(stat_block);
+            key_count = static_cast<const btree_statblock_t *>(read.get_data_read())->population;
         } else {
             key_count = 0;
         }
     }
 
     // This is free to call mark_deleted.
-    void process_a_leaf(transaction_t *, buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *,
                         const btree_key_t *,
                         signal_t * /*interruptor*/,
                         int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
-        const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        buf_read_t read(leaf_node_buf);
+        const leaf_node_t *node
+            = static_cast<const leaf_node_t *>(read.get_data_read());
 
         for (auto it = leaf::begin(*node); it != leaf::end(*node); ++it) {
             const btree_key_t *key = (*it).first;
@@ -36,7 +40,9 @@ public:
     }
 
     void postprocess_internal_node(buf_lock_t *internal_node_buf) {
-        const internal_node_t *node = reinterpret_cast<const internal_node_t *>(internal_node_buf->get_data_read());
+        buf_read_t read(internal_node_buf);
+        const internal_node_t *node
+            = static_cast<const internal_node_t *>(read.get_data_read());
 
         /* Notice, we iterate all but the last pair because the last pair
          * doesn't actually have a key and we're looking for the split points.
@@ -47,7 +53,9 @@ public:
         }
     }
 
-    void filter_interesting_children(transaction_t *, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+    void filter_interesting_children(buf_parent_t,
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {
             int num_block_ids = ids_source->num_block_ids();
             for (int i = 0; i < num_block_ids; ++i) {
@@ -65,11 +73,11 @@ public:
     }
 
     access_t btree_superblock_mode() {
-        return rwi_read;
+        return access_t::read;
     }
 
     access_t btree_node_mode() {
-        return rwi_read;
+        return access_t::read;
     }
 
     int depth_limit;
@@ -79,11 +87,13 @@ public:
     std::vector<store_key_t> *keys;
 };
 
-void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, int depth_limit, int64_t *key_count_out, std::vector<store_key_t> *keys_out) {
+void get_btree_key_distribution(superblock_t *superblock, int depth_limit,
+                                int64_t *key_count_out,
+                                std::vector<store_key_t> *keys_out) {
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
     rassert(keys_out->empty(), "Why is this output parameter not an empty vector\n");
 
     cond_t non_interruptor;
-    btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
+    btree_parallel_traversal(superblock, &helper, &non_interruptor);
     *key_count_out = helper.key_count;
 }

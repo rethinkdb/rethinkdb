@@ -39,11 +39,11 @@ int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
     }
 }
 
-void tcp_conn_stream_t::rethread(int new_thread) {
+void tcp_conn_stream_t::rethread(threadnum_t new_thread) {
     conn_->rethread(new_thread);
 }
 
-int tcp_conn_stream_t::home_thread() const {
+threadnum_t tcp_conn_stream_t::home_thread() const {
     return conn_->home_thread();
 }
 
@@ -98,7 +98,8 @@ int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
     return tcp_conn_stream_t::write(p, n);
 }
 
-rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, threadnum_t thread)
+    : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
     conn->rethread(thread);
     guarantee(conn->home_thread() == thread);
 }

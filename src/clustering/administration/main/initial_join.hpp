@@ -39,7 +39,7 @@ private:
     connectivity_cluster_t *cluster;
     peer_address_set_t peers_not_heard_from;
     cond_t done_signal;
-    scoped_ptr_t<signal_timer_t> grace_period_timer;
+    signal_timer_t grace_period_timer;
     auto_drainer_t drainer;
     connectivity_service_t::peers_list_subscription_t subs;
     bool successful_connection;

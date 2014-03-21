@@ -8,7 +8,7 @@
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 static void co_perfmon_visit(int thread, void *data) {
-    on_thread_t moving(thread);
+    on_thread_t moving((threadnum_t(thread)));
     get_global_perfmon_collection().visit_stats(data);
 }
 

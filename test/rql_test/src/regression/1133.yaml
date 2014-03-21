@@ -1,0 +1,18 @@
+desc: Regression tests for issue #1133, which concerns circular references in the drivers.
+
+tests:
+ - def: a = {}; b = {'a':a}; a['b'] = b;
+
+ - cd: r.expr(a)
+   ot:
+     py: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+     js: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+     rb: err('RqlRuntimeError', 'Maximum expression depth of 20 exceeded.', [])
+
+ - cd: r.expr({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}}, 7)
+   rb: []
+   ot: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+
+ - cd: r.expr({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}}, 10)
+   rb: []
+   ot: ({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}})

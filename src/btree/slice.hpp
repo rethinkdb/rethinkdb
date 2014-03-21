@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
@@ -6,14 +6,17 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
-#include "concurrency/fifo_checker.hpp"
+#include "buffer_cache/alt/cache_account.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
-
+class cache_account_t;
 class backfill_callback_t;
+class buf_lock_t;
+class buf_parent_t;
+class cache_t;
 class key_tester_t;
+
 
 class btree_stats_t {
 public:
@@ -26,8 +29,7 @@ public:
           pm_keys_membership(&btree_collection,
               &pm_keys_read, "keys_read",
               &pm_keys_set, "keys_set",
-              &pm_keys_expired, "keys_expired",
-              NULLPTR)
+              &pm_keys_expired, "keys_expired")
     { }
 
     perfmon_collection_t btree_collection;
@@ -45,43 +47,30 @@ btree_key_value_store_t. */
 
 class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
-    // Initializes a cache for use with btrees (by creating the superblock in block SUPERBLOCK_ID),
-    // setting the initial value of the metainfo (with a single key/value pair).
-    static void create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
+    // Initializes a superblock (presumably, a buf_lock_t constructed with
+    // alt_create_t::create) for use with btrees, setting the initial value of the
+    // metainfo (with a single key/value pair).
+    static void init_superblock(buf_lock_t *superblock,
+                                const std::vector<char> &metainfo_key,
+                                const std::vector<char> &metainfo_value);
 
-    // Blocks
-    // Creates a btree_slice_t on a cache with data in it putting the
-    // superblock at the specified location
-    static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
-            const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
+                  const std::string &identifier);
 
-    // Blocks
-    btree_slice_t(cache_t *cache, perfmon_collection_t *parent, const std::string &identifier, block_id_t superblock_id = SUPERBLOCK_ID);
-
-    // Blocks
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
-    cache_account_t *get_backfill_account() { return backfill_account.get(); }
-
-    order_checkpoint_t pre_begin_txn_checkpoint_;
+    cache_account_t *get_backfill_account() { return &backfill_account_; }
 
     btree_stats_t stats;
 
-    block_id_t get_superblock_id();
 private:
     cache_t *cache_;
 
-    block_id_t superblock_id_;
-
     // Cache account to be used when backfilling.
-    scoped_ptr_t<cache_account_t> backfill_account;
+    cache_account_t backfill_account_;
 
     DISABLE_COPYING(btree_slice_t);
-
-    //Information for cache eviction
-public:
-    eviction_priority_t root_eviction_priority;
 };
 
 #endif /* BTREE_SLICE_HPP_ */

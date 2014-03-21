@@ -97,6 +97,7 @@
 #include <unistd.h>
 #include "clustering/administration/cli/linenoise.hpp"
 #include "containers/scoped.hpp"
+#include "utils.hpp"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
@@ -164,7 +165,7 @@ static int enableRawMode(int fd) {
     return 0;
 
 fatal:
-    errno = ENOTTY;
+    set_errno(ENOTTY);
     return -1;
 }
 
@@ -439,11 +440,14 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
         if (c == 9 && completionCallback != NULL) {
-            c = completeLine(fd,prompt,buf,buflen,&len,&pos,cols);
+            int ret = completeLine(fd,prompt,buf,buflen,&len,&pos,cols);
+            c = static_cast<char>(ret);
+
             /* Return on errors */
-            if (c < 0) return len;
+            if (ret < 0) return len;
+
             /* Read next character when 0 */
-            if (c == 0) continue;
+            if (ret == 0) continue;
         }
 
         switch (c) {
@@ -472,7 +476,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
                 refreshLine(fd,prompt,buf,len,pos,cols);
             } else {
                 // Already empty line, exit
-                errno = EAGAIN;
+                set_errno(EAGAIN);
                 return -1;
             }
             break;
@@ -623,7 +627,7 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
     int count;
 
     if (buflen == 0) {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
     if (!isatty(STDIN_FILENO)) {
@@ -671,9 +675,9 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn) {
 
 void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
     size_t len = strlen(str);
-    char *copy = (char*)malloc(len+1);
+    char *copy = (char*)rmalloc(len+1);
     memcpy(copy,str,len+1);
-    lc->cvec = (char**)realloc(lc->cvec,sizeof(char*)*(lc->len+1));
+    lc->cvec = (char**)rrealloc(lc->cvec,sizeof(char*)*(lc->len+1));
     lc->cvec[lc->len++] = copy;
 }
 
@@ -683,7 +687,7 @@ int linenoiseHistoryAdd(const char *line) {
 
     if (history_max_len == 0) return 0;
     if (history == NULL) {
-        history = (char**)malloc(sizeof(char*)*history_max_len);
+        history = (char**)rmalloc(sizeof(char*)*history_max_len);
         if (history == NULL) return 0;
         memset(history,0,(sizeof(char*)*history_max_len));
     }
@@ -706,7 +710,7 @@ int linenoiseHistorySetMaxLen(int len) {
     if (history) {
         int tocopy = history_len;
 
-        new_history = (char**)malloc(sizeof(char*)*len);
+        new_history = (char**)rmalloc(sizeof(char*)*len);
         if (new_history == NULL) return 0;
         if (len < tocopy) tocopy = len;
         memcpy(new_history,history+(history_max_len-tocopy), sizeof(char*)*tocopy);

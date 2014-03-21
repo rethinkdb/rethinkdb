@@ -15,30 +15,30 @@ public:
     auth_key_t();
 
     // Returns true if the new key is of a valid length
-    MUST_USE bool assign_value(const std::string& new_key);
+    MUST_USE bool assign_value(const std::string &new_key);
 
-    const std::string& str() const { return key; }
+    const std::string &str() const { return key; }
 
     static const int32_t max_length = 2048;
 
 private:
     std::string key;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(key);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-bool timing_sensitive_equals(const auth_key_t& x, const auth_key_t& y);
+bool timing_sensitive_equals(const auth_key_t &x, const auth_key_t &y);
 
-inline bool operator==(const auth_key_t& x, const auth_key_t& y) {
+inline bool operator==(const auth_key_t &x, const auth_key_t &y) {
     // Might as well use timing_sensitive_equals this in case of accidental misuse.
     return timing_sensitive_equals(x, y);
 }
 
-inline bool operator!=(const auth_key_t& x, const auth_key_t& y) {
+inline bool operator!=(const auth_key_t &x, const auth_key_t &y) {
     return !(x == y);
 }
 
-inline bool operator<(const auth_key_t& x, const auth_key_t& y) {
+inline bool operator<(const auth_key_t &x, const auth_key_t &y) {
     return x.str() < y.str();
 }
 

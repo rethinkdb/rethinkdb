@@ -3,7 +3,63 @@ require 'time'
 
 module RethinkDB
   module Shim
-    def self.datum_to_native d
+    def self.is_reql_time(obj)
+      obj.is_a? Hash and obj["$reql_type$"] == "TIME"
+    end
+
+    def self.convert_time(obj)
+      t = Time.at(obj['epoch_time'])
+      tz = obj['timezone']
+      (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+    end
+
+    def self.is_grouped_data(obj)
+      obj.is_a? Hash and obj["$reql_type$"] == "GROUPED_DATA"
+    end
+
+    def self.convert_grouped_data(obj, opts)
+      convert_reql_types!(obj['data'], opts)
+      Hash[obj["data"]]
+    end
+
+    def self.maybe_convert_type(obj, opts)
+      if opts[:time_format] != 'raw' && is_reql_time(obj)
+        convert_time(obj)
+      elsif opts[:group_format] != 'raw' && is_grouped_data(obj)
+        convert_grouped_data(obj, opts)
+      else
+        nil
+      end
+    end
+
+    def self.convert_reql_types!(result, opts)
+      case result
+      when Hash
+        result.each {|k,v|
+          if (new_res = maybe_convert_type(v, opts))
+            result[k] = new_res
+          else
+            convert_reql_types!(v, opts)
+          end
+        }
+      when Array
+        result.each_index {|i|
+          if (new_res = maybe_convert_type(result[i], opts))
+            result[i] = new_res;
+          else
+            convert_reql_types!(result[i], opts)
+          end
+        }
+      end
+      nil
+    end
+
+    def self.postprocess!(result, opts)
+      maybe_convert_type(result, opts) \
+      || (convert_reql_types!(result, opts); result)
+    end
+
+    def self.datum_to_native(d, opts)
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
       case d.type
@@ -11,13 +67,17 @@ module RethinkDB
       when dt::R_STR then d.r_str
       when dt::R_BOOL then d.r_bool
       when dt::R_NULL then nil
-      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native d2}
-      when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val)]}]
-      else raise RqlRuntimeError, "Unimplemented."
+      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
+      when dt::R_OBJECT then
+        obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
+        postprocess!(obj, opts)
+      when dt::R_JSON then
+        postprocess!(JSON.parse("[" + d.r_str + "]")[0], opts)
+      else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
 
-    def self.response_to_native(r, orig_term)
+    def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
       if r.backtrace
         bt = r.backtrace.frames.map {|x|
@@ -29,9 +89,9 @@ module RethinkDB
 
       begin
         case r.type
-        when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
-        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
-        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
+        when rt::SUCCESS_ATOM then datum_to_native(r.response[0], opts)
+        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d, opts)}
+        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d, opts)}
         when rt::RUNTIME_ERROR then
           raise RqlRuntimeError, "#{r.response[0].r_str}"
         when rt::COMPILE_ERROR then # TODO: remove?
@@ -41,9 +101,8 @@ module RethinkDB
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        term = orig_term.dup
+        term = orig_term.deep_dup
         term.bt_tag(bt)
-        $t = term
         raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
       end
     end
@@ -75,7 +134,7 @@ module RethinkDB
     @@datum_types = [Fixnum, Float, Bignum, String, Symbol,
                      TrueClass, FalseClass, NilClass]
 
-    def any_to_pb(x, context)
+    def any_to_pb(x)
       return x.to_pb if x.class == RQL
       t = Term.new
       t.type = Term::TermType::JSON
@@ -90,23 +149,23 @@ module RethinkDB
       return (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
     end
 
-    def fast_expr(x, context, allow_json)
+    def fast_expr(x, allow_json)
       return x if x.class == RQL
       if @@datum_types.include?(x.class)
         return x if allow_json
-        return RQL.new(Shim.native_to_datum_term(x), nil, context)
+        return RQL.new(Shim.native_to_datum_term(x), nil)
       end
 
       case x
       when Array
-        args = x.map{|y| fast_expr(y, context, allow_json)}
+        args = x.map{|y| fast_expr(y, allow_json)}
         return x if allow_json && args.all?{|y| y.class != RQL}
         t = Term.new
         t.type = Term::TermType::MAKE_ARRAY
-        t.args = args.map{|y| any_to_pb(y, context)}
-        return RQL.new(t, nil, context)
+        t.args = args.map{|y| any_to_pb(y)}
+        return RQL.new(t, nil)
       when Hash
-        kvs = x.map{|k,v| [k, fast_expr(v, context, allow_json)]}
+        kvs = x.map{|k,v| [k, fast_expr(v, allow_json)]}
         return x if allow_json && kvs.all? {|k,v|
           (k.class == String || k.class == Symbol) && v.class != RQL
         }
@@ -120,23 +179,28 @@ module RethinkDB
             raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
-          ap.val = any_to_pb(v, context)
+          ap.val = any_to_pb(v)
           ap
         }
-        return RQL.new(t, nil, context)
+        return RQL.new(t, nil)
       when Proc
-        t = RQL.new(nil, nil, context).new_func(&x).to_pb
-        return RQL.new(t, nil, context)
+        t = RQL.new(nil, nil).new_func(&x).to_pb
+        return RQL.new(t, nil)
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
     end
 
-    def reql_typify tree
+    def check_depth depth
+      raise RqlRuntimeError, "Maximum expression depth of 20 exceeded." if depth > 20
+    end
+
+    def reql_typify(tree, depth=0)
+      check_depth(depth)
       case tree
       when Array
-        return tree.map{|x| reql_typify(x)}
+        return tree.map{|x| reql_typify(x, depth+1)}
       when Hash
-        return Hash[tree.map{|k,v| [k, reql_typify(v)]}]
+        return Hash[tree.map{|k,v| [k, reql_typify(v, depth+1)]}]
       when Time
         return {
           '$reql_type$' => 'TIME',
@@ -151,10 +215,9 @@ module RethinkDB
     def expr(x, opts={})
       allow_json = opts[:allow_json]
       unbound_if @body
-      context = RPP.sanitize_context(caller)
-      res = fast_expr(reql_typify(x), context, allow_json)
+      res = fast_expr(reql_typify(x), allow_json)
       return res if res.class == RQL
-      return RQL.new(any_to_pb(res, context), nil, context)
+      return RQL.new(any_to_pb(res), nil)
     end
 
     def coerce(other)

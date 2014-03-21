@@ -1,6 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/timer.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "time.hpp"
 #include "utils.hpp"
 
 class timer_token_t : public intrusive_priority_queue_node_t<timer_token_t> {
@@ -91,6 +92,7 @@ timer_token_t *timer_handler_t::add_timer_internal(const int64_t ms, timer_callb
 
 void timer_handler_t::cancel_timer(timer_token_t *token) {
     token_queue.remove(token);
+    delete token;
 
     if (token_queue.empty()) {
         timer_provider.unschedule_oneshot();
@@ -100,13 +102,13 @@ void timer_handler_t::cancel_timer(timer_token_t *token) {
 
 
 timer_token_t *add_timer(int64_t ms, timer_callback_t *callback) {
-    return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, false);
+    return linux_thread_pool_t::get_thread()->timer_handler.add_timer_internal(ms, callback, false);
 }
 
 timer_token_t *fire_timer_once(int64_t ms, timer_callback_t *callback) {
-    return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, true);
+    return linux_thread_pool_t::get_thread()->timer_handler.add_timer_internal(ms, callback, true);
 }
 
 void cancel_timer(timer_token_t *timer) {
-    linux_thread_pool_t::thread->timer_handler.cancel_timer(timer);
+    linux_thread_pool_t::get_thread()->timer_handler.cancel_timer(timer);
 }

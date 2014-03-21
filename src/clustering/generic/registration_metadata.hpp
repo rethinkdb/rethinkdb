@@ -4,6 +4,7 @@
 
 #include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 
 template<class business_card_t>
 class registrar_business_card_t {
@@ -27,5 +28,9 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
 };
+
+template <class business_card_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(registrar_business_card_t<business_card_t>,
+    create_mailbox, delete_mailbox);
 
 #endif /* CLUSTERING_GENERIC_REGISTRATION_METADATA_HPP_ */

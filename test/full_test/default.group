@@ -1,4 +1,3 @@
-# By default, run all tests except the disabled tests and the long tests
-*
+# By default, run all the unit tests and query language tests
+unit-* ql-*
 !disabled
-!long

@@ -7,23 +7,20 @@ PRODUCT_NAME := RethinkDB
 ifneq ($(PVERSION),)
   RETHINKDB_VERSION := $(PVERSION)
   RETHINKDB_CODE_VERSION ?= $(shell $(TOP)/scripts/gen-version.sh)
-  RETHINKDB_SHORT_VERSION := $(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$//\1/')
   PACKAGING_ALTERNATIVES_PRIORITY := 0
 else
-  RETHINKDB_FALLBACK_VERSION := $(shell if [ -e $(TOP)/NOTES ] ; then cat $(TOP)/NOTES | grep '^. Release' | head -n 1 | awk '{ printf "%s" , $$3 ; }' ; fi ; )
-  RETHINKDB_VERSION := $(shell env FALLBACK_VERSION=$(RETHINKDB_FALLBACK_VERSION) $(TOP)/scripts/gen-version.sh)
-  RETHINKDB_CODE_VERSION ?= $(shell $(TOP)/scripts/gen-version.sh)
-  RETHINKDB_SHORT_VERSION := $(shell echo $(RETHINKDB_VERSION) | sed 's/\([^.]\+\.[^.]\+\).*$$/\1/')
+  RETHINKDB_VERSION := $(shell $(TOP)/scripts/gen-version.sh)
+  RETHINKDB_CODE_VERSION ?= $(RETHINKDB_VERSION)
   PACKAGING_ALTERNATIVES_PRIORITY = $(shell expr $$($(TOP)/scripts/gen-version.sh -r) / 100)
 endif
+
+RETHINKDB_SHORT_VERSION := $(shell echo $(RETHINKDB_VERSION) | sed -e 's/\([^.]\+\.[^.]\+\).*$$/\1/')
 
 ifeq ($(NAMEVERSIONED),1)
   SERVER_EXEC_NAME_VERSIONED := $(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 else
   SERVER_EXEC_NAME_VERSIONED := $(SERVER_EXEC_NAME)
 endif
-
-RETHINKDB_PACKAGING_VERSION := $(RETHINKDB_VERSION)
 
 ifeq ($(NAMEVERSIONED),1)
   VERSIONED_QUALIFIED_PACKAGE_NAME := $(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
@@ -69,7 +66,7 @@ else
 endif
 
 .PHONY: install-binaries
-install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME) install-backup-scripts
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$P INSTALL $^ $(DESTDIR)$(bin_dir)
 	install -m755 -d $(DESTDIR)$(bin_dir)
 	install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
@@ -77,13 +74,6 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$P STRIP $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 	$(STRIP_UNNEEDED) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
-
-install-backup-scripts: $(BACKUP_SCRIPTS_REAL) $(BACKUP_SCRIPTS_PROXY)
-	$P INSTALL backup-scripts $(DESTDIR)$(bin_dir)
-	install -m755 -d $(DESTDIR)$(bin_dir)
-	for file in $^; do \
-	  install -m755 $$file $(DESTDIR)$(bin_dir) ; \
-	done
 
 $(BUILD_DIR)/assets/rethinkdb.1: $(ASSETS_DIR)/man/rethinkdb.1 | $(BUILD_DIR)/assets/.
 	$P M4

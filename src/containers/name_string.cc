@@ -3,6 +3,9 @@
 
 #include <ctype.h>
 
+#include "containers/archive/stl_types.hpp"
+#include "debug.hpp"
+
 const char *const name_string_t::valid_char_msg = "Use A-Za-z0-9_ only";
 
 bool is_acceptable_name_character(int ch) {
@@ -11,7 +14,7 @@ bool is_acceptable_name_character(int ch) {
 
 name_string_t::name_string_t() { }
 
-bool name_string_t::assign_value(const std::string& s) {
+bool name_string_t::assign_value(const std::string &s) {
     if (s.empty()) {
         return false;
     }
@@ -25,6 +28,23 @@ bool name_string_t::assign_value(const std::string& s) {
     str_ = s;
     return true;
 }
+
+bool name_string_t::assign_value(const wire_string_t &s) {
+    if (s.size() == 0) {
+        return false;
+    }
+
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (!is_acceptable_name_character(s.data()[i])) {
+            return false;
+        }
+    }
+
+    str_ = s.to_std();
+    return true;
+}
+
+RDB_IMPL_ME_SERIALIZABLE_1(name_string_t, str_);
 
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED name_string_t *target) {

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 /* Please avoid #include'ing this file from other headers unless you absolutely
  * need to. Please #include "perfmon/types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the
@@ -14,17 +14,19 @@
 #include <map>
 #include <memory>
 
+#include "concurrency/cache_line_padded.hpp"
+#include "config/args.hpp"
 #include "perfmon/types.hpp"
 #include "perfmon/core.hpp"
-#include "utils.hpp"
+#include "time.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
-int get_thread_id();
+threadnum_t get_thread_id();
 
 /* When `global_full_perfmon` is true, some perfmons will perform more
  * elaborate stat calculations, which might take longer but will produce more
- * informative performance stats. The command-line flag `--full-perfmon` sets
+ * informative performance stats. The compile time option FULL_PERFMON sets
  * `global_full_perfmon` to true.
  */
 extern bool global_full_perfmon;
@@ -38,7 +40,7 @@ struct perfmon_perthread_t : public perfmon_t {
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id()]);
+        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id().threadnum]);
     }
     scoped_ptr_t<perfmon_result_t> end_stats(void *v_data) {
         std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));
@@ -97,12 +99,8 @@ struct stats_t {
     void record(double v) {
         count++;
         sum += v;
-        if (count) {
-            min = std::min(min, v);
-            max = std::max(max, v);
-        } else {
-            min = max = v;
-        }
+        min = std::min(min, v);
+        max = std::max(max, v);
     }
     void aggregate(const stats_t &s) {
         count += s.count;
@@ -216,7 +214,7 @@ public:
  * Frequently we're in the case where we'd like to have a single slow perfmon
  * up, but don't want the other ones, perfmon_duration_sampler_t has an
  * ignore_global_full_perfmon field on it, which when true makes it run
- * regardless of --full-perfmon flag this can also be enable and disabled at
+ * regardless of FULL_PERFMON flag this can also be enabled and disabled at
  * runtime.
  */
 struct perfmon_duration_sampler_t : public perfmon_t {

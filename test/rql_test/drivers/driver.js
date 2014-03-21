@@ -1,4 +1,4 @@
-var r = require('./../../../drivers/javascript/build/rethinkdb.js');
+var r = require('../../../build/packages/js/rethinkdb');
 
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
@@ -20,9 +20,9 @@ function eq_test(one, two) {
         return one(two);
     } else if (two instanceof Function) {
         return two(one);
-    } else if (goog.isArray(one)) {
+    } else if (Array.isArray(one)) {
 
-        if (!goog.isArray(two)) return false;
+        if (!Array.isArray(two)) return false;
 
         if (one.length != two.length) return false;
 
@@ -53,6 +53,37 @@ function eq_test(one, two) {
 
         // Primitive comparison
         return (typeof one === typeof two) && (one === two)
+    }
+}
+
+function le_test(a, b){
+    if (a instanceof Object && !Array.isArray(a)) {
+        if (!(b instanceof Object && !Array.isArray(b))) {
+            return false;
+        }
+        var ka = Object.keys(a).sort();
+        var kb = Object.keys(a).sort();
+        if (ka < kb) {
+            return true;
+        }
+        if (ka > kb) {
+            return false;
+        }
+        var ret;
+        for (k in ka) {
+            k = ka[k];
+            if (le_test(a[k], b[k])) {
+                return true;
+            }
+            if (le_test(b[k], a[k])) {
+                return false;
+            }
+        }
+        return true;
+    } else if (b instanceof Object && !Array.isArray(b)) {
+        return true;
+    } else {
+        return a <= b;
     }
 }
 
@@ -110,10 +141,22 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     testName = testPair[2];
                     runopts = testPair[3];
+                    if (!runopts) {
+                        runopts = {batchConf: {max_els: 3}}
+                    } else {
+                        for (var opt in runopts) {
+                            runopts[opt] = eval(runopts[opt])
+                        }
+                        if (!("batchConf" in runopts)) {
+                            runopts.batchConf = {max_els: 3}
+                        }
+                    }
 
                     try {
                         var exp_val = testPair[1];
-                        var exp_fun = eval(exp_val);
+                        with (defines) {
+                            var exp_fun = eval(exp_val);
+                        }
                     } catch (err) {
                         // Oops, this shouldn't have happened
                         console.log(testName);
@@ -151,10 +194,13 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     // Run test first on cpp server
                     try {
-                        var opts = {connection:cpp_conn};
-                        if (runopts && ('noreply' in runopts))
-                            opts.noreply = runopts.noreply
-                        test.run(opts, cpp_cont);
+                        var opts = {};
+                        if (runopts) {
+                            for (var key in runopts) {
+                                opts[key] = runopts[key]
+                            }
+                        }
+                        test.run(cpp_conn, opts, cpp_cont);
 
                     } catch(err) {
                         if (exp_fun.isErr) {
@@ -202,7 +248,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             } else if (!exp_fun(cpp_res)) {
                                 printTestFailure(testName, src,
                                                  ["CPP result is not equal to expected result:",
-                                                  "\n\tVALUE: ",cpp_res,"\n\tEXPECTED: ",exp_val]);
+                                                  "\n\tVALUE: ",JSON.stringify(cpp_res),"\n\tEXPECTED: ",exp_val]);
                             }
 
                             // Continue to next test. Tests are fully sequential
@@ -211,9 +257,11 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             runTest();
                             return;
                         } catch(err) {
+                            console.log("stack: " + String(err.stack))
                             unexpectedException("afterArray", testName, err);
                         } }
                     } catch(err) {
+                        console.log("stack: " + String(err.stack))
                         unexpectedException("cpp_cont", testName, err);
                     } }
                 }
@@ -231,6 +279,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 }
             }
         } catch (err) {
+            console.log("stack: " + String(err.stack))
             unexpectedException("runTest", testName, testPair[1], err);
         } }
 
@@ -262,9 +311,9 @@ function define(expr) {
 
 // Invoked by generated code to support bag comparison on this expected value
 function bag(list) {
-    var bag = eval(list).sort();
+    var bag = eval(list).sort(le_test);
     var fun = function(other) {
-        other = other.sort();
+        other = other.sort(le_test);
         return eq_test(bag, other);
     };
     fun.toString = function() {

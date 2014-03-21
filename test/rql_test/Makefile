@@ -8,7 +8,11 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,build/test.%,$(DRIVER_FILES))
 BUILD_DIR='../../build/release'
 TEST_DEFAULT_PORT=0
 SHARD=0
-TEST=.*
+ifeq (1,$(SKIP_SLOW))
+  TEST=[^_].*
+else
+  TEST=.*
+endif
 
 SHELL=/bin/bash
 
@@ -27,12 +31,24 @@ run: $(TEST_FILES) cursor connect
 
 .PHONY: py
 py: py_connect py_cursor py_polyglot
+py_connect py_cursor py_polyglot: py_build
+
+py_build:
+	MAKEFLAGS= make -C ../../drivers/python
 
 .PHONY: js
 js: js_connect js_cursor js_polyglot
+js_connect js_cursor js_polyglot: js_build
+
+js_build:
+	MAKEFLAGS= make -C ../../drivers/javascript
 
 .PHONY: rb
-rb: rb_polyglot
+rb: rb_polyglot rb_server
+rb_polyglot: rb_build
+
+rb_build:
+	MAKEFLAGS= make -C ../../drivers/ruby
 
 .PHONY: py_polyglot
 py_polyglot: $(TEST_FILES)
@@ -45,6 +61,10 @@ js_polyglot: $(TEST_FILES)
 .PHONY: rb_polyglot
 rb_polyglot: $(TEST_FILES)
 	./test-runner run \"$(BUILD_DIR)\" \"rb\"
+
+.PHONY: rb_server
+rb_server: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"rb_server\"
 
 .PHONY: attach
 attach: $(TEST_FILES)
@@ -72,6 +92,12 @@ js_connect: connections/connection.js
 	mkdir -p run
 	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
+
+.PHONY: js_date
+js_date: connections/date.js
+	mkdir -p run
+	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
+	    _mocha connections/date.js
 
 .PHONY: cursor
 cursor:

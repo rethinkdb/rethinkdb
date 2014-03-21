@@ -63,10 +63,26 @@ TEST(OptionsTest, CommandLineParsing) {
     ASSERT_EQ(expected_parse, opts);
 }
 
+TEST(OptionsTest, CommandLineMissingParameter) {
+    const std::vector<options::option_t> options = make_options();
+
+    std::vector<const char *> command_line = make_vector<const char *>("--optional", "");
+    ASSERT_THROW(options::parse_command_line(command_line.size(),
+                                             command_line.data(),
+                                             options),
+                 options::option_error_t);
+
+    command_line = make_vector<const char *>("--optional", "--no-parameter");
+    ASSERT_THROW(options::parse_command_line(command_line.size(),
+                                             command_line.data(),
+                                             options),
+                 options::option_error_t);
+}
+
 TEST(OptionsTest, ConfigFileParsing) {
     const std::string config_file =
         "# My First Config file\n"
-        "no-parameter=\n"
+        "no-parameter\n"
         "optional=optional1\n"
         "optional-repeat = optional-repeat1\r\n"
         "optional-repeat = optional-repeat2\r\n"
@@ -100,6 +116,38 @@ TEST(OptionsTest, ConfigFileParsing) {
     ASSERT_EQ(expected_parse, opts);
 }
 
+TEST(OptionsTest, ConfigFileMissingParameter) {
+    const std::vector<options::option_t> options = make_options();
+    std::vector<options::option_t> options_superset = options;
+
+    std::string config_file = std::string("optional");
+    ASSERT_THROW(options::parse_config_file(config_file,
+                                            "ConfigFile",
+                                            options,
+                                            options_superset),
+                 options::option_error_t);
+
+    config_file = std::string("optional=");
+    ASSERT_THROW(options::parse_config_file(config_file,
+                                            "ConfigFile",
+                                            options,
+                                            options_superset),
+                 options::option_error_t);
+
+    config_file = std::string("no-parameter=");
+    ASSERT_THROW(options::parse_config_file(config_file,
+                                            "ConfigFile",
+                                            options,
+                                            options_superset),
+                 options::option_error_t);
+
+    config_file = std::string("no-parameter=stuff");
+    ASSERT_THROW(options::parse_config_file(config_file,
+                                            "ConfigFile",
+                                            options,
+                                            options_superset),
+                 options::option_error_t);
+}
 
 
 }  // namespace unittest

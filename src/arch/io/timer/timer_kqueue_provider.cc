@@ -7,10 +7,13 @@
 #include <sys/event.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "config/args.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "time.hpp"
+#include "containers/printf_buffer.hpp"
 
 timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
     : queue_(queue), kq_fd_(-1), callback_(NULL) {
@@ -92,7 +95,7 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
         int res;
         do {
             res = kevent64(kq_fd_, NULL, 0, events, num_events, 0, &timeout);
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         guarantee_err(res != -1, "kevent64 failed when reading timer");
 

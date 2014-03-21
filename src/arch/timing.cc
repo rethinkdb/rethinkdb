@@ -1,8 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/timing.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -12,19 +11,31 @@
 
 void nap(int64_t ms) THROWS_NOTHING {
     if (ms > 0) {
-        signal_timer_t timer(ms);
+        signal_timer_t timer;
+        timer.start(ms);
         timer.wait_lazily_ordered();
     }
 }
 
 void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    signal_timer_t timer(ms);
+    signal_timer_t timer;
+    timer.start(ms);
     wait_interruptible(&timer, interruptor);
 }
 
 // signal_timer_t
 
-signal_timer_t::signal_timer_t(int64_t ms) : timer(NULL) {
+signal_timer_t::signal_timer_t() : timer(NULL) { }
+
+signal_timer_t::~signal_timer_t() {
+    if (timer != NULL) {
+        cancel_timer(timer);
+    }
+}
+
+void signal_timer_t::start(int64_t ms) {
+    guarantee(timer == NULL);
+    guarantee(!is_pulsed());
     if (ms == 0) {
         pulse();
     } else {
@@ -33,8 +44,17 @@ signal_timer_t::signal_timer_t(int64_t ms) : timer(NULL) {
     }
 }
 
-signal_timer_t::~signal_timer_t() {
-    if (timer) cancel_timer(timer);
+bool signal_timer_t::cancel() {
+    if (timer != NULL) {
+        cancel_timer(timer);
+        timer = NULL;
+        return true;
+    }
+    return false;
+}
+
+bool signal_timer_t::is_running() const {
+    return is_pulsed() || timer != NULL;
 }
 
 void signal_timer_t::on_timer() {
@@ -65,5 +85,5 @@ void call_ringer(repeating_timer_callback_t *ringee) {
 void repeating_timer_t::on_timer() {
     // Spawn _now_, otherwise the reating_timer_t lifetime might end
     // before ring gets used.
-    coro_t::spawn_now_dangerously(boost::bind(call_ringer, ringee));
+    coro_t::spawn_now_dangerously(std::bind(call_ringer, ringee));
 }

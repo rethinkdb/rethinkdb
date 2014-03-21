@@ -1,20 +1,19 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
-
+#include "concurrency/access.hpp"
 #include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
-#include "concurrency/access.hpp"
-#include "concurrency/rwi_lock.hpp"
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
+class buf_lock_t;
+class buf_parent_t;
 struct btree_superblock_t;
 class traversal_state_t;
 class parent_releaser_t;
@@ -23,11 +22,21 @@ struct btree_key_t;
 struct internal_node_t;
 class superblock_t;
 
+struct lock_in_line_callback_t {
+public:
+    lock_in_line_callback_t() { }
+    virtual void on_in_line() = 0;
+protected:
+    virtual ~lock_in_line_callback_t() { }
+private:
+    DISABLE_COPYING(lock_in_line_callback_t);
+};
+
 
 // HEY: Make this an abstract class, have two separate implementation
 // classes for the "forced block id" case and the internal node case.
 // (Hint: I don't really care.)
-class ranged_block_ids_t {
+class ranged_block_ids_t : public single_threaded_countable_t<ranged_block_ids_t> {
 public:
     ranged_block_ids_t(block_size_t bs, const internal_node_t *node,
                        const btree_key_t *left_exclusive_or_null,
@@ -75,8 +84,13 @@ public:
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
-        : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
+    interesting_children_callback_t(
+            traversal_state_t *_state,
+            parent_releaser_t *_releaser,
+            int _level,
+            const counted_t<ranged_block_ids_t> &_ids_source)
+        : state(_state), releaser(_releaser),
+          level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:
     void on_in_line();
@@ -86,7 +100,7 @@ private:
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;
-    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    counted_t<ranged_block_ids_t> ids_source;
 
     DISABLE_COPYING(interesting_children_callback_t);
 };
@@ -107,7 +121,7 @@ struct btree_traversal_helper_t {
     virtual void read_stat_block(buf_lock_t *) { }
 
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
+    virtual void process_a_leaf(buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null,
                                 signal_t *interruptor,
@@ -115,7 +129,10 @@ struct btree_traversal_helper_t {
 
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
-    virtual void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) = 0;
+    virtual void filter_interesting_children(
+            buf_parent_t parent,
+            ranged_block_ids_t *ids_source,
+            interesting_children_callback_t *cb) = 0;
 
     virtual access_t btree_superblock_mode() = 0;
     virtual access_t btree_node_mode() = 0;
@@ -126,9 +143,8 @@ struct btree_traversal_helper_t {
     parallel_traversal_progress_t *progress;
 };
 
-void btree_parallel_traversal(transaction_t *txn,
+void btree_parallel_traversal(
         superblock_t *superblock,
-        btree_slice_t *slice,
         btree_traversal_helper_t *helper,
         signal_t *interruptor,
         bool release_superblock = true)
@@ -164,5 +180,6 @@ private:
 
     DISABLE_COPYING(parallel_traversal_progress_t);
 };
+
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

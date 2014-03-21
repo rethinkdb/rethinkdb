@@ -6,23 +6,12 @@
 Please modify '../scripts/generate_rpc_templates.py' instead of modifying this file.*/
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
-
-/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t`
-constructor, it will spawn the callback in a new coroutine. If you
-`mailbox_callback_mode_inline`, it will call the callback inline
-and the callback must not block. The former is the default for
-historical reasons, but the latter is better. Eventually the former
-will go away. */
-enum mailbox_callback_mode_t {
-    mailbox_callback_mode_coroutine,
-    mailbox_callback_mode_inline
-};
+#include "rpc/semilattice/joins/macros.hpp"
 
 template <class> class mailbox_t;
 
@@ -35,51 +24,62 @@ public:
     friend class mailbox_t<T>;
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
 private:
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);
     template <class a0_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
     template <class a0_t, class a1_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
     template <class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
     template <class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t *, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+    friend void send(mailbox_manager_t *,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
 
     raw_mailbox_t::address_t addr;
 };
 
 template<>
 class mailbox_t< void() > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     public:
         write_impl_t() { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *) {
         }
     };
 
@@ -87,19 +87,7 @@ class mailbox_t< void() > {
     public:
         explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
         void read(UNUSED read_stream_t *stream) {
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun));
-            } else {
-                parent->fun();
-            }
-        }
-
-        void read(UNUSED mailbox_write_callback_t *_writer) {
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun));
-            } else {
-                parent->fun();
-            }
+            parent->fun();
         }
     private:
         mailbox_t< void() > *parent;
@@ -110,8 +98,9 @@ class mailbox_t< void() > {
 public:
     typedef mailbox_addr_t< void() > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void()> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -124,12 +113,12 @@ private:
     friend void send(mailbox_manager_t*, address_t);
 
     boost::function< void() > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 inline
-void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
+void send(mailbox_manager_t *src,
+           mailbox_t< void() >::address_t dest) {
     mailbox_t< void() >::write_impl_t writer;
     send(src, dest.addr, &writer);
 }
@@ -137,20 +126,15 @@ void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
 
 template<class arg0_t>
 class mailbox_t< void(arg0_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
     public:
         explicit write_impl_t(const arg0_t& _arg0) :
             arg0(_arg0)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
         }
     };
 
@@ -159,22 +143,9 @@ class mailbox_t< void(arg0_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0));
-            } else {
-                parent->fun(arg0);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0));
-            } else {
-                parent->fun(writer->arg0);
-            }
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0);
         }
     private:
         mailbox_t< void(arg0_t) > *parent;
@@ -185,8 +156,9 @@ class mailbox_t< void(arg0_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -197,15 +169,16 @@ public:
 
 private:
     template<class a0_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
 
     boost::function< void(arg0_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
     typename mailbox_t< void(arg0_t) >::write_impl_t writer(arg0);
     send(src, dest.addr, &writer);
 }
@@ -213,22 +186,17 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t 
 
 template<class arg0_t, class arg1_t>
 class mailbox_t< void(arg0_t, arg1_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
     public:
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1) :
             arg0(_arg0), arg1(_arg1)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
         }
     };
 
@@ -237,25 +205,12 @@ class mailbox_t< void(arg0_t, arg1_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1));
-            } else {
-                parent->fun(arg0, arg1);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1));
-            } else {
-                parent->fun(writer->arg0, writer->arg1);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t) > *parent;
@@ -266,8 +221,9 @@ class mailbox_t< void(arg0_t, arg1_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -278,15 +234,16 @@ public:
 
 private:
     template<class a0_t, class a1_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
 
     boost::function< void(arg0_t, arg1_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
     typename mailbox_t< void(arg0_t, arg1_t) >::write_impl_t writer(arg0, arg1);
     send(src, dest.addr, &writer);
 }
@@ -294,10 +251,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::ad
 
 template<class arg0_t, class arg1_t, class arg2_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -305,13 +260,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
         }
     };
 
@@ -320,28 +272,15 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2));
-            } else {
-                parent->fun(arg0, arg1, arg2);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
@@ -352,8 +291,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -364,15 +304,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write_impl_t writer(arg0, arg1, arg2);
     send(src, dest.addr, &writer);
 }
@@ -380,10 +321,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -392,14 +331,11 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
         }
     };
 
@@ -408,31 +344,18 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
@@ -443,8 +366,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -455,15 +379,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write_impl_t writer(arg0, arg1, arg2, arg3);
     send(src, dest.addr, &writer);
 }
@@ -471,10 +396,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -484,15 +407,12 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
         }
     };
 
@@ -501,34 +421,21 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
@@ -539,8 +446,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -551,15 +459,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4);
     send(src, dest.addr, &writer);
 }
@@ -567,10 +476,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -581,16 +488,13 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
         }
     };
 
@@ -599,37 +503,24 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
@@ -640,8 +531,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -652,15 +544,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5);
     send(src, dest.addr, &writer);
 }
@@ -668,10 +561,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -683,17 +574,14 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
         }
     };
 
@@ -702,40 +590,27 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
@@ -746,8 +621,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -758,15 +634,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     send(src, dest.addr, &writer);
 }
@@ -774,10 +651,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -790,18 +665,15 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
         }
     };
 
@@ -810,43 +682,30 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
@@ -857,8 +716,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -869,15 +729,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     send(src, dest.addr, &writer);
 }
@@ -885,10 +746,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -902,19 +761,16 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
         }
     };
 
@@ -923,46 +779,33 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
@@ -973,8 +816,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -985,15 +829,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     send(src, dest.addr, &writer);
 }
@@ -1001,10 +846,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1019,20 +862,17 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            msg << arg9;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
+            *msg << arg9;
         }
     };
 
@@ -1041,49 +881,36 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            arg9_t arg9;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
@@ -1094,8 +921,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1106,15 +934,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     send(src, dest.addr, &writer);
 }
@@ -1122,10 +951,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1141,21 +968,18 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            msg << arg9;
-            msg << arg10;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
+            *msg << arg9;
+            *msg << arg10;
         }
     };
 
@@ -1164,52 +988,39 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            arg9_t arg9;
-            arg10_t arg10;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
@@ -1220,8 +1031,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1232,15 +1044,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     send(src, dest.addr, &writer);
 }
@@ -1248,10 +1061,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1268,22 +1079,19 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            msg << arg9;
-            msg << arg10;
-            msg << arg11;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
+            *msg << arg9;
+            *msg << arg10;
+            *msg << arg11;
         }
     };
 
@@ -1292,55 +1100,42 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            arg9_t arg9;
-            arg10_t arg10;
-            arg11_t arg11;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
@@ -1351,8 +1146,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1363,15 +1159,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
     send(src, dest.addr, &writer);
 }
@@ -1379,10 +1176,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1400,23 +1195,20 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            msg << arg9;
-            msg << arg10;
-            msg << arg11;
-            msg << arg12;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
+            *msg << arg9;
+            *msg << arg10;
+            *msg << arg11;
+            *msg << arg12;
         }
     };
 
@@ -1425,58 +1217,45 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            arg9_t arg9;
-            arg10_t arg10;
-            arg11_t arg11;
-            arg12_t arg12;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg12_t arg12;
             res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11, writer->arg12));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11, writer->arg12);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
@@ -1487,8 +1266,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1499,15 +1279,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
     send(src, dest.addr, &writer);
 }
@@ -1515,10 +1296,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
-    class read_impl_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class read_impl_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1537,24 +1316,21 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         write_impl_t(const arg0_t& _arg0, const arg1_t& _arg1, const arg2_t& _arg2, const arg3_t& _arg3, const arg4_t& _arg4, const arg5_t& _arg5, const arg6_t& _arg6, const arg7_t& _arg7, const arg8_t& _arg8, const arg9_t& _arg9, const arg10_t& _arg10, const arg11_t& _arg11, const arg12_t& _arg12, const arg13_t& _arg13) :
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
         { }
-        void write(write_stream_t *stream) {
-            write_message_t msg;
-            msg << arg0;
-            msg << arg1;
-            msg << arg2;
-            msg << arg3;
-            msg << arg4;
-            msg << arg5;
-            msg << arg6;
-            msg << arg7;
-            msg << arg8;
-            msg << arg9;
-            msg << arg10;
-            msg << arg11;
-            msg << arg12;
-            msg << arg13;
-            int res = send_write_message(stream, &msg);
-            if (res) { throw fake_archive_exc_t(); }
+        void write(write_message_t *msg) {
+            *msg << arg0;
+            *msg << arg1;
+            *msg << arg2;
+            *msg << arg3;
+            *msg << arg4;
+            *msg << arg5;
+            *msg << arg6;
+            *msg << arg7;
+            *msg << arg8;
+            *msg << arg9;
+            *msg << arg10;
+            *msg << arg11;
+            *msg << arg12;
+            *msg << arg13;
         }
     };
 
@@ -1563,61 +1339,48 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             arg0_t arg0;
+            archive_result_t res = deserialize(stream, &arg0);
+            if (bad(res)) { throw fake_archive_exc_t(); }
             arg1_t arg1;
-            arg2_t arg2;
-            arg3_t arg3;
-            arg4_t arg4;
-            arg5_t arg5;
-            arg6_t arg6;
-            arg7_t arg7;
-            arg8_t arg8;
-            arg9_t arg9;
-            arg10_t arg10;
-            arg11_t arg11;
-            arg12_t arg12;
-            arg13_t arg13;
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
             res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
             res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
             res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
             res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
             res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
             res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
             res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
             res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
             res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
             res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
             res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg12_t arg12;
             res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            arg13_t arg13;
             res = deserialize(stream, &arg13);
-            if (res) { throw fake_archive_exc_t(); }
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
-            } else {
-                parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
-            }
-        }
-
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            if (parent->callback_mode == mailbox_callback_mode_coroutine) {
-                coro_t::spawn_sometime(boost::bind(parent->fun, writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11, writer->arg12, writer->arg13));
-            } else {
-                parent->fun(writer->arg0, writer->arg1, writer->arg2, writer->arg3, writer->arg4, writer->arg5, writer->arg6, writer->arg7, writer->arg8, writer->arg9, writer->arg10, writer->arg11, writer->arg12, writer->arg13);
-            }
+            if (bad(res)) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;
@@ -1628,8 +1391,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, tm, &reader)
+    mailbox_t(mailbox_manager_t *manager,
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1640,15 +1404,16 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+    friend void send(mailbox_manager_t*,
+                     typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
+void send(mailbox_manager_t *src,
+          typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
     typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
     send(src, dest.addr, &writer);
 }

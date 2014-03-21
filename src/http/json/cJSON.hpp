@@ -54,15 +54,6 @@ struct cJSON {
         char *string;                                /* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
 };
 
-//typedef struct cJSON_Hooks {
-//      void *(*malloc_fn)(size_t sz);
-//      void (*free_fn)(void *ptr);
-//} cJSON_Hooks;
-//
-///* Supply malloc, realloc and free functions to cJSON */
-//extern void cJSON_InitHooks(cJSON_Hooks* hooks);
-
-
 /* Supply a block of JSON, and this returns a cJSON object you can interrogate. Call cJSON_Delete when finished. */
 extern cJSON *cJSON_Parse(const char *value);
 /* Render a cJSON entity to text for transfer/storage. Free the char* when finished. */

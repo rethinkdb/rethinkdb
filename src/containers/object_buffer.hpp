@@ -1,6 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_OBJECT_BUFFER_HPP_
 #define CONTAINERS_OBJECT_BUFFER_HPP_
+
+#include <new>
+#include <utility>
 
 #include "errors.hpp"
 
@@ -37,11 +40,11 @@ public:
     }
 
     template <class... Args>
-    T *create(const Args &... args) {
+    T *create(Args &&... args) {
         rassert(state == EMPTY);
         state = CONSTRUCTING;
         try {
-            new (&object_data[0]) T(args...);
+            new (&object_data[0]) T(std::forward<Args>(args)...);
         } catch (...) {
             state = EMPTY;
             throw;

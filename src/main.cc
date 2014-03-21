@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <sys/resource.h>
 
 #include <set>
@@ -6,7 +6,6 @@
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "utils.hpp"
-#include "help.hpp"
 #include "config/args.hpp"
 
 int main(int argc, char *argv[]) {
@@ -17,7 +16,7 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    run_generic_global_startup_behavior();
+    startup_shutdown_t startup_shutdown;
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
@@ -68,7 +67,11 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_serve();
                     return 0;
                 } else if (subcommand2 == "admin") {
-                    admin_command_parser_t::do_usage(false);
+                    admin_command_parser_t admin_parser(std::string(),
+                                                        peer_address_set_t(),
+                                                        peer_address_t(),
+                                                        0, NULL);
+                    admin_parser.do_usage(false);
                     return 0;
                 } else if (subcommand2 == "proxy") {
                     help_rethinkdb_proxy();

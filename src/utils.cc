@@ -1,12 +1,10 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-#define __STDC_FORMAT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <inttypes.h>
@@ -17,44 +15,45 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/resource.h>
+#include <unistd.h>
 
-#ifdef __MACH__
-#include <mach/mach_time.h>
-#endif
+#include <google/protobuf/stubs/common.h>
 
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
-
+#include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
+#include "debug.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/ql2_extensions.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
     install_generic_crash_handler();
+    install_new_oom_handler();
+
+    // Set the locale to C, because some ReQL terms may produce different
+    // results in different locales, and we need to avoid data divergence when
+    // two servers in the same cluster have different locales.
+    setlocale(LC_ALL, "C");
 
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
 
-    // We need to set the file descriptor limit maximum to a higher value.  On OS X, rlim_max is
-    // RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to set rlim_cur to RLIM_INFINITY.  On
-    // Linux, maybe the same thing is illegal, but rlim_max is set to a finite value (65K - 1)
-    // anyway.  OS X has OPEN_MAX defined to limit the highest possible file descriptor value, and
-    // that's what'll end up being the new rlim_cur value.  (The man page on OS X suggested it.)  I
-    // don't know if Linux has a similar thing, or other platforms, so we just go with rlim_max, and
-    // if we ever see a warning, we'll fix it.  Users can always deal with the problem on their end
-    // for a while using ulimit or whatever.)
+    // We need to set the file descriptor limit maximum to a higher value.  On
+    // OS X, rlim_max is RLIM_INFINITY and, with RLIMIT_NOFILE, it's illegal to
+    // set rlim_cur to RLIM_INFINITY.  On Linux, maybe the same thing is
+    // illegal, but rlim_max is set to a finite value (65K - 1) anyway.  OS X
+    // has OPEN_MAX defined to limit the highest possible file descriptor value,
+    // and that's what'll end up being the new rlim_cur value.  (The man page on
+    // OS X suggested it.)  I don't know if Linux has a similar thing, or other
+    // platforms, so we just go with rlim_max, and if we ever see a warning,
+    // we'll fix it.  Users can always deal with the problem on their end for a
+    // while using ulimit or whatever.)
 
 #ifdef __MACH__
     file_limit.rlim_cur = std::min<rlim_t>(OPEN_MAX, file_limit.rlim_max);
@@ -65,20 +64,19 @@ void run_generic_global_startup_behavior() {
 
     if (res != 0) {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
-            errno, errno_string(errno).c_str());
+            get_errno(), errno_string(get_errno()).c_str());
     }
 
 }
 
-// fast-ish non-null terminated string comparison
-int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
-    int min_len = std::min(len1, len2);
-    int res = memcmp(str1, str2, min_len);
-    if (res == 0) {
-        res = len1 - len2;
-    }
-    return res;
+startup_shutdown_t::startup_shutdown_t() {
+    run_generic_global_startup_behavior();
 }
+
+startup_shutdown_t::~startup_shutdown_t() {
+    google::protobuf::ShutdownProtobufLibrary();
+}
+
 
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
@@ -184,61 +182,24 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
     return time;
 }
 
-#ifndef NDEBUG
-void home_thread_mixin_debug_only_t::assert_thread() const {
-    rassert(get_thread_id() == real_home_thread);
+with_priority_t::with_priority_t(int priority) {
+    rassert(coro_t::self() != NULL);
+    previous_priority = coro_t::self()->get_priority();
+    coro_t::self()->set_priority(priority);
 }
-#endif
-
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread)
-#ifndef NDEBUG
-    : real_home_thread(specified_home_thread)
-#endif
-{ }
-
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t()
-#ifndef NDEBUG
-    : real_home_thread(get_thread_id())
-#endif
-{ }
-
-#ifndef NDEBUG
-void home_thread_mixin_t::assert_thread() const {
-    rassert(home_thread() == get_thread_id());
-}
-#endif
-
-home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
-    : real_home_thread(specified_home_thread) {
-    assert_good_thread_id(specified_home_thread);
-}
-home_thread_mixin_t::home_thread_mixin_t()
-    : real_home_thread(get_thread_id()) { }
-
-
-on_thread_t::on_thread_t(int thread) {
-    coro_t::move_to_thread(thread);
-}
-on_thread_t::~on_thread_t() {
-    coro_t::move_to_thread(home_thread());
-}
-
-microtime_t current_microtime() {
-    // This could be done more efficiently, surely.
-    struct timeval t;
-    DEBUG_VAR int res = gettimeofday(&t, NULL);
-    rassert(0 == res);
-    return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
+with_priority_t::~with_priority_t() {
+    rassert(coro_t::self() != NULL);
+    coro_t::self()->set_priority(previous_priority);
 }
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);
+    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
             crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
         } else if (res == ENOMEM) {
-            crash_or_trap("Out of memory.");
+            crash_oom();
         } else {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
@@ -246,97 +207,20 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
-void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n) {
-    buf->appendf("\"");
-    for (size_t i = 0; i < n; ++i) {
-        uint8_t ch = s[i];
-
-        switch (ch) {
-        case '\"':
-            buf->appendf("\\\"");
-            break;
-        case '\\':
-            buf->appendf("\\\\");
-            break;
-        case '\n':
-            buf->appendf("\\n");
-            break;
-        case '\t':
-            buf->appendf("\\t");
-            break;
-        case '\r':
-            buf->appendf("\\r");
-            break;
-        default:
-            if (ch <= '~' && ch >= ' ') {
-                // ASCII dependency here
-                buf->appendf("%c", ch);
-            } else {
-                const char *table = "0123456789ABCDEF";
-                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
-            }
-            break;
-        }
+void *rmalloc(size_t size) {
+    void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
+        crash_oom();
     }
-    buf->appendf("\"");
+    return res;
 }
 
-#ifndef NDEBUG
-// Adds the time/thread id prefix to buf.
-void debugf_prefix_buf(printf_buffer_t *buf) {
-    struct timespec t = clock_realtime();
-
-    format_time(t, buf);
-
-    buf->appendf(" Thread %d: ", get_thread_id());
-}
-
-void debugf_dump_buf(printf_buffer_t *buf) {
-    // Writing a single buffer in one shot like this makes it less
-    // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.  (We can't simply
-    // flockfile both stderr and stdout because there's no established
-    // rule about which one should be locked first.)
-    size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
-    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
-    int res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
-}
-
-void debugf(const char *msg, ...) {
-    printf_buffer_t buf;
-    debugf_prefix_buf(&buf);
-
-    va_list ap;
-    va_start(ap, msg);
-
-    buf.vappendf(msg, ap);
-
-    va_end(ap);
-
-    debugf_dump_buf(&buf);
-}
-
-#endif
-
-void debug_print(printf_buffer_t *buf, uint64_t x) {
-    buf->appendf("%" PRIu64, x);
-}
-
-void debug_print(printf_buffer_t *buf, const std::string& s) {
-    const char *data = s.data();
-    debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
-}
-
-debugf_in_dtor_t::debugf_in_dtor_t(const char *msg, ...) {
-    va_list arguments;
-    va_start(arguments, msg);
-    message = vstrprintf(msg, arguments);
-    va_end(arguments);
-}
-
-debugf_in_dtor_t::~debugf_in_dtor_t() {
-    debugf("%s", message.c_str());
+void *rrealloc(void *ptr, size_t size) {
+    void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
+    if (res == NULL && size != 0) {
+        crash_oom();
+    }
+    return res;
 }
 
 rng_t::rng_t(int seed) {
@@ -392,6 +276,17 @@ int randint(int n) {
     return x % n;
 }
 
+size_t randsize(size_t n) {
+    size_t ret = 0;
+    size_t i = SIZE_MAX;
+    while (i != 0) {
+        int x = randint(0x10000);
+        ret = ret * 0x10000 + x;
+        i /= 0x10000;
+    }
+    return ret % n;
+}
+
 double randdouble() {
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
@@ -429,7 +324,7 @@ bool begins_with_minus(const char *string) {
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
     CT_ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT(runtime/int)
     long long result = strtoll(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if ((result == LLONG_MAX || result == LLONG_MIN) && errno == ERANGE) {
+    if ((result == LLONG_MAX || result == LLONG_MIN) && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -443,7 +338,7 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
     }
     CT_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));  // NOLINT(runtime/int)
     unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULLONG_MAX && errno == ERANGE) {
+    if (result == ULLONG_MAX && get_errno() == ERANGE) {
         *end = string;
         return 0;
     }
@@ -473,98 +368,6 @@ bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
         return true;
     }
 }
-
-int gcd(int x, int y) {
-    rassert(x >= 0);
-    rassert(y >= 0);
-
-    while (y != 0) {
-        int tmp = y;
-        y = x % y;
-        x = tmp;
-    }
-
-    return x;
-}
-
-int64_t round_up_to_power_of_two(int64_t x) {
-    rassert(x >= 0);
-
-    --x;
-
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-
-    rassert(x < INT64_MAX);
-
-    return x + 1;
-}
-
-ticks_t secs_to_ticks(time_t secs) {
-    return static_cast<ticks_t>(secs) * BILLION;
-}
-
-#ifdef __MACH__
-__thread mach_timebase_info_data_t mach_time_info;
-#endif  // __MACH__
-
-timespec clock_monotonic() {
-#ifdef __MACH__
-    if (mach_time_info.denom == 0) {
-        mach_timebase_info(&mach_time_info);
-        guarantee(mach_time_info.denom != 0);
-    }
-    const uint64_t t = mach_absolute_time();
-    uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;
-    timespec ret;
-    ret.tv_sec = nanosecs / BILLION;
-    ret.tv_nsec = nanosecs % BILLION;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_MONOTONIC, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTIC, ...) failed");
-    return ret;
-#endif
-}
-
-timespec clock_realtime() {
-#ifdef __MACH__
-    struct timeval tv;
-    int res = gettimeofday(&tv, NULL);
-    guarantee_err(res == 0, "gettimeofday failed");
-
-    timespec ret;
-    ret.tv_sec = tv.tv_sec;
-    ret.tv_nsec = THOUSAND * tv.tv_usec;
-    return ret;
-#else
-    timespec ret;
-    int res = clock_gettime(CLOCK_REALTIME, &ret);
-    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-    return ret;
-#endif
-}
-
-
-ticks_t get_ticks() {
-    timespec tv = clock_monotonic();
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
-}
-
-time_t get_secs() {
-    timespec tv = clock_realtime();
-    return tv.tv_sec;
-}
-
-double ticks_to_secs(ticks_t ticks) {
-    return ticks / static_cast<double>(BILLION);
-}
-
 
 bool notf(bool x) {
     return !x;
@@ -622,7 +425,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         int res;
         do {
             res = open(path, O_RDONLY);
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -637,7 +440,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         ssize_t res;
         do {
             res = read(fd.get(), buf, sizeof(buf));
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         if (res == -1) {
             return false;
@@ -660,36 +463,6 @@ std::string blocking_read_file(const char *path) {
 }
 
 
-static const char * unix_path_separator = "/";
-
-path_t parse_as_path(const std::string &path) {
-    path_t res;
-    res.is_absolute = (path[0] == unix_path_separator[0]);
-
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
-    boost::char_separator<char> sep(unix_path_separator);
-    tokenizer tokens(path, sep);
-
-    res.nodes.assign(tokens.begin(), tokens.end());
-
-    return res;
-}
-
-std::string render_as_path(const path_t &path) {
-    std::string res;
-    for (std::vector<std::string>::const_iterator it =  path.nodes.begin();
-                                                  it != path.nodes.end();
-                                                  ++it) {
-        if (it != path.nodes.begin() || path.is_absolute) {
-            res += unix_path_separator;
-        }
-        res += *it;
-    }
-
-    return res;
-}
-
 std::string sanitize_for_logger(const std::string &s) {
     std::string sanitized = s;
     for (size_t i = 0; i < sanitized.length(); ++i) {
@@ -708,19 +481,10 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-// The last thread is a service thread that runs an connection acceptor, a log writer, and possibly
-// similar services, and does not run any db code (caches, serializers, etc). The reasoning is that
-// when the acceptor (and possibly other utils) get placed on an event queue with the db code, the
-// latency for these utils can increase significantly. In particular, it causes timeout bugs in
-// clients that expect the acceptor to work faster.
-int get_num_db_threads() {
-    return get_num_threads() - 1;
-}
-
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
     if (res != 0) {
-        throw remove_directory_exc_t(path, errno);
+        throw remove_directory_exc_t(path, get_errno());
     }
     return 0;
 }
@@ -731,7 +495,7 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
     // and closing directories extra times if it needs to go deeper than that).
     const int max_openfd = 128;
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
@@ -760,8 +524,12 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     int res;
     do {
         res = mkdir(path.c_str(), 0755);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+
+    // Call fsync() on the parent directory to guarantee that the newly
+    // created directory's directory entry is persisted to disk.
+    guarantee_fsync_parent_directory(path.c_str());
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
@@ -785,6 +553,3 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
 
-void pb_print(DEBUG_VAR Term *t) {
-    debugf("%s\n", t->DebugString().c_str());
-}

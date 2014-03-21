@@ -339,7 +339,7 @@ button.btn {
 */
 #sticky-wrap {
     min-width: 940px;
-    background: url('/images/body_bg_tile.png'); // background.png
+    background: url('images/body_bg_tile.png'); // background.png
 }
 #main-container {
     padding-top: 30px;
@@ -550,7 +550,7 @@ TODO: retire this
                 .border-radius(14px); // border radius
                 .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
                 .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
-                background: url('/images/icon-magnifying_glass.png') no-repeat 12px #232323;
+                background: url('images/icon-magnifying_glass.png') no-repeat 12px #232323;
             }
         }
     }
@@ -563,7 +563,7 @@ TODO: retire this
 */
 #sidebar {
     // texture, so we need a background image
-    background: url('/images/status-panel_bg_tile.png');
+    background: url('images/status-panel_bg_tile.png');
     // csshat
     .box-shadow(~"0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px #c3c3c3"); // drop shadow and inner shadow
     border-bottom: thin solid #d0d0d0;
@@ -595,20 +595,20 @@ TODO: retire this
     }
 
     .client-connection-status .panel {
-        background: url('/images/status_panel-icon_1.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_1-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_1.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_1-error.png') no-repeat left center; }
     }
     .issues .panel {
-        background: url('/images/status_panel-icon_2.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_2-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_2.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_2-error.png') no-repeat left center; }
     }
     .servers-connected .panel {
-        background: url('/images/status_panel-icon_3.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_3-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_3.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_3-error.png') no-repeat left center; }
     }
     .datacenters-connected .panel {
-        background: url('/images/status_panel-icon_4.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_4-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_4.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_4-error.png') no-repeat left center; }
     }
 
     .issues-banner {
@@ -684,7 +684,7 @@ TODO: retire this
         #issue-alerts .alert {
             display: block; 
 
-            background: 15px center no-repeat url('/images/resolve_issue-resolved_icon.png');
+            background: 15px center no-repeat url('images/resolve_issue-resolved_icon.png');
             padding-left: 40px;
             color: #628857; // text color
             border: 1px solid #cae8c3; // stroke
@@ -758,9 +758,26 @@ TODO: retire this
     .modal-body {
         font-family: @sans;
         padding: 0px 15px 15px 15px;
+        hr{
+            border: 0px;
+            height: 1px;
+            background: #e9e9e9;
+            margin: 20px 0px 0px 0px;
+        }
     }
     .large_input{
         width: 294px;
+    }
+    .error_verification{
+        float: right;
+        padding-right: 10px;
+        margin: 4px 70px 0px 0px;
+        color: #d95b5b;
+        font-weight: bold;
+        display: none;
+    }
+    .first_question{
+        margin-top: 0px;
     }
 }
 
@@ -772,16 +789,20 @@ TODO: retire this
 #dashboard_container {
     #cluster_status_container {
         padding: 0;
+        width: 940px;
         overflow: auto;
+        border-collapse: collapse;
+        td{
+            border: thin solid #dfdfdf;
+        }
         .panel {
             @bad: #e85250;
             @good: #3ba51a;
-            float: left;
-            border-left: thin solid #dfdfdf;
-            padding: 20px;
-            width: 193px;
+            width: 25%;
             vertical-align: top;
-
+            & > div:first-child{
+                margin: 20px;
+            }
             h3 {
                 margin-top: 0;
                 margin-bottom: 10px;
@@ -791,8 +812,8 @@ TODO: retire this
                 padding-left: 21px;
             }
             
-            .no-problems-detected h3 { background: 0 3px no-repeat url('/images/green-light.png'); }
-            .problems-detected h3 { background: 0 3px no-repeat url('/images/red-light.png'); }
+            .no-problems-detected h3 { background: 0 3px no-repeat url('images/green-light.png'); }
+            .problems-detected h3 { background: 0 3px no-repeat url('images/red-light.png'); }
 
             p {
                 font-family: @sans;
@@ -1035,7 +1056,7 @@ TODO: retire this
                     border-left: thin solid #e4e4e4;
                 }
                 .name {
-                    background: @border_padding center no-repeat url('/images/server-icon.png');
+                    background: @border_padding center no-repeat url('images/server-icon.png');
                     padding-left: 38px + @border_padding;
                     a { color: #0597d8; }
                     font-size: 16px;
@@ -1046,7 +1067,7 @@ TODO: retire this
                     text-overflow: ellipsis;
                 }
                 .quick_info {
-                    background: @border_padding center no-repeat url('/images/graph-icon.png');
+                    background: @border_padding center no-repeat url('images/graph-icon.png');
                     color: #626264;
                     padding-left: 30px + @border_padding;
                 }
@@ -1054,11 +1075,11 @@ TODO: retire this
                     padding-right: 20px;
                     color: #818181;
                     .label-success {
-                        background: @border_padding center no-repeat url('/images/green-light_glow.png');
+                        background: @border_padding center no-repeat url('images/green-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                     .label-failure {
-                        background: @border_padding center no-repeat url('/images/red-light_glow.png');
+                        background: @border_padding center no-repeat url('images/red-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                 }
@@ -1114,7 +1135,7 @@ TODO: retire this
             font-size: 14px;
             color: #4d535c;
             border-top: thin solid #f0f0f0;
-            background: left 22px no-repeat url('/images/pencil-icon_big.png');
+            background: left 22px no-repeat url('images/pencil-icon_big.png');
             padding: 20px 0 20px 55px;
             word-wrap: break-word;
             &:first-child {
@@ -1132,7 +1153,7 @@ TODO: retire this
                 font-size: 13px;
             }
             .datetime {
-                background: left center no-repeat url('/images/clock-icon.png');
+                background: left center no-repeat url('images/clock-icon.png');
                 text-align: right;
                 color: #c4c4c4;
             }
@@ -1165,23 +1186,23 @@ TODO: retire this
         }
         /* Selected icons from http://somerandomdude.com/work/iconic/ */
         .fullscreen{
-            background: url(/images/fullscreen_16x16.png) center no-repeat;
+            background: url('images/fullscreen_16x16.png') center no-repeat;
         }
         .fullscreen_exit{
-            background: url(/images/fullscreen_exit_16x16.png) center no-repeat;
+            background: url('images/fullscreen_exit_16x16.png') center no-repeat;
         }
         .show_options{
-            background: url(/images/cog_16x16.png) center no-repeat;
+            background: url('images/cog_16x16.png') center no-repeat;
         }
         .show_history{
-            background: url(/images/book_alt_16x16.png) center no-repeat;
+            background: url('images/book_alt_16x16.png') center no-repeat;
             float: left;
             margin: 0px 8px 0px -1px;
         }
         .clear_queries_link{
             display: none;
             .clear_history{
-                background: url(/images/trash_stroke_16x16.png) center no-repeat;
+                background: url('images/trash_stroke_16x16.png') center no-repeat;
                 float: left;
                 margin: 0px 8px 0px -1px;
             }
@@ -1295,6 +1316,15 @@ TODO: retire this
                 strong{
                     color: #666;
                 }
+                .grouped_data_warning{
+                    font-family: @monospace;
+                    background: #f8f8f8;
+                    color: #555;
+                    padding: 5px 6px;
+                    border: 1px solid #e4e4e4;
+                    margin: 5px 0px;
+                    .border-radius(3px 3px 3px 3px);
+                }
             }
         }
         .input_query_container{
@@ -1304,8 +1334,12 @@ TODO: retire this
             margin: 10px 0px;
             overflow: auto;
 
-            button {
+            .button_query {
                 float: right;
+                width: 70px;
+            }
+            .abort_query{
+                display: none;
             }
 
             .CodeMirror{
@@ -1485,6 +1519,16 @@ TODO: retire this
                 &:hover{
                     color: #444;
                 }
+        .alert{
+            display: none;
+            visibility: hidden;
+            float: right;
+            margin: 3px 15px 3px 0px;
+            padding: 5px 25px 5px 10px;
+            font-family: @sans;
+            display: block;
+        }
+
             }
         }
         .checkbox-container {
@@ -1518,10 +1562,12 @@ TODO: retire this
     }
     .result_view{
         margin: 35px 0px 0px 0px;
+        overflow: auto;
         .tab-content{
             clear: both;
         }
         .error{ font-family: @sans; }
+        .error_title{ font-weight: bold; }
         .error_details{
             font-family: @monospace;
             padding: 7px 10px;
@@ -1550,18 +1596,45 @@ TODO: retire this
             }
             .metadata{
                 font-family: @sans;
-                width: 600px;
+                width: 530px;
                 float: left;
                 margin: -30px 0px 10px 0px;
+                .execution_time{
+                    border-bottom: 1px dotted #444;
+                    cursor: help;
+                }
             }
         }
         .more_results{
-            width: 100%;
-            text-align: right;
+            float: right;
             .more_results_paragraph{
-                margin-right: 100px;
-                text-align: right;
-                font-family: @sans;
+                margin: 0px;
+                padding: 0px;
+            }
+        }
+        .info{
+            text-align: left;
+            margin: 7px 0px 0px 0px;
+            padding: 7px 19px 7px 15px;
+            border-left: 4px solid #9FCADF;
+            background: #ecf2f7;
+            font-family: @sans;
+        }
+        .activate_profiler_message {
+            background: #f7f7f7;
+            border: thin solid #E7E6E6;
+            padding: 4px 30px;
+            .border-radius(4px);
+            p {
+                margin: 18px 0;
+                font-family: 'Open Sans', sans-serif;
+                font-size: 16px;
+                color: #686868;
+                text-align: center;
+                a {
+                    border-bottom: thin dotted #0088cc;
+                    &:hover { text-decoration: none; }
+                }
             }
         }
     }
@@ -1570,14 +1643,15 @@ TODO: retire this
         padding: 0px;
         width: 100%;
         float: right;
-        li{
+        li {
             float: right;
+            position: relative;
+            &:first-child {
+                margin-right: 10px;
+            }
             &.active a {
                 border-bottom-color: #FBFBFB;
                 background-color: #FBFBFB;
-            }
-            &:first-child {
-                margin-right: 10px;
             }
         }
     }
@@ -1596,8 +1670,70 @@ TODO: retire this
     .results{
         margin: 15px 0px 0px 0px;
         padding: 0px;
+        font-family: @sans;
         overflow: auto;
         width: 100%;
+        .profile_summary {
+            margin-bottom: 20px;
+            background: #f7f7f7;
+            border: thin solid #E7E6E6;
+            padding: 4px 30px;
+            .border-radius(4px);
+            p {
+                margin: 18px 0;
+                font-family: 'Open Sans', sans-serif;
+                font-size: 15px;
+                color: #72bddf;
+                span.big {
+                    font-size: 24px;
+                    line-height: 24px;
+                    color: #5c6169;
+                }
+                &:before {
+                    content: '';
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    margin-right: 14px;
+                }
+                &.query-duration-roundtrip {
+                    text-align: left;
+                    &:before { background: left center no-repeat url('images/query_round_trip-icon.png'); }
+                }
+                &.query-duration-server {
+                    text-align: center;
+                    &:before { background: left center no-repeat url('images/query_server_time-icon.png'); }
+                }
+                &.query-tasks {
+                    text-align: right;
+                    &:before { background: left center no-repeat url('images/query_shard_access-icon.png'); }
+                }
+            }
+        }
+        .copy_profile{
+            float: right;
+            &:after {
+                content: '';
+                display: block;
+                float: left;
+                width: 16px;
+                height: 16px;
+                margin-right: 9px;
+                background: url('images/copy_to_clipboard_16x16.png') left center no-repeat;
+            }
+            &.zeroclipboard-is-hover {
+                // Same as button.btn:hover
+                .box-shadow(inset 0 0 1px 1px #fff);
+                .background-image(linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%));
+                
+            }
+            &.zeroclipboard-is-active {
+                // Same as button.btn:active
+                background-color: #f2f2f2; // layer fill content
+                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+            }
+        }
         .json_tree_container{
             width: 888px;
         }
@@ -1645,9 +1781,9 @@ TODO: retire this
                 margin: 3px 2px 0px -15px;
                 float: left;
                 display: block;
-                background: url('/images/arrow_down.png') no-repeat;
+                background: url('images/arrow_down.png') no-repeat;
             }
-            .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
+            .jt_arrow_hidden{ background: url('images/arrow_right.png') no-repeat; }
             .jt_points{ display: none; }
             .jt_points_collapsed{ display: inline; }
             .jt_collapsed{ display: none; }
@@ -1735,17 +1871,17 @@ TODO: retire this
                     display: block;
                 }
                 .jta_arrow_v{
-                    background: url('/images/arrow_down.png') no-repeat;
+                    background: url('images/arrow_down.png') no-repeat;
                     float: left;
                 }
                 .jta_arrow_h{
-                    background: url('/images/arrow_right.png') no-repeat;
+                    background: url('images/arrow_right.png') no-repeat;
                     float: left;
                 }
                 .jta_arrow_hh{
                     width: 20px;
                     height: 10px;
-                    background: url('/images/arrow_right.png') repeat-x;
+                    background: url('images/arrow_right.png') repeat-x;
                     float: right;
                 }
                 .col-record-attr{
@@ -1848,7 +1984,7 @@ TODO: retire this
                 height: @header_height;
 
                 &.issue-type {
-                    background: 7px center no-repeat url('/images/resolve_issue-danger_icon.png');
+                    background: 7px center no-repeat url('images/resolve_issue-danger_icon.png');
                     padding-left: 35px;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
@@ -1860,17 +1996,17 @@ TODO: retire this
                     width: 310px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('/images/resolve_issue-message_icon.png');
+                    background: @icon_padding center no-repeat url('images/resolve_issue-message_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
 
                 &.datetime {
-                    right: 125px;
+                    right: 155px;
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('/images/resolve_issue-clock_icon.png');
+                    background: @icon_padding center no-repeat url('images/resolve_issue-clock_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1878,7 +2014,7 @@ TODO: retire this
         }
         .issue-details {
             margin-top: 10px;
-            background: 7px 3px no-repeat url('/images/resolve_issue-details_icon.png');
+            background: 7px 3px no-repeat url('images/resolve_issue-details_icon.png');
             padding-left: 35px;
             p, li {
                 color: #838383;
@@ -1941,16 +2077,16 @@ TODO: retire this
                     line-height: 24px;
                     color: #5c6169;
                 }
-                &.availability { background: left center no-repeat url('/images/live-icon.png'); }
-                &.masters { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.replicas { background: left center no-repeat url('/images/grid-icon.png'); }
-                &.documents { background: left center no-repeat url('/images/document-icon.png'); }
-                &.datacenter { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.uptime { background: left center no-repeat url('/images/grid-icon.png'); }
-                &.ips { background: left center no-repeat url('/images/document-icon.png'); }
-                &.tables { background: left center no-repeat url('/images/document-icon.png'); }
-                &.datacenters { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.servers { background: left center no-repeat url('/images/document-icon.png'); }
+                &.availability { background: left center no-repeat url('images/live-icon.png'); }
+                &.masters { background: left center no-repeat url('images/layers-icon.png'); }
+                &.replicas { background: left center no-repeat url('images/grid-icon.png'); }
+                &.documents { background: left center no-repeat url('images/document-icon.png'); }
+                &.datacenter { background: left center no-repeat url('images/layers-icon.png'); }
+                &.uptime { background: left center no-repeat url('images/grid-icon.png'); }
+                &.ips { background: left center no-repeat url('images/document-icon.png'); }
+                &.tables { background: left center no-repeat url('images/document-icon.png'); }
+                &.datacenters { background: left center no-repeat url('images/layers-icon.png'); }
+                &.servers { background: left center no-repeat url('images/document-icon.png'); }
             }
             &.first { border-top: none; }
         }
@@ -2010,7 +2146,7 @@ TODO: retire this
                 top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
                 bottom: (@element_height / 2) - 1;
                 width: @square_bullet_width;
-                background-image: url('/images/list-square-bullet.png'), url('/images/list-vert-dash.png'); 
+                background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-y;  
             }
@@ -2041,7 +2177,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('/images/list-square-bullet.png'), url('/images/list-horiz-dash.png');  
+                background-image: url('images/list-square-bullet.png'), url('images/list-horiz-dash.png');  
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
@@ -2075,7 +2211,7 @@ TODO: retire this
     .section.list-view.table-list {
         @element_height: 40px;
         li.table {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2085,16 +2221,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/graph-icon.png');
+                background: left center no-repeat url('images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('/images/green-light_glow_small.png');
+                    background: left center no-repeat url('images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('/images/red-light_glow_small.png');
+                    background: left center no-repeat url('images/red-light_glow_small.png');
                 }
             }
         }
@@ -2105,7 +2241,7 @@ TODO: retire this
     .section.tree-view.server-assignments {
         @element_height: 40px;
         li.server .server-info {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 300px;
@@ -2115,18 +2251,18 @@ TODO: retire this
                 right: 350px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/layers-icon.png');
+                background: left center no-repeat url('images/layers-icon.png');
             }
             .num-secondaries {
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/grid-icon.png');
+                background: left center no-repeat url('images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
+                background: left center no-repeat url('images/bars-icon_server-assignments.png');
             }
         }
         .popup_container{
@@ -2359,7 +2495,7 @@ TODO: retire this
                     
 
                     &.universe {
-                        background: @universe url('/images/globe-icon_white.png') 8px center no-repeat;
+                        background: @universe url('images/globe-icon_white.png') 8px center no-repeat;
                         border-color: @universe;
                         color: #fcfcfc;
                         a {
@@ -2486,7 +2622,7 @@ TODO: retire this
                     display: inline-block;
                     padding-top: 10px;
                 }
-                background: left 9px no-repeat url('/images/bars-icon.png');
+                background: left 9px no-repeat url('images/bars-icon.png');
             }
             input.num-shards { 
                 margin: -5px 6px 3px 0px;
@@ -2520,14 +2656,17 @@ TODO: retire this
             margin: 10px 0px 0px 0px;
             padding: 0px;
             .square_li{
-                background-image: url('/images/list-square-bullet.png'); 
+                background-image: url('images/list-square-bullet.png'); 
                 background-position: left center;
                 background-repeat: no-repeat;
                 padding: 5px 0px 5px 20px;
                 font-family: @sans;
                 font-size: 15px;
-                color: #a9a9a9;
-                .secondary_index_name{
+                color: #a3a3a3;
+                .name{
+                    font-weight: bold;
+                }
+                .new_index_name{
                     margin-bottom: -1px;
                 }
             }
@@ -2539,6 +2678,10 @@ TODO: retire this
                     margin-top: 5px;
                     margin-bottom: 5px;
                 }
+            }
+            .add_index_li{
+                clear: both;
+                display: none;
             }
         }
         .create_container{
@@ -2565,7 +2708,7 @@ TODO: retire this
     .section.list-view.server-list {
         @element_height: 40px;
         li.server {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2575,16 +2718,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/graph-icon.png');
+                background: left center no-repeat url('images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('/images/green-light_glow_small.png');
+                    background: left center no-repeat url('images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('/images/red-light_glow_small.png');
+                    background: left center no-repeat url('images/red-light_glow_small.png');
                 }
             }
         }
@@ -2595,7 +2738,7 @@ TODO: retire this
     .section.tree-view.server-data {
         @element_height: 40px;
         li.shard .shard-info {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 455px;
@@ -2605,12 +2748,12 @@ TODO: retire this
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/grid-icon.png');
+                background: left center no-repeat url('images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
+                background: left center no-repeat url('images/bars-icon_server-assignments.png');
             }
         }
     }
@@ -2719,17 +2862,38 @@ TODO: retire this
     Progress bar UIComponent
     ----------------------------
 */
-.replica-status, .shard-status {
+
+.replica-status, .shard-status{
+    p {
+        margin: 0;
+        line-height: 48px;
+    }
+    .progress-status {
+        p {
+            margin-bottom: 10px;
+        }
+    }
+}
+.secondary_indexes{
+    .progress-status {
+        margin: 5px 0px -9px 0px;
+        p {
+            margin: 0px 0px -5px 0px;
+        }
+    }
+    .progress_li{
+        color: #a9a9a9;
+        margin: 0px 0px 8px 20px;
+    }
+}
+
+.replica-status, .shard-status, .secondary_indexes {
     font-family: @sans;
     font-size: 15px;
     color: #72BDDF;
     padding: 10px 0;
     border-bottom: 1px solid #efefef;
     margin-bottom: 20px;
-    p {
-        margin: 0;
-        line-height: 48px;
-    }
     span.big {
         font-size: 24px;
         color: #5C6169;
@@ -2739,9 +2903,7 @@ TODO: retire this
         p {
             color: #a9a9a9;
             line-height: normal;
-            margin-bottom: 10px;
         }
-
         .progress {
             height: 12px;
             .border-radius(12px);
@@ -2759,7 +2921,7 @@ TODO: retire this
             p {
                 text-align: right;
                 font-size: 13px;
-                margin-bottom: 15px;
+                margin: -3px 0px 15px 0px;
                 &.completed:before {
                     content: '\2714';
                     display: block;

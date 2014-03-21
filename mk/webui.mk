@@ -1,5 +1,21 @@
 #### Web UI sources
 
+.PHONY: $(TOP)/admin/all
+$(TOP)/admin/all: web-assets
+
+.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
+
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+
+$(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
+	$P CP
+	cp -pRP $< $@
+
+.PHONY: web-assets
+web-assets: $(WEB_ASSETS_BUILD_DIR)
+
+else # Don't use precompiled assets
+
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
 WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
@@ -32,36 +48,19 @@ JS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/js
 FONTS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/images
 FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
+DOCS_JS := $(TOP)/docs/rql/reql_docs.json
+
 
 HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
 
-.PHONY: $(TOP)/admin/all
-$(TOP)/admin/all: web-assets
-
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
-
-.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
-
-ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
-
-$(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)/.
-	$P CP
-	mkdir -p $(dir $@)
-	cp -pRP $< $(dir $@)
-
-$(PRECOMPILED_DIR)/web/%:
-	test -e $@ || ( \
-	  echo 'Missing file $@. Run ./configure with --disable-precompiled-web to build normally.' ; \
-	  false )
-
-else # Don't use precompiled assets
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P CP
 	cp -pRP $< $@
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS_BIN_DEP) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
@@ -72,11 +71,11 @@ $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_VERSION_FILE) $(COFFEE
 	$P CONCAT $@
 	cat $+ > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE) | $(WEB_ASSETS_BUILD_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee $(COFFEE_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P COFFEE $@
 	$(COFFEE) -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC) | $(WEB_ASSETS_BUILD_DIR)/.
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC_BIN_DEP) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P LESSC $@
 	$(LESSC) $(LESS_MAIN) > $@
 
@@ -99,5 +98,9 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JS) | $(WEB_ASSETS_BUILD_DIR)/js/.
+	$P CP
+	cp $< $@
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1

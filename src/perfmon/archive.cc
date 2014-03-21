@@ -28,7 +28,7 @@ write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &x) {
 archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     perfmon_result_t::perfmon_result_type_t type;
     archive_result_t res = deserialize(s, &type);
-    if (res) {
+    if (bad(res)) {
         return res;
     }
 
@@ -36,26 +36,26 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     switch (type) {
     case perfmon_result_t::type_value: {
         res = deserialize(s, thing->get_string());
-        if (res) {
+        if (bad(res)) {
             return res;
         }
     } break;
     case perfmon_result_t::type_map: {
         int64_t size;
         res = deserialize(s, &size);
-        if (res) {
+        if (bad(res)) {
             return res;
         }
 
         for (int64_t i = 0; i < size; ++i) {
             std::pair<std::string, perfmon_result_t *> p;
             res = deserialize(s, &p.first);
-            if (res) {
+            if (bad(res)) {
                 return res;
             }
             p.second = new perfmon_result_t;
             res = deserialize(s, p.second);
-            if (res) {
+            if (bad(res)) {
                 delete p.second;
                 return res;
             }
@@ -63,7 +63,7 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
             std::pair<perfmon_result_t::iterator, bool> insert_result = thing->insert(p.first, p.second);
             if (!insert_result.second) {
                 delete p.second;
-                return ARCHIVE_RANGE_ERROR;
+                return archive_result_t::RANGE_ERROR;
             }
         }
     } break;
@@ -71,5 +71,5 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
         unreachable("unknown prefmon_result_type_t value");
     }
 
-    return ARCHIVE_SUCCESS;
+    return archive_result_t::SUCCESS;
 }

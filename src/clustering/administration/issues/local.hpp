@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 
@@ -10,6 +10,7 @@
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/json.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class local_issue_t {
@@ -24,8 +25,11 @@ public:
     std::string description;
     int64_t timestamp;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(type, critical, description, timestamp);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_MAKE_EQUALITY_COMPARABLE_4(local_issue_t,
+    type, critical, description, timestamp);
 
 class local_issue_tracker_t {
 public:

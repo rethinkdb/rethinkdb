@@ -1,5 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "http/json.hpp"
 
 #include <stdlib.h>
@@ -17,8 +16,10 @@ std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_std_string;
 #else
 std::string (*cJSON_default_print)(cJSON *json) = cJSON_print_unformatted_std_string;
 #endif
-http_res_t http_json_res(cJSON *json) {
-    return http_res_t(HTTP_OK, "application/json", cJSON_default_print(json));
+
+void http_json_res(cJSON *json, http_res_t *result) {
+    result->code = HTTP_OK;
+    result->set_body("application/json", cJSON_default_print(json));
 }
 
 cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
@@ -233,43 +234,6 @@ std::string cJSON_type_to_string(int type) {
     }
 }
 
-size_t cJSON_estimate_size(const cJSON *json) {
-    guarantee(json, "Someone called cJSON_estimate_size with a NULL pointer.");
-
-    // The cJSON struct obviously takes up some memory by itself
-    size_t estimate = sizeof(struct cJSON);
-
-    // If this is a sub-field (of any type) the 'string' field is set
-    if (json->string)
-        estimate += strlen(json->string);
-
-    switch (json->type) {
-    case cJSON_False:
-    case cJSON_True:
-    case cJSON_NULL:
-    case cJSON_Number:
-        // No additional memory is used in these cases
-        break;
-    case cJSON_String:
-        guarantee(json->valuestring);
-        estimate += strlen(json->valuestring);
-        break;
-    case cJSON_Array:
-    case cJSON_Object: {
-        // These both use the embedded linked list to store fields
-        const cJSON *next = json->head;
-        while (next) {
-            estimate += cJSON_estimate_size(next);
-            next = next->next;
-        }
-    } break;
-    default:
-        unreachable();
-    };
-
-    return estimate;
-}
-
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     msg << cjson.type;
 
@@ -311,61 +275,61 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     archive_result_t res = deserialize(s, &cjson->type);
-    if (res) { return res; }
+    if (bad(res)) { return res; }
 
     switch (cjson->type) {
     case cJSON_False:
     case cJSON_True:
     case cJSON_NULL:
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
         break;
     case cJSON_Number:
         res = deserialize(s, &cjson->valuedouble);
-        if (res) { return res; }
+        if (bad(res)) { return res; }
         cjson->valueint = static_cast<int>(cjson->valuedouble);
-        return ARCHIVE_SUCCESS;
+        return archive_result_t::SUCCESS;
         break;
     case cJSON_String:
         {
             std::string str;
             res = deserialize(s, &str);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             cjson->valuestring = strdup(str.c_str());
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     case cJSON_Array:
         {
             int size;
             res = deserialize(s, &size);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
                 cJSON_AddItemToArray(cjson, item);
             }
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     case cJSON_Object:
         {
             int size;
             res = deserialize(s, &size);
-            if (res) { return res; }
+            if (bad(res)) { return res; }
             for (int i = 0; i < size; ++i) {
                 //grab the key
                 std::string key;
                 res = deserialize(s, &key);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
 
                 //grab the item
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
-                if (res) { return res; }
+                if (bad(res)) { return res; }
                 cJSON_AddItemToObject(cjson, key.c_str(), item);
             }
-            return ARCHIVE_SUCCESS;
+            return archive_result_t::SUCCESS;
         }
         break;
     default:

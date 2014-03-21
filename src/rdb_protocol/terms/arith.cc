@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <limits>
@@ -9,7 +10,7 @@ namespace ql {
 
 class arith_term_t : public op_term_t {
 public:
-    arith_term_t(env_t *env, protob_t<const Term> term)
+    arith_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch (arithtype) {
@@ -17,15 +18,15 @@ public:
         case Term_TermType_SUB: namestr = "SUB"; op = &arith_term_t::sub; break;
         case Term_TermType_MUL: namestr = "MUL"; op = &arith_term_t::mul; break;
         case Term_TermType_DIV: namestr = "DIV"; op = &arith_term_t::div; break;
-        default:unreachable();
+        default: unreachable();
         }
         guarantee(namestr && op);
     }
 
-    virtual counted_t<val_t> eval_impl() {
-        counted_t<const datum_t> acc = arg(0)->as_datum();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<const datum_t> acc = arg(env, 0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            acc = (this->*op)(acc, arg(i)->as_datum());
+            acc = (this->*op)(acc, arg(env, i)->as_datum());
         }
         return new_val(acc);
     }
@@ -35,8 +36,8 @@ public:
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        if (lhs->is_pt(pseudo::time_string) ||
-            rhs->is_pt(pseudo::time_string)) {
+        if (lhs->is_ptype(pseudo::time_string) ||
+            rhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
         } else if (lhs->get_type() == datum_t::R_NUM) {
             rhs->check_type(datum_t::R_NUM);
@@ -65,7 +66,7 @@ private:
 
     counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        if (lhs->is_pt(pseudo::time_string)) {
+        if (lhs->is_ptype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
         } else {
             lhs->check_type(datum_t::R_NUM);
@@ -113,11 +114,11 @@ private:
 
 class mod_term_t : public op_term_t {
 public:
-    mod_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+    mod_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
-        int64_t i0 = arg(0)->as_int();
-        int64_t i1 = arg(1)->as_int();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        int64_t i0 = arg(env, 0)->as_int();
+        int64_t i1 = arg(env, 1)->as_int();
         rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
                base_exc_t::GENERIC,
@@ -128,11 +129,11 @@ private:
 };
 
 
-counted_t<term_t> make_arith_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_arith_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<arith_term_t>(env, term);
 }
 
-counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_mod_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<mod_term_t>(env, term);
 }
 

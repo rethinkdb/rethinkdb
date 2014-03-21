@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
 #
@@ -201,6 +201,7 @@ _ERROR_CATEGORIES = [
   'runtime/sizeof',
   'runtime/string',
   'runtime/threadsafe_fn',
+  'runtime/rethinkdb_fn',
   'runtime/virtual',
   'whitespace/blank_line',
   'whitespace/braces',
@@ -231,11 +232,11 @@ _DEFAULT_FILTERS = ['-build/include_alpha']
 
 # Headers that we consider STL headers.
 _STL_HEADERS = frozenset([
-    'algobase.h', 'algorithm', 'alloc.h', 'bitset', 'deque', 'exception',
+    'algobase.h', 'algorithm', 'alloc.h', 'array', 'bitset', 'deque', 'exception',
     'function.h', 'functional', 'hash_map', 'hash_map.h', 'hash_set',
     'hash_set.h', 'initializer_list', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
     'pair.h', 'pthread_alloc', 'queue', 'set', 'set.h', 'sstream', 'stack',
-    'stl_alloc.h', 'stl_relops.h', 'type_traits.h',
+    'stl_alloc.h', 'stl_relops.h', 'type_traits', 'type_traits.h',
     'utility', 'vector', 'vector.h',
     ])
 
@@ -251,7 +252,8 @@ _CPP_HEADERS = frozenset([
     'iomanip.h', 'ios', 'iosfwd', 'iostream', 'iostream.h', 'istream',
     'istream.h', 'iterator.h', 'limits', 'map.h', 'multimap.h', 'multiset.h',
     'numeric', 'ostream', 'ostream.h', 'parsestream.h', 'pfstream.h',
-    'PlotFile.h', 'procbuf.h', 'pthread_alloc.h', 'rope', 'rope.h',
+    'PlotFile.h', 'procbuf.h', 'pthread_alloc.h', 're2/re2.h', 'rope',
+    'rope.h',
     'ropeimpl.h', 'SFile.h', 'slist', 'slist.h', 'stack.h', 'stdexcept',
     'stdiostream.h', 'streambuf.h', 'stream.h', 'strfile.h', 'string',
     'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray',
@@ -1248,6 +1250,7 @@ threading_list = (
     ('readdir(', 'readdir_r('),
     ('strtok(', 'strtok_r('),
     ('ttyname(', 'ttyname_r('),
+    ('strerror(', 'strerror_r('),
     )
 
 
@@ -1276,6 +1279,40 @@ def CheckPosixThreading(filename, clean_lines, linenum, error):
             'Consider using ' + multithread_safe_function +
             '...) instead of ' + single_thread_function +
             '...) for improved thread safety.')
+
+rethinkdb_wrap_list = (
+    ('malloc(', 'rmalloc('),
+    ('calloc(', 'rmalloc(...) and memset('),
+    ('realloc(', 'rrealloc('),
+    ('valloc(', 'malloc_aligned('),
+    ('memalign(', 'malloc_aligned('),
+    ('posix_memalign(', 'malloc_aligned('),
+    ('assert(', 'rassert('),
+    )
+
+def CheckRethinkdbWrapped(filename, clean_lines, linenum, error):
+  """Checks for calls to rethinkdb-wrapped functions.
+
+  Safer wrappers should be used.
+
+  Args:
+    filename: The name of the current file.
+    clean_lines: A CleansedLines instance containing the file.
+    linenum: The number of the line to check.
+    error: The function to call with any errors found.
+  """
+  line = clean_lines.elided[linenum]
+  for unwrapped_function, rethinkdb_wrapped_function in rethinkdb_wrap_list:
+    ix = line.find(unwrapped_function)
+    # Comparisons made explicit for clarity -- pylint: disable-msg=C6403
+    if ix >= 0 and (ix == 0 or (not line[ix - 1].isalnum() and
+                                line[ix - 1] not in ('_', '.', '>'))):
+      error(filename, linenum, 'runtime/rethinkdb_fn', 2,
+            'Consider using ' + rethinkdb_wrapped_function +
+            '...) instead of ' + unwrapped_function +
+            '...) for reasons.')
+
+
 
 
 # Matches invalid increment: *count++, which moves pointer instead of
@@ -2916,6 +2953,7 @@ def CheckCStyleCast(filename, linenum, line, raw_line, cast_type, pattern,
 
 
 _HEADERS_CONTAINING_TEMPLATES = (
+    ('<array>', ('array',)),
     ('<deque>', ('deque',)),
     ('<functional>', ('unary_function', 'binary_function',
                       'plus', 'minus', 'multiplies', 'divides', 'modulus',
@@ -2943,7 +2981,7 @@ _HEADERS_CONTAINING_TEMPLATES = (
     ('<set>', ('set', 'multiset',)),
     ('<stack>', ('stack',)),
     ('<string>', ('char_traits', 'basic_string',)),
-    ('<utility>', ('pair',)),
+    ('<utility>', ('pair','swap')),
     ('<vector>', ('vector',)),
 
     # gcc extensions.
@@ -2963,7 +3001,7 @@ for _template in ('copy', 'max', 'min', 'min_element', 'sort', 'swap',
   _re_pattern_algorithm_header.append(
       (re.compile(r'[^>.]\b' + _template + r'(<.*?>)?\([^\)]'),
        _template,
-       '<algorithm>'))
+       '<algorithm>' if _template != 'swap' else '<utility>'))
 
 _re_pattern_templates = []
 for _header, _templates in _HEADERS_CONTAINING_TEMPLATES:
@@ -3207,6 +3245,7 @@ def ProcessLine(filename, file_extension,
   CheckForNonStandardConstructs(filename, clean_lines, line,
                                 class_state, error)
   CheckPosixThreading(filename, clean_lines, line, error)
+  CheckRethinkdbWrapped(filename, clean_lines, line, error)
   CheckInvalidIncrement(filename, clean_lines, line, error)
   CheckMakePairUsesDeduction(filename, clean_lines, line, error)
   for check_fn in extra_check_functions:

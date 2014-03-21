@@ -11,8 +11,9 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "backtrace.hpp"
-#include "utils.hpp"
 #include "containers/scoped.hpp"
+#include "threading.hpp"
+#include "time.hpp"
 
 
 class log_event_t {
@@ -23,7 +24,7 @@ public:
 private:
     microtime_t timestamp;
     std::string msg;
-    scoped_ptr_t<lazy_backtrace_t> bt;
+    scoped_ptr_t<lazy_backtrace_formatter_t> bt;
 
     DISABLE_COPYING(log_event_t);
 };

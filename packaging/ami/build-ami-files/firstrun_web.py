@@ -17,7 +17,7 @@ def application(env, reply):
               query[pair[0]] = urllib2.unquote(pair[1])
 
       if not query.has_key('password'):
-          reply('302 Redirect', [('Location', '/settings.html')])
+          reply('302 Redirect', [('Location', '/settings')])
           return []
 
       # Launch firstrun.sh
@@ -26,7 +26,7 @@ def application(env, reply):
                        query['password'],
                        query.get('join','')])
 
-      reply('302 Redirect', [('Location', '/wait.html')])
+      reply('302 Redirect', [('Location', '/wait')])
       return []
 
   reply('404 Not Found', [])

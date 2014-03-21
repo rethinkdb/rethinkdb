@@ -1,6 +1,8 @@
 #ifndef ARCH_IO_DISK_STATS_2_HPP_
 #define ARCH_IO_DISK_STATS_2_HPP_
 
+#include <string>
+
 #include "arch/io/disk/pool.hpp"
 #include "perfmon/perfmon.hpp"
 

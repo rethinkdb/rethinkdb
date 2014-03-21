@@ -1,10 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_PMAP_HPP_
 #define CONCURRENCY_PMAP_HPP_
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
-#include "utils.hpp"
 
 template <class callable_t, class value_t>
 struct pmap_runner_one_arg_t {
@@ -35,7 +34,10 @@ void pmap(int count, const callable_t &c) {
         return;
     }
     if (count == 1) {
-        c(0);
+        // Assigning this to a variable first is a ghetto hack to get gcc 4.4 more friendly with
+        // std::bind callables.
+        const int zero = 0;
+        c(zero);
         return;
     }
 
@@ -44,7 +46,9 @@ void pmap(int count, const callable_t &c) {
     for (int i = 0; i < count - 1; i++) {
         coro_t::spawn_now_dangerously(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
     }
-    c(count - 1);
+    // Ghetto hack to get gcc 4.4 more friendly with std::bind callables.
+    const int c_minus_1 = count - 1;
+    c(c_minus_1);
     cond.wait();
 }
 

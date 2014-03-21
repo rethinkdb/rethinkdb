@@ -2,6 +2,8 @@
 #ifndef SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
 #define SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
 
+#include <set>
+
 #include "arch/types.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -30,7 +32,8 @@ public:
 
     // Put entries in an LBA and then call sync() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
-                   flagged_off64_t offset, file_account_t *io_account,
+                   flagged_off64_t offset, uint32_t ser_block_size,
+                   file_account_t *io_account,
                    extent_transaction_t *txn);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
@@ -38,10 +41,22 @@ public:
     };
     void sync(file_account_t *io_account, sync_callback_t *cb);
 
+    // Returns a set of extents that are not currently active.
+    // The returned pointers are valid for as long as the LBA disk structure is not
+    // `destroy()`ed and `destroy_extents()` is not called on them.
+    std::set<lba_disk_extent_t *> get_inactive_extents() const;
+
+    // Destroy the given set of extents. Assumes that the extents pointed to
+    // are part of the `extents_in_superblock` list.
+    // Once the extents have been destroyed, a new superblock is written to persist
+    // the change.
+    void destroy_extents(const std::set<lba_disk_extent_t *> &extents,
+                         file_account_t *io_account, extent_transaction_t *txn);
+
     // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
     // will be called when it is done.
     struct read_callback_t {
-        virtual void on_lba_read() = 0;
+        virtual void on_lba_extents_read() = 0;
         virtual ~read_callback_t() {}
     };
     void read(in_memory_index_t *index, read_callback_t *cb);
@@ -62,6 +77,9 @@ public:
     lba_disk_extent_t *last_extent;
 
 private:
+    /* Prepares and writes a new superblock. */
+    void write_superblock(file_account_t *io_account, extent_transaction_t *txn);
+
     /* Used during the startup process */
     void on_extent_read();
     load_callback_t *start_callback;
