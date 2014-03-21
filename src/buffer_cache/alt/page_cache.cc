@@ -607,26 +607,18 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         last_write_acquirer_version_ = v;
 
         if (last_write_acquirer_ != acq_txn) {
-            // RSP: Performance (in the assertion).
-            rassert(acq_txn->pages_write_acquired_last_.end()
-                    == std::find(acq_txn->pages_write_acquired_last_.begin(),
-                                 acq_txn->pages_write_acquired_last_.end(),
-                                 this));
+            rassert(!acq_txn->pages_write_acquired_last_.has_element(this));
 
             if (last_write_acquirer_ != NULL) {
                 page_txn_t *prec = last_write_acquirer_;
 
-                // RSP: Performance.
-                auto it = std::find(prec->pages_write_acquired_last_.begin(),
-                                    prec->pages_write_acquired_last_.end(),
-                                    this);
-                rassert(it != prec->pages_write_acquired_last_.end());
-                prec->pages_write_acquired_last_.erase(it);
+                rassert(prec->pages_write_acquired_last_.has_element(this));
+                prec->pages_write_acquired_last_.remove(this);
 
                 acq_txn->connect_preceder(prec);
             }
 
-            acq_txn->pages_write_acquired_last_.push_back(this);
+            acq_txn->pages_write_acquired_last_.add(this);
             last_write_acquirer_ = acq_txn;
         }
     } else {
@@ -1005,11 +997,10 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
         txn->preceders_.clear();
 
         // KSI: Maybe we could remove pages_write_acquired_last_ earlier?  Like when
-        // we begin the index write? (but that's on the wrong thread) Or earlier?
-        for (auto jt = txn->pages_write_acquired_last_.begin();
-             jt != txn->pages_write_acquired_last_.end();
-             ++jt) {
-            current_page_t *current_page = *jt;
+        // we begin the index write (but that's on the wrong thread) or earlier?
+        while (txn->pages_write_acquired_last_.size() != 0) {
+            current_page_t *current_page
+                = txn->pages_write_acquired_last_.access_random(0);
             rassert(current_page->last_write_acquirer_ == txn);
 
 #ifndef NDEBUG
@@ -1022,9 +1013,9 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
             }
 #endif
 
+            txn->pages_write_acquired_last_.remove(current_page);
             current_page->last_write_acquirer_ = NULL;
         }
-        txn->pages_write_acquired_last_.clear();
 
         if (txn->cache_conn_ != NULL) {
             rassert(txn->cache_conn_->newest_txn_ == txn);
