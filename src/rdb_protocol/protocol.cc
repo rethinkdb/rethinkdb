@@ -191,9 +191,9 @@ void bring_sindexes_up_to_date(
                 &store->perfmon_collection));
 
     {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(sindex_block, &acq);
-        store->register_sindex_queue(mod_queue.get(), &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(sindex_block);
+        store->register_sindex_queue(mod_queue.get(), acq.get());
     }
 
     std::map<std::string, secondary_index_t> sindexes;
@@ -266,20 +266,21 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
-            // We don't need hard durability here, because a secondary index just gets rebuilt
-            // if the server dies while it's partially constructed.
+            // We use HARD durability because we want post construction
+            // to be throttled if we insert data faster than it can
+            // be written to disk. Otherwise we might exhaust the cache's
+            // dirty page limit and bring down the whole table.
+            // Other than that, the hard durability guarantee is not actually
+            // needed here.
             store->acquire_superblock_for_write(
                 repli_timestamp_t::distant_past,
                 2,
-                write_durability_t::SOFT,
+                write_durability_t::HARD,
                 &token_pair,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
 
-            // Synchronization is guaranteed through the token_pair.
-            // Let's get the information we need from the superblock and then
-            // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
             buf_lock_t queue_sindex_block
@@ -298,8 +299,11 @@ void post_construct_and_drain_queue(
                 break;
             }
 
-            mutex_t::acq_t acq;
-            store->lock_sindex_queue(&queue_sindex_block, &acq);
+            scoped_ptr_t<new_mutex_in_line_t> acq =
+                store->get_in_line_for_sindex_queue(&queue_sindex_block);
+            // TODO (daniel): Is there a way to release the queue_sindex_block
+            // earlier than we do now, ideally before we wait for the acq signal?
+            acq->acq_signal()->wait_lazily_unordered();
 
             const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
@@ -320,7 +324,7 @@ void post_construct_and_drain_queue(
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, &queue_sindex_block);
                 }
-                store->deregister_sindex_queue(mod_queue.get(), &acq);
+                store->deregister_sindex_queue(mod_queue.get(), acq.get());
                 return;
             }
         }
@@ -352,9 +356,6 @@ void post_construct_and_drain_queue(
             &queue_superblock,
             lock.get_drain_signal());
 
-        // Synchronization is guaranteed through the token_pair.
-        // Let's get the information we need from the superblock and then
-        // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
         buf_lock_t queue_sindex_block
@@ -363,9 +364,9 @@ void post_construct_and_drain_queue(
 
         queue_superblock->release();
 
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&queue_sindex_block, &acq);
-        store->deregister_sindex_queue(mod_queue.get(), &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+                store->get_in_line_for_sindex_queue(&queue_sindex_block);
+        store->deregister_sindex_queue(mod_queue.get(), acq.get());
     }
 }
 
@@ -1507,12 +1508,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
         wm << rdb_sindex_change_t(*mod_report);
-        store->sindex_queue_push(wm, &acq);
+        store->sindex_queue_push(wm, acq.get());
 
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
@@ -1783,8 +1784,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(&sindex_block);
         scoped_array_t<write_message_t> queue_wms(mod_reports.size());
         {
             sindex_access_vector_t sindexes;
@@ -1799,9 +1800,9 @@ private:
             }
         }
 
-        // Write mod reports onto the sindex queue. While we need to hold on to
-        // the sindex_queue mutex, we can already release all remaining locks.
-        store->sindex_queue_push(queue_wms, &acq);
+        // Write mod reports onto the sindex queue. We are in line for the
+        // sindex_queue mutex and can already release all other locks.
+        store->sindex_queue_push(queue_wms, acq.get());
     }
 
     btree_store_t<rdb_protocol_t> *store;

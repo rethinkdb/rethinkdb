@@ -181,13 +181,16 @@ void btree_store_t<protocol_t>::receive_backfill(
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
-    const int expected_change_count = 1; // FIXME: this is probably not correct
+    const int expected_change_count = 1; // TODO: this is not correct
 
-    // We don't want hard durability, this is a backfill chunk, and nobody
-    // wants chunk-by-chunk acks.
+    // We use HARD durability because we want backfilling to be throttled if we
+    // receive data faster than it can be written to disk. Otherwise we might
+    // exhaust the cache's dirty page limit and bring down the whole table.
+    // Other than that, the hard durability guarantee is not actually
+    // needed here.
     acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
-                                 write_durability_t::SOFT,
+                                 write_durability_t::HARD,
                                  token_pair,
                                  &txn,
                                  &real_superblock,
@@ -239,28 +242,16 @@ void btree_store_t<protocol_t>::reset_data(
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block,
-                                                  mutex_t::acq_t *acq) {
+scoped_ptr_t<new_mutex_in_line_t> btree_store_t<protocol_t>::get_in_line_for_sindex_queue(
+        buf_lock_t *sindex_block) {
     assert_thread();
-    // KSI: Prove that we can remove this "lock_sindex_queue" stuff
-    // (probably).
+    // The line for the sindex queue is there to guarantee that we push things to
+    // the sindex queue(s) in the same order in which we held the sindex block.
+    // It allows us to release the sindex block before starting to push data to the
+    // sindex queues without sacrificing that guarantee.
+    // Pushing data to those queues can take a while, and we wouldn't want to block
+    // other transactions while we are doing that.
 
-    // SRH: WTF should we do here?  Why is there a mutex?
-    // JD: There's a mutex to protect the sindex queue which is an in memory
-    // structure.
-
-    // SRH: Do we really need to wait for write acquisition?
-    // JD: I think so, the whole idea is to enforce that you get a consistent
-    // view. In which everything before is in the main btree and everything
-    // after you is in the queue. If we don't have write access when we add
-    // ourselves to the queue
-
-    // SRH: Should we be able to "get in line" for the mutex and release the sindex
-    // block or something?
-    // JD: That could be a good optimization but I don't think there's any reason
-    // we need to do it as part of the new cache. There's also an argument to
-    // be made that this mutex could just go away and having write access to
-    // the sindex block could fill the same role.
     guarantee(!sindex_block->empty());
     if (sindex_block->access() == access_t::write) {
         sindex_block->write_acq_signal()->wait();
@@ -269,15 +260,16 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block,
         // acquisition. It is ok in that context, and we have to handle it here.
         sindex_block->read_acq_signal()->wait();
     }
-    acq->reset(&sindex_queue_mutex);
+    return scoped_ptr_t<new_mutex_in_line_t>(
+            new new_mutex_in_line_t(&sindex_queue_mutex));
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            const mutex_t::acq_t *acq) {
+            const new_mutex_in_line_t *acq) {
     assert_thread();
-    acq->assert_is_holding(&sindex_queue_mutex);
+    acq->acq_signal()->wait_lazily_unordered();
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
             it != sindex_queues.end(); ++it) {
@@ -289,9 +281,9 @@ void btree_store_t<protocol_t>::register_sindex_queue(
 template <class protocol_t>
 void btree_store_t<protocol_t>::deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            const mutex_t::acq_t *acq) {
+            const new_mutex_in_line_t *acq) {
     assert_thread();
-    acq->assert_is_holding(&sindex_queue_mutex);
+    acq->acq_signal()->wait_lazily_unordered();
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin();
             it != sindex_queues.end(); ++it) {
@@ -307,16 +299,17 @@ void btree_store_t<protocol_t>::emergency_deregister_sindex_queue(
     internal_disk_backed_queue_t *disk_backed_queue) {
     assert_thread();
     drainer.assert_draining();
-    mutex_t::acq_t acq(&sindex_queue_mutex);
+    new_mutex_in_line_t acq(&sindex_queue_mutex);
+    acq.acq_signal()->wait_lazily_unordered();
 
     deregister_sindex_queue(disk_backed_queue, &acq);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
-                                                  const mutex_t::acq_t *acq) {
+                                                  const new_mutex_in_line_t *acq) {
     assert_thread();
-    acq->assert_is_holding(&sindex_queue_mutex);
+    acq->acq_signal()->wait_lazily_unordered();
 
     for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
         (*it)->push(value);
@@ -326,9 +319,9 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 template <class protocol_t>
 void btree_store_t<protocol_t>::sindex_queue_push(
         const scoped_array_t<write_message_t> &values,
-        const mutex_t::acq_t *acq) {
+        const new_mutex_in_line_t *acq) {
     assert_thread();
-    acq->assert_is_holding(&sindex_queue_mutex);
+    acq->acq_signal()->wait_lazily_unordered();
 
     for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
         (*it)->push(values);

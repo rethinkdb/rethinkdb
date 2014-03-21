@@ -5,6 +5,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer_queue.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
@@ -52,10 +53,14 @@ public:
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
-        done_message_arrived(false), num_outstanding_chunks(0)
+        done_message_arrived(false), num_outstanding_chunks(0),
+        chunk_processing_semaphore(1)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        new_semaphore_acq_t sem_acq(&chunk_processing_semaphore, 1);
+        sem_acq.acquisition_signal()->wait_lazily_unordered();
+
         write_token_pair_t token_pair;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token_pair(&token_pair);
@@ -132,6 +137,8 @@ private:
     int unacked_chunks;
     bool done_message_arrived;
     int num_outstanding_chunks;
+    // Limits the number of chunks that are processed in parallel at any given time
+    new_semaphore_t chunk_processing_semaphore;
 
     DISABLE_COPYING(chunk_callback_t);
 };

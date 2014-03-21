@@ -644,12 +644,13 @@ void rdb_erase_major_range(key_tester_t *tester,
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block, &sindex_superblocks);
 
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(sindex_block, &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(sindex_block);
+        sindex_block->reset_buf_lock();
 
         write_message_t wm;
         wm << rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range));
-        store->sindex_queue_push(wm, &acq);
+        store->sindex_queue_push(wm, acq.get());
     }
 
     {
@@ -1063,12 +1064,12 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
-    mutex_t::acq_t acq;
-    store_->lock_sindex_queue(sindex_block_, &acq);
+    scoped_ptr_t<new_mutex_in_line_t> acq =
+        store_->get_in_line_for_sindex_queue(sindex_block_);
 
     write_message_t wm;
     wm << rdb_sindex_change_t(mod_report);
-    store_->sindex_queue_push(wm, &acq);
+    store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
@@ -1269,13 +1270,16 @@ public:
 
                     scoped_ptr_t<real_superblock_t> superblock;
 
-                    // We want soft durability because having a partially constructed
-                    // secondary index is okay -- we wipe it and rebuild it, if it has not
-                    // been marked completely constructed.
+                    // We use HARD durability because we want post construction
+                    // to be throttled if we insert data faster than it can
+                    // be written to disk. Otherwise we might exhaust the cache's
+                    // dirty page limit and bring down the whole table.
+                    // Other than that, the hard durability guarantee is not actually
+                    // needed here.
                     store_->acquire_superblock_for_write(
                             repli_timestamp_t::distant_past,
-                            2,  // KSI: This is not the right value.
-                            write_durability_t::SOFT,
+                            2 + MAX_CHUNK_SIZE,
+                            write_durability_t::HARD,
                             &token_pair,
                             &wtxn,
                             &superblock,

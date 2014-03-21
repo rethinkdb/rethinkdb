@@ -1,10 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/shards.hpp"
 
-#include "debug.hpp"
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "debug.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/protocol.hpp"
