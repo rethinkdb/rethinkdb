@@ -266,12 +266,16 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
-            // We don't need hard durability here, because a secondary index just gets rebuilt
-            // if the server dies while it's partially constructed.
+            // We use HARD durability because we want post construction
+            // to be throttled if we insert data faster than it can
+            // be written to disk. Otherwise we might exhaust the cache's
+            // dirty page limit and bring down the whole table.
+            // Other than that, the hard durability guarantee is not actually
+            // needed here.
             store->acquire_superblock_for_write(
                 repli_timestamp_t::distant_past,
                 2,
-                write_durability_t::SOFT,
+                write_durability_t::HARD,
                 &token_pair,
                 &queue_txn,
                 &queue_superblock,

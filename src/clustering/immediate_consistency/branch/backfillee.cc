@@ -137,7 +137,7 @@ private:
     int unacked_chunks;
     bool done_message_arrived;
     int num_outstanding_chunks;
-    // Limits the number of chunks that is processed in parallel at any given time
+    // Limits the number of chunks that are processed in parallel at any given time
     new_semaphore_t chunk_processing_semaphore;
 
     DISABLE_COPYING(chunk_callback_t);
