@@ -49,7 +49,7 @@ def compare(new_results, previous_results):
     for key in new_results:
         if key in previous_results:
             if new_results[key]["average"] > 0:
-                diff = 1.*(previous_results[key]["average"]-new_results[key]["average"])/(new_results[key]["average"])
+                diff = 1.*(1/previous_results[key]["average"]-1/new_results[key]["average"])/(1/new_results[key]["average"])
             else:
                 diff = "undefined"
 

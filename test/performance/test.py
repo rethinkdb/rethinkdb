@@ -51,7 +51,7 @@ time_per_query = 60 # 1 minute max per query
 executions_per_query = 1000 # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
-results = {}
+results = {} # Save the time per query (average, min, max etc.)
 connection = None
 
 def run_tests(build="../../build/release"):
@@ -419,7 +419,7 @@ def save_compare_results():
     else:
         previous_results = {}
 
-    compare(results, previous_result)
+    compare(results, previous_results)
 
 
 def main():
