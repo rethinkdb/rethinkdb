@@ -847,7 +847,7 @@ page_txn_t::~page_txn_t() {
     guarantee(subseqers_.empty());
 }
 
-void page_txn_t::add_acquirer(current_page_acq_t *acq) {
+void page_txn_t::add_acquirer(DEBUG_VAR current_page_acq_t *acq) {
     rassert(acq->access_ == access_t::write);
     ++live_acqs_;
 }
