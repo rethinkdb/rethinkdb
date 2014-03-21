@@ -90,7 +90,11 @@ absdir () {
 
 # Path to the rethinkdb repository
 root=$(absdir "$(dirname "$0")/..")
-test -z "$build_dir" && build_dir=$root/build/debug
+test -z "$build_dir" && build_dir=$(ls -d $root/build/{release,debug} 2>/dev/null | head -n 1)
+if ! test -d "$build_dir"; then
+    echo "Error: no rethinkdb is build"
+    exit 1
+fi
 build_dir=$(absdir "$build_dir")
 
 # The tests depend on these variables being set
