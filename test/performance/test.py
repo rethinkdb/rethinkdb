@@ -392,6 +392,10 @@ def save_compare_results():
     # Save results
     if not os.path.exists("results"):
         os.makedirs("results")
+
+    str_date = time.strftime("%y.%m.%d-%H:%M:%S")
+    f = open("results/result_"+str_date+".txt", "w")
+
     str_res = json.dumps(results, indent=2)
     f.write(str_res)
     f.close()
