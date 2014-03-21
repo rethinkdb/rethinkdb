@@ -1,11 +1,8 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-require 'socket'
-require 'thread'
-require 'timeout'
-
-# $f = File.open("fuzz_seed.rb", "w")
-
 module RethinkDB
+  require 'socket'
+  require 'thread'
+  require 'timeout'
+
   def self.new_query(type, token)
     {t: type, k: token}
   end
@@ -58,7 +55,7 @@ module RethinkDB
       preview = preview_res.pretty_inspect[0...-1]
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: RSI" + # #{RPP.pp(@msg)}" +
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
         (@run ? "" : "\n#{preview}") + ">"
     end
 

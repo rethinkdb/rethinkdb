@@ -1,7 +1,7 @@
-require 'pp'
-require 'prettyprint'
-
 module RethinkDB
+  require 'pp'
+  require 'prettyprint'
+
   module RPP
     @@termtype_to_str = Hash[
       Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}

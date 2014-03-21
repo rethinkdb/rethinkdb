@@ -1,8 +1,3 @@
-require 'json'
-require 'time'
-
-# RSI: move `require`s into module
-
 class TIME
   def self.__rdb_new_json_create(o)
     t = Time.at(o['epoch_time'])
@@ -32,6 +27,8 @@ class Time
 end
 
 module RethinkDB
+  require 'json'
+  require 'time'
   module Shim
     def self.load_json(*a, &b)
       old_create_id = JSON.create_id
