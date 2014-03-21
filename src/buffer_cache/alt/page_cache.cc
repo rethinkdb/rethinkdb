@@ -376,7 +376,7 @@ void current_page_acq_t::init(page_txn_t *txn,
         }
         dirtied_page_ = false;
 
-        the_txn_->add_acquirer();
+        the_txn_->add_acquirer(this);
         current_page_->add_acquirer(this);
     }
 }
@@ -392,7 +392,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     current_page_ = page_cache_->page_for_new_block_id(&block_id_);
     dirtied_page_ = false;
 
-    the_txn_->add_acquirer();
+    the_txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
 
@@ -847,7 +847,8 @@ page_txn_t::~page_txn_t() {
     guarantee(subseqers_.empty());
 }
 
-void page_txn_t::add_acquirer() {
+void page_txn_t::add_acquirer(current_page_acq_t *acq) {
+    rassert(acq->access_ == access_t::write);
     ++live_acqs_;
 }
 
