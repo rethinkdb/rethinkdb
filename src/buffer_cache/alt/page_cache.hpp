@@ -547,7 +547,7 @@ private:
 
     // current_page_acq should only call add_acquirer and remove_acquirer.
     friend class current_page_acq_t;
-    void add_acquirer(current_page_acq_t *acq);
+    void add_acquirer();
     void remove_acquirer(current_page_acq_t *acq);
 
     void announce_waiting_for_flush();
