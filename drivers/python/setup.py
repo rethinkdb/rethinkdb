@@ -19,7 +19,7 @@ class build_ext_genproto(build_ext):
         else:
             print("* * * * * * * * * * * * * * * * *")
             print("* WARNING: The faster C++ protobuf backend is not enabled.")
-            print("* WARNING: To enable it, run `export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp' and reinstall the rethinkdb package.")
+            print("* WARNING: To enable it, run 'export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp' and reinstall the rethinkdb package.")
             print("* WARNING: See http://rethinkdb.com/docs/driver-performance/ for more information.")
             print("* * * * * * * * * * * * * * * * *")
 
