@@ -536,6 +536,10 @@ page_acq_t::~page_acq_t() {
     if (page_ != NULL) {
         rassert(page_cache_ != NULL);
         page_->remove_waiter(this);
+
+        // This call should be a no-op, because page_acq_t always has a lesser
+        // lifetime than some current_page_acq_t or some other page_ptr_t.
+        page_cache_->consider_evicting_current_page(page_->block_id());
     }
 }
 
@@ -599,7 +603,10 @@ void page_ptr_t::reset() {
         page_cache_t *cache = page_cache_;
         page_ = NULL;
         page_cache_ = NULL;
+        block_id_t block_id = ptr->block_id();
         ptr->remove_snapshotter(cache);
+        // ptr could be invalid now.
+        cache->consider_evicting_current_page(block_id);
     }
 }
 
