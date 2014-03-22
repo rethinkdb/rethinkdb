@@ -90,7 +90,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
         return;
     }
 
-    current_page_t *current_page = current_pages_[block_id];
+    current_page_t *current_page = current_pages_.get_sparsely(block_id);
     if (current_page == NULL) {
         return;
     }
@@ -142,8 +142,24 @@ void page_cache_t::have_read_ahead_cb_destroyed() {
 
         do_on_thread(cb->home_thread(),
                      std::bind(&page_read_ahead_cb_t::destroy_self, cb));
+
+        coro_t::spawn_sometime(std::bind(&page_cache_t::consider_evicting_all_current_pages, this, drainer_->lock()));
     }
 }
+
+void page_cache_t::consider_evicting_all_current_pages(page_cache_t *page_cache,
+                                                       auto_drainer_t::lock_t lock) {
+    for (block_id_t id = 0; id < page_cache->current_pages_.size(); ++id) {
+        page_cache->consider_evicting_current_page(id);
+        if (id % 16 == 15) {
+            coro_t::yield();
+            if (lock.get_drain_signal()->is_pulsed()) {
+                return;
+            }
+        }
+    }
+}
+
 
 void page_cache_t::read_ahead_cb_is_destroyed() {
     assert_thread();

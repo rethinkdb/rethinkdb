@@ -403,6 +403,9 @@ private:
 
     void resize_current_pages_to_id(block_id_t block_id);
 
+    static void consider_evicting_all_current_pages(page_cache_t *page_cache,
+                                                    auto_drainer_t::lock_t lock);
+
     const block_size_t max_block_size_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
