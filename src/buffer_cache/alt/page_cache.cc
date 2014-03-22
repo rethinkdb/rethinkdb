@@ -205,12 +205,15 @@ private:
         // even though it would be valid.
         // We are using `call_later_on_this_thread` instead of spawning a coroutine
         // to reduce memory overhead.
-        struct kill_later_t : public linux_thread_message_t {
-            kill_later_t(flush_and_destroy_txn_waiter_t *self) : self_(self) { }
+        class kill_later_t : public linux_thread_message_t {
+        public:
+            explicit kill_later_t(flush_and_destroy_txn_waiter_t *self) :
+                self_(self) { }
             void on_thread_switch() {
                 self_->kill_ourselves();
                 delete this;
             }
+        private:
             flush_and_destroy_txn_waiter_t *self_;
         };
         call_later_on_this_thread(new kill_later_t(this));
