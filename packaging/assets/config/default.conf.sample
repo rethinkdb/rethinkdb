@@ -85,7 +85,7 @@
 
 ### Disk
 
-## Specify directory to store data and metadata
+## How many simultaneous I/O operations can happen at the same time
 # io-threads=64
 
 ## Disable direct I/O
