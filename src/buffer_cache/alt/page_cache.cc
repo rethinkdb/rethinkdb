@@ -84,8 +84,7 @@ void page_read_ahead_cb_t::destroy_self() {
 void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
     ASSERT_NO_CORO_WAITING;
     // Can't do anything until read-ahead is done, because it uses the existence of a
-    // current_page_t to figure out whether to evict.  RSI: Spawn a coroutine that
-    // cleans out current_page_t's when done.
+    // current_page_t to figure out whether to evict.
     if (read_ahead_cb_ != NULL) {
         return;
     }
