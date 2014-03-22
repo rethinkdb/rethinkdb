@@ -69,3 +69,9 @@
 ## The number of cores to use
 ## Default: total number of cores of the CPU
 # cores=2
+
+### Memory options
+
+## Size of the cache in MB
+## Default: Half of the available RAM on startup
+# cache_size=1024
