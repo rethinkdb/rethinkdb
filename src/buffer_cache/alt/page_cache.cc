@@ -83,6 +83,13 @@ void page_read_ahead_cb_t::destroy_self() {
 
 void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
     ASSERT_NO_CORO_WAITING;
+    // Can't do anything until read-ahead is done, because it uses the existence of a
+    // current_page_t to figure out whether to evict.  RSI: Spawn a coroutine that
+    // cleans out current_page_t's when done.
+    if (read_ahead_cb_ != NULL) {
+        return;
+    }
+
     current_page_t *current_page = current_pages_[block_id];
     if (current_page == NULL) {
         return;
@@ -607,7 +614,34 @@ current_page_t::~current_page_t() {
 }
 
 bool current_page_t::should_be_evicted() const {
-    return false;
+    // Consider reasons why the current_page_t should not be evicted.
+
+    // A reason: It still has acquirers.  (Important.)
+    if (!acquirers_.empty()) {
+        return false;
+    }
+
+    // A reason: We still have a connection to last_write_acquirer_.  (Important.)
+    if (last_write_acquirer_ != NULL) {
+        return false;
+    }
+
+    // A reason: Its page_t isn't evicted, or has other snapshotters or waiters
+    // anyway.  (It's not important (in terms of correctness) to get this right, but
+    // it is important in terms of performance -- if we or other users of an existing
+    // page_t wanted to reload the current value of the page, all parties should
+    // benefit.)
+    if (page_.has()) {
+        page_t *page = page_.get_page_for_read();
+        if (page->is_loading() || page->has_waiters() || !page->is_not_loaded()
+            || page->page_ptr_count() != 1) {
+            return false;
+        }
+        // is_loading is false and is_not_loaded is true -- it must be disk-backed.
+        rassert(page->is_disk_backed());
+    }
+
+    return true;
 }
 
 void current_page_t::make_non_deleted(block_size_t block_size,

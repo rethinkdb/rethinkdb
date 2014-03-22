@@ -65,6 +65,8 @@ public:
 
     block_id_t block_id() const { return block_id_; }
 
+    bool page_ptr_count() const { return snapshot_refcount_; }
+
 private:
     friend class page_ptr_t;
     friend class deferred_page_loader_t;
