@@ -61,7 +61,7 @@ public:
     bool is_not_loaded() const { return !buf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
-    void evict_self(page_cache_t *page_cache);
+    void evict_self();
 
     block_id_t block_id() const { return block_id_; }
 

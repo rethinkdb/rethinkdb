@@ -510,10 +510,7 @@ void page_t::remove_waiter(page_acq_t *acq) {
     rassert(snapshot_refcount_ > 0);
 }
 
-void page_t::evict_self(page_cache_t *page_cache) {
-    // RSI: Use page_cache and block_id_ to remove the current_page_acq_t.
-    (void)page_cache;
-    (void)block_id_;
+void page_t::evict_self() {
     // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());

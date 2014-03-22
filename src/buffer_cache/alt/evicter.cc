@@ -161,7 +161,8 @@ void evicter_t::evict_if_necessary() {
     while (in_memory_size() > memory_limit_
            && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
         evicted_.add(page, page->hypothetical_memory_usage());
-        page->evict_self(page_cache_);
+        page->evict_self();
+        page_cache_->consider_evicting_current_page(page->block_id());
     }
 }
 

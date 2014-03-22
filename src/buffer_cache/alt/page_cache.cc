@@ -444,6 +444,7 @@ current_page_acq_t::~current_page_acq_t() {
         }
         if (current_page_ != NULL) {
             current_page_->remove_acquirer(this);
+            page_cache_->consider_evicting_current_page(block_id_);
         }
     }
 }
@@ -627,10 +628,8 @@ bool current_page_t::should_be_evicted() const {
     }
 
     // A reason: Its page_t isn't evicted, or has other snapshotters or waiters
-    // anyway.  (It's not important (in terms of correctness) to get this right, but
-    // it is important in terms of performance -- if we or other users of an existing
-    // page_t wanted to reload the current value of the page, all parties should
-    // benefit.)
+    // anyway.  (Getting this wrong can only hurt performance.  We want to evict
+    // current_page_t's with unloaded, otherwise unused page_t's.)
     if (page_.has()) {
         page_t *page = page_.get_page_for_read();
         if (page->is_loading() || page->has_waiters() || !page->is_not_loaded()
@@ -1074,6 +1073,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 
             txn->pages_write_acquired_last_.remove(current_page);
             current_page->last_write_acquirer_ = NULL;
+            page_cache->consider_evicting_current_page(current_page->block_id_);
         }
 
         if (txn->cache_conn_ != NULL) {
