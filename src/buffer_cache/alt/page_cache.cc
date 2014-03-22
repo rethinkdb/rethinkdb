@@ -6,6 +6,8 @@
 #include <stack>
 
 #include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
@@ -201,8 +203,17 @@ private:
         // We have to do the rest _later_ because of signal_t::subscription_t not
         // allowing reentrant signal_t::subscription_t::reset() calls, and the like,
         // even though it would be valid.
-        coro_t::spawn_sometime(std::bind(&flush_and_destroy_txn_waiter_t::kill_ourselves,
-                                         this));
+        // We are using `call_later_on_this_thread` instead of spawning a coroutine
+        // to reduce memory overhead.
+        struct kill_later_t : public linux_thread_message_t {
+            kill_later_t(flush_and_destroy_txn_waiter_t *self) : self_(self) { }
+            void on_thread_switch() {
+                self_->kill_ourselves();
+                delete this;
+            }
+            flush_and_destroy_txn_waiter_t *self_;
+        };
+        call_later_on_this_thread(new kill_later_t(this));
     }
 
     void kill_ourselves() {
