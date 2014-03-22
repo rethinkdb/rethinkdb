@@ -88,7 +88,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
         return;
     }
 
-    if (current_page->can_be_evicted()) {
+    if (current_page->should_be_evicted()) {
         current_pages_[block_id] = NULL;
         delete current_page;
     }
@@ -606,7 +606,7 @@ current_page_t::~current_page_t() {
     rassert(last_write_acquirer_ == NULL);
 }
 
-bool current_page_t::can_be_evicted() const {
+bool current_page_t::should_be_evicted() const {
     return false;
 }
 

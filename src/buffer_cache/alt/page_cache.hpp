@@ -87,7 +87,7 @@ public:
     explicit current_page_t(block_id_t block_id);
     ~current_page_t();
 
-    bool can_be_evicted() const;
+    bool should_be_evicted() const;
 
 private:
     // current_page_acq_t should not access our fields directly.
