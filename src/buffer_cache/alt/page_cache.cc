@@ -81,6 +81,19 @@ void page_read_ahead_cb_t::destroy_self() {
     delete this;
 }
 
+void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
+    ASSERT_NO_CORO_WAITING;
+    current_page_t *current_page = current_pages_[block_id];
+    if (current_page == NULL) {
+        return;
+    }
+
+    if (current_page->can_be_evicted()) {
+        current_pages_[block_id] = NULL;
+        delete current_page;
+    }
+}
+
 void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
         current_pages_.resize_with_zeros(block_id + 1);
@@ -591,6 +604,10 @@ current_page_t::current_page_t(block_id_t block_id,
 current_page_t::~current_page_t() {
     rassert(acquirers_.empty());
     rassert(last_write_acquirer_ == NULL);
+}
+
+bool current_page_t::can_be_evicted() const {
+    return false;
 }
 
 void current_page_t::make_non_deleted(block_size_t block_size,

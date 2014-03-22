@@ -87,6 +87,7 @@ public:
     explicit current_page_t(block_id_t block_id);
     ~current_page_t();
 
+    bool can_be_evicted() const;
 
 private:
     // current_page_acq_t should not access our fields directly.
@@ -326,6 +327,10 @@ public:
     cache_account_t *default_reads_account() {
         return &default_reads_account_;
     }
+
+    // Considers wiping out the current_page_t (and its page_t pointee) for a
+    // particular block id, to save memory, if the right conditions are met.
+    void consider_evicting_current_page(block_id_t block_id);
 
 private:
     friend class page_read_ahead_cb_t;

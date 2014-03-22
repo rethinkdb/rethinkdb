@@ -63,6 +63,8 @@ public:
 
     void evict_self(page_cache_t *page_cache);
 
+    block_id_t block_id() const { return block_id_; }
+
 private:
     friend class page_ptr_t;
     friend class deferred_page_loader_t;
