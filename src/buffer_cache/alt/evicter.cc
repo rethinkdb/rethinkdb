@@ -6,8 +6,9 @@
 
 namespace alt {
 
-evicter_t::evicter_t(cache_balancer_t *balancer)
-    : balancer_(balancer),
+evicter_t::evicter_t(page_cache_t *page_cache, cache_balancer_t *balancer)
+    : page_cache_(page_cache),
+      balancer_(balancer),
       bytes_loaded_counter_(0),
       access_count_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
@@ -160,7 +161,7 @@ void evicter_t::evict_if_necessary() {
     while (in_memory_size() > memory_limit_
            && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
         evicted_.add(page, page->hypothetical_memory_usage());
-        page->evict_self();
+        page->evict_self(page_cache_);
     }
 }
 

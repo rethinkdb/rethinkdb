@@ -72,18 +72,19 @@ namespace alt {
 
 // Has information necessary for the current_page_t to do certain things -- it's
 // known by the current_page_acq_t.
-struct current_page_help_t;
+class current_page_help_t;
 
 class current_page_t {
 public:
-    // Constructs a fresh, empty page.
-    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id,
+                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
                    page_cache_t *page_cache);
-    current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id,
+                   scoped_malloc_t<ser_buffer_t> buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
-    current_page_t();
+    explicit current_page_t(block_id_t block_id);
     ~current_page_t();
 
 
@@ -122,7 +123,10 @@ private:
 
     void make_non_deleted(block_size_t block_size,
                           scoped_malloc_t<ser_buffer_t> buf,
-                          page_cache_t *page_cache);
+                          current_page_help_t page_cache);
+
+    // RSI: Could we get rid of this field?  Probably.
+    const block_id_t block_id_;
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.

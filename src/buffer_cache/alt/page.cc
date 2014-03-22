@@ -40,7 +40,8 @@ static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 
 
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -55,7 +56,8 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                cache_account_t *account)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -69,9 +71,11 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                                             account));
 }
 
-page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id, block_size_t block_size,
+               scoped_malloc_t<ser_buffer_t> buf,
                page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(block_size.ser_value()),
       buf_(std::move(buf)),
@@ -81,10 +85,12 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
     page_cache->evicter().add_to_evictable_unbacked(this);
 }
 
-page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id,
+               scoped_malloc_t<ser_buffer_t> buf,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(block_token->block_size().ser_value()),
       buf_(std::move(buf)),
@@ -96,7 +102,8 @@ page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
 }
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
-    : loader_(NULL),
+    : block_id_(copyee->block_id_),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -503,7 +510,10 @@ void page_t::remove_waiter(page_acq_t *acq) {
     rassert(snapshot_refcount_ > 0);
 }
 
-void page_t::evict_self() {
+void page_t::evict_self(page_cache_t *page_cache) {
+    // RSI: Use page_cache and block_id_ to remove the current_page_acq_t.
+    (void)page_cache;
+    (void)block_id_;
     // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());

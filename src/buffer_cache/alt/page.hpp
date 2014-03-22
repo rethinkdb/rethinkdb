@@ -28,9 +28,10 @@ public:
     // Loads the block for the given block id.
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
 
-    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+    page_t(block_id_t block_id, block_size_t block_size,
+           scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
-    page_t(scoped_malloc_t<ser_buffer_t> buf,
+    page_t(block_id_t block_id, scoped_malloc_t<ser_buffer_t> buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
@@ -60,7 +61,7 @@ public:
     bool is_not_loaded() const { return !buf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
-    void evict_self();
+    void evict_self(page_cache_t *page_cache);
 
 private:
     friend class page_ptr_t;
@@ -101,6 +102,10 @@ private:
 
     friend class page_cache_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
+
+    // The block id.  Used to (potentially) delete the page_t and current_page_t when
+    // it gets evicted.
+    const block_id_t block_id_;
 
     // KSI: Explain this more.
     // One of loader_, buf_, or block_token_ is non-null.

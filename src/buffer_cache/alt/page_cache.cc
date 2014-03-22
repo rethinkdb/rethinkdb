@@ -28,6 +28,14 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
+class current_page_help_t {
+public:
+    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
+        : block_id(_block_id), page_cache(_page_cache) { }
+    block_id_t block_id;
+    page_cache_t *page_cache;
+};
+
 void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
     if (new_count > semaphore_acq_.count()) {
         semaphore_acq_.change_count(new_count);
@@ -100,7 +108,7 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
         return;
     }
 
-    current_pages_[block_id] = new current_page_t(std::move(buf), token, this);
+    current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
 void page_cache_t::have_read_ahead_cb_destroyed() {
@@ -136,7 +144,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       balancer_(balancer),
-      evicter_(balancer),
+      evicter_(this, balancer),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
@@ -247,7 +255,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
                 "Expected block %" PR_BLOCK_ID " not to be deleted "
                 "(should you have used alt_create_t::create?).",
                 block_id);
-        current_pages_[block_id] = new current_page_t();
+        current_pages_[block_id] = new current_page_t(block_id);
     } else {
         rassert(!current_pages_[block_id]->is_deleted());
     }
@@ -286,13 +294,14 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(max_block_size_,
+            new current_page_t(block_id,
+                               max_block_size_,
                                std::move(buf),
                                this);
     } else {
         current_pages_[block_id]->make_non_deleted(max_block_size_,
                                                    std::move(buf),
-                                                   this);
+                                                   current_page_help_t(block_id, this));
     }
 
     return current_pages_[block_id];
@@ -322,13 +331,6 @@ cache_account_t page_cache_t::create_cache_account(int priority) {
     return cache_account_t(serializer_->home_thread(), io_account);
 }
 
-
-struct current_page_help_t {
-    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
-        : block_id(_block_id), page_cache(_page_cache) { }
-    block_id_t block_id;
-    page_cache_t *page_cache;
-};
 
 current_page_acq_t::current_page_acq_t()
     : page_cache_(NULL), the_txn_(NULL) { }
@@ -548,19 +550,8 @@ void current_page_acq_t::pulse_write_available() {
     write_cond_.pulse_if_not_already_pulsed();
 }
 
-current_page_t::current_page_t()
-    : is_deleted_(false),
-      last_write_acquirer_(NULL) {
-    // Increment the block version so that we can distinguish between unassigned
-    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
-    rassert(last_write_acquirer_version_.debug_value() == 0);
-    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
-}
-
-current_page_t::current_page_t(block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf,
-                               page_cache_t *page_cache)
-    : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
+current_page_t::current_page_t(block_id_t block_id)
+    : block_id_(block_id),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -569,10 +560,26 @@ current_page_t::current_page_t(block_size_t block_size,
     last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
 }
 
-current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+current_page_t::current_page_t(block_id_t block_id,
+                               block_size_t block_size,
+                               scoped_malloc_t<ser_buffer_t> buf,
+                               page_cache_t *page_cache)
+    : block_id_(block_id),
+      page_(new page_t(block_id, block_size, std::move(buf), page_cache), page_cache),
+      is_deleted_(false),
+      last_write_acquirer_(NULL) {
+    // Increment the block version so that we can distinguish between unassigned
+    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
+}
+
+current_page_t::current_page_t(block_id_t block_id,
+                               scoped_malloc_t<ser_buffer_t> buf,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
-    : page_(new page_t(std::move(buf), token, page_cache), page_cache),
+    : block_id_(block_id),
+      page_(new page_t(block_id, std::move(buf), token, page_cache), page_cache),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -588,10 +595,11 @@ current_page_t::~current_page_t() {
 
 void current_page_t::make_non_deleted(block_size_t block_size,
                                       scoped_malloc_t<ser_buffer_t> buf,
-                                      page_cache_t *page_cache) {
+                                      current_page_help_t help) {
     rassert(is_deleted_);
     is_deleted_ = false;
-    page_.init(new page_t(block_size, std::move(buf), page_cache), page_cache);
+    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache),
+               help.page_cache);
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -722,7 +730,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 
                     make_non_deleted(help.page_cache->max_block_size(),
                                      std::move(buf),
-                                     help.page_cache);
+                                     help);
                 }
                 repli_timestamp_t superceding
                     = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);

@@ -33,7 +33,7 @@ public:
     void remove_page(page_t *page);
     void reloading_page(page_t *page);
 
-    explicit evicter_t(cache_balancer_t *balancer);
+    explicit evicter_t(page_cache_t *page_cache, cache_balancer_t *balancer);
     ~evicter_t();
 
     void update_memory_limit(uint64_t new_memory_limit,
@@ -61,7 +61,9 @@ private:
     // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
 
+    page_cache_t *const page_cache_;
     cache_balancer_t *const balancer_;
+
     uint64_t memory_limit_;
 
     // These are updated every time a page is loaded, created, or destroyed, and
