@@ -192,7 +192,7 @@ module RethinkDB
       # PP.pp msg
       payload = Shim.dump_json(msg)
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
-      send([payload.length].pack('L<') + payload)
+      send([payload.bytesize].pack('L<') + payload)
       return msg[:k]
     end
 

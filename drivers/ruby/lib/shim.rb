@@ -113,7 +113,8 @@ module RethinkDB
       case x
       when String then x
       when Symbol then x.to_s
-      else raise RqlRuntimeError, "RSI"
+      else raise RqlDriverError, 'Object keys must be strings or symbols.  '+
+          "(Got object `#{x.inspect}` of class `#{x.class}`.)"
       end
     end
 
@@ -124,6 +125,7 @@ module RethinkDB
                                 a: x.map{|y| fast_expr(y)} })
       when Hash then RQL.new({ t: Term::TermType::MAKE_OBJ,
                                o: Hash[x.map{|k,v| [safe_to_s(k), fast_expr(v)]}] })
+      when Proc then RQL.new.new_func(&x)
       else RQL.new({t: Term::TermType::DATUM, d: x})
       end
     end
