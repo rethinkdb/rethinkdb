@@ -3,9 +3,8 @@ module RethinkDB
   require 'prettyprint'
 
   module RPP
-    @@termtype_to_str = Hash[
-                             Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}
-                            ]
+    @@termtype_to_str =
+      Hash[Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}]
     @@regex = if __FILE__ =~ /^(.*\/)[^\/]+.rb$/ then /^#{$1}/ else nil end
 
     def self.bt_consume(bt, el)
@@ -51,7 +50,7 @@ module RethinkDB
     end
 
     def self.pp_int_func(q, func, bt)
-      PP.pp [:func, func.to_json, bt]
+      # PP.pp [:func, func.to_json, bt]
       func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
       func_body = func[:a][1]
       q.text(" ")
@@ -76,7 +75,7 @@ module RethinkDB
       q.text("\x7", 0) if bt == []
 
       term = term.to_pb if term.class == RQL
-      PP.pp [:pp_int, term.to_json, bt]
+      # PP.pp [:pp_int, term.to_json, bt]
       if term[:t] == Term::TermType::DATUM
         res = pp_int_datum(q, term[:d], pre_dot)
         q.text("\x7", 0) if bt == []
@@ -87,22 +86,37 @@ module RethinkDB
         q.text("var_")
         res = pp_int_datum(q, term[:a][0][:d], false)
         q.text("\x7", 0) if bt == []
-        return res
+        return
       elsif term[:t] == Term::TermType::FUNC
         q.text("r(") if pre_dot
         q.text("lambda")
-        res = pp_int_func(q, term, bt)
+        pp_int_func(q, term, bt)
         q.text(")") if pre_dot
         q.text("\x7", 0) if bt == []
-        return res
+        return
       elsif term[:t] == Term::TermType::MAKE_OBJ
-        res = pp_int_optargs(q, term[:o], bt, pre_dot)
+        pp_int_optargs(q, term[:o], bt, pre_dot)
         q.text("\x7", 0) if bt == []
-        return res
+        return
       elsif term[:t] == Term::TermType::MAKE_ARRAY
-        res = pp_int_args(q, term[:a], bt, pre_dot)
+        pp_int_args(q, term[:a], bt, pre_dot)
         q.text("\x7", 0) if bt == []
-        return res
+        return
+      elsif term[:t] == Term::TermType::FUNCALL
+        args = term[:a].dup
+        if args.size == 2
+          pp_int(q, args[1], bt_consume(bt, 1), pre_dot)
+          q.text(".do")
+        else
+          q.text("r.do(")
+          (1...args.size).each {|i|
+            pp_int(q, args[i], bt_consume(bt, i))
+            q.text(", ") if i != 1
+          }
+          q.text(")")
+        end
+        pp_int_func(q, args[0], bt_consume(bt, 0))
+        return
       end
 
       name = @@termtype_to_str[term[:t]].downcase
@@ -125,9 +139,9 @@ module RethinkDB
       end
 
       if args[-1] && args[-1][:t] == Term::TermType::FUNC
-        func = args[-1]
         func_bt = bt_consume(bt, args.size() - 1 + arg_offset)
-        PP.pp [:func_bt, bt, args.size() - 1 + arg_offset, func_bt]
+        func = args.pop
+        # PP.pp [:func_bt, bt, arg_offset, (args.size() - 1) + arg_offset, func_bt]
       end
 
       if args != [] || optargs != {}
