@@ -118,13 +118,14 @@ module RethinkDB
       end
     end
 
-    def self.fast_expr(x)
+    def self.fast_expr(x, depth=0)
+      raise RqlDriverError, "Maximum expression depth of 20 exceeded." if depth > 20
       case x
       when RQL then x
       when Array then RQL.new({ t: Term::TermType::MAKE_ARRAY,
-                                a: x.map{|y| fast_expr(y)} })
+                                a: x.map{|y| fast_expr(y, depth+1)} })
       when Hash then RQL.new({ t: Term::TermType::MAKE_OBJ,
-                               o: Hash[x.map{|k,v| [safe_to_s(k), fast_expr(v)]}] })
+                               o: Hash[x.map{|k,v| [safe_to_s(k), fast_expr(v, depth+1)]}] })
       when Proc then RQL.new.new_func(&x)
       else RQL.new({t: Term::TermType::DATUM, d: x})
       end
