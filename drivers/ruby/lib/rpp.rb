@@ -51,19 +51,24 @@ module RethinkDB
 
     def self.pp_int_func(q, func, bt)
       # PP.pp [:func, func.to_json, bt]
-      func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
-      func_body = func[:a][1]
-      q.text(" ")
-      q.group(0, "{", "}") {
-        if func_args != []
-          q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
-        end
-        q.nest(2) {
-          q.breakable
-          pp_int(q, func_body, bt_consume(bt, 1))
+      begin
+        func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
+        # PP.pp JSON.parse(func_args.to_json)
+        func_body = func[:a][1]
+        q.text(" ")
+        q.group(0, "{", "}") {
+          if func_args != []
+            q.text(func_args.map{|x| :"var_#{x}"}.inspect.gsub(/\[|\]/,"|").gsub(":",""))
+          end
+          q.nest(2) {
+            q.breakable
+            pp_int(q, func_body, bt_consume(bt, 1))
+          }
+          q.breakable('')
         }
-        q.breakable('')
-      }
+      rescue StandardError => e
+        q.text(" {#<unprintable function:`#{func}`>}")
+      end
     end
 
     def self.can_prefix (name, args)
@@ -104,18 +109,28 @@ module RethinkDB
         return
       elsif term[:t] == Term::TermType::FUNCALL
         args = term[:a].dup
+        func = (args[0][:t] == Term::TermType::FUNC) ? args[0] : nil
         if args.size == 2
           pp_int(q, args[1], bt_consume(bt, 1), pre_dot)
           q.text(".do")
+          if !func
+            q.text("(")
+            pp_int(q, args[0], bt_consume(bt, 0)) if !func
+            q.text(")")
+          end
         else
           q.text("r.do(")
           (1...args.size).each {|i|
-            pp_int(q, args[i], bt_consume(bt, i))
             q.text(", ") if i != 1
+            pp_int(q, args[i], bt_consume(bt, i))
           }
+          if !func
+            q.text(", ")
+            pp_int(q, args[0], bt_consume(bt, 0))
+          end
           q.text(")")
         end
-        pp_int_func(q, args[0], bt_consume(bt, 0))
+        pp_int_func(q, args[0], bt_consume(bt, 0)) if func
         return
       end
 
@@ -176,7 +191,7 @@ module RethinkDB
     end
 
     def self.pp(term, bt=nil)
-      PP.pp bt
+      # PP.pp bt
       begin
         q = PrettyPrint.new
         pp_int(q, term, bt, true)

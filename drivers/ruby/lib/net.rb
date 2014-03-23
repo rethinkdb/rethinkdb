@@ -336,7 +336,7 @@ module RethinkDB
             response = @socket.read_exn(response_length)
             begin
               data = Shim.load_json(response, @opts[token])
-              PP.pp data
+              # PP.pp data
             rescue Exception => e
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response

@@ -138,7 +138,9 @@ module RethinkDB
       if a == [] && !b
         raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
       end
-      RQL.new.funcall(*((b ? [new_func(&b)] : [a.pop]) + a))
+      funcall_args = (b ? [new_func(&b)] : [a.pop]) + a
+      # PP.pp funcall_args
+      RQL.new.funcall(*funcall_args)
     end
 
     def row
