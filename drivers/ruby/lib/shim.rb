@@ -84,16 +84,6 @@ module RethinkDB
 
     def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
-      # if r.backtrace
-      #   bt = r.backtrace.frames.map {|x|
-      #     x.type == Frame::FrameType::POS ? x.pos : x.opt
-      #   }
-      # else
-      #   bt = []
-      # end
-
-      # RSI: pseudotypes
-
       begin
         case r['t']
         when rt::SUCCESS_ATOM then r['r'][0]
@@ -108,10 +98,7 @@ module RethinkDB
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        # term = orig_term.deep_dup
-        # term.bt_tag(bt)
-        # raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
-        raise e.class, "#{e.message}\nRSI"
+        raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(orig_term, r['b'])}"
       end
     end
   end

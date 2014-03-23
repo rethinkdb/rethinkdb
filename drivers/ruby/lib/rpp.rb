@@ -8,7 +8,10 @@ module RethinkDB
     ]
     @@regex = if __FILE__ =~ /^(.*\/)[^\/]+.rb$/ then /^#{$1}/ else nil end
 
-    def self.pp_int_optargs(q, optargs, pre_dot = false)
+    def self.bt_consume(bt, el)
+      bt[0] == el ? bt[1..-1] : nil
+
+    def self.pp_int_optargs(q, optargs, bt, pre_dot = false)
       q.text("r(") if pre_dot
       q.group(1, "{", "}") {
         optargs.to_a.each_with_index {|optarg, i|
@@ -19,14 +22,14 @@ module RethinkDB
           q.text("#{optarg[0].inspect} =>")
           q.nest(2) {
             q.breakable
-            pp_int(q, optarg[1])
+            pp_int(q, optarg[1], bt_consume(bt, optarg[0]))
           }
         }
       }
       q.text(")") if pre_dot
     end
 
-    def self.pp_int_args(q, args, pre_dot = false)
+    def self.pp_int_args(q, args, bt, pre_dot = false)
       q.text("r(") if pre_dot
       q.group(1, "[", "]") {
         args.each_with_index {|arg, i|
@@ -34,7 +37,7 @@ module RethinkDB
             q.text(",")
             q.breakable
           end
-          pp_int(q, arg)
+          pp_int(q, arg, bt_consume(bt, i))
         }
       }
       q.text(")") if pre_dot
@@ -46,7 +49,7 @@ module RethinkDB
       q.text(")") if pre_dot
     end
 
-    def self.pp_int_func(q, func)
+    def self.pp_int_func(q, func, bt)
       # PP.pp func
       func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
       func_body = func[:a][1]
@@ -57,7 +60,7 @@ module RethinkDB
         end
         q.nest(2) {
           q.breakable
-          pp_int(q, func_body)
+          pp_int(q, func_body, bt)
         }
         q.breakable('')
       }
@@ -68,35 +71,35 @@ module RethinkDB
       return false if args.size == 1 && args[0][:t] == Term::TermType::DATUM
       return true
     end
-    def self.pp_int(q, term, pre_dot=false)
-      q.text("\x7", 0) if false #term.is_error
+    def self.pp_int(q, term, bt, pre_dot=false)
+      q.text("\x7", 0) if bt == []
 
       term = term.to_pb if term.class == RQL
       if term[:t] == Term::TermType::DATUM
         res = pp_int_datum(q, term[:d], pre_dot)
-        q.text("\x7", 0) if false #term.is_error
+        q.text("\x7", 0) if bt == []
         return res
       end
 
       if term[:t] == Term::TermType::VAR
         q.text("var_")
         res = pp_int_datum(q, term[:a][0][:d], false)
-        q.text("\x7", 0) if false #term.is_error
+        q.text("\x7", 0) if bt == []
         return res
       elsif term[:t] == Term::TermType::FUNC
         q.text("r(") if pre_dot
         q.text("lambda")
-        res = pp_int_func(q, term)
+        res = pp_int_func(q, term, bt)
         q.text(")") if pre_dot
-        q.text("\x7", 0) if false #term.is_error
+        q.text("\x7", 0) if bt == []
         return res
       elsif term[:t] == Term::TermType::MAKE_OBJ
-        res = pp_int_optargs(q, term[:o], pre_dot)
-        q.text("\x7", 0) if false #term.is_error
+        res = pp_int_optargs(q, term[:o], bt, pre_dot)
+        q.text("\x7", 0) if bt == []
         return res
       elsif term[:t] == Term::TermType::MAKE_ARRAY
-        res = pp_int_args(q, term[:a], pre_dot)
-        q.text("\x7", 0) if false #term.is_error
+        res = pp_int_args(q, term[:a], bt, pre_dot)
+        q.text("\x7", 0) if bt == []
         return res
       end
 
@@ -105,7 +108,7 @@ module RethinkDB
       optargs = (term[:o] || {}).dup
 
       if can_prefix(name, args) && first_arg = args.shift
-        pp_int(q, first_arg, true)
+        pp_int(q, first_arg, bt, true)
       else
         q.text("r")
       end
@@ -131,20 +134,20 @@ module RethinkDB
                 q.text(",")
                 q.breakable
               end
-              pp_int(q, arg)
+              pp_int(q, arg, bt)
             }
             if optargs != {}
               if pushed
                 q.text(",")
                 q.breakable
               end
-              pp_int_optargs(q, optargs)
+              pp_int_optargs(q, optargs, bt)
             end
             if func && name == "grouped_map_reduce"
               q.text(",")
               q.breakable
               q.text("lambda")
-              pp_int_func(q, func)
+              pp_int_func(q, func, bt)
               func = nil
             end
           }
@@ -152,14 +155,15 @@ module RethinkDB
         }
       end
 
-      pp_int_func(q, func) if func
-      q.text("\x7", 0) if false #term.is_error
+      pp_int_func(q, func, bt) if func
+      q.text("\x7", 0) if bt == []
     end
 
-    def self.pp term
+    def self.pp(term, bt=nil)
+      PP.pp bt
       begin
         q = PrettyPrint.new
-        pp_int(q, term, true)
+        pp_int(q, term, bt, true)
         q.flush
 
         in_bt = false
@@ -167,16 +171,15 @@ module RethinkDB
           line = line.gsub(/^ */) {|x| x+"\x7"} if in_bt
           arr = line.split("\x7")
           if arr[1]
-            in_bt = !(arr[2] || (line[-1] == 0x7))
+            in_bt = !(arr[2] || (line[-1] == "\x7"))
             [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
           else
             line
           end
         }.flatten.join("\n")
       rescue Exception => e
-        raise e
-        "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
-          "FALLING BACK TO PROTOBUF PRETTY-PRINTER.\n#{@term.inspect}"
+        raise e.class, "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
+          "FALLING BACK TO GENERIC PRINTER.\n#{@term.inspect}"
       end
     end
   end
