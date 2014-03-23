@@ -1113,7 +1113,7 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
         double d = datum->as_num();
         int64_t i;
         if (number_as_integer(d, &i)) {
-            sz += varint_uint64_serialized_size(abs(i));
+            sz += varint_uint64_serialized_size(std::abs(i));
         } else {
             sz += serialized_size_t<double>::value;
         }

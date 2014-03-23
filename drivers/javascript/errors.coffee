@@ -57,13 +57,18 @@ class RqlQueryPrinter
         else
             carrotify(term.compose(args, optargs))
 
-    carrotify = (tree) -> (joinTree tree).replace(/./g, '^')
+    carrotMarker = {}
+
+    carrotify = (tree) -> [carrotMarker, tree]
 
     joinTree = (tree) ->
         str = ''
         for term in tree
             if Array.isArray term
-                str += joinTree term
+                if term.length == 2 and term[0] is carrotMarker
+                        str += (joinTree term[1]).replace(/./g, '^')
+                else
+                        str += joinTree term
             else
                 str += term
         return str

@@ -163,10 +163,19 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
 
 segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t first,
                                                                       block_id_t step) {
+    guarantee(coro_t::self() != NULL);
     rassert(state == state_ready);
     segmented_vector_t<repli_timestamp_t> ret;
     block_id_t end = in_memory_index.end_block_id();
+    block_id_t count = 0;
     for (block_id_t i = first; i < end; i += step) {
+        ++count;
+        if (count % 1024 == 0) {
+            coro_t::yield();
+            // Nothing interesting should happen, this is called when the cache is
+            // starting up.
+            rassert(state == state_ready);
+        }
         ret.push_back(in_memory_index.get_block_info(i).recency);
     }
     return ret;
@@ -369,7 +378,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
 
     // Write a new metablock once the LBA has synced. We have to do this before
     // we can commit the extent_manager transactions.
-    write_metablock_fun(on_lba_sync, gc_io_account.get());
+    write_metablock_fun(&on_lba_sync, gc_io_account.get());
 
     // Commit all extent transactions. From that point on the data of extents
     // we have deleted can be overwritten.

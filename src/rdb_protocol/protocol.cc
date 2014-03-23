@@ -18,6 +18,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/scoped.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
@@ -165,12 +166,16 @@ void bring_sindexes_up_to_date(
 {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
 
-    /* We register our modification queue here. An important point about
-     * correctness here: we've held the superblock this whole time and will
-     * continue to do so until the call to post_construct_secondary_indexes
-     * begins a parallel traversal which releases the superblock. This
-     * serves to make sure that every changes which we don't learn about in
-     * the parallel traversal we do learn about from the mod queue. */
+    /* We register our modification queue here.
+     * We must register it before calling post_construct_and_drain_queue to
+     * make sure that every changes which we don't learn about in
+     * the parallel traversal that's started there, we do learn about from the mod
+     * queue. Changes that happen between the mod queue registration and
+     * the parallel traversal will be accounted for twice. That is ok though,
+     * since every modification can be applied repeatedly without causing any
+     * damage (if that should ever not true for any of the modifications, that
+     * modification must be fixed or this code would have to be changed to account
+     * for that). */
     uuid_u post_construct_id = generate_uuid();
 
     /* Keep the store alive for as long as mod_queue exists. It uses its io_backender
@@ -186,9 +191,9 @@ void bring_sindexes_up_to_date(
                 &store->perfmon_collection));
 
     {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(sindex_block, &acq);
-        store->register_sindex_queue(mod_queue.get(), &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(sindex_block);
+        store->register_sindex_queue(mod_queue.get(), acq.get());
     }
 
     std::map<std::string, secondary_index_t> sindexes;
@@ -261,20 +266,21 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
-            // We don't need hard durability here, because a secondary index just gets rebuilt
-            // if the server dies while it's partially constructed.
+            // We use HARD durability because we want post construction
+            // to be throttled if we insert data faster than it can
+            // be written to disk. Otherwise we might exhaust the cache's
+            // dirty page limit and bring down the whole table.
+            // Other than that, the hard durability guarantee is not actually
+            // needed here.
             store->acquire_superblock_for_write(
                 repli_timestamp_t::distant_past,
                 2,
-                write_durability_t::SOFT,
+                write_durability_t::HARD,
                 &token_pair,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
 
-            // Synchronization is guaranteed through the token_pair.
-            // Let's get the information we need from the superblock and then
-            // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
             buf_lock_t queue_sindex_block
@@ -293,10 +299,13 @@ void post_construct_and_drain_queue(
                 break;
             }
 
-            mutex_t::acq_t acq;
-            store->lock_sindex_queue(&queue_sindex_block, &acq);
+            scoped_ptr_t<new_mutex_in_line_t> acq =
+                store->get_in_line_for_sindex_queue(&queue_sindex_block);
+            // TODO (daniel): Is there a way to release the queue_sindex_block
+            // earlier than we do now, ideally before we wait for the acq signal?
+            acq->acq_signal()->wait_lazily_unordered();
 
-            const int MAX_CHUNK_SIZE = 100;
+            const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
             while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
                 rdb_sindex_change_t sindex_change;
@@ -315,7 +324,7 @@ void post_construct_and_drain_queue(
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, &queue_sindex_block);
                 }
-                store->deregister_sindex_queue(mod_queue.get(), &acq);
+                store->deregister_sindex_queue(mod_queue.get(), acq.get());
                 return;
             }
         }
@@ -347,9 +356,6 @@ void post_construct_and_drain_queue(
             &queue_superblock,
             lock.get_drain_signal());
 
-        // Synchronization is guaranteed through the token_pair.
-        // Let's get the information we need from the superblock and then
-        // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
         buf_lock_t queue_sindex_block
@@ -358,9 +364,9 @@ void post_construct_and_drain_queue(
 
         queue_superblock->release();
 
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&queue_sindex_block, &acq);
-        store->deregister_sindex_queue(mod_queue.get(), &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+                store->get_in_line_for_sindex_queue(&queue_sindex_block);
+        store->deregister_sindex_queue(mod_queue.get(), acq.get());
     }
 }
 
@@ -1502,12 +1508,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
         wm << rdb_sindex_change_t(*mod_report);
-        store->sindex_queue_push(wm, &acq);
+        store->sindex_queue_push(wm, acq.get());
 
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
@@ -1598,7 +1604,8 @@ public:
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency,
                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency), interruptor);
+        chunk_fun_cb->send_chunk(chunk_t::delete_key(to_store_key(key), recency),
+                                 interruptor);
     }
 
     void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
@@ -1701,7 +1708,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    superblock.get(), &deletion_context, &response,
                    &mod_reports[0].info, static_cast<profile::trace_t *>(NULL));
-
+        superblock.reset();
         update_sindexes(mod_reports);
     }
 
@@ -1712,7 +1719,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_erase_small_range(&tester, delete_range.range.inner,
                               superblock.get(), &deletion_context, interruptor,
                               &mod_reports);
-        update_sindexes(mod_reports);
+        superblock.reset();
+        if (!mod_reports.empty()) {
+            update_sindexes(mod_reports);
+        }
     }
 
     void operator()(const backfill_chunk_t::key_value_pairs_t &kv) {
@@ -1731,28 +1741,42 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                         &superblock_promise));
                 superblock.init(superblock_promise.wait());
             }
-            superblock->release();
+            superblock.reset();
         }
         update_sindexes(mod_reports);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) {
+        // Release the superblock. We don't need it for this.
+        superblock.reset();
+
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
         std::set<std::string> created_sindexes;
-        store->set_sindexes(s.sindexes, &sindex_block, &sizer,
+
+        // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
+        // secondary indexes. This can cause problems if indexes are deleted
+        // and recreated very quickly. The very reason for why we have UUIDs
+        // in the sindexes is to avoid two post-constructions to interfere with
+        // each other in such cases.
+        // More information:
+        // https://github.com/rethinkdb/rethinkdb/issues/657
+        // https://github.com/rethinkdb/rethinkdb/issues/2087
+        //
+        // Assign new random UUIDs to the secondary indexes to avoid collisions
+        // during post construction:
+        std::map<std::string, secondary_index_t> sindexes = s.sindexes;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            it->second.id = generate_uuid();
+        }
+
+        store->set_sindexes(sindexes, &sindex_block, &sizer,
                             &live_deletion_context,
                             &post_construction_deletion_context,
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
-            sindex_access_vector_t sindexes;
-            store->acquire_sindex_superblocks_for_write(
-                    created_sindexes,
-                    &sindex_block,
-                    &sindexes);
-
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                                                             &sindex_block);
         }
@@ -1760,20 +1784,25 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                &sindex_block, &sindexes);
+        scoped_ptr_t<new_mutex_in_line_t> acq =
+            store->get_in_line_for_sindex_queue(&sindex_block);
+        scoped_array_t<write_message_t> queue_wms(mod_reports.size());
+        {
+            sindex_access_vector_t sindexes;
+            store->acquire_post_constructed_sindex_superblocks_for_write(
+                    &sindex_block, &sindexes);
+            sindex_block.reset_buf_lock();
 
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(&sindex_block, &acq);
-        rdb_live_deletion_context_t deletion_context;
-        for (size_t i = 0; i < mod_reports.size(); ++i) {
-            write_message_t wm;
-            wm << rdb_sindex_change_t(mod_reports[i]);
-            store->sindex_queue_push(wm, &acq);
-
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            rdb_live_deletion_context_t deletion_context;
+            for (size_t i = 0; i < mod_reports.size(); ++i) {
+                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
+                rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+            }
         }
+
+        // Write mod reports onto the sindex queue. We are in line for the
+        // sindex_queue mutex and can already release all other locks.
+        store->sindex_queue_push(queue_wms, acq.get());
     }
 
     btree_store_t<rdb_protocol_t> *store;

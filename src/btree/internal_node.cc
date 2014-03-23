@@ -192,6 +192,9 @@ bool level(block_size_t block_size, internal_node_t *node,
 
         keycpy(replacement_key, &pair_for_parent->key);
 
+        if (moved_children_out != NULL) {
+            moved_children_out->push_back(pair_for_parent->lnode);
+        }
         impl::delete_pair(sibling, sibling->pair_offsets[0]);
         impl::delete_offset(sibling, 0);
     } else {
@@ -199,9 +202,12 @@ bool level(block_size_t block_size, internal_node_t *node,
         const btree_key_t *key_from_parent = &get_pair_by_index(parent, get_offset_index(parent, &get_pair_by_index(sibling, 0)->key))->key;
         if (sizeof(internal_node_t) + (node->npairs + 1) * sizeof(*node->pair_offsets) + impl::pair_size_with_key(key_from_parent) >= node->frontmost_offset)
             return false;
-        block_id_t first_offset = get_pair_by_index(sibling, sibling->npairs-1)->lnode;
-        offset = impl::insert_pair(node, first_offset, key_from_parent);
+        block_id_t first_child = get_pair_by_index(sibling, sibling->npairs-1)->lnode;
+        offset = impl::insert_pair(node, first_child, key_from_parent);
         impl::insert_offset(node, offset, 0);
+        if (moved_children_out != NULL) {
+            moved_children_out->push_back(first_child);
+        }
         impl::delete_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
         impl::delete_offset(sibling, sibling->npairs-1);
 

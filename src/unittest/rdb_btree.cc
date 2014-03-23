@@ -60,13 +60,13 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                      &sindexes);
             rdb_update_sindexes(sindexes, &mod_report, txn.get(), &deletion_context);
 
-            mutex_t::acq_t acq;
-            store->lock_sindex_queue(&sindex_block, &acq);
+            scoped_ptr_t<new_mutex_in_line_t> acq =
+                store->get_in_line_for_sindex_queue(&sindex_block);
 
             write_message_t wm;
             wm << rdb_sindex_change_t(mod_report);
 
-            store->sindex_queue_push(wm, &acq);
+            store->sindex_queue_push(wm, acq.get());
         }
     }
 }

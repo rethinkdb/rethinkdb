@@ -125,9 +125,9 @@ public:
     file_t() { }
 
     virtual ~file_t() { }
-    virtual int64_t get_size() = 0;
-    virtual void set_size(int64_t size) = 0;
-    virtual void set_size_at_least(int64_t size) = 0;
+    virtual int64_t get_file_size() = 0;
+    virtual void set_file_size(int64_t size) = 0;
+    virtual void set_file_size_at_least(int64_t size) = 0;
 
     virtual void read_async(int64_t offset, size_t length, void *buf,
                             file_account_t *account, linux_iocallback_t *cb) = 0;
@@ -155,11 +155,10 @@ public:
 
 private:
     file_t *parent;
-    /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
-       a void* because accounting_diskmgr_t is a template, so its actual type depends on what
-       IO backend is chosen. */
-    // Maybe accounting_diskmgr_t shouldn't be a templated class then.
 
+    // When used with a linux_file_t, account is a `accounting_diskmgr_t::account_t
+    // *`.  When used with a mock_file_t, it's a unused non-null pointer to some kind
+    // of irrelevant object.
     void *account;
 
     DISABLE_COPYING(file_account_t);

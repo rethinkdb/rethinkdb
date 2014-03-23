@@ -16,14 +16,14 @@ mock_file_t::mock_file_t(mode_t mode, std::vector<char> *data) : mode_(mode), da
 }
 mock_file_t::~mock_file_t() { }
 
-int64_t mock_file_t::get_size() { return data_->size(); }
+int64_t mock_file_t::get_file_size() { return data_->size(); }
 
-void mock_file_t::set_size(int64_t size) {
+void mock_file_t::set_file_size(int64_t size) {
     guarantee(0 <= size && static_cast<uint64_t>(size) <= SIZE_MAX);
     data_->resize(size, 0);
 }
 
-void mock_file_t::set_size_at_least(int64_t size) {
+void mock_file_t::set_file_size_at_least(int64_t size) {
     guarantee(0 <= size && static_cast<uint64_t>(size) <= SIZE_MAX);
     if (data_->size() < static_cast<uint64_t>(size)) {
         data_->resize(size, 0);

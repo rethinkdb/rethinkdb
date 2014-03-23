@@ -78,7 +78,7 @@ public:
         : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)
-        extents.reserve(dbfile->get_size() / extent_size);
+        extents.reserve(dbfile->get_file_size() / extent_size);
     }
 
     extent_reference_t reserve_extent(int64_t extent) {
@@ -129,7 +129,7 @@ public:
 
         extent_reference_t extent_ref = make_extent_reference(extent);
 
-        dbfile->set_size_at_least(extent + extent_size);
+        dbfile->set_file_size_at_least(extent + extent_size);
 
         return extent_ref;
     }
@@ -153,7 +153,7 @@ public:
         }
 
         if (shrink_file) {
-            dbfile->set_size(extents.size() * extent_size);
+            dbfile->set_file_size(extents.size() * extent_size);
 
             // Prevent the existence of a relatively large free queue after the file
             // size shrinks.

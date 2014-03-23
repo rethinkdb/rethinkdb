@@ -41,6 +41,10 @@
 ## Default: all local addresses
 # bind=127.0.0.1
 
+## Address that other rethinkdb instances will use to connect to this machine.
+## It can be specified multiple times
+# canonical-address=
+
 ## The port for rethinkdb protocol for client drivers
 ## Default: 28015 + port-offset
 # driver-port=28015
@@ -64,8 +68,31 @@
 ## Default: 8080 + port-offset
 # http-port=8080
 
+## Disable web administration console
+# no-http-admin
+
 ### CPU options
 
 ## The number of cores to use
 ## Default: total number of cores of the CPU
 # cores=2
+
+### Memory options
+
+## Size of the cache in MB
+## Default: Half of the available RAM on startup
+# cache_size=1024
+
+### Disk
+
+## How many simultaneous I/O operations can happen at the same time
+# io-threads=64
+
+## Disable direct I/O
+# no-direct-io
+
+### Meta
+
+## The name for this machine (as will appear in the metadata).
+## If not specified, it will be randomly chosen from a short list of names.
+# machine-name=server1

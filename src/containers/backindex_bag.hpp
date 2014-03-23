@@ -47,7 +47,7 @@ public:
     }
 
 private:
-    template <class T>
+    template <class, size_t>
     friend class backindex_bag_t;
 
     static const size_t NOT_IN_A_BAG = SIZE_MAX;
@@ -62,7 +62,7 @@ private:
 // An unordered bag of elements, maintained using backindexes.  T is typically a
 // pointer type (see the description above).  You can randomly select elements and
 // test for membership.
-template <class T>
+template <class T, size_t ELEMENTS_PER_SEGMENT = (1 << 10)>
 class backindex_bag_t {
 public:
     explicit backindex_bag_t() { }
@@ -140,8 +140,7 @@ public:
     }
 
 private:
-    // RSP: Huge block size, shitty data structure for a bag.
-    segmented_vector_t<T> vector_;
+    segmented_vector_t<T, ELEMENTS_PER_SEGMENT> vector_;
 
     DISABLE_COPYING(backindex_bag_t);
 };

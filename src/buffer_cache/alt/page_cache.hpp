@@ -116,6 +116,8 @@ private:
     // Has access to our fields.
     friend class page_cache_t;
 
+    friend backindex_bag_index_t *access_backindex(current_page_t *current_page);
+
     bool is_deleted() const { return is_deleted_; }
 
     void make_non_deleted(block_size_t block_size,
@@ -133,6 +135,8 @@ private:
 
     // The last write acquirer for this page.
     page_txn_t *last_write_acquirer_;
+    // Our index into the last_write_acquirer_->pages_write_acquired_last_.
+    backindex_bag_index_t last_write_acquirer_index_;
 
     // The version of the page, that the last write acquirer had.
     block_version_t last_write_acquirer_version_;
@@ -144,6 +148,10 @@ private:
 
     DISABLE_COPYING(current_page_t);
 };
+
+inline backindex_bag_index_t *access_backindex(current_page_t *current_page) {
+    return &current_page->last_write_acquirer_index_;
+}
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
                            public home_thread_mixin_debug_only_t {
@@ -284,6 +292,8 @@ private:
     DISABLE_COPYING(throttler_acq_t);
 };
 
+class page_cache_index_write_sink_t;
+
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
@@ -352,21 +362,17 @@ private:
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
                                  std::map<block_id_t, block_change_t> *changes_ptr,
-                                 const std::set<page_txn_t *> &txns);
+                                 const std::vector<page_txn_t *> &txns);
 
-    // Returns the set of page_txn_t's that have been unblocked.  The caller must
-    // call im_waiting_for_flush on them (or somehow replicate its behavior).
-    static MUST_USE std::set<page_txn_t *>
-    remove_txn_set_from_graph(page_cache_t *page_cache,
-                              const std::set<page_txn_t *> &txns);
+    static void remove_txn_set_from_graph(page_cache_t *page_cache,
+                                          const std::vector<page_txn_t *> &txns);
 
     static std::map<block_id_t, block_change_t>
-    compute_changes(const std::set<page_txn_t *> &txns);
+    compute_changes(const std::vector<page_txn_t *> &txns);
 
-    bool exists_flushable_txn_set(page_txn_t *txn,
-                                  std::set<page_txn_t *> *flush_set_out);
+    static std::vector<page_txn_t *> maximal_flushable_txn_set(page_txn_t *base);
 
-    void im_waiting_for_flush(std::set<page_txn_t *> txns);
+    void im_waiting_for_flush(page_txn_t *txns);
 
     friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
@@ -407,13 +413,12 @@ private:
     // move to the serializer thread and get a bunch of blocks written.
     // index_write_sink's pointee's home thread is on the serializer.
     fifo_enforcer_source_t index_write_source_;
-    scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink_;
+    scoped_ptr_t<page_cache_index_write_sink_t> index_write_sink_;
 
     serializer_t *serializer_;
     segmented_vector_t<repli_timestamp_t> recencies_;
 
-    // RSP: Array growth slow.
-    std::vector<current_page_t *> current_pages_;
+    segmented_vector_t<current_page_t *> current_pages_;
 
     free_list_t free_list_;
 
@@ -563,27 +568,38 @@ private:
     // at this page_txn_t.  (And vice versa for each page_txn_t pointed at by
     // preceders_.)
 
+    // PERFORMANCE(preceders_): PERFORMANCE(subseqers_):
+    //
+    // Performance on operations linear in the number of preceders_ and subseqers_
+    // should be _okay_ in any case, because we throttle transactions based on the
+    // number of dirty blocks.  But also, the number of preceders_ and subseqers_
+    // would generally be very low, because relationships for users of the same block
+    // or cache connection form a chain, not a giant clique.
+
     // The transactions that must be committed before or at the same time as this
     // transaction.
     std::vector<page_txn_t *> preceders_;
 
-    // txn's that we precede.
-    // RSP: Performance?
+    // txn's that we precede -- preceders_[i]->subseqers_ always contains us once.
     std::vector<page_txn_t *> subseqers_;
 
-    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.
-    std::vector<current_page_t *> pages_write_acquired_last_;
+    // Pages for which this page_txn_t is the last_write_acquirer_ of that page.  We
+    // wouldn't mind a std::vector inside the backindex_bag_t, but it's a
+    // segmented_vector_t -- we give it a segment size big enough to not be obnoxious
+    // about memory usage.
+    backindex_bag_t<current_page_t *, 16> pages_write_acquired_last_;
 
-    // acqs that are currently alive.
-    // RSP: Performance?  remove_acquirer takes linear time.
-    std::vector<current_page_acq_t *> live_acqs_;
+    // How many current_page_acq_t's for this transaction that are currently alive.
+    size_t live_acqs_;
 
     // Saved pages (by block id).
-    // RSP: Right now we put multiple dirtied_page_t's if we reacquire the same block and modify it again.
+    // KSI: Right now we put multiple dirtied_page_t's if we reacquire the same block
+    // and modify it again.
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
     // Touched pages (by block id).
-    // RSP: Right now we put multiple touched_page_t's if we reacquire the same block and modify it again.
+    // KSI: Right now we put multiple touched_page_t's if we reacquire the same block
+    // and modify it again.
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
     // KSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a
@@ -596,6 +612,16 @@ private:
     // waiting for a flush.
     bool began_waiting_for_flush_;
     bool spawned_flush_;
+
+    enum mark_state_t {
+        marked_not,
+        marked_red,
+        marked_blue,
+        marked_green,
+    };
+    // Always `marked_not`, except temporarily, during ASSERT_NO_CORO_WAITING graph
+    // algorithms.
+    mark_state_t mark_;
 
     // This gets pulsed when the flush is complete or when the txn has no reason to
     // exist any more.

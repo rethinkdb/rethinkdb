@@ -10,7 +10,7 @@
 
 
 bool static_header_check(file_t *file) {
-    if (file->get_size() < DEVICE_BLOCK_SIZE) {
+    if (file->get_file_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
         static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
@@ -25,7 +25,7 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
 
-    file->set_size_at_least(DEVICE_BLOCK_SIZE);
+    file->set_file_size_at_least(DEVICE_BLOCK_SIZE);
 
     bzero(buffer, DEVICE_BLOCK_SIZE);
 
