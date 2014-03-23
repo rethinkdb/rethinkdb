@@ -190,9 +190,10 @@ module RethinkDB
 
     def dispatch msg
       # PP.pp msg
-      payload = Shim.dump_json(msg)
+      payload = Shim.dump_json(msg).force_encoding('BINARY')
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
-      send([payload.bytesize].pack('L<') + payload)
+      prefix = [payload.bytesize].pack('L<')
+      send(prefix + payload)
       return msg[:k]
     end
 

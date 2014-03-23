@@ -135,7 +135,7 @@ module RethinkDB
       end
 
       name = @@termtype_to_str[term[:t]].downcase
-      args = term[:a].dup
+      args = (term[:a] || []).dup
       optargs = (term[:o] || {}).dup
 
       if can_prefix(name, args) && first_arg = args.shift
