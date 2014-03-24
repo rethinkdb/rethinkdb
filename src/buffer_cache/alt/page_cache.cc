@@ -85,8 +85,9 @@ void page_read_ahead_cb_t::destroy_self() {
 
 void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
     ASSERT_NO_CORO_WAITING;
-    // Can't do anything until read-ahead is done, because it uses the existence of a
-    // current_page_t to figure out whether to evict.
+    // We can't do anything until read-ahead is done, because it uses the existence
+    // of a current_page_t entry to figure out whether the read-ahead page could be
+    // out of date.
     if (read_ahead_cb_ != NULL) {
         return;
     }
@@ -116,14 +117,24 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
+    // We MUST stop if read_ahead_cb_ is NULL because that means current_page_t's
+    // could start being destroyed.
     if (read_ahead_cb_ == NULL) {
         return;
     }
 
     resize_current_pages_to_id(block_id);
+    // We MUST stop if current_pages_[block_id] already exists, because that means
+    // the read-ahead page might be out of date.
     if (current_pages_[block_id] != NULL) {
         return;
     }
+
+    // We know the read-ahead page is not out of date if current_pages_[block_id] is
+    // NULL and if read_ahead_cb_ still exists -- that means a current_page_t for the
+    // block id was never created, and thus the page could not have been modified
+    // (not to mention that we've already got the page in memory, so there is no
+    // useful work to be done).
 
     if (!balancer_->subtract_read_ahead_bytes(max_block_size().ser_value())) {
         have_read_ahead_cb_destroyed();
