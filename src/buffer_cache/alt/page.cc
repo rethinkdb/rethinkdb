@@ -169,7 +169,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
         }
     }
 
-    copyee_ptr.reset_page_ptr();
+    copyee_ptr.reset_page_ptr(page_cache);
 }
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
@@ -603,14 +603,13 @@ void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
     }
 }
 
-void page_ptr_t::reset_page_ptr() {
+void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
     if (page_ != NULL) {
         page_t *ptr = page_;
-        page_cache_t *cache = page_cache_;
         page_ = NULL;
         page_cache_ = NULL;
         // block_id_t block_id = ptr->block_id();  // RSI
-        ptr->remove_snapshotter(cache);
+        ptr->remove_snapshotter(page_cache);
 
         // RSI: This is perhaps invalid here, so make reset be manually called,
         // remove this commented line.
@@ -632,7 +631,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
     if (page_->num_snapshot_references() > 1) {
         page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
         swap_with(&tmp);
-        tmp.reset_page_ptr();
+        tmp.reset_page_ptr(page_cache);
     }
     return page_;
 }
@@ -648,7 +647,6 @@ timestamped_page_ptr_t::timestamped_page_ptr_t()
 timestamped_page_ptr_t::timestamped_page_ptr_t(timestamped_page_ptr_t &&movee)
     : timestamp_(movee.timestamp_), page_ptr_(std::move(movee.page_ptr_)) {
     movee.timestamp_ = repli_timestamp_t::invalid;
-    movee.page_ptr_.reset_page_ptr();
 }
 
 timestamped_page_ptr_t &timestamped_page_ptr_t::operator=(timestamped_page_ptr_t &&movee) {
@@ -677,9 +675,9 @@ page_t *timestamped_page_ptr_t::get_page_for_read() const {
     return page_ptr_.get_page_for_read();
 }
 
-void timestamped_page_ptr_t::reset_page_ptr() {
+void timestamped_page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
     ASSERT_NO_CORO_WAITING;
-    page_ptr_.reset_page_ptr();
+    page_ptr_.reset_page_ptr(page_cache);
 }
 
 }  // namespace alt

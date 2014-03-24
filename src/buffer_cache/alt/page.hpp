@@ -172,7 +172,7 @@ public:
     // You MUST manually call reset_page_ptr() to reset the page_ptr_t.  Then, please
     // call consider_evicting_current_page if applicable.
     // RSI: I'll probably want to rename this back.
-    void reset_page_ptr();
+    void reset_page_ptr(page_cache_t *page_cache);
 
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
@@ -212,7 +212,7 @@ public:
 
     repli_timestamp_t timestamp() const { return timestamp_; }
 
-    void reset_page_ptr();
+    void reset_page_ptr(page_cache_t *page_cache);
 
 private:
     repli_timestamp_t timestamp_;

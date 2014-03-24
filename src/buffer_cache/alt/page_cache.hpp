@@ -91,7 +91,7 @@ public:
 
     // You can only call this when it's safe to do so!  (Beware of
     // current_page_acq_t's, last write acquirer page_txn_t's, and read-ahead logic.)
-    void reset();
+    void reset(page_cache_t *page_cache);
 
     bool should_be_evicted() const;
 
