@@ -28,9 +28,10 @@ public:
     // Loads the block for the given block id.
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
 
-    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+    page_t(block_id_t block_id, block_size_t block_size,
+           scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
-    page_t(scoped_malloc_t<ser_buffer_t> buf,
+    page_t(block_id_t block_id, scoped_malloc_t<ser_buffer_t> buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
@@ -61,6 +62,10 @@ public:
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self();
+
+    block_id_t block_id() const { return block_id_; }
+
+    bool page_ptr_count() const { return snapshot_refcount_; }
 
 private:
     friend class page_ptr_t;
@@ -101,6 +106,10 @@ private:
 
     friend class page_cache_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
+
+    // The block id.  Used to (potentially) delete the page_t and current_page_t when
+    // it gets evicted.
+    const block_id_t block_id_;
 
     // KSI: Explain this more.
     // One of loader_, buf_, or block_token_ is non-null.
@@ -151,34 +160,34 @@ inline backindex_bag_index_t *access_backindex(page_t *page) {
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    explicit page_ptr_t(page_t *page, page_cache_t *page_cache)
-        : page_(NULL), page_cache_(NULL) { init(page, page_cache); }
+    explicit page_ptr_t(page_t *page)
+        : page_(NULL) { init(page); }
     page_ptr_t();
 
-    // The page_ptr_t _should_ be reset ()) before the destructor is called, but
-    // it'll work right now without that.  Eventually, reset() will take a
-    // page_cache_t parameter, and the page_cache_ field will be removed.
+    // The page_ptr_t MUST be reset before the destructor is called.
     ~page_ptr_t();
+
+    // You MUST manually call reset_page_ptr() to reset the page_ptr_t.  Then, please
+    // call consider_evicting_current_page if applicable.
+    void reset_page_ptr(page_cache_t *page_cache);
 
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
 
-    void init(page_t *page, page_cache_t *page_cache);
+    void init(page_t *page);
 
     page_t *get_page_for_read() const;
     page_t *get_page_for_write(page_cache_t *page_cache,
                                cache_account_t *account);
-
-    void reset();
 
     bool has() const {
         return page_ != NULL;
     }
 
 private:
+    void swap_with(page_ptr_t *other);
+
     page_t *page_;
-    // KSI: Get rid of this variable.
-    page_cache_t *page_cache_;
     DISABLE_COPYING(page_ptr_t);
 };
 
@@ -192,11 +201,13 @@ public:
 
     bool has() const;
 
-    void init(repli_timestamp_t timestamp, page_t *page, page_cache_t *page_cache);
+    void init(repli_timestamp_t timestamp, page_t *page);
 
     page_t *get_page_for_read() const;
 
     repli_timestamp_t timestamp() const { return timestamp_; }
+
+    void reset_page_ptr(page_cache_t *page_cache);
 
 private:
     repli_timestamp_t timestamp_;

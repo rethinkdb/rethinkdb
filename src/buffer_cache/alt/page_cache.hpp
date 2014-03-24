@@ -72,20 +72,28 @@ namespace alt {
 
 // Has information necessary for the current_page_t to do certain things -- it's
 // known by the current_page_acq_t.
-struct current_page_help_t;
+class current_page_help_t;
 
 class current_page_t {
 public:
-    // Constructs a fresh, empty page.
-    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id,
+                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
                    page_cache_t *page_cache);
-    current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id,
+                   scoped_malloc_t<ser_buffer_t> buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
-    current_page_t();
+    explicit current_page_t(block_id_t block_id);
+
+    // You MUST call reset() before destructing a current_page_t!
     ~current_page_t();
 
+    // You can only call this when it's safe to do so!  (Beware of
+    // current_page_acq_t's, last write acquirer page_txn_t's, and read-ahead logic.)
+    void reset(page_cache_t *page_cache);
+
+    bool should_be_evicted() const;
 
 private:
     // current_page_acq_t should not access our fields directly.
@@ -122,7 +130,12 @@ private:
 
     void make_non_deleted(block_size_t block_size,
                           scoped_malloc_t<ser_buffer_t> buf,
-                          page_cache_t *page_cache);
+                          current_page_help_t page_cache);
+
+    // KSI: We could get rid of this variable if
+    // page_txn_t::pages_write_acquired_last_ noted each page's block_id_t.  Other
+    // space reductions are more important.
+    const block_id_t block_id_;
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.
@@ -323,6 +336,14 @@ public:
         return &default_reads_account_;
     }
 
+    // Considers wiping out the current_page_t (and its page_t pointee) for a
+    // particular block id, to save memory, if the right conditions are met.  (This
+    // should only be called by things "outside" of current_page_t, like
+    // current_page_acq_t and page_txn_t, not page_t and page_ptr_t -- that way we
+    // know it's not called while somebody up the stack is expecting their
+    // `current_page_t *` to remain valid.)
+    void consider_evicting_current_page(block_id_t block_id);
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
@@ -393,6 +414,9 @@ private:
     free_list_t *free_list() { return &free_list_; }
 
     void resize_current_pages_to_id(block_id_t block_id);
+
+    static void consider_evicting_all_current_pages(page_cache_t *page_cache,
+                                                    auto_drainer_t::lock_t lock);
 
     const block_size_t max_block_size_;
 
