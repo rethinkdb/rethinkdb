@@ -603,10 +603,15 @@ void page_ptr_t::reset() {
         page_cache_t *cache = page_cache_;
         page_ = NULL;
         page_cache_ = NULL;
-        block_id_t block_id = ptr->block_id();
+        // block_id_t block_id = ptr->block_id();  // RSI
         ptr->remove_snapshotter(cache);
+
+        // RSI: This is perhaps invalid here, so make reset be manually called,
+        // remove this commented line.
+
         // ptr could be invalid now.
-        cache->consider_evicting_current_page(block_id);
+
+        // cache->consider_evicting_current_page(block_id);
     }
 }
 
