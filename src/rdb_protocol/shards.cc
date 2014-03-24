@@ -194,15 +194,15 @@ accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
 public:
-    to_array_t() : sz(0) { }
+    to_array_t() : size(0) { }
 private:
     virtual void operator()(groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
-            sz += lst2->size();
+            size += lst2->size();
             rcheck_toplevel(
-                sz <= array_size_limit(), base_exc_t::GENERIC,
+                size <= array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", array_size_limit()).c_str());
@@ -218,9 +218,9 @@ private:
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
-            sz += stream->size();
+            size += stream->size();
             rcheck_toplevel(
-                sz <= array_size_limit(), base_exc_t::GENERIC,
+                size <= array_size_limit(), base_exc_t::GENERIC,
                 strprintf("Grouped data over size limit %zu.  "
                           "Try putting a reduction (like `.reduce` or `.count`) "
                           "on the end.", array_size_limit()).c_str());
@@ -250,7 +250,7 @@ private:
     }
 
     groups_t groups;
-    size_t sz;
+    size_t size;
 };
 
 eager_acc_t *make_to_array() {
