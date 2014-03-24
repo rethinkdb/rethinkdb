@@ -585,7 +585,8 @@ page_ptr_t::page_ptr_t(page_ptr_t &&movee)
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
     // We can't do true assignment, destructing an old page-having value, because
-    // reset() has to manually be called.
+    // reset() has to manually be called.  (This assertion is redundant with the one
+    // that'll enforce this fact in tmp's destructor.)
     rassert(page_ == NULL);
 
     page_ptr_t tmp(std::move(movee));
