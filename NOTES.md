@@ -2,7 +2,12 @@
 
 Released on 2014-04-??
 
-## Compatiblity ##
+The highlights of this release are a simplified map/reduce, an
+experimental ARM port and a new caching infrastructure.
+
+http://rethinkdb.com/blog/1.12-release/
+
+## Compatibility ##
 
 This release is not compatible with data files from earlier
 releases. If you have data you want to migrate from an older version
@@ -10,6 +15,14 @@ of RethinkDB, please follow the migration instructions before
 upgrading:
 
 http://www.rethinkdb.com/docs/migration/
+
+There are also some backwards incompatible changes in ReQL, the query
+language.
+
+* `grouped_map_reduce` and `group_by` were replaced by `group`
+* `reduce` no longer takes a `base` argument; use `default` instead
+* `table_create` no longer takes a `cache_size` argument
+* In JavaScript, the calling convention for run has changed.
 
 ## New features ##
 
@@ -19,17 +32,17 @@ http://www.rethinkdb.com/docs/migration/
     * Added a `--cache-size` command line option
     * Removed the `cache_size` optional argument for `table_create`
   * Wrote a new and improved cache (#1642)
-  * Added gzip compression tothe built-in web server (#1746)
+  * Added gzip compression to the built-in web server (#1746)
 * ReQL
   * `merge` now accepts functions as an argument (#1345)
   * Added an `object` command to build objects from dynamic field names (#1857)
   * Removed the optional `base` argument to `reduce` (#888)
-  * Added a `split` command to split string (#1099)
+  * Added a `split` command to split strings (#1099)
   * Added `upcase` and `downcase` commands to change the case of a string (#874)
   * Change how aggregation and grouping is performed (#1096)
     * Removed `grouped_map_reduce` and `groupBy`
     * Added `group` and `ungroup`
-    * Changed the behaviour of `count`, `sum` and `avg` and added `max` and `min`
+    * Changed the behavior of `count`, `sum` and `avg` and added `max` and `min`
 * Web UI
   * Display index status and progress bars in the web UI (#1614)
 
@@ -63,8 +76,8 @@ http://www.rethinkdb.com/docs/migration/
   * No longer fail if IPv6 is not available (#1925)
   * Added support for the new v8 scope API (#1510)
   * Coroutine stacks now freed to reduce memory consumption (#1670)
-  * Added range get, bacfill and secondary index reads to the stats (#660)
-  * `table().count()` no longer stalls inerts (#1870)
+  * Added range get, backfill and secondary index reads to the stats (#660)
+  * `r.table(...).count()` no longer stalls inserts (#1870)
   * Fixed crashes when adding a secondary index (#1621, #1437)
   * Improve the handling of out-of-memory conditions (#2003)
   * Secondary index construction is now reported as a write operation in the stats (#1953)
@@ -72,7 +85,7 @@ http://www.rethinkdb.com/docs/migration/
   * `linux_file_t::set_size` no longer makes blocking syscalls (#265)
   * Fixed a crash caught by the unit tests (#1084)
 * Command line
-  * `rethinkdb admin` now prints warnings to stdout instead of stderr (#1316)
+  * `rethinkdb admin` now prints warnings to stderr instead of stdout (#1316)
   * The `import` and `export` scripts now display a row count when done (#1659)
   * Added support for `log_file` and `no_direct_io` in the init script (#1769, #1892)
   * Do not display a stack trace for regular errors printed by the backup scripts (#2098)
@@ -106,7 +119,7 @@ http://www.rethinkdb.com/docs/migration/
   * `count` with an argument now behaves correctly (#1992)
   * Added missing `get_field` command (#1941)
 * JavaScript driver
-  * Added support for `r.row` in `eq_Join` (#1810)
+  * Added support for `r.row` in `eqJoin` (#1810)
   * Timeout events on the socket are now handled correctly (#1909)
   * No longer use the deprecated ArrayBuffer API (#1803)
   * Fix backtraces for optional arguments (#1935)
