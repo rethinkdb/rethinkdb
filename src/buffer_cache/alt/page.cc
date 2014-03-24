@@ -546,9 +546,10 @@ page_acq_t::~page_acq_t() {
         rassert(page_cache_ != NULL);
         page_->remove_waiter(this);
 
-        // This call should be a no-op, because page_acq_t always has a lesser
-        // lifetime than some current_page_acq_t or some other page_ptr_t.
-        page_cache_->consider_evicting_current_page(page_->block_id());
+        // There's no need to call consider_evicting_current_page, because page_acq_t
+        // always has a lesser lifetime than some current_page_acq_t or some other
+        // page_ptr_t.  It would be risky to call it -- page_acq_t is used in
+        // load_from_copyee.
     }
 }
 

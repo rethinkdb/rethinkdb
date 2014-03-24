@@ -584,7 +584,8 @@ void current_page_acq_t::mark_deleted() {
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
     current_page_->mark_deleted(help());
-    page_cache_->consider_evicting_current_page(block_id_);
+    // No need to call consider_evicting_current_page here -- there's a
+    // current_page_acq_t for it: ourselves.
 }
 
 bool current_page_acq_t::dirtied_page() const {
@@ -867,7 +868,8 @@ void current_page_t::mark_deleted(current_page_help_t help) {
     help.page_cache->set_recency_for_block_id(help.block_id,
                                               repli_timestamp_t::invalid);
     page_.reset_page_ptr(help.page_cache);
-    // The caller calls consider_evicting_current_page after we return.
+    // It's the caller's responsibility to call consider_evicting_current_page after
+    // we return, if that would make sense (it wouldn't though).
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
