@@ -85,9 +85,12 @@ public:
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     explicit current_page_t(block_id_t block_id);
+
+    // You MUST call reset() before destructing a current_page_t!
     ~current_page_t();
 
-    // You can only call this when it's safe to do so.
+    // You can only call this when it's safe to do so!  (Beware of
+    // current_page_acq_t's, last write acquirer page_txn_t's, and read-ahead logic.)
     void reset();
 
     bool should_be_evicted() const;

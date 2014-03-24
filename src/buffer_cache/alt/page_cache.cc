@@ -98,6 +98,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
 
     if (current_page->should_be_evicted()) {
         current_pages_[block_id] = NULL;
+        current_page->reset();
         delete current_page;
     }
 }
@@ -213,7 +214,11 @@ page_cache_t::~page_cache_t() {
         if (i % 256 == 255) {
             coro_t::yield();
         }
-        delete current_pages_[i];
+        current_page_t *current_page = current_pages_[i];
+        if (current_page != NULL) {
+            current_page->reset();
+            delete current_page;
+        }
     }
 
     {
@@ -640,17 +645,24 @@ current_page_t::current_page_t(block_id_t block_id,
 }
 
 current_page_t::~current_page_t() {
-    reset();
+    // Check that reset() has been called.
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+
+    // An imperfect sanity check.
+    rassert(!page_.has());
 }
 
 void current_page_t::reset() {
     rassert(acquirers_.empty());
 
     // KSI: Does last_write_acquirer_ even need to be NULL?  Could we not just inform
-    // it of our destruction?
+    // it of our impending destruction?
     rassert(last_write_acquirer_ == NULL);
 
     page_.reset();
+
+    // For the sake of the ~current_page_t assertion.
+    last_write_acquirer_version_ = block_version_t();
 }
 
 bool current_page_t::should_be_evicted() const {
