@@ -1,6 +1,15 @@
-# Release 1.12.0 (12 Merry Men)
+# Release 1.12.0 (The Wizard of Oz)
 
 Released on 2014-04-??
+
+## Compatiblity ##
+
+This release is not compatible with data files from earlier
+releases. If you have data you want to migrate from an older version
+of RethinkDB, please follow the migration instructions before
+upgrading:
+
+http://www.rethinkdb.com/docs/migration/
 
 ## New features ##
 
@@ -8,7 +17,7 @@ Released on 2014-04-??
   * Merged in support for ARM (#1625)
   * Added per-instance cache quota and removed per-table quotas (#97)
     * Added a `--cache-size` command line option
-    * Removed the `cache_size` optional argument for `insert`
+    * Removed the `cache_size` optional argument for `table_create`
   * Wrote a new and improved cache (#1642)
   * Added gzip compression tothe built-in web server (#1746)
 * ReQL
@@ -16,7 +25,7 @@ Released on 2014-04-??
   * Added an `object` command to build objects from dynamic field names (#1857)
   * Removed the optional `base` argument to `reduce` (#888)
   * Added a `split` command to split string (#1099)
-  * Added `upper` and `lower` commands to change the case of a string (#874)
+  * Added `upcase` and `downcase` commands to change the case of a string (#874)
   * Change how aggregation and grouping is performed (#1096)
     * Removed `grouped_map_reduce` and `groupBy`
     * Added `group` and `ungroup`
@@ -27,14 +36,16 @@ Released on 2014-04-??
 ## Improved performance ##
 
 * Server
-  * Improved the efficiency of table creation and other meta operations (#1648)
-  * Changed the CPU sharding factor to 8 and optimized meta operations (#1043)
+  * Improved the scalability of meta operations (such as table creation) to allow for more nodes in a cluster (#1648)
+  * Changed the CPU sharding factor to 8 for improved multi-core scalability (#1043)
   * Batch sizes now scale better, which speeds up operations like `limit` (#1786)
-  * Improved throttling and LBA garbage collection and reconstruction to avoid slow point gets (#1820)
+  * Tweaked batch sizes to avoid computing unused results (#1962)
+  * Improved throttling and LBA garbage collection to avoid stalls in query throughput (#1820)
   * Many optimizations to avoid having the web UI time out when the server is under load (#1183)
-  * Tweaked batch sizes to avoid throwing away documents (#1962)
   * Improved backfill performance by using batches for sending and inserting data (#1971)
   * Avoid some wasteful copies when serializing (#1431)
+  * Evaluating queries now yields occasionally to avoid timeouts (#1631)
+  * Reduced performance impact of backfilling on other queries (#2071)
 * Web UI
   * The web UI now handles large clusters with many tables better (#1662)
 * Ruby driver
@@ -47,7 +58,6 @@ Released on 2014-04-??
 * Server
   * Improved the code to avoid heartbeat timeout errors when resharding (#1708)
   * Resharding one table no longer makes other tables unavailable (#1751)
-  * Evaluating queries now yields occasionally to avoid timeouts (#1631)
   * Improved the blueprint suggester to distribute shards more evenly (#344)
   * Queries from the data explorer are now interruptible (#1888)
   * No longer fail if IPv6 is not available (#1925)
@@ -84,8 +94,6 @@ Released on 2014-04-??
   * Sort the table list in alphabetical order (#1704)
   * Added mouseover text to the query execution time (#1940)
   * The replication status no longer blinks (#2019)
-* ReQL
-  * No-reply writes are no longer interrupted when closing the connection (#1388)
 * Ruby driver
   * Added a missing `close` method on cursors (#1568)
   * Improved conflict handling (#1814)
