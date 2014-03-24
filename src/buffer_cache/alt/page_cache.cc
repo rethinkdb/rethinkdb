@@ -136,11 +136,6 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
     // (not to mention that we've already got the page in memory, so there is no
     // useful work to be done).
 
-    if (!balancer_->subtract_read_ahead_bytes(max_block_size().ser_value())) {
-        have_read_ahead_cb_destroyed();
-        return;
-    }
-
     current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
@@ -193,26 +188,24 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       balancer_(balancer),
-      evicter_(this, balancer),
+      evicter_(),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
-    const bool start_read_ahead = balancer_->is_read_ahead_ok();
-    if (start_read_ahead) {
-        read_ahead_cb_existence_ = drainer_->lock();
-    }
+    read_ahead_cb_existence_ = drainer_->lock();
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        if (start_read_ahead) {
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
-        }
+        read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account_.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
         index_write_sink_.init(new page_cache_index_write_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
+
+    // Make the evicter usable
+    evicter_.initialize(this, balancer);
 }
 
 page_cache_t::~page_cache_t() {
