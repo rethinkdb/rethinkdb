@@ -160,13 +160,11 @@ inline backindex_bag_index_t *access_backindex(page_t *page) {
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    explicit page_ptr_t(page_t *page, page_cache_t *page_cache)
-        : page_(NULL), page_cache_(NULL) { init(page, page_cache); }
+    explicit page_ptr_t(page_t *page)
+        : page_(NULL) { init(page); }
     page_ptr_t();
 
-    // The page_ptr_t _should_ be reset ()) before the destructor is called, but
-    // it'll work right now without that.  Eventually, reset() will take a
-    // page_cache_t parameter, and the page_cache_ field will be removed.
+    // The page_ptr_t MUST be reset before the destructor is called.
     ~page_ptr_t();
 
     // You MUST manually call reset_page_ptr() to reset the page_ptr_t.  Then, please
@@ -177,7 +175,7 @@ public:
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
 
-    void init(page_t *page, page_cache_t *page_cache);
+    void init(page_t *page);
 
     page_t *get_page_for_read() const;
     page_t *get_page_for_write(page_cache_t *page_cache,
@@ -191,8 +189,6 @@ private:
     void swap_with(page_ptr_t *other);
 
     page_t *page_;
-    // KSI: Get rid of this variable.
-    page_cache_t *page_cache_;
     DISABLE_COPYING(page_ptr_t);
 };
 
@@ -206,7 +202,7 @@ public:
 
     bool has() const;
 
-    void init(repli_timestamp_t timestamp, page_t *page, page_cache_t *page_cache);
+    void init(repli_timestamp_t timestamp, page_t *page);
 
     page_t *get_page_for_read() const;
 

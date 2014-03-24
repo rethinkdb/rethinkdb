@@ -621,7 +621,7 @@ current_page_t::current_page_t(block_id_t block_id,
                                scoped_malloc_t<ser_buffer_t> buf,
                                page_cache_t *page_cache)
     : block_id_(block_id),
-      page_(new page_t(block_id, block_size, std::move(buf), page_cache), page_cache),
+      page_(new page_t(block_id, block_size, std::move(buf), page_cache)),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -635,7 +635,7 @@ current_page_t::current_page_t(block_id_t block_id,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),
-      page_(new page_t(block_id, std::move(buf), token, page_cache), page_cache),
+      page_(new page_t(block_id, std::move(buf), token, page_cache)),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -699,8 +699,7 @@ void current_page_t::make_non_deleted(block_size_t block_size,
                                       current_page_help_t help) {
     rassert(is_deleted_);
     is_deleted_ = false;
-    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache),
-               help.page_cache);
+    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache));
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -797,8 +796,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 
                 cur->snapshotted_page_.init(
                         current_recency,
-                        the_page_for_read_or_deleted(help),
-                        help.page_cache);
+                        the_page_for_read_or_deleted(help));
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
                 // KSI: Dedup this with remove_acquirer.
@@ -861,16 +859,14 @@ void current_page_t::convert_from_serializer_if_necessary(current_page_help_t he
                                                           cache_account_t *account) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache, account),
-                   help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache, account));
     }
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache),
-                   help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache));
     }
 }
 

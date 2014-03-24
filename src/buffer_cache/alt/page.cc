@@ -139,7 +139,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     page->loader_ = &loader;
 
     auto_drainer_t::lock_t lock(page_cache->drainer_.get());
-    page_ptr_t copyee_ptr(copyee, page_cache);
+    page_ptr_t copyee_ptr(copyee);
 
     // Okay, it's safe to block.
     {
@@ -570,7 +570,7 @@ const void *page_acq_t::get_buf_read() {
     return page_->get_page_buf(page_cache_);
 }
 
-page_ptr_t::page_ptr_t() : page_(NULL), page_cache_(NULL) {
+page_ptr_t::page_ptr_t() : page_(NULL) {
 }
 
 page_ptr_t::~page_ptr_t() {
@@ -578,9 +578,8 @@ page_ptr_t::~page_ptr_t() {
 }
 
 page_ptr_t::page_ptr_t(page_ptr_t &&movee)
-    : page_(movee.page_), page_cache_(movee.page_cache_) {
+    : page_(movee.page_) {
     movee.page_ = NULL;
-    movee.page_cache_ = NULL;
 }
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
@@ -594,10 +593,9 @@ page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
     return *this;
 }
 
-void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
-    rassert(page_ == NULL && page_cache_ == NULL);
+void page_ptr_t::init(page_t *page) {
+    rassert(page_ == NULL);
     page_ = page;
-    page_cache_ = page_cache;
     if (page_ != NULL) {
         page_->add_snapshotter();
     }
@@ -607,7 +605,6 @@ void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
     if (page_ != NULL) {
         page_t *ptr = page_;
         page_ = NULL;
-        page_cache_ = NULL;
         // block_id_t block_id = ptr->block_id();  // RSI
         ptr->remove_snapshotter(page_cache);
 
@@ -629,7 +626,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
                                        cache_account_t *account) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
+        page_ptr_t tmp(page_->make_copy(page_cache, account));
         swap_with(&tmp);
         tmp.reset_page_ptr(page_cache);
     }
@@ -638,7 +635,6 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
 
 void page_ptr_t::swap_with(page_ptr_t *other) {
     std::swap(page_, other->page_);
-    std::swap(page_cache_, other->page_cache_);
 }
 
 timestamped_page_ptr_t::timestamped_page_ptr_t()
@@ -663,12 +659,11 @@ bool timestamped_page_ptr_t::has() const {
 }
 
 void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
-                                  page_t *page,
-                                  page_cache_t *page_cache) {
+                                  page_t *page) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
     rassert(page == NULL || timestamp != repli_timestamp_t::invalid);
     timestamp_ = timestamp;
-    page_ptr_.init(page, page_cache);
+    page_ptr_.init(page);
 }
 
 page_t *timestamped_page_ptr_t::get_page_for_read() const {
