@@ -404,7 +404,6 @@ if __name__ == '__main__':
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
-    suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestTimeout))
     suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
