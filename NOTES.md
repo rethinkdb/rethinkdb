@@ -1,6 +1,6 @@
 # Release 1.12.0 (The Wizard of Oz)
 
-Released on 2014-04-??
+Released on 2014-04-25
 
 The highlights of this release are a simplified map/reduce, an
 experimental ARM port and a new caching infrastructure.
@@ -22,14 +22,14 @@ language.
 * `grouped_map_reduce` and `group_by` were replaced by `group`
 * `reduce` no longer takes a `base` argument; use `default` instead
 * `table_create` no longer takes a `cache_size` argument
-* In JavaScript, the calling convention for run has changed.
+* In JavaScript, the calling convention for `run` has changed.
 
 ## New features ##
 
 * Server
-  * Merged in support for ARM (#1625)
+  * Added support for the ARM architecture (#1625)
   * Added per-instance cache quota and removed per-table quotas (#97)
-    * Added a `--cache-size` command line option
+    * Added a `--cache-size` command line option that sets the cache size in MiB for a single instance
     * Removed the `cache_size` optional argument for `table_create`
   * Wrote a new and improved cache (#1642)
   * Added gzip compression to the built-in web server (#1746)
@@ -56,13 +56,13 @@ language.
   * Improved throttling and LBA garbage collection to avoid stalls in query throughput (#1820)
   * Many optimizations to avoid having the web UI time out when the server is under load (#1183)
   * Improved backfill performance by using batches for sending and inserting data (#1971)
-  * Avoid some wasteful copies when serializing (#1431)
+  * Reduced wasteful copies when serializing (#1431)
   * Evaluating queries now yields occasionally to avoid timeouts (#1631)
   * Reduced performance impact of backfilling on other queries (#2071)
 * Web UI
-  * The web UI now handles large clusters with many tables better (#1662)
+  * Improved how the web UI handles large clusters with many tables (#1662)
 * Ruby driver
-  * Removed innefficient construction-location backtraces (#1843)
+  * Removed inefficient construction-location backtraces (#1843)
 * Tests
   * Added automated performance tests (#1806)
 
@@ -89,8 +89,8 @@ language.
   * The `import` and `export` scripts now display a row count when done (#1659)
   * Added support for `log_file` and `no_direct_io` in the init script (#1769, #1892)
   * Do not display a stack trace for regular errors printed by the backup scripts (#2098)
-  * `rethinkd export` no longer fails when there are no tables (#1904)
-  * `rehtinkdb import` no longer tries to parse CSV files as JSON (#2097)
+  * `rethinkdb export` no longer fails when there are no tables (#1904)
+  * `rethinkdb import` no longer tries to parse CSV files as JSON (#2097)
 * Web UI
   * No longer display wrong number of rows when a string is returned (#1669)
   * The data explorer now properly closes cursors (#1569)
@@ -107,6 +107,7 @@ language.
   * Sort the table list in alphabetical order (#1704)
   * Added mouseover text to the query execution time (#1940)
   * The replication status no longer blinks (#2019)
+  * Fix inconsistencies in dates caused by DST (#2047)
 * Ruby driver
   * Added a missing `close` method on cursors (#1568)
   * Improved conflict handling (#1814)
@@ -123,7 +124,6 @@ language.
   * Timeout events on the socket are now handled correctly (#1909)
   * No longer use the deprecated ArrayBuffer API (#1803)
   * Fix backtraces for optional arguments (#1935)
-  * Fix inconsistencies in dates caused by DST (#2047)
   * Changed the syntax of `run` (#1890)
   * Exposed the error constructors (#1926)
   * Fixed the string representation of functions (#1919, #1894)
@@ -133,9 +133,9 @@ language.
   * `./configure` now checks for `boost` and can fetch it if it is not installed (#1699)
   * The source distribution now includes the v8 source (#1844)
   * Use Python 2 to build v8 (#1873)
-  * Improved how the build system fetches and builds external packages and changed the default to not fetch anything (#1231)
+  * Improved how the build system fetches and builds external packages, and changed the default to not fetch anything (#1231)
 
-## Packages ##
+## Packaging ##
 
 * Support for Ubuntu Raring has been dropped (#1924)
 
