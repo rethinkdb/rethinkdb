@@ -87,6 +87,9 @@ public:
     explicit current_page_t(block_id_t block_id);
     ~current_page_t();
 
+    // You can only call this when it's safe to do so.
+    void reset();
+
     bool should_be_evicted() const;
 
 private:

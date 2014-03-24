@@ -640,7 +640,14 @@ current_page_t::current_page_t(block_id_t block_id,
 }
 
 current_page_t::~current_page_t() {
+    reset();
+}
+
+void current_page_t::reset() {
     rassert(acquirers_.empty());
+
+    // KSI: Does last_write_acquirer_ even need to be NULL?  Could we not just inform
+    // it of our destruction?
     rassert(last_write_acquirer_ == NULL);
 
     page_.reset();
