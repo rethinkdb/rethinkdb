@@ -127,6 +127,7 @@ class RethinkDBTestServer(object):
 
     def create(self):
         directory = 'run/server_%s/' % self.cpp_port
+        call(['rm', '-rf', directory])
         rdbfile = directory+'rdb'
         call(['mkdir', '-p', directory])
         self.log_file = directory+'server-log.txt'
