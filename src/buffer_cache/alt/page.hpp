@@ -169,6 +169,10 @@ public:
     // page_cache_t parameter, and the page_cache_ field will be removed.
     ~page_ptr_t();
 
+    // You MUST manually call reset() to reset the page_ptr_t.  Then, please call
+    // consider_evicting_current_page if applicable.
+    void reset();
+
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
 
@@ -178,13 +182,13 @@ public:
     page_t *get_page_for_write(page_cache_t *page_cache,
                                cache_account_t *account);
 
-    void reset();
-
     bool has() const {
         return page_ != NULL;
     }
 
 private:
+    void swap_with(page_ptr_t *other);
+
     page_t *page_;
     // KSI: Get rid of this variable.
     page_cache_t *page_cache_;
@@ -206,6 +210,8 @@ public:
     page_t *get_page_for_read() const;
 
     repli_timestamp_t timestamp() const { return timestamp_; }
+
+    void reset();
 
 private:
     repli_timestamp_t timestamp_;

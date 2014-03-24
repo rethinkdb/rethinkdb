@@ -168,6 +168,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->pulse_waiters_or_make_evictable(page_cache);
         }
     }
+
+    copyee_ptr.reset();
 }
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
@@ -572,7 +574,7 @@ page_ptr_t::page_ptr_t() : page_(NULL), page_cache_(NULL) {
 }
 
 page_ptr_t::~page_ptr_t() {
-    reset();
+    rassert(page_ == NULL);
 }
 
 page_ptr_t::page_ptr_t(page_ptr_t &&movee)
@@ -582,9 +584,12 @@ page_ptr_t::page_ptr_t(page_ptr_t &&movee)
 }
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
+    // We can't do true assignment, destructing an old page-having value, because
+    // reset() has to manually be called.
+    rassert(page_ == NULL);
+
     page_ptr_t tmp(std::move(movee));
-    std::swap(page_, tmp.page_);
-    std::swap(page_cache_, tmp.page_cache_);
+    swap_with(&tmp);
     return *this;
 }
 
@@ -625,9 +630,15 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
         page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
-        *this = std::move(tmp);
+        swap_with(&tmp);
+        tmp.reset();
     }
     return page_;
+}
+
+void page_ptr_t::swap_with(page_ptr_t *other) {
+    std::swap(page_, other->page_);
+    std::swap(page_cache_, other->page_cache_);
 }
 
 timestamped_page_ptr_t::timestamped_page_ptr_t()
@@ -665,5 +676,9 @@ page_t *timestamped_page_ptr_t::get_page_for_read() const {
     return page_ptr_.get_page_for_read();
 }
 
+void timestamped_page_ptr_t::reset() {
+    ASSERT_NO_CORO_WAITING;
+    page_ptr_.reset();
+}
 
 }  // namespace alt
