@@ -35,4 +35,4 @@ Here's a rough overfiew of the files in `lib`:
 #### Testing
 
 You can find the tests for this and the other two official drivers at
-rethinkdb/test/rql_test/ .
+`rethinkdb/test/rql_test/` .
