@@ -1,3 +1,144 @@
+# Release 1.12.0 (The Wizard of Oz)
+
+Released on 2014-04-25
+
+The highlights of this release are a simplified map/reduce, an
+experimental ARM port and a new caching infrastructure.
+
+http://rethinkdb.com/blog/1.12-release/
+
+## Compatibility ##
+
+This release is not compatible with data files from earlier
+releases. If you have data you want to migrate from an older version
+of RethinkDB, please follow the migration instructions before
+upgrading:
+
+http://www.rethinkdb.com/docs/migration/
+
+There are also some backwards incompatible changes in ReQL, the query
+language.
+
+* `grouped_map_reduce` and `group_by` were replaced by `group`
+* `reduce` no longer takes a `base` argument; use `default` instead
+* `table_create` no longer takes a `cache_size` argument
+* In JavaScript, the calling convention for `run` has changed.
+
+## New features ##
+
+* Server
+  * Added support for the ARM architecture (#1625)
+  * Added per-instance cache quota and removed per-table quotas (#97)
+    * Added a `--cache-size` command line option that sets the cache size in MiB for a single instance
+    * Removed the `cache_size` optional argument for `table_create`
+  * Wrote a new and improved cache (#1642)
+  * Added gzip compression to the built-in web server (#1746)
+* ReQL
+  * `merge` now accepts functions as an argument (#1345)
+  * Added an `object` command to build objects from dynamic field names (#1857)
+  * Removed the optional `base` argument to `reduce` (#888)
+  * Added a `split` command to split strings (#1099)
+  * Added `upcase` and `downcase` commands to change the case of a string (#874)
+  * Change how aggregation and grouping is performed (#1096)
+    * Removed `grouped_map_reduce` and `groupBy`
+    * Added `group` and `ungroup`
+    * Changed the behavior of `count`, `sum` and `avg` and added `max` and `min`
+* Web UI
+  * Display index status and progress bars in the web UI (#1614)
+
+## Improved performance ##
+
+* Server
+  * Improved the scalability of meta operations (such as table creation) to allow for more nodes in a cluster (#1648)
+  * Changed the CPU sharding factor to 8 for improved multi-core scalability (#1043)
+  * Batch sizes now scale better, which speeds up operations like `limit` (#1786)
+  * Tweaked batch sizes to avoid computing unused results (#1962)
+  * Improved throttling and LBA garbage collection to avoid stalls in query throughput (#1820)
+  * Many optimizations to avoid having the web UI time out when the server is under load (#1183)
+  * Improved backfill performance by using batches for sending and inserting data (#1971)
+  * Reduced wasteful copies when serializing (#1431)
+  * Evaluating queries now yields occasionally to avoid timeouts (#1631)
+  * Reduced performance impact of backfilling on other queries (#2071)
+* Web UI
+  * Improved how the web UI handles large clusters with many tables (#1662)
+* Ruby driver
+  * Removed inefficient construction-location backtraces (#1843)
+* Tests
+  * Added automated performance tests (#1806)
+
+## Fixed bugs ##
+
+* Server
+  * Improved the code to avoid heartbeat timeout errors when resharding (#1708)
+  * Resharding one table no longer makes other tables unavailable (#1751)
+  * Improved the blueprint suggester to distribute shards more evenly (#344)
+  * Queries from the data explorer are now interruptible (#1888)
+  * No longer fail if IPv6 is not available (#1925)
+  * Added support for the new v8 scope API (#1510)
+  * Coroutine stacks now freed to reduce memory consumption (#1670)
+  * Added range get, backfill and secondary index reads to the stats (#660)
+  * `r.table(...).count()` no longer stalls inserts (#1870)
+  * Fixed crashes when adding a secondary index (#1621, #1437)
+  * Improve the handling of out-of-memory conditions (#2003)
+  * Secondary index construction is now reported as a write operation in the stats (#1953)
+  * Fixed a crash that occasionally happened during replication (#1389)
+  * `linux_file_t::set_size` no longer makes blocking syscalls (#265)
+  * Fixed a crash caught by the unit tests (#1084)
+* Command line
+  * `rethinkdb admin` now prints warnings to stderr instead of stdout (#1316)
+  * The `import` and `export` scripts now display a row count when done (#1659)
+  * Added support for `log_file` and `no_direct_io` in the init script (#1769, #1892)
+  * Do not display a stack trace for regular errors printed by the backup scripts (#2098)
+  * `rethinkdb export` no longer fails when there are no tables (#1904)
+  * `rethinkdb import` no longer tries to parse CSV files as JSON (#2097)
+* Web UI
+  * No longer display wrong number of rows when a string is returned (#1669)
+  * The data explorer now properly closes cursors (#1569)
+  * The data explorer now displays empty tables correctly (#1698)
+  * Links are now relative so they can be proxied from a subdirectory (#1791)
+  * The server time reported by the profiler is now accurate (#1784)
+  * Improved the flow for removing dead servers (#1366)
+  * No longer lower replicas to 0 if the datacenter is primary (#1834)
+  * Now displays consistent availability information (#1756)
+  * Fixed a XSS security issue (#2018)
+  * Changing the number of acks no longer displays the sharding bar (#2023)
+  * The backfilling progress bar doesn't disappear when refreshing the page (#1997)
+  * Correctly handle newlines in the data explorer (#2021)
+  * Sort the table list in alphabetical order (#1704)
+  * Added mouseover text to the query execution time (#1940)
+  * The replication status no longer blinks (#2019)
+  * Fix inconsistencies in dates caused by DST (#2047)
+* Ruby driver
+  * Added a missing `close` method on cursors (#1568)
+  * Improved conflict handling (#1814)
+  * Use `define_method` instead of `method_missing`, which improves compatibility with Sinatra (#1896)
+* Python driver
+  * Improved the quality of the generated documentation (#1729)
+  * Added missing `and_` and `or_` and a warning for misuse of `|` and `&` (#1582)
+  * Added support for `r.row` in `eq_join` (#1810)
+  * Added a detailed error message when brackets are not used properly (#1434)
+  * `count` with an argument now behaves correctly (#1992)
+  * Added missing `get_field` command (#1941)
+* JavaScript driver
+  * Added support for `r.row` in `eqJoin` (#1810)
+  * Timeout events on the socket are now handled correctly (#1909)
+  * No longer use the deprecated ArrayBuffer API (#1803)
+  * Fix backtraces for optional arguments (#1935)
+  * Changed the syntax of `run` (#1890)
+  * Exposed the error constructors (#1926)
+  * Fixed the string representation of functions (#1919, #1894)
+  * Backtrace printing now works correctly for both protobufjs and node-protobuf (#1879)
+  * No longer extend `Array.prototype` (#2112)
+* Build
+  * `./configure` now checks for `boost` and can fetch it if it is not installed (#1699)
+  * The source distribution now includes the v8 source (#1844)
+  * Use Python 2 to build v8 (#1873)
+  * Improved how the build system fetches and builds external packages, and changed the default to not fetch anything (#1231)
+
+## Packaging ##
+
+* Support for Ubuntu Raring has been dropped (#1924)
+
 # Release 1.11.3 (Breakfast at Tiffany's)
 
 Released on 2014-01-14
