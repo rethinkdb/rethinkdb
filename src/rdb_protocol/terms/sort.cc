@@ -177,7 +177,8 @@ private:
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
                 rcheck(to_sort.size() <= array_size_limit(), base_exc_t::GENERIC,
-                       strprintf("Array over size limit %zu.", to_sort.size()).c_str());
+                       strprintf("Array over size limit %zu.",
+                                 array_size_limit()).c_str());
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
