@@ -480,7 +480,7 @@ current_page_acq_t::~current_page_acq_t() {
             current_page_->remove_acquirer(this);
             page_cache_->consider_evicting_current_page(block_id_);
         }
-        snapshotted_page_.reset();
+        snapshotted_page_.reset_page_ptr();
     }
 }
 
@@ -659,7 +659,7 @@ void current_page_t::reset() {
     // it of our impending destruction?
     rassert(last_write_acquirer_ == NULL);
 
-    page_.reset();
+    page_.reset_page_ptr();
 
     // For the sake of the ~current_page_t assertion.
     last_write_acquirer_version_ = block_version_t();
@@ -854,7 +854,7 @@ void current_page_t::mark_deleted(current_page_help_t help) {
 
     help.page_cache->set_recency_for_block_id(help.block_id,
                                               repli_timestamp_t::invalid);
-    page_.reset();
+    page_.reset_page_ptr();
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
@@ -958,7 +958,7 @@ page_txn_t::~page_txn_t() {
     // KSI: We could surely free the resources of snapshotted_dirtied_pages_ sooner
     // (as mentioned elsewhere).
     for (size_t i = 0, e = snapshotted_dirtied_pages_.size(); i < e; ++i) {
-        snapshotted_dirtied_pages_[i].ptr.reset();
+        snapshotted_dirtied_pages_[i].ptr.reset_page_ptr();
     }
 }
 
