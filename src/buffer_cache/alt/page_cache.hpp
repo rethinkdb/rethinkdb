@@ -337,7 +337,11 @@ public:
     }
 
     // Considers wiping out the current_page_t (and its page_t pointee) for a
-    // particular block id, to save memory, if the right conditions are met.
+    // particular block id, to save memory, if the right conditions are met.  (This
+    // should only be called by things "outside" of current_page_t, like
+    // current_page_acq_t and page_txn_t, not page_t and page_ptr_t -- that way we
+    // know it's not called while somebody up the stack is expecting their
+    // `current_page_t *` to remain valid.)
     void consider_evicting_current_page(block_id_t block_id);
 
 private:

@@ -170,6 +170,13 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     }
 
     copyee_ptr.reset_page_ptr(page_cache);
+    // Don't bother calling consider_evicting_current_page -- we just acquired the
+    // page for the sake of a live current_page_t, so it wouldn't do anything if it
+    // did work correctly.  (It's also possible that this function didn't block, that
+    // we're still inside the page_t constructor, and its page_ptr_t has not been
+    // initialized.  It would turn out that we're safe, because there must be some
+    // page_acq_t calling get_buf_write, not to mention a current_page_acq_t.  We
+    // choose to be performance-fragile rather than correctness-fragile.
 }
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
@@ -605,15 +612,7 @@ void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
     if (page_ != NULL) {
         page_t *ptr = page_;
         page_ = NULL;
-        // block_id_t block_id = ptr->block_id();  // RSI
         ptr->remove_snapshotter(page_cache);
-
-        // RSI: This is perhaps invalid here, so make reset be manually called,
-        // remove this commented line.
-
-        // ptr could be invalid now.
-
-        // cache->consider_evicting_current_page(block_id);
     }
 }
 
@@ -629,6 +628,11 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
         page_ptr_t tmp(page_->make_copy(page_cache, account));
         swap_with(&tmp);
         tmp.reset_page_ptr(page_cache);
+        // We don't call consider_evicting_current_page here -- it wouldn't do
+        // anything anyway because `this` is the page_ptr_t for the
+        // current_page_acq_t, and we know it's not empty.  Also we must have a
+        // page_acq_t right now.  We err on the side of being performance-fragile
+        // instead of correctness-fragile.
     }
     return page_;
 }
