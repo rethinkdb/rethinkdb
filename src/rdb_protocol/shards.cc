@@ -193,11 +193,19 @@ accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
 // This can't be a normal terminal because it wouldn't preserve ordering.
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
+public:
+    to_array_t() : sz(0) { }
 private:
     virtual void operator()(groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
             datums_t *lst1 = &groups[kv->first];
             datums_t *lst2 = &kv->second;
+            sz += lst2->size();
+            rcheck_toplevel(
+                sz <= array_size_limit(), base_exc_t::GENERIC,
+                strprintf("Grouped data over size limit %zu.  "
+                          "Try putting a reduction (like `.reduce` or `.count`) "
+                          "on the end.", array_size_limit()).c_str());
             lst1->reserve(lst1->size() + lst2->size());
             std::move(lst2->begin(), lst2->end(), std::back_inserter(*lst1));
         }
@@ -210,6 +218,12 @@ private:
         for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
+            sz += stream->size();
+            rcheck_toplevel(
+                sz <= array_size_limit(), base_exc_t::GENERIC,
+                strprintf("Grouped data over size limit %zu.  "
+                          "Try putting a reduction (like `.reduce` or `.count`) "
+                          "on the end.", array_size_limit()).c_str());
             lst->reserve(lst->size() + stream->size());
             for (auto it = stream->begin(); it != stream->end(); ++it) {
                 lst->push_back(std::move(it->data));
@@ -236,6 +250,7 @@ private:
     }
 
     groups_t groups;
+    size_t sz;
 };
 
 eager_acc_t *make_to_array() {
