@@ -13,11 +13,9 @@ namespace json_shim {
 
 class exc_t : public std::exception {
 public:
-    exc_t(cJSON *) : str("PLACEHOLDER") { BREAKPOINT; }
+    exc_t() { }
     ~exc_t() throw () { }
-    const char *what() const throw () { return str.c_str(); }
-private:
-    std::string str;
+    const char *what() const throw () { return "json_shim::exc_t"; }
 };
 
 void check_type(cJSON *json, int expected) {

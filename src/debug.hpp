@@ -76,6 +76,7 @@ public:
 private:
     microtime_t start, last;
     std::string name, out;
+    DISABLE_COPYING(debug_timer_t);
 };
 
 #endif  // DEBUG_HPP_
