@@ -24,62 +24,6 @@ void check_type(cJSON *json, int expected) {
     if (json->type != expected) throw exc_t(json);
 }
 
-// RSI: parenthesize
-#define DEFINE_TRANSFER(FIELD, NAME)                                    \
-struct FIELD##_meta_extractor__{                                        \
-    template<class T__, class = void>                                   \
-    struct t__;                                                         \
-    template<class T__>                                                 \
-    struct t__<T__, typename                                            \
-               std::enable_if<&T__::set_##FIELD != NULL>::type> {       \
-        void operator()(cJSON *json__, T__ *dest__) {                   \
-            decltype(dest__->FIELD()) tmp__;                            \
-            cJSON *item__ = cJSON_GetObjectItem(json__, NAME);          \
-            if (item__ == NULL) return;                                 \
-            safe_extractor_t<decltype(tmp__)>()(item__, &tmp__);        \
-            dest__->set_##FIELD(std::move(tmp__));                      \
-        }                                                               \
-    };                                                                  \
-    template<class T__>                                                 \
-    struct t__<T__, typename                                            \
-               std::enable_if<&T__::release_##FIELD != NULL>::type> {   \
-        void operator()(cJSON *json__, T__ *dest__) {                   \
-            cJSON *item__ = cJSON_GetObjectItem(json__, NAME);          \
-            if (item__ == NULL) return;                                 \
-            safe_extractor_t<decltype(dest__->FIELD())>()(              \
-                item__, dest__->mutable_##FIELD());                     \
-        }                                                               \
-    };                                                                  \
-    template<class T__>                                                 \
-    struct t__<T__, typename                                            \
-               std::enable_if<&T__::FIELD##_size != NULL>::type> {      \
-        void operator()(cJSON *json__, T__ *dest__) {                   \
-            cJSON *arr__ = cJSON_GetObjectItem(json__, NAME);           \
-            if (arr__ == NULL) return;                                  \
-            if (arr__->type != cJSON_Object) {                          \
-                check_type(arr__, cJSON_Array);                         \
-            }                                                           \
-            int sz__ = cJSON_GetArraySize(arr__);                       \
-            for (int i__ = 0; i__ < sz__; ++i__) {                      \
-                auto el__ = dest__->add_##FIELD();                      \
-                safe_extractor_t<decltype(dest__->FIELD(0))>()(         \
-                    cJSON_GetArrayItem(arr__, i__),                     \
-                    el__);                                              \
-            }                                                           \
-        }                                                               \
-    };                                                                  \
-    template<class T>                                                   \
-    void operator()(cJSON *json__, T *dest__) {                         \
-        t__<T>()(json__, dest__);                                       \
-    }                                                                   \
-};                                                                      \
-template<class T>                                                       \
-void transfer_##FIELD(cJSON *json__, T *dest__) {                       \
-    FIELD##_meta_extractor__ meta_extractor__;                          \
-    meta_extractor__(json__, dest__);                                   \
-}                                                                       \
-struct FIELD##_force_semicolon { }
-
 template<class T, class = void>
 struct extractor_t;
 
@@ -93,13 +37,34 @@ struct safe_extractor_t : public extractor_t<T> {
     }
 };
 
-DEFINE_TRANSFER(type, "t");
-DEFINE_TRANSFER(query, "q");
-DEFINE_TRANSFER(token, "k");
-DEFINE_TRANSFER(datum, "d");
-DEFINE_TRANSFER(args, "s");
-DEFINE_TRANSFER(optargs, "o");
-DEFINE_TRANSFER(global_optargs, "g");
+template<class T, class U>
+void transfer(cJSON *json, T *dest, void (T::*setter)(U), const char *name) {
+    U tmp;
+    if (cJSON *item = cJSON_GetObjectItem(json, name)) {
+        safe_extractor_t<U>()(item, &tmp);
+        (dest->*setter)(std::move(tmp));
+    }
+}
+
+template<class T, class U>
+void transfer(cJSON *json, T *dest, U *(T::*mut)(), const char *name) {
+    if (cJSON *item = cJSON_GetObjectItem(json, name)) {
+        safe_extractor_t<U>()(item, (dest->*mut)());
+    }
+}
+
+template<class T, class U>
+void transfer_arr(cJSON *json, T *dest, U *(T::*adder)(), const char *name) {
+    if (cJSON *arr = cJSON_GetObjectItem(json, name)) {
+        if (arr->type != cJSON_Object) {
+            check_type(arr, cJSON_Array);
+        }
+        int sz = cJSON_GetArraySize(arr);
+        for (int i = 0; i < sz; ++i) {
+            safe_extractor_t<U>()(cJSON_GetArrayItem(arr, i), (dest->*adder)());
+        }
+    }
+}
 
 template<class T>
 struct extractor_t<
@@ -114,7 +79,7 @@ struct extractor_t<
 };
 
 template<>
-struct extractor_t<const std::string &> {
+struct extractor_t<std::string> {
     void operator()(cJSON *field, std::string *s) {
         check_type(field, cJSON_String);
         *s = field->valuestring;
@@ -135,17 +100,17 @@ struct extractor_t<bool> {
 };
 
 template<>
-struct extractor_t<const Term &> {
+struct extractor_t<Term> {
     void operator()(cJSON *json, Term *t) {
-        transfer_type(json, t);
-        transfer_datum(json, t);
-        transfer_args(json, t);
-        transfer_optargs(json, t);
+        transfer(json, t, &Term::set_type, "t");
+        transfer(json, t, &Term::mutable_datum, "d");
+        transfer_arr(json, t, &Term::add_args, "a");
+        transfer_arr(json, t, &Term::add_optargs, "o");
     }
 };
 
 template<>
-struct extractor_t<const Datum &> {
+struct extractor_t<Datum> {
     void operator()(cJSON *json, Datum *d) {
         switch(json->type) {
         case cJSON_False: {
@@ -191,49 +156,47 @@ struct extractor_t<const Datum &> {
 };
 
 template<>
-struct extractor_t<const Query::AssocPair &> {
+struct extractor_t<Query::AssocPair> {
     void operator()(cJSON *json, Query::AssocPair *ap) {
         ap->set_key(json->string);
-        extractor_t<const Term &>()(json, ap->mutable_val());
+        extractor_t<Term>()(json, ap->mutable_val());
     };
 };
 
 template<>
-struct extractor_t<const Term::AssocPair &> {
+struct extractor_t<Term::AssocPair> {
     void operator()(cJSON *json, Term::AssocPair *ap) {
         ap->set_key(json->string);
-        extractor_t<const Term &>()(json, ap->mutable_val());
+        extractor_t<Term>()(json, ap->mutable_val());
     };
 };
 
 template<>
-struct extractor_t<const Datum::AssocPair &> {
+struct extractor_t<Datum::AssocPair> {
     void operator()(cJSON *json, Datum::AssocPair *ap) {
         ap->set_key(json->string);
-        extractor_t<const Datum &>()(json, ap->mutable_val());
+        extractor_t<Datum>()(json, ap->mutable_val());
     };
 };
 
 template<>
-struct extractor_t<const Query &> {
+struct extractor_t<Query> {
     void operator()(cJSON *json, Query *q) {
-        transfer_type(json, q);
-        transfer_query(json, q);
-        transfer_token(json, q);
+        transfer(json, q, &Query::set_type, "t");
+        transfer(json, q, &Query::mutable_query, "q");
+        transfer(json, q, &Query::set_token, "k");
         q->set_accepts_r_json(true);
-        transfer_global_optargs(json, q);
+        transfer_arr(json, q, &Query::add_global_optargs, "g");
     };
 };
 
 bool parse_json_pb(Query *q, char *str) throw () {
-    // debug_timer_t tm;
     q->Clear();
     scoped_cJSON_t json_holder(cJSON_Parse(str));
-    // tm.tick("JSON");
     cJSON *json = json_holder.get();
+    // debugf("%s\n", json_holder.Print().c_str());
     if (json == NULL) return false;
-    extractor_t<const Query &>()(json, q);
-    // tm.tick("SHIM");
+    extractor_t<Query>()(json, q);
     // debugf("%s\n", q->DebugString().c_str());
     return true;
 }
