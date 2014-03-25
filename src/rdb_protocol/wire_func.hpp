@@ -130,39 +130,39 @@ private:
     bt_wire_func_t bt;
 };
 
-template<class T>
+template <class T>
 class skip_terminal_t;
 
 class skip_wire_func_t : public maybe_wire_func_t {
 protected:
     skip_wire_func_t() { }
-    template<class... Args>
-    explicit skip_wire_func_t(protob_t<const Backtrace> &_bt, Args... args)
+    template <class... Args>
+    explicit skip_wire_func_t(const protob_t<const Backtrace> &_bt, Args... args)
         : maybe_wire_func_t(args...), bt(_bt) { }
 private:
-    template<class T>
+    template <class T>
     friend class skip_terminal_t;
     bt_wire_func_t bt;
 };
 
 class sum_wire_func_t : public skip_wire_func_t {
 public:
-    template<class... Args>
+    template <class... Args>
     explicit sum_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 class avg_wire_func_t : public skip_wire_func_t {
 public:
-    template<class... Args>
+    template <class... Args>
     explicit avg_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 class min_wire_func_t : public skip_wire_func_t {
 public:
-    template<class... Args>
+    template <class... Args>
     explicit min_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 class max_wire_func_t : public skip_wire_func_t {
 public:
-    template<class... Args>
+    template <class... Args>
     explicit max_wire_func_t(Args... args) : skip_wire_func_t(args...) { }
 };
 
