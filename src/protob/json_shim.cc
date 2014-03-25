@@ -25,8 +25,8 @@ void check_type(cJSON *json, int expected) {
 }
 
 // RSI: parenthesize
-#define TRANSFER(JSON, FIELD, NAME, DEST) do {                          \
-struct {                                                                \
+#define DEFINE_TRANSFER(FIELD, NAME)                                    \
+struct FIELD##_meta_extractor__{                                        \
     template<class T__, class = void>                                   \
     struct t__;                                                         \
     template<class T__>                                                 \
@@ -72,10 +72,13 @@ struct {                                                                \
     void operator()(cJSON *json__, T *dest__) {                         \
         t__<T>()(json__, dest__);                                       \
     }                                                                   \
-} meta_extractor__;                                                     \
-check_type(JSON, cJSON_Object);                                         \
-meta_extractor__(JSON, DEST);                                           \
-} while (0)
+};                                                                      \
+template<class T>                                                       \
+void transfer_##FIELD(cJSON *json__, T *dest__) {                       \
+    FIELD##_meta_extractor__ meta_extractor__;                          \
+    meta_extractor__(json__, dest__);                                   \
+}                                                                       \
+struct FIELD##_force_semicolon { }
 
 template<class T, class = void>
 struct extractor_t;
@@ -89,6 +92,14 @@ struct safe_extractor_t : public extractor_t<T> {
         }
     }
 };
+
+DEFINE_TRANSFER(type, "t");
+DEFINE_TRANSFER(query, "q");
+DEFINE_TRANSFER(token, "k");
+DEFINE_TRANSFER(datum, "d");
+DEFINE_TRANSFER(args, "s");
+DEFINE_TRANSFER(optargs, "o");
+DEFINE_TRANSFER(global_optargs, "g");
 
 template<class T>
 struct extractor_t<
@@ -126,10 +137,10 @@ struct extractor_t<bool> {
 template<>
 struct extractor_t<const Term &> {
     void operator()(cJSON *json, Term *t) {
-        TRANSFER(json, type, "t", t);
-        TRANSFER(json, datum, "d", t);
-        TRANSFER(json, args, "a", t);
-        TRANSFER(json, optargs, "o", t);
+        transfer_type(json, t);
+        transfer_datum(json, t);
+        transfer_args(json, t);
+        transfer_optargs(json, t);
     }
 };
 
@@ -206,11 +217,11 @@ struct extractor_t<const Datum::AssocPair &> {
 template<>
 struct extractor_t<const Query &> {
     void operator()(cJSON *json, Query *q) {
-        TRANSFER(json, type, "t", q);
-        TRANSFER(json, query, "q", q);
-        TRANSFER(json, token, "k", q);
+        transfer_type(json, q);
+        transfer_query(json, q);
+        transfer_token(json, q);
         q->set_accepts_r_json(true);
-        TRANSFER(json, global_optargs, "g", q);
+        transfer_global_optargs(json, q);
     };
 };
 
