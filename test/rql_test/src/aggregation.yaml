@@ -402,6 +402,9 @@ tests:
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
+    - cd: tbl.index_wait('a')
+      ot: ([{'index':'a','ready':true}])
+
     - cd: tbl.group()
       ot: err('RqlRuntimeError', 'Cannot group by nothing.', [])
 

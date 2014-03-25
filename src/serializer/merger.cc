@@ -108,7 +108,6 @@ void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_mer
         into_out->token = to_be_merged.token;
     }
     if (to_be_merged.recency.is_initialized()) {
-        rassert(into_out->recency <= to_be_merged.recency);
         into_out->recency = to_be_merged.recency;
     }
 }

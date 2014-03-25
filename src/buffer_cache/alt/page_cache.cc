@@ -30,6 +30,14 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
+class current_page_help_t {
+public:
+    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
+        : block_id(_block_id), page_cache(_page_cache) { }
+    block_id_t block_id;
+    page_cache_t *page_cache;
+};
+
 void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
     if (new_count > semaphore_acq_.count()) {
         semaphore_acq_.change_count(new_count);
@@ -75,6 +83,27 @@ void page_read_ahead_cb_t::destroy_self() {
     delete this;
 }
 
+void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
+    ASSERT_NO_CORO_WAITING;
+    // We can't do anything until read-ahead is done, because it uses the existence
+    // of a current_page_t entry to figure out whether the read-ahead page could be
+    // out of date.
+    if (read_ahead_cb_ != NULL) {
+        return;
+    }
+
+    current_page_t *current_page = current_pages_.get_sparsely(block_id);
+    if (current_page == NULL) {
+        return;
+    }
+
+    if (current_page->should_be_evicted()) {
+        current_pages_[block_id] = NULL;
+        current_page->reset(this);
+        delete current_page;
+    }
+}
+
 void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
         current_pages_.resize_with_zeros(block_id + 1);
@@ -88,21 +117,31 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
 
     scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
 
+    // We MUST stop if read_ahead_cb_ is NULL because that means current_page_t's
+    // could start being destroyed.
     if (read_ahead_cb_ == NULL) {
         return;
     }
 
     resize_current_pages_to_id(block_id);
+    // We MUST stop if current_pages_[block_id] already exists, because that means
+    // the read-ahead page might be out of date.
     if (current_pages_[block_id] != NULL) {
         return;
     }
+
+    // We know the read-ahead page is not out of date if current_pages_[block_id] is
+    // NULL and if read_ahead_cb_ still exists -- that means a current_page_t for the
+    // block id was never created, and thus the page could not have been modified
+    // (not to mention that we've already got the page in memory, so there is no
+    // useful work to be done).
 
     if (!balancer_->subtract_read_ahead_bytes(max_block_size().ser_value())) {
         have_read_ahead_cb_destroyed();
         return;
     }
 
-    current_pages_[block_id] = new current_page_t(std::move(buf), token, this);
+    current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
 void page_cache_t::have_read_ahead_cb_destroyed() {
@@ -116,8 +155,24 @@ void page_cache_t::have_read_ahead_cb_destroyed() {
 
         do_on_thread(cb->home_thread(),
                      std::bind(&page_read_ahead_cb_t::destroy_self, cb));
+
+        coro_t::spawn_sometime(std::bind(&page_cache_t::consider_evicting_all_current_pages, this, drainer_->lock()));
     }
 }
+
+void page_cache_t::consider_evicting_all_current_pages(page_cache_t *page_cache,
+                                                       auto_drainer_t::lock_t lock) {
+    for (block_id_t id = 0; id < page_cache->current_pages_.size(); ++id) {
+        page_cache->consider_evicting_current_page(id);
+        if (id % 16 == 15) {
+            coro_t::yield();
+            if (lock.get_drain_signal()->is_pulsed()) {
+                return;
+            }
+        }
+    }
+}
+
 
 void page_cache_t::read_ahead_cb_is_destroyed() {
     assert_thread();
@@ -138,7 +193,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       serializer_(serializer),
       free_list_(serializer),
       balancer_(balancer),
-      evicter_(balancer),
+      evicter_(this, balancer),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
@@ -170,7 +225,11 @@ page_cache_t::~page_cache_t() {
         if (i % 256 == 255) {
             coro_t::yield();
         }
-        delete current_pages_[i];
+        current_page_t *current_page = current_pages_[i];
+        if (current_page != NULL) {
+            current_page->reset(this);
+            delete current_page;
+        }
     }
 
     {
@@ -261,7 +320,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
                 "Expected block %" PR_BLOCK_ID " not to be deleted "
                 "(should you have used alt_create_t::create?).",
                 block_id);
-        current_pages_[block_id] = new current_page_t();
+        current_pages_[block_id] = new current_page_t(block_id);
     } else {
         rassert(!current_pages_[block_id]->is_deleted());
     }
@@ -300,13 +359,14 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(max_block_size_,
+            new current_page_t(block_id,
+                               max_block_size_,
                                std::move(buf),
                                this);
     } else {
         current_pages_[block_id]->make_non_deleted(max_block_size_,
                                                    std::move(buf),
-                                                   this);
+                                                   current_page_help_t(block_id, this));
     }
 
     return current_pages_[block_id];
@@ -336,13 +396,6 @@ cache_account_t page_cache_t::create_cache_account(int priority) {
     return cache_account_t(serializer_->home_thread(), io_account);
 }
 
-
-struct current_page_help_t {
-    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
-        : block_id(_block_id), page_cache(_page_cache) { }
-    block_id_t block_id;
-    page_cache_t *page_cache;
-};
 
 current_page_acq_t::current_page_acq_t()
     : page_cache_(NULL), the_txn_(NULL) { }
@@ -437,6 +490,8 @@ current_page_acq_t::~current_page_acq_t() {
         if (current_page_ != NULL) {
             current_page_->remove_acquirer(this);
         }
+        snapshotted_page_.reset_page_ptr(page_cache_);
+        page_cache_->consider_evicting_current_page(block_id_);
     }
 }
 
@@ -529,6 +584,8 @@ void current_page_acq_t::mark_deleted() {
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
     current_page_->mark_deleted(help());
+    // No need to call consider_evicting_current_page here -- there's a
+    // current_page_acq_t for it: ourselves.
 }
 
 bool current_page_acq_t::dirtied_page() const {
@@ -562,19 +619,8 @@ void current_page_acq_t::pulse_write_available() {
     write_cond_.pulse_if_not_already_pulsed();
 }
 
-current_page_t::current_page_t()
-    : is_deleted_(false),
-      last_write_acquirer_(NULL) {
-    // Increment the block version so that we can distinguish between unassigned
-    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
-    rassert(last_write_acquirer_version_.debug_value() == 0);
-    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
-}
-
-current_page_t::current_page_t(block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf,
-                               page_cache_t *page_cache)
-    : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
+current_page_t::current_page_t(block_id_t block_id)
+    : block_id_(block_id),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -583,10 +629,26 @@ current_page_t::current_page_t(block_size_t block_size,
     last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
 }
 
-current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
+current_page_t::current_page_t(block_id_t block_id,
+                               block_size_t block_size,
+                               scoped_malloc_t<ser_buffer_t> buf,
+                               page_cache_t *page_cache)
+    : block_id_(block_id),
+      page_(new page_t(block_id, block_size, std::move(buf), page_cache)),
+      is_deleted_(false),
+      last_write_acquirer_(NULL) {
+    // Increment the block version so that we can distinguish between unassigned
+    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+    last_write_acquirer_version_ = last_write_acquirer_version_.subsequent();
+}
+
+current_page_t::current_page_t(block_id_t block_id,
+                               scoped_malloc_t<ser_buffer_t> buf,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
-    : page_(new page_t(std::move(buf), token, page_cache), page_cache),
+    : block_id_(block_id),
+      page_(new page_t(block_id, std::move(buf), token, page_cache)),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -596,16 +658,63 @@ current_page_t::current_page_t(scoped_malloc_t<ser_buffer_t> buf,
 }
 
 current_page_t::~current_page_t() {
+    // Check that reset() has been called.
+    rassert(last_write_acquirer_version_.debug_value() == 0);
+
+    // An imperfect sanity check.
+    rassert(!page_.has());
+}
+
+void current_page_t::reset(page_cache_t *page_cache) {
     rassert(acquirers_.empty());
+
+    // KSI: Does last_write_acquirer_ even need to be NULL?  Could we not just inform
+    // it of our impending destruction?
     rassert(last_write_acquirer_ == NULL);
+
+    page_.reset_page_ptr(page_cache);
+    // No need to call consider_evicting_current_page here -- we're already getting
+    // destructed.
+
+    // For the sake of the ~current_page_t assertion.
+    last_write_acquirer_version_ = block_version_t();
+}
+
+bool current_page_t::should_be_evicted() const {
+    // Consider reasons why the current_page_t should not be evicted.
+
+    // A reason: It still has acquirers.  (Important.)
+    if (!acquirers_.empty()) {
+        return false;
+    }
+
+    // A reason: We still have a connection to last_write_acquirer_.  (Important.)
+    if (last_write_acquirer_ != NULL) {
+        return false;
+    }
+
+    // A reason: Its page_t isn't evicted, or has other snapshotters or waiters
+    // anyway.  (Getting this wrong can only hurt performance.  We want to evict
+    // current_page_t's with unloaded, otherwise unused page_t's.)
+    if (page_.has()) {
+        page_t *page = page_.get_page_for_read();
+        if (page->is_loading() || page->has_waiters() || !page->is_not_loaded()
+            || page->page_ptr_count() != 1) {
+            return false;
+        }
+        // is_loading is false and is_not_loaded is true -- it must be disk-backed.
+        rassert(page->is_disk_backed());
+    }
+
+    return true;
 }
 
 void current_page_t::make_non_deleted(block_size_t block_size,
                                       scoped_malloc_t<ser_buffer_t> buf,
-                                      page_cache_t *page_cache) {
+                                      current_page_help_t help) {
     rassert(is_deleted_);
     is_deleted_ = false;
-    page_.init(new page_t(block_size, std::move(buf), page_cache), page_cache);
+    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache));
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -702,8 +811,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 
                 cur->snapshotted_page_.init(
                         current_recency,
-                        the_page_for_read_or_deleted(help),
-                        help.page_cache);
+                        the_page_for_read_or_deleted(help));
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
                 // KSI: Dedup this with remove_acquirer.
@@ -736,7 +844,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 
                     make_non_deleted(help.page_cache->max_block_size(),
                                      std::move(buf),
-                                     help.page_cache);
+                                     help);
                 }
                 repli_timestamp_t superceding
                     = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
@@ -759,23 +867,23 @@ void current_page_t::mark_deleted(current_page_help_t help) {
 
     help.page_cache->set_recency_for_block_id(help.block_id,
                                               repli_timestamp_t::invalid);
-    page_.reset();
+    page_.reset_page_ptr(help.page_cache);
+    // It's the caller's responsibility to call consider_evicting_current_page after
+    // we return, if that would make sense (it wouldn't though).
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help,
                                                           cache_account_t *account) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache, account),
-                   help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache, account));
     }
 }
 
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache),
-                   help.page_cache);
+        page_.init(new page_t(help.block_id, help.page_cache));
     }
 }
 
@@ -859,6 +967,13 @@ page_txn_t::~page_txn_t() {
 
     guarantee(preceders_.empty());
     guarantee(subseqers_.empty());
+
+    // KSI: We could surely free the resources of snapshotted_dirtied_pages_ sooner
+    // (as mentioned elsewhere).
+    for (size_t i = 0, e = snapshotted_dirtied_pages_.size(); i < e; ++i) {
+        snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache_);
+        page_cache_->consider_evicting_current_page(snapshotted_dirtied_pages_[i].block_id);
+    }
 }
 
 void page_txn_t::add_acquirer(DEBUG_VAR current_page_acq_t *acq) {
@@ -1029,6 +1144,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 
             txn->pages_write_acquired_last_.remove(current_page);
             current_page->last_write_acquirer_ = NULL;
+            page_cache->consider_evicting_current_page(current_page->block_id_);
         }
 
         if (txn->cache_conn_ != NULL) {

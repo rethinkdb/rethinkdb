@@ -40,7 +40,8 @@ static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 
 
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -55,7 +56,8 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                cache_account_t *account)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -69,9 +71,11 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                                             account));
 }
 
-page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id, block_size_t block_size,
+               scoped_malloc_t<ser_buffer_t> buf,
                page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(block_size.ser_value()),
       buf_(std::move(buf)),
@@ -81,10 +85,12 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
     page_cache->evicter().add_to_evictable_unbacked(this);
 }
 
-page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id,
+               scoped_malloc_t<ser_buffer_t> buf,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
-    : loader_(NULL),
+    : block_id_(block_id),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(block_token->block_size().ser_value()),
       buf_(std::move(buf)),
@@ -96,7 +102,8 @@ page_t::page_t(scoped_malloc_t<ser_buffer_t> buf,
 }
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
-    : loader_(NULL),
+    : block_id_(copyee->block_id_),
+      loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
       ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
@@ -132,7 +139,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     page->loader_ = &loader;
 
     auto_drainer_t::lock_t lock(page_cache->drainer_.get());
-    page_ptr_t copyee_ptr(copyee, page_cache);
+    page_ptr_t copyee_ptr(copyee);
 
     // Okay, it's safe to block.
     {
@@ -161,6 +168,15 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->pulse_waiters_or_make_evictable(page_cache);
         }
     }
+
+    copyee_ptr.reset_page_ptr(page_cache);
+    // Don't bother calling consider_evicting_current_page -- we just acquired the
+    // page for the sake of a live current_page_t, so it wouldn't do anything if it
+    // did work correctly.  (It's also possible that this function didn't block, that
+    // we're still inside the page_t constructor, and its page_ptr_t has not been
+    // initialized.  It would turn out that we're safe, because there must be some
+    // page_acq_t calling get_buf_write, not to mention a current_page_acq_t.  We
+    // choose to be performance-fragile rather than correctness-fragile.
 }
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
@@ -529,6 +545,11 @@ page_acq_t::~page_acq_t() {
     if (page_ != NULL) {
         rassert(page_cache_ != NULL);
         page_->remove_waiter(this);
+
+        // There's no need to call consider_evicting_current_page, because page_acq_t
+        // always has a lesser lifetime than some current_page_acq_t or some other
+        // page_ptr_t.  It would be risky to call it -- page_acq_t is used in
+        // load_from_copyee.
     }
 }
 
@@ -557,42 +578,42 @@ const void *page_acq_t::get_buf_read() {
     return page_->get_page_buf(page_cache_);
 }
 
-page_ptr_t::page_ptr_t() : page_(NULL), page_cache_(NULL) {
+page_ptr_t::page_ptr_t() : page_(NULL) {
 }
 
 page_ptr_t::~page_ptr_t() {
-    reset();
+    rassert(page_ == NULL);
 }
 
 page_ptr_t::page_ptr_t(page_ptr_t &&movee)
-    : page_(movee.page_), page_cache_(movee.page_cache_) {
+    : page_(movee.page_) {
     movee.page_ = NULL;
-    movee.page_cache_ = NULL;
 }
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
+    // We can't do true assignment, destructing an old page-having value, because
+    // reset() has to manually be called.  (This assertion is redundant with the one
+    // that'll enforce this fact in tmp's destructor.)
+    rassert(page_ == NULL);
+
     page_ptr_t tmp(std::move(movee));
-    std::swap(page_, tmp.page_);
-    std::swap(page_cache_, tmp.page_cache_);
+    swap_with(&tmp);
     return *this;
 }
 
-void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
-    rassert(page_ == NULL && page_cache_ == NULL);
+void page_ptr_t::init(page_t *page) {
+    rassert(page_ == NULL);
     page_ = page;
-    page_cache_ = page_cache;
     if (page_ != NULL) {
         page_->add_snapshotter();
     }
 }
 
-void page_ptr_t::reset() {
+void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
     if (page_ != NULL) {
         page_t *ptr = page_;
-        page_cache_t *cache = page_cache_;
         page_ = NULL;
-        page_cache_ = NULL;
-        ptr->remove_snapshotter(cache);
+        ptr->remove_snapshotter(page_cache);
     }
 }
 
@@ -605,10 +626,20 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
                                        cache_account_t *account) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ptr_t tmp(page_->make_copy(page_cache, account), page_cache);
-        *this = std::move(tmp);
+        page_ptr_t tmp(page_->make_copy(page_cache, account));
+        swap_with(&tmp);
+        tmp.reset_page_ptr(page_cache);
+        // We don't call consider_evicting_current_page here -- it wouldn't do
+        // anything anyway because `this` is the page_ptr_t for the
+        // current_page_acq_t, and we know it's not empty.  Also we must have a
+        // page_acq_t right now.  We err on the side of being performance-fragile
+        // instead of correctness-fragile.
     }
     return page_;
+}
+
+void page_ptr_t::swap_with(page_ptr_t *other) {
+    std::swap(page_, other->page_);
 }
 
 timestamped_page_ptr_t::timestamped_page_ptr_t()
@@ -617,7 +648,6 @@ timestamped_page_ptr_t::timestamped_page_ptr_t()
 timestamped_page_ptr_t::timestamped_page_ptr_t(timestamped_page_ptr_t &&movee)
     : timestamp_(movee.timestamp_), page_ptr_(std::move(movee.page_ptr_)) {
     movee.timestamp_ = repli_timestamp_t::invalid;
-    movee.page_ptr_.reset();
 }
 
 timestamped_page_ptr_t &timestamped_page_ptr_t::operator=(timestamped_page_ptr_t &&movee) {
@@ -634,17 +664,20 @@ bool timestamped_page_ptr_t::has() const {
 }
 
 void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
-                                  page_t *page,
-                                  page_cache_t *page_cache) {
+                                  page_t *page) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
     rassert(page == NULL || timestamp != repli_timestamp_t::invalid);
     timestamp_ = timestamp;
-    page_ptr_.init(page, page_cache);
+    page_ptr_.init(page);
 }
 
 page_t *timestamped_page_ptr_t::get_page_for_read() const {
     return page_ptr_.get_page_for_read();
 }
 
+void timestamped_page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
+    ASSERT_NO_CORO_WAITING;
+    page_ptr_.reset_page_ptr(page_cache);
+}
 
 }  // namespace alt

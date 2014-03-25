@@ -289,6 +289,8 @@ module 'NamespaceView', ->
                     index_list_fail: true
                 @get_indexes_with_delay @error_interval
             else
+                @$('.main_alert_error').slideUp 'fast'
+
                 index_hash = {}
                 indexes_not_ready = 0
                 for index, i in result

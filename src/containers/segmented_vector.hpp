@@ -41,6 +41,19 @@ public:
         return size_ == 0;
     }
 
+    // Gets an element, without creating a segment_t if its segment doesn't exist.
+    // (Thus, this method doesn't return a reference.)
+    element_t get_sparsely(size_t index) const {
+        guarantee(index < size_, "index = %zu, size_ = %zu", index, size_);
+        const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
+        segment_t *seg = segments_[segment_index];
+        if (seg == NULL) {
+            return element_t();
+        } else {
+            return seg->elements[index % ELEMENTS_PER_SEGMENT];
+        }
+    }
+
     element_t &operator[](size_t index) {
         return get_element(index);
     }
@@ -88,7 +101,6 @@ private:
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
-
 
     // Note: sometimes elements will be initialized before you ask the
     // array to grow to that size (e.g. one hundred elements might be
