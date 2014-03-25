@@ -446,7 +446,6 @@ private:
 
     free_list_t free_list_;
 
-    cache_balancer_t *balancer_;
     evicter_t evicter_;
 
     // KSI: I bet this read_ahead_cb_ and read_ahead_cb_existence_ type could be

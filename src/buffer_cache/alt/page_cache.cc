@@ -187,16 +187,20 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     : max_block_size_(serializer->max_block_size()),
       serializer_(serializer),
       free_list_(serializer),
-      balancer_(balancer),
       evicter_(),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
-    read_ahead_cb_existence_ = drainer_->lock();
+    const bool start_read_ahead = balancer->read_ahead_ok_at_start();
+    if (start_read_ahead) {
+        read_ahead_cb_existence_ = drainer_->lock();
+    }
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
+        if (start_read_ahead) {
+            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
+        }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account_.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));

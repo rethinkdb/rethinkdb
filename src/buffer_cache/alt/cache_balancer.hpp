@@ -27,6 +27,9 @@ public:
     // Used to determine the initial size of a cache
     virtual uint64_t base_mem_per_store() const = 0;
 
+    // Tells caches whether to start read ahead initially
+    virtual bool read_ahead_ok_at_start() const = 0;
+
 protected:
     friend class alt::evicter_t;
 
@@ -45,6 +48,10 @@ public:
 
     uint64_t base_mem_per_store() const {
         return base_mem_per_store_;
+    }
+
+    bool read_ahead_ok_at_start() const {
+        return false;
     }
 
 private:
@@ -70,6 +77,10 @@ public:
 
     uint64_t base_mem_per_store() const {
         return 0;
+    }
+
+    bool read_ahead_ok_at_start() const {
+        return true;
     }
 
 private:
