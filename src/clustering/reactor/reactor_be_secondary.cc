@@ -280,7 +280,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 template void reactor_t<mock::dummy_protocol_t>::be_secondary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;

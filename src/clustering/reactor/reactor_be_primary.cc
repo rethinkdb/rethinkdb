@@ -471,7 +471,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 

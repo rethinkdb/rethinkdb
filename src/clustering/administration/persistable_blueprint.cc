@@ -70,7 +70,7 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
     apply_as_directory(change, target);
 }
 
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template cJSON *render_as_json<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);

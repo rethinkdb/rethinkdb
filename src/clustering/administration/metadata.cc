@@ -335,7 +335,7 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *t
 
 
 
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields<rdb_protocol_t>(namespaces_semilattice_metadata_t<rdb_protocol_t> *target, const vclock_ctx_t &ctx);
 template cJSON *with_ctx_render_as_json<rdb_protocol_t>(namespaces_semilattice_metadata_t<rdb_protocol_t> *target, const vclock_ctx_t &ctx);

@@ -247,7 +247,7 @@ void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target) {
 }
 
 
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
 template cJSON *render_as_json<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
