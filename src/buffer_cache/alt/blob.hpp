@@ -119,7 +119,8 @@ const block_id_t *internal_node_block_ids(const void *buf);
 // Returns offset and size, clamped to and relative to the index'th subtree.
 void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
 
-// The maxreflen value appropriate for use with memcached btrees.  It's 251.  This should be renamed.
+// The maxreflen value (allegedly) appropriate for use with rdb_protocol btrees.
+// It's 251.  This should be renamed.
 extern int btree_maxreflen;
 
 // The size of a blob, equivalent to blob_t(ref, maxreflen).valuesize().
