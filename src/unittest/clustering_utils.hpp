@@ -17,8 +17,6 @@
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
-class memcached_protocol_t;
-
 namespace unittest {
 
 // An ack checker that only expects to get passed to spawn_write.
@@ -233,11 +231,6 @@ std::string key_gen();
 template <>
 inline std::string key_gen<mock::dummy_protocol_t>() {
     return dummy_key_gen();
-}
-
-template <>
-inline std::string key_gen<memcached_protocol_t>() {
-    return mc_key_gen();
 }
 
 class simple_mailbox_cluster_t {
