@@ -255,7 +255,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
             std::string index_name = it->first;
             status["index"] = make_counted<const datum_t>(std::move(index_name));
             array.push_back(make_counted<const datum_t>(std::move(status)));
-            old = it++;
+            auto old = it++;
             sindexes.erase(old->first);
         }
         rcheck(sindexes.empty(), base_exc_t::GENERIC,
