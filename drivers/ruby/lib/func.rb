@@ -87,15 +87,11 @@ module RethinkDB
 
         args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
 
-        t = {t: Term::TermType.const_get(termtype)}
-        if args != []
-          t[:a] = args.map {|x|
-            RQL.new.expr(x).to_pb
-          }
-        end
-        if optargs && optargs != {}
-          t[:o] = Hash[optargs.map {|k,v| [k.to_s, RQL.new.expr(v).to_pb]}]
-        end
+        t = [Term::TermType.const_get(termtype),
+             args.map {|x| RQL.new.expr(x).to_pb},
+             *((optargs && optargs != {}) ?
+               [Hash[optargs.map {|k,v| [k.to_s, RQL.new.expr(v).to_pb]}]] :
+               [])]
         return RQL.new(t, bitop)
       }
 

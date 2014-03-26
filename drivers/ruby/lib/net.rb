@@ -4,7 +4,7 @@ module RethinkDB
   require 'timeout'
 
   def self.new_query(type, token)
-    {t: type, k: token}
+    [type, token]
   end
 
   module Faux_Abort
@@ -128,10 +128,14 @@ module RethinkDB
 
     @@token_cnt = 0
     def run_internal(q, opts)
-      @mutex.synchronize{@opts[q[:k]] = opts}
+      @mutex.synchronize{@opts[q[1]] = opts}
       noreply = opts[:noreply]
+
+      PP.pp JSON.parse(q.to_json)
+      # return nil
+
       dispatch(q)
-      noreply ? nil : wait(q[:k])
+      noreply ? nil : wait(q[1])
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
@@ -143,23 +147,21 @@ module RethinkDB
         all_opts[:noreply] = !!all_opts[:noreply]
       end
 
-      q = {
-        t: Query::QueryType::START,
-        k: @@token_cnt += 1,
-        g: Hash[all_opts.map {|k,v|
+      q = [Query::QueryType::START,
+           @@token_cnt += 1,
+           msg,
+           Hash[all_opts.map {|k,v|
                   [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
-                }],
-        q: msg
-      }
+                }]]
 
       res = run_internal(q, all_opts)
       return res if !res
       if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[:k], true)
+                   msg, self, opts, q[1], true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[:k], false)
+                   msg, self, opts, q[1], false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end
@@ -194,7 +196,7 @@ module RethinkDB
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       prefix = [payload.bytesize].pack('L<')
       send(prefix + payload)
-      return msg[:k]
+      return msg[1]
     end
 
     def wait token

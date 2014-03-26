@@ -18,10 +18,6 @@ public:
     const char *what() const throw () { return "json_shim::exc_t"; }
 };
 
-void check_type(cJSON *json, int expected) {
-    if (json->type != expected) throw exc_t();
-}
-
 template<class T>
 typename std::enable_if<!((std::is_enum<T>::value || std::is_fundamental<T>::value)
                           && !std::is_same<T, bool>::value)>::type
@@ -45,27 +41,25 @@ void safe_extract(cJSON *json, T *t) {
 }
 
 template<class T, class U>
-void transfer(cJSON *json, T *dest, void (T::*setter)(U), const char *name) {
+void transfer(cJSON *json, T *dest, void (T::*setter)(U)) {
     U tmp;
-    if (cJSON *item = cJSON_GetObjectItem(json, name)) {
-        safe_extract(item, &tmp);
+    if (json) {
+        safe_extract(json, &tmp);
         (dest->*setter)(std::move(tmp));
     }
 }
 
 template<class T, class U>
-void transfer(cJSON *json, T *dest, U *(T::*mut)(), const char *name) {
-    if (cJSON *item = cJSON_GetObjectItem(json, name)) {
-        safe_extract(item, (dest->*mut)());
+void transfer(cJSON *json, T *dest, U *(T::*mut)()) {
+    if (json) {
+        safe_extract(json, (dest->*mut)());
     }
 }
 
 template<class T, class U>
-void transfer_arr(cJSON *json, T *dest, U *(T::*adder)(), const char *name) {
-    if (cJSON *arr = cJSON_GetObjectItem(json, name)) {
-        if (arr->type != cJSON_Object) {
-            check_type(arr, cJSON_Array);
-        }
+void transfer_arr(cJSON *arr, T *dest, U *(T::*adder)()) {
+    if (arr) {
+        if (arr->type != cJSON_Object && arr->type != cJSON_Array) throw exc_t();
         int sz = cJSON_GetArraySize(arr);
         for (int i = 0; i < sz; ++i) {
             safe_extract(cJSON_GetArrayItem(arr, i), (dest->*adder)());
@@ -75,7 +69,7 @@ void transfer_arr(cJSON *json, T *dest, U *(T::*adder)(), const char *name) {
 
 template<>
 void extract(cJSON *field, std::string *s) {
-    check_type(field, cJSON_String);
+    if (field->type != cJSON_String) throw exc_t();
     *s = field->valuestring;
 }
 
@@ -92,10 +86,17 @@ void extract(cJSON *field, bool *dest) {
 
 template<>
 void extract(cJSON *json, Term *t) {
-    transfer(json, t, &Term::set_type, "t");
-    transfer(json, t, &Term::mutable_datum, "d");
-    transfer_arr(json, t, &Term::add_args, "a");
-    transfer_arr(json, t, &Term::add_optargs, "o");
+    if (json->type == cJSON_Array) {
+        transfer(cJSON_GetArrayItem(json, 0), t, &Term::set_type);
+        transfer_arr(cJSON_GetArrayItem(json, 1), t, &Term::add_args);
+        transfer_arr(cJSON_GetArrayItem(json, 2), t, &Term::add_optargs);
+    } else if (json->type == cJSON_Object) {
+        t->set_type(Term::MAKE_OBJ);
+        transfer_arr(json, t, &Term::add_optargs);
+    } else {
+        t->set_type(Term::DATUM);
+        transfer(json, t, &Term::mutable_datum);
+    }
 }
 
 template<>
@@ -162,11 +163,11 @@ void extract(cJSON *json, Datum::AssocPair *ap) {
 
 template<>
 void extract(cJSON *json, Query *q) {
-    transfer(json, q, &Query::set_type, "t");
-    transfer(json, q, &Query::mutable_query, "q");
-    transfer(json, q, &Query::set_token, "k");
+    transfer(cJSON_GetArrayItem(json, 0), q, &Query::set_type);
+    transfer(cJSON_GetArrayItem(json, 1), q, &Query::set_token);
+    transfer(cJSON_GetArrayItem(json, 2), q, &Query::mutable_query);
     q->set_accepts_r_json(true);
-    transfer_arr(json, q, &Query::add_global_optargs, "g");
+    transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
 }
 
 bool parse_json_pb(Query *q, char *str) throw () {
@@ -176,6 +177,7 @@ bool parse_json_pb(Query *q, char *str) throw () {
     // debugf("%s\n", json_holder.Print().c_str());
     if (json == NULL) return false;
     extract(json, q);
+    debugf("%zu %d\n", strlen(str), q->ByteSize());
     // debugf("%s\n", q->DebugString().c_str());
     return true;
 }
