@@ -77,7 +77,7 @@ template<>
 void extract(cJSON *field, std::string *s) {
     check_type(field, cJSON_String);
     *s = field->valuestring;
-};
+}
 
 template<>
 void extract(cJSON *field, bool *dest) {
@@ -146,19 +146,19 @@ template<>
 void extract(cJSON *json, Query::AssocPair *ap) {
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
-};
+}
 
 template<>
 void extract(cJSON *json, Term::AssocPair *ap) {
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
-};
+}
 
 template<>
 void extract(cJSON *json, Datum::AssocPair *ap) {
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
-};
+}
 
 template<>
 void extract(cJSON *json, Query *q) {
@@ -167,7 +167,7 @@ void extract(cJSON *json, Query *q) {
     transfer(json, q, &Query::set_token, "k");
     q->set_accepts_r_json(true);
     transfer_arr(json, q, &Query::add_global_optargs, "g");
-};
+}
 
 bool parse_json_pb(Query *q, char *str) throw () {
     q->Clear();
