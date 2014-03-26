@@ -37,17 +37,17 @@ module RethinkDB
 
     attr_accessor :body, :bitop
 
-    def initialize(body = nil, bitop = nil)
+    def initialize(body = RQL, bitop = nil)
       @body = body
       @bitop = bitop
     end
 
     def pp
-      unbound_if !@body
+      unbound_if(@body == RQL)
       RethinkDB::RPP.pp(@body)
     end
     def inspect
-      @body ? pp : super
+      (@body != RQL) ? pp : super
     end
   end
 end

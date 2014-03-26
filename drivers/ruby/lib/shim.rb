@@ -131,7 +131,7 @@ module RethinkDB
     end
 
     def expr(x)
-      unbound_if @body
+      unbound_if(@body != RQL)
       RQL.fast_expr(x)
     end
     def coerce(other)

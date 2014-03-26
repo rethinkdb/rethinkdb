@@ -17,7 +17,7 @@ module RethinkDB
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil, &b)
       # $f.puts "("+RPP::pp(@body)+"),"
-      unbound_if !@body
+      unbound_if(@body == RQL)
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
@@ -131,7 +131,7 @@ module RethinkDB
       @mutex.synchronize{@opts[q[1]] = opts}
       noreply = opts[:noreply]
 
-      PP.pp JSON.parse(q.to_json)
+      # PP.pp JSON.parse(q.to_json)
       # return nil
 
       dispatch(q)

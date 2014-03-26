@@ -191,6 +191,7 @@ module RethinkDB
     end
 
     def self.pp(term, bt=nil)
+      return ""
       # PP.pp bt
       begin
         q = PrettyPrint.new

@@ -85,7 +85,7 @@ module RethinkDB
           optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
         end
 
-        args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+        args = ((@body != RQL) ? [self] : []) + a + (b ? [new_func(&b)] : [])
 
         t = [Term::TermType.const_get(termtype),
              args.map {|x| RQL.new.expr(x).to_pb},
@@ -101,7 +101,7 @@ module RethinkDB
     }
 
     def connect(*args, &b)
-      unbound_if @body
+      unbound_if @body != RQL
       c = Connection.new(*args)
       b ? begin b.call(c) ensure c.close end : c
     end
@@ -130,7 +130,7 @@ module RethinkDB
     end
 
     def do(*args, &b)
-      a = (@body ? [self] : []) + args.dup
+      a = ((@body != RQL) ? [self] : []) + args.dup
       if a == [] && !b
         raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
       end
@@ -140,7 +140,7 @@ module RethinkDB
     end
 
     def row
-      unbound_if @body
+      unbound_if(@body != RQL)
       raise NoMethodError, ("Sorry, r.row is not available in the ruby driver.  " +
                             "Use blocks instead.")
     end
