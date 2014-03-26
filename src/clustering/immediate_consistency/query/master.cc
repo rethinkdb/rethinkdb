@@ -128,9 +128,6 @@ void master_t<protocol_t>::client_t::perform_request(
 }
 
 
-#include "memcached/protocol.hpp"
-template class master_t<memcached_protocol_t>;
-
 #include "mock/dummy_protocol.hpp"
 template class master_t<mock::dummy_protocol_t>;
 
