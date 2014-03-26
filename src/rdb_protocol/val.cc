@@ -239,9 +239,8 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
         r_sanity_check(s_res);
 
         std::vector<counted_t<const datum_t> > array;
-        for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
+        for (auto it = s_res->statuses.begin(); it != s_res->statuses.end();) {
             r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
-            sindexes.erase(it->first);
             std::map<std::string, counted_t<const datum_t> > status;
             if (it->second.blocks_processed != 0) {
                 status["blocks_processed"] =
@@ -251,10 +250,12 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
                     make_counted<const datum_t>(
                         safe_to_double(it->second.blocks_total));
             }
-            status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL, it->second.ready);
+            status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL,
+                                                          it->second.ready);
             std::string index_name = it->first;
             status["index"] = make_counted<const datum_t>(std::move(index_name));
             array.push_back(make_counted<const datum_t>(std::move(status)));
+            sindexes.erase(it++);
         }
         rcheck(sindexes.empty(), base_exc_t::GENERIC,
                strprintf("Index `%s` was not found.", sindexes.begin()->c_str()));
