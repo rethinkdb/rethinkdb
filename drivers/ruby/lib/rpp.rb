@@ -52,9 +52,10 @@ module RethinkDB
     def self.pp_int_func(q, func, bt)
       # PP.pp [:func, func.to_json, bt]
       begin
-        func_args = func[:a][0][:a].map{|x| x.to_pb[:d]}
+        # PP.pp func
+        func_args = func[1][0][1].map{|x| x.to_pb}
         # PP.pp JSON.parse(func_args.to_json)
-        func_body = func[:a][1]
+        func_body = func[1][1]
         q.text(" ")
         q.group(0, "{", "}") {
           if func_args != []
@@ -72,8 +73,8 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return false if name == "db" || name == "funcall"
-      return false if args.size == 1 && args[0][:t] == Term::TermType::DATUM
+      return false if name == "db" || name == "table" || name == "funcall"
+      return false if args.size == 1 && args[0][0] == Term::TermType::DATUM
       return true
     end
     def self.pp_int(q, term, bt, pre_dot=false)
@@ -81,35 +82,37 @@ module RethinkDB
 
       term = term.to_pb if term.class == RQL
       # PP.pp [:pp_int, term.to_json, bt]
-      if term[:t] == Term::TermType::DATUM
-        res = pp_int_datum(q, term[:d], pre_dot)
-        q.text("\x7", 0) if bt == []
-        return res
-      end
-
-      if term[:t] == Term::TermType::VAR
-        q.text("var_")
-        res = pp_int_datum(q, term[:a][0][:d], false)
+      if term.class != Array
+        if term.class == Hash
+          pp_int_optargs(1, term, bt, pre_dot)
+        else
+          pp_int_datum(q, term, pre_dot)
+        end
         q.text("\x7", 0) if bt == []
         return
-      elsif term[:t] == Term::TermType::FUNC
+      end
+
+      type = term[0]
+      args = (term[1] || []).dup
+      optargs = (term[2] || {}).dup
+      if type == Term::TermType::VAR
+        q.text("var_")
+        res = pp_int_datum(q, args[0], false)
+        q.text("\x7", 0) if bt == []
+        return
+      elsif type == Term::TermType::FUNC
         q.text("r(") if pre_dot
         q.text("lambda")
         pp_int_func(q, term, bt)
         q.text(")") if pre_dot
         q.text("\x7", 0) if bt == []
         return
-      elsif term[:t] == Term::TermType::MAKE_OBJ
-        pp_int_optargs(q, term[:o], bt, pre_dot)
+      elsif type == Term::TermType::MAKE_ARRAY
+        pp_int_args(q, args, bt, pre_dot)
         q.text("\x7", 0) if bt == []
         return
-      elsif term[:t] == Term::TermType::MAKE_ARRAY
-        pp_int_args(q, term[:a], bt, pre_dot)
-        q.text("\x7", 0) if bt == []
-        return
-      elsif term[:t] == Term::TermType::FUNCALL
-        args = term[:a].dup
-        func = (args[0][:t] == Term::TermType::FUNC) ? args[0] : nil
+      elsif type == Term::TermType::FUNCALL
+        func = (args[0][0] == Term::TermType::FUNC) ? args[0] : nil
         if args.size == 2
           pp_int(q, args[1], bt_consume(bt, 1), pre_dot)
           q.text(".do")
@@ -134,9 +137,7 @@ module RethinkDB
         return
       end
 
-      name = @@termtype_to_str[term[:t]].downcase
-      args = (term[:a] || []).dup
-      optargs = (term[:o] || {}).dup
+      name = @@termtype_to_str[type].downcase
 
       if can_prefix(name, args) && first_arg = args.shift
         pp_int(q, first_arg, bt_consume(bt, 0), true)
@@ -153,7 +154,7 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      if args[-1] && args[-1][:t] == Term::TermType::FUNC
+      if args[-1] && args[-1][0] == Term::TermType::FUNC
         func_bt = bt_consume(bt, args.size() - 1 + arg_offset)
         func = args.pop
         # PP.pp [:func_bt, bt, arg_offset, (args.size() - 1) + arg_offset, func_bt]
@@ -191,7 +192,6 @@ module RethinkDB
     end
 
     def self.pp(term, bt=nil)
-      return ""
       # PP.pp bt
       begin
         q = PrettyPrint.new
