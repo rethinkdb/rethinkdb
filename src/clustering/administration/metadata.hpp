@@ -21,7 +21,6 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
@@ -29,7 +28,6 @@
 #include "rpc/serialize_macros.hpp"
 
 namespace mock { class dummy_protocol_t; }
-class memcached_protocol_t;
 struct rdb_protocol_t;
 
 class cluster_semilattice_metadata_t {

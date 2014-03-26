@@ -6,7 +6,6 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
