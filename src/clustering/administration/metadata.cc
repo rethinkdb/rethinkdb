@@ -336,16 +336,6 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *t
 
 
 #include "memcached/protocol_json_adapter.hpp"
-template json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template cJSON *with_ctx_render_as_json<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template void with_ctx_apply_json_to<memcached_protocol_t>(cJSON *change, namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template void with_ctx_on_subfield_change<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *, const vclock_ctx_t &);
-
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template cJSON *render_as_json<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template void apply_json_to<memcached_protocol_t>(cJSON *change, namespaces_directory_metadata_t<memcached_protocol_t> *target);
-
-
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields<rdb_protocol_t>(namespaces_semilattice_metadata_t<rdb_protocol_t> *target, const vclock_ctx_t &ctx);
 template cJSON *with_ctx_render_as_json<rdb_protocol_t>(namespaces_semilattice_metadata_t<rdb_protocol_t> *target, const vclock_ctx_t &ctx);
