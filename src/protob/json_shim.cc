@@ -73,20 +73,6 @@ void transfer_arr(cJSON *json, T *dest, U *(T::*adder)(), const char *name) {
     }
 }
 
-template<class T>
-typename std::enable_if<(std::is_enum<T>::value || std::is_fundamental<T>::value)
-                        && !std::is_same<T, bool>::value>::type
-tst(cJSON *field, T *dest) {
-    if (field->type != cJSON_Number) throw exc_t();
-    T t = static_cast<T>(field->valuedouble);
-    if (static_cast<double>(t) != field->valuedouble) throw exc_t();
-    *dest = t;
-}
-void foo() {
-    Term_TermType x;
-    tst(NULL, &x);
-}
-
 template<>
 void extract(cJSON *field, std::string *s) {
     check_type(field, cJSON_String);
