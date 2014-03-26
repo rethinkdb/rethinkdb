@@ -348,7 +348,6 @@ void admin_cluster_link_t::update_metadata_maps() {
     // This also adds "db.table" notation to the name_map, and depends on databases already being done
     add_ns_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
     add_ns_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
-    add_ns_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces->namespaces);
 }
 
 void admin_cluster_link_t::clear_metadata_maps() {
@@ -638,19 +637,6 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
         } else {
             do_admin_pin_shard_internal(shard_in, primary, secondaries, cluster_metadata, i->second.get_mutable());
         }
-    } else if (ns_path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(str_to_uuid(ns_path[1]));
-        if (i == cluster_metadata.memcached_namespaces->namespaces.end() || i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, could not find table: " + ns);
-        }
-
-        // If no primaries or secondaries are given, we list the current machine assignments
-        if (primary.empty() && secondaries.empty()) {
-            list_pinnings(i->second.get_ref(), shard_in, cluster_metadata);
-        } else {
-            do_admin_pin_shard_internal(shard_in, primary, secondaries, cluster_metadata, i->second.get_mutable());
-        }
     } else {
         throw admin_cluster_exc_t("unexpected error, unrecognized table protocol");
     }
@@ -867,11 +853,6 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
             change(&cluster_metadata.rdb_namespaces);
         error = admin_split_shard_internal(change.get(), ns_id.get(), split_points);
-    } else if (ns_path[0] == "memcached_namespaces") {
-        ns_id.reset(str_to_uuid(ns_path[1]));
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t
-            change(&cluster_metadata.memcached_namespaces);
-        error = admin_split_shard_internal(change.get(), ns_id.get(), split_points);
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy tables");
     } else {
@@ -991,11 +972,6 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
         const namespace_id_t ns_id = str_to_uuid(info->path[1]);
         prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        admin_merge_shard_internal(change.get(), ns_id, split_points);
-    } else if (info->path[0] == "memcached_namespaces") {
-        const namespace_id_t ns_id = str_to_uuid(info->path[1]);
-        prioritize_distr_for_ns.reset(ns_id);
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy tables");
@@ -1144,13 +1120,6 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
             list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "dummy");
-        } else if (info->path[0] == "memcached_namespaces") {
-            cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-            namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_id);
-            if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
-                throw admin_cluster_exc_t("object not found: " + obj_str);
-            }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "memcached");
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted()) {
@@ -1278,7 +1247,6 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
             if (info->path[0] == "machines") {
                 machine_filters.insert(info->uuid);
             } else if (info->path[0] == "dummy_namespaces" ||
-                       info->path[0] == "memcached_namespaces" ||
                        info->path[0] == "rdb_namespaces") {
                 namespace_filters.insert(info->uuid);
             } else {
@@ -1476,7 +1444,6 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
     // TODO: better differentiation between table types
     list_all_internal("table", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
     list_all_internal("table (d)", long_format, cluster_metadata.dummy_namespaces->namespaces, &table);
-    list_all_internal("table (m)", long_format, cluster_metadata.memcached_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
         admin_print_table(table);
@@ -1505,7 +1472,6 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
     // TODO: this will list affinities, but not actual state (in case of impossible requirements)
     add_datacenter_affinities(cluster_metadata.rdb_namespaces->namespaces, &results);
     add_datacenter_affinities(cluster_metadata.dummy_namespaces->namespaces, &results);
-    add_datacenter_affinities(cluster_metadata.memcached_namespaces->namespaces, &results);
 
     return results;
 }
@@ -1514,7 +1480,6 @@ std::map<database_id_t, admin_cluster_link_t::database_info_t> admin_cluster_lin
     std::map<database_id_t, database_info_t> results;
     add_database_tables(cluster_metadata.rdb_namespaces->namespaces, &results);
     add_database_tables(cluster_metadata.dummy_namespaces->namespaces, &results);
-    add_database_tables(cluster_metadata.memcached_namespaces->namespaces, &results);
     return results;
 }
 
@@ -1747,15 +1712,12 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
     if (type.empty()) {
         add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
         add_namespaces("dummy", long_format, cluster_metadata.dummy_namespaces->namespaces, &table);
-        add_namespaces("memcached", long_format, cluster_metadata.memcached_namespaces->namespaces, &table);
     } else if (type == "rdb") {
         add_namespaces(type, long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 #ifndef NO_DUMMY
     } else if (type == "dummy") {
         add_namespaces(type, long_format, cluster_metadata.dummy_namespaces->namespaces, &table);
 #endif
-    } else if (type == "memcached") {
-        add_namespaces(type, long_format, cluster_metadata.memcached_namespaces->namespaces, &table);
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + type);
     }
@@ -1841,7 +1803,6 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
     // Go through namespaces
     build_machine_info_internal(cluster_metadata.rdb_namespaces->namespaces, &results);
     build_machine_info_internal(cluster_metadata.dummy_namespaces->namespaces, &results);
-    build_machine_info_internal(cluster_metadata.memcached_namespaces->namespaces, &results);
 
     return results;
 }
@@ -2070,9 +2031,6 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     if (protocol == "rdb") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
         new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
-    } else if (protocol == "memcached") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
 #ifndef NO_DUMMY
     } else if (protocol == "dummy") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
@@ -2154,9 +2112,6 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
     if (obj_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
         do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
-    } else if (obj_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
     } else if (obj_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
         do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
@@ -2177,9 +2132,6 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
 
     if (obj_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
-    } else if (obj_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         do_admin_set_datacenter_namespace(obj_info->uuid, datacenter_uuid, &change.get()->namespaces);
     } else if (obj_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
@@ -2250,9 +2202,6 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
     if (obj_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata.rdb_namespaces);
         do_admin_set_database_table(obj_info->uuid, database_uuid, &rdb_change.get()->namespaces);
-    } else if (obj_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_database_table(obj_info->uuid, database_uuid, &memcached_change.get()->namespaces);
     } else if (obj_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata.dummy_namespaces);
         do_admin_set_database_table(obj_info->uuid, database_uuid, &dummy_change.get()->namespaces);
@@ -2301,8 +2250,7 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_u obj_uuid
     if (old_datacenter != dc) {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata->rdb_namespaces);
         remove_machine_pinnings(obj_uuid, &rdb_change.get()->namespaces);
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata->memcached_namespaces);
-        remove_machine_pinnings(obj_uuid, &memcached_change.get()->namespaces);
+
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata->dummy_namespaces);
         remove_machine_pinnings(obj_uuid, &dummy_change.get()->namespaces);
     }
@@ -2430,9 +2378,6 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
     } else if (info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
         do_admin_set_name_internal(info->uuid, name, &change.get()->namespaces);
-    } else if (info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_name_internal(info->uuid, name, &change.get()->namespaces);
     } else {
         throw admin_cluster_exc_t("unrecognized object type");
     }
@@ -2509,10 +2454,6 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
         do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<mock::dummy_protocol_t>(&change, ns_info->uuid));
 
-    } else if (ns_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<memcached_protocol_t>(&change, ns_info->uuid));
-
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
@@ -2586,9 +2527,6 @@ void admin_cluster_link_t::do_admin_set_durability(const admin_command_parser_t:
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
         do_admin_set_durability_internal(hard, get_namespace_from_metadata<mock::dummy_protocol_t>(&change, ns_info->uuid));
-    } else if (ns_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_durability_internal(hard, get_namespace_from_metadata<memcached_protocol_t>(&change, ns_info->uuid));
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
@@ -2643,10 +2581,6 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
-
-    } else if (ns_info->path[0] == "memcached_namespaces") {
-        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         do_admin_set_replicas_internal(ns_info->uuid, dc_id, num_replicas, change.get()->namespaces);
 
     } else {
@@ -2747,9 +2681,6 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
             } else if (obj_info->path[0] == "dummy_namespaces" && obj_type == "namespaces") {
                 cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
                 do_admin_remove_internal_internal(obj_info->uuid, &change.get()->namespaces);
-            } else if (obj_info->path[0] == "memcached_namespaces" && obj_type == "namespaces") {
-                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-                do_admin_remove_internal_internal(obj_info->uuid, &change.get()->namespaces);
             } else {
                 throw admin_cluster_exc_t("invalid object type: " + obj_info->path[0]);
             }
@@ -2759,12 +2690,13 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
             // Clean up any hanging references
             if (obj_info->path[0] == "machines") {
                 machine_id_t machine(obj_info->uuid);
-                cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata.memcached_namespaces);
-                remove_machine_pinnings(machine, &memcached_change.get()->namespaces);
+
                 cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata.dummy_namespaces);
                 remove_machine_pinnings(machine, &dummy_change.get()->namespaces);
+
                 cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata.rdb_namespaces);
                 remove_machine_pinnings(machine, &rdb_change.get()->namespaces);
+
             } else if (obj_info->path[0] == "datacenters") {
                 datacenter_id_t datacenter(obj_info->uuid);
                 remove_datacenter_references(datacenter, &cluster_metadata);
@@ -2820,10 +2752,9 @@ void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& d
         }
     }
 
-    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata->memcached_namespaces);
-    remove_datacenter_references_from_namespaces(datacenter, &memcached_change.get()->namespaces);
     cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata->dummy_namespaces);
     remove_datacenter_references_from_namespaces(datacenter, &dummy_change.get()->namespaces);
+
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata->rdb_namespaces);
     remove_datacenter_references_from_namespaces(datacenter, &rdb_change.get()->namespaces);
 }
@@ -2859,10 +2790,9 @@ void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const da
 }
 
 void admin_cluster_link_t::remove_database_tables(const database_id_t& database, cluster_semilattice_metadata_t *cluster_metadata) {
-    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t memcached_change(&cluster_metadata->memcached_namespaces);
-    remove_database_tables_internal(database, &memcached_change.get()->namespaces);
     cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t dummy_change(&cluster_metadata->dummy_namespaces);
     remove_database_tables_internal(database, &dummy_change.get()->namespaces);
+
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t rdb_change(&cluster_metadata->rdb_namespaces);
     remove_database_tables_internal(database, &rdb_change.get()->namespaces);
 }
@@ -3173,7 +3103,6 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
 
     add_single_datacenter_affinities(dc_id, cluster_metadata.rdb_namespaces->namespaces, "rdb", &table);
     add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces->namespaces, "dummy", &table);
-    add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces->namespaces, "memcached", &table);
 
     printf("%zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
@@ -3250,7 +3179,6 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
 
     add_single_database_affinities(db_id, cluster_metadata.rdb_namespaces->namespaces, "rdb", &table);
     add_single_database_affinities(db_id, cluster_metadata.dummy_namespaces->namespaces, "dummy", &table);
-    add_single_database_affinities(db_id, cluster_metadata.memcached_namespaces->namespaces, "memcached", &table);
 
     printf("%zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
@@ -3325,7 +3253,6 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     size_t namespace_count = 0;
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.rdb_namespaces->namespaces, &table);
     namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces->namespaces, &table);
-    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces->namespaces, &table);
 
     printf("hosting %zu replica%s from %zu table%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
     if (table.size() > 1) {
@@ -3441,13 +3368,6 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
             cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_info->uuid);
             if (i == cluster_metadata.dummy_namespaces->namespaces.end() || i->second.is_deleted()) {
-                throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
-            }
-            resolve_namespace_value(i->second.get_mutable(), field);
-        } else if (obj_info->path[0] == "memcached_namespaces") {
-            cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-            namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_info->uuid);
-            if (i == cluster_metadata.memcached_namespaces->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
             }
             resolve_namespace_value(i->second.get_mutable(), field);
