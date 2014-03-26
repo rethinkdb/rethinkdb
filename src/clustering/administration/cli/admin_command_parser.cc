@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
@@ -90,7 +90,7 @@ const char *set_auth_usage = "<KEY>";
 const char *unset_auth_usage = "";
 // TODO: fix this once multiple protocols are supported again
 const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>] [--primary-key <KEY>]";
-// const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
+// const char *create_table_usage = "<NAME> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
 const char *create_datacenter_usage = "<NAME>";
 const char *create_database_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
@@ -134,7 +134,6 @@ const char *set_database_database_option = "<DATABASE>";
 const char *set_auth_key_option = "<KEY>";
 const char *create_table_name_option = "<NAME>";
 // TODO: fix this once multiple protocols are supported again
-// const char *create_table_port_option = "--port <PORT>";
 // const char *create_table_protocol_option = "--protocol <PROTOCOL>";
 const char *create_table_primary_option = "--primary <DATACENTER>";
 const char *create_table_primary_key_option = "--primary-key <KEY>";
@@ -152,7 +151,7 @@ const char *list_stats_table_option_desc = "Limit stat collection to the set of 
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
 // TODO: fix this once multiple protocols are supported again
 const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', 'primary_pinnings', or 'secondary_pinnings', if no object is specified, this may be 'auth'";
-// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
+// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "The table to change the shard pinnings of, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
 const char *pin_shard_master_option_desc = "the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the table";
@@ -183,7 +182,6 @@ const char *set_database_database_option_desc = "the database to move to";
 const char *set_auth_key_option_desc = "the key that clients must provide when connecting, maximum length is 2048 characters";
 const char *create_table_name_option_desc = "the name of the new table";
 // TODO: fix this once multiple protocols are supported again
-// const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
 // const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
 const char *create_table_primary_option_desc = "the primary datacenter of the new table, this datacenter will host the master replicas of each shard";
 const char *create_table_primary_key_option_desc = "the field to use as the primary key in the new table";
@@ -220,9 +218,7 @@ const char *unset_datacenter_description = "Clear the datacenter of a machine.";
 const char *set_database_description = "Set the database that a table belongs to.";
 const char *set_auth_description = "Set a key for client access control for the cluster.";
 const char *unset_auth_description = "Remove access control from the cluster.";
-// TODO: fix this once multiple protocols are supported again
 const char *create_table_description = "Create a new table in the given database and primary datacenter.";
-// const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *create_database_description = "Create a new database with the given name.  Tables may be assigned to the database.";
 const char *remove_description = "Remove one or more objects from the cluster.";
@@ -708,9 +704,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("name", 1, true);
     // TODO: fix this once multiple protocols are supported again
     info->add_flag("protocol", 1, false, true); // hidden option
-    info->add_flag("port", 1, false, true); // hidden option
     // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached");
-    // info->add_flag("port", 1, true);
     info->add_flag("primary", 1, false)->add_option("!datacenter");
     info->add_flag("primary-key", 1, false);
     info->add_flag("database", 1, true)->add_option("!database");
@@ -1364,7 +1358,6 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 helps.push_back(admin_help_info_t(create_table_command, create_table_usage, create_table_description));
                 options.push_back(std::make_pair(create_table_name_option, create_table_name_option_desc));
                 // TODO: fix this once multiple protocols are supported again
-                // options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
                 // options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
                 options.push_back(std::make_pair(create_table_database_option, create_table_database_option_desc));
                 options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));

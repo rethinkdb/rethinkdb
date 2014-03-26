@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/admin_tracker.hpp"
+
 #include <map>
 #include <list>
 
-#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/semilattice/view/field.hpp"
 

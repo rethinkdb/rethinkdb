@@ -461,9 +461,7 @@ std::vector<std::string> admin_cluster_link_t::get_machine_ids(const std::string
 
 std::vector<std::string> admin_cluster_link_t::get_namespace_ids(const std::string& base) {
     std::vector<std::string> namespaces = get_ids_internal(base, "rdb_namespaces");
-    std::vector<std::string> delta = get_ids_internal(base, "memcached_namespaces");
-    std::copy(delta.begin(), delta.end(), std::back_inserter(namespaces));
-    delta = get_ids_internal(base, "dummy_namespaces");
+    std::vector<std::string> delta = get_ids_internal(base, "dummy_namespaces");
     std::copy(delta.begin(), delta.end(), std::back_inserter(namespaces));
     return namespaces;
 }
@@ -533,8 +531,6 @@ admin_cluster_link_t::metadata_info_t *admin_cluster_link_t::get_info_from_id(co
                 exception_info += strprintf("\ntable (r) %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
             } else if (item->second->path[0] == "dummy_namespaces") {
                 exception_info += strprintf("\ntable (d) %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
-            } else if (item->second->path[0] == "memcached_namespaces") {
-                exception_info += strprintf("\nntable (m) %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
             } else if (item->second->path[0] == "machines") {
                 exception_info += strprintf("\nmachine       %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
             } else {
@@ -577,7 +573,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
     if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("pinning not supported for dummy tables");
-    } else if (ns_path[0] != "memcached_namespaces" && ns_path[0] != "rdb_namespaces") {
+    } else if (ns_path[0] != "rdb_namespaces") {
         throw admin_parse_exc_t("object is not a table: " + ns);
     }
 
@@ -1968,7 +1964,6 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     namespace_id_t new_id;
     std::string protocol;
     std::string primary_key;
-    uint64_t port;
 
     // If primary is specified, use it and verify its validity
     if (data.params.find("primary") != data.params.end()) {
@@ -2005,24 +2000,9 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary_key = "id";
     }
 
+    // RSI: Remove all specific mention of the "port" option, making sure it is 
     // Make sure port is valid if required, or not specified if not needed
-    if (protocol == "memcached") {
-        if (data.params.find("port") == data.params.end()) {
-            throw admin_parse_exc_t("port is required for the memcached protocol");
-        }
-        std::string port_str = guarantee_param_0(data.params, "port");
-        if (!strtou64_strict(port_str, 10, &port)) {
-            throw admin_parse_exc_t("port is not a number");
-        }
-        if (port > 65536) {
-            throw admin_parse_exc_t("port is too large: " + port_str);
-        }
-    } else {
-        if (data.params.find("port") != data.params.end()) {
-            throw admin_parse_exc_t("port is only vald for the memcached protocol");
-        }
-        port = 0;
-    }
+    uint64_t port = 0;  // RSI
 
     if (database_info->path[0] != "databases") {
         throw admin_parse_exc_t("specified database is not a database: " + database_id);
