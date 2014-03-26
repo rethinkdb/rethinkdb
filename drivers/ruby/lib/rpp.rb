@@ -74,7 +74,6 @@ module RethinkDB
 
     def self.can_prefix (name, args)
       return false if name == "db" || name == "table" || name == "funcall"
-      return false if args.size == 1 && args[0][0] == Term::TermType::DATUM
       return true
     end
     def self.pp_int(q, term, bt, pre_dot=false)
@@ -84,7 +83,7 @@ module RethinkDB
       # PP.pp [:pp_int, term.to_json, bt]
       if term.class != Array
         if term.class == Hash
-          pp_int_optargs(1, term, bt, pre_dot)
+          pp_int_optargs(q, term, bt, pre_dot)
         else
           pp_int_datum(q, term, pre_dot)
         end
@@ -154,7 +153,7 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      if args[-1] && args[-1][0] == Term::TermType::FUNC
+      if args[-1] && args[-1].class == Array && args[-1][0] == Term::TermType::FUNC
         func_bt = bt_consume(bt, args.size() - 1 + arg_offset)
         func = args.pop
         # PP.pp [:func_bt, bt, arg_offset, (args.size() - 1) + arg_offset, func_bt]
