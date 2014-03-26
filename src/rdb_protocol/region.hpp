@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MEMCACHED_REGION_HPP_
-#define MEMCACHED_REGION_HPP_
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef RDB_PROTOCOL_REGION_HPP_
+#define RDB_PROTOCOL_REGION_HPP_
 
 #include <string>
 #include <vector>
@@ -32,4 +32,4 @@ MUST_USE region_join_result_t region_join(const std::vector<key_range_t> &vec, k
 
 std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
 
-#endif  // MEMCACHED_REGION_HPP_
+#endif  // RDB_PROTOCOL_REGION_HPP_

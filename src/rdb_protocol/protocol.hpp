@@ -22,8 +22,8 @@
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
-#include "memcached/region.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/region.hpp"
 #include "rdb_protocol/shards.hpp"
 
 class extproc_pool_t;

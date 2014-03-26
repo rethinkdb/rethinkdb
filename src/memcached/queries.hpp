@@ -13,7 +13,7 @@
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
 #include "containers/counted.hpp"
-#include "memcached/region.hpp"
+#include "rdb_protocol/region.hpp"
 #include "hash_region.hpp"
 #include "utils.hpp"
 
