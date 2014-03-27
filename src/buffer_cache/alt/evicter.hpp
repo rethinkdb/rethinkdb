@@ -48,8 +48,6 @@ public:
         return ++access_time_counter_;
     }
 
-    bool initialized() const { return initialized_; }
-
     uint64_t memory_limit() const;
     uint64_t access_count() const;
     uint64_t get_clamped_bytes_loaded() const;
