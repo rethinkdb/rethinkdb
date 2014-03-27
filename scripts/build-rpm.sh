@@ -22,13 +22,6 @@ getent passwd rethinkdb >/dev/null || \
     --comment "RethinkDB Daemon" rethinkdb
 EOF
 
-    case $ARCH in
-        i686)
-            # patch the v8 build rule to allow building 32-bit rethinkdb on
-            # a 64-bit kernel with a 32-bit userland
-            sed 's/ native / ia32.release /' -i mk/support.mk
-    esac
-
     test -n "${NOCONFIGURE:-}" || ./configure --static all --fetch all --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
     `make command-line` -j 8 install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1
