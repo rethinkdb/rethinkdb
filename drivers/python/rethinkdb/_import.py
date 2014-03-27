@@ -30,7 +30,7 @@ def print_import_help():
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
     print "                                   to 8)"
-    print "  --hard                           use hard durability writes (slower, but less memory"
+    print "  --hard-durability                use hard durability writes (slower, but less memory"
     print "                                   consumption on the server)"
     print "  --force                          import data even if a table already exists, and"
     print "                                   overwrite duplicate primary keys"
@@ -82,7 +82,7 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
-    parser.add_option("--hard", dest="hard", action="store_true", default=False)
+    parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
 
