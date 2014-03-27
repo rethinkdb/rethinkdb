@@ -29,6 +29,10 @@ pkg_install () {
         arm*)   arch=arm ;;
         *)      arch=native ;;
     esac
+    if [ "$($CXX -dumpversion)" = "4.4" ]; then
+        # This is GCC 4.4
+        CXXFLAGS="${CXXFLAGS:-} -fno-function-sections -fno-inline-functions"
+    fi
     pkg_make $arch.release CXX=$CXX LINK=$CXX LINK.target=$CXX werror=no $makeflags CXXFLAGS="${CXXFLAGS:-} -Wno-error"
     find "$build_dir/out/$arch.release/obj.target" -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ${AR:-ar} cqs "$install_dir/lib/libv8.a"
 }
