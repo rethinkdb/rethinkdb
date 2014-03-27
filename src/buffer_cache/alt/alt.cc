@@ -71,7 +71,7 @@ void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
 }
 
 void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
-                                                     const block_size_t &max_block_size) {
+                                                     const block_size_t max_block_size) {
     int64_t throttler_limit = std::min<int64_t>(SOFT_UNWRITTEN_CHANGES_LIMIT,
         (memory_limit / max_block_size.ser_value()) * SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION);
 

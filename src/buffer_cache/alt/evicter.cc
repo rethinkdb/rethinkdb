@@ -54,7 +54,6 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit,
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
 
-    // Set the transaction throttler to use at most half the cache
     throttler_->inform_memory_limit_change(memory_limit_,
                                            page_cache_->max_block_size());
 }
