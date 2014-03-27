@@ -18,7 +18,8 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::throttler_acq_t;
 
-const int64_t alt_txn_throttler_t::SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -69,9 +70,15 @@ void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
     // Just let the acq destructor do its thing.
 }
 
-void alt_txn_throttler_t::set_unwritten_changes_limit(int64_t new_limit) {
-    guarantee(new_limit <= SOFT_UNWRITTEN_CHANGES_LIMIT);
-    unwritten_changes_semaphore_.set_capacity(new_limit);
+void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
+                                                     const block_size_t &max_block_size) {
+    int64_t throttler_limit = std::min<int64_t>(SOFT_UNWRITTEN_CHANGES_LIMIT,
+        (memory_limit / max_block_size.ser_value()) * SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION);
+
+    // Always provide at least one capacity in the semaphore
+    throttler_limit = std::max<int64_t>(throttler_limit, 1);
+
+    unwritten_changes_semaphore_.set_capacity(throttler_limit);
 }
 
 cache_t::cache_t(serializer_t *serializer,
