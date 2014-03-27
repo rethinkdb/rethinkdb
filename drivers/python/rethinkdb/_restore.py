@@ -18,6 +18,8 @@ def print_restore_help():
     print "                                   be specified multiple times)"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
     print "                                   to 8)"
+    print "  --hard                           use hard durability writes (slower, but less memory"
+    print "                                   consumption on the server)"
     print "  --force                          import data even if a table already exists"
     print ""
     print "EXAMPLES:"
@@ -43,6 +45,7 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
+    parser.add_option("--hard", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", default=False, action="store_true")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
@@ -90,6 +93,7 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
+    res["hard"] = options.hard
     res["force"] = options.force
     res["debug"] = options.debug
     return res
@@ -132,6 +136,8 @@ def do_import(temp_dir, options):
     for db, table in options["tables"]:
         import_args.extend(["--import", "%s.%s" % (db, table)])
 
+    if options["hard"]:
+        import_args.append("--hard")
     if options["force"]:
         import_args.append("--force")
     if options["debug"]:
