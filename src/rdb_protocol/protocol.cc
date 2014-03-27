@@ -739,7 +739,7 @@ void rdb_r_unshard_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
     *response_out = read_response_t(sindex_status_response_t());
     auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
     for (size_t i = 0; i < count; ++i) {
-        auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
+        auto resp = boost::get<sindex_status_response_t>(&responses[i].response);
         guarantee(resp != NULL);
         for (auto it = resp->statuses.begin(); it != resp->statuses.end(); ++it) {
             add_status(it->second, &ss_response->statuses[it->first]);
