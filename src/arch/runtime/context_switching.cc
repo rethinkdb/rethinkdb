@@ -347,11 +347,6 @@ void threaded_context_ref_t::rethread_to_current() {
 
 void threaded_context_ref_t::wait() {
     cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
-    if (do_shutdown) {
-        // Release the lock, then terminate the thread
-        lock.reset();
-        pthread_exit(); // TODO! Return value
-    }
     if (do_rethread) {
         restore_virtual_thread();
         // Re-lock to a different thread mutex
@@ -397,18 +392,15 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
 }
 
 threaded_stack_t::~threaded_stack_t() {
-    // Our coroutines currently never terminate. Instead they just keep
-    // waiting for a condition to be signaled. To terminate the thread, we set a
-    // special flag and signal its condition.
-
-    // Note: This code is safe only because we know that the context is not currently
-    //   active (otherwise it shouldn't be destroyed in the first place) and waiting
-    //   for the condition to be signaled. TODO! Is that guaranteed in any way?
-    guarantee(!context.lock.has(), "Tried to shut down a threaded_stack_t while its"
-                                   " context was still active.");
-    context.do_shutdown = true;
-    context.cond.signal();
-    // TODO!
+    // This is ugly. But our coroutines currently never terminate. Instead
+    // they just end up in an endless loop. Usually we would just destroy
+    // their stack context, but here we have to kill the thread first.
+    // TODO (daniel): If we ever want to use the threaded_stack_t in
+    //  a (semi-)production environment, we should fix this.
+    //  I think the better way of doing this would be to send a non-SIGKILL
+    //  signal and to install an appropriate signal handler on the threads.
+    int result = pthread_kill(thread, SIGKILL);
+    guarantee_xerr(result == 0, result, "Could not kill thread: %i", result);
     result = pthread_join(thread, NULL);
     guarantee_xerr(result == 0, result, "Could not join with thread: %i", result);
 }
