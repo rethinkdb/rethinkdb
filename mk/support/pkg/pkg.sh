@@ -26,6 +26,8 @@
 
 set -eu
 
+unset DESTDIR
+
 # Print the version number of the package
 pkg_version () {
     echo $version
