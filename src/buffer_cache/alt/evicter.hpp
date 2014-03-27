@@ -11,6 +11,7 @@
 #include "threading.hpp"
 
 class cache_balancer_t;
+class alt_txn_throttler_t;
 
 namespace alt {
 
@@ -37,7 +38,9 @@ public:
     explicit evicter_t();
     ~evicter_t();
 
-    void initialize(page_cache_t *page_cache, cache_balancer_t *balancer);
+    void initialize(page_cache_t *page_cache,
+                    cache_balancer_t *balancer,
+                    alt_txn_throttler_t *throttler);
     void update_memory_limit(uint64_t new_memory_limit,
                              uint64_t bytes_loaded_accounted_for,
                              uint64_t access_count_accounted_for,
@@ -68,6 +71,7 @@ private:
     bool initialized_;
     page_cache_t *page_cache_;
     cache_balancer_t *balancer_;
+    alt_txn_throttler_t *throttler_;
 
     uint64_t memory_limit_;
 

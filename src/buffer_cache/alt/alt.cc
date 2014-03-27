@@ -18,7 +18,7 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::throttler_acq_t;
 
-const int SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const int64_t alt_txn_throttler_t::SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -69,12 +69,17 @@ void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
     // Just let the acq destructor do its thing.
 }
 
+void alt_txn_throttler_t::set_unwritten_changes_limit(int64_t new_limit) {
+    guarantee(new_limit <= SOFT_UNWRITTEN_CHANGES_LIMIT);
+    unwritten_changes_semaphore_.set_capacity(new_limit);
+}
+
 cache_t::cache_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       throttler_(),
-      page_cache_(serializer, balancer) { }
+      page_cache_(serializer, balancer, &throttler_) { }
 
 cache_t::~cache_t() { }
 

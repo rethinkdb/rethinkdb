@@ -27,6 +27,9 @@ public:
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
     void end_txn(alt::throttler_acq_t acq);
 
+    static const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT;
+    void set_unwritten_changes_limit(int64_t new_limit);
+
 private:
     friend class txn_t;
 
