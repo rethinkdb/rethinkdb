@@ -190,9 +190,9 @@ struct write_test_t {
 
 struct resize_test_t {
 
-    resize_test_t(test_driver_t *_driver) :
-        driver(_driver),
-        action(driver->make_action()) {
+    explicit resize_test_t(test_driver_t *_driver)
+        : driver(_driver),
+          action(driver->make_action()) {
         action->make_resize(IRRELEVANT_DEFAULT_FD, DEVICE_BLOCK_SIZE, false);
         driver->submit(action);
     }
