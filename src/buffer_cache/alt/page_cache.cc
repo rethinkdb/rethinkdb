@@ -183,7 +183,8 @@ public:
 };
 
 page_cache_t::page_cache_t(serializer_t *serializer,
-                           cache_balancer_t *balancer)
+                           cache_balancer_t *balancer,
+                           alt_txn_throttler_t *throttler)
     : max_block_size_(serializer->max_block_size()),
       serializer_(serializer),
       free_list_(serializer),
@@ -209,7 +210,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     }
 
     // Make the evicter usable
-    evicter_.initialize(this, balancer);
+    evicter_.initialize(this, balancer, throttler);
 }
 
 page_cache_t::~page_cache_t() {
