@@ -14,11 +14,7 @@ namespace ql {
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
 accumulator_t::accumulator_t() : finished(false) { }
-accumulator_t::~accumulator_t() {
-    if (!std::uncaught_exception()) {
-        r_sanity_check(finished);
-    }
-}
+accumulator_t::~accumulator_t() { }
 void accumulator_t::mark_finished() { finished = true; }
 
 void accumulator_t::finish(result_t *out) {
