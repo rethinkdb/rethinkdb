@@ -48,7 +48,7 @@ public:
     test_cache_t(serializer_t *serializer, 
                  cache_balancer_t *balancer,
                  alt_txn_throttler_t *throttler)
-        : page_cache_t(serializer, balancer),
+        : page_cache_t(serializer, balancer, throttler),
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {

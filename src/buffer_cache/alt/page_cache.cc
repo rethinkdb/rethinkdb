@@ -183,7 +183,8 @@ public:
 };
 
 page_cache_t::page_cache_t(serializer_t *serializer,
-                           cache_balancer_t *balancer)
+                           cache_balancer_t *balancer,
+                           alt_txn_throttler_t *throttler)
     : max_block_size_(serializer->max_block_size()),
       serializer_(serializer),
       free_list_(serializer),
@@ -216,7 +217,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     // initialize the read_ahead_cb_ after the evicter_ because that way reentrant
     // usage by the balancer (before page_cache_t construction completes) would be
     // more likely to trip an assertion.
-    evicter_.initialize(this, balancer);
+    evicter_.initialize(this, balancer, throttler);
     read_ahead_cb_ = local_read_ahead_cb;
 }
 

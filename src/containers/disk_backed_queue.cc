@@ -32,7 +32,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
        crashes. */
     file_opener.unlink_serializer_file();
 
-    balancer.init(new dummy_cache_balancer_t(MEGABYTE));
+    balancer.init(new dummy_cache_balancer_t(2 * MEGABYTE));
     cache.init(new cache_t(serializer.get(), balancer.get(), &perfmon_collection));
     cache_conn.init(new cache_conn_t(cache.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
