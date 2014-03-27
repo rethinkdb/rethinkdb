@@ -39,7 +39,7 @@ EOF
     ... --iteration "`./scripts/gen-version.sh -r`"
     ... --depends 'glibc >= 2.12' # Only if you build with glibc 2.12
     ... --conflicts 'rethinkdb'
-    ... --architecture "$(uname -m)"
+    ... --architecture "$ARCH"
     ... --maintainer 'RethinkDB <devops@rethinkdb.com>'
     ... --description "$DESCRIPTION"
     ... --url 'http://www.rethinkdb.com/'
