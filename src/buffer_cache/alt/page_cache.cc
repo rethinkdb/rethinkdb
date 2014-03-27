@@ -196,10 +196,11 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         read_ahead_cb_existence_ = drainer_->lock();
     }
 
+    page_read_ahead_cb_t *local_read_ahead_cb = NULL;
     {
         on_thread_t thread_switcher(serializer->home_thread());
         if (start_read_ahead) {
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
+            local_read_ahead_cb = new page_read_ahead_cb_t(serializer, this);
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
@@ -208,8 +209,15 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         recencies_ = serializer->get_all_recencies();
     }
 
-    // Make the evicter usable
+    ASSERT_NO_CORO_WAITING;
+    // We don't want to accept read-ahead buffers (or any operations) until the
+    // evicter is ready.  So we set read_ahead_cb_ here so that we accept read-ahead
+    // buffers at exactly the same time that we initialize the evicter.  We
+    // initialize the read_ahead_cb_ after the evicter_ because that way reentrant
+    // usage by the balancer (before page_cache_t construction completes) would be
+    // more likely to trip an assertion.
     evicter_.initialize(this, balancer);
+    read_ahead_cb_ = local_read_ahead_cb;
 }
 
 page_cache_t::~page_cache_t() {
