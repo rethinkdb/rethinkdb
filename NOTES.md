@@ -1,3 +1,19 @@
+# Release 1.12.1 (The Wizard of Oz)
+
+Released on 2014-04-27
+
+Bug fix update.
+
+* Fixed crash `evicter.cc at line 124: Guarantee failed: [initialized_]` (#2182)
+* Fixed `index_wait` which did not always work (#2170, #2179)
+* Fixed `--fetch boost` (#2174)
+* Fixed a segmentation fault (#2178)
+* Added a `--hard-durability` option to import/restore
+* Changed the default `--cache-size` to be more friendly towards machines with less free RAM
+* Changed tables to scale their soft durability throttling based on their cache size
+* Fixed some build failures (#2183)
+* Fixed the Centos i686 packages (#2176)
+
 # Release 1.12.0 (The Wizard of Oz)
 
 Released on 2014-04-26
