@@ -231,7 +231,7 @@ geturl () {
     if [[ -n "${WGET:-}" ]]; then
         $WGET --quiet --output-document=- "$@"
     else
-        ${CURL:-curl} --silent "$@"
+        ${CURL:-curl} --silent --location "$@"
     fi
 }
 

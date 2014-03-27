@@ -427,8 +427,12 @@ uint64_t get_avail_mem_size() {
 
 uint64_t get_total_cache_size(const std::map<std::string, options::values_t> &opts) {
     uint64_t cache_limit = std::numeric_limits<intptr_t>::max();
-    uint64_t res = std::min<uint64_t>(get_avail_mem_size() / DEFAULT_MAX_CACHE_RATIO,
-                                      cache_limit);
+    int64_t available_mem = get_avail_mem_size();
+
+    // Default to half the available memory minus a gigabyte, to leave room for server
+    // and query overhead, but never default to less than 100 megabytes
+    int64_t signed_res = std::min<int64_t>(available_mem - GIGABYTE, cache_limit) / DEFAULT_MAX_CACHE_RATIO;
+    uint64_t res = std::max<int64_t>(signed_res, 100 * MEGABYTE);
 
     if (exists_option(opts, "--cache-size")) {
         std::string cache_size_opt = get_single_option(opts, "--cache-size");
@@ -747,7 +751,7 @@ std::string uname_msr() {
     FILE *out = popen("uname -msr", "r");
     if (!out) return unknown;
     if (!fgets(buf, sizeof(buf), out)) {
-        pclose(out);    
+        pclose(out);
         return unknown;
     }
     pclose(out);
@@ -767,10 +771,22 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
 
-    logINF("Using cache size of %" PRIu64 " MB", total_cache_size / static_cast<uint64_t>(MEGABYTE));
+    logINF("Using cache size of %" PRIu64 " MB",
+           total_cache_size / static_cast<uint64_t>(MEGABYTE));
 
+    // Provide some warnings if the cache size or available memory seem inadequate
+    // We can't *really* tell what could go wrong given that we don't know how much data
+    // or what kind of queries will be run, so these are just somewhat reasonable values.
+    uint64_t available_memory = get_avail_mem_size();
     if (total_cache_size > get_avail_mem_size()) {
         logWRN("Requested cache size is larger than available memory.");
+    } else if (total_cache_size + GIGABYTE > get_avail_mem_size()) {
+        logWRN("Cache size does not leave much memory for server and query "
+               "overhead (available memory: %" PRIu64 " MB).",
+               available_memory / static_cast<uint64_t>(MEGABYTE));
+    }
+    if (total_cache_size <= 100 * MEGABYTE) {
+        logWRN("Cache size is very low and may impact performance.");
     }
 
 

@@ -115,8 +115,9 @@ public:
     virtual const char *name() const { return "sindex_status"; }
 };
 
-/* We wait 10 seconds between polls to the indexes. */
-int64_t poll_ms = 10000;
+/* We wait for no more than 10 seconds between polls to the indexes. */
+int64_t initial_poll_ms = 50;
+int64_t max_poll_ms = 10000;
 
 bool all_ready(counted_t<const datum_t> statuses) {
     for (size_t i = 0; i < statuses->size(); ++i) {
@@ -138,13 +139,17 @@ public:
         for (size_t i = 1; i < num_args(); ++i) {
             sindexes.insert(arg(env, i)->as_str().to_std());
         }
+        // Start with initial_poll_ms, then double the waiting period after each
+        // attempt up to a maximum of max_poll_ms.
+        int64_t current_poll_ms = initial_poll_ms;
         for (;;) {
             counted_t<const datum_t> statuses =
                 table->sindex_status(env->env, sindexes);
             if (all_ready(statuses)) {
                 return new_val(statuses);
             } else {
-                nap(poll_ms, env->env->interruptor);
+                nap(current_poll_ms, env->env->interruptor);
+                current_poll_ms = std::min(max_poll_ms, current_poll_ms * 2);
             }
         }
     }
