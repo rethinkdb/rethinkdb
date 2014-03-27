@@ -27,7 +27,8 @@ void evicter_t::initialize(page_cache_t *page_cache,
                            cache_balancer_t *balancer,
                            alt_txn_throttler_t *throttler) {
     guarantee(balancer != NULL);
-    initialized_ = true; // Can you really say this class is 'initialized_'?
+    initialized_ = true;  // Can you really say this class is 'initialized_'?
+    page_cache_ = page_cache;
     memory_limit_ = balancer->base_mem_per_store();
     page_cache_ = page_cache;
     throttler_ = throttler;
