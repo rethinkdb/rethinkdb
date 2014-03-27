@@ -30,6 +30,8 @@ def print_import_help():
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
     print "                                   to 8)"
+    print "  --hard                           use hard durability writes (slower, but less memory"
+    print "                                   consumption on the server)"
     print "  --force                          import data even if a table already exists, and"
     print "                                   overwrite duplicate primary keys"
     print "  --fields                         limit which fields to use when importing one table"
@@ -80,6 +82,7 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
+    parser.add_option("--hard", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
 
@@ -121,6 +124,7 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
+    res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
 
@@ -250,7 +254,7 @@ def parse_options():
     return res
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, use_upsert):
+def client_process(host, port, auth_key, task_queue, error_queue, use_upsert, durability):
     try:
         conn = r.connect(host, port, auth_key=auth_key)
         while True:
@@ -258,7 +262,7 @@ def client_process(host, port, auth_key, task_queue, error_queue, use_upsert):
             if len(task) == 3:
                 # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
                 objs = [cPickle.loads(obj) for obj in task[2]]
-                res = r.db(task[0]).table(task[1]).insert(objs, durability="soft", upsert=use_upsert).run(conn)
+                res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
                 if res["errors"] > 0:
                     raise RuntimeError("Error when importing into table '%s.%s': %s" %
                                        (task[0], task[1], res["first_error"]))
@@ -531,7 +535,8 @@ def spawn_import_clients(options, files_info):
                                                               options["auth_key"],
                                                               task_queue,
                                                               error_queue,
-                                                              options["force"])))
+                                                              options["force"],
+                                                              options["durability"])))
             client_procs[-1].start()
 
         for file_info in files_info:
