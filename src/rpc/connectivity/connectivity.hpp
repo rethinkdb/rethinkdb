@@ -52,8 +52,10 @@ struct peers_list_callback_t {
 public:
     peers_list_callback_t() { }
 
-    // As a rule, for a given peer id, first we get an on_connect call, and then
-    // we get an alternating sequence of on_disconnect and on_connect calls.
+    // As a rule, for a given peer id, these calls arrive in alternating sequence as
+    // long as we're subscribed to them.  (And you should subscribe early enough
+    // (before constructing a connectivity_cluster_t::run_t, in practice) that you
+    // get on_connect first.)
     virtual void on_connect(peer_id_t peer_id) = 0;
     virtual void on_disconnect(peer_id_t peer_id) = 0;
 
