@@ -13,6 +13,8 @@ pkg_install () {
     if [[ "$OS" = Darwin ]]; then
         # The symbol list is broken on OS X 10.7.5 with XCode 3.2.6
         sed -i '' 's/-exported_symbols_list libre2.symbols.darwin//' "$build_dir/Makefile"
+        CXXFLAGS="${CXXFLAGS:-} -stdlib=libc++"
+        LDFLAGS="${LDFLAGS:-} -lc++"
     fi
     pkg_make install prefix="$install_dir" CXXFLAGS="${CXXFLAGS:-} -O3" LDFLAGS="${LDFLAGS:-} $PTHREAD_LIBS"
 }

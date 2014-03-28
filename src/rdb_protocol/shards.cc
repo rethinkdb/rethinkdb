@@ -14,11 +14,7 @@ namespace ql {
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 
 accumulator_t::accumulator_t() : finished(false) { }
-accumulator_t::~accumulator_t() {
-    if (!std::uncaught_exception()) {
-        r_sanity_check(finished);
-    }
-}
+accumulator_t::~accumulator_t() { }
 void accumulator_t::mark_finished() { finished = true; }
 
 void accumulator_t::finish(result_t *out) {
@@ -574,10 +570,12 @@ class ungrouped_op_t : public op_t {
 protected:
 private:
     virtual void operator()(groups_t *groups, const counted_t<const datum_t> &) {
-        for (auto it = groups->begin(); it != groups->end(); ++it) {
+        for (auto it = groups->begin(); it != groups->end();) {
             lst_transform(&it->second);
             if (it->second.size() == 0) {
-                groups->erase(it); // This is important for batching with filter.
+                groups->erase(it++); // This is important for batching with filter.
+            } else {
+                ++it;
             }
         }
     }

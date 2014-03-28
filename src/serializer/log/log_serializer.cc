@@ -71,8 +71,9 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
-        crash("Could not rename database file %s to permanent location %s\n",
-              temporary_file_name().c_str(), file_name().c_str());
+        crash("Could not rename database file %s to permanent location %s (%s)\n",
+              temporary_file_name().c_str(), file_name().c_str(),
+              errno_string(errno).c_str());
     }
 
     guarantee_fsync_parent_directory(file_name().c_str());
