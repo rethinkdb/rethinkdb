@@ -32,6 +32,7 @@ template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     uint64_t session_id;
     {
+        ASSERT_NO_CORO_WAITING;
         session_id = ++session_counter;
         auto res = sessions.insert(std::make_pair(peer, session_id));
         guarantee(res.second);
@@ -47,6 +48,7 @@ void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NO
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_disconnect(peer_id_t peer) {
+    ASSERT_NO_CORO_WAITING;
     size_t erased = sessions.erase(peer);
     guarantee(erased == 1);
 }
@@ -123,6 +125,7 @@ private:
 
 template<class metadata_t>
 bool directory_write_manager_t<metadata_t>::still_connected(peer_id_t peer, uint64_t session_id) const {
+    ASSERT_NO_CORO_WAITING;
     std::map<peer_id_t, uint64_t>::const_iterator it = sessions.find(peer);
     return it != sessions.end() && it->second == session_id;
 }
