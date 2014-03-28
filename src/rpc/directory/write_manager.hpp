@@ -52,7 +52,8 @@ private:
     // between when they were spawned and not.  They only communicate to the peer if
     // it hasn't reconnected in the mean time.  This prevents us from sending two
     // initialization messages to the same peer (after quickly disconnecting and
-    // reconnecting).
+    // reconnecting).  (It would be better if the message service or connectivity
+    // service did this for us.)
     uint64_t session_counter;
     std::map<peer_id_t, uint64_t> sessions;
 
