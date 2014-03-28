@@ -69,7 +69,7 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
         // get_peers_list() should be in sync with the on_connect/on_disconnect state.
         guarantee(session_it != sessions.end());
 
-        coro_t::spawn_later_ordered(boost::bind(
+        coro_t::spawn_sometime(boost::bind(
             &directory_write_manager_t::send_update, this,
             *it, session_it->second,
             new_value, metadata_fifo_token,
