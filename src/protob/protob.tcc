@@ -80,7 +80,7 @@ auth_key_t protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_
     uint32_t auth_key_length;
     conn->read(&auth_key_length, sizeof(uint32_t), interruptor);
 
-    const char *const too_long_error_message = "client provided an authorization key that is too long";
+    const char *const too_long_error_message = "Client provided an authorization key that is too long.";
 
     if (auth_key_length > sizeof(buffer)) {
         throw protob_server_exc_t(too_long_error_message);
@@ -197,7 +197,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                     ? json_shim::parse_json_pb(q, data.data())
                     : q->ParseFromArray(data.data(), size);
                 if (!res) {
-                    err = "Client is buggy (failed to deserialize protobuf).";
+                    err = "Client is buggy (failed to deserialize query).";
                     forced_response = on_unparsable_query(request, err);
                     force_response = true;
                 }
@@ -356,7 +356,7 @@ void protob_server_t<request_t, response_t, context_t>::handle(const http_req_t 
                     boost::shared_ptr<typename http_conn_cache_t<context_t>::http_conn_t> conn =
                         http_conn_cache.find(conn_id);
                     if (!parseSucceeded) {
-                        std::string err = "Client is buggy (failed to deserialize protobuf).";
+                        std::string err = "Client is buggy (failed to deserialize query).";
                         response = on_unparsable_query(request, err);
                     } else if (!conn) {
                         std::string err = "This HTTP connection is not open.";
