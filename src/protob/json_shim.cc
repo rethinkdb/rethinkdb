@@ -170,7 +170,7 @@ void extract(cJSON *json, Query *q) {
     transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
 }
 
-bool parse_json_pb(Query *q, char *str) throw () {
+bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
     q->Clear();
     scoped_cJSON_t json_holder(cJSON_Parse(str));
     cJSON *json = json_holder.get();
@@ -182,7 +182,7 @@ bool parse_json_pb(Query *q, char *str) throw () {
     return true;
 }
 
-int64_t write_json_pb(const Response *r, std::string *s) throw () {
+int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
     *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
     for (int i = 0; i < r->response_size(); ++i) {
         *s += (i == 0) ? "" : ",";
