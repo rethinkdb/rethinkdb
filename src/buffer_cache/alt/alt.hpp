@@ -31,9 +31,8 @@ public:
                                     block_size_t max_block_size);
 
 private:
-    friend class txn_t;
-
     new_semaphore_t unwritten_changes_semaphore_;
+
     DISABLE_COPYING(alt_txn_throttler_t);
 };
 
