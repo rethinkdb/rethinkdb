@@ -52,6 +52,8 @@ struct peers_list_callback_t {
 public:
     peers_list_callback_t() { }
 
+    // As a rule, for a given peer id, first we get an on_connect call, and then
+    // we get an alternating sequence of on_disconnect and on_connect calls.
     virtual void on_connect(peer_id_t peer_id) = 0;
     virtual void on_disconnect(peer_id_t peer_id) = 0;
 
