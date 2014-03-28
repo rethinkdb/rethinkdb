@@ -15,7 +15,6 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/runtime/coroutines.hpp"
-#include "arch/runtime/runtime_utils.hpp"
 #include "arch/io/concurrency.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
