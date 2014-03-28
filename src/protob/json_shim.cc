@@ -175,11 +175,8 @@ bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
         q->Clear();
         scoped_cJSON_t json_holder(cJSON_Parse(str));
         cJSON *json = json_holder.get();
-        // debugf("%s\n", json_holder.Print().c_str());
         if (json == NULL) return false;
         extract(json, q);
-        debugf("%zu %d\n", strlen(str), q->ByteSize());
-        // debugf("%s\n", q->DebugString().c_str());
         return true;
     } catch (const exc_t &) {
         // This happens if the user provides bad JSON.  TODO: Give the user a
