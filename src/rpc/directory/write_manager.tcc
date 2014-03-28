@@ -15,6 +15,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
         const clone_ptr_t<watchable_t<metadata_t> > &value) THROWS_NOTHING :
     message_service(sub),
     value_watchable(value),
+    session_counter(0),
     value_subscription(boost::bind(&directory_write_manager_t::on_change, this)),
     connectivity_subscription(this) {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value_watchable);
@@ -29,17 +30,25 @@ directory_write_manager_t<metadata_t>::~directory_write_manager_t() { }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
+    uint64_t session_id;
+    {
+        session_id = ++session_counter;
+        auto res = sessions.insert(std::make_pair(peer, session_id));
+        guarantee(res.second);
+    }
+
     typename watchable_t<metadata_t>::freeze_t freeze(value_watchable);
     coro_t::spawn_sometime(boost::bind(
         &directory_write_manager_t::send_initialization, this,
-        peer,
+        peer, session_id,
         value_watchable->get(), metadata_fifo_source.get_state(),
         auto_drainer_t::lock_t(&drainer)));
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::on_disconnect(UNUSED peer_id_t peer) {
-    // do nothing
+void directory_write_manager_t<metadata_t>::on_disconnect(peer_id_t peer) {
+    size_t erased = sessions.erase(peer);
+    guarantee(erased == 1);
 }
 
 template<class metadata_t>
@@ -53,9 +62,14 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     std::set<peer_id_t> peers = message_service->get_connectivity_service()->get_peers_list();
     boost::shared_ptr<metadata_t> new_value(new metadata_t(std::move(value_watchable->get())));
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
-        coro_t::spawn_sometime(boost::bind(
+        auto session_it = sessions.find(*it);
+
+        // get_peers_list() should be in sync with the on_connect/on_disconnect state.
+        guarantee(session_it != sessions.end());
+
+        coro_t::spawn_later_ordered(boost::bind(
             &directory_write_manager_t::send_update, this,
-            *it,
+            *it, session_it->second,
             new_value, metadata_fifo_token,
             auto_drainer_t::lock_t(&drainer)));
     }
@@ -108,13 +122,27 @@ private:
 };
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
+bool directory_write_manager_t<metadata_t>::still_connected(peer_id_t peer, uint64_t session_id) const {
+    std::map<peer_id_t, uint64_t>::const_iterator it = sessions.find(peer);
+    return it != sessions.end() && it->second == session_id;
+}
+
+template<class metadata_t>
+void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, uint64_t session_id, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
+    if (!still_connected(peer, session_id)) {
+        return;
+    }
+
     initialization_writer_t writer(initial_value, metadata_fifo_state);
     message_service->send_message(peer, &writer);
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
+void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, uint64_t session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
+    if (!still_connected(peer, session_id)) {
+        return;
+    }
+
     update_writer_t writer(*new_value, metadata_fifo_token);
     message_service->send_message(peer, &writer);
 }
