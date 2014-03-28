@@ -18,6 +18,7 @@ using alt::page_t;
 using alt::page_txn_t;
 using alt::throttler_acq_t;
 
+const int64_t MINIMUM_UNWRITTEN_CHANGES_LIMIT = 1;
 const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 
@@ -56,11 +57,11 @@ private:
 };
 
 alt_txn_throttler_t::alt_txn_throttler_t()
-    : minimum_throttling_limit_(1),
+    : minimum_unwritten_changes_limit_(MINIMUM_UNWRITTEN_CHANGES_LIMIT),
       unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 
-alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_throttling_limit)
-    : minimum_throttling_limit_(minimum_throttling_limit),
+alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit)
+    : minimum_unwritten_changes_limit_(minimum_unwritten_changes_limit),
       unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
 
 alt_txn_throttler_t::~alt_txn_throttler_t() { }
@@ -82,7 +83,7 @@ void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
         (memory_limit / max_block_size.ser_value()) * SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION);
 
     // Always provide at least one capacity in the semaphore
-    throttler_limit = std::max<int64_t>(throttler_limit, minimum_throttling_limit_);
+    throttler_limit = std::max<int64_t>(throttler_limit, minimum_unwritten_changes_limit_);
 
     unwritten_changes_semaphore_.set_capacity(throttler_limit);
 }

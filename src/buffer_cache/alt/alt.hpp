@@ -37,9 +37,9 @@ public:
 private:
     friend class ::unittest::page_test_helper_t;
     // Specifies the minimum throttling limit, in blocks.  Used by the PageTest.
-    explicit alt_txn_throttler_t(int64_t minimum_throttling_limit_in_blocks);
+    explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
 
-    const int64_t minimum_throttling_limit_;
+    const int64_t minimum_unwritten_changes_limit_;
 
     new_semaphore_t unwritten_changes_semaphore_;
 
