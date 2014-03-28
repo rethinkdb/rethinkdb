@@ -21,6 +21,19 @@ using alt::page_txn_t;
 
 namespace unittest {
 
+// This is a static method, to make a friend declaration in alt_txn_throttler_t
+// easier.
+class page_test_helper_t {
+public:
+    static scoped_ptr_t<alt_txn_throttler_t> make_throttler() {
+        // We give the throttler a large minimum throttling limit, to prevent write
+        // transaction creation from being deadlocked, so that we can really test
+        // low-memory situations.
+        scoped_ptr_t<alt_txn_throttler_t> ret(new alt_txn_throttler_t(4000));
+        return ret;
+    }
+};
+
 struct mock_ser_t {
     mock_file_opener_t opener;
     scoped_ptr_t<standard_serializer_t> ser;
@@ -33,7 +46,7 @@ struct mock_ser_t {
         ser = make_scoped<standard_serializer_t>(log_serializer_t::dynamic_config_t(),
                                                  &opener,
                                                  &get_global_perfmon_collection());
-        throttler = make_scoped<alt_txn_throttler_t>();
+        throttler = page_test_helper_t::make_throttler();
     }
 };
 
@@ -45,7 +58,7 @@ class test_txn_t;
 
 class test_cache_t : public page_cache_t {
 public:
-    test_cache_t(serializer_t *serializer, 
+    test_cache_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
                  alt_txn_throttler_t *throttler)
         : page_cache_t(serializer, balancer, throttler),
