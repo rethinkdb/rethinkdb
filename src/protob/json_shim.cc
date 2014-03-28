@@ -171,61 +171,89 @@ void extract(cJSON *json, Query *q) {
 }
 
 bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
-    q->Clear();
-    scoped_cJSON_t json_holder(cJSON_Parse(str));
-    cJSON *json = json_holder.get();
-    // debugf("%s\n", json_holder.Print().c_str());
-    if (json == NULL) return false;
-    extract(json, q);
-    debugf("%zu %d\n", strlen(str), q->ByteSize());
-    // debugf("%s\n", q->DebugString().c_str());
-    return true;
+    try {
+        q->Clear();
+        scoped_cJSON_t json_holder(cJSON_Parse(str));
+        cJSON *json = json_holder.get();
+        // debugf("%s\n", json_holder.Print().c_str());
+        if (json == NULL) return false;
+        extract(json, q);
+        debugf("%zu %d\n", strlen(str), q->ByteSize());
+        // debugf("%s\n", q->DebugString().c_str());
+        return true;
+    } catch (const exc_t &) {
+        // This happens if the user provides bad JSON.  TODO: Give the user a
+        // more specific error than "malformed query".
+        return false;
+    } catch (...) {
+        // If we get an unexpected error, we only rethrow in debug mode.  (This
+        // is consistent with the general principle that queries shouldn't crash
+        // the server even if the ReQL logic is incorrect; see also
+        // `r_sanity_check`.)
+#ifndef NDEBUG
+        throw;
+#else
+        return false;
+#endif // NDEBUG
+    }
 }
 
 int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
-    *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
-    for (int i = 0; i < r->response_size(); ++i) {
-        *s += (i == 0) ? "" : ",";
-        const Datum *d = &r->response(i);
-        if (d->type() == Datum::R_JSON) {
-            *s += d->r_str();
-        } else if (d->type() == Datum::R_STR) {
-            scoped_cJSON_t tmp(cJSON_CreateString(d->r_str().c_str()));
-            *s += tmp.PrintUnformatted();
-        } else {
-            unreachable();
-        }
-    }
-    *s += "]";
-
-    if (r->has_backtrace()) {
-        *s += ",\"b\":";
-        const Backtrace *bt = &r->backtrace();
-        scoped_cJSON_t arr(cJSON_CreateArray());
-        for (int i = 0; i < bt->frames_size(); ++i) {
-            const Frame *f = &bt->frames(i);
-            switch (f->type()) {
-            case Frame::POS: {
-                arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
-            } break;
-            case Frame::OPT: {
-                arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
-            } break;
-            default: unreachable();
+    try {
+        *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
+        for (int i = 0; i < r->response_size(); ++i) {
+            *s += (i == 0) ? "" : ",";
+            const Datum *d = &r->response(i);
+            if (d->type() == Datum::R_JSON) {
+                *s += d->r_str();
+            } else if (d->type() == Datum::R_STR) {
+                scoped_cJSON_t tmp(cJSON_CreateString(d->r_str().c_str()));
+                *s += tmp.PrintUnformatted();
+            } else {
+                unreachable();
             }
         }
-        *s += arr.PrintUnformatted();
-    }
+        *s += "]";
 
-    if (r->has_profile()) {
-        *s += ",\"p\":";
-        const Datum *d = &r->profile();
-        guarantee(d->type() == Datum::R_JSON);
-        *s += d->r_str();
-    }
+        if (r->has_backtrace()) {
+            *s += ",\"b\":";
+            const Backtrace *bt = &r->backtrace();
+            scoped_cJSON_t arr(cJSON_CreateArray());
+            for (int i = 0; i < bt->frames_size(); ++i) {
+                const Frame *f = &bt->frames(i);
+                switch (f->type()) {
+                case Frame::POS: {
+                    arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
+                } break;
+                case Frame::OPT: {
+                    arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
+                } break;
+                default: unreachable();
+                }
+            }
+            *s += arr.PrintUnformatted();
+        }
 
-    *s += "}";
-    return r->token();
+        if (r->has_profile()) {
+            *s += ",\"p\":";
+            const Datum *d = &r->profile();
+            guarantee(d->type() == Datum::R_JSON);
+            *s += d->r_str();
+        }
+
+        *s += "}";
+        return r->token();
+    } catch (...) {
+#ifndef NDEBUG
+        throw;
+#else
+        *s = strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[\"%s\"]}",
+                       Response::RUNTIME_ERROR,
+                       r->token(),
+                       "Internal error in `write_json_pb`, please report this.");
+        return r->token();
+#endif // NDEBUG
+    }
 }
 
 
