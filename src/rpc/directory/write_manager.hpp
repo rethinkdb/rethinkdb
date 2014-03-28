@@ -22,7 +22,7 @@ public:
 
 private:
     void on_connect(peer_id_t peer) THROWS_NOTHING;
-    void on_disconnect(UNUSED peer_id_t p) { }
+    void on_disconnect(UNUSED peer_id_t p);
     void on_change() THROWS_NOTHING;
 
     void send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
@@ -37,6 +37,8 @@ private:
     auto_drainer_t drainer;
     typename watchable_t<metadata_t>::subscription_t value_subscription;
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
+
+    DISABLE_COPYING(directory_write_manager_t);
 };
 
 #endif /* RPC_DIRECTORY_WRITE_MANAGER_HPP_ */

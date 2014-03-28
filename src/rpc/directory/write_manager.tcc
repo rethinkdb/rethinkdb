@@ -38,6 +38,11 @@ void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NO
 }
 
 template<class metadata_t>
+void directory_write_manager_t<metadata_t>::on_disconnect(UNUSED peer_id_t peer) {
+    // do nothing
+}
+
+template<class metadata_t>
 void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     /* Acquire this lock to avoid the case where a new peer copies the metadata
     value after we change it but also gets an update sent. (That would lead to a
