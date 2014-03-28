@@ -136,11 +136,6 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
     // (not to mention that we've already got the page in memory, so there is no
     // useful work to be done).
 
-    if (!balancer_->subtract_read_ahead_bytes(max_block_size().ser_value())) {
-        have_read_ahead_cb_destroyed();
-        return;
-    }
-
     current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
@@ -192,20 +187,20 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     : max_block_size_(serializer->max_block_size()),
       serializer_(serializer),
       free_list_(serializer),
-      balancer_(balancer),
-      evicter_(this, balancer),
+      evicter_(),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
-    const bool start_read_ahead = balancer_->is_read_ahead_ok();
+    const bool start_read_ahead = balancer->read_ahead_ok_at_start();
     if (start_read_ahead) {
         read_ahead_cb_existence_ = drainer_->lock();
     }
 
+    page_read_ahead_cb_t *local_read_ahead_cb = NULL;
     {
         on_thread_t thread_switcher(serializer->home_thread());
         if (start_read_ahead) {
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this);
+            local_read_ahead_cb = new page_read_ahead_cb_t(serializer, this);
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
@@ -213,6 +208,16 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         index_write_sink_.init(new page_cache_index_write_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
+
+    ASSERT_NO_CORO_WAITING;
+    // We don't want to accept read-ahead buffers (or any operations) until the
+    // evicter is ready.  So we set read_ahead_cb_ here so that we accept read-ahead
+    // buffers at exactly the same time that we initialize the evicter.  We
+    // initialize the read_ahead_cb_ after the evicter_ because that way reentrant
+    // usage by the balancer (before page_cache_t construction completes) would be
+    // more likely to trip an assertion.
+    evicter_.initialize(this, balancer);
+    read_ahead_cb_ = local_read_ahead_cb;
 }
 
 page_cache_t::~page_cache_t() {

@@ -1,6 +1,6 @@
 # Release 1.12.0 (The Wizard of Oz)
 
-Released on 2014-04-25
+Released on 2014-04-26
 
 The highlights of this release are a simplified map/reduce, an
 experimental ARM port, and a new caching infrastructure.

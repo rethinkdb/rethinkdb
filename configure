@@ -1017,6 +1017,10 @@ EOF
 # Check for boost
 check_boost () {
     require "Test boost"
+    if contains "$please_fetch_list" boost; then
+        fetch_lib boost
+        return
+    fi
     check_lib_compile "" boost
     if $can_show; then
         if fetch_allowed boost; then

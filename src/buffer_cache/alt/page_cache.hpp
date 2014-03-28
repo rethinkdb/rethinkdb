@@ -344,13 +344,13 @@ public:
     // `current_page_t *` to remain valid.)
     void consider_evicting_current_page(block_id_t block_id);
 
+    void have_read_ahead_cb_destroyed();
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
                             ser_buffer_t *buf,
                             const counted_t<standard_block_token_t> &token);
-
-    void have_read_ahead_cb_destroyed();
 
     void read_ahead_cb_is_destroyed();
 
@@ -446,7 +446,6 @@ private:
 
     free_list_t free_list_;
 
-    cache_balancer_t *balancer_;
     evicter_t evicter_;
 
     // KSI: I bet this read_ahead_cb_ and read_ahead_cb_existence_ type could be

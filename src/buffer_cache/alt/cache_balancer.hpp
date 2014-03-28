@@ -27,9 +27,8 @@ public:
     // Used to determine the initial size of a cache
     virtual uint64_t base_mem_per_store() const = 0;
 
-    // Check if read-ahead is allowed at the moment
-    virtual bool is_read_ahead_ok() = 0;
-    virtual bool subtract_read_ahead_bytes(int64_t size) = 0;
+    // Tells caches whether to start read ahead initially
+    virtual bool read_ahead_ok_at_start() const = 0;
 
 protected:
     friend class alt::evicter_t;
@@ -51,8 +50,9 @@ public:
         return base_mem_per_store_;
     }
 
-    bool is_read_ahead_ok() { return false; }
-    virtual bool subtract_read_ahead_bytes(int64_t) { return false; }
+    bool read_ahead_ok_at_start() const {
+        return false;
+    }
 
 private:
     void add_evicter(alt::evicter_t *) { }
@@ -79,9 +79,9 @@ public:
         return 0;
     }
 
-    // Both of these functions return true if read ahead is still ok
-    bool is_read_ahead_ok();
-    bool subtract_read_ahead_bytes(int64_t size);
+    bool read_ahead_ok_at_start() const {
+        return true;
+    }
 
 private:
     friend class alt::evicter_t;
@@ -130,12 +130,14 @@ private:
                                    scoped_array_t<std::vector<cache_data_t> > *data_out);
     // Helper function that rebalances all the shards on a given thread
     void apply_rebalance_to_thread(int index,
-                                   const scoped_array_t<std::vector<cache_data_t> > *new_sizes);
+                                   const scoped_array_t<std::vector<cache_data_t> > *new_sizes,
+                                   bool new_read_ahead_ok);
 
     const uint64_t total_cache_size;
     repeating_timer_t rebalance_timer;
     microtime_t last_rebalance_time;
-    intptr_t read_ahead_bytes_remaining;
+    bool read_ahead_ok;
+    uint64_t bytes_toward_read_ahead_limit;
 
     // This contains the extant evicter pointers for each thread, only accessed
     // from each thread

@@ -23,7 +23,8 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
     total_cache_size(_total_cache_size),
     rebalance_timer(rebalance_check_interval_ms, this),
     last_rebalance_time(0),
-    read_ahead_bytes_remaining(total_cache_size * read_ahead_proportion),
+    read_ahead_ok(true),
+    bytes_toward_read_ahead_limit(0),
     evicters_per_thread(get_num_threads()),
     rebalance_pool(1, &pool_queue, this) {
 
@@ -35,15 +36,6 @@ alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size) :
 
 alt_cache_balancer_t::~alt_cache_balancer_t() {
     assert_thread();
-}
-
-bool alt_cache_balancer_t::is_read_ahead_ok() {
-    return __sync_fetch_and_add(&read_ahead_bytes_remaining, 0) > 0;
-}
-
-bool alt_cache_balancer_t::subtract_read_ahead_bytes(int64_t size) {
-    intptr_t res = __sync_sub_and_fetch(&read_ahead_bytes_remaining, size);
-    return res > 0;
 }
 
 void alt_cache_balancer_t::add_evicter(alt::evicter_t *evicter) {
@@ -85,6 +77,12 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
             total_bytes_loaded += per_thread_data[i][j].bytes_loaded;
             total_access_count += per_thread_data[i][j].access_count;
         }
+    }
+
+    // Reevaluate if read-ahead should be running
+    if (read_ahead_ok) {
+        bytes_toward_read_ahead_limit += total_bytes_loaded;
+        read_ahead_ok = bytes_toward_read_ahead_limit < (total_cache_size * read_ahead_proportion);
     }
 
     // Determine if we should do a rebalance, either:
@@ -148,7 +146,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
         // Send new cache sizes to each thread
         pmap(per_thread_data.size(),
              std::bind(&alt_cache_balancer_t::apply_rebalance_to_thread,
-                       this, ph::_1, &per_thread_data));
+                       this, ph::_1, &per_thread_data, read_ahead_ok));
     }
 }
 
@@ -168,7 +166,8 @@ void alt_cache_balancer_t::collect_stats_from_thread(int index,
 }
 
 void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
-        const scoped_array_t<std::vector<cache_data_t> > *new_sizes) {
+        const scoped_array_t<std::vector<cache_data_t> > *new_sizes,
+        bool new_read_ahead_ok) {
     on_thread_t rethreader((threadnum_t(index)));
 
     const std::set<alt::evicter_t *> *evicters = &evicters_per_thread[index];
@@ -178,7 +177,10 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
     for (auto it = sizes->begin(); it != sizes->end(); ++it) {
         // Make sure the evicter still exists
         if (evicters->find(it->evicter) != evicters->end()) {
-            it->evicter->update_memory_limit(it->new_size, it->bytes_loaded, it->access_count);
+            it->evicter->update_memory_limit(it->new_size,
+                                             it->bytes_loaded,
+                                             it->access_count,
+                                             new_read_ahead_ok);
         }
     }
 }

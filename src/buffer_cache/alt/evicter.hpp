@@ -33,14 +33,18 @@ public:
     void remove_page(page_t *page);
     void reloading_page(page_t *page);
 
-    explicit evicter_t(page_cache_t *page_cache, cache_balancer_t *balancer);
+    // Evicter will be unusable until initialize is called
+    explicit evicter_t();
     ~evicter_t();
 
+    void initialize(page_cache_t *page_cache, cache_balancer_t *balancer);
     void update_memory_limit(uint64_t new_memory_limit,
                              uint64_t bytes_loaded_accounted_for,
-                             uint64_t access_count_accounted_for);
+                             uint64_t access_count_accounted_for,
+                             bool read_ahead_ok);
 
     uint64_t next_access_time() {
+        guarantee(initialized_);
         return ++access_time_counter_;
     }
 
@@ -61,8 +65,9 @@ private:
     // Evicts any evictable pages until under the memory limit
     void evict_if_necessary();
 
-    page_cache_t *const page_cache_;
-    cache_balancer_t *const balancer_;
+    bool initialized_;
+    page_cache_t *page_cache_;
+    cache_balancer_t *balancer_;
 
     uint64_t memory_limit_;
 

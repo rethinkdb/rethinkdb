@@ -574,10 +574,12 @@ class ungrouped_op_t : public op_t {
 protected:
 private:
     virtual void operator()(groups_t *groups, const counted_t<const datum_t> &) {
-        for (auto it = groups->begin(); it != groups->end(); ++it) {
+        for (auto it = groups->begin(); it != groups->end();) {
             lst_transform(&it->second);
             if (it->second.size() == 0) {
-                groups->erase(it); // This is important for batching with filter.
+                groups->erase(it++); // This is important for batching with filter.
+            } else {
+                ++it;
             }
         }
     }

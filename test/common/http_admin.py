@@ -536,7 +536,7 @@ class ClusterAccess(object):
             aff_dict[self.find_datacenter(datacenter).uuid] = count
         ack_dict = { }
         for datacenter, count in ack_expectations.iteritems():
-            ack_dict[self.find_datacenter(datacenter).uuid] = count
+            ack_dict[self.find_datacenter(datacenter).uuid] = { 'expectation': count }
         if database is None:
             database_uuid = None
         else:
