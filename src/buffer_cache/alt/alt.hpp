@@ -21,19 +21,20 @@ class cache_balancer_t;
 
 class alt_txn_throttler_t {
 public:
-    alt_txn_throttler_t();
+    alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
     void end_txn(alt::throttler_acq_t acq);
 
     void inform_memory_limit_change(uint64_t memory_limit,
-                                    const block_size_t max_block_size);
+                                    block_size_t max_block_size);
 
 private:
-    friend class txn_t;
+    const int64_t minimum_unwritten_changes_limit_;
 
     new_semaphore_t unwritten_changes_semaphore_;
+
     DISABLE_COPYING(alt_txn_throttler_t);
 };
 
