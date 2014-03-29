@@ -19,13 +19,9 @@ class alt_snapshot_node_t;
 class perfmon_collection_t;
 class cache_balancer_t;
 
-namespace unittest {
-class page_test_helper_t;
-};
-
 class alt_txn_throttler_t {
 public:
-    alt_txn_throttler_t();
+    alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
@@ -35,10 +31,6 @@ public:
                                     block_size_t max_block_size);
 
 private:
-    friend class ::unittest::page_test_helper_t;
-    // Specifies the minimum throttling limit, in blocks.  Used by the PageTest.
-    explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
-
     const int64_t minimum_unwritten_changes_limit_;
 
     new_semaphore_t unwritten_changes_semaphore_;
