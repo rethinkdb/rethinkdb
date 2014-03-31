@@ -58,7 +58,7 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
 }
 
 TPTEST(ClusteringNamespaceInterface, ReadOutdated) {
-    test_cluster_group_t cluster_group(2);
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
 
