@@ -58,7 +58,7 @@ module RethinkDB
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
     termtypes.each {|termtype|
 
-      method = define_method(termtype.downcase){|*a, &b|
+      method_body = proc { |*a, &b|
         bitop = [:"|", :"&"].include?(__method__)
 
         if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
@@ -100,8 +100,10 @@ module RethinkDB
         return RQL.new(t, bitop)
       }
 
+      define_method(termtype.downcase, &method_body)
+
       [*@@method_aliases[termtype.downcase]].each{|method_alias|
-        define_method method_alias, method
+        define_method method_alias, &method_body
       }
     }
 
