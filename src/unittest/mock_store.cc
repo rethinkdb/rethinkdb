@@ -4,6 +4,24 @@
 
 namespace unittest {
 
+rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
+    std::map<std::string, counted_t<const ql::datum_t> > m;
+    m["id"] = make_counted<ql::datum_t>(std::string(key));
+    m["value"] = make_counted<ql::datum_t>(std::move(value));
+
+    rdb_protocol_t::point_write_t pw(store_key_t(key),
+                                     make_counted<ql::datum_t>(std::move(m)),
+                                     true);
+    return rdb_protocol_t::write_t(pw,
+                                   DURABILITY_REQUIREMENT_SOFT,
+                                   profile_bool_t::DONT_PROFILE);
+}
+
+mock_store_t::mock_store_t()
+    : store_view_t<rdb_protocol_t>(rdb_protocol_t::region_t::universe()),
+      metainfo_(get_region(), binary_blob_t()) { }
+mock_store_t::~mock_store_t() { }
+
 void mock_store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
     assert_thread();
     fifo_enforcer_read_token_t token = token_source_.enter_read();
@@ -15,6 +33,44 @@ void mock_store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_wr
     fifo_enforcer_write_token_t token = token_source_.enter_write();
     token_out->create(&token_sink_, token);
 }
+
+void mock_store_t::do_get_metainfo(order_token_t order_token,
+                                   object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                   signal_t *interruptor,
+                                   metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
+
+    wait_interruptible(token->get(), interruptor);
+
+    order_sink_.check_out(order_token);
+
+    if (rng_.randint(2) == 0) {
+        nap(rng_.randint(10), interruptor);
+    }
+    metainfo_t res = metainfo_.mask(get_region());
+    *out = res;
+}
+
+void mock_store_t::set_metainfo(const metainfo_t &new_metainfo,
+                                order_token_t order_token,
+                                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
+
+    wait_interruptible(token->get(), interruptor);
+
+    order_sink_.check_out(order_token);
+
+    if (rng_.randint(2) == 0) {
+        nap(rng_.randint(10), interruptor);
+    }
+
+    metainfo_.update(new_metainfo);
+}
+
+
 
 void mock_store_t::read(
         DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
@@ -239,7 +295,21 @@ void mock_store_t::reset_data(
     metainfo_.update(new_metainfo);
 }
 
+std::string mock_store_t::values(std::string key) {
+    auto it = table_.find(store_key_t(key));
+    if (it == table_.end()) {
+        return "";
+    }
+    return it->second.second->get("value")->as_str().to_std();
+}
 
+repli_timestamp_t mock_store_t::timestamps(std::string key) {
+    auto it = table_.find(store_key_t(key));
+    if (it == table_.end()) {
+        return repli_timestamp_t::distant_past;
+    }
+    return it->second.first;
+}
 
 
 

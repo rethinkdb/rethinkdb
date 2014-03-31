@@ -5,6 +5,8 @@
 
 namespace unittest {
 
+rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value);
+
 class mock_store_t : public store_view_t<rdb_protocol_t> {
 public:
     mock_store_t();
@@ -16,12 +18,12 @@ public:
     void do_get_metainfo(order_token_t order_token,
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
-                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
+                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(const metainfo_t &new_metainfo,
                       order_token_t order_token,
                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
             DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
@@ -65,6 +67,10 @@ public:
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+    // Used by unit tests that expected old-style stuff.
+    std::string values(std::string key);
+    repli_timestamp_t timestamps(std::string key);
 
 private:
     fifo_enforcer_source_t token_source_;
