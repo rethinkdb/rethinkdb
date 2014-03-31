@@ -9,7 +9,7 @@ rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value);
 
 class mock_store_t : public store_view_t<rdb_protocol_t> {
 public:
-    mock_store_t();
+    explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());
     ~mock_store_t();
 
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);

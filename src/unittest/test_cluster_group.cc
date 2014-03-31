@@ -36,6 +36,15 @@ using mock::dummy_protocol_t;
 
 namespace unittest {
 
+void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
+    // We keep old dummy-protocol style single-character key logic.
+    *out = hash_region_t<key_range_t>(key_range_t(
+                                              key_range_t::closed,
+                                              store_key_t(std::string(1, 'a' + ((i * 26)/n))),
+                                              key_range_t::open,
+                                              store_key_t(std::string(1, 'a' + (((i + 1) * 26)/n)))));
+}
+
 void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
     *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
 }

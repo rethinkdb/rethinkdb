@@ -17,9 +17,9 @@ rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
                                    profile_bool_t::DONT_PROFILE);
 }
 
-mock_store_t::mock_store_t()
+mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
     : store_view_t<rdb_protocol_t>(rdb_protocol_t::region_t::universe()),
-      metainfo_(get_region(), binary_blob_t()) { }
+      metainfo_(get_region(), universe_metainfo) { }
 mock_store_t::~mock_store_t() { }
 
 void mock_store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
