@@ -30,7 +30,7 @@ std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr) 
         // Behave like the old dummy_protocol_t.
         return "";
     }
-    return prr->data->as_str().to_std();
+    return prr->data->get("value")->as_str().to_std();
 }
 
 

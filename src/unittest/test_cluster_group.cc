@@ -108,7 +108,6 @@ public:
     field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
 
 private:
-    typename protocol_t::context_t ctx;
     static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > &input);
 
     static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards);
@@ -160,7 +159,7 @@ test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_back
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
     rassert(svs->get_region() == protocol_t::region_t::universe());
 }
@@ -287,7 +286,7 @@ void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_
                       &test_clusters[i].mailbox_manager,
                       (&test_clusters[i])->directory_read_manager.get_root_view()
                       ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
-                      &ctx));
+                      NULL));
     (*out)->get_initial_ready_signal()->wait_lazily_unordered();
 }
 
