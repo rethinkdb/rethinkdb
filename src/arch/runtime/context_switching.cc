@@ -420,9 +420,14 @@ threaded_stack_t::~threaded_stack_t() {
     // We now have to temporarily release our lock to let the thread
     // terminate.
     if (coro_t::self()) {
+#ifdef THREADED_COROUTINES
         threaded_context_ref_t &our_context = static_cast<threaded_context_ref_t &>(
                 coro_t::self()->get_stack()->context);
         our_context.lock.reset();
+#else
+        crash("Threaded stack destructed from a coroutine without "
+              "THREADED_COROUTINES defined.");
+#endif
     } else {
         possible_lock_acq.reset();
     }
@@ -433,10 +438,12 @@ threaded_stack_t::~threaded_stack_t() {
 
     // ... and re-acquire the lock, if we are in a coroutine.
     if (coro_t::self()) {
+#ifdef THREADED_COROUTINES
         threaded_context_ref_t &our_context = static_cast<threaded_context_ref_t &>(
                 coro_t::self()->get_stack()->context);
         our_context.lock.init(new system_mutex_t::lock_t(
             &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+#endif
     }
 }
 
