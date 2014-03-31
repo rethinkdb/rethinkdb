@@ -324,7 +324,7 @@
     "io": [
       [
         "r", 
-        "object"
+        "array"
       ]
     ], 
     "name": "dbList", 
@@ -894,7 +894,7 @@
     "url": "iso8601"
   }, 
   "api/javascript/js/": {
-    "body": "r.js(jsString) &rarr; value", 
+    "body": "r.js(jsString[, {timeout: <number>}]) &rarr; value", 
     "description": "<p>Create a javascript expression.</p>", 
     "example": "<p><strong>Example:</strong> Concatenate two strings using Javascript'</p>\n<p><code>r.js(\"'str1' + 'str2'\").run(conn, callback)</code></p>", 
     "io": [
@@ -997,13 +997,13 @@
     "url": "map"
   }, 
   "api/javascript/match/": {
-    "body": "string.match(regexp) &rarr; array", 
-    "description": "<p>Match against a regular expression. Returns a match object containing the matched string,\nthat string's start/end position, and the capture groups. Accepts RE2 syntax\n(<a href=\"https://code.google.com/p/re2/wiki/Syntax\">https://code.google.com/p/re2/wiki/Syntax</a>).\nYou can enable case-insensitive matching by prefixing the regular expression with\n<code>(?i)</code>. (See linked RE2 documentation for more flags.)</p>", 
-    "example": "<p><strong>Example:</strong> Get all users whose name starts with A.</p>\n<p><code>r.table('users').filter(function(row){return row('name').match(\"^A\")}).run(conn, callback)</code></p>", 
+    "body": "string.match(regexp) &rarr; null/object", 
+    "description": "<p>Matches against a regular expression. If there is a match, returns an object with the fields:</p>\n<ul>\n<li><code>str</code>: The matched string</li>\n<li><code>start</code>: The matched string's start</li>\n<li><code>end</code>: The matched string's end</li>\n<li><code>groups</code>: The capture groups defined with parentheses</li>\n</ul>\n<p>If no match is found, returns <code>null</code>.</p>", 
+    "example": "<p><strong>Example:</strong> Get all users whose name starts with \"A\". </p>\n<p><code>r.table('users').filter(function(doc){\n    return doc('name').match(\"^A\")\n}).run(conn, callback)</code></p>", 
     "io": [
       [
         "string", 
-        "array"
+        "object"
       ]
     ], 
     "name": "match", 
@@ -1319,9 +1319,9 @@
     "url": "reconnect"
   }, 
   "api/javascript/reduce/": {
-    "body": "sequence.reduce(reduction_function) &rarr; value", 
-    "description": "<p>Produce a single value from a sequence through repeated application of a reduction\nfunction.</p>\n<p>Produces a single value from a sequence by repeatedly calling the\nreduction function.  The reduction function should take two arguments\nand combine them together.  The arguments to the reduction function\ncan be either elements of the stream, or the results of a previous\ncall to the reduction function.</p>", 
-    "example": "<p><strong>Example:</strong> What's the product of all the bonus multipliers in game 7324?</p>\n<p><code>r.table('games').get(7324)('bonus_multipliers').reduce(function(a, b) {\n    return a.mul(b)\n}).run(conn, callback)</code></p>", 
+    "body": "sequence.reduce(reductionFunction) &rarr; value", 
+    "description": "<p>Produce a single value from a sequence through repeated application of a reduction\nfunction.</p>", 
+    "example": "<p><strong>Example:</strong> Return the number of documents in the table `posts.</p>\n<p><code>r.table(\"posts\").map(function(doc) {\n    return 1\n}).reduce(function(left, right) {\n    return left.add(right)\n}).run(conn, callback);</code></p>", 
     "io": [
       [
         "sequence", 
@@ -1513,7 +1513,7 @@
   }, 
   "api/javascript/split/": {
     "body": "string.split([separator, [max_splits]]) &rarr; array", 
-    "description": "<p>Splits a string into substrings.  Splits on whitespace when called\nwith no arguments.  When called with a separator, splits on that\nseparator.  When called with a separator and a maximum number of\nsplits, splits on that separator at most <code>max_splits</code> times.  (Can be\ncalled with NULL as the separator if you want to split on whitespace\nwhile still specifying <code>max_splits</code>.)</p>\n<p>Mimics the behavior of Python's <code>string.split</code> in edge cases, except\nfor splitting on the empty string, which instead produces an array of\nsingle-character strings.</p>", 
+    "description": "<p>Splits a string into substrings.  Splits on whitespace when called\nwith no arguments.  When called with a separator, splits on that\nseparator.  When called with a separator and a maximum number of\nsplits, splits on that separator at most <code>max_splits</code> times.  (Can be\ncalled with <code>null</code> as the separator if you want to split on whitespace\nwhile still specifying <code>max_splits</code>.)</p>\n<p>Mimics the behavior of Python's <code>string.split</code> in edge cases, except\nfor splitting on the empty string, which instead produces an array of\nsingle-character strings.</p>", 
     "example": "<p><strong>Example:</strong> Split on whitespace.</p>\n<p><code>r.expr(\"foo  bar bax\").split().run(conn, callback)</code></p>", 
     "io": [
       [
@@ -1586,7 +1586,7 @@
   }, 
   "api/javascript/table_create/": {
     "body": "db.tableCreate(tableName[, options]) &rarr; object", 
-    "description": "<p>Create a table. A RethinkDB table is a collection of JSON documents.</p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a table with the same\nname already exists, the operation throws <code>RqlRuntimeError</code>.</p>\n<p>Note: that you can only use alphanumeric characters and underscores for the table name.</p>\n<p>When creating a table you can specify the following options:</p>\n<ul>\n<li><code>primaryKey</code>: the name of the primary key. The default primary key is id;</li>\n<li><code>durability</code>: if set to <code>soft</code>, this enables <em>soft durability</em> on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is <code>hard</code> (acknowledgement of writes happens after data has been\nwritten to disk);</li>\n<li><code>cacheSize</code>: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);</li>\n<li><code>datacenter</code>: the name of the datacenter this table should be assigned to.</li>\n</ul>", 
+    "description": "<p>Create a table. A RethinkDB table is a collection of JSON documents.</p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a table with the same\nname already exists, the operation throws <code>RqlRuntimeError</code>.</p>\n<p>Note: that you can only use alphanumeric characters and underscores for the table name.</p>\n<p>When creating a table you can specify the following options:</p>\n<ul>\n<li><code>primaryKey</code>: the name of the primary key. The default primary key is id;</li>\n<li><code>durability</code>: if set to <code>'soft'</code>, this enables <em>soft durability</em> on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is <code>'hard'</code> (acknowledgement of writes happens after data has been\nwritten to disk);</li>\n<li><code>datacenter</code>: the name of the datacenter this table should be assigned to.</li>\n</ul>", 
     "example": "<p><strong>Example:</strong> Create a table named 'dc_universe' with the default settings.</p>\n<p><code>r.db('test').tableCreate('dc_universe').run(conn, callback)</code></p>", 
     "io": [
       [
