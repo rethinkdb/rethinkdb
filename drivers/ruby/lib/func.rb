@@ -58,7 +58,8 @@ module RethinkDB
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
     termtypes.each {|termtype|
 
-      method = define_method(termtype.downcase){|*a, &b|
+
+      define_method(termtype.downcase){|*a, &b|
         bitop = [:"|", :"&"].include?(__method__)
 
         if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
@@ -101,7 +102,7 @@ module RethinkDB
       }
 
       [*@@method_aliases[termtype.downcase]].each{|method_alias|
-        define_method method_alias, method
+        define_method method_alias, instance_method(termtype.downcase)
       }
     }
 
