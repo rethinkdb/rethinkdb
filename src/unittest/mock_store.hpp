@@ -42,7 +42,7 @@ public:
             order_token_t order_token,
             write_token_pair_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(
             const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
@@ -50,13 +50,13 @@ public:
             traversal_progress_combiner_t *progress,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+        THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const rdb_protocol_t::backfill_chunk_t &chunk,
             write_token_pair_t *token,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+        THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const rdb_protocol_t::region_t &subregion,
@@ -74,7 +74,7 @@ private:
 
     rng_t rng_;
     metainfo_t metainfo_;
-    std::map<store_key_t, std::pair<state_timestamp_t, counted_t<const ql::datum_t> > > table_;
+    std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > table_;
 
     DISABLE_COPYING(mock_store_t);
 };
