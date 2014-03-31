@@ -64,7 +64,7 @@ public:
             write_token_pair_t *token,
             write_durability_t durability,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+        THROWS_ONLY(interrupted_exc_t);
 
 private:
     fifo_enforcer_source_t token_source_;
