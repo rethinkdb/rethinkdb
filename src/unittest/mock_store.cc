@@ -26,7 +26,8 @@ std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr) 
     const rdb_protocol_t::point_read_response_t *prr
         = boost::get<rdb_protocol_t::point_read_response_t>(&rr.response);
     guarantee(prr != NULL);
-    if (!prr->data.has()) {
+    guarantee(prr->data.has());
+    if (prr->data->get_type() == ql::datum_t::R_NULL) {
         // Behave like the old dummy_protocol_t.
         return "";
     }
