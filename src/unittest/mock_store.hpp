@@ -48,7 +48,7 @@ public:
             const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<rdb_protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            read_token_pair_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -61,7 +61,7 @@ public:
     void reset_data(
             const rdb_protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
+            write_token_pair_t *token,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
