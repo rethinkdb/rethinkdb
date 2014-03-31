@@ -4,7 +4,7 @@ import signal
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import sys, os, datetime, time, copy, json, traceback, csv, string
+import sys, os, datetime, time, copy, json, traceback, csv, string, socket
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
 
@@ -135,12 +135,39 @@ def parse_options():
     res["debug"] = options.debug
     return res
 
-def get_tables(host, port, auth_key, tables):
+def os_call_wrapper(fn, filename, error_str):
     try:
-        conn = r.connect(host, port, auth_key=auth_key)
-    except (r.RqlError, r.RqlDriverError) as ex:
-        raise RuntimeError(ex.message)
+        fn(filename)
+    except OSError as ex:
+        raise RuntimeError(error_str % (filename, ex.strerror))
 
+# This function is used to wrap rethinkdb calls to recover from connection errors
+# The first argument to the function is an output parameter indicating if progress
+# has been made since the last call.  This is passed as an array of a single bool
+# such that it works as an output parameter.
+# Using this wrapper, the given function will be called until 5 connection errors
+# occur in a row with no progress being made.  Care should be taken that the given
+# function will terminate as long as progress is being set to true.
+def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
+    i = 0
+    max_attempts = 5
+    progress = [None]
+    while True:
+        last_progress = copy.deepcopy(progress)
+        try:
+            conn = conn_fn()
+            return fn(progress, conn, *args, **kwargs)
+        except socket.error as ex:
+            i = i + 1 if progress == last_progress else 0
+            if i == max_attempts:
+                raise RuntimeError("Connection error during '%s': %s" % (context, ex.message))
+        except (r.RqlError, r.RqlDriverError) as ex:
+            raise RuntimeError("ReQL error during '%s': %s" % (context, ex.message))
+
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  Don't bother setting progress, because this is a
+# fairly small operation.
+def get_tables(progress, conn, tables):
     dbs = r.db_list().run(conn)
     res = []
 
@@ -161,12 +188,6 @@ def get_tables(host, port, auth_key, tables):
     # Remove duplicates by making results a set
     return set(res)
 
-def os_call_wrapper(fn, filename, error_str):
-    try:
-        fn(filename)
-    except OSError as ex:
-        raise RuntimeError(error_str % (filename, ex.strerror))
-
 # Make sure the output directory doesn't exist and create the temporary directory structure
 def prepare_directories(base_path, base_path_partial, db_table_set):
     os_call_wrapper(lambda x: os.makedirs(x), base_path_partial, "Failed to create temporary directory (%s): %s")
@@ -181,24 +202,41 @@ def finalize_directory(base_path, base_path_partial):
     os_call_wrapper(lambda x: os.rename(base_path_partial, x), base_path,
                     "Failed to move temporary directory to output directory (%s): %s")
 
-def write_table_metadata(conn, db, table, base_path):
-    out = open(base_path + "/%s/%s.info" % (db, table), "w")
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  Don't bother setting progress, because we either
+# succeed or fail, there is no partial success.
+def write_table_metadata(progress, conn, db, table, base_path):
     table_info = r.db(db).table(table).info().run(conn)
+    out = open(base_path + "/%s/%s.info" % (db, table), "w")
     out.write(json.dumps(table_info) + "\n")
     out.close()
+    return table_info
 
-def read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event):
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  In order to facilitate this, we do an order_by by the
+# primary key so that we only ever get a given row once.
+def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_info, exit_event):
     read_rows = 0
-    for row in r.db(db).table(table).run(conn, time_format="raw"):
-        if exit_event.is_set():
-            break
-        task_queue.put([row])
+    if progress[0] is None:
+        cursor = r.db(db).table(table).order_by(index=pkey).run(conn, time_format="raw")
+    else:
+        cursor = r.db(db).table(table).between(progress[0], None, left_bound="open").order_by(index=pkey).run(conn, time_format="raw")
 
-        # Update the progress every 20 rows - to reduce locking overhead
-        read_rows += 1
-        if read_rows % 20 == 0:
-            progress_info[0].value += 20
-    progress_info[0].value += read_rows % 20
+    try:
+        for row in cursor:
+            if exit_event.is_set():
+                break
+            task_queue.put([row])
+
+            # Set progress so we can continue from this point if a connection error occurs
+            progress[0] = row[pkey]
+
+            # Update the progress every 20 rows - to reduce locking overhead
+            read_rows += 1
+            if read_rows % 20 == 0:
+                progress_info[0].value += 20
+    finally:
+        progress_info[0].value += read_rows % 20
 
 def json_writer(filename, fields, task_queue, error_queue):
     try:
@@ -264,23 +302,28 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
+def get_table_size(progress, conn, db, table, progress_info):
+    table_size = r.db(db).table(table).count().run(conn)
+    progress_info[1].value = table_size
+    progress_info[0].value = 0
+
 def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
     writer = None
 
     try:
-        conn = r.connect(host, port, auth_key=auth_key)
-
-        table_size = r.db(db).table(table).count().run(conn)
-        progress_info[1].value = table_size
-        progress_info[0].value = 0
-        write_table_metadata(conn, db, table, directory)
+        # This will open at least one connection for each rdb_call_wrapper, which is
+        # a little wasteful, but shouldn't be a big performance hit
+        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+        table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
 
         with stream_semaphore:
             task_queue = multiprocessing.queues.SimpleQueue()
             writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
             writer.start()
 
-            read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
+            rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
+                             table_info["primary_key"], task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -399,7 +442,8 @@ def main():
         return 1
 
     try:
-        db_table_set = get_tables(options["host"], options["port"], options["auth_key"], options["tables"])
+        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["tables"])
         del options["tables"] # This is not needed anymore, db_table_set is more useful
 
         # Determine the actual number of client processes we'll have
