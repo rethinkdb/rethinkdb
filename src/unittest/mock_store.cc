@@ -17,6 +17,24 @@ rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
                                    profile_bool_t::DONT_PROFILE);
 }
 
+rdb_protocol_t::read_t mock_read(std::string key) {
+    rdb_protocol_t::point_read_t pr((store_key_t(key)));
+    return rdb_protocol_t::read_t(pr, profile_bool_t::DONT_PROFILE);
+}
+
+std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr) {
+    const rdb_protocol_t::point_read_response_t *prr
+        = boost::get<rdb_protocol_t::point_read_response_t>(&rr.response);
+    guarantee(prr != NULL);
+    if (!prr->data.has()) {
+        // Behave like the old dummy_protocol_t.
+        return "";
+    }
+    return prr->data->as_str().to_std();
+}
+
+
+
 mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
     : store_view_t<rdb_protocol_t>(rdb_protocol_t::region_t::universe()),
       metainfo_(get_region(), universe_metainfo) { }
@@ -298,6 +316,7 @@ void mock_store_t::reset_data(
 std::string mock_store_t::values(std::string key) {
     auto it = table_.find(store_key_t(key));
     if (it == table_.end()) {
+        // Behave like the old dummy_protocol_t.
         return "";
     }
     return it->second.second->get("value")->as_str().to_std();
@@ -310,7 +329,6 @@ repli_timestamp_t mock_store_t::timestamps(std::string key) {
     }
     return it->second.first;
 }
-
 
 
 

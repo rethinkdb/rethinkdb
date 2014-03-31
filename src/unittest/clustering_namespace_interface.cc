@@ -64,15 +64,14 @@ TPTEST(ClusteringNamespaceInterface, ReadOutdated) {
 
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
 
-    scoped_ptr_t<cluster_namespace_interface_t<dummy_protocol_t> > namespace_if;
+    scoped_ptr_t<cluster_namespace_interface_t<rdb_protocol_t> > namespace_if;
     cluster_group.make_namespace_interface(0, &namespace_if);
 
-    dummy_protocol_t::read_t r;
-    dummy_protocol_t::read_response_t rr;
-    r.keys.keys.insert("a");
+    rdb_protocol_t::read_t r = mock_read("a");
+    rdb_protocol_t::read_response_t rr;
     cond_t non_interruptor;
     namespace_if->read_outdated(r, &rr, &non_interruptor);
-    EXPECT_EQ("", rr.values["a"]);
+    EXPECT_EQ("", mock_parse_read_response(rr));
 }
 
 }   /* namespace unittest */

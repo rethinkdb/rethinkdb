@@ -45,10 +45,6 @@ void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
                                               store_key_t(std::string(1, 'a' + (((i + 1) * 26)/n)))));
 }
 
-void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
-    *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
-}
-
 template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                             const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > &reactor_directory) {
@@ -166,7 +162,7 @@ test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_back
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
-    rassert(svs->get_region() == mock::a_thru_z_region());
+    rassert(svs->get_region() == protocol_t::region_t::universe());
 }
 
 template <class protocol_t>
@@ -204,15 +200,11 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
         serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
-        stores.push_back(
-                new typename dummy_protocol_t::store_t(&serializers[i], balancer.get(),
-                    files[i].name().permanent_path(), true, NULL,
-                    &ctx, io_backender.get(), base_path_t(".")));
-        store_view_t<dummy_protocol_t> *store_ptr = &stores[i];
-        svses.push_back(new multistore_ptr_t<dummy_protocol_t>(&store_ptr, 1));
-        stores.back().metainfo.set(mock::a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
+        stores.push_back(new mock_store_t(binary_blob_t(version_range_t(version_t::zero()))));
+        store_view_t<rdb_protocol_t> *store_ptr = &stores[i];
+        svses.push_back(new multistore_ptr_t<rdb_protocol_t>(&store_ptr, 1));
 
-        test_clusters.push_back(new reactor_test_cluster_t<dummy_protocol_t>(ANY_PORT));
+        test_clusters.push_back(new reactor_test_cluster_t<rdb_protocol_t>(ANY_PORT));
         if (i > 0) {
             test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
         }
@@ -221,9 +213,9 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
 
 test_cluster_group_t::~test_cluster_group_t() { }
 
-void test_cluster_group_t::construct_all_reactors(const blueprint_t<dummy_protocol_t> &bp) {
+void test_cluster_group_t::construct_all_reactors(const blueprint_t<rdb_protocol_t> &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
-        test_reactors.push_back(new test_reactor_t<dummy_protocol_t>(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
+        test_reactors.push_back(new test_reactor_t<rdb_protocol_t>(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
     }
 }
 
@@ -232,8 +224,8 @@ peer_id_t test_cluster_group_t::get_peer_id(unsigned i) {
     return test_clusters[i].get_me();
 }
 
-blueprint_t<dummy_protocol_t> test_cluster_group_t::compile_blueprint(const std::string &bp) {
-    blueprint_t<dummy_protocol_t> blueprint;
+blueprint_t<rdb_protocol_t> test_cluster_group_t::compile_blueprint(const std::string &bp) {
+    blueprint_t<rdb_protocol_t> blueprint;
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     typedef tokenizer::iterator tok_iterator;
@@ -248,7 +240,7 @@ blueprint_t<dummy_protocol_t> test_cluster_group_t::compile_blueprint(const std:
 
         blueprint.add_peer(get_peer_id(peer));
         for (unsigned i = 0; i < it->size(); i++) {
-            dummy_protocol_t::region_t region;
+            rdb_protocol_t::region_t region;
             generate_sample_region(i, it->size(), &region);
 
             switch (it->at(i)) {
@@ -271,27 +263,27 @@ blueprint_t<dummy_protocol_t> test_cluster_group_t::compile_blueprint(const std:
     return blueprint;
 }
 
-void test_cluster_group_t::set_all_blueprints(const blueprint_t<dummy_protocol_t> &bp) {
+void test_cluster_group_t::set_all_blueprints(const blueprint_t<rdb_protocol_t> &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
         test_reactors[i].blueprint_watchable.set_value(bp);
     }
 }
 
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > test_cluster_group_t::extract_reactor_business_cards_no_optional(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<dummy_protocol_t> > &input) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > out;
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > test_cluster_group_t::extract_reactor_business_cards_no_optional(
+        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {
             out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
         } else {
-            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t<dummy_protocol_t> >()));
+            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >()));
         }
     }
     return out;
 }
 
-void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<dummy_protocol_t> > *out) {
-    out->init(new cluster_namespace_interface_t<dummy_protocol_t>(
+void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<rdb_protocol_t> > *out) {
+    out->init(new cluster_namespace_interface_t<rdb_protocol_t>(
                       &test_clusters[i].mailbox_manager,
                       (&test_clusters[i])->directory_read_manager.get_root_view()
                       ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
@@ -302,39 +294,39 @@ void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_
 void test_cluster_group_t::run_queries() {
     nap(200);
     for (unsigned i = 0; i < test_clusters.size(); i++) {
-        scoped_ptr_t<cluster_namespace_interface_t<dummy_protocol_t> > namespace_if;
+        scoped_ptr_t<cluster_namespace_interface_t<rdb_protocol_t> > namespace_if;
         make_namespace_interface(i, &namespace_if);
 
         order_source_t order_source;
 
-        test_inserter_t inserter(namespace_if.get(), &key_gen<dummy_protocol_t>, &order_source, "test_cluster_group_t::run_queries/inserter", &inserter_state);
+        test_inserter_t inserter(namespace_if.get(), &dummy_key_gen, &order_source, "test_cluster_group_t::run_queries/inserter", &inserter_state);
         let_stuff_happen();
         inserter.stop();
         inserter.validate();
     }
 }
 
-std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > > test_cluster_group_t::extract_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<dummy_protocol_t> > &input) {
-    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > > > out;
+std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > test_cluster_group_t::extract_reactor_business_cards(
+        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
+    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > >(it->second.reactor_directory->internal)));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >(it->second.reactor_directory->internal)));
         } else {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<dummy_protocol_t> > >()));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >()));
         }
     }
     return out;
 }
 
-void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t<dummy_protocol_t> &bp) {
+void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t<rdb_protocol_t> &bp) {
     try {
         const int timeout_ms = 60000;
         signal_timer_t timer;
         timer.start(timeout_ms);
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t::extract_reactor_business_cards)
-            ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<dummy_protocol_t>, bp, _1), &timer);
+            ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<rdb_protocol_t>, bp, _1), &timer);
     } catch (const interrupted_exc_t &) {
         crash("The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.");
     }

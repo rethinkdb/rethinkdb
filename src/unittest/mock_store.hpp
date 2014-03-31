@@ -7,6 +7,10 @@ namespace unittest {
 
 rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value);
 
+rdb_protocol_t::read_t mock_read(std::string key);
+
+std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr);
+
 class mock_store_t : public store_view_t<rdb_protocol_t> {
 public:
     explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());

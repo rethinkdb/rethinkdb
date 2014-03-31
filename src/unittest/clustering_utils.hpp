@@ -14,6 +14,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/gtest.hpp"
+#include "unittest/mock_store.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
@@ -100,6 +101,17 @@ inline std::string test_inserter_read_namespace_if(namespace_interface_t<mock::d
     r.keys.keys.insert(key);
     nif->read(r, &response, otok, interruptor);
     return response.values[key];
+}
+
+inline void test_inserter_write_namespace_if(namespace_interface_t<rdb_protocol_t> *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+    rdb_protocol_t::write_response_t response;
+    nif->write(mock_overwrite(key, value), &response, otok, interruptor);
+}
+
+inline std::string test_inserter_read_namespace_if(namespace_interface_t<rdb_protocol_t> *nif, const std::string &key, order_token_t otok, signal_t *interruptor) {
+    rdb_protocol_t::read_response_t response;
+    nif->read(mock_read(key), &response, otok, interruptor);
+    return mock_parse_read_response(response);
 }
 
 class test_inserter_t {
