@@ -55,7 +55,7 @@ void mock_store_t::read(
         if (it == table_.end()) {
             res->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
         } else {
-            res->data = it->second;
+            res->data = it->second.second;
         }
     }
     if (rng_.randint(2) == 0) {
@@ -69,7 +69,7 @@ void mock_store_t::write(
         const rdb_protocol_t::write_t &write,
         rdb_protocol_t::write_response_t *response,
         UNUSED write_durability_t durability,
-        UNUSED transition_timestamp_t timestamp,
+        transition_timestamp_t timestamp,
         order_token_t order_token,
         write_token_pair_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -106,7 +106,7 @@ void mock_store_t::write(
         guarantee(point_write->data.has());
         const bool had_value = table_.find(point_write->key) != table_.end();
         if (point_write->overwrite || !had_value) {
-            table_[point_write->key] = point_write->data;
+            table_[point_write->key] = std::make_pair(timestamp.timestamp_after(), point_write->data);
         }
         res->result = had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED;
 
@@ -115,9 +115,6 @@ void mock_store_t::write(
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
-
-
-
 }
 
 
