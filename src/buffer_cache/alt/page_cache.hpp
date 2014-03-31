@@ -310,7 +310,8 @@ class page_cache_index_write_sink_t;
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
-                 cache_balancer_t *balancer);
+                 cache_balancer_t *balancer,
+                 alt_txn_throttler_t *throttler);
     ~page_cache_t();
 
     // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the
