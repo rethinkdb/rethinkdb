@@ -14,6 +14,7 @@
 #include "containers/scoped.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
@@ -43,7 +44,6 @@ public:
 };
 
 
-template<class protocol_t>
 class test_cluster_group_t {
 public:
     const base_path_t base_path;
@@ -51,38 +51,38 @@ public:
     scoped_ptr_t<io_backender_t> io_backender;
     scoped_ptr_t<cache_balancer_t> balancer;
     boost::ptr_vector<serializer_t> serializers;
-    boost::ptr_vector<typename protocol_t::store_t> stores;
-    boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;
-    boost::ptr_vector<reactor_test_cluster_t<protocol_t> > test_clusters;
+    boost::ptr_vector<mock::dummy_protocol_t::store_t> stores;
+    boost::ptr_vector<multistore_ptr_t<mock::dummy_protocol_t> > svses;
+    boost::ptr_vector<reactor_test_cluster_t<mock::dummy_protocol_t> > test_clusters;
 
-    boost::ptr_vector<test_reactor_t<protocol_t> > test_reactors;
+    boost::ptr_vector<test_reactor_t<mock::dummy_protocol_t> > test_reactors;
 
     std::map<std::string, std::string> inserter_state;
 
-    typename protocol_t::context_t ctx;
+    mock::dummy_protocol_t::context_t ctx;
 
     explicit test_cluster_group_t(int n_machines);
     ~test_cluster_group_t();
 
-    void construct_all_reactors(const blueprint_t<protocol_t> &bp);
+    void construct_all_reactors(const blueprint_t<mock::dummy_protocol_t> &bp);
 
     peer_id_t get_peer_id(unsigned i);
 
-    blueprint_t<protocol_t> compile_blueprint(const std::string& bp);
+    blueprint_t<mock::dummy_protocol_t> compile_blueprint(const std::string& bp);
 
-    void set_all_blueprints(const blueprint_t<protocol_t> &bp);
+    void set_all_blueprints(const blueprint_t<mock::dummy_protocol_t> &bp);
 
-    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards_no_optional(
-            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > > extract_reactor_business_cards_no_optional(
+            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<mock::dummy_protocol_t> > &input);
 
-    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out);
+    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<mock::dummy_protocol_t> > *out);
 
     void run_queries();
 
-    static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > extract_reactor_business_cards(
-            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
+    static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > > > extract_reactor_business_cards(
+            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<mock::dummy_protocol_t> > &input);
 
-    void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp);
+    void wait_until_blueprint_is_satisfied(const blueprint_t<mock::dummy_protocol_t> &bp);
 
     void wait_until_blueprint_is_satisfied(const std::string& bp);
 };
