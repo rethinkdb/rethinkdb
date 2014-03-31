@@ -1,5 +1,6 @@
 #include "buffer_cache/alt/evicter.hpp"
 
+#include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
@@ -10,6 +11,7 @@ evicter_t::evicter_t()
     : initialized_(false),
       page_cache_(NULL),
       balancer_(NULL),
+      throttler_(NULL),
       bytes_loaded_counter_(0),
       access_count_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME) { }
@@ -21,13 +23,19 @@ evicter_t::~evicter_t() {
     }
 }
 
-void evicter_t::initialize(page_cache_t *page_cache, cache_balancer_t *balancer) {
+void evicter_t::initialize(page_cache_t *page_cache,
+                           cache_balancer_t *balancer,
+                           alt_txn_throttler_t *throttler) {
     guarantee(balancer != NULL);
-    initialized_ = true; // Can you really say this class is 'initialized_'?
+    initialized_ = true;  // Can you really say this class is 'initialized_'?
     page_cache_ = page_cache;
     memory_limit_ = balancer->base_mem_per_store();
+    page_cache_ = page_cache;
+    throttler_ = throttler;
     balancer_ = balancer;
     balancer_->add_evicter(this);
+    throttler_->inform_memory_limit_change(memory_limit_,
+                                           page_cache_->max_block_size());
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit,
@@ -45,6 +53,9 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit,
     access_count_counter_ -= access_count_accounted_for;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
+
+    throttler_->inform_memory_limit_change(memory_limit_,
+                                           page_cache_->max_block_size());
 }
 
 uint64_t evicter_t::get_clamped_bytes_loaded() const {

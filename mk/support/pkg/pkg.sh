@@ -26,6 +26,8 @@
 
 set -eu
 
+unset DESTDIR
+
 # Print the version number of the package
 pkg_version () {
     echo $version
@@ -231,7 +233,7 @@ geturl () {
     if [[ -n "${WGET:-}" ]]; then
         $WGET --quiet --output-document=- "$@"
     else
-        ${CURL:-curl} --silent "$@"
+        ${CURL:-curl} --silent --location "$@"
     fi
 }
 

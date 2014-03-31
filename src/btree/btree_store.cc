@@ -13,7 +13,7 @@
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
-    : info(strprintf("Sindex: %s was accessed before it was finished post constructing.",
+    : info(strprintf("Index `%s` was accessed before its construction was finished.",
                 sindex_name.c_str()))
 { }
 

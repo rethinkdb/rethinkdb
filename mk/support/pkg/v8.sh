@@ -29,6 +29,11 @@ pkg_install () {
         arm*)   arch=arm ;;
         *)      arch=native ;;
     esac
+    case "$($CXX -dumpversion)" in
+        4.4*)
+            # Some versions of GCC 4.4 crash with "pure virtual method called" unless these flag are passed
+            CXXFLAGS="${CXXFLAGS:-} -fno-function-sections -fno-inline-functions"
+    esac
     pkg_make $arch.release CXX=$CXX LINK=$CXX LINK.target=$CXX werror=no $makeflags CXXFLAGS="${CXXFLAGS:-} -Wno-error"
     find "$build_dir/out/$arch.release/obj.target" -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ${AR:-ar} cqs "$install_dir/lib/libv8.a"
 }

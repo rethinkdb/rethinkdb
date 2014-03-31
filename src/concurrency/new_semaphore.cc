@@ -1,11 +1,20 @@
 #include "concurrency/new_semaphore.hpp"
 
 new_semaphore_t::new_semaphore_t(int64_t capacity)
-    : capacity_(capacity), current_(0) { }
+    : capacity_(capacity), current_(0)
+{
+    guarantee(capacity > 0);
+}
 
 new_semaphore_t::~new_semaphore_t() {
     guarantee(current_ == 0);
     guarantee(waiters_.empty());
+}
+
+void new_semaphore_t::set_capacity(int64_t new_capacity) {
+    guarantee(new_capacity > 0);
+    capacity_ = new_capacity;
+    pulse_waiters();
 }
 
 void new_semaphore_t::add_acquirer(new_semaphore_acq_t *acq) {

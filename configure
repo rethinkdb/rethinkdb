@@ -796,7 +796,7 @@ int main(){ return 0; }
 ~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~termcap:ncurses'
+lib_alias=':~termcap:tinfo ncurses'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
@@ -1017,6 +1017,10 @@ EOF
 # Check for boost
 check_boost () {
     require "Test boost"
+    if contains "$please_fetch_list" boost; then
+        fetch_lib boost
+        return
+    fi
     check_lib_compile "" boost
     if $can_show; then
         if fetch_allowed boost; then

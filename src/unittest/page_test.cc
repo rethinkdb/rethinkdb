@@ -33,7 +33,12 @@ struct mock_ser_t {
         ser = make_scoped<standard_serializer_t>(log_serializer_t::dynamic_config_t(),
                                                  &opener,
                                                  &get_global_perfmon_collection());
-        throttler = make_scoped<alt_txn_throttler_t>();
+        // We pass a high minimum unwritten changes limit so that the memory-limited
+        // BiggerTest tests don't throttle their write transactions (and hang).  (In
+        // real code you must not have a write transaction construction block the
+        // lifetime of another write transaction construction, but here in the unit
+        // tests we want to specifically run various combinations of such cases.)
+        throttler = make_scoped<alt_txn_throttler_t>(4000);
     }
 };
 
@@ -45,10 +50,10 @@ class test_txn_t;
 
 class test_cache_t : public page_cache_t {
 public:
-    test_cache_t(serializer_t *serializer, 
+    test_cache_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
                  alt_txn_throttler_t *throttler)
-        : page_cache_t(serializer, balancer),
+        : page_cache_t(serializer, balancer, throttler),
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
