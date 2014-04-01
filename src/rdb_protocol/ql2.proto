@@ -245,6 +245,12 @@ message Term {
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
 
+        // Takes an HTTP URL and gets it.  If the get succeeds and
+        //  returns valid JSON, it is converted into a DATUM
+        WGET = 151; // STRING {timeout: !NUMBER,
+                    //         header: !STRING | [!STRING],
+                    //         rate_limit: !NUMBER} -> DATUM
+
         // Takes a string and throws an error with that message.
         // Inside of a `default` block, you can omit the first
         // argument to rethrow whatever error you catch (this is most

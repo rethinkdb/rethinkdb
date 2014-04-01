@@ -770,6 +770,10 @@ class JavaScript(RqlTopLevelQuery):
     tt = p.Term.JAVASCRIPT
     st = "js"
 
+class Wget(RqlTopLevelQuery):
+    tt = p.Term.WGET
+    st = "wget"
+
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
