@@ -193,13 +193,8 @@ wget_result_t perform_wget(UNUSED const std::string &url,
     } while (res == -1 && get_errno() == EINTR);
 
     if (res > 0) {
-        do {
-            res = ::close(res_pipe[0]);
-        } while (res == -1 && get_errno() == EINTR);
-
-        do {
-            res = ::close(err_pipe[0]);
-        } while (res == -1 && get_errno() == EINTR);
+        ::close(res_pipe[0]);
+        ::close(err_pipe[0]);
 
         // If we return from this call, something terrible has happened
         std::string info = exec_curl(url, rate_limit, headers,
@@ -215,14 +210,8 @@ wget_result_t perform_wget(UNUSED const std::string &url,
 
         ::exit(0);
     }
-
-    do {
-        res = ::close(res_pipe[1]);
-    } while (res == -1 && get_errno() == EINTR);
-
-    do {
-        res = ::close(err_pipe[1]);
-    } while (res == -1 && get_errno() == EINTR);
+    ::close(res_pipe[1]);
+    ::close(err_pipe[1]);
 
     scoped_fd_t res_in(res_pipe[0]);
     scoped_fd_t err_in(err_pipe[0]);
