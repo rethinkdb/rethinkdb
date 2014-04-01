@@ -253,14 +253,14 @@ bool do_serve(
 
             // RDB
             scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
-            scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver;
+            scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
             scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t> >
                 rdb_reactor_directory_copier;
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t(
                     io_backender, cache_balancer.get(), base_path));
-                rdb_reactor_driver.init(new reactor_driver_t<rdb_protocol_t>(
+                rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,
                         &mailbox_manager,
