@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import signal
 
-import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string
+import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string, socket
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
 
@@ -253,23 +253,77 @@ def parse_options():
 
     return res
 
-# This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, use_upsert, durability):
-    try:
-        conn = r.connect(host, port, auth_key=auth_key)
-        while True:
-            task = task_queue.get()
-            if len(task) == 3:
-                # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
-                objs = [cPickle.loads(obj) for obj in task[2]]
-                res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
-                if res["errors"] > 0:
-                    raise RuntimeError("Error when importing into table '%s.%s': %s" %
-                                       (task[0], task[1], res["first_error"]))
+# This function is used to wrap rethinkdb calls to recover from connection errors
+# The first argument to the function is an output parameter indicating if progress
+# has been made since the last call.  This is passed as an array of a single bool
+# such that it works as an output parameter.
+# Using this wrapper, the given function will be called until 5 connection errors
+# occur in a row with no progress being made.  Care should be taken that the given
+# function will terminate as long as progress is being set to true.
+def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
+    i = 0
+    max_attempts = 5
+    progress = [None]
+    while True:
+        last_progress = copy.deepcopy(progress)
+        try:
+            conn = conn_fn()
+            return fn(progress, conn, *args, **kwargs)
+        except socket.error as ex:
+            i = i + 1 if progress[0] == last_progress[0] else 0
+            if i == max_attempts:
+                raise RuntimeError("Connection error during '%s': %s" % (context, ex.message))
+        except (r.RqlError, r.RqlDriverError) as ex:
+            raise RuntimeError("ReQL error during '%s': %s" % (context, ex.message))
+
+# This is called through rdb_call_wrapper so reattempts can be tried as long as progress
+# is being made, but connection errors occur.  We save a failed task in the progress object
+# so it can be resumed later on a new connection.
+def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durability):
+    if progress[0] is None:
+        progress[0] = 0
+        progress.append(None)
+    elif not use_upsert:
+        # We were interrupted and it's not ok to overwrite rows, check that the batch either:
+        # a) does not exist on the server
+        # b) is exactly the same on the server
+        task = progress[1]
+        pkey = r.db(task[0]).table(task[1]).info().run(conn)["primary_key"]
+        for i in xrange(len(task[2])):
+            obj = task[2][i]
+            if pkey not in obj:
+                raise RuntimeError("Connection error while importing.  Current row has no specified primary key, so cannot guarantee absence of duplicates")
+            row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
+            if row == obj:
+                task[2].pop(i)
             else:
-                break
-    except (r.RqlError, r.RqlDriverError) as ex:
-        error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
+                raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (pkey, str(obj), str(row)))
+
+    task = task_queue.get() if progress[1] is None else progress[1]
+    while len(task) == 3:
+        try:
+            # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
+            objs = [cPickle.loads(obj) for obj in task[2]]
+            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
+        except:
+            progress[1] = task
+            raise
+
+        if res["errors"] > 0:
+            raise RuntimeError("Error when importing into table '%s.%s': %s" %
+                               (task[0], task[1], res["first_error"]))
+
+        progress[0] += len(objs)
+        task = task_queue.get()
+    return progress[0]
+
+# This is run for each client requested, and accepts tasks from the reader processes
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, use_upsert, durability):
+    try:
+        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, use_upsert, durability)
+        with rows_written.get_lock():
+            rows_written.value += res
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
@@ -339,7 +393,6 @@ def read_json_array(json_data, file_in, callback, progress_info):
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
-            progress_info[2].value += 1
 
             # Read past whitespace to the next record
             file_offset += offset
@@ -365,7 +418,7 @@ def read_json_array(json_data, file_in, callback, progress_info):
     json_data += file_in.read()
     return json_data[offset + 1:]
 
-def json_reader(task_queue, filename, db, table, primary_key, fields, progress_info, exit_event):
+def json_reader(task_queue, filename, db, table, fields, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
 
@@ -384,7 +437,6 @@ def json_reader(task_queue, filename, db, table, primary_key, fields, progress_i
             json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
         elif json_data[offset] == "{":
             json_data = read_json_single_object(json_data[offset:], file_in, callback)
-            progress_info[2].value = 1
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 
@@ -399,7 +451,7 @@ def json_reader(task_queue, filename, db, table, primary_key, fields, progress_i
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
-def csv_reader(task_queue, filename, db, table, primary_key, options, progress_info, exit_event):
+def csv_reader(task_queue, filename, db, table, options, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
 
@@ -438,26 +490,29 @@ def csv_reader(task_queue, filename, db, table, primary_key, options, progress_i
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
-            progress_info[2].value += 1
 
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
+
+# This function is called through rdb_call_wrapper, which will reattempt if a connection
+# error occurs.  Progress is not used as this will either succeed or fail.
+def create_table(progress, conn, db, table, pkey):
+    if table not in r.db(db).table_list().run(conn):
+        r.db(db).table_create(table, primary_key=pkey).run(conn)
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
         db = file_info["db"]
         table = file_info["table"]
         primary_key = file_info["info"]["primary_key"]
-        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
 
-        if table not in r.db(db).table_list().run(conn):
-            r.db(db).table_create(table, primary_key=primary_key).run(conn)
+        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key)
 
         if file_info["format"] == "json":
             json_reader(task_queue,
                         file_info["file"],
                         db, table,
-                        primary_key,
                         options["fields"],
                         progress_info,
                         exit_event)
@@ -465,14 +520,11 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
             csv_reader(task_queue,
                        file_info["file"],
                        db, table,
-                       primary_key,
                        options,
                        progress_info,
                        exit_event)
         else:
             raise RuntimeError("Error: Unknown file format specified")
-    except (r.RqlError, r.RqlDriverError) as ex:
-        error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except InterruptedError:
         pass # Don't save interrupted errors, they are side-effects
     except:
@@ -500,7 +552,7 @@ def print_progress(ratio):
 
 def update_progress(progress_info):
     lowest_completion = 1.0
-    for (current, max_count, rows) in progress_info:
+    for (current, max_count) in progress_info:
         curr_val = current.value
         max_val = max_count.value
         if curr_val < 0:
@@ -527,6 +579,7 @@ def spawn_import_clients(options, files_info):
 
     try:
         progress_info = [ ]
+        rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
 
         for i in range(options["clients"]):
             client_procs.append(multiprocessing.Process(target=client_process,
@@ -535,14 +588,14 @@ def spawn_import_clients(options, files_info):
                                                               options["auth_key"],
                                                               task_queue,
                                                               error_queue,
+                                                              rows_written,
                                                               options["force"],
                                                               options["durability"])))
             client_procs[-1].start()
 
         for file_info in files_info:
             progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1), # Current lines/bytes processed
-                                  multiprocessing.Value(ctypes.c_longlong, 0), # Total lines/bytes to process
-                                  multiprocessing.Value(ctypes.c_longlong, 0))) # Total rows processed
+                                  multiprocessing.Value(ctypes.c_longlong, 0))) # Total lines/bytes to process
             reader_procs.append(multiprocessing.Process(target=table_reader,
                                                         args=(options,
                                                               file_info,
@@ -579,8 +632,8 @@ def spawn_import_clients(options, files_info):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
         print ""
-        print "%s imported in %s" % (plural(sum([info[2].value for info in progress_info]), "row"),
-                                       plural(len(files_info), "table"))
+        print "%s imported in %s" % (plural(rows_written.value, "row"),
+                                     plural(len(files_info), "table"))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -617,6 +670,28 @@ def get_import_info_for_file(filename, db_filter, table_filter):
         file_info["info"] = json.load(info_file)
 
     return file_info
+
+def tables_check(progress, conn, files_info, force):
+    # Ensure that all needed databases exist and tables don't
+    db_list = r.db_list().run(conn)
+    for db in set([file_info["db"] for file_info in files_info]):
+        if db not in db_list:
+            r.db_create(db).run(conn)
+
+    # Ensure that all tables do not exist (unless --forced)
+    already_exist = []
+    for file_info in files_info:
+        table = file_info["table"]
+        db = file_info["db"]
+        if table in r.db(db).table_list().run(conn):
+            if not force:
+                already_exist.append("%s.%s" % (db, table))
+
+            extant_pkey = r.db(db).table(table).info().run(conn)["primary_key"]
+            if file_info["info"]["primary_key"] != extant_pkey:
+                raise RuntimeError("Error: Table '%s.%s' already exists with a different primary key" % (db, table))
+
+    return already_exist
 
 def import_directory(options):
     # Scan for all files, make sure no duplicated tables with different formats
@@ -665,32 +740,11 @@ def import_directory(options):
 
         db_tables.add((file_info["db"], file_info["table"]))
 
-    # Ensure that all needed databases exist and tables don't
-    try:
-        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except (r.RqlError, r.RqlDriverError) as ex:
-        raise RuntimeError(ex.message)
-
-    db_list = r.db_list().run(conn)
-    for db in set([file_info["db"] for file_info in files_info]):
-        if db not in db_list:
-            r.db_create(db).run(conn)
-
-    # Ensure that all tables do not exist (unless --forced)
-    already_exist = []
-    for file_info in files_info:
-        table = file_info["table"]
-        db = file_info["db"]
-        if table in r.db(db).table_list().run(conn):
-            if not options["force"]:
-                already_exist.append("%s.%s" % (db, table))
-
-            extant_primary_key = r.db(db).table(table).info().run(conn)["primary_key"]
-            if file_info["info"]["primary_key"] != extant_primary_key:
-                raise RuntimeError("Error: Table '%s.%s' already exists with a different primary key" % (db, table))
+    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
-        raise RuntimeError("Error: Table '%s.%s' already exists, run with --force to import into the existing table" % (db, table))
+        raise RuntimeError("Error: Table '%s' already exists, run with --force to import into the existing table" % already_exist[0])
     elif len(already_exist) > 1:
         already_exist.sort()
         extant_tables = "\n  ".join(already_exist)
@@ -706,34 +760,34 @@ def import_directory(options):
 
     spawn_import_clients(options, files_info)
 
-def import_file(options):
-    db = options["import_db_table"][0]
-    table = options["import_db_table"][1]
-    primary_key = options["primary_key"]
-
-    try:
-        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except (r.RqlError, r.RqlDriverError) as ex:
-        raise RuntimeError(ex.message)
-
-    # Ensure that the database and table exist
+def table_check(progress, conn, db, table, pkey, force):
     if db not in r.db_list().run(conn):
         r.db_create(db).run(conn)
 
     if table in r.db(db).table_list().run(conn):
-        if not options["force"]:
+        if not force:
             raise RuntimeError("Error: Table already exists, run with --force if you want to import into the existing table")
 
-        extant_primary_key = r.db(db).table(table).info().run(conn)["primary_key"]
-        if primary_key is not None and primary_key != extant_primary_key:
+        extant_pkey = r.db(db).table(table).info().run(conn)["primary_key"]
+        if pkey is not None and pkey != extant_pkey:
             raise RuntimeError("Error: Table already exists with a different primary key")
-        primary_key = extant_primary_key
+        pkey = extant_pkey
     else:
-        if primary_key is None:
+        if pkey is None:
             print "no primary key specified, using default primary key when creating table"
             r.db(db).table_create(table).run(conn)
         else:
-            r.db(db).table_create(table, primary_key=primary_key).run(conn)
+            r.db(db).table_create(table, primary_key=pkey).run(conn)
+    return pkey
+
+def import_file(options):
+    db = options["import_db_table"][0]
+    table = options["import_db_table"][1]
+    pkey = options["primary_key"]
+
+    # Ensure that the database and table exist with the right primary key
+    conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory
     file_info = {}
@@ -741,7 +795,7 @@ def import_file(options):
     file_info["format"] = options["import_format"]
     file_info["db"] = db
     file_info["table"] = table
-    file_info["info"] = { "primary_key": primary_key }
+    file_info["info"] = { "primary_key": pkey }
 
     spawn_import_clients(options, [file_info])
 
