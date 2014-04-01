@@ -15,6 +15,10 @@ generate_test(
     name = "js-cursor")
 
 generate_test(
+    make + "js_promise",
+    name = "js-promise")
+
+generate_test(
     make + "py_cursor",
     name = "py-cursor")
 
