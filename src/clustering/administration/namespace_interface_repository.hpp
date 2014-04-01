@@ -16,7 +16,7 @@ it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
 class mailbox_manager_t;
-template <class> class namespace_interface_t;
+class namespace_interface_t;
 class namespaces_directory_metadata_t;
 class peer_id_t;
 struct rdb_protocol_t;
@@ -41,7 +41,7 @@ public:
         access_t(const access_t &access);
         access_t &operator=(const access_t &access);
 
-        namespace_interface_t<rdb_protocol_t> *get_namespace_if();
+        namespace_interface_t *get_namespace_if();
 
     private:
         struct ref_handler_t {
@@ -63,7 +63,7 @@ protected:
 
     struct namespace_cache_entry_t {
     public:
-        promise_t<namespace_interface_t<rdb_protocol_t> *> namespace_if;
+        promise_t<namespace_interface_t *> namespace_if;
         int ref_count;
         cond_t *pulse_when_ref_count_becomes_zero;
         cond_t *pulse_when_ref_count_becomes_nonzero;

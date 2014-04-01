@@ -9,22 +9,20 @@ rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
     m["id"] = make_counted<ql::datum_t>(std::string(key));
     m["value"] = make_counted<ql::datum_t>(std::move(value));
 
-    rdb_protocol_t::point_write_t pw(store_key_t(key),
+    point_write_t pw(store_key_t(key),
                                      make_counted<ql::datum_t>(std::move(m)),
                                      true);
-    return rdb_protocol_t::write_t(pw,
-                                   DURABILITY_REQUIREMENT_SOFT,
-                                   profile_bool_t::DONT_PROFILE);
+    return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE);
 }
 
 rdb_protocol_t::read_t mock_read(std::string key) {
-    rdb_protocol_t::point_read_t pr((store_key_t(key)));
-    return rdb_protocol_t::read_t(pr, profile_bool_t::DONT_PROFILE);
+    point_read_t pr((store_key_t(key)));
+    return read_t(pr, profile_bool_t::DONT_PROFILE);
 }
 
-std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr) {
-    const rdb_protocol_t::point_read_response_t *prr
-        = boost::get<rdb_protocol_t::point_read_response_t>(&rr.response);
+std::string mock_parse_read_response(const read_response_t &rr) {
+    const point_read_response_t *prr
+        = boost::get<point_read_response_t>(&rr.response);
     guarantee(prr != NULL);
     guarantee(prr->data.has());
     if (prr->data->get_type() == ql::datum_t::R_NULL) {
@@ -42,8 +40,8 @@ std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key) {
     read_token_pair_t token;
     store->new_read_token_pair(&token);
 
-    rdb_protocol_t::read_t r = mock_read(key);
-    rdb_protocol_t::read_response_t rr;
+    read_t r = mock_read(key);
+    read_response_t rr;
     cond_t dummy_cond;
     store->read(DEBUG_ONLY(checker, )
                 r,
@@ -56,7 +54,7 @@ std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key) {
 
 
 mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
-    : store_view_t<rdb_protocol_t>(rdb_protocol_t::region_t::universe()),
+    : store_view_t<rdb_protocol_t>(region_t::universe()),
       metainfo_(get_region(), universe_metainfo) { }
 mock_store_t::~mock_store_t() { }
 
@@ -112,8 +110,8 @@ void mock_store_t::set_metainfo(const metainfo_t &new_metainfo,
 
 void mock_store_t::read(
         DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
-        const rdb_protocol_t::read_t &read,
-        rdb_protocol_t::read_response_t *response,
+        const read_t &read,
+        read_response_t *response,
         order_token_t order_token,
         read_token_pair_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -134,9 +132,6 @@ void mock_store_t::read(
         if (rng_.randint(2) == 0) {
             nap(rng_.randint(10), interruptor);
         }
-
-        typedef rdb_protocol_t::point_read_t point_read_t;
-        typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 
         const point_read_t *point_read = boost::get<point_read_t>(&read.read);
         guarantee(point_read != NULL);
@@ -160,8 +155,8 @@ void mock_store_t::read(
 void mock_store_t::write(
         DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
         const metainfo_t &new_metainfo,
-        const rdb_protocol_t::write_t &write,
-        rdb_protocol_t::write_response_t *response,
+        const write_t &write,
+        write_response_t *response,
         UNUSED write_durability_t durability,
         transition_timestamp_t timestamp,
         order_token_t order_token,
@@ -186,9 +181,6 @@ void mock_store_t::write(
         if (rng_.randint(2) == 0) {
             nap(rng_.randint(10), interruptor);
         }
-
-        typedef rdb_protocol_t::point_write_t point_write_t;
-        typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
         // Note that if we want to support point deletes, we'll need to store
         // deletion entries so that we can backfill them properly.  This code
@@ -307,7 +299,7 @@ void mock_store_t::receive_backfill(
 }
 
 void mock_store_t::reset_data(
-        const rdb_protocol_t::region_t &subregion,
+        const region_t &subregion,
         const metainfo_t &new_metainfo,
         write_token_pair_t *token,
         UNUSED write_durability_t durability,

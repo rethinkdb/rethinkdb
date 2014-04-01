@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -16,12 +17,18 @@
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
+#include "hash_region.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
-
 class traversal_progress_combiner_t;
+
+struct read_t;
+struct read_response_t;
+struct write_t;
+struct write_response_t;
+
+typedef hash_region_t<key_range_t> region_t;
 
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
@@ -45,19 +52,18 @@ private:
 /* `namespace_interface_t` is the interface that the protocol-agnostic database
 logic for query routing exposes to the protocol-specific query parser. */
 
-template<class protocol_t>
 class namespace_interface_t {
 public:
-    virtual void read(const typename protocol_t::read_t &, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void read_outdated(const typename protocol_t::read_t &, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const typename protocol_t::write_t &, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read(const read_t &, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read_outdated(const read_t &, read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void write(const write_t &, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
-    virtual std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
-        /* Valid default implementation */
-        std::set<typename protocol_t::region_t> s;
-        s.insert(protocol_t::region_t::universe());
+    // RSI: Can this be removed?  This default implementation?
+    virtual std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+        std::set<region_t> s;
+        s.insert(region_t::universe());
         return s;
     }
 

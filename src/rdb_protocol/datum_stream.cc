@@ -13,7 +13,7 @@
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
+        namespace_interface_t *internal, env_t *env)
     : internal_(internal), env_(env) { }
 
 void rdb_namespace_interface_t::read(

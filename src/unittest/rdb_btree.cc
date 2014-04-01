@@ -220,7 +220,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 static_cast<std::vector<char>*>(NULL));
         ASSERT_TRUE(sindex_exists);
 
-        rdb_protocol_t::rget_read_response_t res;
+        rget_read_response_t res;
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
          * which prevents to profiling code from crashing. */
@@ -289,7 +289,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                 static_cast<std::vector<char>*>(NULL));
         ASSERT_TRUE(sindex_exists);
 
-        rdb_protocol_t::rget_read_response_t res;
+        rget_read_response_t res;
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
          * which prevents the profiling code from crashing. */

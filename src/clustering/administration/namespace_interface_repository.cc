@@ -87,7 +87,7 @@ base_namespace_repo_t::access_t &base_namespace_repo_t::access_t::operator=(cons
     return *this;
 }
 
-namespace_interface_t<rdb_protocol_t> *base_namespace_repo_t::access_t::get_namespace_if() {
+namespace_interface_t *base_namespace_repo_t::access_t::get_namespace_if() {
     rassert(thread == get_thread_id());
     return cache_entry->namespace_if.wait();
 }
@@ -143,7 +143,7 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
-    cluster_namespace_interface_t<rdb_protocol_t> namespace_interface(
+    cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
         cross_thread_watchable.get_watchable(),
         ctx);

@@ -85,12 +85,12 @@ inline std::string test_inserter_read_master_access(master_access_t<rdb_protocol
     return mock_parse_read_response(response);
 }
 
-inline void test_inserter_write_namespace_if(namespace_interface_t<rdb_protocol_t> *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+inline void test_inserter_write_namespace_if(namespace_interface_t *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
     rdb_protocol_t::write_response_t response;
     nif->write(mock_overwrite(key, value), &response, otok, interruptor);
 }
 
-inline std::string test_inserter_read_namespace_if(namespace_interface_t<rdb_protocol_t> *nif, const std::string &key, order_token_t otok, signal_t *interruptor) {
+inline std::string test_inserter_read_namespace_if(namespace_interface_t *nif, const std::string &key, order_token_t otok, signal_t *interruptor) {
     rdb_protocol_t::read_response_t response;
     nif->read(mock_read(key), &response, otok, interruptor);
     return mock_parse_read_response(response);
@@ -111,12 +111,11 @@ public:
                                          this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    template <class protocol_t>
-    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+    test_inserter_t(namespace_interface_t *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, ph::_1, ph::_2, ph::_3)),
+          wfun(std::bind(&test_inserter_t::write_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
+          rfun(std::bind(&test_inserter_t::read_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
@@ -155,13 +154,11 @@ private:
         return test_inserter_read_master_access(ma, key, otok, interruptor);
     }
 
-    template<class protocol_t>
-    static void write_namespace_if(namespace_interface_t<protocol_t> *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
+    static void write_namespace_if(namespace_interface_t *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
         test_inserter_write_namespace_if(namespace_if, key, value, otok, interruptor);
     }
 
-    template<class protocol_t>
-    static std::string read_namespace_if(namespace_interface_t<protocol_t> *namespace_if, const std::string& key, order_token_t otok, signal_t *interruptor) {
+    static std::string read_namespace_if(namespace_interface_t *namespace_if, const std::string& key, order_token_t otok, signal_t *interruptor) {
         return test_inserter_read_namespace_if(namespace_if, key, otok, interruptor);
     }
 

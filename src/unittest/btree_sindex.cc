@@ -195,7 +195,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
 
-            rdb_protocol_t::point_write_response_t response;
+            point_write_response_t response;
             rdb_modification_info_t mod_info;
 
             store_key_t key("foo");

@@ -36,7 +36,7 @@ class mock_namespace_repo_t;
 // The mock namespace interface handles all read and write calls, using a simple in-
 //  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
 //  read or modify the dataset to prepare for a query or to check that changes were made.
-class mock_namespace_interface_t : public namespace_interface_t<rdb_protocol_t> {
+class mock_namespace_interface_t : public namespace_interface_t {
 private:
     std::map<store_key_t, scoped_cJSON_t*> data;
     mock_namespace_repo_t *parent;
@@ -45,17 +45,17 @@ public:
     explicit mock_namespace_interface_t(mock_namespace_repo_t *_parent);
     virtual ~mock_namespace_interface_t();
 
-    void read(const rdb_protocol_t::read_t &query,
-              rdb_protocol_t::read_response_t *response,
+    void read(const read_t &query,
+              read_response_t *response,
               UNUSED order_token_t tok,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void read_outdated(const rdb_protocol_t::read_t &query,
-                       rdb_protocol_t::read_response_t *response,
+    void read_outdated(const read_t &query,
+                       read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void write(const rdb_protocol_t::write_t &query,
-               rdb_protocol_t::write_response_t *response,
+    void write(const write_t &query,
+               write_response_t *response,
                UNUSED order_token_t tok,
                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
@@ -65,32 +65,32 @@ private:
     cond_t ready_cond;
 
     struct read_visitor_t : public boost::static_visitor<void> {
-        void operator()(const rdb_protocol_t::point_read_t &get);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss);
+        void operator()(const point_read_t &get);
+        void NORETURN operator()(UNUSED const rget_read_t &rget);
+        void NORETURN operator()(UNUSED const distribution_read_t &dg);
+        void NORETURN operator()(UNUSED const sindex_list_t &sl);
+        void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
-        read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
+        read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, read_response_t *_response);
 
         std::map<store_key_t, scoped_cJSON_t*> *data;
-        rdb_protocol_t::read_response_t *response;
+        read_response_t *response;
     };
 
     struct write_visitor_t : public boost::static_visitor<void> {
-        void operator()(const rdb_protocol_t::batched_replace_t &br);
-        void operator()(const rdb_protocol_t::batched_insert_t &br);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s);
-        void NORETURN operator()(UNUSED const rdb_protocol_t::sync_t &s);
+        void operator()(const batched_replace_t &br);
+        void operator()(const batched_insert_t &br);
+        void NORETURN operator()(UNUSED const point_write_t &w);
+        void NORETURN operator()(UNUSED const point_delete_t &d);
+        void NORETURN operator()(UNUSED const sindex_create_t &s);
+        void NORETURN operator()(UNUSED const sindex_drop_t &s);
+        void NORETURN operator()(UNUSED const sync_t &s);
 
-        write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, rdb_protocol_t::write_response_t *_response);
+        write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, write_response_t *_response);
 
         std::map<store_key_t, scoped_cJSON_t*> *data;
         ql::env_t *env;
-        rdb_protocol_t::write_response_t *response;
+        write_response_t *response;
     };
 };
 

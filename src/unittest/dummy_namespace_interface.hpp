@@ -202,24 +202,23 @@ private:
     typename protocol_t::context_t *ctx;
 };
 
-template<class protocol_t>
-class dummy_namespace_interface_t : public namespace_interface_t<protocol_t> {
+class dummy_namespace_interface_t : public namespace_interface_t {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t>
-            shards, store_view_t<protocol_t> **stores, order_source_t
-            *order_source, typename protocol_t::context_t *_ctx)
+    dummy_namespace_interface_t(std::vector<region_t>
+            shards, store_view_t<rdb_protocol_t> **stores, order_source_t
+            *order_source, rdb_context_t *_ctx)
         : ctx(_ctx)
     {
         /* Make sure shards are non-overlapping and stuff */
         {
-            typename protocol_t::region_t join;
+            region_t join;
             region_join_result_t result = region_join(shards, &join);
             if (result != REGION_JOIN_OK) {
                 throw std::runtime_error("bad region join");
             }
         }
 
-        std::vector<typename dummy_sharder_t<protocol_t>::shard_t> shards_of_this_db;
+        std::vector<dummy_sharder_t<rdb_protocol_t>::shard_t> shards_of_this_db;
         for (size_t i = 0; i < shards.size(); ++i) {
             /* Initialize metadata everywhere */
             {
@@ -228,14 +227,14 @@ public:
                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 stores[i]->new_read_token(&read_token);
 
-                region_map_t<protocol_t, binary_blob_t> metadata;
+                region_map_t<rdb_protocol_t, binary_blob_t> metadata;
                 stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
                                            &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
-                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
-                                                                                      it != metadata.end();
-                                                                                      it++) {
+                for (region_map_t<rdb_protocol_t, binary_blob_t>::const_iterator it = metadata.begin();
+                     it != metadata.end();
+                     ++it) {
                     rassert(it->second.size() == 0);
                 }
 
@@ -243,8 +242,8 @@ public:
                 stores[i]->new_write_token(&write_token);
 
                 stores[i]->set_metainfo(
-                    region_map_transform<protocol_t, state_timestamp_t, binary_blob_t>(
-                        region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
+                    region_map_transform<rdb_protocol_t, state_timestamp_t, binary_blob_t>(
+                        region_map_t<rdb_protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
                         ),
                     order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),
@@ -252,33 +251,33 @@ public:
                     &interruptor);
             }
 
-            dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);
+            dummy_performer_t<rdb_protocol_t> *performer = new dummy_performer_t<rdb_protocol_t>(stores[i]);
             performers.push_back(performer);
-            dummy_timestamper_t<protocol_t> *timestamper = new dummy_timestamper_t<protocol_t>(performer, order_source);
+            dummy_timestamper_t<rdb_protocol_t> *timestamper = new dummy_timestamper_t<rdb_protocol_t>(performer, order_source);
             timestampers.push_back(timestamper);
-            shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
+            shards_of_this_db.push_back(dummy_sharder_t<rdb_protocol_t>::shard_t(timestamper, performer, shards[i]));
         }
 
-        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db, ctx));
+        sharder.init(new dummy_sharder_t<rdb_protocol_t>(shards_of_this_db, ctx));
     }
 
-    void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, response, tok, interruptor);
     }
 
-    void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read_outdated(read, response, interruptor);
     }
 
-    void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+    void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->write(write, response, tok, interruptor);
     }
 
 private:
-    boost::ptr_vector<dummy_performer_t<protocol_t> > performers;
-    boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
-    scoped_ptr_t<dummy_sharder_t<protocol_t> > sharder;
-    typename protocol_t::context_t *ctx;
+    boost::ptr_vector<dummy_performer_t<rdb_protocol_t> > performers;
+    boost::ptr_vector<dummy_timestamper_t<rdb_protocol_t> > timestampers;
+    scoped_ptr_t<dummy_sharder_t<rdb_protocol_t> > sharder;
+    rdb_context_t *ctx;
 };
 
 }   /* namespace unittest */

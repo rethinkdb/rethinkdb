@@ -18,31 +18,6 @@ class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
 
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-
-typedef rdb_protocol_t::point_read_t point_read_t;
-typedef rdb_protocol_t::point_read_response_t point_read_response_t;
-
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-
-typedef rdb_protocol_t::distribution_read_t distribution_read_t;
-typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
-
-typedef rdb_protocol_t::write_t write_t;
-typedef rdb_protocol_t::write_response_t write_response_t;
-
-typedef rdb_protocol_t::batched_replace_t batched_replace_t;
-typedef rdb_protocol_t::batched_insert_t batched_insert_t;
-typedef rdb_protocol_t::batched_replace_response_t batched_replace_response_t;
-
-typedef rdb_protocol_t::point_write_t point_write_t;
-typedef rdb_protocol_t::point_write_response_t point_write_response_t;
-
-typedef rdb_protocol_t::point_delete_t point_delete_t;
-typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
-
 class parallel_traversal_progress_t;
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);

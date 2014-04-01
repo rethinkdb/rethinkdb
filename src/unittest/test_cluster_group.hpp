@@ -22,7 +22,7 @@
 #include "unittest/mock_store.hpp"
 
 template <class> class blueprint_t;
-template <class> class cluster_namespace_interface_t;
+class cluster_namespace_interface_t;
 class io_backender_t;
 template <class> class multistore_ptr_t;
 template <class> class reactor_business_card_t;
@@ -76,7 +76,7 @@ public:
     static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > extract_reactor_business_cards_no_optional(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
 
-    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<rdb_protocol_t> > *out);
+    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out);
 
     void run_queries();
 

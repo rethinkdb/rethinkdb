@@ -30,10 +30,11 @@ class env_t;
  * - Call the corresponding method on internal_
  * - splitter_t::give_splits with the event logs from the shards
  */
+// RSI: This should be renamed.
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+        namespace_interface_t *internal, env_t *env);
 
     void read(const rdb_protocol_t::read_t &,
               rdb_protocol_t::read_response_t *response,
@@ -58,7 +59,7 @@ public:
     /* Check if the internal value is null. */
     bool has();
 private:
-    namespace_interface_t<rdb_protocol_t> *internal_;
+    namespace_interface_t *internal_;
     env_t *env_;
 };
 
@@ -70,14 +71,6 @@ private:
     base_namespace_repo_t::access_t internal_;
     env_t *env_;
 };
-
-// This is a more selective subset of the list at the top of protocol.cc.
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-typedef rdb_protocol_t::region_t region_t;
 
 class scope_env_t;
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,

@@ -58,14 +58,14 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
         try {
             namespace_repo_t::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
 
-            rdb_protocol_t::distribution_read_t inner_read(depth, limit);
-            rdb_protocol_t::read_t read(inner_read, profile_bool_t::DONT_PROFILE);
-            rdb_protocol_t::read_response_t db_res;
+            distribution_read_t inner_read(depth, limit);
+            read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+            read_response_t db_res;
             rdb_ns_access.get_namespace_if()->read_outdated(read,
                                                             &db_res,
                                                             interruptor);
 
-            scoped_cJSON_t data(render_as_json(&boost::get<rdb_protocol_t::distribution_read_response_t>(db_res.response).key_counts));
+            scoped_cJSON_t data(render_as_json(&boost::get<distribution_read_response_t>(db_res.response).key_counts));
             http_json_res(data.get(), result);
         } catch (const cannot_perform_query_exc_t &) {
             *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR);

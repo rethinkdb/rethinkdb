@@ -24,7 +24,7 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_directory(empty_reactor_directory);
 
     /* Set up a namespace dispatcher */
-    cluster_namespace_interface_t<rdb_protocol_t> namespace_interface(
+    cluster_namespace_interface_t namespace_interface(
         cluster.get_mailbox_manager(),
         reactor_directory.get_watchable(),
         NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
@@ -33,8 +33,8 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     order_source_t order_source;
 
     /* Confirm that it throws an exception */
-    rdb_protocol_t::read_t r = mock_read("a");
-    rdb_protocol_t::read_response_t rr;
+    read_t r = mock_read("a");
+    read_response_t rr;
     cond_t non_interruptor;
     try {
         namespace_interface.read(r, &rr, order_source.check_in("unittest::run_missing_master_test(A)").with_read_mode(), &non_interruptor);
@@ -43,8 +43,8 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
         /* expected */
     }
 
-    rdb_protocol_t::write_t w = mock_overwrite("a", "b");
-    rdb_protocol_t::write_response_t wr;
+    write_t w = mock_overwrite("a", "b");
+    write_response_t wr;
     try {
         namespace_interface.write(w, &wr, order_source.check_in("unittest::run_missing_master_test(B)"), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
@@ -60,11 +60,11 @@ TPTEST(ClusteringNamespaceInterface, ReadOutdated) {
 
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
 
-    scoped_ptr_t<cluster_namespace_interface_t<rdb_protocol_t> > namespace_if;
+    scoped_ptr_t<cluster_namespace_interface_t> namespace_if;
     cluster_group.make_namespace_interface(0, &namespace_if);
 
-    rdb_protocol_t::read_t r = mock_read("a");
-    rdb_protocol_t::read_response_t rr;
+    read_t r = mock_read("a");
+    read_response_t rr;
     cond_t non_interruptor;
     namespace_if->read_outdated(r, &rr, &non_interruptor);
     EXPECT_EQ("", mock_parse_read_response(rr));

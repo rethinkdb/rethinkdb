@@ -219,9 +219,467 @@ public:
     perfmon_membership_t ql_stats_membership;
     perfmon_counter_t ql_ops_running;
     perfmon_membership_t ql_ops_running_membership;
-
     DISABLE_COPYING(rdb_protocol_context_t);
 };
+
+// RSI: Rename rdb_protocol_context_t to rdb_context_t.
+typedef rdb_protocol_context_t rdb_context_t;
+
+struct point_read_response_t {
+    counted_t<const ql::datum_t> data;
+    point_read_response_t() { }
+    explicit point_read_response_t(counted_t<const ql::datum_t> _data)
+        : data(_data) { }
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct rget_read_response_t {
+
+    class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+
+    key_range_t key_range;
+    ql::result_t result;
+    bool truncated;
+    store_key_t last_key;
+
+    rget_read_response_t() : truncated(false) { }
+    rget_read_response_t(
+            const key_range_t &_key_range, const ql::result_t &_result,
+            bool _truncated, const store_key_t &_last_key)
+        : key_range(_key_range), result(_result),
+          truncated(_truncated), last_key(_last_key) { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct distribution_read_response_t {
+    // Supposing the map has keys:
+    // k1, k2 ... kn
+    // with k1 < k2 < .. < kn
+    // Then k1 == left_key
+    // and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
+    // key_counts[kn] = the number of keys in [kn, right_key)
+    region_t region;
+    std::map<store_key_t, int64_t> key_counts;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sindex_list_response_t {
+    sindex_list_response_t() { }
+    std::vector<std::string> sindexes;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sindex_status_response_t {
+    sindex_status_response_t()
+    { }
+    std::map<std::string, rdb_protocol_details::single_sindex_status_t> statuses;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct read_response_t {
+    typedef boost::variant<point_read_response_t,
+                           rget_read_response_t,
+                           distribution_read_response_t,
+                           sindex_list_response_t,
+                           sindex_status_response_t> variant_t;
+    variant_t response;
+    profile::event_log_t event_log;
+    size_t n_shards;
+
+    read_response_t() { }
+    explicit read_response_t(const variant_t &r)
+        : response(r) { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class point_read_t {
+public:
+    point_read_t() { }
+    explicit point_read_t(const store_key_t& _key) : key(_key) { }
+
+    store_key_t key;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sindex_rangespec_t {
+    sindex_rangespec_t() { }
+    sindex_rangespec_t(const std::string &_id,
+                       // This is the region in the sindex keyspace.  It's
+                       // sometimes smaller than the datum range below when
+                       // dealing with truncated keys.
+                       const region_t &_region,
+                       const datum_range_t _original_range)
+        : id(_id), region(_region), original_range(_original_range) { }
+    std::string id; // What sindex we're using.
+    region_t region; // What keyspace we're currently operating on.
+    datum_range_t original_range; // For dealing with truncation.
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class rget_read_t {
+    typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+    typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+public:
+    rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
+
+    rget_read_t(const region_t &_region,
+                const std::map<std::string, ql::wire_func_t> &_optargs,
+                const ql::batchspec_t &_batchspec,
+                const std::vector<transform_variant_t> &_transforms,
+                boost::optional<terminal_variant_t> &&_terminal,
+                boost::optional<sindex_rangespec_t> &&_sindex,
+                sorting_t _sorting)
+        : region(_region),
+          optargs(_optargs),
+          batchspec(_batchspec),
+          transforms(_transforms),
+        terminal(std::move(_terminal)),
+        sindex(std::move(_sindex)),
+        sorting(_sorting) { }
+
+    region_t region; // We need this even for sindex reads due to sharding.
+    std::map<std::string, ql::wire_func_t> optargs;
+    ql::batchspec_t batchspec; // used to size batches
+
+    // We use these two for lazy maps, reductions, etc.
+    std::vector<rdb_protocol_details::transform_variant_t> transforms;
+    boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
+
+    // This is non-empty if we're doing an sindex read.
+    // TODO: `read_t` should maybe be multiple types.  Determining the type
+    // of read by branching on whether an optional is full sucks.
+    boost::optional<sindex_rangespec_t> sindex;
+
+    sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class distribution_read_t {
+public:
+    distribution_read_t()
+        : max_depth(0), result_limit(0), region(region_t::universe())
+    { }
+    distribution_read_t(int _max_depth, size_t _result_limit)
+        : max_depth(_max_depth), result_limit(_result_limit),
+          region(region_t::universe())
+    { }
+
+    int max_depth;
+    size_t result_limit;
+    region_t region;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class sindex_list_t {
+public:
+    sindex_list_t() { }
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class sindex_status_t {
+public:
+    sindex_status_t() { }
+    explicit sindex_status_t(const std::set<std::string> &_sindexes)
+        : sindexes(_sindexes), region(region_t::universe())
+    { }
+    std::set<std::string> sindexes;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct read_t {
+    typedef boost::variant<point_read_t,
+                           rget_read_t,
+                           distribution_read_t,
+                           sindex_list_t,
+                           sindex_status_t> variant_t;
+    variant_t read;
+    profile_bool_t profile;
+
+    region_t get_region() const THROWS_NOTHING;
+    // Returns true if the read has any operation for this region.  Returns
+    // false if read_out has not been touched.
+    bool shard(const region_t &region,
+               read_t *read_out) const THROWS_NOTHING;
+
+    void unshard(read_response_t *responses, size_t count,
+                 read_response_t *response, rdb_context_t *ctx,
+                 signal_t *interruptor) const
+        THROWS_ONLY(interrupted_exc_t);
+
+    read_t() { }
+    read_t(const variant_t &r, profile_bool_t _profile)
+        : read(r), profile(_profile) { }
+
+    // Only use snapshotting if we're doing a range get.
+    bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
+
+    // Returns true if this read should be sent to every replica.
+    bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+
+struct point_write_response_t {
+    point_write_result_t result;
+
+    point_write_response_t() { }
+    explicit point_write_response_t(point_write_result_t _result)
+        : result(_result)
+    { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct point_delete_response_t {
+    point_delete_result_t result;
+
+    point_delete_response_t() {}
+    explicit point_delete_response_t(point_delete_result_t _result)
+        : result(_result)
+    { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+// TODO we're reusing the enums from row writes and reads to avoid name
+// shadowing. Nothing really wrong with this but maybe they could have a
+// more generic name.
+struct sindex_create_response_t {
+    bool success;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sindex_drop_response_t {
+    bool success;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sync_response_t {
+    // sync always succeeds
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+typedef counted_t<const ql::datum_t> batched_replace_response_t;
+struct write_response_t {
+    boost::variant<batched_replace_response_t,
+                   // batched_replace_response_t is also for batched_insert
+                   point_write_response_t,
+                   point_delete_response_t,
+                   sindex_create_response_t,
+                   sindex_drop_response_t,
+                   sync_response_t> response;
+
+    profile::event_log_t event_log;
+    size_t n_shards;
+
+    write_response_t() { }
+    template<class T>
+    explicit write_response_t(const T &t) : response(t) { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct batched_replace_t {
+    batched_replace_t() { }
+    batched_replace_t(
+            std::vector<store_key_t> &&_keys,
+            const std::string &_pkey,
+            const counted_t<ql::func_t> &func,
+            const std::map<std::string, ql::wire_func_t > &_optargs,
+            bool _return_vals)
+        : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
+          return_vals(_return_vals) {
+        r_sanity_check(keys.size() != 0);
+        r_sanity_check(keys.size() == 1 || !return_vals);
+    }
+    std::vector<store_key_t> keys;
+    std::string pkey;
+    ql::wire_func_t f;
+    std::map<std::string, ql::wire_func_t > optargs;
+    bool return_vals;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct batched_insert_t {
+    batched_insert_t() { }
+    batched_insert_t(
+            std::vector<counted_t<const ql::datum_t> > &&_inserts,
+            const std::string &_pkey, bool _upsert, bool _return_vals)
+        : inserts(std::move(_inserts)), pkey(_pkey),
+          upsert(_upsert), return_vals(_return_vals) {
+        r_sanity_check(inserts.size() != 0);
+        r_sanity_check(inserts.size() == 1 || !return_vals);
+#ifndef NDEBUG
+        // These checks are done above us, but in debug mode we do them
+        // again.  (They're slow.)  We do them above us because the code in
+        // val.cc knows enough to report the write errors correctly while
+        // still doing the other writes.
+        for (auto it = inserts.begin(); it != inserts.end(); ++it) {
+            counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
+            r_sanity_check(keyval.has());
+            try {
+                keyval->print_primary(); // ERROR CHECKING
+                continue;
+            } catch (const ql::base_exc_t &e) {
+            }
+            r_sanity_check(false); // throws, so can't do this in exception handler
+        }
+#endif // NDEBUG
+    }
+    std::vector<counted_t<const ql::datum_t> > inserts;
+    std::string pkey;
+    bool upsert;
+    bool return_vals;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class point_write_t {
+public:
+    point_write_t() { }
+    point_write_t(const store_key_t& _key,
+                  counted_t<const ql::datum_t> _data,
+                  bool _overwrite = true)
+        : key(_key), data(_data), overwrite(_overwrite) { }
+
+    store_key_t key;
+    counted_t<const ql::datum_t> data;
+    bool overwrite;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class point_delete_t {
+public:
+    point_delete_t() { }
+    explicit point_delete_t(const store_key_t& _key)
+        : key(_key) { }
+
+    store_key_t key;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class sindex_create_t {
+public:
+    sindex_create_t() { }
+    sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
+                    sindex_multi_bool_t _multi)
+        : id(_id), mapping(_mapping), region(region_t::universe()), multi(_multi)
+    { }
+
+    std::string id;
+    ql::map_wire_func_t mapping;
+    region_t region;
+    sindex_multi_bool_t multi;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class sindex_drop_t {
+public:
+    sindex_drop_t() { }
+    explicit sindex_drop_t(const std::string &_id)
+        : id(_id), region(region_t::universe())
+    { }
+
+    std::string id;
+    region_t region;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class sync_t {
+public:
+    sync_t()
+        : region(region_t::universe())
+    { }
+
+    region_t region;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct write_t {
+    boost::variant<batched_replace_t,
+                   batched_insert_t,
+                   point_write_t,
+                   point_delete_t,
+                   sindex_create_t,
+                   sindex_drop_t,
+                   sync_t> write;
+
+    durability_requirement_t durability_requirement;
+    profile_bool_t profile;
+
+    region_t get_region() const THROWS_NOTHING;
+    // Returns true if the write had any side effects applicable to the
+    // region, and a non-empty write was written to write_out.
+    bool shard(const region_t &region,
+               write_t *write_out) const THROWS_NOTHING;
+    void unshard(write_response_t *responses, size_t count,
+                 write_response_t *response, rdb_context_t *cache, signal_t *)
+        const THROWS_NOTHING;
+
+    durability_requirement_t durability() const { return durability_requirement; }
+
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+    write_t(const batched_replace_t &br,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(br), durability_requirement(durability), profile(_profile) { }
+    write_t(const batched_insert_t &bi,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(bi), durability_requirement(durability), profile(_profile) { }
+    write_t(const point_write_t &w,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(w), durability_requirement(durability), profile(_profile) { }
+    write_t(const point_delete_t &d,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(d), durability_requirement(durability), profile(_profile) { }
+    write_t(const sindex_create_t &c, profile_bool_t _profile)
+        : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+          profile(_profile) { }
+    write_t(const sindex_drop_t &c, profile_bool_t _profile)
+        : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+          profile(_profile) { }
+    write_t(const sindex_create_t &c,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(c), durability_requirement(durability),
+          profile(_profile) { }
+    write_t(const sindex_drop_t &c,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(c), durability_requirement(durability),
+          profile(_profile) { }
+    /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
+     *  not have the desired effect (of writing unsaved data to disk).
+     *  However there are cases where we use sync internally (such as when
+     *  splitting up batched replaces/inserts) and want it to only have an
+     *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
+     *  durability. */
+    write_t(const sync_t &c,
+            durability_requirement_t durability,
+            profile_bool_t _profile)
+        : write(c), durability_requirement(durability), profile(_profile) { }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+
 
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
@@ -237,460 +695,14 @@ struct rdb_protocol_t {
     static key_range_t sindex_key_range(const store_key_t &start,
                                         const store_key_t &end);
 
+    // RSI: Remove these typedefs.
     typedef rdb_protocol_context_t context_t;
 
-    struct point_read_response_t {
-        counted_t<const ql::datum_t> data;
-        point_read_response_t() { }
-        explicit point_read_response_t(counted_t<const ql::datum_t> _data)
-            : data(_data) { }
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct rget_read_response_t {
-
-        class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
-
-        key_range_t key_range;
-        ql::result_t result;
-        bool truncated;
-        store_key_t last_key;
-
-        rget_read_response_t() : truncated(false) { }
-        rget_read_response_t(
-            const key_range_t &_key_range, const ql::result_t &_result,
-            bool _truncated, const store_key_t &_last_key)
-            : key_range(_key_range), result(_result),
-              truncated(_truncated), last_key(_last_key) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct distribution_read_response_t {
-        // Supposing the map has keys:
-        // k1, k2 ... kn
-        // with k1 < k2 < .. < kn
-        // Then k1 == left_key
-        // and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
-        // key_counts[kn] = the number of keys in [kn, right_key)
-        region_t region;
-        std::map<store_key_t, int64_t> key_counts;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct sindex_list_response_t {
-        sindex_list_response_t() { }
-        std::vector<std::string> sindexes;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct sindex_status_response_t {
-        sindex_status_response_t()
-        { }
-        std::map<std::string, rdb_protocol_details::single_sindex_status_t> statuses;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct read_response_t {
-        typedef boost::variant<point_read_response_t,
-                               rget_read_response_t,
-                               distribution_read_response_t,
-                               sindex_list_response_t,
-                               sindex_status_response_t> variant_t;
-        variant_t response;
-        profile::event_log_t event_log;
-        size_t n_shards;
-
-        read_response_t() { }
-        explicit read_response_t(const variant_t &r)
-            : response(r) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class point_read_t {
-    public:
-        point_read_t() { }
-        explicit point_read_t(const store_key_t& _key) : key(_key) { }
-
-        store_key_t key;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct sindex_rangespec_t {
-        sindex_rangespec_t() { }
-        sindex_rangespec_t(const std::string &_id,
-                           // This is the region in the sindex keyspace.  It's
-                           // sometimes smaller than the datum range below when
-                           // dealing with truncated keys.
-                           const region_t &_region,
-                           const datum_range_t _original_range)
-            : id(_id), region(_region), original_range(_original_range) { }
-        std::string id; // What sindex we're using.
-        region_t region; // What keyspace we're currently operating on.
-        datum_range_t original_range; // For dealing with truncation.
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class rget_read_t {
-        typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-        typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
-    public:
-        rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
-
-        rget_read_t(const region_t &_region,
-                    const std::map<std::string, ql::wire_func_t> &_optargs,
-                    const ql::batchspec_t &_batchspec,
-                    const std::vector<transform_variant_t> &_transforms,
-                    boost::optional<terminal_variant_t> &&_terminal,
-                    boost::optional<sindex_rangespec_t> &&_sindex,
-                    sorting_t _sorting)
-            : region(_region),
-              optargs(_optargs),
-              batchspec(_batchspec),
-              transforms(_transforms),
-              terminal(std::move(_terminal)),
-              sindex(std::move(_sindex)),
-              sorting(_sorting) { }
-
-        region_t region; // We need this even for sindex reads due to sharding.
-        std::map<std::string, ql::wire_func_t> optargs;
-        ql::batchspec_t batchspec; // used to size batches
-
-        // We use these two for lazy maps, reductions, etc.
-        std::vector<rdb_protocol_details::transform_variant_t> transforms;
-        boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
-
-        // This is non-empty if we're doing an sindex read.
-        // TODO: `read_t` should maybe be multiple types.  Determining the type
-        // of read by branching on whether an optional is full sucks.
-        boost::optional<sindex_rangespec_t> sindex;
-
-        sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class distribution_read_t {
-    public:
-        distribution_read_t()
-            : max_depth(0), result_limit(0), region(region_t::universe())
-        { }
-        distribution_read_t(int _max_depth, size_t _result_limit)
-            : max_depth(_max_depth), result_limit(_result_limit),
-              region(region_t::universe())
-        { }
-
-        int max_depth;
-        size_t result_limit;
-        region_t region;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class sindex_list_t {
-    public:
-        sindex_list_t() { }
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class sindex_status_t {
-    public:
-        sindex_status_t() { }
-        explicit sindex_status_t(const std::set<std::string> &_sindexes)
-            : sindexes(_sindexes), region(region_t::universe())
-        { }
-        std::set<std::string> sindexes;
-        region_t region;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct read_t {
-        typedef boost::variant<point_read_t,
-                               rget_read_t,
-                               distribution_read_t,
-                               sindex_list_t,
-                               sindex_status_t> variant_t;
-        variant_t read;
-        profile_bool_t profile;
-
-        region_t get_region() const THROWS_NOTHING;
-        // Returns true if the read has any operation for this region.  Returns
-        // false if read_out has not been touched.
-        bool shard(const region_t &region,
-                   read_t *read_out) const THROWS_NOTHING;
-
-        void unshard(read_response_t *responses, size_t count,
-                     read_response_t *response, context_t *ctx,
-                     signal_t *interruptor) const
-            THROWS_ONLY(interrupted_exc_t);
-
-        read_t() { }
-        read_t(const variant_t &r, profile_bool_t _profile)
-            : read(r), profile(_profile) { }
-
-        // Only use snapshotting if we're doing a range get.
-        bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
-
-        // Returns true if this read should be sent to every replica.
-        bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct point_write_response_t {
-        point_write_result_t result;
-
-        point_write_response_t() { }
-        explicit point_write_response_t(point_write_result_t _result)
-            : result(_result)
-        { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct point_delete_response_t {
-        point_delete_result_t result;
-
-        point_delete_response_t() {}
-        explicit point_delete_response_t(point_delete_result_t _result)
-            : result(_result)
-        { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    // TODO we're reusing the enums from row writes and reads to avoid name
-    // shadowing. Nothing really wrong with this but maybe they could have a
-    // more generic name.
-    struct sindex_create_response_t {
-        bool success;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct sindex_drop_response_t {
-        bool success;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct sync_response_t {
-        // sync always succeeds
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    typedef counted_t<const ql::datum_t> batched_replace_response_t;
-    struct write_response_t {
-        boost::variant<batched_replace_response_t,
-                       // batched_replace_response_t is also for batched_insert
-                       point_write_response_t,
-                       point_delete_response_t,
-                       sindex_create_response_t,
-                       sindex_drop_response_t,
-                       sync_response_t> response;
-
-        profile::event_log_t event_log;
-        size_t n_shards;
-
-        write_response_t() { }
-        template<class T>
-        explicit write_response_t(const T &t) : response(t) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct batched_replace_t {
-        batched_replace_t() { }
-        batched_replace_t(
-            std::vector<store_key_t> &&_keys,
-            const std::string &_pkey,
-            const counted_t<ql::func_t> &func,
-            const std::map<std::string, ql::wire_func_t > &_optargs,
-            bool _return_vals)
-            : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
-              return_vals(_return_vals) {
-            r_sanity_check(keys.size() != 0);
-            r_sanity_check(keys.size() == 1 || !return_vals);
-        }
-        std::vector<store_key_t> keys;
-        std::string pkey;
-        ql::wire_func_t f;
-        std::map<std::string, ql::wire_func_t > optargs;
-        bool return_vals;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct batched_insert_t {
-        batched_insert_t() { }
-        batched_insert_t(
-            std::vector<counted_t<const ql::datum_t> > &&_inserts,
-            const std::string &_pkey, bool _upsert, bool _return_vals)
-            : inserts(std::move(_inserts)), pkey(_pkey),
-              upsert(_upsert), return_vals(_return_vals) {
-            r_sanity_check(inserts.size() != 0);
-            r_sanity_check(inserts.size() == 1 || !return_vals);
-#ifndef NDEBUG
-            // These checks are done above us, but in debug mode we do them
-            // again.  (They're slow.)  We do them above us because the code in
-            // val.cc knows enough to report the write errors correctly while
-            // still doing the other writes.
-            for (auto it = inserts.begin(); it != inserts.end(); ++it) {
-                counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
-                r_sanity_check(keyval.has());
-                try {
-                    keyval->print_primary(); // ERROR CHECKING
-                    continue;
-                } catch (const ql::base_exc_t &e) {
-                }
-                r_sanity_check(false); // throws, so can't do this in exception handler
-            }
-#endif // NDEBUG
-        }
-        std::vector<counted_t<const ql::datum_t> > inserts;
-        std::string pkey;
-        bool upsert;
-        bool return_vals;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class point_write_t {
-    public:
-        point_write_t() { }
-        point_write_t(const store_key_t& _key,
-                      counted_t<const ql::datum_t> _data,
-                      bool _overwrite = true)
-            : key(_key), data(_data), overwrite(_overwrite) { }
-
-        store_key_t key;
-        counted_t<const ql::datum_t> data;
-        bool overwrite;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class point_delete_t {
-    public:
-        point_delete_t() { }
-        explicit point_delete_t(const store_key_t& _key)
-            : key(_key) { }
-
-        store_key_t key;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class sindex_create_t {
-    public:
-        sindex_create_t() { }
-        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
-                        sindex_multi_bool_t _multi)
-            : id(_id), mapping(_mapping), region(region_t::universe()), multi(_multi)
-        { }
-
-        std::string id;
-        ql::map_wire_func_t mapping;
-        region_t region;
-        sindex_multi_bool_t multi;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class sindex_drop_t {
-    public:
-        sindex_drop_t() { }
-        explicit sindex_drop_t(const std::string &_id)
-            : id(_id), region(region_t::universe())
-        { }
-
-        std::string id;
-        region_t region;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class sync_t {
-    public:
-        sync_t()
-            : region(region_t::universe())
-        { }
-
-        region_t region;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    struct write_t {
-        boost::variant<batched_replace_t,
-                       batched_insert_t,
-                       point_write_t,
-                       point_delete_t,
-                       sindex_create_t,
-                       sindex_drop_t,
-                       sync_t> write;
-
-        durability_requirement_t durability_requirement;
-        profile_bool_t profile;
-
-        region_t get_region() const THROWS_NOTHING;
-        // Returns true if the write had any side effects applicable to the
-        // region, and a non-empty write was written to write_out.
-        bool shard(const region_t &region,
-                   write_t *write_out) const THROWS_NOTHING;
-        void unshard(write_response_t *responses, size_t count,
-                     write_response_t *response, context_t *cache, signal_t *)
-            const THROWS_NOTHING;
-
-        durability_requirement_t durability() const { return durability_requirement; }
-
-        write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        write_t(const batched_replace_t &br,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(br), durability_requirement(durability), profile(_profile) { }
-        write_t(const batched_insert_t &bi,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(bi), durability_requirement(durability), profile(_profile) { }
-        write_t(const point_write_t &w,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(w), durability_requirement(durability), profile(_profile) { }
-        write_t(const point_delete_t &d,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(d), durability_requirement(durability), profile(_profile) { }
-        write_t(const sindex_create_t &c, profile_bool_t _profile)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              profile(_profile) { }
-        write_t(const sindex_drop_t &c, profile_bool_t _profile)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              profile(_profile) { }
-        write_t(const sindex_create_t &c,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(c), durability_requirement(durability),
-              profile(_profile) { }
-        write_t(const sindex_drop_t &c,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(c), durability_requirement(durability),
-              profile(_profile) { }
-        /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
-         *  not have the desired effect (of writing unsaved data to disk).
-         *  However there are cases where we use sync internally (such as when
-         *  splitting up batched replaces/inserts) and want it to only have an
-         *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
-         *  durability. */
-        write_t(const sync_t &c,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(c), durability_requirement(durability), profile(_profile) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
+    typedef read_t read_t;
+    typedef read_response_t read_response_t;
+
+    typedef write_t write_t;
+    typedef write_response_t write_response_t;
 
     struct backfill_chunk_t {
         struct delete_key_t {
