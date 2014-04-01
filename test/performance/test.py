@@ -6,6 +6,7 @@ import time
 import json
 import os
 import math
+import subprocess
 
 from util import gen_doc, gen_num_docs
 from queries import constant_queries, table_queries, write_queries, delete_queries
@@ -52,6 +53,7 @@ executions_per_query = 1000 # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
 results = {}
+
 connection = None
 
 def run_tests(build="../../build/release"):
@@ -133,15 +135,15 @@ def execute_read_write_queries(suffix):
         i = 0
 
         start = time.time()
-        start_query = time.time()
         durations = []
         while (time.time()-start < time_per_query) & (i < num_writes):
+            start_query = time.time()
             result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
+            durations.append(time.time()-start_query)
+
             if "generated_keys" in result:
                 table["ids"].append(result["generated_keys"][0])
             i += 1
-            durations.append(time.time()-start_query)
-            start_query = time.time()
 
         durations.sort()
         results["single-inserts-"+table["name"]+"-"+suffix] = {
@@ -157,9 +159,14 @@ def execute_read_write_queries(suffix):
 
         # Finish inserting the remaining data
         size_batch = 500
+        start = time.time()
         if i < num_writes:
             while i+size_batch < num_writes:
+                start_query = time.time()
                 resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
+                durations.append(time.time()-start_query)
+                end = time.time()
+
                 table["ids"] += result["generated_keys"]
                 i += size_batch
 
@@ -169,7 +176,7 @@ def execute_read_write_queries(suffix):
         
         if num_writes-single_inserts != 0:
             results["batch-inserts-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/(num_writes-single_inserts),
+                "average": (end-start)/(num_writes-single_inserts),
                 "min": durations[0],
                 "max": durations[len(durations)-1],
                 "first_centile": durations[int(math.floor(len(durations)/100.*1))],
@@ -195,10 +202,10 @@ def execute_read_write_queries(suffix):
 
             i = 0
 
-            start = time.time()
-            start_query = time.time()
             durations = []
+            start = time.time()
             while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+                start_query = time.time()
                 eval(write_queries[p]["query"]).run(connection)
                 durations.append(time.time()-start_query)
                 start_query = time.time()
@@ -233,10 +240,10 @@ def execute_read_write_queries(suffix):
             else:
                 max_i = 1
 
-            start = time.time()
-            start_query = time.time()
             durations = []
+            start = time.time()
             while (time.time()-start < time_per_query) & (count < executions_per_query):
+                start_query = time.time()
                 try:
                     cursor = eval(table_queries[p]["query"]).run(connection)
                     if isinstance(cursor, r.net.Cursor):
@@ -252,11 +259,9 @@ def execute_read_write_queries(suffix):
                     print constant_queries[p]
                     sys.stdout.flush()
                     break
+                durations.append(time.time()-start_query)
 
                 count+=1
-
-                durations.append(time.time()-start_query)
-                start_query = time.time()
 
             durations.sort()
             results[table_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
@@ -281,16 +286,14 @@ def execute_read_write_queries(suffix):
 
             i = 0
 
-            start = time.time()
-            start_query = time.time()
             durations = []
+            start = time.time()
             while (time.time()-start < time_per_query) & (i < len(table["ids"])):
-                eval(delete_queries[p]["query"]).run(connection)
-                i += 1
-
-                durations.append(time.time()-start_query)
                 start_query = time.time()
+                eval(delete_queries[p]["query"]).run(connection)
+                durations.append(time.time()-start_query)
 
+                i += 1
 
             durations.sort()
             results[delete_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
@@ -313,10 +316,10 @@ def execute_constant_queries():
     sys.stdout.flush()
     for p in xrange(len(constant_queries)):
         count = 0
-        start = time.time()
-        start_query = time.time()
         durations = []
+        start = time.time()
         while (time.time()-start < time_per_query) & (count < executions_per_query):
+            start_query = time.time()
             if type(constant_queries[p]) == type(""):
                 try:
                     cursor = eval(constant_queries[p]).run(connection)
@@ -332,12 +335,9 @@ def execute_constant_queries():
                 if isinstance(cursor, r.net.Cursor):
                     list(cursor)
                     cursor.close()
-            count+=1
-
             durations.append(time.time()-start_query)
-            start_query = time.time()
-
-
+            
+            count+=1
 
         durations.sort()
         if type(constant_queries[p]) == type(""):
@@ -389,6 +389,9 @@ def save_compare_results():
     """
     global results, str_date
 
+    commit = out = subprocess.Popen(['git', 'log', '-n 1', '--pretty=format:"%H"'], stdout=subprocess.PIPE).communicate()[0]
+    results["hash"] = commit
+
     # Save results
     if not os.path.exists("results"):
         os.makedirs("results")
@@ -421,10 +424,16 @@ def save_compare_results():
         os.makedirs("comparisons")
 
     f = open("comparisons/comparison_"+str_date+".html", "w")
-    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body><table>")
+    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body>")
+    if "hash" in previous_results:
+        f.write("Previous hash: "+previous_results["hash"]+"<br/>")
+    f.write("Current hash: "+results["hash"]+"<br/><br/>")
+    f.write("<table>")
     f.write("<thead><tr><th>Query</th><th>Previous avg q/s</th><th>Avg q/s</th><th>Previous 1st centile q/s</th><th>1st centile q/s</th><th>Previous 99 centile q/s</th><th>99 centile q/s</th><th>Diff</th><th>Status</th></tr></thead><tbody>")
     for key in results:
         if key in previous_results:
+            if key == "hash":
+                continue
             if results[key]["average"] > 0:
                 diff = 1.*(previous_results[key]["average"]-results[key]["average"])/(results[key]["average"])
             else:
