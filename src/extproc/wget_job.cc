@@ -87,11 +87,19 @@ bool wget_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
 std::string exec_curl(const std::string &url, size_t rate_limit,
                       const std::vector<std::string> &headers,
                       fd_t res_pipe, fd_t err_pipe) {
-    int res = ::dup2(res_pipe, STDOUT_FILENO);
+    int res;
+    do {
+        res = ::dup2(res_pipe, STDOUT_FILENO);
+    } while (res == -1 && get_errno() == EINTR);
+    
     if (res == -1) {
         return "failed to redirect stdout: " + errno_string(get_errno());
     }
-    res = ::dup2(err_pipe, STDERR_FILENO);
+    
+    do {
+        res = ::dup2(err_pipe, STDERR_FILENO);
+    } while (res == -1 && get_errno() == EINTR);
+    
     if (res == -1) {
         return "failed to redirect stderr: " + errno_string(get_errno());
     }
@@ -122,8 +130,11 @@ std::string exec_curl(const std::string &url, size_t rate_limit,
     }
 
     cstr_args[args.size()] = NULL;
+    
+    do {
+        res = ::execvp("curl", cstr_args.data());
+    } while (res == -1 && get_errno() == EINTR);
 
-    res = ::execvp("curl", cstr_args.data());
     return "failed to exec curl: " + errno_string(get_errno());
 }
 
@@ -137,13 +148,12 @@ void read_pipes(fd_t res_pipe, std::string *res_str,
         res = ::read(res_pipe, &buffer[0], sizeof(buffer));
         if (res > 0) {
             res_str->append(buffer, res);
-        } else {
-            if (res != 0) {
-                err_str->assign(strprintf("Error when reading result from wget: %s",
-                                          errno_string(get_errno()).c_str()));
-                return;
-            }
+        } else if (res == 0) {
             break;
+        } else if (get_errno() != EINTR) {
+            err_str->assign(strprintf("Error when reading result from wget: %s",
+                                      errno_string(get_errno()).c_str()));
+            return;
         }
     }
 
@@ -151,13 +161,12 @@ void read_pipes(fd_t res_pipe, std::string *res_str,
         res = ::read(err_pipe, &buffer[0], sizeof(buffer));
         if (res > 0) {
             err_str->append(buffer, res);
-        } else {
-            if (res != 0) {
-                err_str->assign(strprintf("Error when reading errors from wget: %s",
-                                          errno_string(get_errno()).c_str()));
-                return;
-            }
+        } else if (res == 0) {
             break;
+        } else if (get_errno() != EINTR) {
+            err_str->assign(strprintf("Error when reading errors from wget: %s",
+                                          errno_string(get_errno()).c_str()));
+            return;
         }
     }
 
@@ -178,20 +187,42 @@ wget_result_t perform_wget(UNUSED const std::string &url,
         return std::string("failed to create pipe for wget stderr redirect");
     }
 
-    if (fork()) {
-        ::close(res_pipe[0]);
-        ::close(err_pipe[0]);
+    int res;
+    do {
+        res = ::fork();
+    } while (res == -1 && get_errno() == EINTR);
+
+    if (res > 0) {
+        do {
+            res = ::close(res_pipe[0]);
+        } while (res == -1 && get_errno() == EINTR);
+
+        do {
+            res = ::close(err_pipe[0]);
+        } while (res == -1 && get_errno() == EINTR);
 
         // If we return from this call, something terrible has happened
         std::string info = exec_curl(url, rate_limit, headers,
                                      res_pipe[1], err_pipe[1]);
-        UNUSED int res = ::write(err_pipe[1], info.c_str(), info.length());
-        ::fsync(err_pipe[1]);
+
+        do {
+            res = ::write(err_pipe[1], info.c_str(), info.length());
+        } while (res == -1 && get_errno() == EINTR);
+
+        do {
+            res = ::fsync(err_pipe[1]);
+        } while (res == -1 && get_errno() == EINTR);
+
         ::exit(0);
     }
 
-    ::close(res_pipe[1]);
-    ::close(err_pipe[1]);
+    do {
+        res = ::close(res_pipe[1]);
+    } while (res == -1 && get_errno() == EINTR);
+
+    do {
+        res = ::close(err_pipe[1]);
+    } while (res == -1 && get_errno() == EINTR);
 
     scoped_fd_t res_in(res_pipe[0]);
     scoped_fd_t err_in(err_pipe[0]);
