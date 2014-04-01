@@ -4,12 +4,8 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_json_adapter.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/test_cluster_group.hpp"
-
-using mock::dummy_protocol_t;
 
 namespace unittest {
 
