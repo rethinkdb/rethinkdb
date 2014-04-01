@@ -14,7 +14,6 @@
 #include "containers/scoped.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
