@@ -69,25 +69,6 @@ public:
     typename protocol_t::store_t store;
 };
 
-inline void test_inserter_write_master_access(master_access_t<mock::dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
-    mock::dummy_protocol_t::write_t w;
-    mock::dummy_protocol_t::write_response_t response;
-    w.values[key] = value;
-    fifo_enforcer_sink_t::exit_write_t write_token;
-    ma->new_write_token(&write_token);
-    ma->write(w, &response, otok, &write_token, interruptor);
-}
-
-inline std::string test_inserter_read_master_access(master_access_t<mock::dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
-    mock::dummy_protocol_t::read_t r;
-    mock::dummy_protocol_t::read_response_t response;
-    r.keys.keys.insert(key);
-    fifo_enforcer_sink_t::exit_read_t read_token;
-    ma->new_read_token(&read_token);
-    ma->read(r, &response, otok, &read_token, interruptor);
-    return response.values.find(key)->second;
-}
-
 inline void test_inserter_write_master_access(master_access_t<rdb_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
     rdb_protocol_t::write_t w = mock_overwrite(key, value);
     rdb_protocol_t::write_response_t response;
@@ -103,21 +84,6 @@ inline std::string test_inserter_read_master_access(master_access_t<rdb_protocol
     ma->new_read_token(&read_token);
     ma->read(r, &response, otok, &read_token, interruptor);
     return mock_parse_read_response(response);
-}
-
-inline void test_inserter_write_namespace_if(namespace_interface_t<mock::dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
-    mock::dummy_protocol_t::write_t w;
-    mock::dummy_protocol_t::write_response_t response;
-    w.values[key] = value;
-    nif->write(w, &response, otok, interruptor);
-}
-
-inline std::string test_inserter_read_namespace_if(namespace_interface_t<mock::dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
-    mock::dummy_protocol_t::read_t r;
-    mock::dummy_protocol_t::read_response_t response;
-    r.keys.keys.insert(key);
-    nif->read(r, &response, otok, interruptor);
-    return response.values[key];
 }
 
 inline void test_inserter_write_namespace_if(namespace_interface_t<rdb_protocol_t> *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
@@ -208,7 +174,6 @@ private:
             for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
-                mock::dummy_protocol_t::write_t w;
                 std::string key = key_gen_fun();
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
@@ -252,14 +217,6 @@ inline std::string mc_key_gen() {
         key.push_back('a' + randint(26));
     }
     return key;
-}
-
-template <class protocol_t>
-std::string key_gen();
-
-template <>
-inline std::string key_gen<mock::dummy_protocol_t>() {
-    return dummy_key_gen();
 }
 
 class simple_mailbox_cluster_t {

@@ -23,7 +23,6 @@
 #include "concurrency/watchable.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -32,7 +31,6 @@
 #include "rpc/directory/read_manager.tcc"
 #include "rpc/directory/write_manager.tcc"
 
-using mock::dummy_protocol_t;
 
 namespace unittest {
 
@@ -342,5 +340,3 @@ template class reactor_test_cluster_t<rdb_protocol_t>;
 
 }  // namespace unittest
 
-template class directory_read_manager_t<unittest::test_cluster_directory_t<mock::dummy_protocol_t> >;
-template class directory_write_manager_t<unittest::test_cluster_directory_t<mock::dummy_protocol_t> >;

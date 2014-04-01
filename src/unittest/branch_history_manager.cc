@@ -67,8 +67,5 @@ void in_memory_branch_history_manager_t<protocol_t>::import_branch_history(const
 }  // namespace unittest
 
 
-#include "mock/dummy_protocol.hpp"
-template class unittest::in_memory_branch_history_manager_t<mock::dummy_protocol_t>;
-
 #include "rdb_protocol/protocol.hpp"
 template class unittest::in_memory_branch_history_manager_t<rdb_protocol_t>;
