@@ -34,6 +34,25 @@ std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr) 
     return prr->data->get("value")->as_str().to_std();
 }
 
+std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key) {
+#ifndef NDEBUG
+    trivial_metainfo_checker_callback_t<rdb_protocol_t> checker_cb;
+    metainfo_checker_t<rdb_protocol_t> checker(&checker_cb, store->get_region());
+#endif
+    read_token_pair_t token;
+    store->new_read_token_pair(&token);
+
+    rdb_protocol_t::read_t r = mock_read(key);
+    rdb_protocol_t::read_response_t rr;
+    cond_t dummy_cond;
+    store->read(DEBUG_ONLY(checker, )
+                r,
+                &rr,
+                order_token_t::ignore,
+                &token,
+                &dummy_cond);
+    return mock_parse_read_response(rr);
+}
 
 
 mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
