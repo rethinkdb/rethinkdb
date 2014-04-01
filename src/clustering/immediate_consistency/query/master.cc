@@ -128,8 +128,5 @@ void master_t<protocol_t>::client_t::perform_request(
 }
 
 
-#include "mock/dummy_protocol.hpp"
-template class master_t<mock::dummy_protocol_t>;
-
 #include "rdb_protocol/protocol.hpp"
 template class master_t<rdb_protocol_t>;

@@ -253,8 +253,3 @@ template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t
 template cJSON *render_as_json<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
 template void apply_json_to<rdb_protocol_t>(cJSON *change, reactor_business_card_t<rdb_protocol_t> *target);
 
-#include "mock/dummy_protocol_json_adapter.hpp"
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
-template cJSON *render_as_json<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
-template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, reactor_business_card_t<mock::dummy_protocol_t> *target);
-

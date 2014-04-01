@@ -96,13 +96,6 @@ void apply_json_to(cJSON *change, nonoverlapping_regions_t<protocol_t> *target) 
 
 
 
-#include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_json_adapter.hpp"
-template class nonoverlapping_regions_t<mock::dummy_protocol_t>;
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
-template cJSON *render_as_json<mock::dummy_protocol_t>(nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
-template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
-
 #include "rdb_protocol/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 template class nonoverlapping_regions_t<rdb_protocol_t>;

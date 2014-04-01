@@ -482,9 +482,6 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
 }
 
 
-#include "mock/dummy_protocol.hpp"
-template class cluster_namespace_interface_t<mock::dummy_protocol_t>;
-
 #include "rdb_protocol/protocol.hpp"
 template class cluster_namespace_interface_t<rdb_protocol_t>;
 

@@ -32,7 +32,6 @@ struct cluster_metadata_superblock_t {
     char metadata_blob[METADATA_BLOB_MAXREFLEN];
 
     static const int BRANCH_HISTORY_BLOB_MAXREFLEN = 500;
-    char dummy_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
     char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 };
 
@@ -243,10 +242,6 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
                initial_metadata);
     write_blob(buf_parent_t(&superblock),
-               sb->dummy_branch_history_blob,
-               cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-               branch_history_t<mock::dummy_protocol_t>());
-    write_blob(buf_parent_t(&superblock),
                sb->rdb_branch_history_blob,
                cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
                branch_history_t<rdb_protocol_t>());
@@ -403,17 +398,11 @@ private:
 that `persistent_branch_history_manager_t *` can be implicitly cast to
 `branch_history_manager_t *`. */
 
-branch_history_manager_t<mock::dummy_protocol_t> *cluster_persistent_file_t::get_dummy_branch_history_manager() {
-    return dummy_branch_history_manager.get();
-}
-
 branch_history_manager_t<rdb_protocol_t> *cluster_persistent_file_t::get_rdb_branch_history_manager() {
     return rdb_branch_history_manager.get();
 }
 
 void cluster_persistent_file_t::construct_branch_history_managers(bool create) {
-    dummy_branch_history_manager.init(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
-        this, &cluster_metadata_superblock_t::dummy_branch_history_blob, create));
     rdb_branch_history_manager.init(new persistent_branch_history_manager_t<rdb_protocol_t>(
         this, &cluster_metadata_superblock_t::rdb_branch_history_blob, create));
 }

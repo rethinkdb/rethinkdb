@@ -59,8 +59,6 @@ void direct_reader_t<protocol_t>::perform_read(
 }
 
 
-#include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-template class direct_reader_t<mock::dummy_protocol_t>;
 template class direct_reader_t<rdb_protocol_t>;

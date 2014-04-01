@@ -187,39 +187,6 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
 }
 
 
-#include "mock/dummy_protocol.hpp"
-
-template
-persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint_for_namespace<mock::dummy_protocol_t>(
-        const namespace_semilattice_metadata_t<mock::dummy_protocol_t> &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<mock::dummy_protocol_t> > > > > &reactor_directory_view,
-        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution)
-        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
-
-template
-std::map<namespace_id_t, persistable_blueprint_t<mock::dummy_protocol_t> > suggest_blueprints_for_protocol<mock::dummy_protocol_t>(
-        const namespaces_semilattice_metadata_t<mock::dummy_protocol_t> &ns_goals,
-        const std::map<peer_id_t, namespaces_directory_metadata_t<mock::dummy_protocol_t> > &reactor_directory_view,
-        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
-        THROWS_ONLY(missing_machine_exc_t);
-
-template
-void fill_in_blueprints_for_protocol<mock::dummy_protocol_t>(
-        namespaces_semilattice_metadata_t<mock::dummy_protocol_t> *ns_goals,
-        const std::map<peer_id_t, namespaces_directory_metadata_t<mock::dummy_protocol_t> > &reactor_directory_view,
-        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const machine_id_t &us,
-        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
-        THROWS_ONLY(missing_machine_exc_t);
-
-
-
 #include "rdb_protocol/protocol.hpp"
 
 template

@@ -695,8 +695,6 @@ void broadcaster_t<protocol_t>::sanity_check() {
 
 
 
-#include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-template class broadcaster_t<mock::dummy_protocol_t>;
 template class broadcaster_t<rdb_protocol_t>;

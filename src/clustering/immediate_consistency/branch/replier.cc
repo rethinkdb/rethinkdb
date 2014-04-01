@@ -67,8 +67,5 @@ void replier_t<protocol_t>::on_synchronize(state_timestamp_t timestamp, mailbox_
 }
 
 
-#include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
-
-template class replier_t<mock::dummy_protocol_t>;
 template class replier_t<rdb_protocol_t>;

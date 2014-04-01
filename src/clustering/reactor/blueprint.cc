@@ -48,10 +48,6 @@ void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint)
     buf->appendf("}");
 }
 
-#include "mock/dummy_protocol.hpp"
-template class blueprint_t<mock::dummy_protocol_t>;
-template void debug_print<mock::dummy_protocol_t>(printf_buffer_t *buf, const blueprint_t<mock::dummy_protocol_t> &blueprint);
-
 #include "rdb_protocol/protocol.hpp"
 template class blueprint_t<rdb_protocol_t>;
 template void debug_print<rdb_protocol_t>(printf_buffer_t *buf, const blueprint_t<rdb_protocol_t> &blueprint);

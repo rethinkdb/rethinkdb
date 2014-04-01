@@ -358,21 +358,6 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     return blueprint;
 }
 
-#include "mock/dummy_protocol.hpp"
-
-
-template
-persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_protocol_t>(
-        const std::map<machine_id_t, reactor_business_card_t<mock::dummy_protocol_t> > &directory,
-        const datacenter_id_t &primary_datacenter,
-        const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const nonoverlapping_regions_t<mock::dummy_protocol_t> &shards,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
-        std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);
-
 
 #include "rdb_protocol/protocol.hpp"
 

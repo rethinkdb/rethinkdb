@@ -18,15 +18,12 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
-#include "clustering/administration/parser_maker.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/extproc_pool.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -227,14 +224,7 @@ bool do_serve(
 
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
-        // Namespace repos
-
-        mock::dummy_protocol_t::context_t dummy_ctx;
-        namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-            &dummy_ctx);
-
+        // Namespace repo
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
@@ -260,39 +250,6 @@ bool do_serve(
             }
 
             // Reactor drivers
-
-            // Dummy
-            scoped_ptr_t<file_based_svs_by_namespace_t<mock::dummy_protocol_t> > dummy_svs_source;
-            scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
-                dummy_reactor_directory_copier;
-
-            if (i_am_a_server) {
-                dummy_svs_source.init(new file_based_svs_by_namespace_t<mock::dummy_protocol_t>(
-                    io_backender, cache_balancer.get(), base_path));
-                dummy_reactor_driver.init(new reactor_driver_t<mock::dummy_protocol_t>(
-                    base_path,
-                    io_backender,
-                    &mailbox_manager,
-                    directory_read_manager.get_root_view()->incremental_subview(
-                        incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>,
-                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-                    cluster_metadata_file->get_dummy_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces,
-                                   semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines,
-                                   semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->incremental_subview(
-                        incremental_field_getter_t<machine_id_t,
-                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    dummy_svs_source.get(),
-                    &perfmon_repo,
-                    reinterpret_cast<mock::dummy_protocol_t::context_t *>(NULL)));
-                dummy_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::dummy_namespaces,
-                    dummy_reactor_driver->get_watchable(),
-                    &our_root_directory_variable));
-            }
 
             // RDB
             scoped_ptr_t<file_based_svs_by_namespace_t<rdb_protocol_t> > rdb_svs_source;
@@ -328,15 +285,6 @@ bool do_serve(
             }
 
             {
-                parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
-                    &mailbox_manager,
-                    metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                    address_ports.local_addresses,
-                    address_ports.port_offset,
-                    &dummy_namespace_repo,
-                    &local_issue_tracker,
-                    &perfmon_repo);
-
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",

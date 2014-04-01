@@ -53,7 +53,6 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > issues;
 
     // Check cluster metadata
-    check_namespaces_for_protocol(cluster_metadata.dummy_namespaces, &issues);
     check_namespaces_for_protocol(cluster_metadata.rdb_namespaces, &issues);
 
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator it =

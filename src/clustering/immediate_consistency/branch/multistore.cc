@@ -276,8 +276,6 @@ void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer
     store_views_[i]->new_write_token(store_token);
 }
 
-#include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<rdb_protocol_t>;

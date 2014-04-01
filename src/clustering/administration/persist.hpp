@@ -82,7 +82,6 @@ public:
     cluster_semilattice_metadata_t read_metadata();
     void update_metadata(const cluster_semilattice_metadata_t &metadata);
 
-    branch_history_manager_t<mock::dummy_protocol_t> *get_dummy_branch_history_manager();
     branch_history_manager_t<rdb_protocol_t> *get_rdb_branch_history_manager();
 
 private:
@@ -90,10 +89,8 @@ private:
 
     template <class protocol_t> class persistent_branch_history_manager_t;
 
-    friend class persistent_branch_history_manager_t<mock::dummy_protocol_t>;
     friend class persistent_branch_history_manager_t<rdb_protocol_t>;
 
-    scoped_ptr_t<persistent_branch_history_manager_t<mock::dummy_protocol_t> > dummy_branch_history_manager;
     scoped_ptr_t<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
 };
 
