@@ -233,7 +233,7 @@ bool do_serve(
                                           machine_id,
                                           &get_global_perfmon_collection());
 
-        namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        namespace_repo_t rdb_namespace_repo(&mailbox_manager,
             directory_read_manager.get_root_view()->incremental_subview(
                 incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);

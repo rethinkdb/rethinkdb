@@ -33,7 +33,7 @@ template <class> class cross_thread_watchable_variable_t;
 class cross_thread_signal_t;
 class databases_semilattice_metadata_t;
 template <class> class directory_read_manager_t;
-template <class> class namespace_repo_t;
+class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
@@ -179,6 +179,50 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
 
+class rdb_protocol_context_t {
+public:
+    rdb_protocol_context_t();
+    rdb_protocol_context_t(extproc_pool_t *_extproc_pool,
+                           namespace_repo_t *_ns_repo,
+                           boost::shared_ptr< semilattice_readwrite_view_t<
+                           cluster_semilattice_metadata_t> > _cluster_metadata,
+                           boost::shared_ptr< semilattice_readwrite_view_t<
+                           auth_semilattice_metadata_t> > _auth_metadata,
+                           directory_read_manager_t<
+                           cluster_directory_metadata_t> *_directory_read_manager,
+                           uuid_u _machine_id,
+                           perfmon_collection_t *global_stats);
+    ~rdb_protocol_context_t();
+
+    extproc_pool_t *extproc_pool;
+    namespace_repo_t *ns_repo;
+
+    /* These arrays contain a watchable for each thread.
+     * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
+                                                                         namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
+    cross_thread_namespace_watchables;
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
+                                      databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+    boost::shared_ptr< semilattice_readwrite_view_t<
+                           cluster_semilattice_metadata_t> > cluster_metadata;
+    boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+    auth_metadata;
+    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
+    // TODO figure out where we're going to want to interrupt this from and
+    // put this there instead
+    cond_t interruptor;
+    scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
+    uuid_u machine_id;
+
+    perfmon_collection_t ql_stats_collection;
+    perfmon_membership_t ql_stats_membership;
+    perfmon_counter_t ql_ops_running;
+    perfmon_membership_t ql_ops_running_membership;
+
+    DISABLE_COPYING(rdb_protocol_context_t);
+};
+
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
@@ -193,46 +237,7 @@ struct rdb_protocol_t {
     static key_range_t sindex_key_range(const store_key_t &start,
                                         const store_key_t &end);
 
-    struct context_t {
-        context_t();
-        context_t(extproc_pool_t *_extproc_pool,
-                  namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr< semilattice_readwrite_view_t<
-                      cluster_semilattice_metadata_t> > _cluster_metadata,
-                  boost::shared_ptr< semilattice_readwrite_view_t<
-                      auth_semilattice_metadata_t> > _auth_metadata,
-                  directory_read_manager_t<
-                      cluster_directory_metadata_t> *_directory_read_manager,
-                  uuid_u _machine_id,
-                  perfmon_collection_t *global_stats);
-        ~context_t();
-
-        extproc_pool_t *extproc_pool;
-        namespace_repo_t<rdb_protocol_t> *ns_repo;
-
-        /* These arrays contain a watchable for each thread.
-         * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
-            namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
-                cross_thread_namespace_watchables;
-        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
-            databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr< semilattice_readwrite_view_t<
-            cluster_semilattice_metadata_t> > cluster_metadata;
-        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            auth_metadata;
-        directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-        // TODO figure out where we're going to want to interrupt this from and
-        // put this there instead
-        cond_t interruptor;
-        scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
-        uuid_u machine_id;
-
-        perfmon_collection_t ql_stats_collection;
-        perfmon_membership_t ql_stats_membership;
-        perfmon_counter_t ql_ops_running;
-        perfmon_membership_t ql_ops_running_membership;
-    };
+    typedef rdb_protocol_context_t context_t;
 
     struct point_read_response_t {
         counted_t<const ql::datum_t> data;

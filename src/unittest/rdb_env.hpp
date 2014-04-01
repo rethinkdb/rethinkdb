@@ -95,7 +95,7 @@ private:
 };
 
 // This stuff isn't really designed for concurrency, use for single-threaded tests
-class mock_namespace_repo_t : public base_namespace_repo_t<rdb_protocol_t> {
+class mock_namespace_repo_t : public base_namespace_repo_t {
 public:
     mock_namespace_repo_t();
     virtual ~mock_namespace_repo_t();

@@ -34,7 +34,7 @@
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
-typedef rdb_protocol_t::context_t context_t;
+typedef rdb_protocol_context_t context_t;
 
 typedef rdb_protocol_t::store_t store_t;
 typedef rdb_protocol_t::region_t region_t;
@@ -390,7 +390,7 @@ void add_status(const single_sindex_status_t &new_status,
 
 }  // namespace rdb_protocol_details
 
-rdb_protocol_t::context_t::context_t()
+rdb_protocol_context_t::rdb_protocol_context_t()
     : extproc_pool(NULL), ns_repo(NULL),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
@@ -400,9 +400,9 @@ rdb_protocol_t::context_t::context_t()
     ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 { }
 
-rdb_protocol_t::context_t::context_t(
+rdb_protocol_context_t::rdb_protocol_context_t(
     extproc_pool_t *_extproc_pool,
-    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    namespace_repo_t *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _cluster_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
@@ -437,7 +437,7 @@ rdb_protocol_t::context_t::context_t(
     }
 }
 
-rdb_protocol_t::context_t::~context_t() { }
+rdb_protocol_context_t::~rdb_protocol_context_t() { }
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -599,7 +599,7 @@ public:
     rdb_r_unshard_visitor_t(read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
-                            rdb_protocol_t::context_t *ctx,
+                            rdb_protocol_context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
           env(ctx, interruptor) { }
@@ -1241,7 +1241,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     rdb_read_visitor_t(btree_slice_t *_btree,
                        btree_store_t<rdb_protocol_t> *_store,
                        superblock_t *_superblock,
-                       rdb_protocol_t::context_t *ctx,
+                       rdb_protocol_context_t *ctx,
                        read_response_t *_response,
                        profile_bool_t profile,
                        signal_t *_interruptor) :
@@ -1467,7 +1467,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
-                        rdb_protocol_t::context_t *ctx,
+                        rdb_protocol_context_t *ctx,
                         write_response_t *_response,
                         signal_t *_interruptor) :
         btree(_btree),

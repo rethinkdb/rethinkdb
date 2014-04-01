@@ -13,7 +13,7 @@
 #define DEFAULT_LIMIT 128
 
 distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > _rdb_namespaces_sl_metadata,
-                                       namespace_repo_t<rdb_protocol_t> *_rdb_ns_repo)
+                                       namespace_repo_t *_rdb_ns_repo)
     : rdb_namespaces_sl_metadata(_rdb_namespaces_sl_metadata),
       rdb_ns_repo(_rdb_ns_repo)
 { }
@@ -56,7 +56,7 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
 
     if (std_contains(rdb_ns_snapshot->namespaces, n_id)) {
         try {
-            namespace_repo_t<rdb_protocol_t>::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
+            namespace_repo_t::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
 
             rdb_protocol_t::distribution_read_t inner_read(depth, limit);
             rdb_protocol_t::read_t read(inner_read, profile_bool_t::DONT_PROFILE);

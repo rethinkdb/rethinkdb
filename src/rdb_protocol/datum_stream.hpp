@@ -67,7 +67,7 @@ public:
     rdb_namespace_access_t(uuid_u id, env_t *env);
     rdb_namespace_interface_t get_namespace_if();
 private:
-    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    base_namespace_repo_t::access_t internal_;
     env_t *env_;
 };
 
