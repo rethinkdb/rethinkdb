@@ -29,6 +29,8 @@
 #include "rpc/serialize_macros.hpp"
 
 
+struct rdb_protocol_t;
+
 /* This is the metadata for a single namespace of a specific protocol. */
 
 /* If you change this data structure, you must also update
@@ -190,7 +192,6 @@ void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<pro
 template <class protocol_t>
 void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
     namespaces_directory_metadata_t() { }
@@ -214,24 +215,20 @@ public:
     was extremely slow because the size of the data structure grew linearly with
     the number of tables and so copying it became a major cost. Using a
     `boost::shared_ptr` instead makes it significantly faster. */
-    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_bcards_map_t;
+    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
-template <class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t<protocol_t>,
-    reactor_bcards);
+
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target);
 
-template <class protocol_t>
-cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target);
+cJSON *render_as_json(namespaces_directory_metadata_t *target);
 
-template <class protocol_t>
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target);
+void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target);
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

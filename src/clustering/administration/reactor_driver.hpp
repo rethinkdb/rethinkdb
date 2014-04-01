@@ -83,7 +83,7 @@ public:
     reactor_driver_t(const base_path_t &base_path,
                      io_backender_t *io_backender,
                      mailbox_manager_t *mbox_manager,
-                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &directory_view,
+                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &directory_view,
                      branch_history_manager_t<protocol_t> *branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view,
@@ -94,7 +94,7 @@ public:
 
     ~reactor_driver_t();
 
-    clone_ptr_t<watchable_t<namespaces_directory_metadata_t<protocol_t> > > get_watchable() {
+    clone_ptr_t<watchable_t<namespaces_directory_metadata_t> > get_watchable() {
         return watchable_variable.get_watchable();
     }
 
@@ -120,12 +120,12 @@ private:
     static bool apply_directory_changes(
         std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
             *_changed_reactor_directories,
-        namespaces_directory_metadata_t<protocol_t> *directory);
+        namespaces_directory_metadata_t *directory);
 
     const base_path_t base_path;
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > directory_view;
     branch_history_manager_t<protocol_t> *branch_history_manager;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view;
@@ -135,7 +135,7 @@ private:
 
     scoped_ptr_t<ack_info_t<protocol_t> > ack_info;
 
-    watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
+    watchable_variable_t<namespaces_directory_metadata_t> watchable_variable;
     mutex_assertion_t watchable_variable_lock;
 
     // `changed_reactor_directories` collects reactor directory entries that

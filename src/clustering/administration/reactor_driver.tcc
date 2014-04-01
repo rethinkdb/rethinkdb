@@ -280,7 +280,7 @@ private:
         extract_reactor_directory_per_peer_result_type;
 
     extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
-        const namespaces_directory_metadata_t<protocol_t> &nss) {
+        const namespaces_directory_metadata_t &nss) {
 
         auto it = nss.reactor_bcards.find(namespace_id_);
         if (it == nss.reactor_bcards.end()) {
@@ -309,7 +309,7 @@ private:
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
                         this, _1);
         incremental_map_lens_t<peer_id_t,
-                               namespaces_directory_metadata_t<protocol_t>,
+                               namespaces_directory_metadata_t,
                                typeof extract_reactor_directory_per_peer_fun>
             extract_reactor_directory(extract_reactor_directory_per_peer_fun);
 
@@ -364,7 +364,7 @@ template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
                                                io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
-                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
                                                boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
@@ -383,7 +383,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
       ack_info(new ack_info_t<protocol_t>(machine_id_translation_table, machines_view, namespaces_view)),
-      watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
+      watchable_variable(namespaces_directory_metadata_t()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
       translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
@@ -447,7 +447,7 @@ template<class protocol_t>
 bool reactor_driver_t<protocol_t>::apply_directory_changes(
     std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
         *_changed_reactor_directories,
-    namespaces_directory_metadata_t<protocol_t> *directory) {
+    namespaces_directory_metadata_t *directory) {
 
     for (auto it = _changed_reactor_directories->begin();
          it != _changed_reactor_directories->end();

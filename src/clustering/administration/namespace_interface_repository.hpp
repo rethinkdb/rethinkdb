@@ -17,7 +17,7 @@ round-trips. */
 
 class mailbox_manager_t;
 template <class> class namespace_interface_t;
-template <class> class namespaces_directory_metadata_t;
+class namespaces_directory_metadata_t;
 class peer_id_t;
 struct rdb_protocol_t;
 class rdb_protocol_context_t;
@@ -76,7 +76,7 @@ private:
 
 public:
     namespace_repo_t(mailbox_manager_t *,
-                     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > > >,
+                     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > >,
                      rdb_protocol_context_t *);
     ~namespace_repo_t();
 
@@ -90,7 +90,7 @@ private:
     base_namespace_repo_t::namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id);
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > > > namespaces_directory_metadata;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > namespaces_directory_metadata;
     rdb_protocol_context_t *ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;

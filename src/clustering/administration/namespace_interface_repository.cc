@@ -22,7 +22,7 @@ public:
 
 
 namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > > > _namespaces_directory_metadata,
+                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
                                                rdb_protocol_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata),
@@ -32,12 +32,12 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 namespace_repo_t::~namespace_repo_t() { }
 
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > get_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
+        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > res;
-    for (std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> >::const_iterator it  = ns_directory_metadata.get_inner().begin();
+    for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator it  = ns_directory_metadata.get_inner().begin();
          it != ns_directory_metadata.get_inner().end();
          ++it) {
-        namespaces_directory_metadata_t<rdb_protocol_t>::reactor_bcards_map_t::const_iterator jt =
+        namespaces_directory_metadata_t::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);
         if (jt != it->second.reactor_bcards.end()) {
             res[it->first] = jt->second.internal;

@@ -128,7 +128,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         return;
     }
 
-    namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
+    namespaces_directory_metadata_t namespaces_directory_metadata =
         directory_it->second.rdb_namespaces;
 
     if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {

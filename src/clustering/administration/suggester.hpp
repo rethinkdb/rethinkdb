@@ -28,7 +28,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
 template<class protocol_t>
 std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprints_for_protocol(
         const namespaces_semilattice_metadata_t<protocol_t> &ns_goals,
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, namespaces_directory_metadata_t> &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
@@ -37,7 +37,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
 template<class protocol_t>
 void fill_in_blueprints_for_protocol(
         namespaces_semilattice_metadata_t<protocol_t> *ns_goals,
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, namespaces_directory_metadata_t> &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,

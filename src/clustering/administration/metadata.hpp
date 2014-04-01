@@ -142,7 +142,7 @@ public:
         return *this;
     }
 
-    namespaces_directory_metadata_t<rdb_protocol_t> rdb_namespaces;
+    namespaces_directory_metadata_t rdb_namespaces;
 
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;

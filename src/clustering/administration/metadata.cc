@@ -200,7 +200,7 @@ void with_ctx_on_subfield_change(auth_semilattice_metadata_t *, const vclock_ctx
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t> >(&target->rdb_namespaces));
+    res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t>(&target->rdb_namespaces));
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint64_t>(&target->cache_size));
@@ -314,20 +314,17 @@ void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *
 }
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > >(&target->reactor_bcards));
+    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > >(&target->reactor_bcards));
     return res;
 }
 
-template <class protocol_t>
-cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target) {
+cJSON *render_as_json(namespaces_directory_metadata_t *target) {
     return render_as_directory(target);
 }
 
-template <class protocol_t>
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target) {
+void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target) {
     apply_as_directory(change, target);
 }
 
@@ -340,6 +337,3 @@ template cJSON *with_ctx_render_as_json<rdb_protocol_t>(namespaces_semilattice_m
 template void with_ctx_apply_json_to<rdb_protocol_t>(cJSON *change, namespaces_semilattice_metadata_t<rdb_protocol_t> *target, const vclock_ctx_t &ctx);
 template void with_ctx_on_subfield_change<rdb_protocol_t>(namespaces_semilattice_metadata_t<rdb_protocol_t> *, const vclock_ctx_t &);
 
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(namespaces_directory_metadata_t<rdb_protocol_t> *target);
-template cJSON *render_as_json<rdb_protocol_t>(namespaces_directory_metadata_t<rdb_protocol_t> *target);
-template void apply_json_to<rdb_protocol_t>(cJSON *change, namespaces_directory_metadata_t<rdb_protocol_t> *target);
