@@ -118,6 +118,7 @@ private:
         case Term::MAKE_OBJ:
         case Term::VAR:
         case Term::JAVASCRIPT:
+        case Term::WGET:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
         case Term::DB:
@@ -287,6 +288,7 @@ private:
         case Term::MAKE_OBJ:
         case Term::VAR:
         case Term::JAVASCRIPT:
+        case Term::WGET:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
         case Term::DB:

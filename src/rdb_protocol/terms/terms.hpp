@@ -108,6 +108,10 @@ counted_t<term_t> make_default_term(
 counted_t<term_t> make_javascript_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
+// wget.cc
+counted_t<term_t> make_wget_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
 // json.cc
 counted_t<term_t> make_json_term(
     compile_env_t *env, const protob_t<const Term> &term);

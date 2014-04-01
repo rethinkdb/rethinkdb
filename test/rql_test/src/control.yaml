@@ -188,6 +188,14 @@ tests:
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) {})'))
       ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to ql::datum_t.", [0])
 
+    # wget tests - need internet connectivity to work
+    - def: json_test = 'http://echo.jsontest.com'
+    - cd: r.wget(json_test + '/key/value')
+      ot: ({'key':'value'})
+
+    - cd: r.expr(['/name/rethink/value/stuff','/name/db/value/']).map(lambda info:r.wget(json_test + info)).map(r.row['name'])
+      ot: (['rethink','db'])
+
     # What happens if we pass static values to things that expect functions
     - cd: r.expr([1, 2, 3]).map(1)
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])

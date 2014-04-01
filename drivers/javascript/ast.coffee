@@ -447,6 +447,10 @@ class JavaScript extends RDBOp
     tt: "JAVASCRIPT"
     st: 'js'
 
+class Wget extends RDBOp
+    tt: "WGET"
+    st: 'wget'
+
 class Json extends RDBOp
     tt: "JSON"
     st: 'json'
@@ -1036,6 +1040,8 @@ isJSON = (val, nestingDepth=20) ->
         true
 
 rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
+
+rethinkdb.wget = aropt (url, opts) -> new Wget opts, url
 
 rethinkdb.json = ar (jsonsrc) -> new Json {}, jsonsrc
 
