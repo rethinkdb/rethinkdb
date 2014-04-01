@@ -88,6 +88,23 @@ inline std::string test_inserter_read_master_access(master_access_t<mock::dummy_
     return response.values.find(key)->second;
 }
 
+inline void test_inserter_write_master_access(master_access_t<rdb_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+    rdb_protocol_t::write_t w = mock_overwrite(key, value);
+    rdb_protocol_t::write_response_t response;
+    fifo_enforcer_sink_t::exit_write_t write_token;
+    ma->new_write_token(&write_token);
+    ma->write(w, &response, otok, &write_token, interruptor);
+}
+
+inline std::string test_inserter_read_master_access(master_access_t<rdb_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
+    rdb_protocol_t::read_t r = mock_read(key);
+    rdb_protocol_t::read_response_t response;
+    fifo_enforcer_sink_t::exit_read_t read_token;
+    ma->new_read_token(&read_token);
+    ma->read(r, &response, otok, &read_token, interruptor);
+    return mock_parse_read_response(response);
+}
+
 inline void test_inserter_write_namespace_if(namespace_interface_t<mock::dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
     mock::dummy_protocol_t::write_t w;
     mock::dummy_protocol_t::write_response_t response;
