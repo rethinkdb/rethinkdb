@@ -112,7 +112,7 @@ public:
                             namespace_id_t namespace_id,
                             const blueprint_t<rdb_protocol_t> &bp,
                             svs_by_namespace_t<rdb_protocol_t> *svs_by_namespace,
-                            rdb_protocol_context_t *_ctx) :
+                            rdb_context_t *_ctx) :
         base_path(_base_path),
         watchable(bp),
         ctx(_ctx),
@@ -334,7 +334,7 @@ private:
 public:
     watchable_variable_t<blueprint_t<rdb_protocol_t> > watchable;
 
-    rdb_protocol_context_t *const ctx;
+    rdb_context_t *const ctx;
 
 private:
     cond_t reactor_has_been_initialized_;
@@ -362,7 +362,7 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
                                    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                    svs_by_namespace_t<rdb_protocol_t> *_svs_by_namespace,
                                    perfmon_collection_repo_t *_perfmon_collection_repo,
-                                   rdb_protocol_context_t *_ctx)
+                                   rdb_context_t *_ctx)
     : base_path(_base_path),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),

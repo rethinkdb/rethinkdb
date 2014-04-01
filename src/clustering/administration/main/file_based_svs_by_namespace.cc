@@ -17,7 +17,7 @@ struct store_args_t {
                  namespace_id_t _namespace_id,
                  cache_balancer_t *_balancer,
                  perfmon_collection_t *_serializers_perfmon_collection,
-                 rdb_protocol_context_t *_ctx)
+                 rdb_context_t *_ctx)
         : io_backender(_io_backender), base_path(_base_path),
           namespace_id(_namespace_id), balancer(_balancer),
           serializers_perfmon_collection(_serializers_perfmon_collection),
@@ -29,7 +29,7 @@ struct store_args_t {
     namespace_id_t namespace_id;
     cache_balancer_t *balancer;
     perfmon_collection_t *serializers_perfmon_collection;
-    rdb_protocol_context_t *ctx;
+    rdb_context_t *ctx;
 };
 
 std::string hash_shard_perfmon_name(int hash_shard_number) {
@@ -81,7 +81,7 @@ file_based_svs_by_namespace_t::get_svs(
             namespace_id_t namespace_id,
             stores_lifetimer_t<rdb_protocol_t> *stores_out,
             scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
-            rdb_protocol_context_t *ctx) {
+            rdb_context_t *ctx) {
     const int num_db_threads = get_num_db_threads();
 
     // TODO: If the server gets killed when starting up, we can

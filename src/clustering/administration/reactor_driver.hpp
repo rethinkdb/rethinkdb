@@ -29,7 +29,7 @@ class watchable_and_reactor_t;
 template <class> class multistore_ptr_t;
 
 struct rdb_protocol_t;
-class rdb_protocol_context_t;
+class rdb_context_t;
 
 // This type holds some protocol_t::store_t objects, and doesn't let anybody _casually_ touch them.
 template <class protocol_t>
@@ -92,7 +92,7 @@ public:
                      const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                      svs_by_namespace_t<rdb_protocol_t> *svs_by_namespace,
                      perfmon_collection_repo_t *,
-                     rdb_protocol_context_t *);
+                     rdb_context_t *);
 
     ~reactor_driver_t();
 
@@ -131,7 +131,7 @@ private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
-    rdb_protocol_context_t *ctx;
+    rdb_context_t *ctx;
     svs_by_namespace_t<rdb_protocol_t> *const svs_by_namespace;
 
     scoped_ptr_t<ack_info_t> ack_info;

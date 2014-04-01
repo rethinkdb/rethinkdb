@@ -19,8 +19,8 @@ class mailbox_manager_t;
 class namespace_interface_t;
 class namespaces_directory_metadata_t;
 class peer_id_t;
+class rdb_context_t;
 struct rdb_protocol_t;
-class rdb_protocol_context_t;
 class signal_t;
 class uuid_u;
 template <class> class watchable_t;
@@ -77,7 +77,7 @@ private:
 public:
     namespace_repo_t(mailbox_manager_t *,
                      clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > >,
-                     rdb_protocol_context_t *);
+                     rdb_context_t *);
     ~namespace_repo_t();
 
 private:
@@ -91,7 +91,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > namespaces_directory_metadata;
-    rdb_protocol_context_t *ctx;
+    rdb_context_t *ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;
 

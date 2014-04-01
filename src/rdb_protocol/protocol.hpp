@@ -179,20 +179,17 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
 
-class rdb_protocol_context_t {
+class rdb_context_t {
 public:
-    rdb_protocol_context_t();
-    rdb_protocol_context_t(extproc_pool_t *_extproc_pool,
-                           namespace_repo_t *_ns_repo,
-                           boost::shared_ptr< semilattice_readwrite_view_t<
-                           cluster_semilattice_metadata_t> > _cluster_metadata,
-                           boost::shared_ptr< semilattice_readwrite_view_t<
-                           auth_semilattice_metadata_t> > _auth_metadata,
-                           directory_read_manager_t<
-                           cluster_directory_metadata_t> *_directory_read_manager,
-                           uuid_u _machine_id,
-                           perfmon_collection_t *global_stats);
-    ~rdb_protocol_context_t();
+    rdb_context_t();
+    rdb_context_t(extproc_pool_t *_extproc_pool,
+                  namespace_repo_t *_ns_repo,
+                  boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
+                  boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
+                  directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+                  uuid_u _machine_id,
+                  perfmon_collection_t *global_stats);
+    ~rdb_context_t();
 
     extproc_pool_t *extproc_pool;
     namespace_repo_t *ns_repo;
@@ -219,11 +216,8 @@ public:
     perfmon_membership_t ql_stats_membership;
     perfmon_counter_t ql_ops_running;
     perfmon_membership_t ql_ops_running_membership;
-    DISABLE_COPYING(rdb_protocol_context_t);
+    DISABLE_COPYING(rdb_context_t);
 };
-
-// RSI: Rename rdb_protocol_context_t to rdb_context_t.
-typedef rdb_protocol_context_t rdb_context_t;
 
 struct point_read_response_t {
     counted_t<const ql::datum_t> data;
@@ -696,7 +690,7 @@ struct rdb_protocol_t {
                                         const store_key_t &end);
 
     // RSI: Remove these typedefs.
-    typedef rdb_protocol_context_t context_t;
+    typedef rdb_context_t context_t;
 
     typedef read_t read_t;
     typedef read_response_t read_response_t;

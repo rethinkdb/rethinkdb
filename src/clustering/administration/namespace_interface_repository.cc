@@ -22,8 +22,8 @@ public:
 
 
 namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
-                                               rdb_protocol_context_t *_ctx)
+                                   clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
+                                   rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata),
       ctx(_ctx)

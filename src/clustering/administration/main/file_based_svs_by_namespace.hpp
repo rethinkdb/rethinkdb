@@ -8,7 +8,7 @@
 
 class cache_balancer_t;
 struct rdb_protocol_t;
-class rdb_protocol_context_t;
+class rdb_context_t;
 
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<rdb_protocol_t> {
 public:
@@ -22,7 +22,7 @@ public:
                  namespace_id_t namespace_id,
                  stores_lifetimer_t<rdb_protocol_t> *stores_out,
                  scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
-                 rdb_protocol_context_t *);
+                 rdb_context_t *);
 
     void destroy_svs(namespace_id_t namespace_id);
 
