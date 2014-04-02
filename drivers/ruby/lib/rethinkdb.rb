@@ -1,11 +1,8 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-module RethinkDB
-  require 'rubygems'
-  require 'ql2.pb.rb'
-  require 'socket'
-  require 'pp'
-end
-
+require 'rubygems'
+require 'ql2.pb.rb'
+require 'socket'
+require 'pp'
 
 load 'exc.rb'
 load 'net.rb'

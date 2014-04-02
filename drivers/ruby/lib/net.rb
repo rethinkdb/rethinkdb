@@ -1,8 +1,8 @@
-module RethinkDB
-  require 'socket'
-  require 'thread'
-  require 'timeout'
+require 'socket'
+require 'thread'
+require 'timeout'
 
+module RethinkDB
   def self.new_query(type, token)
     [type, token]
   end
