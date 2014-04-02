@@ -35,6 +35,7 @@ table_t::table_t(env_t *env,
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
                               strprintf("Table `%s` does not exist.",
                                         table_name.c_str()), this);
+    uuid = id;
 
     access.init(new rdb_namespace_access_t(id, env));
 

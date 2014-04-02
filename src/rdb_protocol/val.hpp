@@ -80,6 +80,7 @@ public:
     counted_t<const db_t> db;
     const std::string name;
 
+    uuid_u get_uuid() { return uuid; }
 private:
     friend class distinct_term_t;
 
@@ -105,6 +106,8 @@ private:
 
     datum_range_t bounds;
     sorting_t sorting;
+
+    uuid_u uuid;
 };
 
 
