@@ -238,7 +238,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, int32_t> >(&target->replica_affinities, ctx));
     res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::map<datacenter_id_t, ack_expectation_t> >(&target->ack_expectations, ctx));
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
-    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t<rdb_protocol_t> >(&target->shards, ctx));
+    res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t>(&target->shards, ctx));
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<rdb_protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
@@ -261,7 +261,7 @@ void with_ctx_on_subfield_change(namespace_semilattice_metadata_t *, const vcloc
 inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     namespace_semilattice_metadata_t default_namespace;
 
-    nonoverlapping_regions_t<rdb_protocol_t> default_shards;
+    nonoverlapping_regions_t default_shards;
     bool success = default_shards.add_region(region_t::universe());
     guarantee(success);
     default_namespace.shards = default_namespace.shards.make_new_version(default_shards, ctx.us);

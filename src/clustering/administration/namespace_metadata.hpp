@@ -69,7 +69,7 @@ public:
     vclock_t<datacenter_id_t> primary_datacenter;
     vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;
-    vclock_t<nonoverlapping_regions_t<rdb_protocol_t> > shards;
+    vclock_t<nonoverlapping_regions_t> shards;
     vclock_t<name_string_t> name;
     vclock_t<int> port;
     vclock_t<region_map_t<rdb_protocol_t, machine_id_t> > primary_pinnings;
@@ -96,7 +96,7 @@ inline namespace_semilattice_metadata_t new_namespace(
     ack_expectations[datacenter] = ack_expectation_t(1, true);
     ns.ack_expectations = make_vclock(ack_expectations, machine);
 
-    nonoverlapping_regions_t<rdb_protocol_t> shards;
+    nonoverlapping_regions_t shards;
     bool add_region_success = shards.add_region(region_t::universe());
     guarantee(add_region_success);
     ns.shards = make_vclock(shards, machine);

@@ -32,7 +32,7 @@ TEST(ClusteringSuggester, NewNamespace) {
     affinities[primary_datacenter] = 2;
     affinities[secondary_datacenter] = 3;
 
-    nonoverlapping_regions_t<rdb_protocol_t> shards;
+    nonoverlapping_regions_t shards;
     bool success = shards.add_region(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t(""),
                                                                             key_range_t::open, store_key_t("n"))));
     ASSERT_TRUE(success);

@@ -120,16 +120,14 @@ private:
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
-    template <class protocol_t>
-    std::string merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
+    std::string merge_shards(vclock_t<nonoverlapping_regions_t> *shards_vclock,
                              const std::vector<std::string> &split_points);
 
     std::string admin_split_shard_internal(namespaces_semilattice_metadata_t *ns,
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
-    template <class protocol_t>
-    std::string split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
+    std::string split_shards(vclock_t<nonoverlapping_regions_t> *shards_vclock,
                              const std::vector<std::string> &split_points);
 
     void do_admin_set_acks_internal(const datacenter_id_t &datacenter,
@@ -323,8 +321,7 @@ private:
                                       const std::string& ns_name,
                                       std::vector<std::vector<std::string> > *table);
 
-    template <class protocol_t>
-    void add_single_namespace_replicas(const nonoverlapping_regions_t<protocol_t>& shards,
+    void add_single_namespace_replicas(const nonoverlapping_regions_t& shards,
                                        const persistable_blueprint_t& blueprint,
                                        const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                        std::vector<std::vector<std::string> > *table);

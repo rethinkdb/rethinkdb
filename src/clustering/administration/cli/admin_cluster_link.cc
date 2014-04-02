@@ -146,11 +146,10 @@ std::string admin_value_to_string(const std::map<uuid_u, ack_expectation_t>& val
     return result;
 }
 
-template <class protocol_t>
-std::string admin_value_to_string(const nonoverlapping_regions_t<protocol_t>& value) {
+std::string admin_value_to_string(const nonoverlapping_regions_t& value) {
     std::string result;
     bool first = true;
-    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = value.begin(); it != value.end(); ++it) {
+    for (nonoverlapping_regions_t::iterator it = value.begin(); it != value.end(); ++it) {
         result += strprintf("%s%s", first ? "" : ", ", admin_value_to_string(*it).c_str());
         first = false;
     }
@@ -631,7 +630,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
 region_t admin_cluster_link_t::find_shard_in_namespace(const namespace_semilattice_metadata_t& ns,
                                                        const shard_input_t& shard_in) {
-    const nonoverlapping_regions_t<rdb_protocol_t> shards_value = ns.shards.get();
+    const nonoverlapping_regions_t shards_value = ns.shards.get();
     for (std::set<region_t>::const_iterator s = shards_value.begin(); s != shards_value.end(); ++s) {
         // TODO: This is a low level assertion.
         guarantee(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
@@ -882,10 +881,9 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
     return error;
 }
 
-template <class protocol_t>
-std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
+std::string admin_cluster_link_t::split_shards(vclock_t<nonoverlapping_regions_t> *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
+    nonoverlapping_regions_t &shards = shards_vclock->get_mutable();
     std::string error;
 
     for (size_t i = 0; i < split_points.size(); ++i) {
@@ -1002,10 +1000,9 @@ std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilatt
     return error;
 }
 
-template <class protocol_t>
-std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
+std::string admin_cluster_link_t::merge_shards(vclock_t<nonoverlapping_regions_t> *shards_vclock,
                                                const std::vector<std::string> &split_points) {
-    nonoverlapping_regions_t<protocol_t> &shards = shards_vclock->get_mutable();
+    nonoverlapping_regions_t &shards = shards_vclock->get_mutable();
     std::string error;
     for (size_t i = 0; i < split_points.size(); ++i) {
         try {
@@ -2004,7 +2001,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
     obj->port.get_mutable() = port;
     obj->port.upgrade_version(change_request_id);
 
-    nonoverlapping_regions_t<rdb_protocol_t> shards;
+    nonoverlapping_regions_t shards;
     bool add_success = shards.add_region(region_t::universe());
     guarantee(add_success);
     obj->shards.get_mutable() = shards;
@@ -2883,18 +2880,17 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
     }
 }
 
-template <class protocol_t>
-void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_regions_t<protocol_t>& shards,
+void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_regions_t& shards,
                                                          const persistable_blueprint_t& blueprint,
                                                          const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                                          std::vector<std::vector<std::string> > *table) {
-    for (typename std::set<typename protocol_t::region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
+    for (std::set<region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
         std::string shard_str = admin_value_to_string(*s);
 
         // First add the primary host
-        for (typename persistable_blueprint_t::role_map_t::const_iterator i = blueprint.machines_roles.begin();
+        for (persistable_blueprint_t::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
-            typename persistable_blueprint_t::region_to_role_map_t::const_iterator j = i->second.find(*s);
+            persistable_blueprint_t::region_to_role_map_t::const_iterator j = i->second.find(*s);
             if (j != i->second.end() && j->second == blueprint_role_primary) {
                 std::vector<std::string> delta;
 
@@ -2917,9 +2913,9 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
         }
 
         // Then add all the secondaries
-        for (typename persistable_blueprint_t::role_map_t::const_iterator i = blueprint.machines_roles.begin();
+        for (persistable_blueprint_t::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
-            typename persistable_blueprint_t::region_to_role_map_t::const_iterator j = i->second.find(*s);
+            persistable_blueprint_t::region_to_role_map_t::const_iterator j = i->second.find(*s);
             if (j != i->second.end() && j->second == blueprint_role_secondary) {
                 std::vector<std::string> delta;
 
