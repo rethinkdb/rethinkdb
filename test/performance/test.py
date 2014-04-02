@@ -134,8 +134,8 @@ def execute_read_write_queries(suffix):
         
         i = 0
 
-        start = time.time()
         durations = []
+        start = time.time()
         while (time.time()-start < time_per_query) & (i < num_writes):
             start_query = time.time()
             result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
@@ -159,6 +159,7 @@ def execute_read_write_queries(suffix):
 
         # Finish inserting the remaining data
         size_batch = 500
+        durations = []
         start = time.time()
         if i < num_writes:
             while i+size_batch < num_writes:
@@ -220,7 +221,7 @@ def execute_read_write_queries(suffix):
                 "last_centile": durations[int(math.floor(len(durations)/100.*99))]
             }
 
-            i -= 1
+            i -= 1 # We will use `i` in write_queries[p]["clean"] to revert only the documents we changed
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
