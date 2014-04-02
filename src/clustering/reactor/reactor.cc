@@ -49,7 +49,7 @@ reactor_t::reactor_t(
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         ack_checker_t *ack_checker_,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > > > rd,
+        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > rd,
         branch_history_manager_t<rdb_protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t> > b,
         multistore_ptr_t<rdb_protocol_t> *_underlying_svs,
@@ -62,10 +62,10 @@ reactor_t::reactor_t(
     io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
-    directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >()),
+    directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t>()),
     directory_echo_mirror(mailbox_manager, rd->incremental_subview<
-        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > (
-            &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >)),
+        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > (
+            &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
@@ -81,7 +81,7 @@ reactor_t::reactor_t(
     }
 }
 
-clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > reactor_t::get_reactor_directory() {
+clone_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_t::get_reactor_directory() {
     return directory_echo_writer.get_watchable();
 }
 
@@ -89,24 +89,24 @@ reactor_t::directory_entry_t::directory_entry_t(reactor_t *_parent, region_t _re
     : parent(_parent), region(_region), reactor_activity_id(nil_uuid())
 { }
 
-directory_echo_version_t reactor_t::directory_entry_t::set(reactor_business_card_t<rdb_protocol_t>::activity_t activity) {
-    directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+directory_echo_version_t reactor_t::directory_entry_t::set(reactor_business_card_t::activity_t activity) {
+    directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     {
-        cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >::change_t cow_ptr_change(&our_value_change.buffer);
+        cow_ptr_t<reactor_business_card_t>::change_t cow_ptr_change(&our_value_change.buffer);
         if (!reactor_activity_id.is_nil()) {
             cow_ptr_change.get()->activities.erase(reactor_activity_id);
         }
         reactor_activity_id = generate_uuid();
-        cow_ptr_change.get()->activities.insert(std::make_pair(reactor_activity_id, reactor_business_card_t<rdb_protocol_t>::activity_entry_t(region, activity)));
+        cow_ptr_change.get()->activities.insert(std::make_pair(reactor_activity_id, reactor_business_card_t::activity_entry_t(region, activity)));
     }
     return our_value_change.commit();
 }
 
-directory_echo_version_t reactor_t::directory_entry_t::update_without_changing_id(reactor_business_card_t<rdb_protocol_t>::activity_t activity) {
+directory_echo_version_t reactor_t::directory_entry_t::update_without_changing_id(reactor_business_card_t::activity_t activity) {
     guarantee(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
-    directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+    directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     {
-        cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >::change_t cow_ptr_change(&our_value_change.buffer);
+        cow_ptr_t<reactor_business_card_t>::change_t cow_ptr_change(&our_value_change.buffer);
         cow_ptr_change.get()->activities[reactor_activity_id].activity = activity;
     }
     return our_value_change.commit();
@@ -125,9 +125,9 @@ peer_id_t reactor_t::get_me() THROWS_NOTHING {
 
 reactor_t::directory_entry_t::~directory_entry_t() {
     if (!reactor_activity_id.is_nil()) {
-        directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::our_value_change_t our_value_change(&parent->directory_echo_writer);
+        directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
         {
-            cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >::change_t cow_ptr_change(&our_value_change.buffer);
+            cow_ptr_t<reactor_business_card_t>::change_t cow_ptr_change(&our_value_change.buffer);
             cow_ptr_change.get()->activities.erase(reactor_activity_id);
         }
         our_value_change.commit();
@@ -222,7 +222,7 @@ void reactor_t::run_cpu_sharded_role(
     }
 }
 
-bool we_see_our_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &bcards, peer_id_t me) {
+bool we_see_our_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &bcards, peer_id_t me) {
     return std_contains(bcards.get_inner(), me);
 }
 
@@ -270,7 +270,7 @@ void reactor_t::run_role(
 reactor_t::backfill_candidate_t::backfill_location_t::backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i)
     : backfiller(b), peer_id(p), activity_id(i) { }
 
-boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > reactor_t::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<reactor_business_card_t<rdb_protocol_t>::primary_t> > &bcard) {
+boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > reactor_t::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >();
     }
@@ -301,7 +301,7 @@ void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait
         }
         std::map<peer_id_t, std::map<region_t, blueprint_role_t> >::iterator it = bp.peers_roles.begin();
         for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
-            directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
+            directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
             wait_any_t waiter(&ack_waiter, &blueprint_changed);
             wait_interruptible(&waiter, interruptor);
             if (blueprint_changed.is_pulsed()) {

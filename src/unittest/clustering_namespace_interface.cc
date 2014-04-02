@@ -20,8 +20,8 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     simple_mailbox_cluster_t cluster;
 
     /* Set up a reactor directory with no reactors in it */
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > empty_reactor_directory;
-    watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_directory(empty_reactor_directory);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > empty_reactor_directory;
+    watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > reactor_directory(empty_reactor_directory);
 
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t namespace_interface(

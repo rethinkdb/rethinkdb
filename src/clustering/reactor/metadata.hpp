@@ -226,10 +226,9 @@ struct reactor_activity_entry_t {
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(reactor_activity_entry_t<protocol_t>, region, activity);
 };
 
-template<class protocol_t>
 class reactor_business_card_t {
 public:
-    typedef reactor_activity_entry_t<protocol_t> activity_entry_t;
+    typedef reactor_activity_entry_t<rdb_protocol_t> activity_entry_t;
     typedef typename activity_entry_t::primary_when_safe_t primary_when_safe_t;
     typedef typename activity_entry_t::primary_t primary_t;
     typedef typename activity_entry_t::secondary_up_to_date_t secondary_up_to_date_t;
@@ -244,7 +243,7 @@ public:
     activity_map_t activities;
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(reactor_business_card_t<protocol_t>, activities);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(reactor_business_card_t, activities);
 };
 
 

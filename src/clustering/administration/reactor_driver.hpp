@@ -102,7 +102,7 @@ private:
     friend class watchable_and_reactor_t;
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t> reactor_map_t;
-    typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >
+    typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >
         reactor_directory_entry_t;
 
     void delete_reactor_data(

@@ -75,7 +75,7 @@ void reactor_t::update_best_backfiller(const region_map_t<rdb_protocol_t, versio
 
 template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > extract_backfiller_from_reactor_business_card_secondary(
-        const boost::optional<boost::optional<reactor_business_card_t<rdb_protocol_t>::secondary_without_primary_t> > &bcard) {
+        const boost::optional<boost::optional<reactor_business_card_t::secondary_without_primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > >();
     } else if (!bcard.get()) {
@@ -90,7 +90,7 @@ boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > e
 
 template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > extract_backfiller_from_reactor_business_card_nothing(
-        const boost::optional<boost::optional<reactor_business_card_t<rdb_protocol_t>::nothing_when_safe_t> > &bcard) {
+        const boost::optional<boost::optional<reactor_business_card_t::nothing_when_safe_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > >();
     } else if (!bcard.get()) {
@@ -118,13 +118,13 @@ boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > e
  * can use to get the latest version of the data.
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
-bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory,
+bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
                                                          const blueprint_t &blueprint,
                                                          const region_t &region, best_backfiller_map_t *best_backfiller_out,
                                                          branch_history_t<rdb_protocol_t> *branch_history_to_merge_out,
                                                          bool *merge_branch_history_out)
 {
-    typedef reactor_business_card_t<rdb_protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
 
     best_backfiller_map_t res = *best_backfiller_out;
 
@@ -140,7 +140,7 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
             continue;
         }
 
-        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
+        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
         if (bcard_it == _reactor_directory.get_inner().end()) {
             return false;
         }
@@ -368,7 +368,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
     }
 
     /* Tell the other peers which backfills we're waiting on. */
-    directory_entry->set(reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t(backfills));
+    directory_entry->set(reactor_business_card_t::primary_when_safe_t(backfills));
 
     /* Since these don't actually modify peers behavior, just allow
      * them to query the backfiller for progress reports there's no
@@ -401,7 +401,7 @@ void reactor_t::be_primary(region_t region, store_view_t<rdb_protocol_t> *svs, c
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* Tell everyone watching our directory entry what we're up to. */
-        directory_echo_version_t version_to_wait_on = directory_entry.set(reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t());
+        directory_echo_version_t version_to_wait_on = directory_entry.set(reactor_business_card_t::primary_when_safe_t());
 
         /* block until all peers have acked `directory_entry` */
         wait_for_directory_acks(version_to_wait_on, interruptor);
@@ -425,10 +425,10 @@ void reactor_t::be_primary(region_t region, store_view_t<rdb_protocol_t> *svs, c
 
         on_thread_t th2(this->home_thread());
 
-        directory_entry.set(reactor_business_card_t<rdb_protocol_t>::primary_t(broadcaster.get_business_card()));
+        directory_entry.set(reactor_business_card_t::primary_t(broadcaster.get_business_card()));
 
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_business_card =
-            get_directory_entry_view<reactor_business_card_t<rdb_protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
+            get_directory_entry_view<reactor_business_card_t::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
                 subview(&reactor_t::extract_broadcaster_from_reactor_business_card_primary);
 
         /* listener_t expects broadcaster to be visible in the directory at the
@@ -449,7 +449,7 @@ void reactor_t::be_primary(region_t region, store_view_t<rdb_protocol_t> *svs, c
         on_thread_t th4(this->home_thread());
 
         directory_entry.update_without_changing_id(
-            reactor_business_card_t<rdb_protocol_t>::primary_t(
+            reactor_business_card_t::primary_t(
                 broadcaster.get_business_card(),
                 replier.get_business_card(),
                 master.get_business_card(),

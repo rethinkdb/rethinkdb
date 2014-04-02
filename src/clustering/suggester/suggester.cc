@@ -116,9 +116,9 @@ bool operator<(const priority_t &x, const priority_t &y) {
 with the given business card into a primary or secondary for the given shard. */
 
 double estimate_cost_to_get_up_to_date(
-        const reactor_business_card_t<rdb_protocol_t> &business_card,
+        const reactor_business_card_t &business_card,
         const region_t &shard) {
-    typedef reactor_business_card_t<rdb_protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
     region_map_t<rdb_protocol_t, double> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
@@ -176,21 +176,21 @@ std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, 
 priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &positive_pinnings,
                                 const std::set<machine_id_t> &negative_pinnings,
                                 const std::map<machine_id_t, int> &usage,
-                                const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
+                                const std::map<machine_id_t, reactor_business_card_t> &directory,
                                 const region_t &shard,
                                 bool prioritize_distribution) {
     const bool pinned = std_contains(positive_pinnings, id);
     const bool would_rob_someone = std_contains(negative_pinnings, id);
     const std::map<machine_id_t, int>::const_iterator usage_it = usage.find(id);
     const int redundancy_cost = usage_it == usage.end() ? 0 : usage_it->second;
-    const typename std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> >::const_iterator directory_it = directory.find(id);
+    const typename std::map<machine_id_t, reactor_business_card_t>::const_iterator directory_it = directory.find(id);
     const double backfill_cost = directory_it == directory.end() ? 3.0 : estimate_cost_to_get_up_to_date(directory_it->second, shard);
 
     return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost, prioritize_distribution);
 }
 
 std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
-        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
+        const std::map<machine_id_t, reactor_business_card_t> &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const region_t &shard,
@@ -305,7 +305,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
 }
 
 persistable_blueprint_t suggest_blueprint(
-        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
+        const std::map<machine_id_t, reactor_business_card_t> &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const nonoverlapping_regions_t<rdb_protocol_t> &shards,

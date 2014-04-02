@@ -16,10 +16,10 @@ TEST(ClusteringSuggester, NewNamespace) {
         machines.push_back(generate_uuid());
     }
 
-    std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > directory;
+    std::map<machine_id_t, reactor_business_card_t> directory;
     for (int i = 0; i < 10; i++) {
-        reactor_business_card_t<rdb_protocol_t> rb;
-        rb.activities[generate_uuid()] = reactor_business_card_t<rdb_protocol_t>::activity_entry_t(rdb_protocol_t::region_t::universe(), reactor_business_card_t<rdb_protocol_t>::nothing_t());
+        reactor_business_card_t rb;
+        rb.activities[generate_uuid()] = reactor_business_card_t::activity_entry_t(rdb_protocol_t::region_t::universe(), reactor_business_card_t::nothing_t());
         directory[machines[i]] = rb;
     }
 

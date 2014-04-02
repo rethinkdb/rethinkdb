@@ -31,9 +31,9 @@ namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
 
 namespace_repo_t::~namespace_repo_t() { }
 
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > get_reactor_business_cards(
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_cards(
         const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > res;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > res;
     for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator it  = ns_directory_metadata.get_inner().begin();
          it != ns_directory_metadata.get_inner().end();
          ++it) {
@@ -42,7 +42,7 @@ std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > get_re
         if (jt != it->second.reactor_bcards.end()) {
             res[it->first] = jt->second.internal;
         } else {
-            res[it->first] = cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >();
+            res[it->first] = cow_ptr_t<reactor_business_card_t>();
         }
     }
 
@@ -138,9 +138,9 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     `cross_thread_watchable`, then switch back. In destruction we need to do the
     reverse. Fortunately RAII works really nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > subview =
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > subview =
         namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards, _1, namespace_id));
-    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > cross_thread_watchable(subview, thread);
+    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
     cluster_namespace_interface_t namespace_interface(

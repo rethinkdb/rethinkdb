@@ -45,7 +45,7 @@ void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
 
 template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t &bp,
-                            const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > &reactor_directory) {
+                            const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > &reactor_directory) {
     for (typename blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                       it != bp.peers_roles.end();
                                                                       it++) {
@@ -54,27 +54,27 @@ bool is_blueprint_satisfied(const blueprint_t &bp,
             !reactor_directory.find(it->first)->second) {
             return false;
         }
-        reactor_business_card_t<protocol_t> bcard = *reactor_directory.find(it->first)->second.get();
+        reactor_business_card_t bcard = *reactor_directory.find(it->first)->second.get();
 
         for (typename blueprint_t::region_to_role_map_t::const_iterator jt = it->second.begin();
              jt != it->second.end();
              ++jt) {
             bool found = false;
-            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt = bcard.activities.begin();
+            for (typename reactor_business_card_t::activity_map_t::const_iterator kt = bcard.activities.begin();
                  kt != bcard.activities.end();
                  ++kt) {
                 if (jt->first == kt->second.region) {
                     if (jt->second == blueprint_role_primary &&
-                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.activity) &&
-                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.activity).replier.is_initialized()) {
+                        boost::get<typename reactor_business_card_t::primary_t>(&kt->second.activity) &&
+                        boost::get<typename reactor_business_card_t::primary_t>(kt->second.activity).replier.is_initialized()) {
                         found = true;
                         break;
                     } else if (jt->second == blueprint_role_secondary &&
-                               boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.activity)) {
+                               boost::get<typename reactor_business_card_t::secondary_up_to_date_t>(&kt->second.activity)) {
                         found = true;
                         break;
                     } else if (jt->second == blueprint_role_nothing &&
-                               boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.activity)) {
+                               boost::get<typename reactor_business_card_t::nothing_t>(&kt->second.activity)) {
                         found = true;
                         break;
                     } else {
@@ -102,12 +102,12 @@ public:
 
     watchable_variable_t<blueprint_t> blueprint_watchable;
     reactor_t reactor;
-    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >, test_cluster_directory_t<rdb_protocol_t> > reactor_directory_copier;
+    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >, test_cluster_directory_t<rdb_protocol_t> > reactor_directory_copier;
 
 private:
-    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &input);
+    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > &input);
 
-    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards);
+    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards);
 };
 
 
@@ -166,14 +166,14 @@ bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
     return acks.size() >= 1;
 }
 
-boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >
-test_reactor_t::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &input) {
-    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >(input);
+boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
+test_reactor_t::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > &input) {
+    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(input);
 }
 
-change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > >
+change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >
 test_reactor_t::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards) {
-    change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > out;
+    change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > out;
     out.begin_version();
     for (auto it = bcards.get_inner().begin(); it != bcards.get_inner().end(); it++) {
         out.set_value(it->first, it->second.reactor_directory);
@@ -262,14 +262,14 @@ void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
     }
 }
 
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > test_cluster_group_t::extract_reactor_business_cards_no_optional(
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > test_cluster_group_t::extract_reactor_business_cards_no_optional(
         const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > out;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {
             out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
         } else {
-            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> >()));
+            out.insert(std::make_pair(it->first, cow_ptr_t<reactor_business_card_t>()));
         }
     }
     return out;
@@ -299,14 +299,14 @@ void test_cluster_group_t::run_queries() {
     }
 }
 
-std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > test_cluster_group_t::extract_reactor_business_cards(
+std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > test_cluster_group_t::extract_reactor_business_cards(
         const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
-    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > out;
+    std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >(it->second.reactor_directory->internal)));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t> >(it->second.reactor_directory->internal)));
         } else {
-            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >()));
+            out.insert(std::make_pair(it->first, boost::optional<cow_ptr_t<reactor_business_card_t> >()));
         }
     }
     return out;

@@ -268,7 +268,7 @@ public:
     }
 
 private:
-    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >
+    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
         extract_reactor_directory_per_peer_result_type;
 
     extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
@@ -276,9 +276,9 @@ private:
 
         auto it = nss.reactor_bcards.find(namespace_id_);
         if (it == nss.reactor_bcards.end()) {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >();
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >();
         } else {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >(it->second);
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(it->second);
         }
     }
 
@@ -316,9 +316,9 @@ private:
             svs_.get(), namespace_collection, ctx));
 
         {
-            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
+            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
             reactor_directory_subscription_.init(
-                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::subscription_t(
+                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
 
@@ -347,7 +347,7 @@ private:
     scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > svs_;
     scoped_ptr_t<reactor_t> reactor_;
 
-    scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::subscription_t> reactor_directory_subscription_;
+    scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t> reactor_directory_subscription_;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };

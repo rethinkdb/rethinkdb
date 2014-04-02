@@ -7,14 +7,14 @@
 
 persistable_blueprint_t suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t &ns_goals,
-        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > &reactor_directory_view,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t) {
 
-    std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > directory;
+    std::map<machine_id_t, reactor_business_card_t> directory;
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
             it != machine_data_centers.end(); it++) {
         machine_id_t machine = it->first;
@@ -22,7 +22,7 @@ persistable_blueprint_t suggest_blueprint_for_namespace(
         if (peer.is_nil()) {
             throw missing_machine_exc_t();
         }
-        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > >::const_iterator jt =
+        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >::const_iterator jt =
             reactor_directory_view.find(peer);
         if (jt != reactor_directory_view.end() && jt->second) {
             directory.insert(std::make_pair(machine, *jt->second->internal));
@@ -84,19 +84,19 @@ std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protoco
     for (std::deque<namespace_id_t>::iterator it  = order.begin();
                                               it != order.end();
                                               ++it) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > reactor_directory;
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_directory;
         for (typename std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator jt =
                 namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::const_iterator kt =
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator kt =
                 jt->second.reactor_bcards.find(*it);
             if (kt != jt->second.reactor_bcards.end()) {
                 reactor_directory.insert(std::make_pair(
                     jt->first,
-                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >(kt->second)));
+                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(kt->second)));
             } else {
                 reactor_directory.insert(std::make_pair(
                     jt->first,
-                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >()));
+                    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >()));
             }
         }
         try {

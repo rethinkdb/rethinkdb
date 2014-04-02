@@ -11,12 +11,12 @@
 bool reactor_t::find_broadcaster_in_directory(
         const region_t &region,
         const blueprint_t &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory,
+        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
 
-    typedef reactor_business_card_t<rdb_protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
     for (blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
@@ -53,7 +53,7 @@ bool reactor_t::find_broadcaster_in_directory(
 
 template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > extract_replier_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<reactor_business_card_t<rdb_protocol_t>::primary_t> > &bcard) {
+        const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >();
     }
@@ -71,7 +71,7 @@ boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > extr
 
 template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > extract_replier_from_reactor_business_card_secondary(
-        const boost::optional<boost::optional<reactor_business_card_t<rdb_protocol_t>::secondary_up_to_date_t> > &bcard) {
+        const boost::optional<boost::optional<reactor_business_card_t::secondary_up_to_date_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >();
     }
@@ -87,7 +87,7 @@ bool reactor_t::find_replier_in_directory(
         const region_t &region,
         const branch_id_t &b_id,
         const blueprint_t &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory,
+        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > > *replier_out,
         peer_id_t *peer_id_out,
         reactor_activity_id_t *activity_id_out) {
@@ -95,7 +95,7 @@ bool reactor_t::find_replier_in_directory(
     std::vector<peer_id_t> peer_ids;
     std::vector<reactor_activity_id_t> activity_ids;
 
-    typedef reactor_business_card_t<rdb_protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
     for (blueprint_t::role_map_t::const_iterator it = bp.peers_roles.begin();
@@ -182,7 +182,7 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
                 branch_history_t<rdb_protocol_t> branch_history;
                 branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
 
-                reactor_business_card_t<rdb_protocol_t>::secondary_without_primary_t
+                reactor_business_card_t::secondary_without_primary_t
                     activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), direct_reader.get_business_card(), branch_history);
 
                 directory_entry.set(activity);
@@ -230,7 +230,7 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
 
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.set(reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t(backfill_location));
+                directory_entry.set(reactor_business_card_t::secondary_backfilling_t(backfill_location));
 
                 cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
                 cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > ct_broadcaster(broadcaster, svs->home_thread());
@@ -257,7 +257,7 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
 
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
-                directory_entry.set(reactor_business_card_t<rdb_protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
+                directory_entry.set(reactor_business_card_t::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
                 wait_interruptible(&ct_broadcaster_lost_signal, interruptor);

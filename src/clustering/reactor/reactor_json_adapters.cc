@@ -6,6 +6,8 @@
 
 #include "http/json.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace reactor_business_card_details {
 
@@ -204,7 +206,7 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_activity_entry_
     // TODO: Rename these fields and rename this in the UI.
     json_adapter_if_t::json_adapter_map_t res;
     res["first"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename protocol_t::region_t>(&target->region));
-    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_t>(&target->activity));
+    res["second"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_business_card_t::activity_t>(&target->activity));
     return res;
 }
 
@@ -229,27 +231,16 @@ void apply_json_to(cJSON *change, reactor_activity_entry_t<protocol_t> *target) 
 
 
 // ctx-less json adapter for reactor_business_card_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *target) {
+json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["activity_map"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename reactor_business_card_t<protocol_t>::activity_map_t>(&target->activities));
+    res["activity_map"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<reactor_business_card_t::activity_map_t>(&target->activities));
     return res;
 }
 
-template <class protocol_t>
-cJSON *render_as_json(reactor_business_card_t<protocol_t> *target) {
+cJSON *render_as_json(reactor_business_card_t *target) {
     return render_as_directory(target);
 }
 
-template <class protocol_t>
-void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target) {
+void apply_json_to(cJSON *change, reactor_business_card_t *target) {
     apply_as_directory(change, target);
 }
-
-
-#include "rdb_protocol/protocol_json_adapter.hpp"
-#include "rdb_protocol/protocol.hpp"
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
-template cJSON *render_as_json<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
-template void apply_json_to<rdb_protocol_t>(cJSON *change, reactor_business_card_t<rdb_protocol_t> *target);
-

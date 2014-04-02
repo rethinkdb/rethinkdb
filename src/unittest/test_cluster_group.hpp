@@ -25,7 +25,7 @@ class blueprint_t;
 class cluster_namespace_interface_t;
 class io_backender_t;
 template <class> class multistore_ptr_t;
-template <class> class reactor_business_card_t;
+class reactor_business_card_t;
 class peer_id_t;
 class serializer_t;
 
@@ -39,7 +39,7 @@ class test_reactor_t;
 template<class protocol_t>
 class test_cluster_directory_t {
 public:
-    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
+    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_directory;
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
 };
@@ -73,14 +73,14 @@ public:
 
     void set_all_blueprints(const blueprint_t &bp);
 
-    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > extract_reactor_business_cards_no_optional(
+    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > extract_reactor_business_cards_no_optional(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out);
 
     void run_queries();
 
-    static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > extract_reactor_business_cards(
+    static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > extract_reactor_business_cards(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
 
     void wait_until_blueprint_is_satisfied(const blueprint_t &bp);

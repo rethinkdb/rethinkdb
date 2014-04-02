@@ -29,7 +29,7 @@ public:
 };
 
 persistable_blueprint_t suggest_blueprint(
-        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
+        const std::map<machine_id_t, reactor_business_card_t> &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const nonoverlapping_regions_t<rdb_protocol_t> &shards,

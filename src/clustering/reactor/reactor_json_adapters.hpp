@@ -111,14 +111,11 @@ template <class protocol_t>
 void apply_json_to(cJSON *change, reactor_activity_entry_t<protocol_t> *target);
 
 //json adapter for reactor_business_card_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(reactor_business_card_t *);
 
-template <class protocol_t>
-cJSON *render_as_json(reactor_business_card_t<protocol_t> *);
+cJSON *render_as_json(reactor_business_card_t *);
 
-template <class protocol_t>
-void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *);
+void apply_json_to(cJSON *, reactor_business_card_t *);
 
 
 

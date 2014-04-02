@@ -173,12 +173,12 @@ public:
         return *this;
     }
 
-    /* This used to say `reactor_business_card_t<protocol_t>` instead of
-    `cow_ptr_t<reactor_business_card_t<protocol_t> >`, but that
+    /* This used to say `reactor_business_card_t` instead of
+    `cow_ptr_t<reactor_business_card_t>`, but that
     was extremely slow because the size of the data structure grew linearly with
     the number of tables and so copying it became a major cost. Using a
     `boost::shared_ptr` instead makes it significantly faster. */
-    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcards_map_t;
+    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
 

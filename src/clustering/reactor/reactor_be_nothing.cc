@@ -10,7 +10,7 @@
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
-bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory, const blueprint_t &blueprint,
+bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory, const blueprint_t &blueprint,
                                              const region_t &region)
 {
     /* Iterator through the peers the blueprint claims we should be able to
@@ -18,7 +18,7 @@ bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id
     for (std::map<peer_id_t, std::map<region_t, blueprint_role_t> >::const_iterator p_it = blueprint.peers_roles.begin();
          p_it != blueprint.peers_roles.end();
          ++p_it) {
-        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
+        std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator bcard_it = _reactor_directory.get_inner().find(p_it->first);
         if (bcard_it == _reactor_directory.get_inner().end()) {
             //The peer is down or has no reactor
             return false;
@@ -29,16 +29,16 @@ bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id
 
         /* Whether or not we found a directory entry for this peer */
         bool found = false;
-        for (reactor_business_card_t<rdb_protocol_t>::activity_map_t::const_iterator it = bcard_it->second->activities.begin();
+        for (reactor_business_card_t::activity_map_t::const_iterator it = bcard_it->second->activities.begin();
              it != bcard_it->second->activities.end();
              ++it) {
             if (it->second.region == region) {
                 if (r_it->second == blueprint_role_primary) {
-                    if (!boost::get<reactor_business_card_t<rdb_protocol_t>::primary_t>(&it->second.activity)) {
+                    if (!boost::get<reactor_business_card_t::primary_t>(&it->second.activity)) {
                         return false;
                     }
                 } else if (r_it->second == blueprint_role_secondary) {
-                    if (!boost::get<reactor_business_card_t<rdb_protocol_t>::secondary_up_to_date_t>(&it->second.activity)) {
+                    if (!boost::get<reactor_business_card_t::secondary_up_to_date_t>(&it->second.activity)) {
                         return false;
                     }
                 }
@@ -83,7 +83,7 @@ void reactor_t::be_nothing(region_t region,
             branch_history_t<rdb_protocol_t> branch_history;
             branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
 
-            reactor_business_card_t<rdb_protocol_t>::nothing_when_safe_t
+            reactor_business_card_t::nothing_when_safe_t
                 activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), branch_history);
 
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
@@ -120,7 +120,7 @@ void reactor_t::be_nothing(region_t region,
 
         /* We now know that it's safe to shutdown so we tell the other peers
          * that we are beginning the process of erasing data. */
-        directory_entry.set(reactor_business_card_t<rdb_protocol_t>::nothing_when_done_erasing_t());
+        directory_entry.set(reactor_business_card_t::nothing_when_done_erasing_t());
 
         /* This actually erases the data. */
         {
@@ -134,7 +134,7 @@ void reactor_t::be_nothing(region_t region,
 
         /* Tell the other peers that we are officially nothing for this region,
          * end of story. */
-        directory_entry.set(reactor_business_card_t<rdb_protocol_t>::nothing_t());
+        directory_entry.set(reactor_business_card_t::nothing_t());
 
         interruptor->wait_lazily_unordered();
     } catch (const interrupted_exc_t &) {
