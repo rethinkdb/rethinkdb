@@ -299,7 +299,7 @@ void cluster_namespace_interface_t::update_registrants(bool is_start) {
         for (typename reactor_business_card_t::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
             bool has_anything_useful;
             bool is_primary;
-            if (const reactor_business_card_details::primary_t<rdb_protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<rdb_protocol_t> >(&amit->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary = boost::get<reactor_business_card_details::primary_t>(&amit->second.activity)) {
                 if (primary->master) {
                     has_anything_useful = true;
                     is_primary = true;
@@ -307,10 +307,10 @@ void cluster_namespace_interface_t::update_registrants(bool is_start) {
                     has_anything_useful = false;
                     is_primary = false;  // Appease -Wconditional-uninitialized
                 }
-            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<rdb_protocol_t> >(&amit->second.activity)) {
+            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t>(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
-            } else if (boost::get<reactor_business_card_details::secondary_without_primary_t<rdb_protocol_t> >(&amit->second.activity)) {
+            } else if (boost::get<reactor_business_card_details::secondary_without_primary_t>(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
             } else {
@@ -345,8 +345,8 @@ cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer
         ret = boost::optional<master_business_card_t<rdb_protocol_t> >();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::primary_t<rdb_protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<rdb_protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary_record =
+                boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->master) {
                     ret.get() = primary_record->master.get();
                 }
@@ -364,8 +364,8 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(
         ret = boost::optional<direct_reader_business_card_t<rdb_protocol_t> >();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::primary_t<rdb_protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<rdb_protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary_record =
+                boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->direct_reader) {
                     ret.get() = primary_record->direct_reader.get();
                 }
@@ -383,12 +383,12 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondar
         ret = boost::optional<direct_reader_business_card_t<rdb_protocol_t> >();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::secondary_up_to_date_t<rdb_protocol_t> *secondary_up_to_date_record =
-                boost::get<reactor_business_card_details::secondary_up_to_date_t<rdb_protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::secondary_up_to_date_t *secondary_up_to_date_record =
+                boost::get<reactor_business_card_details::secondary_up_to_date_t>(&jt->second.activity)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
             }
-            if (const reactor_business_card_details::secondary_without_primary_t<rdb_protocol_t> *secondary_without_primary =
-                boost::get<reactor_business_card_details::secondary_without_primary_t<rdb_protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::secondary_without_primary_t *secondary_without_primary =
+                boost::get<reactor_business_card_details::secondary_without_primary_t>(&jt->second.activity)) {
                 ret.get() = secondary_without_primary->direct_reader;
             }
         }
