@@ -179,6 +179,9 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
 
+class mailbox_manager_t;
+namespace ql { class changefeed_manager_t; }
+
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
@@ -196,6 +199,7 @@ struct rdb_protocol_t {
     struct context_t {
         context_t();
         context_t(extproc_pool_t *_extproc_pool,
+                  mailbox_manager_t *mailbox_manager,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr< semilattice_readwrite_view_t<
                       cluster_semilattice_metadata_t> > _cluster_metadata,
@@ -227,6 +231,8 @@ struct rdb_protocol_t {
         cond_t interruptor;
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
+
+        scoped_ptr_t<ql::changefeed_manager_t> changefeed_manager;
 
         perfmon_collection_t ql_stats_collection;
         perfmon_membership_t ql_stats_membership;

@@ -13,7 +13,8 @@ class changefeed_t;
 
 class changefeed_manager_t {
 public:
-    changefeed_manager_t(mailbox_manager_t *_manager) : manager(_manager) { }
+    changefeed_manager_t(mailbox_manager_t *_manager);
+    ~changefeed_manager_t();
     counted_t<datum_stream_t> changefeed(table_t *tbl);
 private:
     mailbox_manager_t *manager;

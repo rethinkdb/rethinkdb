@@ -75,8 +75,13 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
-    rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
-                                  dummy_auth, &read_manager, generate_uuid(),
+    rdb_protocol_t::context_t ctx(&extproc_pool,
+                                  NULL,
+                                  NULL,
+                                  slm.get_root_view(),
+                                  dummy_auth,
+                                  &read_manager,
+                                  generate_uuid(),
                                   &get_global_perfmon_collection());
 
     for (size_t i = 0; i < store_shards.size(); ++i) {

@@ -16,7 +16,10 @@ public:
     changefeed_t() { } // Make sure to call `ensure_initialized`!
     void ensure_initialized(mailbox_manager_t *manager) {
         if (!mailbox.has()) {
-            auto f = [=](counted_t<const datum_t> d){ this->push_datum(d); };
+            auto f = [=](counted_t<const datum_t> d){
+                this->push_datum(d);
+                this->maybe_notify_waiters();
+            };
             mailbox.init(new mailbox_t<void(counted_t<const datum_t>)>(manager, f));
         }
     }
@@ -28,10 +31,26 @@ public:
     void unsubscribe(change_stream_t *s) THROWS_NOTHING {
         guarantee(mailbox.has());
         subscribers.erase(s);
+        if (subscribers.size() == 0) {
+            // RSI: unsubscribe.
+        }
+    }
+    void wait_for_data() {
+        if (!data_cond.has()) {
+            data_cond.init(new cond_t());
+        }
+        data_cond->wait_lazily_unordered();
     }
 private:
     void push_datum(counted_t<const datum_t> d);
+    void maybe_notify_waiters() {
+        if (data_cond.has()) {
+            data_cond->pulse();
+            data_cond.reset();
+        }
+    }
     scoped_ptr_t<mailbox_t<void(counted_t<const datum_t>)> > mailbox;
+    scoped_ptr_t<cond_t> data_cond;
     std::set<change_stream_t *> subscribers;
 };
 
@@ -58,7 +77,7 @@ public:
         batcher_t batcher = bs.to_batcher();
         std::vector<counted_t<const datum_t> > v;
         while (els.size() == 0) {
-            // RSI: feed->wait_for_data();
+            feed->wait_for_data();
         }
         while (els.size() > 0 && !batcher.should_send_batch()) {
             v.push_back(std::move(els.front()));
@@ -78,6 +97,10 @@ void changefeed_t::push_datum(counted_t<const datum_t> d) {
         (*it)->add_el(d);
     }
 }
+
+changefeed_manager_t::changefeed_manager_t(mailbox_manager_t *_manager)
+    : manager(_manager) { }
+changefeed_manager_t::~changefeed_manager_t() { }
 
 counted_t<datum_stream_t> changefeed_manager_t::changefeed(table_t *tbl) {
     auto feed = &changefeeds[tbl->get_uuid()];

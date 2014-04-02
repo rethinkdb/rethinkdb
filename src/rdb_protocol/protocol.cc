@@ -21,6 +21,7 @@
 #include "containers/scoped.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
@@ -402,6 +403,7 @@ rdb_protocol_t::context_t::context_t()
 
 rdb_protocol_t::context_t::context_t(
     extproc_pool_t *_extproc_pool,
+    mailbox_manager_t *mailbox_manager,
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _cluster_metadata,
@@ -419,6 +421,7 @@ rdb_protocol_t::context_t::context_t(
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id),
+      changefeed_manager(new ql::changefeed_manager_t(mailbox_manager)),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {

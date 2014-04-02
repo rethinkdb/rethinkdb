@@ -243,6 +243,7 @@ bool do_serve(
             &mc_ctx);
 
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
+                                          &mailbox_manager,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
                                           auth_manager_cluster.get_root_view(),
@@ -387,7 +388,8 @@ bool do_serve(
                     &perfmon_repo);
 
                 query_server_t rdb_pb2_server(address_ports.local_addresses,
-                                               address_ports.reql_port, &rdb_ctx);
+                                              address_ports.reql_port,
+                                              &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_pb2_server.get_port());
 
