@@ -9,30 +9,30 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
+Response on_unparsable_query(ql::protob_t<Query> q, std::string msg) {
     Response res;
     res.set_token((q.has() && q->has_token()) ? q->token() : -1);
     ql::fill_error(&res, Response::CLIENT_ERROR, msg);
     return res;
 }
 
-query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
+query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
                                  int port,
                                  rdb_protocol_t::context_t *_ctx) :
     server(local_addresses,
            port,
-           boost::bind(&query2_server_t::handle, this, _1, _2, _3),
-           &on_unparsable_query2,
+           boost::bind(&query_server_t::handle, this, _1, _2, _3),
+           &on_unparsable_query,
            _ctx->auth_metadata,
            INLINE),
     ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
 { }
 
-http_app_t *query2_server_t::get_http_app() {
+http_app_t *query_server_t::get_http_app() {
     return &server;
 }
 
-int query2_server_t::get_port() const {
+int query_server_t::get_port() const {
     return server.get_port();
 }
 
@@ -42,7 +42,7 @@ namespace ql {
              rdb_protocol_t::context_t *ctx,
              signal_t *interruptor,
              Response *res,
-             stream_cache2_t *stream_cache2);
+             stream_cache_t *stream_cache);
 }
 
 class scoped_ops_running_stat_t {
@@ -59,11 +59,11 @@ private:
     DISABLE_COPYING(scoped_ops_running_stat_t);
 };
 
-bool query2_server_t::handle(ql::protob_t<Query> q,
+bool query_server_t::handle(ql::protob_t<Query> q,
                              Response *response_out,
-                             context_t *query2_context) {
-    ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
-    signal_t *interruptor = query2_context->interruptor;
+                             context_t *query_context) {
+    ql::stream_cache_t *stream_cache = &query_context->stream_cache;
+    signal_t *interruptor = query_context->interruptor;
     guarantee(interruptor);
     response_out->set_token(q->token());
 
@@ -75,7 +75,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
         scoped_ops_running_stat_t stat(&ctx->ql_ops_running);
         guarantee(ctx->directory_read_manager);
         // `ql::run` will set the status code
-        ql::run(q, ctx, interruptor, response_out, stream_cache2);
+        ql::run(q, ctx, interruptor, response_out, stream_cache);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {

@@ -20,9 +20,9 @@ class env_t;
 
 namespace ql {
 
-class stream_cache2_t {
+class stream_cache_t {
 public:
-    stream_cache2_t() { }
+    stream_cache_t() { }
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
@@ -51,7 +51,7 @@ private:
     };
 
     boost::ptr_map<int64_t, entry_t> streams;
-    DISABLE_COPYING(stream_cache2_t);
+    DISABLE_COPYING(stream_cache_t);
 };
 
 } // namespace ql

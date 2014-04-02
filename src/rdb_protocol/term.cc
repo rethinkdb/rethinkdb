@@ -172,7 +172,7 @@ void run(protob_t<Query> q,
          rdb_protocol_t::context_t *ctx,
          signal_t *interruptor,
          Response *res,
-         stream_cache2_t *stream_cache2) {
+         stream_cache_t *stream_cache) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -212,7 +212,7 @@ void run(protob_t<Query> q,
         }
 
         try {
-            rcheck_toplevel(!stream_cache2->contains(token),
+            rcheck_toplevel(!stream_cache->contains(token),
                             base_exc_t::GENERIC,
                             strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
@@ -253,8 +253,8 @@ void run(protob_t<Query> q,
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache2->insert(token, use_json, std::move(env), seq);
-                    bool b = stream_cache2->serve(token, res, interruptor);
+                    stream_cache->insert(token, use_json, std::move(env), seq);
+                    bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -274,7 +274,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache2->serve(token, res, interruptor);
+            bool b = stream_cache->serve(token, res, interruptor);
             rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
@@ -284,9 +284,9 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_STOP: {
         try {
-            rcheck_toplevel(stream_cache2->contains(token), base_exc_t::GENERIC,
+            rcheck_toplevel(stream_cache->contains(token), base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
-            stream_cache2->erase(token);
+            stream_cache->erase(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
@@ -295,7 +295,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_NOREPLY_WAIT: {
         try {
-            rcheck_toplevel(!stream_cache2->contains(token),
+            rcheck_toplevel(!stream_cache->contains(token),
                             base_exc_t::GENERIC,
                             strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {

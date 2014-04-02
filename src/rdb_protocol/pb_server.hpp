@@ -17,9 +17,9 @@ namespace ql { template <class> class protob_t; }
 void make_empty_protob_bearer(ql::protob_t<Query> *request);
 Query *underlying_protob_value(ql::protob_t<Query> *request);
 
-class query2_server_t {
+class query_server_t {
 public:
-    query2_server_t(const std::set<ip_address_t> &local_addresses, int port,
+    query_server_t(const std::set<ip_address_t> &local_addresses, int port,
                     rdb_protocol_t::context_t *_ctx);
 
     http_app_t *get_http_app();
@@ -30,19 +30,19 @@ public:
         context_t() : interruptor(0) { }
         static const int32_t no_auth_magic_number = VersionDummy::V0_1;
         static const int32_t auth_magic_number = VersionDummy::V0_2;
-        ql::stream_cache2_t stream_cache2;
+        ql::stream_cache_t stream_cache;
         signal_t *interruptor;
     };
 private:
     MUST_USE bool handle(ql::protob_t<Query> q,
                          Response *response_out,
-                         context_t *query2_context);
+                         context_t *query_context);
     protob_server_t<ql::protob_t<Query>, Response, context_t> server;
     rdb_protocol_t::context_t *ctx;
     uuid_u parser_id;
     one_per_thread_t<int> thread_counters;
 
-    DISABLE_COPYING(query2_server_t);
+    DISABLE_COPYING(query_server_t);
 };
 
 
