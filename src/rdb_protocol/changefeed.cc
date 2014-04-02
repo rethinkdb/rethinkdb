@@ -16,7 +16,7 @@ public:
     changefeed_t() { } // Make sure to call `ensure_initialized`!
     void ensure_initialized(mailbox_manager_t *manager) {
         if (!mailbox.has()) {
-            auto f = [=](counted_t<const datum_t> d){
+            auto f = [=](counted_t<const datum_t> d) {
                 this->push_datum(d);
                 this->maybe_notify_waiters();
             };
@@ -36,6 +36,7 @@ public:
         }
     }
     void wait_for_data() {
+        guarantee(mailbox.has());
         if (!data_cond.has()) {
             data_cond.init(new cond_t());
         }

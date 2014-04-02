@@ -80,12 +80,14 @@ public:
 };
 
 // The env_t.
+class changefeed_manager_t;
 class env_t : public home_thread_mixin_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed_manager_t *_changefeed_manager,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -102,6 +104,7 @@ public:
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed_manager_t *_changefeed_manager,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -150,6 +153,9 @@ public:
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
     extproc_pool_t *extproc_pool;
+
+    // Holds a bunch of mailboxes and maps them to streams.
+    changefeed_manager_t *changefeed_manager;
 
     // Access to the cluster, for talking over the cluster or about the cluster.
     cluster_access_t cluster_access;

@@ -191,7 +191,9 @@ void run(protob_t<Query> q,
         threadnum_t th = get_thread_id();
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
-                ctx->extproc_pool, ctx->ns_repo,
+                ctx->extproc_pool,
+                ctx->changefeed_manager.get(),
+                ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
