@@ -247,6 +247,8 @@ module RethinkDB
       opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
 
       self.noreply_wait() if opts[:noreply_wait]
+
+      stop_listener
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -254,6 +256,7 @@ module RethinkDB
       @mutex = Mutex.new
       @conn_id += 1
       start_listener
+
       self
     end
 
@@ -287,6 +290,14 @@ module RethinkDB
       raise RqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end
 
+    def stop_listener
+      if @listener
+        @listener.terminate
+        @listener.join
+        @listener = nil
+      end
+    end
+
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
@@ -314,7 +325,7 @@ module RethinkDB
         raise RqlRuntimeError,"Server dropped connection with message: \"#{response}\""
       end
 
-      @listener.terminate if @listener
+      stop_listener if @listener
       @listener = Thread.new {
         loop {
           begin
