@@ -87,11 +87,9 @@ public:
 private:
     void construct_branch_history_managers(bool create);
 
-    template <class protocol_t> class persistent_branch_history_manager_t;
+    class persistent_branch_history_manager_t;
 
-    friend class persistent_branch_history_manager_t<rdb_protocol_t>;
-
-    scoped_ptr_t<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t> rdb_branch_history_manager;
 };
 
 template <class metadata_t>
