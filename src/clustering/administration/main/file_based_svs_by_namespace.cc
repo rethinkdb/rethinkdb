@@ -79,7 +79,7 @@ void
 file_based_svs_by_namespace_t::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
-            stores_lifetimer_t<rdb_protocol_t> *stores_out,
+            stores_lifetimer_t *stores_out,
             scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
             rdb_context_t *ctx) {
     const int num_db_threads = get_num_db_threads();

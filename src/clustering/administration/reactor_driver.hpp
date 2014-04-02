@@ -32,7 +32,6 @@ struct rdb_protocol_t;
 class rdb_context_t;
 
 // This type holds some protocol_t::store_t objects, and doesn't let anybody _casually_ touch them.
-template <class protocol_t>
 class stores_lifetimer_t {
 public:
     stores_lifetimer_t() { }
@@ -55,23 +54,22 @@ public:
 
     scoped_ptr_t<serializer_t> *serializer() { return &serializer_; }
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
-    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores() { return &stores_; }
+    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores() { return &stores_; }
 
 private:
     scoped_ptr_t<serializer_t> serializer_;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer_;
-    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > stores_;
+    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
 };
 
-template <class protocol_t>
 class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
-                         stores_lifetimer_t<protocol_t> *stores_out,
-                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
-                         typename protocol_t::context_t *) = 0;
+                         stores_lifetimer_t *stores_out,
+                         scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
+                         rdb_context_t *) = 0;
     virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
@@ -90,7 +88,7 @@ public:
                      boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view,
                      const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
-                     svs_by_namespace_t<rdb_protocol_t> *svs_by_namespace,
+                     svs_by_namespace_t *svs_by_namespace,
                      perfmon_collection_repo_t *,
                      rdb_context_t *);
 
@@ -132,7 +130,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     rdb_context_t *ctx;
-    svs_by_namespace_t<rdb_protocol_t> *const svs_by_namespace;
+    svs_by_namespace_t *const svs_by_namespace;
 
     scoped_ptr_t<ack_info_t> ack_info;
 

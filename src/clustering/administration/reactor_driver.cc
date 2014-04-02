@@ -111,7 +111,7 @@ public:
                             reactor_driver_t *parent,
                             namespace_id_t namespace_id,
                             const blueprint_t<rdb_protocol_t> &bp,
-                            svs_by_namespace_t<rdb_protocol_t> *svs_by_namespace,
+                            svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
         base_path(_base_path),
         watchable(bp),
@@ -341,9 +341,9 @@ private:
 
     reactor_driver_t *const parent_;
     const namespace_id_t namespace_id_;
-    svs_by_namespace_t<rdb_protocol_t> *const svs_by_namespace_;
+    svs_by_namespace_t *const svs_by_namespace_;
 
-    stores_lifetimer_t<rdb_protocol_t> stores_lifetimer_;
+    stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > svs_;
     scoped_ptr_t<reactor_t<rdb_protocol_t> > reactor_;
 
@@ -360,7 +360,7 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
                                    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _namespaces_view,
                                    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                                   svs_by_namespace_t<rdb_protocol_t> *_svs_by_namespace,
+                                   svs_by_namespace_t *_svs_by_namespace,
                                    perfmon_collection_repo_t *_perfmon_collection_repo,
                                    rdb_context_t *_ctx)
     : base_path(_base_path),

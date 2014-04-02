@@ -10,7 +10,7 @@ class cache_balancer_t;
 struct rdb_protocol_t;
 class rdb_context_t;
 
-class file_based_svs_by_namespace_t : public svs_by_namespace_t<rdb_protocol_t> {
+class file_based_svs_by_namespace_t : public svs_by_namespace_t {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
                                   cache_balancer_t *balancer,
@@ -20,7 +20,7 @@ public:
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
-                 stores_lifetimer_t<rdb_protocol_t> *stores_out,
+                 stores_lifetimer_t *stores_out,
                  scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
                  rdb_context_t *);
 
