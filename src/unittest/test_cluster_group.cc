@@ -44,9 +44,9 @@ void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
 }
 
 template<class protocol_t>
-bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
+bool is_blueprint_satisfied(const blueprint_t &bp,
                             const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > &reactor_directory) {
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
+    for (typename blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                       it != bp.peers_roles.end();
                                                                       it++) {
 
@@ -56,7 +56,7 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
         }
         reactor_business_card_t<protocol_t> bcard = *reactor_directory.find(it->first)->second.get();
 
-        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt = it->second.begin();
+        for (typename blueprint_t::region_to_role_map_t::const_iterator jt = it->second.begin();
              jt != it->second.end();
              ++jt) {
             bool found = false;
@@ -93,14 +93,14 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
 
 class test_reactor_t : private ack_checker_t {
 public:
-    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t<rdb_protocol_t> &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
+    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
         return write_durability_t::SOFT;
     }
 
-    watchable_variable_t<blueprint_t<rdb_protocol_t> > blueprint_watchable;
+    watchable_variable_t<blueprint_t> blueprint_watchable;
     reactor_t reactor;
     field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >, test_cluster_directory_t<rdb_protocol_t> > reactor_directory_copier;
 
@@ -151,7 +151,7 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
     return connectivity_cluster.get_me();
 }
 
-test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t<rdb_protocol_t> &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
+test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
@@ -206,7 +206,7 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
 
 test_cluster_group_t::~test_cluster_group_t() { }
 
-void test_cluster_group_t::construct_all_reactors(const blueprint_t<rdb_protocol_t> &bp) {
+void test_cluster_group_t::construct_all_reactors(const blueprint_t &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
         test_reactors.push_back(new test_reactor_t(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
     }
@@ -217,8 +217,8 @@ peer_id_t test_cluster_group_t::get_peer_id(unsigned i) {
     return test_clusters[i].get_me();
 }
 
-blueprint_t<rdb_protocol_t> test_cluster_group_t::compile_blueprint(const std::string &bp) {
-    blueprint_t<rdb_protocol_t> blueprint;
+blueprint_t test_cluster_group_t::compile_blueprint(const std::string &bp) {
+    blueprint_t blueprint;
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     typedef tokenizer::iterator tok_iterator;
@@ -256,7 +256,7 @@ blueprint_t<rdb_protocol_t> test_cluster_group_t::compile_blueprint(const std::s
     return blueprint;
 }
 
-void test_cluster_group_t::set_all_blueprints(const blueprint_t<rdb_protocol_t> &bp) {
+void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
         test_reactors[i].blueprint_watchable.set_value(bp);
     }
@@ -312,7 +312,7 @@ std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protoc
     return out;
 }
 
-void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t<rdb_protocol_t> &bp) {
+void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t &bp) {
     try {
         const int timeout_ms = 60000;
         signal_timer_t timer;

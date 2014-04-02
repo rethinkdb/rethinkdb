@@ -41,7 +41,7 @@ TEST(ClusteringSuggester, NewNamespace) {
     ASSERT_TRUE(success);
 
     std::map<machine_id_t, int> usage;
-    persistable_blueprint_t<rdb_protocol_t> blueprint = suggest_blueprint(
+    persistable_blueprint_t blueprint = suggest_blueprint(
         directory,
         primary_datacenter,
         affinities,

@@ -16,7 +16,7 @@ struct missing_machine_exc_t : public std::exception {
     }
 };
 
-persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace(
+persistable_blueprint_t suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t &ns_goals,
         const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
@@ -24,7 +24,7 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace(
         bool prioritize_distribution)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
 
-std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_blueprints_for_protocol(
+std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protocol(
         const namespaces_semilattice_metadata_t &ns_goals,
         const std::map<peer_id_t, namespaces_directory_metadata_t> &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,

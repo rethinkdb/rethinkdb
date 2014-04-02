@@ -5,7 +5,7 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 
-persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace(
+persistable_blueprint_t suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t &ns_goals,
         const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
@@ -49,7 +49,7 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint_for_namespace(
         primary_pinnings, secondary_pinnings, usage, prioritize_distribution);
 }
 
-std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_blueprints_for_protocol(
+std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protocol(
         const namespaces_semilattice_metadata_t &ns_goals,
         const std::map<peer_id_t, namespaces_directory_metadata_t> &namespaces_directory,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
@@ -58,7 +58,7 @@ std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_bluep
         THROWS_ONLY(missing_machine_exc_t)
 {
     std::map<machine_id_t, int> usage;
-    std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > out;
+    std::map<namespace_id_t, persistable_blueprint_t> out;
 
     /* The suggester can give much better results if it first does the
      * namespaces which have already had blueprints drawn and then does the new
@@ -73,7 +73,7 @@ std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_bluep
          it != ns_goals.namespaces.end();
          ++it) {
         if (!it->second.is_deleted()) {
-            if (it->second.get_ref().blueprint.in_conflict() || !(it->second.get_ref().blueprint.get() == persistable_blueprint_t<rdb_protocol_t>())) {
+            if (it->second.get_ref().blueprint.in_conflict() || !(it->second.get_ref().blueprint.get() == persistable_blueprint_t())) {
                 order.push_front(it->first);
             } else {
                 order.push_back(it->first);
@@ -130,7 +130,7 @@ void fill_in_blueprints_for_protocol(
         const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t)
 {
-    typedef std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > blueprint_map_t;
+    typedef std::map<namespace_id_t, persistable_blueprint_t> blueprint_map_t;
     blueprint_map_t suggested_blueprints =
         suggest_blueprints_for_protocol(*ns_goals,
                                         namespaces_directory,

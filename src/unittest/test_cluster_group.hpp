@@ -21,7 +21,7 @@
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/mock_store.hpp"
 
-template <class> class blueprint_t;
+class blueprint_t;
 class cluster_namespace_interface_t;
 class io_backender_t;
 template <class> class multistore_ptr_t;
@@ -65,13 +65,13 @@ public:
     explicit test_cluster_group_t(int n_machines);
     ~test_cluster_group_t();
 
-    void construct_all_reactors(const blueprint_t<rdb_protocol_t> &bp);
+    void construct_all_reactors(const blueprint_t &bp);
 
     peer_id_t get_peer_id(unsigned i);
 
-    blueprint_t<rdb_protocol_t> compile_blueprint(const std::string& bp);
+    blueprint_t compile_blueprint(const std::string& bp);
 
-    void set_all_blueprints(const blueprint_t<rdb_protocol_t> &bp);
+    void set_all_blueprints(const blueprint_t &bp);
 
     static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > extract_reactor_business_cards_no_optional(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
@@ -83,7 +83,7 @@ public:
     static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > extract_reactor_business_cards(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
 
-    void wait_until_blueprint_is_satisfied(const blueprint_t<rdb_protocol_t> &bp);
+    void wait_until_blueprint_is_satisfied(const blueprint_t &bp);
 
     void wait_until_blueprint_is_satisfied(const std::string& bp);
 };

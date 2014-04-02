@@ -10,7 +10,7 @@
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */
-bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory, const blueprint_t<rdb_protocol_t> &blueprint,
+bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory, const blueprint_t &blueprint,
                                              const region_t &region)
 {
     /* Iterator through the peers the blueprint claims we should be able to
@@ -56,7 +56,7 @@ bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id
 }
 
 void reactor_t::be_nothing(region_t region,
-        store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint,
+        store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);

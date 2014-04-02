@@ -28,7 +28,7 @@ public:
 
 };
 
-persistable_blueprint_t<rdb_protocol_t> suggest_blueprint(
+persistable_blueprint_t suggest_blueprint(
         const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,

@@ -223,8 +223,7 @@ private:
                        const shard_input_t& shard_in,
                        const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class protocol_t>
-    void list_pinnings_internal(const persistable_blueprint_t<protocol_t>& bp,
+    void list_pinnings_internal(const persistable_blueprint_t& bp,
                                 const key_range_t& shard,
                                 const cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -237,8 +236,7 @@ private:
         size_t tables;
     };
 
-    template <class protocol_t>
-    void add_machine_info_from_blueprint(const persistable_blueprint_t<protocol_t>& bp, std::map<machine_id_t, machine_info_t> *results);
+    void add_machine_info_from_blueprint(const persistable_blueprint_t& bp, std::map<machine_id_t, machine_info_t> *results);
 
     template <class map_type>
     void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results);
@@ -259,8 +257,7 @@ private:
     template <class ns_type>
     namespace_info_t get_namespace_info(const ns_type& ns);
 
-    template <class protocol_t>
-    size_t get_replica_count_from_blueprint(const persistable_blueprint_t<protocol_t>& bp);
+    size_t get_replica_count_from_blueprint(const persistable_blueprint_t& bp);
 
     struct datacenter_info_t {
         datacenter_info_t() : machines(0), primaries(0), secondaries(0), tables(0) { }
@@ -320,16 +317,15 @@ private:
                                        const map_type& ns_map,
                                        std::vector<std::vector<std::string> > *table);
 
-    template <class protocol_t>
     bool add_single_machine_blueprint(const machine_id_t& machine_id,
-                                      const persistable_blueprint_t<protocol_t>& blueprint,
+                                      const persistable_blueprint_t& blueprint,
                                       const std::string& ns_uuid,
                                       const std::string& ns_name,
                                       std::vector<std::vector<std::string> > *table);
 
     template <class protocol_t>
     void add_single_namespace_replicas(const nonoverlapping_regions_t<protocol_t>& shards,
-                                       const persistable_blueprint_t<protocol_t>& blueprint,
+                                       const persistable_blueprint_t& blueprint,
                                        const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                        std::vector<std::vector<std::string> > *table);
 

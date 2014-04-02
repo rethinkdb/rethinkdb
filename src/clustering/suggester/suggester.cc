@@ -304,7 +304,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
     return sub_blueprint;
 }
 
-persistable_blueprint_t<rdb_protocol_t> suggest_blueprint(
+persistable_blueprint_t suggest_blueprint(
         const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
@@ -318,7 +318,7 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint(
     typedef region_map_t<rdb_protocol_t, machine_id_t> primary_pinnings_map_t;
     typedef region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
 
-    persistable_blueprint_t<rdb_protocol_t> blueprint;
+    persistable_blueprint_t blueprint;
 
     for (nonoverlapping_regions_t<rdb_protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {

@@ -119,7 +119,7 @@ boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > e
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &_reactor_directory,
-                                                         const blueprint_t<rdb_protocol_t> &blueprint,
+                                                         const blueprint_t &blueprint,
                                                          const region_t &region, best_backfiller_map_t *best_backfiller_out,
                                                          branch_history_t<rdb_protocol_t> *branch_history_to_merge_out,
                                                          bool *merge_branch_history_out)
@@ -130,7 +130,7 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (blueprint_t<rdb_protocol_t>::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
+    for (blueprint_t::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
          p_it != blueprint.peers_roles.end();
          ++p_it) {
         //The peer we are currently checking
@@ -289,7 +289,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
                                             order_source_t *order_source,
                                             const region_t &region,
                                             store_view_t<rdb_protocol_t> *svs,
-                                            const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint,
+                                            const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
     on_thread_t th(svs->home_thread());
@@ -393,7 +393,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
     return all_succeeded;
 }
 
-void reactor_t::be_primary(region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t::be_primary(region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);

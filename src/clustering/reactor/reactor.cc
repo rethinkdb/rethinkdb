@@ -51,7 +51,7 @@ reactor_t::reactor_t(
         ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > > > rd,
         branch_history_manager_t<rdb_protocol_t> *bhm,
-        clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > b,
+        clone_ptr_t<watchable_t<blueprint_t> > b,
         multistore_ptr_t<rdb_protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection,
         rdb_context_t *_ctx) THROWS_NOTHING :
@@ -74,7 +74,7 @@ reactor_t::reactor_t(
 {
     with_priority_t p(CORO_PRIORITY_REACTOR);
     {
-        watchable_t<blueprint_t<rdb_protocol_t> >::freeze_t freeze(blueprint_watchable);
+        watchable_t<blueprint_t>::freeze_t freeze(blueprint_watchable);
         blueprint_watchable->get().guarantee_valid();
         try_spawn_roles();
         blueprint_subscription.reset(blueprint_watchable, &freeze);
@@ -116,7 +116,7 @@ reactor_activity_id_t reactor_t::directory_entry_t::get_reactor_activity_id() co
     return reactor_activity_id;
 }
 
-reactor_t::current_role_t::current_role_t(blueprint_role_t r, const blueprint_t<rdb_protocol_t> &b)
+reactor_t::current_role_t::current_role_t(blueprint_role_t r, const blueprint_t &b)
     : role(r), blueprint(b) { }
 
 peer_id_t reactor_t::get_me() THROWS_NOTHING {
@@ -135,7 +135,7 @@ reactor_t::directory_entry_t::~directory_entry_t() {
 }
 
 void reactor_t::on_blueprint_changed() THROWS_NOTHING {
-    blueprint_t<rdb_protocol_t> blueprint = blueprint_watchable->get();
+    blueprint_t blueprint = blueprint_watchable->get();
     blueprint.guarantee_valid();
 
     std::map<peer_id_t, std::map<region_t, blueprint_role_t> >::const_iterator role_it = blueprint.peers_roles.find(get_me());
@@ -164,7 +164,7 @@ void reactor_t::on_blueprint_changed() THROWS_NOTHING {
 }
 
 void reactor_t::try_spawn_roles() THROWS_NOTHING {
-    blueprint_t<rdb_protocol_t> blueprint = blueprint_watchable->get();
+    blueprint_t blueprint = blueprint_watchable->get();
 
     std::map<peer_id_t, std::map<region_t, blueprint_role_t> >::const_iterator role_it = blueprint.peers_roles.find(get_me());
     guarantee(role_it != blueprint.peers_roles.end(), "reactor_t assumes that it is mentioned in the blueprint it's given.");
@@ -291,11 +291,11 @@ void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait
         and then it was declared dead, our interruptor might not be pulsed but
         the `ack_waiter_t` would never be pulsed so we would get stuck. */
         cond_t blueprint_changed;
-        blueprint_t<rdb_protocol_t> bp;
-        watchable_t<blueprint_t<rdb_protocol_t> >::subscription_t subscription(
+        blueprint_t bp;
+        watchable_t<blueprint_t>::subscription_t subscription(
             boost::bind(&cond_t::pulse_if_not_already_pulsed, &blueprint_changed));
         {
-            watchable_t<blueprint_t<rdb_protocol_t> >::freeze_t freeze(blueprint_watchable);
+            watchable_t<blueprint_t>::freeze_t freeze(blueprint_watchable);
             bp = blueprint_watchable->get();
             subscription.reset(blueprint_watchable, &freeze);
         }

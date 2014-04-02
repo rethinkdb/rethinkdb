@@ -24,10 +24,10 @@
 
 /* The reactor driver is also responsible for the translation from
 `persistable_blueprint_t` to `blueprint_t`. */
-blueprint_t<rdb_protocol_t> translate_blueprint(const persistable_blueprint_t<rdb_protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
+blueprint_t translate_blueprint(const persistable_blueprint_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
 
-    blueprint_t<rdb_protocol_t> output;
-    for (typename persistable_blueprint_t<rdb_protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
+    blueprint_t output;
+    for (typename persistable_blueprint_t::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
         if (peer.is_nil()) {
@@ -110,7 +110,7 @@ public:
                             io_backender_t *io_backender,
                             reactor_driver_t *parent,
                             namespace_id_t namespace_id,
-                            const blueprint_t<rdb_protocol_t> &bp,
+                            const blueprint_t &bp,
                             svs_by_namespace_t *svs_by_namespace,
                             rdb_context_t *_ctx) :
         base_path(_base_path),
@@ -332,7 +332,7 @@ private:
 private:
     const base_path_t base_path;
 public:
-    watchable_variable_t<blueprint_t<rdb_protocol_t> > watchable;
+    watchable_variable_t<blueprint_t> watchable;
 
     rdb_context_t *const ctx;
 
@@ -483,7 +483,7 @@ void reactor_driver_t::on_change() {
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const persistable_blueprint_t<rdb_protocol_t> *pbp = NULL;
+            const persistable_blueprint_t *pbp = NULL;
 
             try {
                 pbp = &it->second.get_ref().blueprint.get_ref();
@@ -493,7 +493,7 @@ void reactor_driver_t::on_change() {
                 continue;
             }
 
-            blueprint_t<rdb_protocol_t> bp = translate_blueprint(*pbp, machine_id_translation_table_value);
+            blueprint_t bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
@@ -504,8 +504,8 @@ void reactor_driver_t::on_change() {
                     reactor_data.insert(tmp, new watchable_and_reactor_t(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx));
                 } else {
                     struct op_closure_t {
-                        static bool apply(const blueprint_t<rdb_protocol_t> &_bp,
-                                          blueprint_t<rdb_protocol_t> *bp_ref) {
+                        static bool apply(const blueprint_t &_bp,
+                                          blueprint_t *bp_ref) {
                             const bool blueprint_changed = (*bp_ref != _bp);
                             if (blueprint_changed) {
                                 *bp_ref = _bp;
