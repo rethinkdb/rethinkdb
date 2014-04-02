@@ -43,7 +43,7 @@ private:
 
 class cluster_access_t {
 public:
-    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    typedef namespaces_semilattice_metadata_t ns_metadata_t;
     cluster_access_t(
         base_namespace_repo_t *_ns_repo,
 
@@ -82,7 +82,7 @@ public:
 // The env_t.
 class env_t : public home_thread_mixin_t {
 public:
-    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    typedef namespaces_semilattice_metadata_t ns_metadata_t;
 
     env_t(
         extproc_pool_t *_extproc_pool,

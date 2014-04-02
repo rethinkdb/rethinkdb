@@ -116,8 +116,7 @@ private:
             const boost::optional<namespace_id_t> &prioritize_distr_for_ns
                 = boost::optional<namespace_id_t>());
 
-    template <class protocol_t>
-    std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
+    std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t *ns_map,
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
@@ -125,8 +124,7 @@ private:
     std::string merge_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                              const std::vector<std::string> &split_points);
 
-    template <class protocol_t>
-    std::string admin_split_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns,
+    std::string admin_split_shard_internal(namespaces_semilattice_metadata_t *ns,
                                            const namespace_id_t &ns_id,
                                            const std::vector<std::string> &split_points);
 
@@ -134,13 +132,11 @@ private:
     std::string split_shards(vclock_t<nonoverlapping_regions_t<protocol_t> > *shards_vclock,
                              const std::vector<std::string> &split_points);
 
-    template <class protocol_t>
-    void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
+    void do_admin_set_acks_internal(const datacenter_id_t &datacenter,
                                     uint32_t num_acks,
-                                    namespace_semilattice_metadata_t<protocol_t> *ns);
-    template <class protocol_t>
+                                    namespace_semilattice_metadata_t *ns);
     void do_admin_set_durability_internal(bool hard_durability,
-                                          namespace_semilattice_metadata_t<protocol_t> *ns);
+                                          namespace_semilattice_metadata_t *ns);
 
     template <class map_type>
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
@@ -158,17 +154,15 @@ private:
     template <class T>
     void do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map);
 
-    template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,
-                                 std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
+                                 std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
 
-    template <class protocol_t>
     namespace_id_t do_admin_create_table_internal(const name_string_t& name,
                                                   int port,
                                                   const datacenter_id_t& primary,
                                                   const std::string& primary_key,
                                                   const database_id_t& database,
-                                                  namespaces_semilattice_metadata_t<protocol_t> *ns);
+                                                  namespaces_semilattice_metadata_t *ns);
 
     template <class obj_map>
     void do_admin_set_database_table(const namespace_id_t &table_uuid,
@@ -187,15 +181,13 @@ private:
 
     void remove_database_tables(const database_id_t& database, cluster_semilattice_metadata_t *cluster_metadata);
 
-    template <class protocol_t>
     void remove_database_tables_internal(const database_id_t& database,
-                                         std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
+                                         std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
 
     void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t *cluster_metadata);
 
-    template <class protocol_t>
     void remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
-                                                      std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > *ns_map);
+                                                      std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
 
     template <class map_type>
     void list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> > *table);
@@ -218,19 +210,16 @@ private:
         } left, right;
     };
 
-    template <class protocol_t>
     void do_admin_pin_shard_internal(const shard_input_t& shard_in,
                                      const std::string& primary_str,
                                      const std::vector<std::string>& secondary_strs,
                                      const cluster_semilattice_metadata_t& cluster_metadata,
-                                     namespace_semilattice_metadata_t<protocol_t>* ns);
+                                     namespace_semilattice_metadata_t *ns);
 
-    template <class protocol_t>
-    typename protocol_t::region_t find_shard_in_namespace(const namespace_semilattice_metadata_t<protocol_t>& ns,
-                                                          const shard_input_t& shard_in);
+    region_t find_shard_in_namespace(const namespace_semilattice_metadata_t& ns,
+                                     const shard_input_t& shard_in);
 
-    template <class protocol_t>
-    void list_pinnings(const namespace_semilattice_metadata_t<protocol_t>& ns,
+    void list_pinnings(const namespace_semilattice_metadata_t& ns,
                        const shard_input_t& shard_in,
                        const cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -309,9 +298,8 @@ private:
                              const machine_semilattice_metadata_t& machine,
                              const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class protocol_t>
     void list_single_namespace(const namespace_id_t& ns_id,
-                               const namespace_semilattice_metadata_t<protocol_t>& ns,
+                               const namespace_semilattice_metadata_t& ns,
                                const cluster_semilattice_metadata_t& cluster_metadata,
                                const std::string& protocol);
 
@@ -357,8 +345,7 @@ private:
     void resolve_database_value(database_semilattice_metadata_t *db,
                                 const std::string& field);
 
-    template <class protocol_t>
-    void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
+    void resolve_namespace_value(namespace_semilattice_metadata_t *ns,
                                  const std::string& field);
 
     std::string path_to_str(const std::vector<std::string>& path);

@@ -14,12 +14,11 @@ void check(const std::string &object_type, const uuid_u &object_id,
     }
 }
 
-template<class protocol_t>
 void check_namespaces_for_protocol(
-        const cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces,
+        const cow_ptr_t<namespaces_semilattice_metadata_t> &namespaces,
         std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
+    for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it =
             namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
             check("namespace", it->first, "blueprint", it->second.get_ref().blueprint, out);

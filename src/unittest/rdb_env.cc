@@ -257,16 +257,16 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
                                          const std::string &primary_key,
                                          const std::set<std::map<std::string, std::string> > &initial_data) {
     name_string_t table_name_string;
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata.rdb_namespaces);
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
     *change.get()->namespaces[namespace_id].get_mutable() =
-        new_namespace<rdb_protocol_t>(machine_id,
-                                      db_id,
-                                      nil_uuid(),
-                                      table_name_string,
-                                      primary_key,
-                                      port_defaults::reql_port);
+        new_namespace(machine_id,
+                      db_id,
+                      nil_uuid(),
+                      table_name_string,
+                      primary_key,
+                      port_defaults::reql_port);
 
     // Set up initial data
     std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();
@@ -305,7 +305,7 @@ void test_rdb_env_t::make_env(scoped_ptr_t<instance_t> *instance_out) {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     dummy_semilattice_controller(test_env->metadata),
-    namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
+    namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
     databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
     extproc_pool(2),
     test_cluster(0),

@@ -1,9 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/suggester/suggester.hpp"
 
-#include "stl_utils.hpp"
-#include "containers/priority_queue.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
+#include "containers/priority_queue.hpp"
+#include "stl_utils.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 // Because being primary for a shard usually comes with a higher cost than
 // being secondary, we want to consider that difference in the replica assignment.
@@ -114,15 +115,14 @@ bool operator<(const priority_t &x, const priority_t &y) {
 /* Returns a "score" indicating how expensive it would be to turn the machine
 with the given business card into a primary or secondary for the given shard. */
 
-template<class protocol_t>
 double estimate_cost_to_get_up_to_date(
-        const reactor_business_card_t<protocol_t> &business_card,
-        const typename protocol_t::region_t &shard) {
-    typedef reactor_business_card_t<protocol_t> rb_t;
-    region_map_t<protocol_t, double> costs(shard, 3);
+        const reactor_business_card_t<rdb_protocol_t> &business_card,
+        const region_t &shard) {
+    typedef reactor_business_card_t<rdb_protocol_t> rb_t;
+    region_map_t<rdb_protocol_t, double> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
-        typename protocol_t::region_t intersection = region_intersection(it->second.region, shard);
+        region_t intersection = region_intersection(it->second.region, shard);
         if (!region_is_empty(intersection)) {
             int cost;
             if (boost::get<typename rb_t::primary_when_safe_t>(&it->second.activity)) {
@@ -153,7 +153,7 @@ double estimate_cost_to_get_up_to_date(
     }
     double sum = 0;
     int count = 0;
-    for (typename region_map_t<protocol_t, double>::iterator it = costs.begin(); it != costs.end(); it++) {
+    for (region_map_t<rdb_protocol_t, double>::iterator it = costs.begin(); it != costs.end(); it++) {
         /* TODO: Scale by how much data is in `it->first` */
         sum += it->second;
         count++;
@@ -173,29 +173,27 @@ std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, 
     return result;
 }
 
-template <class protocol_t>
 priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &positive_pinnings,
                                 const std::set<machine_id_t> &negative_pinnings,
                                 const std::map<machine_id_t, int> &usage,
-                                const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
-                                const typename protocol_t::region_t &shard,
+                                const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
+                                const region_t &shard,
                                 bool prioritize_distribution) {
     const bool pinned = std_contains(positive_pinnings, id);
     const bool would_rob_someone = std_contains(negative_pinnings, id);
     const std::map<machine_id_t, int>::const_iterator usage_it = usage.find(id);
     const int redundancy_cost = usage_it == usage.end() ? 0 : usage_it->second;
-    const typename std::map<machine_id_t, reactor_business_card_t<protocol_t> >::const_iterator directory_it = directory.find(id);
+    const typename std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> >::const_iterator directory_it = directory.find(id);
     const double backfill_cost = directory_it == directory.end() ? 3.0 : estimate_cost_to_get_up_to_date(directory_it->second, shard);
 
     return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost, prioritize_distribution);
 }
 
-template<class protocol_t>
 std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
-        const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
+        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const typename protocol_t::region_t &shard,
+        const region_t &shard,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const std::set<machine_id_t> &primary_pinnings,
         const std::set<machine_id_t> &secondary_pinnings,
@@ -306,24 +304,23 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
     return sub_blueprint;
 }
 
-template<class protocol_t>
-persistable_blueprint_t<protocol_t> suggest_blueprint(
-        const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
+persistable_blueprint_t<rdb_protocol_t> suggest_blueprint(
+        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const nonoverlapping_regions_t<protocol_t> &shards,
+        const nonoverlapping_regions_t<rdb_protocol_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
+        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution) {
 
-    typedef region_map_t<protocol_t, machine_id_t> primary_pinnings_map_t;
-    typedef region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
+    typedef region_map_t<rdb_protocol_t, machine_id_t> primary_pinnings_map_t;
+    typedef region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
 
-    persistable_blueprint_t<protocol_t> blueprint;
+    persistable_blueprint_t<rdb_protocol_t> blueprint;
 
-    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
+    for (nonoverlapping_regions_t<rdb_protocol_t>::iterator it = shards.begin();
             it != shards.end(); it++) {
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
@@ -358,17 +355,3 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     return blueprint;
 }
 
-
-#include "rdb_protocol/protocol.hpp"
-
-template
-persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
-        const std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > &directory,
-        const datacenter_id_t &primary_datacenter,
-        const std::map<datacenter_id_t, int> &datacenter_affinities,
-        const nonoverlapping_regions_t<rdb_protocol_t> &shards,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
-        std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);

@@ -12,7 +12,7 @@
 #define MAX_DEPTH 2
 #define DEFAULT_LIMIT 128
 
-distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > _rdb_namespaces_sl_metadata,
+distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _rdb_namespaces_sl_metadata,
                                        namespace_repo_t *_rdb_ns_repo)
     : rdb_namespaces_sl_metadata(_rdb_namespaces_sl_metadata),
       rdb_ns_repo(_rdb_ns_repo)
@@ -32,7 +32,7 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
     }
     namespace_id_t n_id = str_to_uuid(*maybe_n_id);
 
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_ns_snapshot = rdb_namespaces_sl_metadata->get();
+    cow_ptr_t<namespaces_semilattice_metadata_t> rdb_ns_snapshot = rdb_namespaces_sl_metadata->get();
 
     uint64_t depth = DEFAULT_DEPTH;
     boost::optional<std::string> maybe_depth = req.find_query_param("depth");

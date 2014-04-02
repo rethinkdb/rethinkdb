@@ -34,7 +34,7 @@ class cross_thread_signal_t;
 class databases_semilattice_metadata_t;
 template <class> class directory_read_manager_t;
 class namespace_repo_t;
-template <class> class namespaces_semilattice_metadata_t;
+class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
@@ -196,8 +196,7 @@ public:
 
     /* These arrays contain a watchable for each thread.
      * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
-                                                                         namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > >
     cross_thread_namespace_watchables;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
                                       databases_semilattice_metadata_t> > > cross_thread_database_watchables;

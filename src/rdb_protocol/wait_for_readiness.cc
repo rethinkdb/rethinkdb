@@ -50,10 +50,10 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
                 // pressed for time here...
                 on_thread_t rethread(semilattice_metadata->home_thread());
                 cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
-                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+                cow_ptr_t<namespaces_semilattice_metadata_t>::change_t
                     change(&metadata.rdb_namespaces);
                 std::map<namespace_id_t,
-                         deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                         deletable_t<namespace_semilattice_metadata_t>
                          >::iterator
                     nsi = change.get()->namespaces.find(namespace_id);
                 rassert(nsi != change.get()->namespaces.end());

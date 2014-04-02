@@ -32,7 +32,7 @@ class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
 
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
@@ -285,7 +285,7 @@ public:
 
 class namespace_predicate_t {
 public:
-    bool operator()(const namespace_semilattice_metadata_t<rdb_protocol_t>& ns) const {
+    bool operator()(const namespace_semilattice_metadata_t &ns) const {
         if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
             return false;
         } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {

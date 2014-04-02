@@ -26,9 +26,9 @@ table_t::table_t(env_t *env,
     rcheck(b, base_exc_t::GENERIC,
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > namespaces_metadata
+    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
         = env->cluster_access.namespaces_semilattice_metadata->get();
-    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+    const_metadata_searcher_t<namespace_semilattice_metadata_t>
         ns_searcher(&namespaces_metadata.get()->namespaces);
     // TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
@@ -39,14 +39,14 @@ table_t::table_t(env_t *env,
     access.init(new rdb_namespace_access_t(id, env));
 
     metadata_search_status_t status;
-    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+    const_metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     rcheck(status == METADATA_SUCCESS,
            base_exc_t::GENERIC,
            strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
-    pkey =  ns_metadata_it->second.get_ref().primary_key.get();
+    pkey = ns_metadata_it->second.get_ref().primary_key.get();
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {

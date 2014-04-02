@@ -14,11 +14,11 @@ struct rdb_protocol_t;
 
 class distribution_app_t : public http_app_t {
 public:
-    distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >, namespace_repo_t *);
+    distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >, namespace_repo_t *);
     void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > rdb_namespaces_sl_metadata;
+    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > rdb_namespaces_sl_metadata;
     namespace_repo_t *rdb_ns_repo;
 
     DISABLE_COPYING(distribution_app_t);
