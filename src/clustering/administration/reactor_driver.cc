@@ -305,7 +305,7 @@ private:
                                typeof extract_reactor_directory_per_peer_fun>
             extract_reactor_directory(extract_reactor_directory_per_peer_fun);
 
-        reactor_.init(new reactor_t<rdb_protocol_t>(
+        reactor_.init(new reactor_t(
             base_path,
             io_backender,
             parent_->mbox_manager,
@@ -345,7 +345,7 @@ private:
 
     stores_lifetimer_t stores_lifetimer_;
     scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > svs_;
-    scoped_ptr_t<reactor_t<rdb_protocol_t> > reactor_;
+    scoped_ptr_t<reactor_t> reactor_;
 
     scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::subscription_t> reactor_directory_subscription_;
 

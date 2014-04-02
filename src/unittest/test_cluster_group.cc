@@ -91,24 +91,23 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
     return true;
 }
 
-template<class protocol_t>
 class test_reactor_t : private ack_checker_t {
 public:
-    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
+    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t<rdb_protocol_t> &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
         return write_durability_t::SOFT;
     }
 
-    watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
-    reactor_t<protocol_t> reactor;
-    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
+    watchable_variable_t<blueprint_t<rdb_protocol_t> > blueprint_watchable;
+    reactor_t reactor;
+    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >, test_cluster_directory_t<rdb_protocol_t> > reactor_directory_copier;
 
 private:
-    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > &input);
+    static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &input);
 
-    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards);
+    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards);
 };
 
 
@@ -152,32 +151,29 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
     return connectivity_cluster.get_me();
 }
 
-template <class protocol_t>
-test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
+test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t<rdb_protocol_t> &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
-            r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
+            r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
-    reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
-    rassert(svs->get_region() == protocol_t::region_t::universe());
+    reactor_directory_copier(&test_cluster_directory_t<rdb_protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t::wrap_in_optional), &r->our_directory_variable) {
+    rassert(svs->get_region() == region_t::universe());
 }
 
-template <class protocol_t>
-test_reactor_t<protocol_t>::~test_reactor_t() { }
+test_reactor_t::~test_reactor_t() { }
 
-template <class protocol_t>
-bool test_reactor_t<protocol_t>::is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+bool test_reactor_t::is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
     return acks.size() >= 1;
 }
 
-template <class protocol_t>
-boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > test_reactor_t<protocol_t>::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > &input) {
-    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(input);
+boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >
+test_reactor_t::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > &input) {
+    return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >(input);
 }
 
-template <class protocol_t>
-change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > test_reactor_t<protocol_t>::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards) {
-    change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
+change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > >
+test_reactor_t::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards) {
+    change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > > out;
     out.begin_version();
     for (auto it = bcards.get_inner().begin(); it != bcards.get_inner().end(); it++) {
         out.set_value(it->first, it->second.reactor_directory);
@@ -212,7 +208,7 @@ test_cluster_group_t::~test_cluster_group_t() { }
 
 void test_cluster_group_t::construct_all_reactors(const blueprint_t<rdb_protocol_t> &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
-        test_reactors.push_back(new test_reactor_t<rdb_protocol_t>(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
+        test_reactors.push_back(new test_reactor_t(base_path, io_backender.get(), &test_clusters[i], bp, &svses[i]));
     }
 }
 

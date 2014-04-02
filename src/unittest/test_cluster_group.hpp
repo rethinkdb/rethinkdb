@@ -34,7 +34,7 @@ namespace unittest {
 class temp_file_t;
 
 template <class> class reactor_test_cluster_t;
-template <class> class test_reactor_t;
+class test_reactor_t;
 
 template<class protocol_t>
 class test_cluster_directory_t {
@@ -56,7 +56,7 @@ public:
     boost::ptr_vector<multistore_ptr_t<rdb_protocol_t> > svses;
     boost::ptr_vector<reactor_test_cluster_t<rdb_protocol_t> > test_clusters;
 
-    boost::ptr_vector<test_reactor_t<rdb_protocol_t> > test_reactors;
+    boost::ptr_vector<test_reactor_t> test_reactors;
 
     std::map<std::string, std::string> inserter_state;
 
