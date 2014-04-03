@@ -818,7 +818,6 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
     }
 }
 
-// TODO: templatize on protocol
 void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -1648,8 +1647,6 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const persistable_
 
 void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
-    std::map<std::string, std::vector<std::string> >::const_iterator type_it = data.params.find("protocol");
-    std::string type = (type_it == data.params.end() ? "" : type_it->second[0]);
     bool long_format = (data.params.count("long") == 1);
 
     std::vector<std::vector<std::string> > table;
@@ -1657,8 +1654,6 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     header.push_back("uuid");
     header.push_back("name");
-    // TODO: fix this once multiple protocols are supported again
-    // header.push_back("protocol");
     if (long_format) {
         header.push_back("shards");
         header.push_back("replicas");
@@ -1669,14 +1664,8 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     table.push_back(header);
 
-    // RSI: Worthless "type" option.
-    if (type.empty()) {
-        add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
-    } else if (type == "rdb") {
-        add_namespaces(type, long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
-    } else {
-        throw admin_parse_exc_t("unrecognized protocol: " + type);
-    }
+    // RSI: Silly "rdb" option.
+    add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
         admin_print_table(table);
@@ -1703,9 +1692,6 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
             } else {
                 delta.push_back("<conflict>");
             }
-
-            // TODO: fix this once multiple protocols are supported again
-            // delta.push_back(protocol);
 
             if (long_format) {
                 char buffer[64];
@@ -1920,7 +1906,6 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     database_id_t database = str_to_uuid(database_info->path[1]);
     datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
-    std::string protocol;
     std::string primary_key;
 
     // If primary is specified, use it and verify its validity
@@ -1940,12 +1925,8 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary = str_to_uuid(datacenter_info->path[1]);
     }
 
-    // TODO: fix this once multiple protocols are supported again
-    if (data.params.find("protocol") != data.params.end()) {
-        protocol = guarantee_param_0(data.params, "protocol");
-    } else {
-        protocol = "rdb";
-    }
+    // RSI: This is a bit silly
+    std::string protocol = "rdb";
 
     // Get the primary key
     if (data.params.find("primary-key") != data.params.end()) {
@@ -2966,8 +2947,6 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         std::vector<std::string> delta;
         delta.push_back("uuid");
         delta.push_back("name");
-        // TODO: fix this once multiple protocols are supported again
-        // delta.push_back("protocol");
         delta.push_back("primary");
         delta.push_back("replicas");
         table.push_back(delta);
@@ -2995,8 +2974,6 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
 
             delta.push_back(uuid_to_str(i->first));
             delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
-            // TODO: fix this once multiple protocols are supported again
-            // delta.push_back(protocol);
 
             // TODO: this will only list the replicas required by the user, not the actual replicas (in case of impossible requirements)
             if (!ns.primary_datacenter.in_conflict() &&
@@ -3042,8 +3019,6 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
         std::vector<std::string> delta;
         delta.push_back("uuid");
         delta.push_back("name");
-        // TODO: fix this once multiple protocols are supported again
-        // delta.push_back("protocol");
         delta.push_back("primary");
         table.push_back(delta);
     }
@@ -3070,8 +3045,6 @@ void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t&
 
                 delta.push_back(uuid_to_str(i->first));
                 delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
-                // TODO: fix this once multiple protocols are supported again
-                // delta.push_back(protocol);
 
                 if (!ns.primary_datacenter.in_conflict()) {
                     delta.push_back(uuid_to_str(ns.primary_datacenter.get()));
