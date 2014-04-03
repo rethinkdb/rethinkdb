@@ -34,6 +34,9 @@
 
 namespace unittest {
 
+RDB_IMPL_ME_SERIALIZABLE_1(test_cluster_directory_t, reactor_directory);
+
+
 void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
     // We keep old dummy-protocol style single-character key logic.
     *out = hash_region_t<key_range_t>(key_range_t(
@@ -102,12 +105,12 @@ public:
 
     watchable_variable_t<blueprint_t> blueprint_watchable;
     reactor_t reactor;
-    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >, test_cluster_directory_t<rdb_protocol_t> > reactor_directory_copier;
+    field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >, test_cluster_directory_t> reactor_directory_copier;
 
 private:
     static boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > &input);
 
-    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards);
+    static change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &bcards);
 };
 
 
@@ -128,7 +131,7 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
     mailbox_manager(&mailbox_manager_client),
     mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
 
-    our_directory_variable(test_cluster_directory_t<protocol_t>()),
+    our_directory_variable(test_cluster_directory_t()),
     directory_manager_client(&message_multiplexer, 'D'),
     directory_read_manager(&connectivity_cluster),
     directory_write_manager(&directory_manager_client, our_directory_variable.get_watchable()),
@@ -156,7 +159,7 @@ test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), NULL),
-    reactor_directory_copier(&test_cluster_directory_t<rdb_protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t::wrap_in_optional), &r->our_directory_variable) {
+    reactor_directory_copier(&test_cluster_directory_t::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t::wrap_in_optional), &r->our_directory_variable) {
     rassert(svs->get_region() == region_t::universe());
 }
 
@@ -172,7 +175,7 @@ test_reactor_t::wrap_in_optional(const directory_echo_wrapper_t<cow_ptr_t<reacto
 }
 
 change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >
-test_reactor_t::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &bcards) {
+test_reactor_t::extract_reactor_directory(const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &bcards) {
     change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > out;
     out.begin_version();
     for (auto it = bcards.get_inner().begin(); it != bcards.get_inner().end(); it++) {
@@ -263,7 +266,7 @@ void test_cluster_group_t::set_all_blueprints(const blueprint_t &bp) {
 }
 
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > test_cluster_group_t::extract_reactor_business_cards_no_optional(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
+        const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {
@@ -300,7 +303,7 @@ void test_cluster_group_t::run_queries() {
 }
 
 std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > test_cluster_group_t::extract_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input) {
+        const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input) {
     std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > out;
     for (auto it = input.get_inner().begin(); it != input.get_inner().end(); it++) {
         if (it->second.reactor_directory) {

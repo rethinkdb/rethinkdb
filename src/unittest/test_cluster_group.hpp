@@ -36,12 +36,11 @@ class temp_file_t;
 template <class> class reactor_test_cluster_t;
 class test_reactor_t;
 
-template<class protocol_t>
 class test_cluster_directory_t {
 public:
     boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_directory;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 
@@ -74,14 +73,14 @@ public:
     void set_all_blueprints(const blueprint_t &bp);
 
     static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > extract_reactor_business_cards_no_optional(
-            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
+            const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out);
 
     void run_queries();
 
     static std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > extract_reactor_business_cards(
-            const change_tracking_map_t<peer_id_t, test_cluster_directory_t<rdb_protocol_t> > &input);
+            const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input);
 
     void wait_until_blueprint_is_satisfied(const blueprint_t &bp);
 
@@ -110,10 +109,10 @@ public:
     mailbox_manager_t mailbox_manager;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
 
-    watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
+    watchable_variable_t<test_cluster_directory_t> our_directory_variable;
     message_multiplexer_t::client_t directory_manager_client;
-    directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
-    directory_write_manager_t<test_cluster_directory_t<protocol_t> > directory_write_manager;
+    directory_read_manager_t<test_cluster_directory_t> directory_read_manager;
+    directory_write_manager_t<test_cluster_directory_t> directory_write_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
 
     message_multiplexer_t::run_t message_multiplexer_run;
