@@ -33,7 +33,7 @@ static void run_read_write_test() {
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history tracker */
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
@@ -122,7 +122,7 @@ static void run_broadcaster_problem_test() {
     simple_mailbox_cluster_t cluster;
 
     /* Set up metadata meeting-places */
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 
     // io backender.
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);

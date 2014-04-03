@@ -30,7 +30,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     mock_store_t backfiller_store;
     mock_store_t backfillee_store;
 
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t<rdb_protocol_t> dummy_branch;

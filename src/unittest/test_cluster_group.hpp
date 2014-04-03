@@ -118,7 +118,7 @@ public:
 
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 };
 
 }  // namespace unittest

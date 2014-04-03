@@ -40,7 +40,7 @@ void run_with_broadcaster(
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 
     // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
