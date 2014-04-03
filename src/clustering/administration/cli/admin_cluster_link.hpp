@@ -237,8 +237,9 @@ private:
 
     void add_machine_info_from_blueprint(const persistable_blueprint_t& bp, std::map<machine_id_t, machine_info_t> *results);
 
-    template <class map_type>
-    void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results);
+    void build_machine_info_internal(
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+            std::map<machine_id_t, machine_info_t> *results);
 
     std::map<machine_id_t, machine_info_t> build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata);
 

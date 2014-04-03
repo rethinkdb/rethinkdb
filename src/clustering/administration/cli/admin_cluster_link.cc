@@ -1744,9 +1744,10 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
     return results;
 }
 
-template <class map_type>
-void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::build_machine_info_internal(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<machine_id_t, machine_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() && !i->second.get_copy().blueprint.in_conflict()) {
             add_machine_info_from_blueprint(i->second.get_copy().blueprint.get_mutable(), results);
         }
