@@ -36,8 +36,6 @@ typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
 typedef rdb_context_t context_t;
 
-typedef rdb_protocol_t::store_t store_t;
-
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;

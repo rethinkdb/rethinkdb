@@ -673,6 +673,72 @@ struct write_t {
 };
 
 
+struct backfill_chunk_t {
+    struct delete_key_t {
+        store_key_t key;
+        repli_timestamp_t recency;
+
+        delete_key_t() { }
+        delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
+
+        // TODO: Wtf?  recency is not being serialized.
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct delete_range_t {
+        region_t range;
+
+        delete_range_t() { }
+        explicit delete_range_t(const region_t& _range) : range(_range) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct key_value_pairs_t {
+        std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
+
+        key_value_pairs_t() { }
+        explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
+            : backfill_atoms(std::move(_backfill_atoms)) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct sindexes_t {
+        std::map<std::string, secondary_index_t> sindexes;
+
+        sindexes_t() { }
+        explicit sindexes_t(const std::map<std::string, secondary_index_t> &_sindexes)
+            : sindexes(_sindexes) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t, sindexes_t> value_t;
+
+    backfill_chunk_t() { }
+    explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
+    value_t val;
+
+    static backfill_chunk_t delete_range(const region_t& range) {
+        return backfill_chunk_t(delete_range_t(range));
+    }
+    static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
+        return backfill_chunk_t(delete_key_t(key, recency));
+    }
+    static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
+        return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
+    }
+
+    static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
+        return backfill_chunk_t(sindexes_t(sindexes));
+    }
+
+    /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
+    repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+
+class store_t;
 
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
@@ -697,122 +763,63 @@ struct rdb_protocol_t {
     typedef write_t write_t;
     typedef write_response_t write_response_t;
 
-    struct backfill_chunk_t {
-        struct delete_key_t {
-            store_key_t key;
-            repli_timestamp_t recency;
-
-            delete_key_t() { }
-            delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
-
-            // TODO: Wtf?  recency is not being serialized.
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-        struct delete_range_t {
-            region_t range;
-
-            delete_range_t() { }
-            explicit delete_range_t(const region_t& _range) : range(_range) { }
-
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-        struct key_value_pairs_t {
-            std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
-
-            key_value_pairs_t() { }
-            explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
-                : backfill_atoms(std::move(_backfill_atoms)) { }
-
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-        struct sindexes_t {
-            std::map<std::string, secondary_index_t> sindexes;
-
-            sindexes_t() { }
-            explicit sindexes_t(const std::map<std::string, secondary_index_t> &_sindexes)
-                : sindexes(_sindexes) { }
-
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-
-        typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t, sindexes_t> value_t;
-
-        backfill_chunk_t() { }
-        explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
-        value_t val;
-
-        static backfill_chunk_t delete_range(const region_t& range) {
-            return backfill_chunk_t(delete_range_t(range));
-        }
-        static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
-            return backfill_chunk_t(delete_key_t(key, recency));
-        }
-        static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
-            return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
-        }
-
-        static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
-            return backfill_chunk_t(sindexes_t(sindexes));
-        }
-
-        /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
-        repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
     typedef traversal_progress_combiner_t backfill_progress_t;
 
-    class store_t : public btree_store_t<rdb_protocol_t> {
-    public:
-        store_t(serializer_t *serializer,
+    typedef backfill_chunk_t backfill_chunk_t;
+
+    typedef store_t store_t;
+
+    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+};
+
+
+class store_t : public btree_store_t<rdb_protocol_t> {
+public:
+    store_t(serializer_t *serializer,
                 cache_balancer_t *balancer,
                 const std::string &perfmon_name,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
-                context_t *ctx,
+                rdb_context_t *ctx,
                 io_backender_t *io,
                 const base_path_t &base_path);
-        ~store_t();
+    ~store_t();
 
-    private:
-        friend struct read_visitor_t;
-        void protocol_read(const read_t &read,
-                           read_response_t *response,
-                           btree_slice_t *btree,
-                           superblock_t *superblock,
-                           signal_t *interruptor);
+private:
+    friend struct read_visitor_t;
+    void protocol_read(const read_t &read,
+                       read_response_t *response,
+                       btree_slice_t *btree,
+                       superblock_t *superblock,
+                       signal_t *interruptor);
 
-        friend struct write_visitor_t;
-        void protocol_write(const write_t &write,
-                            write_response_t *response,
-                            transition_timestamp_t timestamp,
-                            btree_slice_t *btree,
-                            scoped_ptr_t<superblock_t> *superblock,
-                            signal_t *interruptor);
+    friend struct write_visitor_t;
+    void protocol_write(const write_t &write,
+                        write_response_t *response,
+                        transition_timestamp_t timestamp,
+                        btree_slice_t *btree,
+                        scoped_ptr_t<superblock_t> *superblock,
+                        signal_t *interruptor);
 
-        void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
-                                    superblock_t *superblock,
-                                    buf_lock_t *sindex_block,
-                                    btree_slice_t *btree,
-                                    backfill_progress_t *progress,
-                                    signal_t *interruptor)
-                                    THROWS_ONLY(interrupted_exc_t);
+    void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
+                                chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
+                                superblock_t *superblock,
+                                buf_lock_t *sindex_block,
+                                btree_slice_t *btree,
+                                rdb_protocol_t::backfill_progress_t *progress,
+                                signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
-        void protocol_receive_backfill(btree_slice_t *btree,
-                                       scoped_ptr_t<superblock_t> &&superblock,
-                                       signal_t *interruptor,
-                                       const backfill_chunk_t &chunk);
+    void protocol_receive_backfill(btree_slice_t *btree,
+                                   scoped_ptr_t<superblock_t> &&superblock,
+                                   signal_t *interruptor,
+                                   const backfill_chunk_t &chunk);
 
-        void protocol_reset_data(const region_t& subregion,
-                                 btree_slice_t *btree,
-                                 superblock_t *superblock,
-                                 signal_t *interruptor);
-        context_t *ctx;
-    };
-
-    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+    void protocol_reset_data(const region_t& subregion,
+                             btree_slice_t *btree,
+                             superblock_t *superblock,
+                             signal_t *interruptor);
+    rdb_context_t *ctx;
 };
 
 namespace rdb_protocol_details {
