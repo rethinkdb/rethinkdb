@@ -24,6 +24,13 @@ RDB_IMPL_ME_SERIALIZABLE_1(datacenters_semilattice_metadata_t, datacenters);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(datacenters_semilattice_metadata_t, datacenters);
 RDB_IMPL_EQUALITY_COMPARABLE_1(datacenters_semilattice_metadata_t, datacenters);
 
+RDB_IMPL_ME_SERIALIZABLE_2(machine_semilattice_metadata_t, datacenter, name);
+RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, datacenter, name);
+RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name);
+
+RDB_IMPL_ME_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
+RDB_IMPL_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
+RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
