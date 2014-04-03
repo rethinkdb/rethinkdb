@@ -120,7 +120,6 @@ std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protoco
     return out;
 }
 
-template<class protocol_t>
 void fill_in_blueprints_for_protocol(
         namespaces_semilattice_metadata_t *ns_goals,
         const std::map<peer_id_t, namespaces_directory_metadata_t> &namespaces_directory,
@@ -176,7 +175,7 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
 
     {
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata->rdb_namespaces);
-        fill_in_blueprints_for_protocol<rdb_protocol_t>(change.get(),
+        fill_in_blueprints_for_protocol(change.get(),
                 reactor_directory_rdb,
                 machine_id_translation_table,
                 machine_assignments,

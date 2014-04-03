@@ -168,9 +168,9 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
 
 template <>
 void send_backfill_requests_t::operator()<reactor_business_card_t::primary_when_safe_t>(const reactor_business_card_t::primary_when_safe_t &primary_when_safe) const {
-    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
-                                                                                         b_it != primary_when_safe.backfills_waited_on.end();
-                                                                                         ++b_it) {
+    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it = primary_when_safe.backfills_waited_on.begin();
+         b_it != primary_when_safe.backfills_waited_on.end();
+         ++b_it) {
         handle_request_internal(*b_it);
     }
 }

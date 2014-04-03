@@ -73,7 +73,6 @@ void reactor_t::update_best_backfiller(const region_map_t<version_range_t> &offe
     }
 }
 
-template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t> > extract_backfiller_from_reactor_business_card_secondary(
         const boost::optional<boost::optional<reactor_business_card_t::secondary_without_primary_t> > &bcard) {
     if (!bcard) {
@@ -88,7 +87,6 @@ boost::optional<boost::optional<backfiller_business_card_t> > extract_backfiller
     }
 }
 
-template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t> > extract_backfiller_from_reactor_business_card_nothing(
         const boost::optional<boost::optional<reactor_business_card_t::nothing_when_safe_t> > &bcard) {
     if (!bcard) {
@@ -169,7 +167,7 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
                         update_best_backfiller(secondary_without_primary->current_state,
                                                backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<rb_t::secondary_without_primary_t>(peer, it->first)->subview(
-                                                        &extract_backfiller_from_reactor_business_card_secondary<rdb_protocol_t>),
+                                                        &extract_backfiller_from_reactor_business_card_secondary),
                                                    peer,
                                                    it->first),
                                                &res);
@@ -189,7 +187,7 @@ bool reactor_t::is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id
                         update_best_backfiller(nothing_when_safe->current_state,
                                                backfill_candidate_t::backfill_location_t(
                                                    get_directory_entry_view<rb_t::nothing_when_safe_t>(peer, it->first)->subview(
-                                                        &extract_backfiller_from_reactor_business_card_nothing<rdb_protocol_t>),
+                                                        &extract_backfiller_from_reactor_business_card_nothing),
                                                    peer,
                                                    it->first),
                                                &res);
@@ -251,7 +249,6 @@ reactor_t::backfill_candidate_t reactor_t::make_backfill_candidate_from_version_
 
 /* Wraps backfillee, catches the exceptions it throws and instead uses a
  * promise to indicate success or failure (not throwing or throwing) */
-template <class protocol_t>
 void do_backfill(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t *branch_history_manager,
@@ -279,7 +276,6 @@ void do_backfill(
     success->pulse(result);
 }
 
-template <class protocol_t>
 bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t> > &maybe_a_business_card) {
     guarantee(maybe_a_business_card, "Not connected to ourselves\n");
     return maybe_a_business_card.get();
@@ -350,7 +346,7 @@ bool reactor_t::attempt_backfill_from_peers(directory_entry_t *directory_entry,
             backfill_session_id_t backfill_session_id = generate_uuid();
             promise_t<bool> *p = new promise_t<bool>;
             promises.push_back(p);
-            coro_t::spawn_sometime(boost::bind(&do_backfill<rdb_protocol_t>,
+            coro_t::spawn_sometime(boost::bind(&do_backfill,
                                                mailbox_manager,
                                                branch_history_manager,
                                                svs,
@@ -435,7 +431,7 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(
-            &check_that_we_see_our_broadcaster<rdb_protocol_t>, interruptor,
+            &check_that_we_see_our_broadcaster, interruptor,
             REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());

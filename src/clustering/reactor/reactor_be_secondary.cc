@@ -51,7 +51,6 @@ bool reactor_t::find_broadcaster_in_directory(
     return found_broadcaster;
 }
 
-template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_primary(
         const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
@@ -69,7 +68,6 @@ boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_
         boost::optional<replier_business_card_t>(bcard.get().get().replier.get()));
 }
 
-template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_secondary(
         const boost::optional<boost::optional<reactor_business_card_t::secondary_up_to_date_t> > &bcard) {
     if (!bcard) {
@@ -110,14 +108,14 @@ bool reactor_t::find_replier_in_directory(
                     if (const rb_t::primary_t *primary = boost::get<rb_t::primary_t>(&a_it->second.activity)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<rb_t::primary_t>(it->first, a_it->first)->
-                                subview(&extract_replier_from_reactor_business_card_primary<rdb_protocol_t>));
+                                subview(&extract_replier_from_reactor_business_card_primary));
                             peer_ids.push_back(it->first);
                             activity_ids.push_back(a_it->first);
                         }
                     } else if (const rb_t::secondary_up_to_date_t *secondary = boost::get<rb_t::secondary_up_to_date_t>(&a_it->second.activity)) {
                         if (secondary->branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
-                                subview(&extract_replier_from_reactor_business_card_secondary<rdb_protocol_t>));
+                                subview(&extract_replier_from_reactor_business_card_secondary));
                                 peer_ids.push_back(it->first);
                                 activity_ids.push_back(a_it->first);
                         }
