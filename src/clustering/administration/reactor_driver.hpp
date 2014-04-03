@@ -29,10 +29,9 @@ class watchable_and_reactor_t;
 
 class multistore_ptr_t;
 
-struct rdb_protocol_t;
 class rdb_context_t;
 
-// This type holds some protocol_t::store_t objects, and doesn't let anybody _casually_ touch them.
+// This type holds some store_t objects, and doesn't let anybody _casually_ touch them.
 class stores_lifetimer_t {
 public:
     stores_lifetimer_t();
@@ -40,12 +39,12 @@ public:
 
     scoped_ptr_t<serializer_t> *serializer() { return &serializer_; }
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }
-    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores() { return &stores_; }
+    scoped_array_t<scoped_ptr_t<store_t> > *stores() { return &stores_; }
 
 private:
     scoped_ptr_t<serializer_t> serializer_;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer_;
-    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > stores_;
+    scoped_array_t<scoped_ptr_t<store_t> > stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
 };
