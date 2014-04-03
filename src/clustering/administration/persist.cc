@@ -33,7 +33,6 @@ struct cluster_metadata_superblock_t {
 
     static const int BRANCH_HISTORY_BLOB_MAXREFLEN = 500;
     char dummy_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
-    char memcached_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
     char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 };
 
@@ -248,10 +247,6 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
                branch_history_t<mock::dummy_protocol_t>());
     write_blob(buf_parent_t(&superblock),
-               sb->memcached_branch_history_blob,
-               cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-               branch_history_t<memcached_protocol_t>());
-    write_blob(buf_parent_t(&superblock),
                sb->rdb_branch_history_blob,
                cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
                branch_history_t<rdb_protocol_t>());
@@ -412,10 +407,6 @@ branch_history_manager_t<mock::dummy_protocol_t> *cluster_persistent_file_t::get
     return dummy_branch_history_manager.get();
 }
 
-branch_history_manager_t<memcached_protocol_t> *cluster_persistent_file_t::get_memcached_branch_history_manager() {
-    return memcached_branch_history_manager.get();
-}
-
 branch_history_manager_t<rdb_protocol_t> *cluster_persistent_file_t::get_rdb_branch_history_manager() {
     return rdb_branch_history_manager.get();
 }
@@ -423,8 +414,6 @@ branch_history_manager_t<rdb_protocol_t> *cluster_persistent_file_t::get_rdb_bra
 void cluster_persistent_file_t::construct_branch_history_managers(bool create) {
     dummy_branch_history_manager.init(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
         this, &cluster_metadata_superblock_t::dummy_branch_history_blob, create));
-    memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
-        this, &cluster_metadata_superblock_t::memcached_branch_history_blob, create));
     rdb_branch_history_manager.init(new persistent_branch_history_manager_t<rdb_protocol_t>(
         this, &cluster_metadata_superblock_t::rdb_branch_history_blob, create));
 }

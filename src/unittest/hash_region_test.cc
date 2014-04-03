@@ -3,7 +3,7 @@
 
 #include "hash_region.hpp"
 #include "btree/keys.hpp"
-#include "memcached/region.hpp"
+#include "rdb_protocol/region.hpp"
 
 namespace unittest {
 

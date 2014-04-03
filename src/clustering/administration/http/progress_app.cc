@@ -15,7 +15,7 @@
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol_json_adapter.hpp"
 #include "stl_utils.hpp"
 
 static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";

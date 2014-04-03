@@ -175,9 +175,6 @@ else # ifeq ($(DEBUG),1)
   # use -fno-strict-aliasing to not break things
   # march=native used to break the serializer
   RT_CXXFLAGS += -O3 -DNDEBUG -fno-strict-aliasing # -march=native
-  # TODO: remove this once memcached is added back in the release
-  # (disables memcached from showing up in the admin CLI help or tab-completion)
-  RT_CXXFLAGS += -DNO_MEMCACHE
   ifeq ($(NO_OMIT_FRAME_POINTER),1)
     RT_CXXFLAGS += -fno-omit-frame-pointer
   endif
@@ -217,10 +214,6 @@ endif
 
 ifeq ($(SERIALIZER_DEBUG),1)
   RT_CXXFLAGS += -DSERIALIZER_MARKERS
-endif
-
-ifeq ($(MEMCACHED_STRICT),1)
-  RT_CXXFLAGS += -DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)

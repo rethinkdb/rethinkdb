@@ -634,9 +634,7 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
 
 
 #include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-template class listener_t<memcached_protocol_t>;
 template class listener_t<mock::dummy_protocol_t>;
 template class listener_t<rdb_protocol_t>;

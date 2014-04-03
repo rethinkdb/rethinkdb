@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/main/serve.hpp"
 
 #include <stdio.h>
@@ -25,7 +25,6 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/extproc_pool.hpp"
-#include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rdb_protocol/pb_server.hpp"
@@ -236,12 +235,6 @@ bool do_serve(
                 incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
             &dummy_ctx);
 
-        memcached_protocol_t::context_t mc_ctx;
-        namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-            &mc_ctx);
-
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
@@ -301,39 +294,6 @@ bool do_serve(
                     &our_root_directory_variable));
             }
 
-            // Memcached
-            scoped_ptr_t<file_based_svs_by_namespace_t<memcached_protocol_t> > memcached_svs_source;
-            scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-                memcached_reactor_directory_copier;
-
-            if (i_am_a_server) {
-                memcached_svs_source.init(new file_based_svs_by_namespace_t<memcached_protocol_t>(
-                    io_backender, cache_balancer.get(), base_path));
-                memcached_reactor_driver.init(new reactor_driver_t<memcached_protocol_t>(
-                    base_path,
-                    io_backender,
-                    &mailbox_manager,
-                    directory_read_manager.get_root_view()->incremental_subview(
-                        incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>,
-                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-                    cluster_metadata_file->get_memcached_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces,
-                                   semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines,
-                                   semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->incremental_subview(
-                        incremental_field_getter_t<machine_id_t,
-                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    memcached_svs_source.get(),
-                    &perfmon_repo,
-                    reinterpret_cast<memcached_protocol_t::context_t *>(NULL)));
-                memcached_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::memcached_namespaces,
-                    memcached_reactor_driver->get_watchable(),
-                    &our_root_directory_variable));
-            }
-
             // RDB
             scoped_ptr_t<file_based_svs_by_namespace_t<rdb_protocol_t> > rdb_svs_source;
             scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver;
@@ -377,15 +337,6 @@ bool do_serve(
                     &local_issue_tracker,
                     &perfmon_repo);
 
-                parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
-                    &mailbox_manager,
-                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                    address_ports.local_addresses,
-                    address_ports.port_offset,
-                    &memcached_namespace_repo,
-                    &local_issue_tracker,
-                    &perfmon_repo);
-
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
@@ -421,7 +372,6 @@ bool do_serve(
                                 &auth_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &memcached_namespace_repo,
                                 &rdb_namespace_repo,
                                 &admin_tracker,
                                 rdb_pb2_server.get_http_app(),
