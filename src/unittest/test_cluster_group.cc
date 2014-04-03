@@ -46,7 +46,6 @@ void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
                                               store_key_t(std::string(1, 'a' + (((i + 1) * 26)/n)))));
 }
 
-template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t &bp,
                             const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t> > > &reactor_directory) {
     for (typename blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
@@ -319,7 +318,7 @@ void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t &
         timer.start(timeout_ms);
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t::extract_reactor_business_cards)
-            ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<rdb_protocol_t>, bp, _1), &timer);
+            ->run_until_satisfied(boost::bind(&is_blueprint_satisfied, bp, _1), &timer);
     } catch (const interrupted_exc_t &) {
         crash("The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.");
     }

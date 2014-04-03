@@ -73,7 +73,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             backfiller_store.new_write_token_pair(&token_pair);
 
 #ifndef NDEBUG
-            equality_metainfo_checker_callback_t<rdb_protocol_t>
+            equality_metainfo_checker_callback_t
                 metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
             metainfo_checker_t<rdb_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
 #endif

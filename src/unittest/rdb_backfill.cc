@@ -30,7 +30,7 @@ void run_with_broadcaster(
         clone_ptr_t< watchable_t< boost::optional< boost::optional<
             broadcaster_business_card_t<rdb_protocol_t> > > > >,
         scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-        test_store_t<rdb_protocol_t> *,
+        test_store_t *,
         scoped_ptr_t<listener_t<rdb_protocol_t> > *,
         rdb_context_t *ctx,
         order_source_t *)> fun) {
@@ -64,7 +64,7 @@ void run_with_broadcaster(
                       &get_global_perfmon_collection());
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
+    test_store_t initial_store(&io_backender, &order_source, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
@@ -104,7 +104,7 @@ void run_in_thread_pool_with_broadcaster(
                               branch_history_manager_t<rdb_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              test_store_t<rdb_protocol_t> *,
+                              test_store_t *,
                               scoped_ptr_t<listener_t<rdb_protocol_t> > *,
                               rdb_context_t *,
                               order_source_t *)> fun)
@@ -160,7 +160,7 @@ void run_backfill_test(size_t value_padding_length,
                        branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
                        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                       test_store_t<rdb_protocol_t> *,
+                       test_store_t *,
                        scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                        rdb_context_t *ctx,
                        order_source_t *order_source) {
@@ -188,7 +188,7 @@ void run_backfill_test(size_t value_padding_length,
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t store2(io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
@@ -246,7 +246,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                               branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                              test_store_t<rdb_protocol_t> *,
+                              test_store_t *,
                               scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                               rdb_context_t *ctx,
                               order_source_t *order_source) {
@@ -303,7 +303,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t store2(io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
