@@ -2,7 +2,7 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 #include "protocol_api.hpp"
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/btree_store.hpp"
 
 template <class protocol_t>
 direct_reader_t<protocol_t>::direct_reader_t(

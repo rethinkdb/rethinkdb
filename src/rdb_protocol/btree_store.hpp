@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BTREE_BTREE_STORE_HPP_
-#define BTREE_BTREE_STORE_HPP_
+#ifndef RDB_PROTOCOL_BTREE_STORE_HPP_
+#define RDB_PROTOCOL_BTREE_STORE_HPP_
 
 #include <map>
 #include <set>

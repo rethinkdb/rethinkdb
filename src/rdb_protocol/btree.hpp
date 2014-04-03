@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/btree_store.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 

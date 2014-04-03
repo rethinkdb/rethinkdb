@@ -4,7 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"

@@ -15,7 +15,7 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
