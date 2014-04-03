@@ -1925,16 +1925,10 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary = str_to_uuid(datacenter_info->path[1]);
     }
 
-    // RSI: This is a bit silly
-    std::string protocol = "rdb";
-
     // Get the primary key
     if (data.params.find("primary-key") != data.params.end()) {
-        if (protocol != "rdb") {
-            throw admin_parse_exc_t("primary-key is only valid for the rdb protocol");
-        }
         primary_key = guarantee_param_0(data.params, "primary-key");
-    } else if (protocol == "rdb") {
+    } else {
         // TODO: get this value from somewhere, rather than hard-code it
         primary_key = "id";
     }
@@ -1943,12 +1937,8 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         throw admin_parse_exc_t("specified database is not a database: " + database_id);
     }
 
-    if (protocol == "rdb") {
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, primary, primary_key, database, change.get());
-    } else {
-        throw admin_parse_exc_t("unrecognized protocol: " + protocol);
-    }
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
+    new_id = do_admin_create_table_internal(name, primary, primary_key, database, change.get());
 
     do_metadata_update(&cluster_metadata, &change_request);
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
