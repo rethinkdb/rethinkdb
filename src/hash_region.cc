@@ -6,7 +6,7 @@
 #include "btree/keys.hpp"
 
 // TODO: Perhaps move key_range_t region stuff to btree/keys.hpp.
-#include "memcached/region.hpp"
+#include "rdb_protocol/region.hpp"
 #include "stl_utils.hpp"
 
 // TODO: Replace this with a real hash function, if it is not one

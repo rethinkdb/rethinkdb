@@ -16,7 +16,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.12"
+#define SERIALIZER_VERSION_STRING "1.13"
 
 /**
  * Basic configuration parameters.
@@ -125,29 +125,6 @@
 
 // How large can the key be, in bytes?  This value needs to fit in a byte.
 #define MAX_KEY_SIZE                              250
-
-// Any values of this size or less will be directly stored in btree leaf nodes.
-// Values greater than this size will be stored in overflow blocks. This value
-// needs to fit in a byte.
-#define MAX_IN_NODE_VALUE_SIZE                    250
-
-// memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher
-#define MAX_VALUE_SIZE                            (10 * MEGABYTE)
-
-// Values larger than this will be streamed in a get operation
-#define MAX_BUFFERED_GET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely
-
-// If a single connection sends this many 'noreply' commands, the next command will
-// have to wait until the first one finishes
-#define MAX_CONCURRENT_QUERIES_PER_CONNECTION     500
-
-// The number of concurrent queries when loading memcached operations from a file.
-#define MAX_CONCURRENT_QUEURIES_ON_IMPORT         1000
-
-// How many timestamps we store in a leaf node.  We store the
-// NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
-#define NUM_LEAF_NODE_EARLIER_TIMES               4
-
 
 // Special block IDs.  These don't really belong here because they're
 // more magic constants than tunable parameters.

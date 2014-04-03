@@ -961,8 +961,5 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
     token_out->create(&main_token_sink, token);
 }
 
-#include "memcached/protocol.hpp"
-template class btree_store_t<memcached_protocol_t>;
-
 #include "rdb_protocol/protocol.hpp"
 template class btree_store_t<rdb_protocol_t>;

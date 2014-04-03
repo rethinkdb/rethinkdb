@@ -229,12 +229,10 @@ typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_r
 }
 
 #include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 template class base_namespace_repo_t<mock::dummy_protocol_t>;
-template class base_namespace_repo_t<memcached_protocol_t>;
 template class base_namespace_repo_t<rdb_protocol_t>;
+
 template class namespace_repo_t<mock::dummy_protocol_t>;
-template class namespace_repo_t<memcached_protocol_t>;
 template class namespace_repo_t<rdb_protocol_t>;
