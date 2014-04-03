@@ -1367,9 +1367,13 @@ void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::co
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = obj_map.begin(); i != obj_map.end(); ++i) {
+template <class T>
+void admin_cluster_link_t::list_all_internal(
+        const std::string& type,
+        bool long_format,
+        const std::map<uuid_u, deletable_t<T> >& obj_map,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = obj_map.begin(); i != obj_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
 
@@ -2273,9 +2277,12 @@ void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THR
 }
 
 
-template <class map_type>
-void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const std::string& name, map_type *obj_map) {
-    typename map_type::iterator i = obj_map->find(id);
+template <class T>
+void admin_cluster_link_t::do_admin_set_name_internal(
+        const uuid_u& id,
+        const std::string& name,
+        std::map<uuid_u, deletable_t<T> > *obj_map) {
+    auto i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get_ref().name.in_conflict()) {
         do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
         i->second.get_mutable()->name.upgrade_version(change_request_id);
@@ -2583,8 +2590,8 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map) {
-    typename std::map<uuid_u, T>::iterator i = obj_map->find(key);
+void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, deletable_t<T> > *obj_map) {
+    auto i = obj_map->find(key);
 
     if (i == obj_map->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("object not found");

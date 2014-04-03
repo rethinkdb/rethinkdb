@@ -141,15 +141,18 @@ private:
                                         int num_replicas,
                                         std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map);
 
-    template <class obj_map>
-    void do_admin_set_name_internal(const uuid_u& uuid,
-                                    const std::string& new_name,
-                                    obj_map *metadata);
+    template <class T>
+    void do_admin_set_name_internal(
+            const uuid_u& uuid,
+            const std::string& new_name,
+            std::map<uuid_u, deletable_t<T> > *metadata);
 
     void do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids);
 
     template <class T>
-    void do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map);
+    void do_admin_remove_internal_internal(
+            const uuid_u& key,
+            std::map<uuid_u, deletable_t<T> > *obj_map);
 
     void remove_machine_pinnings(const machine_id_t& machine,
                                  std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
@@ -185,8 +188,12 @@ private:
     void remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
                                                       std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *ns_map);
 
-    template <class map_type>
-    void list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> > *table);
+    template <class T>
+    void list_all_internal(
+            const std::string& type,
+            bool long_format,
+            const std::map<uuid_u, deletable_t<T> >& obj_map,
+            std::vector<std::vector<std::string> > *table);
 
     void list_all(bool long_format, const cluster_semilattice_metadata_t& cluster_metadata);
 
