@@ -27,7 +27,7 @@
 
 template <class> class cow_ptr_t;
 class master_access_t;
-template <class protocol_t> class resource_access_t;
+template <class> class resource_access_t;
 class resource_lost_exc_t;
 template <class> class watchable_t;
 template <class> class watchable_subscription_t;
