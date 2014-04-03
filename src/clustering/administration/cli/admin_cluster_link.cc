@@ -1441,9 +1441,10 @@ std::map<database_id_t, admin_cluster_link_t::database_info_t> admin_cluster_lin
     return results;
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_database_tables(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<database_id_t, database_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() &&
             !i->second.get_ref().database.in_conflict()) {
             ++(*results)[i->second.get_ref().database.get()].tables;
@@ -1451,9 +1452,10 @@ void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_datacenter_affinities(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<datacenter_id_t, datacenter_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             if (!i->second.get_ref().primary_datacenter.in_conflict()) {
                 // TODO: Is this correct?  Are we creating a new value

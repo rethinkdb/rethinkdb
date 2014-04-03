@@ -269,8 +269,9 @@ private:
 
     std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class map_type>
-    void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results);
+    void add_datacenter_affinities(
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+            std::map<datacenter_id_t, datacenter_info_t> *results);
 
     struct database_info_t {
         database_info_t() : tables(0) { }
@@ -279,8 +280,9 @@ private:
 
     std::map<database_id_t, database_info_t> build_database_info(const cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class map_type>
-    void add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results);
+    void add_database_tables(
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+            std::map<database_id_t, database_info_t> *results);
 
     void list_single_database(const database_id_t& db_id,
                               const database_semilattice_metadata_t& db,
