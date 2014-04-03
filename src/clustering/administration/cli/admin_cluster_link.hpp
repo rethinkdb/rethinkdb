@@ -196,8 +196,10 @@ private:
                               const perfmon_result_t& stats,
                               std::vector<std::vector<std::string> > *table);
 
-    template <class map_type>
-    void add_namespaces(bool long_format, const map_type& namespaces, std::vector<std::vector<std::string> > *table);
+    void add_namespaces(
+            bool long_format,
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &namespaces,
+            std::vector<std::vector<std::string> > *table);
 
     struct shard_input_t {
         struct {

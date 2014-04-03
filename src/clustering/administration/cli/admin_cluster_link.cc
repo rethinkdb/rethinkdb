@@ -1669,11 +1669,11 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_namespaces(bool long_format,
-                                          const map_type& namespaces,
-                                          std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = namespaces.begin(); i != namespaces.end(); ++i) {
+void admin_cluster_link_t::add_namespaces(
+        bool long_format,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &namespaces,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = namespaces.begin(); i != namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
 
