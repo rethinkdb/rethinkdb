@@ -2949,14 +2949,14 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id,
-                                                            const map_type& ns_map,
-                                                            const std::string&,
-                                                            std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_single_datacenter_affinities(
+        const datacenter_id_t& dc_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        const std::string&,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            const namespace_semilattice_metadata_t ns = i->second.get_ref();
             size_t replicas = 0;
 
             std::vector<std::string> delta;
@@ -3027,7 +3027,7 @@ void admin_cluster_link_t::add_single_database_affinities(
         std::vector<std::vector<std::string> > *table) {
     for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const namespace_semilattice_metadata_t& ns = i->second.get_ref();
+            const namespace_semilattice_metadata_t ns = i->second.get_ref();
 
             if (!ns.database.in_conflict() && ns.database.get() == db_id) {
                 std::vector<std::string> delta;

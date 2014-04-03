@@ -306,11 +306,11 @@ private:
             const std::string& protocol,
             std::vector<std::vector<std::string> > *table);
 
-    template <class map_type>
-    void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
-                                          const map_type& ns_map,
-                                          const std::string& protocol,
-                                          std::vector<std::vector<std::string> > *table);
+    void add_single_datacenter_affinities(
+            const datacenter_id_t& dc_id,
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+            const std::string& protocol,
+            std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
     size_t add_single_machine_replicas(const machine_id_t& machine_id,
