@@ -20,6 +20,7 @@
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
+class io_backender_t;
 class perfmon_collection_repo_t;
 // class serializer_t;
 // class serializer_multiplexer_t;
@@ -34,23 +35,8 @@ class rdb_context_t;
 // This type holds some protocol_t::store_t objects, and doesn't let anybody _casually_ touch them.
 class stores_lifetimer_t {
 public:
-    stores_lifetimer_t() { }
-    ~stores_lifetimer_t() {
-        if (stores_.has()) {
-            for (int i = 0, e = stores_.size(); i < e; ++i) {
-                // TODO: This should use pmap.
-                on_thread_t th(stores_[i]->home_thread());
-                stores_[i].reset();
-            }
-        }
-        if (serializer_.has()) {
-            on_thread_t th(serializer_->home_thread());
-            serializer_.reset();
-            if (multiplexer_.has()) {
-                multiplexer_.reset();
-            }
-        }
-    }
+    stores_lifetimer_t();
+    ~stores_lifetimer_t();
 
     scoped_ptr_t<serializer_t> *serializer() { return &serializer_; }
     scoped_ptr_t<serializer_multiplexer_t> *multiplexer() { return &multiplexer_; }

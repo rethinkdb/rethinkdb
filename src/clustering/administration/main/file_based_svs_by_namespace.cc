@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "serializer/merger.hpp"

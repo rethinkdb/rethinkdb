@@ -14,6 +14,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "stl_utils.hpp"
@@ -21,6 +22,26 @@
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
+
+stores_lifetimer_t::stores_lifetimer_t() { }
+
+stores_lifetimer_t::~stores_lifetimer_t() {
+    if (stores_.has()) {
+        for (int i = 0, e = stores_.size(); i < e; ++i) {
+            // TODO: This should use pmap.
+            on_thread_t th(stores_[i]->home_thread());
+            stores_[i].reset();
+        }
+    }
+    if (serializer_.has()) {
+        on_thread_t th(serializer_->home_thread());
+        serializer_.reset();
+        if (multiplexer_.has()) {
+            multiplexer_.reset();
+        }
+    }
+}
+
 
 /* The reactor driver is also responsible for the translation from
 `persistable_blueprint_t` to `blueprint_t`. */
