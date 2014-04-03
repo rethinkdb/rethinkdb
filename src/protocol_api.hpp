@@ -281,13 +281,12 @@ private:
 
 #endif  // NDEBUG
 
-/* `store_view_t` is an abstract class that represents a region of a key-value
-store for some protocol. It's templatized on the protocol (`protocol_t`). It
-covers some `protocol_t::region_t`, which is returned by `get_region()`.
+/* `store_view_t` is an abstract class that represents a region of a key-value store
+for some protocol.  It covers some `region_t`, which is returned by `get_region()`.
 
-In addition to the actual data, `store_view_t` is responsible for keeping track
-of metadata which is keyed by region. The metadata is currently implemented as
-opaque binary blob (`binary_blob_t`).
+In addition to the actual data, `store_view_t` is responsible for keeping track of
+metadata which is keyed by region. The metadata is currently implemented as opaque
+binary blob (`binary_blob_t`).
 */
 
 class chunk_fun_callback_t {
@@ -479,7 +478,7 @@ private:
     thread on the same node, in that order. The read will return "b".
 
 3.  Arbitrary atomic single-key operations can be performed, as long as they can
-    be expressed as `protocol_t::write_t` objects.
+    be expressed as `write_t` objects.
 
 4.  There are no other atomicity or ordering guarantees.
 
@@ -571,8 +570,6 @@ public:
         store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
     }
 
-    // TODO: Make this take protocol_t::progress_t again (or maybe a
-    // progress_receiver_t type that you define).
     bool send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             send_backfill_callback_t *send_backfill_cb,
