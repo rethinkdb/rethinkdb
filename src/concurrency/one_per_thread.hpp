@@ -77,10 +77,6 @@ public:
         return array[get_thread_id().threadnum].get();
     }
 
-    inner_t *get_thread(threadnum_t i) {
-        return array[i.threadnum].get();
-    }
-
 private:
     // An array of buffers of inner_t of size get_num_threads(), the
     // array is allocated and then the buffers are initialized (on
