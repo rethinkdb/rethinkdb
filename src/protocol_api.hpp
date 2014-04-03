@@ -33,14 +33,6 @@ struct write_response_t;
 
 typedef hash_region_t<key_range_t> region_t;
 
-/* This file describes the relationship between the protocol-specific logic for
-each protocol and the protocol-agnostic logic that routes queries for all the
-protocols. Each protocol defines a `protocol_t` struct that acts as a
-"container" to hold all the types for that protocol. The protocol-agnostic logic
-will be templatized on a `protocol_t`. `protocol_t` itself is never
-instantiated. For a description of what `protocol_t` must be like, see
-`rethinkdb/docs_internal/protocol_api_notes.hpp`. */
-
 class cannot_perform_query_exc_t : public std::exception {
 public:
     explicit cannot_perform_query_exc_t(const std::string &s) : message(s) { }
