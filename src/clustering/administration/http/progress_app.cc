@@ -43,7 +43,6 @@ typedef std::map<machine_id_t, namespace_id_map_t> machine_id_map_t;
 
 /* A visitor that finds the backfiller business card (if it exists) in a
  * reactor activity. */
-template <class protocol_t>
 class get_backfiller_business_card_t : public boost::static_visitor<boost::optional<backfiller_business_card_t> > {
 public:
     boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::primary_t &primary) const {
@@ -147,7 +146,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
     reactor_business_card_t::activity_entry_t region_activity_entry =
         namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(loc.activity_id)->second;
 
-    boost::optional<backfiller_business_card_t> backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
+    boost::optional<backfiller_business_card_t> backfiller = boost::apply_visitor(get_backfiller_business_card_t(), region_activity_entry.activity);
     if (backfiller) {
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
