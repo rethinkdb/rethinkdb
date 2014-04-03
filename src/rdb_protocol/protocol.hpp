@@ -758,21 +758,6 @@ struct rdb_protocol_t {
     static key_range_t sindex_key_range(const store_key_t &start,
                                         const store_key_t &end);
 
-    // RSI: Remove these typedefs.
-    typedef rdb_context_t context_t;
-
-    typedef read_t read_t;
-    typedef read_response_t read_response_t;
-
-    typedef write_t write_t;
-    typedef write_response_t write_response_t;
-
-    typedef traversal_progress_combiner_t backfill_progress_t;
-
-    typedef backfill_chunk_t backfill_chunk_t;
-
-    typedef store_t store_t;
-
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
 
