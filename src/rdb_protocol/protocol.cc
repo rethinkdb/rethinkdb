@@ -41,7 +41,7 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
-typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -111,7 +111,7 @@ RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
 
@@ -119,7 +119,7 @@ void post_construct_and_drain_queue(
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING
 {
@@ -204,7 +204,7 @@ private:
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
@@ -1012,7 +1012,7 @@ store_t::store_t(serializer_t *serializer,
                  context_t *_ctx,
                  io_backender_t *io,
                  const base_path_t &base_path) :
-    btree_store_t<rdb_protocol_t>(serializer, balancer, perfmon_name,
+    btree_store_t(serializer, balancer, perfmon_name,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
@@ -1198,7 +1198,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     rdb_read_visitor_t(btree_slice_t *_btree,
-                       btree_store_t<rdb_protocol_t> *_store,
+                       btree_store_t *_store,
                        superblock_t *_superblock,
                        rdb_context_t *ctx,
                        read_response_t *_response,
@@ -1237,7 +1237,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 private:
     read_response_t *response;
     btree_slice_t *btree;
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     superblock_t *superblock;
     wait_any_t interruptor;
     ql::env_t ql_env;
@@ -1422,7 +1422,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 
     rdb_write_visitor_t(btree_slice_t *_btree,
-                        btree_store_t<rdb_protocol_t> *_store,
+                        btree_store_t *_store,
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
@@ -1479,7 +1479,7 @@ private:
     }
 
     btree_slice_t *btree;
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     txn_t *txn;
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
@@ -1644,7 +1644,7 @@ void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
 }
 
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
-    rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
+    rdb_receive_backfill_visitor_t(btree_store_t *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
                                    scoped_ptr_t<superblock_t> &&_superblock,
@@ -1761,7 +1761,7 @@ private:
         store->sindex_queue_push(queue_wms, acq.get());
     }
 
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     btree_slice_t *btree;
     txn_t *txn;
     scoped_ptr_t<superblock_t> superblock;

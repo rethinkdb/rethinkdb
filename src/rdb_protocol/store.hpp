@@ -3,7 +3,7 @@
 
 #include "rdb_protocol/btree_store.hpp"
 
-class store_t : public btree_store_t<rdb_protocol_t> {
+class store_t : public btree_store_t {
 public:
     store_t(serializer_t *serializer,
             cache_balancer_t *balancer,

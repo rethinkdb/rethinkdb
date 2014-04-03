@@ -28,7 +28,7 @@
 #include "rdb_protocol/region.hpp"
 #include "rdb_protocol/shards.hpp"
 
-template <class> class btree_store_t;
+class btree_store_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -156,7 +156,7 @@ RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 

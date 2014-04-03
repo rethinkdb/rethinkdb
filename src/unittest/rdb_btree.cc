@@ -25,7 +25,7 @@
 
 namespace unittest {
 
-void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
+void insert_rows(int start, int finish, btree_store_t *store) {
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
@@ -55,7 +55,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             buf_lock_t sindex_block
                 = store->acquire_sindex_block_for_write(superblock->expose_buf(),
                                                         sindex_block_id);
-            btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+            btree_store_t::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      &sindex_block,
                      &sindexes);
@@ -73,12 +73,12 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 }
 
 void insert_rows_and_pulse_when_done(int start, int finish,
-        btree_store_t<rdb_protocol_t> *store, cond_t *pulse_when_done) {
+        btree_store_t *store, cond_t *pulse_when_done) {
     insert_rows(start, finish, store);
     pulse_when_done->pulse();
 }
 
-std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
+std::string create_sindex(btree_store_t *store) {
     cond_t dummy_interruptor;
     std::string sindex_id = uuid_to_str(generate_uuid());
     write_token_pair_t token_pair;
@@ -117,7 +117,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     return sindex_id;
 }
 
-void drop_sindex(btree_store_t<rdb_protocol_t> *store,
+void drop_sindex(btree_store_t *store,
                  const std::string &sindex_id) {
     cond_t dummy_interruptor;
     write_token_pair_t token_pair;
@@ -147,7 +147,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
 }
 
 void bring_sindexes_up_to_date(
-        btree_store_t<rdb_protocol_t> *store, std::string sindex_id) {
+        btree_store_t *store, std::string sindex_id) {
     cond_t dummy_interruptor;
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
@@ -170,7 +170,7 @@ void bring_sindexes_up_to_date(
     nap(1000);
 }
 
-void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *store,
+void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t *store,
         std::string sindex_id, cond_t *background_inserts_done) {
     cond_t dummy_interruptor;
     write_token_pair_t token_pair;
@@ -198,7 +198,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
                                                     &sindex_block);
 }
 
-void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+void _check_keys_are_present(btree_store_t *store,
         std::string sindex_id) {
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
@@ -253,7 +253,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+void check_keys_are_present(btree_store_t *store,
         std::string sindex_id) {
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
@@ -266,7 +266,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+void _check_keys_are_NOT_present(btree_store_t *store,
         std::string sindex_id) {
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
@@ -315,7 +315,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+void check_keys_are_NOT_present(btree_store_t *store,
         std::string sindex_id) {
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
