@@ -353,9 +353,10 @@ void admin_cluster_link_t::clear_metadata_maps() {
     uuid_map.clear();
 }
 
-template <class T>
-void admin_cluster_link_t::add_ns_subset_to_maps(const std::string& base, const T& ns_map) {
-    for (typename T::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_ns_subset_to_maps(
+        const std::string& base,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             metadata_info_t *info = new metadata_info_t;
             info->uuid = i->first;
@@ -3091,16 +3092,16 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     }
 }
 
-template <class map_type>
-size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& machine_id,
-                                                         const map_type& ns_map,
-                                                         std::vector<std::vector<std::string> > *table) {
+size_t admin_cluster_link_t::add_single_machine_replicas(
+        const machine_id_t& machine_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        std::vector<std::vector<std::string> > *table) {
     size_t matches = 0;
 
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         // TODO: if there is a blueprint conflict, the values won't be accurate
         if (!i->second.is_deleted() && !i->second.get_ref().blueprint.in_conflict()) {
-            typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            namespace_semilattice_metadata_t ns = i->second.get_ref();
             std::string uuid = uuid_to_str(i->first);
             std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str();
             matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);

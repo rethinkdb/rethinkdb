@@ -312,10 +312,10 @@ private:
             const std::string& protocol,
             std::vector<std::vector<std::string> > *table);
 
-    template <class map_type>
-    size_t add_single_machine_replicas(const machine_id_t& machine_id,
-                                       const map_type& ns_map,
-                                       std::vector<std::vector<std::string> > *table);
+    size_t add_single_machine_replicas(
+            const machine_id_t& machine_id,
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+            std::vector<std::vector<std::string> > *table);
 
     bool add_single_machine_blueprint(const machine_id_t& machine_id,
                                       const persistable_blueprint_t& blueprint,
@@ -357,8 +357,9 @@ private:
     template <class T>
     void add_subset_to_maps(const std::string& base, const T& data_map);
 
-    template <class T>
-    void add_ns_subset_to_maps(const std::string& base, const T& ns_map);
+    void add_ns_subset_to_maps(
+            const std::string& base,
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map);
 
     metadata_info_t *get_info_from_id(const std::string& id);
 
