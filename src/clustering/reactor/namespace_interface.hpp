@@ -32,30 +32,6 @@ class resource_lost_exc_t;
 template <class> class watchable_t;
 template <class> class watchable_subscription_t;
 
-template <class protocol_t, class value_t>
-class region_map_set_membership_t {
-public:
-    region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
-        map(m), region(r), value(v) {
-        region_map_t<std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
-            it->second.insert(value);
-        }
-        map->update(submap);
-    }
-    ~region_map_set_membership_t() {
-        region_map_t<std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
-            it->second.erase(value);
-        }
-        map->update(submap);
-    }
-private:
-    region_map_t<std::set<value_t> > *map;
-    region_t region;
-    value_t value;
-};
-
 class cluster_namespace_interface_t : public namespace_interface_t {
 public:
     cluster_namespace_interface_t(

@@ -396,6 +396,30 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondar
     return ret;
 }
 
+template <class value_t>
+class region_map_set_membership_t {
+public:
+    region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
+        map(m), region(r), value(v) {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+            it->second.insert(value);
+        }
+        map->update(submap);
+    }
+    ~region_map_set_membership_t() {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+            it->second.erase(value);
+        }
+        map->update(submap);
+    }
+private:
+    region_map_t<std::set<value_t> > *map;
+    region_t region;
+    value_t value;
+};
+
 void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
                                                            bool is_start, bool is_primary, const region_t &region,
                                                            auto_drainer_t::lock_t lock) THROWS_NOTHING {
@@ -417,7 +441,7 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
-        region_map_set_membership_t<rdb_protocol_t, relationship_t *> relationship_map_insertion(&relationships,
+        region_map_set_membership_t<relationship_t *> relationship_map_insertion(&relationships,
                                                                                              region,
                                                                                              &relationship_record);
 
