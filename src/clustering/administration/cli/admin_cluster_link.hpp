@@ -254,8 +254,7 @@ private:
         std::string durability;
     };
 
-    template <class ns_type>
-    namespace_info_t get_namespace_info(const ns_type& ns);
+    namespace_info_t get_namespace_info(const namespace_semilattice_metadata_t &ns);
 
     size_t get_replica_count_from_blueprint(const persistable_blueprint_t& bp);
 

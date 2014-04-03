@@ -1583,8 +1583,8 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
     }
 }
 
-template <class ns_type>
-admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(const ns_type& ns) {
+admin_cluster_link_t::namespace_info_t
+admin_cluster_link_t::get_namespace_info(const namespace_semilattice_metadata_t &ns) {
     namespace_info_t result;
 
     if (ns.shards.in_conflict()) {
