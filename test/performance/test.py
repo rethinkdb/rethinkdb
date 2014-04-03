@@ -421,15 +421,15 @@ def save_compare_results():
     compare(results, previous_results)
 
 
-def main(data_directory):
+def main(data_dir):
     """
     Main method
     """
     check_driver()
-    run_tests(data_directory=data_dir)
+    run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":
     data_dir = ''
-    if len(sys.argv) > 1
+    if len(sys.argv) > 1:
         data_dir = sys.argv[1]
     main(data_dir)
