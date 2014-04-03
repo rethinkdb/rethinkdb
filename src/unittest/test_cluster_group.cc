@@ -96,7 +96,7 @@ bool is_blueprint_satisfied(const blueprint_t &bp,
 
 class test_reactor_t : private ack_checker_t {
 public:
-    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
+    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
@@ -118,8 +118,7 @@ private:
 /* This is a cluster that is useful for reactor testing... but doesn't actually
  * have a reactor due to the annoyance of needing the peer ids to create a
  * correct blueprint. */
-template<class protocol_t>
-reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
+reactor_test_cluster_t::reactor_test_cluster_t(int port) :
     connectivity_cluster(),
     message_multiplexer(&connectivity_cluster),
 
@@ -146,15 +145,13 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
                              0,
                              &heartbeat_manager) { }
 
-template <class protocol_t>
-reactor_test_cluster_t<protocol_t>::~reactor_test_cluster_t() { }
+reactor_test_cluster_t::~reactor_test_cluster_t() { }
 
-template <class protocol_t>
-peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
+peer_id_t reactor_test_cluster_t::get_me() {
     return connectivity_cluster.get_me();
 }
 
-test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<rdb_protocol_t> *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
+test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
@@ -200,7 +197,7 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
         store_view_t<rdb_protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<rdb_protocol_t>(&store_ptr, 1));
 
-        test_clusters.push_back(new reactor_test_cluster_t<rdb_protocol_t>(ANY_PORT));
+        test_clusters.push_back(new reactor_test_cluster_t(ANY_PORT));
         if (i > 0) {
             test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
         }
@@ -333,9 +330,6 @@ void test_cluster_group_t::wait_until_blueprint_is_satisfied(const blueprint_t &
 void test_cluster_group_t::wait_until_blueprint_is_satisfied(const std::string& bp) {
     wait_until_blueprint_is_satisfied(compile_blueprint(bp));
 }
-
-
-template class reactor_test_cluster_t<rdb_protocol_t>;
 
 }  // namespace unittest
 

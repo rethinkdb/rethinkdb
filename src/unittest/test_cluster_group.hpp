@@ -33,7 +33,7 @@ namespace unittest {
 
 class temp_file_t;
 
-template <class> class reactor_test_cluster_t;
+class reactor_test_cluster_t;
 class test_reactor_t;
 
 class test_cluster_directory_t {
@@ -53,7 +53,7 @@ public:
     boost::ptr_vector<serializer_t> serializers;
     boost::ptr_vector<mock_store_t> stores;
     boost::ptr_vector<multistore_ptr_t<rdb_protocol_t> > svses;
-    boost::ptr_vector<reactor_test_cluster_t<rdb_protocol_t> > test_clusters;
+    boost::ptr_vector<reactor_test_cluster_t> test_clusters;
 
     boost::ptr_vector<test_reactor_t> test_reactors;
 
@@ -90,7 +90,6 @@ public:
 /* This is a cluster that is useful for reactor testing... but doesn't actually
  * have a reactor due to the annoyance of needing the peer ids to create a
  * correct blueprint. */
-template<class protocol_t>
 class reactor_test_cluster_t {
 public:
     explicit reactor_test_cluster_t(int port);
@@ -119,7 +118,7 @@ public:
 
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
-    in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
 };
 
 }  // namespace unittest
