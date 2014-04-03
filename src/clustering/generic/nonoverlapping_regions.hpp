@@ -7,7 +7,7 @@
 
 #include "errors.hpp"
 #include "http/json/json_adapter.hpp"
-#include "rdb_protocol/protocol.hpp"
+#include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class nonoverlapping_regions_t {

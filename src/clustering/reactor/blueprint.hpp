@@ -4,7 +4,7 @@
 
 #include <map>
 
-#include "rdb_protocol/protocol.hpp"
+#include "protocol_api.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
