@@ -10,7 +10,7 @@
 namespace unittest {
 
 branch_birth_certificate_t<rdb_protocol_t> in_memory_branch_history_manager_t::get_branch(branch_id_t branch) THROWS_NOTHING {
-    typename std::map<branch_id_t, branch_birth_certificate_t<rdb_protocol_t> >::const_iterator it = bh.branches.find(branch);
+    std::map<branch_id_t, branch_birth_certificate_t<rdb_protocol_t> >::const_iterator it = bh.branches.find(branch);
     rassert(it != bh.branches.end(), "no such branch");
     return it->second;
 }
