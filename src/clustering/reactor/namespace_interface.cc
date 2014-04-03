@@ -17,7 +17,7 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
       start_count(0),
       watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
     {
-        typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >::freeze_t freeze(directory_view);
+        watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >::freeze_t freeze(directory_view);
         update_registrants(true);
         // TODO: See if this watcher_subscription use is a significant use.
         watcher_subscription->reset(directory_view, &freeze);
@@ -63,7 +63,7 @@ std::set<region_t>
 cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<region_t> s;
     for (region_map_t<std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
-        for (typename std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
+        for (std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
             s.push_back((*jt)->region);
         }
     }
@@ -295,8 +295,8 @@ void cluster_namespace_interface_t::update_registrants(bool is_start) {
     ASSERT_NO_CORO_WAITING;
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > existings = directory_view->get();
 
-    for (typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
-        for (typename reactor_business_card_t::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
+    for (std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
+        for (reactor_business_card_t::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
             bool has_anything_useful;
             bool is_primary;
             if (const reactor_business_card_details::primary_t *primary = boost::get<reactor_business_card_details::primary_t>(&amit->second.activity)) {
@@ -340,10 +340,10 @@ void cluster_namespace_interface_t::update_registrants(bool is_start) {
 boost::optional<boost::optional<master_business_card_t> >
 cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t> > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<master_business_card_t>();
-        typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
                 boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
@@ -359,10 +359,10 @@ cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer
 boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t> > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<direct_reader_business_card_t>();
-        typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
                 boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
@@ -378,10 +378,10 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(
 boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t> > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
         ret = boost::optional<direct_reader_business_card_t>();
-        typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::secondary_up_to_date_t *secondary_up_to_date_record =
                 boost::get<reactor_business_card_details::secondary_up_to_date_t>(&jt->second.activity)) {

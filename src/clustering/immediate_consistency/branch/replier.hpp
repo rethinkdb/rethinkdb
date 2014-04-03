@@ -43,7 +43,7 @@ private:
 
     auto_drainer_t drainer_;
 
-    typename replier_business_card_t::synchronize_mailbox_t synchronize_mailbox_;
+    replier_business_card_t::synchronize_mailbox_t synchronize_mailbox_;
 
     backfiller_t backfiller_;
 

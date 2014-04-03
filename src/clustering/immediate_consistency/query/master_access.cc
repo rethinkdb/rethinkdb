@@ -20,7 +20,7 @@ master_access_t::master_access_t(
     multi_throttling_client(
         mailbox_manager,
         master->subview(&master_access_t::extract_multi_throttling_business_card),
-        typename master_business_card_t::inner_client_business_card_t(),
+        master_business_card_t::inner_client_business_card_t(),
         interruptor)
 {
     boost::optional<boost::optional<master_business_card_t> > business_card = master->get();
@@ -57,13 +57,13 @@ void master_access_t::read(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
-    typename multi_throttling_client_t<
-            typename master_business_card_t::request_t,
-            typename master_business_card_t::inner_client_business_card_t
+    multi_throttling_client_t<
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
-    typename master_business_card_t::read_request_t read_request(
+    master_business_card_t::read_request_t read_request(
         read,
         otok,
         token_for_master,
@@ -110,13 +110,13 @@ void master_access_t::write(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
-    typename multi_throttling_client_t<
-            typename master_business_card_t::request_t,
-            typename master_business_card_t::inner_client_business_card_t
+    multi_throttling_client_t<
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
-    typename master_business_card_t::write_request_t write_request(
+    master_business_card_t::write_request_t write_request(
         write,
         otok,
         token_for_master,

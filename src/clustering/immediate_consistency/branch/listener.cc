@@ -352,7 +352,7 @@ void listener_t::try_start_receiving_writes(
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
 {
     intro_receiver_t intro_receiver;
-    typename listener_business_card_t::intro_mailbox_t
+    listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
                       boost::bind(&intro_receiver_t::fill, &intro_receiver, _1));
 

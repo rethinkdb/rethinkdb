@@ -48,7 +48,7 @@ stores_lifetimer_t::~stores_lifetimer_t() {
 blueprint_t translate_blueprint(const persistable_blueprint_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
 
     blueprint_t output;
-    for (typename persistable_blueprint_t::role_map_t::const_iterator it = input.machines_roles.begin();
+    for (persistable_blueprint_t::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
         if (peer.is_nil()) {
@@ -337,9 +337,9 @@ private:
             svs_.get(), namespace_collection, ctx));
 
         {
-            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
+            watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
             reactor_directory_subscription_.init(
-                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t(
+                new watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
 
@@ -473,7 +473,7 @@ bool reactor_driver_t::apply_directory_changes(
 
 void reactor_driver_t::delete_reactor_data(
         auto_drainer_t::lock_t lock,
-        typename reactor_map_t::auto_type *thing_to_delete,
+        reactor_map_t::auto_type *thing_to_delete,
         namespace_id_t namespace_id)
 {
     lock.assert_is_holding(&drainer);
@@ -541,7 +541,7 @@ void reactor_driver_t::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
+                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
                 }
             }
         }

@@ -54,8 +54,8 @@ public:
 
 private:
     typedef multi_throttling_business_card_t<
-            typename master_business_card_t::request_t,
-            typename master_business_card_t::inner_client_business_card_t
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             > mt_business_card_t;
     static boost::optional<boost::optional<mt_business_card_t> > extract_multi_throttling_business_card(
             const boost::optional<boost::optional<master_business_card_t> > &bcard) {
@@ -82,8 +82,8 @@ private:
     fifo_enforcer_source_t source_for_master;
 
     multi_throttling_client_t<
-            typename master_business_card_t::request_t,
-            typename master_business_card_t::inner_client_business_card_t
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             > multi_throttling_client;
 
     DISABLE_COPYING(master_access_t);

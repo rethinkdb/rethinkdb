@@ -49,10 +49,10 @@ private:
     public:
         client_t(
                 master_t *p,
-                UNUSED const typename master_business_card_t::inner_client_business_card_t &) :
+                UNUSED const master_business_card_t::inner_client_business_card_t &) :
             parent(p) { }
         void perform_request(
-                const typename master_business_card_t::request_t &,
+                const master_business_card_t::request_t &,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
     private:
@@ -69,8 +69,8 @@ private:
     cond_t shutdown_cond;
 
     multi_throttling_server_t<
-            typename master_business_card_t::request_t,
-            typename master_business_card_t::inner_client_business_card_t,
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t,
             master_t *,
             client_t
             > multi_throttling_server;

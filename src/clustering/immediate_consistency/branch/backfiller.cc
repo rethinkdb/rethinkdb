@@ -61,10 +61,10 @@ bool backfiller_t::confirm_and_send_metainfo(store_view_t::metainfo_t metainfo,
 
     {
         on_thread_t th(branch_history_manager->home_thread());
-        for (typename version_map_t::const_iterator it = start_point.begin();
+        for (version_map_t::const_iterator it = start_point.begin();
              it != start_point.end();
              ++it) {
-            for (typename version_map_t::const_iterator jt = end_point.begin();
+            for (version_map_t::const_iterator jt = end_point.begin();
                  jt != end_point.end();
                  ++jt) {
                 region_t ixn = region_intersection(it->first, jt->first);
@@ -120,7 +120,7 @@ public:
           chunk_semaphore_(chunk_semaphore),
           backfiller_(backfiller) { }
 
-    bool should_backfill_impl(const typename store_view_t::metainfo_t &metainfo) {
+    bool should_backfill_impl(const store_view_t::metainfo_t &metainfo) {
         return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
     }
 
@@ -211,7 +211,7 @@ void backfiller_t::on_cancel_backfill(backfill_session_id_t session_id, UNUSED a
 
     assert_thread();
 
-    typename std::map<backfill_session_id_t, cond_t *>::iterator it =
+    std::map<backfill_session_id_t, cond_t *>::iterator it =
         local_interruptors.find(session_id);
     if (it != local_interruptors.end()) {
         it->second->pulse();

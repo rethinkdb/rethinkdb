@@ -120,26 +120,26 @@ double estimate_cost_to_get_up_to_date(
         const region_t &shard) {
     typedef reactor_business_card_t rb_t;
     region_map_t<double> costs(shard, 3);
-    for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
+    for (rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
         region_t intersection = region_intersection(it->second.region, shard);
         if (!region_is_empty(intersection)) {
             int cost;
-            if (boost::get<typename rb_t::primary_when_safe_t>(&it->second.activity)) {
+            if (boost::get<rb_t::primary_when_safe_t>(&it->second.activity)) {
                 cost = 0;
-            } else if (boost::get<typename rb_t::primary_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::primary_t>(&it->second.activity)) {
                 cost = 0;
-            } else if (boost::get<typename rb_t::secondary_up_to_date_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::secondary_up_to_date_t>(&it->second.activity)) {
                 cost = 1;
-            } else if (boost::get<typename rb_t::secondary_without_primary_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
                 cost = 2;
-            } else if (boost::get<typename rb_t::secondary_backfilling_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::secondary_backfilling_t>(&it->second.activity)) {
                 cost = 2;
-            } else if (boost::get<typename rb_t::nothing_when_safe_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
                 cost = 3;
-            } else if (boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
                 cost = 3;
-            } else if (boost::get<typename rb_t::nothing_t>(&it->second.activity)) {
+            } else if (boost::get<rb_t::nothing_t>(&it->second.activity)) {
                 cost = 3;
             } else {
                 // I don't know if this is unreachable, but cost would be uninitialized otherwise  - Sam
@@ -183,7 +183,7 @@ priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &p
     const bool would_rob_someone = std_contains(negative_pinnings, id);
     const std::map<machine_id_t, int>::const_iterator usage_it = usage.find(id);
     const int redundancy_cost = usage_it == usage.end() ? 0 : usage_it->second;
-    const typename std::map<machine_id_t, reactor_business_card_t>::const_iterator directory_it = directory.find(id);
+    const std::map<machine_id_t, reactor_business_card_t>::const_iterator directory_it = directory.find(id);
     const double backfill_cost = directory_it == directory.end() ? 3.0 : estimate_cost_to_get_up_to_date(directory_it->second, shard);
 
     return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost, prioritize_distribution);
@@ -325,7 +325,7 @@ persistable_blueprint_t suggest_blueprint(
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
 
-        for (typename primary_pinnings_map_t::iterator pit  = primary_masked_map.begin();
+        for (primary_pinnings_map_t::iterator pit  = primary_masked_map.begin();
                                                        pit != primary_masked_map.end();
                                                        ++pit) {
             machines_shard_primary_is_pinned_to.insert(pit->second);
@@ -334,7 +334,7 @@ persistable_blueprint_t suggest_blueprint(
         std::set<machine_id_t> machines_shard_secondary_is_pinned_to;
         secondary_pinnings_map_t secondary_masked_map = secondary_pinnings.mask(*it);
 
-        for (typename secondary_pinnings_map_t::iterator pit  = secondary_masked_map.begin();
+        for (secondary_pinnings_map_t::iterator pit  = secondary_masked_map.begin();
                                                          pit != secondary_masked_map.end();
                                                          ++pit) {
             machines_shard_secondary_is_pinned_to.insert(pit->second.begin(), pit->second.end());
@@ -346,7 +346,7 @@ persistable_blueprint_t suggest_blueprint(
                     machines_shard_primary_is_pinned_to,
                     machines_shard_secondary_is_pinned_to, usage,
                     prioritize_distribution);
-        for (typename std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
+        for (std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
                 jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;
         }

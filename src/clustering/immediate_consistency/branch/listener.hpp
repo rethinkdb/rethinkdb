@@ -104,11 +104,11 @@ public:
         return branch_id_;
     }
 
-    typename listener_business_card_t::writeread_mailbox_t::address_t writeread_address() const {
+    listener_business_card_t::writeread_mailbox_t::address_t writeread_address() const {
         return writeread_mailbox_.get_address();
     }
 
-    typename listener_business_card_t::read_mailbox_t::address_t read_address() const {
+    listener_business_card_t::read_mailbox_t::address_t read_address() const {
         return read_mailbox_.get_address();
     }
 
@@ -248,7 +248,7 @@ private:
 
     auto_drainer_t drainer_;
 
-    typename listener_business_card_t::write_mailbox_t write_mailbox_;
+    listener_business_card_t::write_mailbox_t write_mailbox_;
 
     /* `writeread_mailbox` and `read_mailbox` live on the `listener_t` even
     though they don't get used until the `replier_t` is constructed. The reason
@@ -256,8 +256,8 @@ private:
     `replier_t` is destroyed without doing a warm shutdown but the `listener_t`
     stays alive. The reason `read_mailbox` is here is for consistency, and to
     have all the query-handling code in one place. */
-    typename listener_business_card_t::writeread_mailbox_t writeread_mailbox_;
-    typename listener_business_card_t::read_mailbox_t read_mailbox_;
+    listener_business_card_t::writeread_mailbox_t writeread_mailbox_;
+    listener_business_card_t::read_mailbox_t read_mailbox_;
 
     scoped_ptr_t<registrant_t<listener_business_card_t> > registrant_;
 

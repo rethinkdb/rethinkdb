@@ -46,7 +46,7 @@ typedef std::map<machine_id_t, namespace_id_map_t> machine_id_map_t;
 template <class protocol_t>
 class get_backfiller_business_card_t : public boost::static_visitor<boost::optional<backfiller_business_card_t> > {
 public:
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::primary_t &primary) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::primary_t &primary) const {
         if (primary.replier) {
             return primary.replier->backfiller_bcard;
         } else {
@@ -54,32 +54,32 @@ public:
         }
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::primary_when_safe_t &) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::primary_when_safe_t &) const {
         return boost::optional<backfiller_business_card_t>();
     }
 
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::secondary_up_to_date_t &secondary_up_to_date) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_up_to_date_t &secondary_up_to_date) const {
         return secondary_up_to_date.replier.backfiller_bcard;
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::secondary_without_primary_t &secondary_without_primary) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_without_primary_t &secondary_without_primary) const {
         return secondary_without_primary.backfiller;
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::secondary_backfilling_t &) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_backfilling_t &) const {
         return boost::optional<backfiller_business_card_t>();
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::nothing_when_safe_t &nothing_when_safe) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_when_safe_t &nothing_when_safe) const {
         return nothing_when_safe.backfiller;
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::nothing_t &) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_t &) const {
         return boost::optional<backfiller_business_card_t>();
     }
 
-    boost::optional<backfiller_business_card_t> operator()(const typename reactor_business_card_t::nothing_when_done_erasing_t &) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_when_done_erasing_t &) const {
         return boost::optional<backfiller_business_card_t>();
     }
 };

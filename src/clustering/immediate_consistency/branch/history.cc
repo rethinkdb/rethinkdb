@@ -10,7 +10,7 @@ bool version_is_ancestor(
         region_t relevant_region) {
     typedef region_map_t<version_range_t> version_map_t;
     // A stack of version maps and iterators pointing an the next element in the map to traverse.
-    std::stack<std::pair<version_map_t *, typename version_map_t::const_iterator> > origin_stack;
+    std::stack<std::pair<version_map_t *, version_map_t::const_iterator> > origin_stack;
 
     // We break from this for loop when the version is shown not to be an ancestor.
     for (;;) {
@@ -48,7 +48,7 @@ bool version_is_ancestor(
             return true;
         }
 
-        typename version_map_t::const_iterator it = origin_stack.top().second;
+        version_map_t::const_iterator it = origin_stack.top().second;
         descendent = it->second.earliest;
         relevant_region = it->first;
 

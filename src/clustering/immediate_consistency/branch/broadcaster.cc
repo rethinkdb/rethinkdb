@@ -48,7 +48,7 @@ broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
 
     typedef region_map_t<version_range_t> version_map_t;
 
-    for (typename version_map_t::const_iterator it =  origins.begin();
+    for (version_map_t::const_iterator it =  origins.begin();
          it != origins.end();
          it++) {
         state_timestamp_t part_timestamp = it->second.latest.timestamp;
@@ -212,7 +212,7 @@ public:
         coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
             d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
-        for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
+        for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
                 it != controller->incomplete_writes.end(); it++) {
 
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
@@ -247,8 +247,8 @@ private:
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
-    void upgrade(typename listener_business_card_t::writeread_mailbox_t::address_t wrm,
-                 typename listener_business_card_t::read_mailbox_t::address_t rm,
+    void upgrade(listener_business_card_t::writeread_mailbox_t::address_t wrm,
+                 listener_business_card_t::read_mailbox_t::address_t rm,
                  auto_drainer_t::lock_t)
             THROWS_NOTHING {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&controller->mutex);
@@ -274,10 +274,10 @@ private:
     }
 
 public:
-    typename listener_business_card_t::write_mailbox_t::address_t write_mailbox;
+    listener_business_card_t::write_mailbox_t::address_t write_mailbox;
     bool is_readable;
-    typename listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
-    typename listener_business_card_t::read_mailbox_t::address_t read_mailbox;
+    listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
+    listener_business_card_t::read_mailbox_t::address_t read_mailbox;
 
     /* This is used to enforce that operations are performed on the
        destination machine in the same order that we send them, even if the
@@ -301,8 +301,8 @@ private:
     broadcaster_t *controller;
     auto_drainer_t drainer;
 
-    typename listener_business_card_t::upgrade_mailbox_t upgrade_mailbox;
-    typename listener_business_card_t::downgrade_mailbox_t downgrade_mailbox;
+    listener_business_card_t::upgrade_mailbox_t upgrade_mailbox;
+    listener_business_card_t::downgrade_mailbox_t downgrade_mailbox;
 
     DISABLE_COPYING(dispatchee_t);
 };
@@ -313,7 +313,7 @@ Important: These functions must send the message before responding to
 
 void listener_write(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t::write_mailbox_t::address_t &write_mailbox,
+        const listener_business_card_t::write_mailbox_t::address_t &write_mailbox,
         const write_t &w, transition_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
@@ -338,7 +338,7 @@ void store_listener_response(response_t *result_out, const response_t &result_in
 
 void listener_read(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t::read_mailbox_t::address_t &read_mailbox,
+        const listener_business_card_t::read_mailbox_t::address_t &read_mailbox,
         const read_t &r, read_response_t *response, state_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
@@ -406,7 +406,7 @@ void broadcaster_t::spawn_write(const write_t &write,
 
     /* As long as we hold the lock, take a snapshot of the dispatchee map
     and grab order tokens */
-    for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
+    for (std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
          it != dispatchees.end(); ++it) {
         /* Once we call `enter_write()`, we have committed to sending
         the write to every dispatchee. In particular, it's important
@@ -654,7 +654,7 @@ void broadcaster_t::sanity_check() {
 #ifndef NDEBUG
     mutex_assertion_t::acq_t acq(&mutex);
     state_timestamp_t ts = newest_complete_timestamp;
-    for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
+    for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
          it != incomplete_writes.end(); it++) {
         rassert(ts == (*it)->timestamp.timestamp_before());
         ts = (*it)->timestamp.timestamp_after();

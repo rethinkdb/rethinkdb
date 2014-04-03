@@ -36,7 +36,7 @@ private:
     order_source_t order_source;  // TODO: order_token_t::ignore
     auto_drainer_t drainer;
 
-    typename direct_reader_business_card_t::read_mailbox_t read_mailbox;
+    direct_reader_business_card_t::read_mailbox_t read_mailbox;
 };
 
 #endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_HPP_

@@ -114,7 +114,7 @@ private:
 
     persistent_file_t<metadata_t> *persistent_file;
     machine_id_t machine_id;
-    typename boost::shared_ptr<semilattice_read_view_t<metadata_t> > view;
+    boost::shared_ptr<semilattice_read_view_t<metadata_t> > view;
 
     scoped_ptr_t<cond_t> flush_again;
 

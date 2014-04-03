@@ -93,7 +93,7 @@ private:
 
     void delete_reactor_data(
             auto_drainer_t::lock_t lock,
-            typename reactor_map_t::auto_type *thing_to_delete,
+            reactor_map_t::auto_type *thing_to_delete,
             namespace_id_t namespace_id);
     void on_change();
     void set_reactor_directory_entry(

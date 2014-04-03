@@ -16,9 +16,9 @@ public:
             )> read_mailbox_t;
 
     direct_reader_business_card_t() { }
-    explicit direct_reader_business_card_t(const typename read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
+    explicit direct_reader_business_card_t(const read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
 
-    typename read_mailbox_t::address_t read_mailbox;
+    read_mailbox_t::address_t read_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_1(read_mailbox);
 };

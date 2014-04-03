@@ -56,7 +56,7 @@ void apply_json_to(cJSON *change, blueprint_role_t *target) {
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t::role_map_t>(&target->machines_roles));
+    res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<persistable_blueprint_t::role_map_t>(&target->machines_roles));
     return  res;
 }
 
