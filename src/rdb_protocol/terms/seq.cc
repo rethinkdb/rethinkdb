@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -199,6 +200,19 @@ private:
             env->env, reduce_wire_func_t(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
+};
+
+class changes_term_t : public op_term_t {
+public:
+    changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+        counted_t<table_t> tbl = arg(env, 0)->as_table();
+        changefeed_manager_t *mgr = env->env->changefeed_manager;
+        return new_val(env->env, mgr->changefeed(tbl));
+    }
+    virtual const char *name() const { return "changes"; }
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?

@@ -9,19 +9,16 @@ class change_stream_t;
 
 class changefeed_t {
 public:
-    // We store these `changefeed_t`s in a `std::map`, but they aren't copyable
-    // and our STL doesn't support `map::emplace`, so instead we use
-    // `map::operator[]` with a default-constructed `changefeed_t` and
-    // explicitly initialize it afterward.
-    changefeed_t() { } // Make sure to call `ensure_initialized`!
-    void ensure_initialized(mailbox_manager_t *manager) {
-        if (!mailbox.has()) {
-            auto f = [=](counted_t<const datum_t> d) {
-                this->push_datum(d);
-                this->maybe_notify_waiters();
-            };
-            mailbox.init(new mailbox_t<void(counted_t<const datum_t>)>(manager, f));
-        }
+    changefeed_t(mailbox_manager_t *manager) {
+        auto f = [=](counted_t<const datum_t> d) {
+            this->push_datum(d);
+            this->maybe_notify_waiters();
+        };
+        mailbox.init(new mailbox_t<void(counted_t<const datum_t>)>(manager, f));
+    }
+    ~changefeed_t() {
+        // If we have subscribers left, they have a dangling pointer.
+        guarantee(subscribers.size() == 0);
     }
     void subscribe(change_stream_t *s) {
         guarantee(mailbox.has());
@@ -41,6 +38,14 @@ public:
             data_cond.init(new cond_t());
         }
         data_cond->wait_lazily_unordered();
+    }
+    mailbox_addr_t<void(counted_t<const datum_t>)> addr() {
+        return mailbox->get_address();
+    }
+    changefeed_t(changefeed_t &&rhs) {
+        mailbox.swap(rhs.mailbox);
+        data_cond.swap(rhs.data_cond);
+        subscribers.swap(rhs.subscribers);
     }
 private:
     void push_datum(counted_t<const datum_t> d);
@@ -62,9 +67,7 @@ public:
         : eager_datum_stream_t(std::forward<Args...>(args...)), feed(_feed) {
         feed->subscribe(this);
     }
-    ~change_stream_t() {
-        feed->unsubscribe(this);
-    }
+    ~change_stream_t() { feed->unsubscribe(this); }
     void add_el(counted_t<const datum_t> d) {
         els.push_back(d);
         if (els.size() > array_size_limit()) {
@@ -103,9 +106,15 @@ changefeed_manager_t::changefeed_manager_t(mailbox_manager_t *_manager)
     : manager(_manager) { }
 changefeed_manager_t::~changefeed_manager_t() { }
 
-counted_t<datum_stream_t> changefeed_manager_t::changefeed(table_t *tbl) {
-    auto feed = &changefeeds[tbl->get_uuid()];
-    feed->ensure_initialized(manager);
+counted_t<datum_stream_t> changefeed_manager_t::changefeed(
+    const counted_t<table_t> &tbl) {
+    uuid_u uuid = tbl->get_uuid();
+    auto entry = changefeeds.find(uuid);
+    if (entry == changefeeds.end()) {
+        entry = changefeeds.insert(std::make_pair(uuid, changefeed_t(manager))).first;
+    }
+    auto feed = &entry->second;
+    send(manager, feed->addr(), make_counted<const datum_t>(3.14));
     return counted_t<datum_stream_t>(new change_stream_t(feed, tbl->backtrace()));
 }
 
