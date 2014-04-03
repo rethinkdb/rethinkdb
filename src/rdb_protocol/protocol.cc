@@ -25,6 +25,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"

@@ -15,17 +15,20 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "rdb_protocol/btree_store.hpp"
+#include "btree/erase_range.hpp"
 #include "btree/keys.hpp"
+#include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
+#include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/region.hpp"
 #include "rdb_protocol/shards.hpp"
 
+template <class> class btree_store_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -37,6 +40,8 @@ class namespace_repo_t;
 class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+
+struct rdb_protocol_t;
 
 namespace unittest { struct make_sindex_read_t; }
 
@@ -772,55 +777,6 @@ struct rdb_protocol_t {
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
 
-
-class store_t : public btree_store_t<rdb_protocol_t> {
-public:
-    store_t(serializer_t *serializer,
-                cache_balancer_t *balancer,
-                const std::string &perfmon_name,
-                bool create,
-                perfmon_collection_t *parent_perfmon_collection,
-                rdb_context_t *ctx,
-                io_backender_t *io,
-                const base_path_t &base_path);
-    ~store_t();
-
-private:
-    friend struct read_visitor_t;
-    void protocol_read(const read_t &read,
-                       read_response_t *response,
-                       btree_slice_t *btree,
-                       superblock_t *superblock,
-                       signal_t *interruptor);
-
-    friend struct write_visitor_t;
-    void protocol_write(const write_t &write,
-                        write_response_t *response,
-                        transition_timestamp_t timestamp,
-                        btree_slice_t *btree,
-                        scoped_ptr_t<superblock_t> *superblock,
-                        signal_t *interruptor);
-
-    void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
-                                superblock_t *superblock,
-                                buf_lock_t *sindex_block,
-                                btree_slice_t *btree,
-                                rdb_protocol_t::backfill_progress_t *progress,
-                                signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void protocol_receive_backfill(btree_slice_t *btree,
-                                   scoped_ptr_t<superblock_t> &&superblock,
-                                   signal_t *interruptor,
-                                   const backfill_chunk_t &chunk);
-
-    void protocol_reset_data(const region_t& subregion,
-                             btree_slice_t *btree,
-                             superblock_t *superblock,
-                             signal_t *interruptor);
-    rdb_context_t *ctx;
-};
 
 namespace rdb_protocol_details {
 /* TODO: This might be redundant. I thought that `key_tester_t` was only

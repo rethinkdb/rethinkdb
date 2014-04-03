@@ -9,6 +9,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 

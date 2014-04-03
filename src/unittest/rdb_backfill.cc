@@ -11,6 +11,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"

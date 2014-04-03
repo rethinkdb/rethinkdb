@@ -22,6 +22,7 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "utils.hpp"
 
 struct rdb_protocol_t;

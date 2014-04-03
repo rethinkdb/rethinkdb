@@ -962,4 +962,5 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
 }
 
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 template class btree_store_t<rdb_protocol_t>;

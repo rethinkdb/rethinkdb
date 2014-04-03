@@ -13,6 +13,7 @@
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"

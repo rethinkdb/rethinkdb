@@ -1,6 +1,7 @@
 #include "unittest/mock_store.hpp"
 
 #include "arch/timing.hpp"
+#include "rdb_protocol/store.hpp"
 
 namespace unittest {
 

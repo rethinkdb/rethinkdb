@@ -16,6 +16,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/store.hpp"
 #include "stl_utils.hpp"
 
 namespace unittest {
