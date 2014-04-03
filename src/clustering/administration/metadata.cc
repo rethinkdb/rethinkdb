@@ -9,6 +9,11 @@
 #include "stl_utils.hpp"
 
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
+RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
+
+RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
+RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
+
 
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 

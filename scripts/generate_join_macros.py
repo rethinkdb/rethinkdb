@@ -106,6 +106,7 @@ You can also use this with templated types, but it's pretty hacky:
         generate_make_semilattice_joinable_macro(nfields)
         generate_impl_semilattice_joinable_macro(nfields)
         generate_make_equality_comparable_macro(nfields)
+        generate_impl_equality_comparable_macro(nfields)
         generate_make_me_equality_comparable_macro(nfields)
         print
 
