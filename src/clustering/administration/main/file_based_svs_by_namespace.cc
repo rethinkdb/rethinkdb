@@ -42,14 +42,14 @@ void do_construct_existing_store(
     int thread_offset,
     store_args_t store_args,
     serializer_multiplexer_t *multiplexer,
-    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores_out_stores,
+    scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
     store_view_t **store_views) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
     on_thread_t th(threads[thread_offset]);
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    rdb_protocol_t::store_t *store = new rdb_protocol_t::store_t(
+    store_t *store = new store_t(
         multiplexer->proxies[thread_offset], store_args.balancer,
         hash_shard_perfmon_name(thread_offset),
         false, store_args.serializers_perfmon_collection,
@@ -63,11 +63,11 @@ void do_create_new_store(
     int thread_offset,
     store_args_t store_args,
     serializer_multiplexer_t *multiplexer,
-    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores_out_stores,
+    scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores,
     store_view_t **store_views) {
 
     on_thread_t th(threads[thread_offset]);
-    rdb_protocol_t::store_t *store = new rdb_protocol_t::store_t(
+    store_t *store = new store_t(
         multiplexer->proxies[thread_offset], store_args.balancer,
         hash_shard_perfmon_name(thread_offset),
         true, store_args.serializers_perfmon_collection,
@@ -96,7 +96,7 @@ file_based_svs_by_namespace_t::get_svs(
     // on N serializers.
 
     const int num_stores = CPU_SHARDING_FACTOR;
-    scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores_out_stores
+    scoped_array_t<scoped_ptr_t<store_t> > *stores_out_stores
         = stores_out->stores();
     stores_out_stores->init(num_stores);
 

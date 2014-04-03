@@ -36,17 +36,17 @@ public:
     rdb_namespace_interface_t(
         namespace_interface_t *internal, env_t *env);
 
-    void read(const rdb_protocol_t::read_t &,
-              rdb_protocol_t::read_response_t *response,
+    void read(const read_t &,
+              read_response_t *response,
               order_token_t tok,
               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(const rdb_protocol_t::read_t &,
-                       rdb_protocol_t::read_response_t *response,
+    void read_outdated(const read_t &,
+                       read_response_t *response,
                        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(rdb_protocol_t::write_t *,
-               rdb_protocol_t::write_response_t *response,
+    void write(write_t *,
+               write_response_t *response,
                order_token_t tok,
                signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);

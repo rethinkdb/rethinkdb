@@ -98,8 +98,8 @@ static void run_read_write_test() {
     /* Now send some reads */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
-        rdb_protocol_t::read_t r = mock_read(it->first);
-        rdb_protocol_t::read_response_t rr;
+        read_t r = mock_read(it->first);
+        read_response_t rr;
         cond_t fake_interruptor;
         fifo_enforcer_sink_t::exit_read_t read_token;
         master_access.new_read_token(&read_token);
@@ -176,8 +176,8 @@ static void run_broadcaster_problem_test() {
         &non_interruptor_2);
 
     /* Confirm that it throws an exception */
-    rdb_protocol_t::write_t w = mock_overwrite("a", "b");
-    rdb_protocol_t::write_response_t wr;
+    write_t w = mock_overwrite("a", "b");
+    write_response_t wr;
     cond_t non_interruptor;
     fifo_enforcer_sink_t::exit_write_t write_token;
     master_access.new_write_token(&write_token);

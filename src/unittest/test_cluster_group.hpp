@@ -59,7 +59,7 @@ public:
 
     std::map<std::string, std::string> inserter_state;
 
-    rdb_protocol_t::context_t ctx;
+    rdb_context_t ctx;
 
     explicit test_cluster_group_t(int n_machines);
     ~test_cluster_group_t();

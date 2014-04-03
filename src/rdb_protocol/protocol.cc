@@ -37,9 +37,9 @@ typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
 typedef rdb_context_t context_t;
 
-typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
+typedef backfill_chunk_t backfill_chunk_t;
 
-typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
+typedef traversal_progress_combiner_t backfill_progress_t;
 
 typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
 
@@ -1870,13 +1870,13 @@ RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);
 
 RDB_IMPL_ME_SERIALIZABLE_3(write_t,
                            write, durability_requirement, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t,
                            backfill_atoms);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t, val);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t, val);

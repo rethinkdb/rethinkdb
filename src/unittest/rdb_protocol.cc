@@ -59,9 +59,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
                                                       &get_global_perfmon_collection()));
     }
 
-    boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
+    boost::ptr_vector<store_t> underlying_stores;
 
-    /* Create some structures for the rdb_protocol_t::context_t, warning some
+    /* Create some structures for the rdb_context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
     extproc_pool_t extproc_pool(2);
@@ -81,7 +81,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                new store_t(serializers[i].get(), &balancer,
                     temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));

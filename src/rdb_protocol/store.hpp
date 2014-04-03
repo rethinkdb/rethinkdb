@@ -36,7 +36,7 @@ private:
                                 superblock_t *superblock,
                                 buf_lock_t *sindex_block,
                                 btree_slice_t *btree,
-                                rdb_protocol_t::backfill_progress_t *progress,
+                                traversal_progress_combiner_t *progress,
                                 signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
