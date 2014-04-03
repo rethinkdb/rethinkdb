@@ -30,7 +30,7 @@ public:
     MUST_USE bool add_region(const region_t &region);
 
     // Yes, both of these are const iterators.
-    typedef typename std::set<region_t>::iterator iterator;
+    typedef std::set<region_t>::iterator iterator;
     iterator begin() const { return regions_.begin(); }
     iterator end() const { return regions_.end(); }
 

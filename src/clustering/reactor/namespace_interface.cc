@@ -428,8 +428,8 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
         scoped_ptr_t<resource_access_t<direct_reader_business_card_t> > direct_reader_access;
         if (is_primary) {
             master_access.init(new master_access_t(mailbox_manager,
-                                                                   directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_master_business_card, ph::_1, peer_id, activity_id)),
-                                                                   lock.get_drain_signal()));
+                                                   directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_master_business_card, ph::_1, peer_id, activity_id)),
+                                                   lock.get_drain_signal()));
             direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
         } else {
             direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
@@ -442,8 +442,8 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
         region_map_set_membership_t<relationship_t *> relationship_map_insertion(&relationships,
-                                                                                             region,
-                                                                                             &relationship_record);
+                                                                                 region,
+                                                                                 &relationship_record);
 
         if (is_start) {
             guarantee(start_count > 0);
