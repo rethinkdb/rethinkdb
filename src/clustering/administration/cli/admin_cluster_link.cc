@@ -2098,11 +2098,11 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-template <class obj_map>
-void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_u &obj_uuid,
-                                                             const datacenter_id_t &dc,
-                                                             obj_map *metadata) {
-    typename obj_map::iterator i = metadata->find(obj_uuid);
+void admin_cluster_link_t::do_admin_set_datacenter_namespace(
+        const uuid_u &obj_uuid,
+        const datacenter_id_t &dc,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata) {
+    auto i = metadata->find(obj_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
     } else if (i->second.get_ref().primary_datacenter.in_conflict()) {
@@ -2139,11 +2139,11 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_u obj_uuid
     }
 }
 
-template <class obj_map>
-void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t &table_uuid,
-                                                       const database_id_t &db,
-                                                       obj_map *metadata) {
-    typename obj_map::iterator i = metadata->find(table_uuid);
+void admin_cluster_link_t::do_admin_set_database_table(
+        const namespace_id_t &table_uuid,
+        const database_id_t &db,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata) {
+    auto i = metadata->find(table_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(table_uuid));
     } else if (i->second.get_ref().database.in_conflict()) {

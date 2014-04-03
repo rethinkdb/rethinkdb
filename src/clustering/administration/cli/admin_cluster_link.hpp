@@ -160,15 +160,15 @@ private:
                                                   const database_id_t& database,
                                                   namespaces_semilattice_metadata_t *ns);
 
-    template <class obj_map>
-    void do_admin_set_database_table(const namespace_id_t &table_uuid,
-                                     const database_id_t &db,
-                                     obj_map *metadata);
+    void do_admin_set_database_table(
+            const namespace_id_t &table_uuid,
+            const database_id_t &db,
+            std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata);
 
-    template <class obj_map>
-    void do_admin_set_datacenter_namespace(const uuid_u &obj_uuid,
-                                           const datacenter_id_t &dc,
-                                           obj_map *metadata);
+    void do_admin_set_datacenter_namespace(
+            const uuid_u &obj_uuid,
+            const datacenter_id_t &dc,
+            std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata);
 
     void do_admin_set_datacenter_machine(const uuid_u obj_uuid,
                                          const datacenter_id_t dc,
