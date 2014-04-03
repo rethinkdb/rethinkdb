@@ -110,7 +110,9 @@ class linux_thread_t;
 
 class threaded_context_ref_t {
 public:
-    threaded_context_ref_t() : do_rethread(false) { store_virtual_thread(); }
+    threaded_context_ref_t() : do_rethread(false), do_shutdown(false) {
+        store_virtual_thread();
+    }
 
     /* Every context reference has a condition that can be used to wake it up.
     While it is active, it also holds a lock on the virtual_thread_mutexes of
@@ -132,6 +134,7 @@ private:
     void store_virtual_thread();
 
     bool do_rethread;
+    bool do_shutdown;
 
     /* These variables store the values that `restore_virtual_thread()` loads into
     linux_thread_pool_t's `thread_pool`, `thread_id` and `thread` variables.

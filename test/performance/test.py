@@ -5,6 +5,8 @@ from sys import stdout, exit, path
 import time
 import json
 import os
+import math
+import subprocess
 
 from util import gen_doc, gen_num_docs
 from queries import constant_queries, table_queries, write_queries, delete_queries
@@ -21,29 +23,26 @@ from test_util import RethinkDBTestServers
 import pdb
 
 # We define 4 tables (small/normal cache with small/big documents
+servers_data = [
+    {
+        "cache_size": 1024,
+        "name": "inmemory"
+    },
+    {
+        "cache_size": 16,
+        "name": "outmemory"
+    }
+]
+
 tables = [
     {
-        "name": "smallinmemory", # Name of the table
+        "name": "smalldoc", # Name of the table
         "size_doc": "small", # Small docs
-        "cache": 1024*1024*1024, #1024MB
         "ids": [] # Used to perform get
     },
     {
-        "name": "smalloutmemory",
-        "size_doc": "small",
-        "cache": 1024*1024*16,
-        "ids": []
-    },
-    {
-        "name": "biginmemory",
+        "name": "bigdoc",
         "size_doc": "big",
-        "cache": 1024*1024*1024,
-        "ids": []
-    },
-    {
-        "name": "bigoutmemory",
-        "size_doc": "big",
-        "cache": 1024*1024*16,
         "ids": []
     }
 ]
@@ -54,27 +53,35 @@ executions_per_query = 1000 # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
 results = {}
+
 connection = None
 
 def run_tests(build="../../build/release"):
-    global connection
-    print "Starting cluster...",
-    sys.stdout.flush()
-    with RethinkDBTestServers(1, server_build_dir=build) as servers:
-        print " Done."
+    global connection, servers_data
+    for i in range(0, len(servers_data)):
+        server_data = servers_data[i]
+
+        print "Starting server with cache_size "+str(server_data["cache_size"])+" MB...",
         sys.stdout.flush()
 
-        print "Connecting...",
-        sys.stdout.flush()
+        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"]) as servers:
+            print " Done."
+            sys.stdout.flush()
 
-        connection = connect(servers)
-        print " Done."
-        sys.stdout.flush()
+            print "Connecting...",
+            sys.stdout.flush()
 
-        init_tables()
+            connection = connect(servers)
+            print " Done."
+            sys.stdout.flush()
 
-        # Tests
-        execute_queries()
+            init_tables()
+
+            # Tests
+            execute_read_write_queries(server_data["name"])
+
+            if i == 0:
+                execute_constant_queries()
 
     save_compare_results()
 
@@ -99,7 +106,7 @@ def init_tables():
     r.db_create("test").run(connection)
 
     for table in tables:
-        r.db("test").table_create(table["name"], cache_size=table["cache"]).run(connection)
+        r.db("test").table_create(table["name"]).run(connection)
 
     for table in tables:
         r.db("test").table(table["name"]).index_create("field0").run(connection)
@@ -110,9 +117,9 @@ def init_tables():
 
 
 
-def execute_queries():
+def execute_read_write_queries(suffix):
     """
-    Execute all the queries (inserts/update, reads, terms, delete)
+    Execute all the queries (inserts/update, reads, delete)
     """
     global results, connection, time_per_query, executions_per_query, constant_queries
 
@@ -124,33 +131,59 @@ def execute_queries():
         for i in xrange(num_writes):
             docs.append(gen_doc(table["size_doc"], i))
 
-        start = time.time()
         
         i = 0
+
+        durations = []
+        start = time.time()
         while (time.time()-start < time_per_query) & (i < num_writes):
+            start_query = time.time()
             result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
+            durations.append(time.time()-start_query)
+
             if "generated_keys" in result:
                 table["ids"].append(result["generated_keys"][0])
             i += 1
 
-        results["single-inserts-"+table["name"]] = i/(time.time()-start)
+        durations.sort()
+        results["single-inserts-"+table["name"]+"-"+suffix] = {
+            "average": (time.time()-start)/i,
+            "min": durations[0],
+            "max": durations[len(durations)-1],
+            "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+            "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+        }
 
         # Save it to know how many batch inserts we did
         single_inserts = i
 
         # Finish inserting the remaining data
         size_batch = 500
+        durations = []
+        start = time.time()
         if i < num_writes:
             while i+size_batch < num_writes:
+                start_query = time.time()
                 resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
+                durations.append(time.time()-start_query)
+                end = time.time()
+
                 table["ids"] += result["generated_keys"]
                 i += size_batch
 
             if i < num_writes:
                 result = r.db('test').table(table['name']).insert(docs[i:len(docs)]).run(connection)
                 table["ids"] += result["generated_keys"]
+        
+        if num_writes-single_inserts != 0:
+            results["batch-inserts-"+table["name"]+"-"+suffix] = {
+                "average": (end-start)/(num_writes-single_inserts),
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
 
-        results["batch-inserts-"+table["name"]] = (len(docs)-single_inserts)/(time.time()-start)
     
         table["ids"].sort()
         
@@ -168,13 +201,27 @@ def execute_queries():
             for i in xrange(num_writes):
                 docs.append(gen_doc(table["size_doc"], i))
 
-            start = time.time()
-
             i = 0
-            while (time.time()-start < time_per_query) & (i < write_queries):
-                eval(write_queries[p]["query"]).run(connection)
-                results[write_queries[p]["tag"]+"-"+table["name"]] = i/(time.time()-start)
 
+            durations = []
+            start = time.time()
+            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+                start_query = time.time()
+                eval(write_queries[p]["query"]).run(connection)
+                durations.append(time.time()-start_query)
+                start_query = time.time()
+                i += 1
+
+            durations.sort()
+            results[write_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
+                "average": (time.time()-start)/i,
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
+
+            i -= 1 # We will use `i` in write_queries[p]["clean"] to revert only the documents we changed
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
@@ -187,7 +234,6 @@ def execute_queries():
     sys.stdout.flush()
     for table in tables:
         for p in xrange(len(table_queries)):
-            start = time.time()
             count = 0
             i = 0
             if "imax" in table_queries[p]:
@@ -195,7 +241,10 @@ def execute_queries():
             else:
                 max_i = 1
 
+            durations = []
+            start = time.time()
             while (time.time()-start < time_per_query) & (count < executions_per_query):
+                start_query = time.time()
                 try:
                     cursor = eval(table_queries[p]["query"]).run(connection)
                     if isinstance(cursor, r.net.Cursor):
@@ -211,22 +260,67 @@ def execute_queries():
                     print constant_queries[p]
                     sys.stdout.flush()
                     break
+                durations.append(time.time()-start_query)
 
                 count+=1
 
-            results[table_queries[p]["tag"]+"-"+table["name"]] = count/(time.time()-start)
+            durations.sort()
+            results[table_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
+                "average": (time.time()-start)/count,
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
+
 
     print " Done."
     sys.stdout.flush()
 
 
+    # Execute the delete queries
+    print "Running delete...",
+    sys.stdout.flush()
+    for table in tables:
+        for p in xrange(len(delete_queries)):
+            start = time.time()
+
+            i = 0
+
+            durations = []
+            start = time.time()
+            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+                start_query = time.time()
+                eval(delete_queries[p]["query"]).run(connection)
+                durations.append(time.time()-start_query)
+
+                i += 1
+
+            durations.sort()
+            results[delete_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
+                "average": (time.time()-start)/i,
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
+
+
+    print " Done."
+    sys.stdout.flush()
+
+def execute_constant_queries():
+    global results
+
     # Execute the queries that do not require a table
     print "Running constant queries...",
     sys.stdout.flush()
     for p in xrange(len(constant_queries)):
-        start = time.time()
         count = 0
+        durations = []
+        start = time.time()
         while (time.time()-start < time_per_query) & (count < executions_per_query):
+            start_query = time.time()
             if type(constant_queries[p]) == type(""):
                 try:
                     cursor = eval(constant_queries[p]).run(connection)
@@ -242,32 +336,34 @@ def execute_queries():
                 if isinstance(cursor, r.net.Cursor):
                     list(cursor)
                     cursor.close()
+            durations.append(time.time()-start_query)
+            
             count+=1
 
+        durations.sort()
         if type(constant_queries[p]) == type(""):
-            results[constant_queries[p]] = count/(time.time()-start)
+            results[constant_queries[p]] = {
+                "average": (time.time()-start)/count,
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
         else:
-            results[constant_queries[p]["tag"]] = count/(time.time()-start)
+            results[constant_queries[p]["tag"]] = {
+                "average": (time.time()-start)/count,
+                "min": durations[0],
+                "max": durations[len(durations)-1],
+                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
+                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            }
+
+
 
     print " Done."
     sys.stdout.flush()
 
 
-    # Execute the delete queries
-    print "Running delete...",
-    sys.stdout.flush()
-    for table in tables:
-        for p in xrange(len(delete_queries)):
-            start = time.time()
-
-            i = 0
-            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
-                eval(delete_queries[p]["query"]).run(connection)
-
-            results[delete_queries[p]["tag"]+"-"+table["name"]] = i/(time.time()-start)
-
-    print " Done."
-    sys.stdout.flush()
 
 
 
@@ -293,6 +389,9 @@ def save_compare_results():
     Save the current results, and if previous results are available, generate an HTML page with the differences
     """
     global results, str_date
+
+    commit = out = subprocess.Popen(['git', 'log', '-n 1', '--pretty=format:"%H"'], stdout=subprocess.PIPE).communicate()[0]
+    results["hash"] = commit
 
     # Save results
     if not os.path.exists("results"):
@@ -326,12 +425,18 @@ def save_compare_results():
         os.makedirs("comparisons")
 
     f = open("comparisons/comparison_"+str_date+".html", "w")
-    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\ntd{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style></head><body><table>")
-    f.write("<tr><td>Query</td><td>Previous q/s</td><td>q/s</td><td>Previous ms/q</td><td>ms/q</td><td>Diff</td><td>Status</td></tr>")
-    for key in sorted(results):
+    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body>")
+    if "hash" in previous_results:
+        f.write("Previous hash: "+previous_results["hash"]+"<br/>")
+    f.write("Current hash: "+results["hash"]+"<br/><br/>")
+    f.write("<table>")
+    f.write("<thead><tr><th>Query</th><th>Previous avg q/s</th><th>Avg q/s</th><th>Previous 1st centile q/s</th><th>1st centile q/s</th><th>Previous 99 centile q/s</th><th>99 centile q/s</th><th>Diff</th><th>Status</th></tr></thead><tbody>")
+    for key in results:
         if key in previous_results:
-            if results[key] > 0:
-                diff = 1.*(previous_results[key]-results[key])/(results[key])
+            if key == "hash":
+                continue
+            if results[key]["average"] > 0:
+                diff = 1.*(previous_results[key]["average"]-results[key]["average"])/(results[key]["average"])
             else:
                 diff = "undefined"
 
@@ -346,7 +451,7 @@ def save_compare_results():
                 status = "Bug"
                 color = "gray"
             try:
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(previous_results[key], results[key], 1000/previous_results[key], 1000/results[key], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(1/previous_results[key]["average"], 1/results[key]["average"], 1/previous_results[key]["first_centile"], 1/results[key]["first_centile"], 1/previous_results[key]["last_centile"], 1/results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
             except:
                 print key
 
@@ -355,12 +460,12 @@ def save_compare_results():
             color = "gray"
 
             try:
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td>"%(results[key], 1000/results[key])+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
+                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>%.4f</td>"%(1/results[key]["average"], 1/results[key]["first_centile"], 1/results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
             except:
                 print key
 
 
-    f.write("</table></body></html>")
+    f.write("</tbody></table></body></html>")
     f.close()
 
 
