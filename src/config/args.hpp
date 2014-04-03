@@ -16,7 +16,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.12"
+#define SERIALIZER_VERSION_STRING "1.13"
 
 /**
  * Basic configuration parameters.
