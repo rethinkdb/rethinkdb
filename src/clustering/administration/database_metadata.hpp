@@ -20,7 +20,7 @@
 class database_semilattice_metadata_t {
 public:
     vclock_t<name_string_t> name;
-    RDB_MAKE_ME_SERIALIZABLE_1(name);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 RDB_DECLARE_SEMILATTICE_JOINABLE(database_semilattice_metadata_t);
@@ -40,7 +40,7 @@ public:
     typedef std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > database_map_t;
     database_map_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(databases);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 RDB_DECLARE_SEMILATTICE_JOINABLE(databases_semilattice_metadata_t);

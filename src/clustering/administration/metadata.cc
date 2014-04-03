@@ -8,9 +8,11 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
+RDB_IMPL_ME_SERIALIZABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
 
+RDB_IMPL_ME_SERIALIZABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
