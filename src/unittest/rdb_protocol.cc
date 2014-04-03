@@ -374,7 +374,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
-            std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10,
+            std::string id(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10,
                            static_cast<char>(j));
             std::string sid(j, 'a');
             auto sindex_key_literal = make_counted<const ql::datum_t>(std::string(sid));
@@ -387,7 +387,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                 pk = store_key_t(make_counted<const ql::datum_t>(
                     cJSON_GetObjectItem(data->get(), "id"))->print_primary());
             } catch (const ql::base_exc_t &ex) {
-                ASSERT_TRUE(id.length() >= rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+                ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
             }
             ASSERT_TRUE(data->get());

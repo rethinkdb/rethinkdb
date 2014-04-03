@@ -445,10 +445,10 @@ std::string datum_t::print_primary() const {
         unreachable();
     }
 
-    if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
+    if (s.size() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
-              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
+              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
     return s;
 }
@@ -473,10 +473,10 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
-    if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
+    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
-              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1,
+              rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
               key_to_debug_str(primary_key).c_str());
     }
 
@@ -1013,7 +1013,7 @@ void datum_t::init_from_pb(const Datum *d) {
 }
 
 size_t datum_t::max_trunc_size() {
-    return trunc_size(rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+    return trunc_size(rdb_protocol::MAX_PRIMARY_KEY_SIZE);
 }
 
 size_t datum_t::trunc_size(size_t primary_key_size) {

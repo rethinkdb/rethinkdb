@@ -50,7 +50,7 @@ void multistore_ptr_t::do_initialize(int i, store_view_t **store_views) THROWS_N
 
     // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
     store_views_[i] = new store_subview_t(store_views[i],
-                                          region_intersection(rdb_protocol_t::cpu_sharding_subspace(i, num_stores()),
+                                          region_intersection(rdb_protocol::cpu_sharding_subspace(i, num_stores()),
                                                               region_intersection(region_, store_views[i]->get_region())));
 
     // We have an internal sink for each thread of internal_sources.
