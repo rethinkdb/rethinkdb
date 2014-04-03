@@ -23,7 +23,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(name);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
+RDB_DECLARE_SEMILATTICE_JOINABLE(database_semilattice_metadata_t);
 RDB_MAKE_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
 
 void debug_print(printf_buffer_t *buf, const database_semilattice_metadata_t &x);

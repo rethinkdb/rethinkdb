@@ -27,8 +27,17 @@ You can also use this with templated types, but it's pretty hacky:
     RDB_MAKE_SEMILATTICE_JOINABLE_2(pair_t<T>, a, b)
 */
 
+#define RDB_DECLARE_SEMILATTICE_JOINABLE(type_t) \
+  void semilattice_join(type_t *, const type_t &)
+
+#define RDB_DECLARE_EQUALITY_COMPARABLE(type_t) \
+  bool operator==(const type_t &, const type_t &)
 #define RDB_MAKE_SEMILATTICE_JOINABLE_0(type_t) \
     inline void semilattice_join(UNUSED type_t *_a_, UNUSED const type_t &_b_) { \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_0(type_t) \
+    void semilattice_join(UNUSED type_t *_a_, UNUSED const type_t &_b_) { \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_0(type_t) \
@@ -44,6 +53,11 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_1(type_t, field1) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_1(type_t, field1) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
@@ -64,6 +78,12 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field2, _b_.field2); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_2(type_t, field1, field2) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_2(type_t, field1, field2) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2; \
@@ -77,6 +97,13 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_3(type_t, field1, field2, field3) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_3(type_t, field1, field2, field3) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -101,6 +128,14 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field4, _b_.field4); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_4(type_t, field1, field2, field3, field4) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_4(type_t, field1, field2, field3, field4) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4; \
@@ -114,6 +149,15 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_5(type_t, field1, field2, field3, field4, field5) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_5(type_t, field1, field2, field3, field4, field5) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -142,6 +186,16 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field6, _b_.field6); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6; \
@@ -155,6 +209,17 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -187,6 +252,18 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field8, _b_.field8); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8; \
@@ -200,6 +277,19 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -236,6 +326,20 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field10, _b_.field10); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8 && _a_.field9 == _b_.field9 && _a_.field10 == _b_.field10; \
@@ -249,6 +353,21 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -289,6 +408,22 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field12, _b_.field12); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8 && _a_.field9 == _b_.field9 && _a_.field10 == _b_.field10 && _a_.field11 == _b_.field11 && _a_.field12 == _b_.field12; \
@@ -302,6 +437,23 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -346,6 +498,24 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field14, _b_.field14); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8 && _a_.field9 == _b_.field9 && _a_.field10 == _b_.field10 && _a_.field11 == _b_.field11 && _a_.field12 == _b_.field12 && _a_.field13 == _b_.field13 && _a_.field14 == _b_.field14; \
@@ -359,6 +529,25 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+        semilattice_join(&_a_->field15, _b_.field15); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -407,6 +596,26 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field16, _b_.field16); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+        semilattice_join(&_a_->field15, _b_.field15); \
+        semilattice_join(&_a_->field16, _b_.field16); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8 && _a_.field9 == _b_.field9 && _a_.field10 == _b_.field10 && _a_.field11 == _b_.field11 && _a_.field12 == _b_.field12 && _a_.field13 == _b_.field13 && _a_.field14 == _b_.field14 && _a_.field15 == _b_.field15 && _a_.field16 == _b_.field16; \
@@ -420,6 +629,27 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+        semilattice_join(&_a_->field15, _b_.field15); \
+        semilattice_join(&_a_->field16, _b_.field16); \
+        semilattice_join(&_a_->field17, _b_.field17); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \
@@ -472,6 +702,28 @@ You can also use this with templated types, but it's pretty hacky:
         semilattice_join(&_a_->field18, _b_.field18); \
     } \
     extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+        semilattice_join(&_a_->field15, _b_.field15); \
+        semilattice_join(&_a_->field16, _b_.field16); \
+        semilattice_join(&_a_->field17, _b_.field17); \
+        semilattice_join(&_a_->field18, _b_.field18); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
 #define RDB_MAKE_EQUALITY_COMPARABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     inline bool operator==(const type_t &_a_, const type_t &_b_) { \
         return _a_.field1 == _b_.field1 && _a_.field2 == _b_.field2 && _a_.field3 == _b_.field3 && _a_.field4 == _b_.field4 && _a_.field5 == _b_.field5 && _a_.field6 == _b_.field6 && _a_.field7 == _b_.field7 && _a_.field8 == _b_.field8 && _a_.field9 == _b_.field9 && _a_.field10 == _b_.field10 && _a_.field11 == _b_.field11 && _a_.field12 == _b_.field12 && _a_.field13 == _b_.field13 && _a_.field14 == _b_.field14 && _a_.field15 == _b_.field15 && _a_.field16 == _b_.field16 && _a_.field17 == _b_.field17 && _a_.field18 == _b_.field18; \
@@ -485,6 +737,29 @@ You can also use this with templated types, but it's pretty hacky:
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
+        semilattice_join(&_a_->field1, _b_.field1); \
+        semilattice_join(&_a_->field2, _b_.field2); \
+        semilattice_join(&_a_->field3, _b_.field3); \
+        semilattice_join(&_a_->field4, _b_.field4); \
+        semilattice_join(&_a_->field5, _b_.field5); \
+        semilattice_join(&_a_->field6, _b_.field6); \
+        semilattice_join(&_a_->field7, _b_.field7); \
+        semilattice_join(&_a_->field8, _b_.field8); \
+        semilattice_join(&_a_->field9, _b_.field9); \
+        semilattice_join(&_a_->field10, _b_.field10); \
+        semilattice_join(&_a_->field11, _b_.field11); \
+        semilattice_join(&_a_->field12, _b_.field12); \
+        semilattice_join(&_a_->field13, _b_.field13); \
+        semilattice_join(&_a_->field14, _b_.field14); \
+        semilattice_join(&_a_->field15, _b_.field15); \
+        semilattice_join(&_a_->field16, _b_.field16); \
+        semilattice_join(&_a_->field17, _b_.field17); \
+        semilattice_join(&_a_->field18, _b_.field18); \
+        semilattice_join(&_a_->field19, _b_.field19); \
+    } \
+    extern int semilattice_joinable_force_semicolon_declaration
+#define RDB_IMPL_SEMILATTICE_JOINABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+    void semilattice_join(type_t *_a_, const type_t &_b_) { \
         semilattice_join(&_a_->field1, _b_.field1); \
         semilattice_join(&_a_->field2, _b_.field2); \
         semilattice_join(&_a_->field3, _b_.field3); \

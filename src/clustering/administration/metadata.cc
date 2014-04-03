@@ -8,6 +8,8 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
+RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
+
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
