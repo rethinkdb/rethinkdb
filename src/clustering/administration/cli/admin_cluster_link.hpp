@@ -362,7 +362,9 @@ private:
     void update_metadata_maps();
 
     template <class T>
-    void add_subset_to_maps(const std::string& base, const T& data_map);
+    void add_subset_to_maps(
+            const std::string& base,
+            const std::map<uuid_u, deletable_t<T> >& data_map);
 
     void add_ns_subset_to_maps(
             const std::string& base,

@@ -384,8 +384,10 @@ void admin_cluster_link_t::add_ns_subset_to_maps(
 }
 
 template <class T>
-void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
-    for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
+void admin_cluster_link_t::add_subset_to_maps(
+        const std::string& base,
+        const std::map<uuid_u, deletable_t<T> >& data_map) {
+    for (auto i = data_map.begin(); i != data_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             metadata_info_t *info = new metadata_info_t;
             info->uuid = i->first;
