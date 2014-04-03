@@ -71,26 +71,24 @@ public:
     vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;
     vclock_t<nonoverlapping_regions_t> shards;
     vclock_t<name_string_t> name;
-    vclock_t<int> port;
     vclock_t<region_map_t<machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
 // RSI cc file
 inline namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key, int port) {
+    const name_string_t &name, const std::string &key) {
 
     namespace_semilattice_metadata_t ns;
     ns.database           = make_vclock(database, machine);
     ns.primary_datacenter = make_vclock(datacenter, machine);
     ns.name               = make_vclock(name, machine);
     ns.primary_key        = make_vclock(key, machine);
-    ns.port               = make_vclock(port, machine);
 
     std::map<uuid_u, ack_expectation_t> ack_expectations;
     ack_expectations[datacenter] = ack_expectation_t(1, true);
@@ -112,10 +110,10 @@ inline namespace_semilattice_metadata_t new_namespace(
 }
 
 // RSI cc file
-RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_MAKE_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
 
 // RSI cc file
-RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_MAKE_EQUALITY_COMPARABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
