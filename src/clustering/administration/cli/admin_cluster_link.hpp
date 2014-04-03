@@ -304,8 +304,7 @@ private:
 
     void list_single_namespace(const namespace_id_t& ns_id,
                                const namespace_semilattice_metadata_t& ns,
-                               const cluster_semilattice_metadata_t& cluster_metadata,
-                               const std::string& protocol);
+                               const cluster_semilattice_metadata_t& cluster_metadata);
 
     void add_single_database_affinities(
             const datacenter_id_t& db_id,

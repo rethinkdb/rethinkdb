@@ -1087,7 +1087,7 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
             if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "rdb");
+            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata);
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted()) {
@@ -2682,8 +2682,7 @@ void admin_cluster_link_t::do_admin_touch(const admin_command_parser_t::command_
 
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const namespace_semilattice_metadata_t& ns,
-                                                 const cluster_semilattice_metadata_t& cluster_metadata,
-                                                 const std::string&) {
+                                                 const cluster_semilattice_metadata_t& cluster_metadata) {
     if (ns.name.in_conflict() || ns.name.get().empty()) {
         printf("table %s\n", uuid_to_str(ns_id).c_str());
     } else {
