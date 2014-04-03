@@ -1403,8 +1403,6 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
     list_all_internal("machine", long_format, cluster_metadata.machines.machines, &table);
     list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, &table);
     list_all_internal("database", long_format, cluster_metadata.databases.databases, &table);
-    // TODO: better differentiation between table types
-    // RSI^ Table types?  The dummy protocol is gone.
     list_all_internal("table", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
