@@ -81,7 +81,7 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class btree_store_t : public store_view_t<rdb_protocol_t> {
+class btree_store_t : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
@@ -99,8 +99,6 @@ public:
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-    typedef region_map_t<rdb_protocol_t, binary_blob_t> metainfo_t;
-
     void do_get_metainfo(
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
@@ -116,7 +114,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void read(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const read_t &read,
             read_response_t *response,
             order_token_t order_token,
@@ -125,7 +123,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void write(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const metainfo_t& new_metainfo,
             const write_t &write,
             write_response_t *response,
@@ -137,8 +135,8 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(
-            const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-            send_backfill_callback_t<rdb_protocol_t> *send_backfill_cb,
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *send_backfill_cb,
             rdb_protocol_t::backfill_progress_t *progress,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
@@ -299,8 +297,8 @@ public:
                                 scoped_ptr_t<superblock_t> *superblock,
                                 signal_t *interruptor) = 0;
 
-    virtual void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                        chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
+    virtual void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
+                                        chunk_fun_callback_t *chunk_fun_cb,
                                         superblock_t *superblock,
                                         buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
@@ -319,7 +317,7 @@ public:
                                      signal_t *interruptor) = 0;
 
     void get_metainfo_internal(buf_lock_t *sb_buf,
-                               region_map_t<rdb_protocol_t, binary_blob_t> *out)
+                               region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
@@ -360,13 +358,13 @@ private:
 
 public:
     void check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const metainfo_t &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 

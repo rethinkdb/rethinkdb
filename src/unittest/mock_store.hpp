@@ -11,9 +11,9 @@ rdb_protocol_t::read_t mock_read(std::string key);
 
 std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr);
 
-std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key);
+std::string mock_lookup(store_view_t *store, std::string key);
 
-class mock_store_t : public store_view_t<rdb_protocol_t> {
+class mock_store_t : public store_view_t {
 public:
     explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());
     ~mock_store_t();
@@ -32,7 +32,7 @@ public:
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
             const rdb_protocol_t::read_t &read,
             rdb_protocol_t::read_response_t *response,
             order_token_t order_token,
@@ -41,7 +41,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void write(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
             const metainfo_t& new_metainfo,
             const rdb_protocol_t::write_t &write,
             rdb_protocol_t::write_response_t *response,
@@ -53,8 +53,8 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(
-            const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-            send_backfill_callback_t<rdb_protocol_t> *send_backfill_cb,
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
             read_token_pair_t *token,
             signal_t *interruptor)
@@ -67,7 +67,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
-            const rdb_protocol_t::region_t &subregion,
+            const region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token,
             write_durability_t durability,

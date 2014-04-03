@@ -72,8 +72,8 @@ public:
     vclock_t<nonoverlapping_regions_t> shards;
     vclock_t<name_string_t> name;
     vclock_t<int> port;
-    vclock_t<region_map_t<rdb_protocol_t, machine_id_t> > primary_pinnings;
-    vclock_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > > secondary_pinnings;
+    vclock_t<region_map_t<machine_id_t> > primary_pinnings;
+    vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
@@ -101,10 +101,10 @@ inline namespace_semilattice_metadata_t new_namespace(
     guarantee(add_region_success);
     ns.shards = make_vclock(shards, machine);
 
-    region_map_t<rdb_protocol_t, uuid_u> primary_pinnings(region_t::universe(), nil_uuid());
+    region_map_t<uuid_u> primary_pinnings(region_t::universe(), nil_uuid());
     ns.primary_pinnings = make_vclock(primary_pinnings, machine);
 
-    region_map_t<rdb_protocol_t, std::set<uuid_u> > secondary_pinnings(
+    region_map_t<std::set<uuid_u> > secondary_pinnings(
         region_t::universe(), std::set<machine_id_t>());
     ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
 

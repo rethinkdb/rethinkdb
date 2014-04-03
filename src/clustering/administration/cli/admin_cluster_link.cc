@@ -156,22 +156,20 @@ std::string admin_value_to_string(const nonoverlapping_regions_t& value) {
     return result;
 }
 
-template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, uuid_u>& value) {
+std::string admin_value_to_string(const region_map_t<uuid_u>& value) {
     std::string result;
     bool first = true;
-    for (typename region_map_t<protocol_t, uuid_u>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (region_map_t<uuid_u>::const_iterator i = value.begin(); i != value.end(); ++i) {
         result += strprintf("%s%s: %s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), uuid_to_str(i->second).c_str());
         first = false;
     }
     return result;
 }
 
-template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_u> >& value) {
+std::string admin_value_to_string(const region_map_t<std::set<uuid_u> >& value) {
     std::string result;
     bool first = true;
-    for (typename region_map_t<protocol_t, std::set<uuid_u> >::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (region_map_t<std::set<uuid_u> >::const_iterator i = value.begin(); i != value.end(); ++i) {
         //TODO: print more detail
         result += strprintf("%s%s: %zu machine%s", first ? "" : ", ", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s");
         first = false;
@@ -747,9 +745,9 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
         datacenter_use.insert(std::make_pair(datacenter, machine));
     }
 
-    region_map_t<rdb_protocol_t, std::set<machine_id_t> >::const_iterator secondaries_shard;
+    region_map_t<std::set<machine_id_t> >::const_iterator secondaries_shard;
 
-    const region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings = ns->secondary_pinnings.get();
+    const region_map_t<std::set<machine_id_t> > secondary_pinnings = ns->secondary_pinnings.get();
     // Find the secondary pinnings and build the old datacenter pinning map if it exists
     for (secondaries_shard = secondary_pinnings.begin();
          secondaries_shard != secondary_pinnings.end(); ++secondaries_shard) {
@@ -793,8 +791,8 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
 
     // If we are not setting the primary, but the secondaries contain the existing primary, we have to clear the primary pinning
     if (!set_primary && set_secondary) {
-        const region_map_t<rdb_protocol_t, machine_id_t> primary_pinnings = ns->primary_pinnings.get();
-        for (region_map_t<rdb_protocol_t, machine_id_t>::const_iterator primary_shard = primary_pinnings.begin();
+        const region_map_t<machine_id_t> primary_pinnings = ns->primary_pinnings.get();
+        for (region_map_t<machine_id_t>::const_iterator primary_shard = primary_pinnings.begin();
             primary_shard != primary_pinnings.end();
              ++primary_shard) {
 
@@ -872,8 +870,8 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
     // Any time shards are changed, we destroy existing pinnings
     // Use 'resolve' because they should be cleared even if in conflict
     // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
-    region_map_t<rdb_protocol_t, machine_id_t> new_primaries(region_t::universe(), nil_uuid());
-    region_map_t<rdb_protocol_t, std::set<machine_id_t> > new_secondaries(region_t::universe(), std::set<machine_id_t>());
+    region_map_t<machine_id_t> new_primaries(region_t::universe(), nil_uuid());
+    region_map_t<std::set<machine_id_t> > new_secondaries(region_t::universe(), std::set<machine_id_t>());
 
     ns->primary_pinnings = ns->primary_pinnings.make_resolving_version(new_primaries, change_request_id);
     ns->secondary_pinnings = ns->secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
@@ -991,8 +989,8 @@ std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilatt
     // Any time shards are changed, we destroy existing pinnings
     // Use 'resolve' because they should be cleared even if in conflict
     // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
-    region_map_t<rdb_protocol_t, machine_id_t> new_primaries(region_t::universe(), nil_uuid());
-    region_map_t<rdb_protocol_t, std::set<machine_id_t> > new_secondaries(region_t::universe(), std::set<machine_id_t>());
+    region_map_t<machine_id_t> new_primaries(region_t::universe(), nil_uuid());
+    region_map_t<std::set<machine_id_t> > new_secondaries(region_t::universe(), std::set<machine_id_t>());
 
     ns->primary_pinnings = ns->primary_pinnings.make_resolving_version(new_primaries, change_request_id);
     ns->secondary_pinnings = ns->secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
@@ -2014,7 +2012,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
     /* It's important to initialize this because otherwise it will be
     initialized with a default-constructed UUID, which doesn't initialize its
     contents, so Valgrind will complain. */
-    region_map_t<rdb_protocol_t, machine_id_t> default_primary_pinnings(region_t::universe(), nil_uuid());
+    region_map_t<machine_id_t> default_primary_pinnings(region_t::universe(), nil_uuid());
     obj->primary_pinnings.get_mutable() = default_primary_pinnings;
     obj->primary_pinnings.upgrade_version(change_request_id);
     obj->database.get_mutable() = database;
@@ -2208,7 +2206,7 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
         // Check for and remove the machine in primary pinnings
         if (!ns->primary_pinnings.in_conflict()) {
             bool do_upgrade = false;
-            for (region_map_t<rdb_protocol_t, machine_id_t>::iterator j = ns->primary_pinnings.get_mutable().begin();
+            for (region_map_t<machine_id_t>::iterator j = ns->primary_pinnings.get_mutable().begin();
                  j != ns->primary_pinnings.get_mutable().end(); ++j) {
                 if (j->second == machine) {
                     j->second = nil_uuid();
@@ -2224,7 +2222,7 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
         // Check for and remove the machine in secondary pinnings
         if (!ns->secondary_pinnings.in_conflict()) {
             bool do_upgrade = false;
-            for (region_map_t<rdb_protocol_t, std::set<machine_id_t> >::iterator j = ns->secondary_pinnings.get_mutable().begin();
+            for (region_map_t<std::set<machine_id_t> >::iterator j = ns->secondary_pinnings.get_mutable().begin();
                  j != ns->secondary_pinnings.get_mutable().end(); ++j) {
                 if (j->second.erase(machine) == 1) {
                     do_upgrade = true;

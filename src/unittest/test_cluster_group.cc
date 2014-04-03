@@ -37,7 +37,7 @@ namespace unittest {
 RDB_IMPL_ME_SERIALIZABLE_1(test_cluster_directory_t, reactor_directory);
 
 
-void generate_sample_region(int i, int n, rdb_protocol_t::region_t *out) {
+void generate_sample_region(int i, int n, region_t *out) {
     // We keep old dummy-protocol style single-character key logic.
     *out = hash_region_t<key_range_t>(key_range_t(
                                               key_range_t::closed,
@@ -95,7 +95,7 @@ bool is_blueprint_satisfied(const blueprint_t &bp,
 
 class test_reactor_t : private ack_checker_t {
 public:
-    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs);
+    test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
@@ -150,7 +150,7 @@ peer_id_t reactor_test_cluster_t::get_me() {
     return connectivity_cluster.get_me();
 }
 
-test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t<rdb_protocol_t> *svs) :
+test_reactor_t::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t *r, const blueprint_t &initial_blueprint, multistore_ptr_t *svs) :
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t::extract_reactor_directory),
@@ -193,8 +193,8 @@ test_cluster_group_t::test_cluster_group_t(int n_machines)
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
         stores.push_back(new mock_store_t(binary_blob_t(version_range_t(version_t::zero()))));
-        store_view_t<rdb_protocol_t> *store_ptr = &stores[i];
-        svses.push_back(new multistore_ptr_t<rdb_protocol_t>(&store_ptr, 1));
+        store_view_t *store_ptr = &stores[i];
+        svses.push_back(new multistore_ptr_t(&store_ptr, 1));
 
         test_clusters.push_back(new reactor_test_cluster_t(ANY_PORT));
         if (i > 0) {
@@ -232,7 +232,7 @@ blueprint_t test_cluster_group_t::compile_blueprint(const std::string &bp) {
 
         blueprint.add_peer(get_peer_id(peer));
         for (unsigned i = 0; i < it->size(); i++) {
-            rdb_protocol_t::region_t region;
+            region_t region;
             generate_sample_region(i, it->size(), &region);
 
             switch (it->at(i)) {

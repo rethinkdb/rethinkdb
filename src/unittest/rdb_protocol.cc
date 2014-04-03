@@ -87,12 +87,12 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
                     &io_backender, base_path_t(".")));
     }
 
-    boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;
+    boost::ptr_vector<store_view_t> stores;
     for (size_t i = 0; i < nsi_shards.size(); ++i) {
         if (oversharding) {
-            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[0], nsi_shards[i]));
+            stores.push_back(new store_subview_t(&underlying_stores[0], nsi_shards[i]));
         } else {
-            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[i], nsi_shards[i]));
+            stores.push_back(new store_subview_t(&underlying_stores[i], nsi_shards[i]));
         }
     }
 

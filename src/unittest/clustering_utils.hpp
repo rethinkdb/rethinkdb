@@ -57,7 +57,7 @@ public:
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(&token);
-        region_map_t<rdb_protocol_t, binary_blob_t> new_metainfo(
+        region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero())));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
@@ -69,7 +69,7 @@ public:
     store_t store;
 };
 
-inline void test_inserter_write_master_access(master_access_t<rdb_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+inline void test_inserter_write_master_access(master_access_t *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
     rdb_protocol_t::write_t w = mock_overwrite(key, value);
     rdb_protocol_t::write_response_t response;
     fifo_enforcer_sink_t::exit_write_t write_token;
@@ -77,7 +77,7 @@ inline void test_inserter_write_master_access(master_access_t<rdb_protocol_t> *m
     ma->write(w, &response, otok, &write_token, interruptor);
 }
 
-inline std::string test_inserter_read_master_access(master_access_t<rdb_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
+inline std::string test_inserter_read_master_access(master_access_t *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
     rdb_protocol_t::read_t r = mock_read(key);
     rdb_protocol_t::read_response_t response;
     fifo_enforcer_sink_t::exit_read_t read_token;
@@ -124,7 +124,7 @@ public:
                                          this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    test_inserter_t(master_access_t<rdb_protocol_t> *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+    test_inserter_t(master_access_t *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
           wfun(std::bind(&test_inserter_t::write_master_access, master_access, ph::_1, ph::_2, ph::_3, ph::_4)),
@@ -144,11 +144,11 @@ public:
     state_t *values_inserted;
 
 private:
-    static void write_master_access(master_access_t<rdb_protocol_t> *ma, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
+    static void write_master_access(master_access_t *ma, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
         test_inserter_write_master_access(ma, key, value, otok, interruptor);
     }
 
-    static std::string read_master_access(master_access_t<rdb_protocol_t> *ma, const std::string& key, order_token_t otok, signal_t *interruptor) {
+    static std::string read_master_access(master_access_t *ma, const std::string& key, order_token_t otok, signal_t *interruptor) {
         return test_inserter_read_master_access(ma, key, otok, interruptor);
     }
 
@@ -238,14 +238,14 @@ private:
 };
 
 #ifndef NDEBUG
-struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t<rdb_protocol_t> {
+struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t {
     explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
         : value_(expected_value) { }
 
-    void check_metainfo(const region_map_t<rdb_protocol_t, binary_blob_t>& metainfo, const region_t& region) const {
-        region_map_t<rdb_protocol_t, binary_blob_t> masked = metainfo.mask(region);
+    void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
+        region_map_t<binary_blob_t> masked = metainfo.mask(region);
 
-        for (region_map_t<rdb_protocol_t, binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
+        for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
             rassert(it->second == value_);
         }
     }

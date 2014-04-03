@@ -240,8 +240,8 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["name"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<name_string_t>(&target->name, ctx));
     res["shards"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<nonoverlapping_regions_t>(&target->shards, ctx));
     res["port"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int>(&target->port, ctx));
-    res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<rdb_protocol_t, machine_id_t> >(&target->primary_pinnings, ctx));
-    res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<rdb_protocol_t, std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
+    res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<machine_id_t> >(&target->primary_pinnings, ctx));
+    res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<region_map_t<std::set<machine_id_t> > >(&target->secondary_pinnings, ctx));
     res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->primary_key, ctx));
     res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t>(&target->database, ctx));
     return res;
@@ -269,7 +269,7 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespa
     /* It's important to initialize this because otherwise it will be
     initialized with a default-constructed UUID, which doesn't initialize its
     contents, so Valgrind will complain. */
-    region_map_t<rdb_protocol_t, machine_id_t> default_primary_pinnings(region_t::universe(), nil_uuid());
+    region_map_t<machine_id_t> default_primary_pinnings(region_t::universe(), nil_uuid());
     default_namespace.primary_pinnings = default_namespace.primary_pinnings.make_new_version(default_primary_pinnings, ctx.us);
 
     default_namespace.database = default_namespace.database.make_new_version(nil_uuid(), ctx.us);

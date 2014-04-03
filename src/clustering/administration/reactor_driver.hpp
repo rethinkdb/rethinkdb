@@ -27,7 +27,7 @@ class perfmon_collection_repo_t;
 
 class watchable_and_reactor_t;
 
-template <class> class multistore_ptr_t;
+class multistore_ptr_t;
 
 struct rdb_protocol_t;
 class rdb_context_t;
@@ -54,7 +54,7 @@ class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t *stores_out,
-                         scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
+                         scoped_ptr_t<multistore_ptr_t> *svs_out,
                          rdb_context_t *) = 0;
     virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
@@ -70,7 +70,7 @@ public:
                      io_backender_t *io_backender,
                      mailbox_manager_t *mbox_manager,
                      const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &directory_view,
-                     branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+                     branch_history_manager_t *branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view,
                      const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
@@ -111,7 +111,7 @@ private:
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > directory_view;
-    branch_history_manager_t<rdb_protocol_t> *branch_history_manager;
+    branch_history_manager_t *branch_history_manager;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;

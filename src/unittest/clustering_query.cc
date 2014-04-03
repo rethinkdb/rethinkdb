@@ -16,9 +16,9 @@ namespace unittest {
 
 namespace {
 
-boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > wrap_in_optional(
-        const boost::optional<broadcaster_business_card_t<rdb_protocol_t> > &inner) {
-    return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(inner);
+boost::optional<boost::optional<broadcaster_business_card_t> > wrap_in_optional(
+        const boost::optional<broadcaster_business_card_t> &inner) {
+    return boost::optional<boost::optional<broadcaster_business_card_t> >(inner);
 }
 
 }   /* anonymous namespace */
@@ -40,17 +40,17 @@ static void run_read_write_test() {
     /* Set up a branch */
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
-    broadcaster_t<rdb_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+    broadcaster_t broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
                                                 &initial_store,
                                                 &get_global_perfmon_collection(),
                                                 &order_source,
                                                 &interruptor);
 
-    watchable_variable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > broadcaster_metadata_controller(
-        boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster.get_business_card()));
+    watchable_variable_t<boost::optional<broadcaster_business_card_t> > broadcaster_metadata_controller(
+        boost::optional<broadcaster_business_card_t>(broadcaster.get_business_card()));
 
-    listener_t<rdb_protocol_t> initial_listener(
+    listener_t initial_listener(
         base_path_t("."),
         &io_backender,
         cluster.get_mailbox_manager(),
@@ -61,7 +61,7 @@ static void run_read_write_test() {
         &interruptor,
         &order_source);
 
-    replier_t<rdb_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
+    replier_t initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master */
     class : public ack_checker_t {
@@ -73,13 +73,13 @@ static void run_read_write_test() {
             return write_durability_t::SOFT;
         }
     } ack_checker;
-    master_t<rdb_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, rdb_protocol_t::region_t::universe(), &broadcaster);
+    master_t master(cluster.get_mailbox_manager(), &ack_checker, region_t::universe(), &broadcaster);
 
     /* Set up a master access */
-    watchable_variable_t<boost::optional<boost::optional<master_business_card_t<rdb_protocol_t> > > > master_directory_view(
+    watchable_variable_t<boost::optional<boost::optional<master_business_card_t> > > master_directory_view(
         boost::make_optional(boost::make_optional(master.get_business_card())));
     cond_t non_interruptor;
-    master_access_t<rdb_protocol_t> master_access(
+    master_access_t master_access(
         cluster.get_mailbox_manager(),
         master_directory_view.get_watchable(),
         &non_interruptor);
@@ -130,17 +130,17 @@ static void run_broadcaster_problem_test() {
     /* Set up a branch */
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
-    broadcaster_t<rdb_protocol_t> broadcaster(cluster.get_mailbox_manager(),
+    broadcaster_t broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
                                                 &initial_store,
                                                 &get_global_perfmon_collection(),
                                                 &order_source,
                                                 &interruptor);
 
-    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_metadata_controller(
-        boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(broadcaster.get_business_card()));
+    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_controller(
+        boost::optional<boost::optional<broadcaster_business_card_t> >(broadcaster.get_business_card()));
 
-    listener_t<rdb_protocol_t> initial_listener(
+    listener_t initial_listener(
         base_path_t("."),
         &io_backender,
         cluster.get_mailbox_manager(),
@@ -151,7 +151,7 @@ static void run_broadcaster_problem_test() {
         &interruptor,
         &order_source);
 
-    replier_t<rdb_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
+    replier_t initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master. The ack checker is impossible to satisfy, so every
     write will return an error. */
@@ -164,13 +164,13 @@ static void run_broadcaster_problem_test() {
             return write_durability_t::SOFT;
         }
     } ack_checker;
-    master_t<rdb_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, rdb_protocol_t::region_t::universe(), &broadcaster);
+    master_t master(cluster.get_mailbox_manager(), &ack_checker, region_t::universe(), &broadcaster);
 
     /* Set up a master access */
-    watchable_variable_t<boost::optional<boost::optional<master_business_card_t<rdb_protocol_t> > > > master_directory_view(
+    watchable_variable_t<boost::optional<boost::optional<master_business_card_t> > > master_directory_view(
         boost::make_optional(boost::make_optional(master.get_business_card())));
     cond_t non_interruptor_2;
-    master_access_t<rdb_protocol_t> master_access(
+    master_access_t master_access(
         cluster.get_mailbox_manager(),
         master_directory_view.get_watchable(),
         &non_interruptor_2);

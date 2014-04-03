@@ -56,7 +56,7 @@ bool reactor_t::is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id
 }
 
 void reactor_t::be_nothing(region_t region,
-        store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
+        store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
@@ -70,17 +70,17 @@ void reactor_t::be_nothing(region_t region,
 
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
-            backfiller_t<rdb_protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
+            backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
-            region_map_t<rdb_protocol_t, binary_blob_t> metainfo_blob;
+            region_map_t<binary_blob_t> metainfo_blob;
             svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
             on_thread_t th2(this->home_thread());
-            branch_history_t<rdb_protocol_t> branch_history;
+            branch_history_t branch_history;
             branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
 
             reactor_business_card_t::nothing_when_safe_t
@@ -129,7 +129,7 @@ void reactor_t::be_nothing(region_t region,
             write_token_pair_t token_pair;
             svs->new_write_token_pair(&token_pair);
 
-            svs->reset_data(region, region_map_t<rdb_protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, write_durability_t::HARD, &ct_interruptor);
+            svs->reset_data(region, region_map_t<binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, write_durability_t::HARD, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

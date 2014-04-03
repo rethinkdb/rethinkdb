@@ -19,7 +19,7 @@ namespace unittest {
 class dummy_performer_t {
 
 public:
-    explicit dummy_performer_t(store_view_t<rdb_protocol_t> *s) :
+    explicit dummy_performer_t(store_view_t *s) :
         store(s) { }
 
     void read(const read_t &read,
@@ -32,7 +32,7 @@ public:
 
 #ifndef NDEBUG
         equality_metainfo_checker_callback_t metainfo_checker_callback((binary_blob_t(expected_timestamp)));
-        metainfo_checker_t<rdb_protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token_pair, interruptor);
@@ -45,8 +45,8 @@ public:
         store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
-        trivial_metainfo_checker_callback_t<rdb_protocol_t> metainfo_checker_callback;
-        metainfo_checker_t<rdb_protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+        trivial_metainfo_checker_callback_t metainfo_checker_callback;
+        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
@@ -63,7 +63,7 @@ public:
 
 #ifndef NDEBUG
         equality_metainfo_checker_callback_t metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
-        metainfo_checker_t<rdb_protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
         write_token_pair_t token_pair;
@@ -71,13 +71,13 @@ public:
 
         store->write(
             DEBUG_ONLY(metainfo_checker, )
-            region_map_t<rdb_protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
+            region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
             write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;
 
-    store_view_t<rdb_protocol_t> *store;
+    store_view_t *store;
 };
 
 struct dummy_timestamper_t {
@@ -90,11 +90,11 @@ public:
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
         next->store->new_read_token(&read_token);
 
-        region_map_t<rdb_protocol_t, binary_blob_t> metainfo;
+        region_map_t<binary_blob_t> metainfo;
         next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
                                      &read_token, &interruptor, &metainfo);
 
-        for (region_map_t<rdb_protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
+        for (region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
              it != metainfo.end();
              ++it) {
             rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
@@ -202,7 +202,7 @@ private:
 class dummy_namespace_interface_t : public namespace_interface_t {
 public:
     dummy_namespace_interface_t(std::vector<region_t>
-            shards, store_view_t<rdb_protocol_t> **stores, order_source_t
+            shards, store_view_t **stores, order_source_t
             *order_source, rdb_context_t *_ctx)
         : ctx(_ctx)
     {
@@ -224,12 +224,12 @@ public:
                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 stores[i]->new_read_token(&read_token);
 
-                region_map_t<rdb_protocol_t, binary_blob_t> metadata;
+                region_map_t<binary_blob_t> metadata;
                 stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
                                            &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
-                for (region_map_t<rdb_protocol_t, binary_blob_t>::const_iterator it = metadata.begin();
+                for (region_map_t<binary_blob_t>::const_iterator it = metadata.begin();
                      it != metadata.end();
                      ++it) {
                     rassert(it->second.size() == 0);
@@ -239,8 +239,8 @@ public:
                 stores[i]->new_write_token(&write_token);
 
                 stores[i]->set_metainfo(
-                    region_map_transform<rdb_protocol_t, state_timestamp_t, binary_blob_t>(
-                        region_map_t<rdb_protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
+                    region_map_transform<state_timestamp_t, binary_blob_t>(
+                        region_map_t<state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
                         ),
                     order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),

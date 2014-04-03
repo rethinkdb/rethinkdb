@@ -24,7 +24,7 @@
 class blueprint_t;
 class cluster_namespace_interface_t;
 class io_backender_t;
-template <class> class multistore_ptr_t;
+class multistore_ptr_t;
 class reactor_business_card_t;
 class peer_id_t;
 class serializer_t;
@@ -52,7 +52,7 @@ public:
     scoped_ptr_t<cache_balancer_t> balancer;
     boost::ptr_vector<serializer_t> serializers;
     boost::ptr_vector<mock_store_t> stores;
-    boost::ptr_vector<multistore_ptr_t<rdb_protocol_t> > svses;
+    boost::ptr_vector<multistore_ptr_t> svses;
     boost::ptr_vector<reactor_test_cluster_t> test_clusters;
 
     boost::ptr_vector<test_reactor_t> test_reactors;

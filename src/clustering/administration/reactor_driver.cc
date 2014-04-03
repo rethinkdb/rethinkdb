@@ -365,7 +365,7 @@ private:
     svs_by_namespace_t *const svs_by_namespace_;
 
     stores_lifetimer_t stores_lifetimer_;
-    scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > svs_;
+    scoped_ptr_t<multistore_ptr_t> svs_;
     scoped_ptr_t<reactor_t> reactor_;
 
     scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t> reactor_directory_subscription_;
@@ -377,7 +377,7 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
                                    io_backender_t *_io_backender,
                                    mailbox_manager_t *_mbox_manager,
                                    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &_directory_view,
-                                   branch_history_manager_t<rdb_protocol_t> *_branch_history_manager,
+                                   branch_history_manager_t *_branch_history_manager,
                                    boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _namespaces_view,
                                    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                                    const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,

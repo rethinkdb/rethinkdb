@@ -15,7 +15,7 @@ class cache_conn_t;
 class cache_t;
 class txn_t;
 
-template <class> class branch_history_manager_t;
+class branch_history_manager_t;
 class io_backender_t;
 
 namespace metadata_persistence {
@@ -82,7 +82,7 @@ public:
     cluster_semilattice_metadata_t read_metadata();
     void update_metadata(const cluster_semilattice_metadata_t &metadata);
 
-    branch_history_manager_t<rdb_protocol_t> *get_rdb_branch_history_manager();
+    branch_history_manager_t *get_rdb_branch_history_manager();
 
 private:
     void construct_branch_history_managers(bool create);

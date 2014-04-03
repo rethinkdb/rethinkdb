@@ -53,7 +53,7 @@ public:
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
        on them for correctness. They should not block. */
-    std::set<rdb_protocol_t::region_t> get_sharding_scheme()
+    std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t);
     signal_t *get_initial_ready_signal();
     /* Check if the internal value is null. */

@@ -62,7 +62,7 @@ void rdb_namespace_interface_t::write(
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
-std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
+std::set<region_t> rdb_namespace_interface_t::get_sharding_scheme()
     THROWS_ONLY(cannot_perform_query_exc_t) {
     return internal_->get_sharding_scheme();
 }

@@ -58,20 +58,20 @@ public:
 /* This peer is currently a primary in working order. */
 class primary_t {
 public:
-    explicit primary_t(broadcaster_business_card_t<rdb_protocol_t> _broadcaster)
+    explicit primary_t(broadcaster_business_card_t _broadcaster)
         : broadcaster(_broadcaster)
     { }
 
-    primary_t(broadcaster_business_card_t<rdb_protocol_t> _broadcaster,
-            replier_business_card_t<rdb_protocol_t> _replier,
-            master_business_card_t<rdb_protocol_t> _master,
-            direct_reader_business_card_t<rdb_protocol_t> _direct_reader)
+    primary_t(broadcaster_business_card_t _broadcaster,
+            replier_business_card_t _replier,
+            master_business_card_t _master,
+            direct_reader_business_card_t _direct_reader)
         : broadcaster(_broadcaster), replier(_replier), master(_master), direct_reader(_direct_reader)
     { }
 
     primary_t() { }
 
-    broadcaster_business_card_t<rdb_protocol_t> broadcaster;
+    broadcaster_business_card_t broadcaster;
 
     /* Backfiller is optional because of an awkward circular dependency we
      * run in to where we have to put the broadcaster in the directory in
@@ -80,10 +80,10 @@ public:
      * be put in successively and for a brief period the replier will be
      * unset.
      */
-    boost::optional<replier_business_card_t<rdb_protocol_t> > replier;
+    boost::optional<replier_business_card_t> replier;
 
-    boost::optional<master_business_card_t<rdb_protocol_t> > master;
-    boost::optional<direct_reader_business_card_t<rdb_protocol_t> > direct_reader;
+    boost::optional<master_business_card_t> master;
+    boost::optional<direct_reader_business_card_t> direct_reader;
 
     RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(primary_t,
@@ -94,16 +94,16 @@ public:
 class secondary_up_to_date_t {
 public:
     secondary_up_to_date_t(branch_id_t _branch_id,
-            replier_business_card_t<rdb_protocol_t> _replier,
-            direct_reader_business_card_t<rdb_protocol_t> _direct_reader)
+            replier_business_card_t _replier,
+            direct_reader_business_card_t _direct_reader)
         : branch_id(_branch_id), replier(_replier), direct_reader(_direct_reader)
     { }
 
     secondary_up_to_date_t() { }
 
     branch_id_t branch_id;
-    replier_business_card_t<rdb_protocol_t> replier;
-    direct_reader_business_card_t<rdb_protocol_t> direct_reader;
+    replier_business_card_t replier;
+    direct_reader_business_card_t direct_reader;
 
     RDB_MAKE_ME_SERIALIZABLE_3(branch_id, replier, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(secondary_up_to_date_t,
@@ -114,17 +114,17 @@ public:
  * find a primary. It may or may not have ever seen a primary. */
 class secondary_without_primary_t {
 public:
-    secondary_without_primary_t(region_map_t<rdb_protocol_t, version_range_t> _current_state, backfiller_business_card_t<rdb_protocol_t> _backfiller,
-                                direct_reader_business_card_t<rdb_protocol_t> _direct_reader, branch_history_t<rdb_protocol_t> _branch_history)
+    secondary_without_primary_t(region_map_t<version_range_t> _current_state, backfiller_business_card_t _backfiller,
+                                direct_reader_business_card_t _direct_reader, branch_history_t _branch_history)
         : current_state(_current_state), backfiller(_backfiller), direct_reader(_direct_reader), branch_history(_branch_history)
     { }
 
     secondary_without_primary_t() { }
 
-    region_map_t<rdb_protocol_t, version_range_t> current_state;
-    backfiller_business_card_t<rdb_protocol_t> backfiller;
-    direct_reader_business_card_t<rdb_protocol_t> direct_reader;
-    branch_history_t<rdb_protocol_t> branch_history;
+    region_map_t<version_range_t> current_state;
+    backfiller_business_card_t backfiller;
+    direct_reader_business_card_t direct_reader;
+    branch_history_t branch_history;
 
     RDB_MAKE_ME_SERIALIZABLE_4(current_state, backfiller, direct_reader, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(secondary_without_primary_t,
@@ -151,18 +151,18 @@ public:
  * go away (to avoid risk of data loss). */
 class nothing_when_safe_t {
 public:
-    nothing_when_safe_t(region_map_t<rdb_protocol_t, version_range_t> _current_state,
-                        backfiller_business_card_t<rdb_protocol_t> _backfiller,
-                        branch_history_t<rdb_protocol_t> _branch_history)
+    nothing_when_safe_t(region_map_t<version_range_t> _current_state,
+                        backfiller_business_card_t _backfiller,
+                        branch_history_t _branch_history)
         : current_state(_current_state), backfiller(_backfiller),
           branch_history(_branch_history)
     { }
 
     nothing_when_safe_t() { }
 
-    region_map_t<rdb_protocol_t, version_range_t> current_state;
-    backfiller_business_card_t<rdb_protocol_t> backfiller;
-    branch_history_t<rdb_protocol_t> branch_history;
+    region_map_t<version_range_t> current_state;
+    backfiller_business_card_t backfiller;
+    branch_history_t branch_history;
 
     RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(nothing_when_safe_t,

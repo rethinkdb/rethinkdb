@@ -1549,7 +1549,7 @@ struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t<rdb_protocol_t> *_chunk_fun_cb)
+    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t *_chunk_fun_cb)
         : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
@@ -1580,7 +1580,7 @@ protected:
     }
 
 private:
-    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb;
+    chunk_fun_callback_t *chunk_fun_cb;
 
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
@@ -1605,8 +1605,8 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
     }
 }
 
-void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
+void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
+                                     chunk_fun_callback_t *chunk_fun_cb,
                                      superblock_t *superblock,
                                      buf_lock_t *sindex_block,
                                      btree_slice_t *btree,

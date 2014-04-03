@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
@@ -24,10 +25,9 @@ inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_r
     return vr.earliest.timestamp;
 }
 
-template <class protocol_t>
-backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
-                                       branch_history_manager_t<protocol_t> *bhm,
-                                       store_view_t<protocol_t> *_svs)
+backfiller_t::backfiller_t(mailbox_manager_t *mm,
+                           branch_history_manager_t *bhm,
+                           store_view_t *_svs)
     : mailbox_manager(mm), branch_history_manager(bhm),
       svs(_svs),
       backfill_mailbox(mailbox_manager,
@@ -37,21 +37,19 @@ backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
       request_progress_mailbox(mailbox_manager,
                                boost::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer))) { }
 
-template <class protocol_t>
-backfiller_business_card_t<protocol_t> backfiller_t<protocol_t>::get_business_card() {
-    return backfiller_business_card_t<protocol_t>(backfill_mailbox.get_address(),
+backfiller_business_card_t backfiller_t::get_business_card() {
+    return backfiller_business_card_t(backfill_mailbox.get_address(),
                                                   cancel_backfill_mailbox.get_address(),
                                                   request_progress_mailbox.get_address());
 }
 
-template <class protocol_t>
-bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo,
-                                                         region_map_t<protocol_t, version_range_t> start_point,
-                                                         mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont) {
+bool backfiller_t::confirm_and_send_metainfo(store_view_t::metainfo_t metainfo,
+                                             region_map_t<version_range_t> start_point,
+                                             mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont) {
     guarantee(metainfo.get_domain() == start_point.get_domain());
-    region_map_t<protocol_t, version_range_t> end_point =
-        region_map_transform<protocol_t, binary_blob_t, version_range_t>(metainfo,
-                                                                         &binary_blob_t::get<version_range_t>);
+    region_map_t<version_range_t> end_point =
+        region_map_transform<binary_blob_t, version_range_t>(metainfo,
+                                                             &binary_blob_t::get<version_range_t>);
 
 #ifndef NDEBUG
     // TODO: Should the rassert calls in this block of code be return
@@ -59,7 +57,7 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
     // Figure this out.
 
     /* Confirm that `start_point` is a point in our past */
-    typedef region_map_t<protocol_t, version_range_t> version_map_t;
+    typedef region_map_t<version_range_t> version_map_t;
 
     {
         on_thread_t th(branch_history_manager->home_thread());
@@ -69,7 +67,7 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
             for (typename version_map_t::const_iterator jt = end_point.begin();
                  jt != end_point.end();
                  ++jt) {
-                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
+                region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
                     version_t start = it->second.latest;
                     version_t end = jt->second.earliest;
@@ -83,7 +81,7 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 
     /* Package a subset of the branch history graph that includes every branch
     that `end_point` mentions and all their ancestors recursively */
-    branch_history_t<protocol_t> branch_history;
+    branch_history_t branch_history;
     {
         on_thread_t th(branch_history_manager->home_thread());
         branch_history_manager->export_branch_history(end_point, &branch_history);
@@ -95,10 +93,9 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
     return true;
 }
 
-template <class protocol_t>
 void do_send_chunk(mailbox_manager_t *mbox_manager,
-                   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
-                   const typename protocol_t::backfill_chunk_t &chunk,
+                   mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
+                   const backfill_chunk_t &chunk,
                    fifo_enforcer_source_t *fifo_src,
                    co_semaphore_t *chunk_semaphore,
                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -106,16 +103,15 @@ void do_send_chunk(mailbox_manager_t *mbox_manager,
     send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
 }
 
-template <class protocol_t>
-class backfiller_send_backfill_callback_t : public send_backfill_callback_t<protocol_t> {
+class backfiller_send_backfill_callback_t : public send_backfill_callback_t {
 public:
-    backfiller_send_backfill_callback_t(const region_map_t<protocol_t, version_range_t> *start_point,
-                                        mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont,
+    backfiller_send_backfill_callback_t(const region_map_t<version_range_t> *start_point,
+                                        mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
                                         mailbox_manager_t *mailbox_manager,
-                                        mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
+                                        mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
                                         fifo_enforcer_source_t *fifo_src,
                                         co_semaphore_t *chunk_semaphore,
-                                        backfiller_t<protocol_t> *backfiller)
+                                        backfiller_t *backfiller)
         : start_point_(start_point),
           end_point_cont_(end_point_cont),
           mailbox_manager_(mailbox_manager),
@@ -124,34 +120,33 @@ public:
           chunk_semaphore_(chunk_semaphore),
           backfiller_(backfiller) { }
 
-    bool should_backfill_impl(const typename store_view_t<protocol_t>::metainfo_t &metainfo) {
+    bool should_backfill_impl(const typename store_view_t::metainfo_t &metainfo) {
         return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
     }
 
-    void send_chunk(const typename protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        do_send_chunk<protocol_t>(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_, interruptor);
+    void send_chunk(const backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        do_send_chunk(mailbox_manager_, chunk_cont_, chunk, fifo_src_, chunk_semaphore_, interruptor);
     }
 private:
-    const region_map_t<protocol_t, version_range_t> *start_point_;
-    mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont_;
+    const region_map_t<version_range_t> *start_point_;
+    mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont_;
     mailbox_manager_t *mailbox_manager_;
-    mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont_;
+    mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont_;
     fifo_enforcer_source_t *fifo_src_;
     co_semaphore_t *chunk_semaphore_;
-    backfiller_t<protocol_t> *backfiller_;
+    backfiller_t *backfiller_;
 
     DISABLE_COPYING(backfiller_send_backfill_callback_t);
 };
 
-template <class protocol_t>
-void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
-                                           const region_map_t<protocol_t, version_range_t> &start_point,
-                                           const branch_history_t<protocol_t> &start_point_associated_branch_history,
-                                           mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont,
-                                           mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
-                                           mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
-                                           mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
-                                           auto_drainer_t::lock_t keepalive) {
+void backfiller_t::on_backfill(backfill_session_id_t session_id,
+                               const region_map_t<version_range_t> &start_point,
+                               const branch_history_t &start_point_associated_branch_history,
+                               mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont,
+                               mailbox_addr_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
+                               mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
+                               mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
+                               auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
     guarantee(region_is_superset(svs->get_region(), start_point.get_domain()));
@@ -186,12 +181,12 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
         read_token_pair_t send_backfill_token_pair;
         svs->new_read_token_pair(&send_backfill_token_pair);
 
-        backfiller_send_backfill_callback_t<protocol_t>
+        backfiller_send_backfill_callback_t
             send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
 
         /* Actually perform the backfill */
         svs->send_backfill(
-                     region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
+                     region_map_transform<version_range_t, state_timestamp_t>(
                                                       start_point,
                                                       &get_earliest_timestamp_of_version_range
                                                       ),
@@ -212,8 +207,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
 }
 
 
-template <class protocol_t>
-void backfiller_t<protocol_t>::on_cancel_backfill(backfill_session_id_t session_id, UNUSED auto_drainer_t::lock_t) {
+void backfiller_t::on_cancel_backfill(backfill_session_id_t session_id, UNUSED auto_drainer_t::lock_t) {
 
     assert_thread();
 
@@ -231,10 +225,9 @@ void backfiller_t<protocol_t>::on_cancel_backfill(backfill_session_id_t session_
 }
 
 
-template <class protocol_t>
-void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t session_id,
-                                                         mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
-                                                         auto_drainer_t::lock_t) {
+void backfiller_t::request_backfill_progress(backfill_session_id_t session_id,
+                                             mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
+                                             auto_drainer_t::lock_t) {
     if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
         progress_completion_fraction_t fraction = local_backfill_progress[session_id]->guess_completion();
         std::pair<int, int> pair_fraction = std::make_pair(fraction.estimate_of_released_nodes, fraction.estimate_of_total_nodes);
@@ -245,8 +238,3 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
 
     //TODO indicate an error has occurred
 }
-
-
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
-template class backfiller_t<rdb_protocol_t>;

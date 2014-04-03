@@ -36,8 +36,8 @@ void cluster_namespace_interface_t::read(
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_read_mode();
     dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
-            &master_access_t<rdb_protocol_t>::new_read_token,
-            &master_access_t<rdb_protocol_t>::read,
+            &master_access_t::new_read_token,
+            &master_access_t::read,
             r, response, order_token, interruptor);
 }
 
@@ -55,14 +55,14 @@ void cluster_namespace_interface_t::write(const write_t &w,
                                           signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_write_mode();
-    dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(&master_access_t<rdb_protocol_t>::new_write_token, &master_access_t<rdb_protocol_t>::write,
+    dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(&master_access_t::new_write_token, &master_access_t::write,
                                                                                                                                    w, response, order_token, interruptor);
 }
 
 std::set<region_t>
 cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<region_t> s;
-    for (region_map_t<rdb_protocol_t, std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
+    for (region_map_t<std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
         for (typename std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
             s.push_back((*jt)->region);
         }
@@ -79,9 +79,9 @@ template<class op_type, class fifo_enforcer_token_type, class op_response_type>
 void cluster_namespace_interface_t::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
        member-function. */
-    void (master_access_t<rdb_protocol_t>::*how_to_make_token)(
+    void (master_access_t::*how_to_make_token)(
         fifo_enforcer_token_type *),  // NOLINT
-    void (master_access_t<rdb_protocol_t>::*how_to_run_query)(
+    void (master_access_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
@@ -154,7 +154,7 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
 
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
 void cluster_namespace_interface_t::perform_immediate_op(
-    void (master_access_t<rdb_protocol_t>::*how_to_run_query)(
+    void (master_access_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
@@ -337,12 +337,12 @@ void cluster_namespace_interface_t::update_registrants(bool is_start) {
     }
 }
 
-boost::optional<boost::optional<master_business_card_t<rdb_protocol_t> > >
+boost::optional<boost::optional<master_business_card_t> >
 cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<master_business_card_t<rdb_protocol_t> > > ret;
+    boost::optional<boost::optional<master_business_card_t> > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<master_business_card_t<rdb_protocol_t> >();
+        ret = boost::optional<master_business_card_t>();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
@@ -356,12 +356,12 @@ cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer
     return ret;
 }
 
-boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > >
+boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > > ret;
+    boost::optional<boost::optional<direct_reader_business_card_t> > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<direct_reader_business_card_t<rdb_protocol_t> >();
+        ret = boost::optional<direct_reader_business_card_t>();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::primary_t *primary_record =
@@ -375,12 +375,12 @@ cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(
     return ret;
 }
 
-boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > >
+boost::optional<boost::optional<direct_reader_business_card_t> >
 cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > > ret;
+    boost::optional<boost::optional<direct_reader_business_card_t> > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<direct_reader_business_card_t<rdb_protocol_t> >();
+        ret = boost::optional<direct_reader_business_card_t>();
         typename reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
             if (const reactor_business_card_details::secondary_up_to_date_t *secondary_up_to_date_record =
@@ -400,15 +400,15 @@ void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, re
                                                            bool is_start, bool is_primary, const region_t &region,
                                                            auto_drainer_t::lock_t lock) THROWS_NOTHING {
     try {
-        scoped_ptr_t<master_access_t<rdb_protocol_t> > master_access;
-        scoped_ptr_t<resource_access_t<direct_reader_business_card_t<rdb_protocol_t> > > direct_reader_access;
+        scoped_ptr_t<master_access_t> master_access;
+        scoped_ptr_t<resource_access_t<direct_reader_business_card_t> > direct_reader_access;
         if (is_primary) {
-            master_access.init(new master_access_t<rdb_protocol_t>(mailbox_manager,
+            master_access.init(new master_access_t(mailbox_manager,
                                                                    directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_master_business_card, ph::_1, peer_id, activity_id)),
                                                                    lock.get_drain_signal()));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<rdb_protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<rdb_protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;

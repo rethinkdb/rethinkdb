@@ -15,7 +15,7 @@
 #include "rpc/semilattice/view.hpp"
 
 class io_backender_t;
-template <class> class multistore_ptr_t;
+class multistore_ptr_t;
 
 class reactor_t : public home_thread_mixin_t {
 public:
@@ -25,9 +25,9 @@ public:
             mailbox_manager_t *mailbox_manager,
             ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > reactor_directory,
-            branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+            branch_history_manager_t *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t> > blueprint_watchable,
-            multistore_ptr_t<rdb_protocol_t> *_underlying_svs,
+            multistore_ptr_t *_underlying_svs,
             perfmon_collection_t *_parent_perfmon_collection,
             rdb_context_t *) THROWS_NOTHING;
 
@@ -76,7 +76,7 @@ private:
             int cpu_shard_number,
             current_role_t *role,
             const region_t& region,
-            multistore_ptr_t<rdb_protocol_t> *svs_subview,
+            multistore_ptr_t *svs_subview,
             signal_t *interruptor,
             cond_t *abort_roles) THROWS_NOTHING;
     void run_role(
@@ -85,7 +85,7 @@ private:
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(region_t region, store_view_t<rdb_protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
+    void be_primary(region_t region, store_view_t *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
             signal_t *interruptor) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
@@ -94,7 +94,7 @@ private:
     class backfill_candidate_t {
     public:
         version_range_t version_range;
-        typedef clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_bcard_view_t;
+        typedef clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_bcard_view_t;
         class backfill_location_t {
         public:
             backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i);
@@ -109,25 +109,25 @@ private:
         backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store);
     };
 
-    typedef region_map_t<rdb_protocol_t, backfill_candidate_t> best_backfiller_map_t;
+    typedef region_map_t<backfill_candidate_t> best_backfiller_map_t;
 
-    void update_best_backfiller(const region_map_t<rdb_protocol_t, version_range_t> &offered_backfill_versions,
+    void update_best_backfiller(const region_map_t<version_range_t> &offered_backfill_versions,
                                 const backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out);
 
     bool is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory, const blueprint_t &blueprint,
-                                      const region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t<rdb_protocol_t> *branch_history_to_merge_out, bool *should_merge_metadata);
+                                      const region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t *branch_history_to_merge_out, bool *should_merge_metadata);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
     bool find_broadcaster_in_directory(const region_t &region, const blueprint_t &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory,
-                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > *broadcaster_out);
+                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > *broadcaster_out);
 
     bool find_replier_in_directory(const region_t &region, const branch_id_t &b_id, const blueprint_t &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory,
-                                      clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
+                                      clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
-    void be_secondary(region_t region, store_view_t<rdb_protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
+    void be_secondary(region_t region, store_view_t *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
@@ -135,17 +135,17 @@ private:
     bool is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &reactor_directory, const blueprint_t &blueprint,
                                       const region_t &region);
 
-    void be_nothing(region_t region, store_view_t<rdb_protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
+    void be_nothing(region_t region, store_view_t *store, const clone_ptr_t<watchable_t<blueprint_t> > &,
             signal_t *interruptor) THROWS_NOTHING;
 
-    static boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > extract_broadcaster_from_reactor_business_card_primary(
+    static boost::optional<boost::optional<broadcaster_business_card_t> > extract_broadcaster_from_reactor_business_card_primary(
         const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard);
 
     /* Shared between all three roles (primary, secondary, nothing) */
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const region_t &region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const region_t &region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
@@ -163,11 +163,11 @@ private:
 
     directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> > directory_echo_writer;
     directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> > directory_echo_mirror;
-    branch_history_manager_t<rdb_protocol_t> *branch_history_manager;
+    branch_history_manager_t *branch_history_manager;
 
     clone_ptr_t<watchable_t<blueprint_t> > blueprint_watchable;
 
-    multistore_ptr_t<rdb_protocol_t> *underlying_svs;
+    multistore_ptr_t *underlying_svs;
 
     std::map<region_t, current_role_t *> current_roles;
 

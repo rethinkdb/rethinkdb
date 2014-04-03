@@ -33,10 +33,10 @@ std::string mock_parse_read_response(const read_response_t &rr) {
     return prr->data->get("value")->as_str().to_std();
 }
 
-std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key) {
+std::string mock_lookup(store_view_t *store, std::string key) {
 #ifndef NDEBUG
-    trivial_metainfo_checker_callback_t<rdb_protocol_t> checker_cb;
-    metainfo_checker_t<rdb_protocol_t> checker(&checker_cb, store->get_region());
+    trivial_metainfo_checker_callback_t checker_cb;
+    metainfo_checker_t checker(&checker_cb, store->get_region());
 #endif
     read_token_pair_t token;
     store->new_read_token_pair(&token);
@@ -55,7 +55,7 @@ std::string mock_lookup(store_view_t<rdb_protocol_t> *store, std::string key) {
 
 
 mock_store_t::mock_store_t(binary_blob_t universe_metainfo)
-    : store_view_t<rdb_protocol_t>(region_t::universe()),
+    : store_view_t(region_t::universe()),
       metainfo_(get_region(), universe_metainfo) { }
 mock_store_t::~mock_store_t() { }
 
@@ -110,7 +110,7 @@ void mock_store_t::set_metainfo(const metainfo_t &new_metainfo,
 
 
 void mock_store_t::read(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const read_t &read,
         read_response_t *response,
         order_token_t order_token,
@@ -154,7 +154,7 @@ void mock_store_t::read(
 }
 
 void mock_store_t::write(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t> &metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const metainfo_t &new_metainfo,
         const write_t &write,
         write_response_t *response,
@@ -211,8 +211,8 @@ void mock_store_t::write(
 }
 
 bool mock_store_t::send_backfill(
-        const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-        send_backfill_callback_t<rdb_protocol_t> *send_backfill_cb,
+        const region_map_t<state_timestamp_t> &start_point,
+        send_backfill_callback_t *send_backfill_cb,
         traversal_progress_combiner_t *progress,
         read_token_pair_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

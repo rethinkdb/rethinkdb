@@ -26,7 +26,7 @@
 #include "rdb_protocol/protocol.hpp"
 
 template <class> class cow_ptr_t;
-template <class protocol_t> class master_access_t;
+class master_access_t;
 template <class protocol_t> class resource_access_t;
 class resource_lost_exc_t;
 template <class> class watchable_t;
@@ -35,24 +35,24 @@ template <class> class watchable_subscription_t;
 template <class protocol_t, class value_t>
 class region_map_set_membership_t {
 public:
-    region_map_set_membership_t(region_map_t<protocol_t, std::set<value_t> > *m, const typename protocol_t::region_t &r, const value_t &v) :
+    region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
-        region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.insert(value);
         }
         map->update(submap);
     }
     ~region_map_set_membership_t() {
-        region_map_t<protocol_t, std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<protocol_t, std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
             it->second.erase(value);
         }
         map->update(submap);
     }
 private:
-    region_map_t<protocol_t, std::set<value_t> > *map;
-    typename protocol_t::region_t region;
+    region_map_t<std::set<value_t> > *map;
+    region_t region;
     value_t value;
 };
 
@@ -86,8 +86,8 @@ private:
     public:
         bool is_local;
         region_t region;
-        master_access_t<rdb_protocol_t> *master_access;
-        resource_access_t<direct_reader_business_card_t<rdb_protocol_t> > *direct_reader_access;
+        master_access_t *master_access;
+        resource_access_t<direct_reader_business_card_t> *direct_reader_access;
         auto_drainer_t drainer;
     };
 
@@ -99,7 +99,7 @@ private:
     class immediate_op_info_t {
     public:
         op_type sharded_op;
-        master_access_t<rdb_protocol_t> *master_access;
+        master_access_t *master_access;
         fifo_enforcer_token_type enforcement_token;
         auto_drainer_t::lock_t keepalive;
     };
@@ -107,15 +107,15 @@ private:
     class outdated_read_info_t {
     public:
         read_t sharded_op;
-        resource_access_t<direct_reader_business_card_t<rdb_protocol_t> > *direct_reader_access;
+        resource_access_t<direct_reader_business_card_t> *direct_reader_access;
         auto_drainer_t::lock_t keepalive;
     };
 
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void dispatch_immediate_op(
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
-            void (master_access_t<rdb_protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
-            void (master_access_t<rdb_protocol_t>::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
+            void (master_access_t::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
+            void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *response, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             const op_type &op,
             op_response_type *response,
             order_token_t order_token,
@@ -128,7 +128,7 @@ private:
     // dispatch_immediate_op, which still has the exception specification.
     template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
-            void (master_access_t<rdb_protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
+            void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
             boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *masters_to_contact,
             std::vector<op_response_type> *results,
             std::vector<std::string> *failures,
@@ -153,10 +153,10 @@ private:
 
     void update_registrants(bool is_start);
 
-    static boost::optional<boost::optional<master_business_card_t<rdb_protocol_t> > > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<master_business_card_t> > extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t> > extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t<rdb_protocol_t> > > extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
+    static boost::optional<boost::optional<direct_reader_business_card_t> > extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id);
 
 
     void relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
@@ -170,7 +170,7 @@ private:
     rng_t distributor_rng;
 
     std::set<reactor_activity_id_t> handled_activity_ids;
-    region_map_t<rdb_protocol_t, std::set<relationship_t *> > relationships;
+    region_map_t<std::set<relationship_t *> > relationships;
 
     /* `start_cond` will be pulsed when we have either successfully connected to
     or tried and failed to connect to every peer present when the constructor

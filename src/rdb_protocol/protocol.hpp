@@ -749,7 +749,6 @@ struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
     static const std::string protocol_name;
-    typedef hash_region_t<key_range_t> region_t;
 
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
@@ -783,10 +782,11 @@ namespace rdb_protocol_details {
 originally necessary because in v1.1.x the hashing scheme might be different
 between the source and destination machines. */
 struct range_key_tester_t : public key_tester_t {
-    explicit range_key_tester_t(const rdb_protocol_t::region_t *_delete_range) : delete_range(_delete_range) { }
+    explicit range_key_tester_t(const region_t *_delete_range) : delete_range(_delete_range) { }
+    virtual ~range_key_tester_t() { }
     bool key_should_be_erased(const btree_key_t *key);
 
-    const rdb_protocol_t::region_t *delete_range;
+    const region_t *delete_range;
 };
 } // namespace rdb_protocol_details
 

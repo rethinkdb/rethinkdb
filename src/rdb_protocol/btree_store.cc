@@ -33,7 +33,7 @@ btree_store_t::btree_store_t(serializer_t *serializer,
                              rdb_context_t *,  // RSI unused
                              io_backender_t *io_backender,
                              const base_path_t &base_path)
-    : store_view_t<rdb_protocol_t>(region_t::universe()),
+    : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
@@ -65,7 +65,7 @@ btree_store_t::btree_store_t(serializer_t *serializer,
         // interruptor.
         cond_t dummy_interruptor;
         read_token_pair_t token_pair;
-        store_view_t<rdb_protocol_t>::new_read_token_pair(&token_pair);
+        store_view_t::new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
@@ -93,7 +93,7 @@ btree_store_t::~btree_store_t() {
 }
 
 void btree_store_t::read(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const read_t &read,
         read_response_t *response,
         UNUSED order_token_t order_token,  // TODO
@@ -114,7 +114,7 @@ void btree_store_t::read(
 }
 
 void btree_store_t::write(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const metainfo_t& new_metainfo,
         const write_t &write,
         write_response_t *response,
@@ -142,8 +142,8 @@ void btree_store_t::write(
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
 bool btree_store_t::send_backfill(
-        const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-        send_backfill_callback_t<rdb_protocol_t> *send_backfill_cb,
+        const region_map_t<state_timestamp_t> &start_point,
+        send_backfill_callback_t *send_backfill_cb,
         rdb_protocol_t::backfill_progress_t *progress,
         read_token_pair_t *token_pair,
         signal_t *interruptor)
@@ -158,9 +158,9 @@ bool btree_store_t::send_backfill(
         = acquire_sindex_block_for_read(superblock->expose_buf(),
                                         superblock->get_sindex_block_id());
 
-    region_map_t<rdb_protocol_t, binary_blob_t> unmasked_metainfo;
+    region_map_t<binary_blob_t> unmasked_metainfo;
     get_metainfo_internal(superblock->get(), &unmasked_metainfo);
-    region_map_t<rdb_protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
+    region_map_t<binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
         protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, btree.get(), progress, interruptor);
         return true;
@@ -226,7 +226,7 @@ void btree_store_t::reset_data(
                                  &superblock,
                                  interruptor);
 
-    region_map_t<rdb_protocol_t, binary_blob_t> old_metainfo;
+    region_map_t<binary_blob_t> old_metainfo;
     get_metainfo_internal(superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 
@@ -726,7 +726,7 @@ bool btree_store_t::acquire_sindex_superblocks_for_write(
 }
 
 void btree_store_t::check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const metainfo_t &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
@@ -737,11 +737,11 @@ void btree_store_t::check_and_update_metainfo(
 
 typename btree_store_t::metainfo_t
 btree_store_t::check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
-    region_map_t<rdb_protocol_t, binary_blob_t> old_metainfo;
+    region_map_t<binary_blob_t> old_metainfo;
     get_metainfo_internal(superblock->get(), &old_metainfo);
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
@@ -754,7 +754,7 @@ void btree_store_t::update_metainfo(const metainfo_t &old_metainfo,
                                     real_superblock_t *superblock)
     const THROWS_NOTHING {
     assert_thread();
-    region_map_t<rdb_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
+    region_map_t<binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
     rassert(updated_metadata.get_domain() == region_t::universe());
@@ -762,7 +762,7 @@ void btree_store_t::update_metainfo(const metainfo_t &old_metainfo,
     buf_lock_t *sb_buf = superblock->get();
     clear_superblock_metainfo(sb_buf);
 
-    for (region_map_t<rdb_protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
+    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
@@ -794,7 +794,7 @@ void btree_store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
 
 void btree_store_t::
 get_metainfo_internal(buf_lock_t *sb_buf,
-                      region_map_t<rdb_protocol_t, binary_blob_t> *out)
+                      region_map_t<binary_blob_t> *out)
     const THROWS_NOTHING {
     assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
@@ -814,7 +814,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 
         result.push_back(std::make_pair(region, binary_blob_t(value.begin(), value.end())));
     }
-    region_map_t<rdb_protocol_t, binary_blob_t> res(result.begin(), result.end());
+    region_map_t<binary_blob_t> res(result.begin(), result.end());
     rassert(res.get_domain() == region_t::universe());
     *out = res;
 }
@@ -836,7 +836,7 @@ void btree_store_t::set_metainfo(const metainfo_t &new_metainfo,
                                  &superblock,
                                  interruptor);
 
-    region_map_t<rdb_protocol_t, binary_blob_t> old_metainfo;
+    region_map_t<binary_blob_t> old_metainfo;
     get_metainfo_internal(superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 }

@@ -12,7 +12,7 @@ bool reactor_t::find_broadcaster_in_directory(
         const region_t &region,
         const blueprint_t &bp,
         const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > *broadcaster_out) {
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
 
@@ -52,35 +52,35 @@ bool reactor_t::find_broadcaster_in_directory(
 }
 
 template<class protocol_t>
-boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > extract_replier_from_reactor_business_card_primary(
+boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_primary(
         const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
-        return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >();
+        return boost::optional<boost::optional<replier_business_card_t> >();
     }
     if (!bcard.get()) {
-        return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(
-            boost::optional<replier_business_card_t<rdb_protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
     if (!bcard.get().get().replier) {
-        return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(
-            boost::optional<replier_business_card_t<rdb_protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
-    return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(
-        boost::optional<replier_business_card_t<rdb_protocol_t> >(bcard.get().get().replier.get()));
+    return boost::optional<boost::optional<replier_business_card_t> >(
+        boost::optional<replier_business_card_t>(bcard.get().get().replier.get()));
 }
 
 template<class protocol_t>
-boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > extract_replier_from_reactor_business_card_secondary(
+boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_secondary(
         const boost::optional<boost::optional<reactor_business_card_t::secondary_up_to_date_t> > &bcard) {
     if (!bcard) {
-        return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >();
+        return boost::optional<boost::optional<replier_business_card_t> >();
     }
     if (!bcard.get()) {
-        return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(
-            boost::optional<replier_business_card_t<rdb_protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
-    return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(
-        boost::optional<replier_business_card_t<rdb_protocol_t> >(bcard.get().get().replier));
+    return boost::optional<boost::optional<replier_business_card_t> >(
+        boost::optional<replier_business_card_t>(bcard.get().get().replier));
 }
 
 bool reactor_t::find_replier_in_directory(
@@ -88,10 +88,10 @@ bool reactor_t::find_replier_in_directory(
         const branch_id_t &b_id,
         const blueprint_t &bp,
         const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > > *replier_out,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > *replier_out,
         peer_id_t *peer_id_out,
         reactor_activity_id_t *activity_id_out) {
-    std::vector<clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > > > backfill_candidates;
+    std::vector<clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > > backfill_candidates;
     std::vector<peer_id_t> peer_ids;
     std::vector<reactor_activity_id_t> activity_ids;
 
@@ -141,7 +141,7 @@ bool reactor_t::find_replier_in_directory(
     }
 }
 
-void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
@@ -149,8 +149,8 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
          * date. */
         directory_entry_t directory_entry(this, region);
         while (true) {
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster;
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > > location_to_backfill_from;
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster;
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > location_to_backfill_from;
             branch_id_t branch_id;
             peer_id_t peer_id;
             reactor_activity_id_t activity_id;
@@ -166,20 +166,20 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
                  * Also this is potentially a performance boost because it
                  * allows other secondaries to preemptively backfill before the
                  * primary is up. */
-                backfiller_t<rdb_protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
+                backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 svs->new_read_token(&read_token);
 
-                region_map_t<rdb_protocol_t, binary_blob_t> metainfo_blob;
+                region_map_t<binary_blob_t> metainfo_blob;
                 svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
-                direct_reader_t<rdb_protocol_t> direct_reader(mailbox_manager, svs);
+                direct_reader_t direct_reader(mailbox_manager, svs);
 
                 on_thread_t th2(this->home_thread());
 
-                branch_history_t<rdb_protocol_t> branch_history;
+                branch_history_t branch_history;
                 branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
 
                 reactor_business_card_t::secondary_without_primary_t
@@ -197,7 +197,7 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
 
                 /* We need to save this to a local variable because there may be a
                  * race condition should the broadcaster go down. */
-                boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > broadcaster_business_card = broadcaster->get();
+                boost::optional<boost::optional<broadcaster_business_card_t> > broadcaster_business_card = broadcaster->get();
                 if (!broadcaster_business_card || !*broadcaster_business_card) {
                     /* Either the peer went down immediately after we found it
                      * or the peer is still connected but the broadcaster on
@@ -233,8 +233,8 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
                 directory_entry.set(reactor_business_card_t::secondary_backfilling_t(backfill_location));
 
                 cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
-                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > ct_broadcaster(broadcaster, svs->home_thread());
-                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster(broadcaster, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
                 on_thread_t th(svs->home_thread());
 
                 // TODO: Don't use local stack variable for name.
@@ -243,14 +243,14 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<rdb_protocol_t> listener(base_path, io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
+                listener_t listener(base_path, io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
                  * us for backfills. */
-                replier_t<rdb_protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
+                replier_t replier(&listener, mailbox_manager, branch_history_manager);
 
-                direct_reader_t<rdb_protocol_t> direct_reader(mailbox_manager, svs);
+                direct_reader_t direct_reader(mailbox_manager, svs);
 
                 cross_thread_signal_t ct_broadcaster_lost_signal(listener.get_broadcaster_lost_signal(), this->home_thread());
                 on_thread_t th2(this->home_thread());
@@ -261,11 +261,11 @@ void reactor_t::be_secondary(region_t region, store_view_t<rdb_protocol_t> *svs,
 
                 /* Wait for something to change. */
                 wait_interruptible(&ct_broadcaster_lost_signal, interruptor);
-            } catch (const listener_t<rdb_protocol_t>::backfiller_lost_exc_t &) {
+            } catch (const listener_t::backfiller_lost_exc_t &) {
                 /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.
                  * */
-            } catch (const listener_t<rdb_protocol_t>::broadcaster_lost_exc_t &) {
+            } catch (const listener_t::broadcaster_lost_exc_t &) {
                 /* We didn't find the broadcaster which means we should retry,
                  * same deal as above. */
             }

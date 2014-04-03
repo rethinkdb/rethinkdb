@@ -50,9 +50,9 @@ reactor_t::reactor_t(
         mailbox_manager_t *mm,
         ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > rd,
-        branch_history_manager_t<rdb_protocol_t> *bhm,
+        branch_history_manager_t *bhm,
         clone_ptr_t<watchable_t<blueprint_t> > b,
-        multistore_ptr_t<rdb_protocol_t> *_underlying_svs,
+        multistore_ptr_t *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection,
         rdb_context_t *_ctx) THROWS_NOTHING :
     base_path(_base_path),
@@ -195,10 +195,10 @@ void reactor_t::run_cpu_sharded_role(
         int cpu_shard_number,
         current_role_t *role,
         const region_t& region,
-        multistore_ptr_t<rdb_protocol_t> *svs_subview,
+        multistore_ptr_t *svs_subview,
         signal_t *interruptor,
         cond_t *abort_roles) THROWS_NOTHING {
-    store_view_t<rdb_protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
+    store_view_t *store_view = svs_subview->get_store(cpu_shard_number);
     region_t cpu_sharded_region = region_intersection(region, rdb_protocol_t::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
 
     switch (role->role) {
@@ -232,7 +232,7 @@ void reactor_t::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    multistore_ptr_t<rdb_protocol_t> svs_subview(underlying_svs, region);
+    multistore_ptr_t svs_subview(underlying_svs, region);
 
     {
         //All of the be_{role} functions respond identically to blueprint changes
@@ -270,16 +270,16 @@ void reactor_t::run_role(
 reactor_t::backfill_candidate_t::backfill_location_t::backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i)
     : backfiller(b), peer_id(p), activity_id(i) { }
 
-boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > reactor_t::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
+boost::optional<boost::optional<broadcaster_business_card_t> > reactor_t::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
-        return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >();
+        return boost::optional<boost::optional<broadcaster_business_card_t> >();
     }
     if (!bcard.get()) {
-        return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(
-            boost::optional<broadcaster_business_card_t<rdb_protocol_t> >());
+        return boost::optional<boost::optional<broadcaster_business_card_t> >(
+            boost::optional<broadcaster_business_card_t>());
     }
-    return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(
-        boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(bcard.get().get().broadcaster));
+    return boost::optional<boost::optional<broadcaster_business_card_t> >(
+        boost::optional<broadcaster_business_card_t>(bcard.get().get().broadcaster));
 }
 
 void reactor_t::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {

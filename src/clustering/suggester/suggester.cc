@@ -119,7 +119,7 @@ double estimate_cost_to_get_up_to_date(
         const reactor_business_card_t &business_card,
         const region_t &shard) {
     typedef reactor_business_card_t rb_t;
-    region_map_t<rdb_protocol_t, double> costs(shard, 3);
+    region_map_t<double> costs(shard, 3);
     for (typename rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
             it != business_card.activities.end(); it++) {
         region_t intersection = region_intersection(it->second.region, shard);
@@ -153,7 +153,7 @@ double estimate_cost_to_get_up_to_date(
     }
     double sum = 0;
     int count = 0;
-    for (region_map_t<rdb_protocol_t, double>::iterator it = costs.begin(); it != costs.end(); it++) {
+    for (region_map_t<double>::iterator it = costs.begin(); it != costs.end(); it++) {
         /* TODO: Scale by how much data is in `it->first` */
         sum += it->second;
         count++;
@@ -310,13 +310,13 @@ persistable_blueprint_t suggest_blueprint(
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const nonoverlapping_regions_t &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
-        const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
+        const region_map_t<machine_id_t> &primary_pinnings,
+        const region_map_t<std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution) {
 
-    typedef region_map_t<rdb_protocol_t, machine_id_t> primary_pinnings_map_t;
-    typedef region_map_t<rdb_protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
+    typedef region_map_t<machine_id_t> primary_pinnings_map_t;
+    typedef region_map_t<std::set<machine_id_t> > secondary_pinnings_map_t;
 
     persistable_blueprint_t blueprint;
 

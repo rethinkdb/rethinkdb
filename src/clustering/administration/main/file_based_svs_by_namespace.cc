@@ -43,7 +43,7 @@ void do_construct_existing_store(
     store_args_t store_args,
     serializer_multiplexer_t *multiplexer,
     scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores_out_stores,
-    store_view_t<rdb_protocol_t> **store_views) {
+    store_view_t **store_views) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
@@ -64,7 +64,7 @@ void do_create_new_store(
     store_args_t store_args,
     serializer_multiplexer_t *multiplexer,
     scoped_array_t<scoped_ptr_t<rdb_protocol_t::store_t> > *stores_out_stores,
-    store_view_t<rdb_protocol_t> **store_views) {
+    store_view_t **store_views) {
 
     on_thread_t th(threads[thread_offset]);
     rdb_protocol_t::store_t *store = new rdb_protocol_t::store_t(
@@ -81,7 +81,7 @@ file_based_svs_by_namespace_t::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
             stores_lifetimer_t *stores_out,
-            scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > *svs_out,
+            scoped_ptr_t<multistore_ptr_t> *svs_out,
             rdb_context_t *ctx) {
     const int num_db_threads = get_num_db_threads();
 
@@ -108,10 +108,10 @@ file_based_svs_by_namespace_t::get_svs(
 
     scoped_ptr_t<serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
-    scoped_ptr_t<multistore_ptr_t<rdb_protocol_t> > mptr;
+    scoped_ptr_t<multistore_ptr_t> mptr;
     {
         on_thread_t th(serializer_thread);
-        scoped_array_t<store_view_t<rdb_protocol_t> *> store_views(num_stores);
+        scoped_array_t<store_view_t *> store_views(num_stores);
 
         const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
         int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
@@ -145,7 +145,7 @@ file_based_svs_by_namespace_t::get_svs(
                                          store_threads, _1, store_args,
                                          multiplexer.get(),
                                          stores_out_stores, store_views.data()));
-            mptr.init(new multistore_ptr_t<rdb_protocol_t>(store_views.data(), num_stores));
+            mptr.init(new multistore_ptr_t(store_views.data(), num_stores));
         } else {
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
@@ -174,16 +174,16 @@ file_based_svs_by_namespace_t::get_svs(
                                          store_threads, _1, store_args,
                                          multiplexer.get(),
                                          stores_out_stores, store_views.data()));
-            mptr.init(new multistore_ptr_t<rdb_protocol_t>(store_views.data(), num_stores));
+            mptr.init(new multistore_ptr_t(store_views.data(), num_stores));
 
             // Initialize the metadata in the underlying stores.
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
             mptr->new_write_token(&write_token);
             cond_t dummy_interruptor;
             order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
-            guarantee(mptr->get_region() == rdb_protocol_t::region_t::universe());
+            guarantee(mptr->get_region() == region_t::universe());
             mptr->set_metainfo(
-                region_map_t<rdb_protocol_t, binary_blob_t>(
+                region_map_t<binary_blob_t>(
                     mptr->get_region(),
                     binary_blob_t(version_range_t(version_t::zero()))),
                 order_source.check_in("file_based_svs_by_namespace_t"),
