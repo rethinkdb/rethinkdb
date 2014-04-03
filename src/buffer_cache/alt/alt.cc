@@ -300,12 +300,12 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
         // write transaction has not yet acquired [1].  So we create a child using
         // the current version of the block.
         //
-        // [1] assuming the cache is used proprely, with the child always acquired
+        // [1] assuming the cache is used properly, with the child always acquired
         // via the parent, or detached, before modification
         alt_snapshot_node_t *child = help_make_child(cache, child_id);
 
-        child->ref_count_++;
-        parent->children_.insert(std::make_pair(child_id, child));
+        // We don't attach the snapshot node to its parent, because this is a read
+        // transaction.
         return child;
     } else {
         return it->second;
@@ -350,6 +350,7 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
             child = help_make_child(cache, child_id);
         }
 
+        // Attach the child to its parent.
         child->ref_count_++;
         p->children_.insert(std::make_pair(child_id, child));
     }
@@ -385,6 +386,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     buf_lock_t::wait_for_parent(parent, access);
     ASSERT_FINITE_CORO_WAITING;
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
+        rassert(access == access_t::read);
         buf_lock_t *parent_lock = parent.lock_or_null_;
         rassert(!parent_lock->current_page_acq_.has());
         snapshot_node_
