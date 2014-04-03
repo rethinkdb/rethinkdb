@@ -136,11 +136,10 @@ private:
     void do_admin_set_durability_internal(bool hard_durability,
                                           namespace_semilattice_metadata_t *ns);
 
-    template <class map_type>
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
                                         const datacenter_id_t& dc_id,
                                         int num_replicas,
-                                        map_type &ns_map);
+                                        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map);
 
     template <class obj_map>
     void do_admin_set_name_internal(const uuid_u& uuid,
@@ -301,11 +300,11 @@ private:
                                const cluster_semilattice_metadata_t& cluster_metadata,
                                const std::string& protocol);
 
-    template <class map_type>
-    void add_single_database_affinities(const datacenter_id_t& db_id,
-                                        const map_type& ns_map,
-                                        const std::string& protocol,
-                                        std::vector<std::vector<std::string> > *table);
+    void add_single_database_affinities(
+            const datacenter_id_t& db_id,
+            const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+            const std::string& protocol,
+            std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,

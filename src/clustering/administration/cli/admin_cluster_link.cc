@@ -2454,12 +2454,12 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-template <class map_type>
-void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& ns_id,
-                                                          const datacenter_id_t& dc_id,
-                                                          int num_replicas,
-                                                          map_type &ns_map) {
-    typename map_type::iterator ns_iter = ns_map.find(ns_id);
+void admin_cluster_link_t::do_admin_set_replicas_internal(
+        const namespace_id_t& ns_id,
+        const datacenter_id_t& dc_id,
+        int num_replicas,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map) {
+    auto ns_iter = ns_map.find(ns_id);
 
     if (ns_iter == ns_map.end()) {
         throw admin_parse_exc_t("unexpected error, table not found");
@@ -2467,7 +2467,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
         throw admin_cluster_exc_t("unexpected error, table has been deleted");
     }
 
-    typename map_type::mapped_type::value_t *ns = ns_iter->second.get_mutable();
+    namespace_semilattice_metadata_t *ns = ns_iter->second.get_mutable();
 
     if (ns->primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's primary datacenter is in conflict, run 'help resolve' for more information");
@@ -3020,14 +3020,14 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t& db_id,
-                                                          const map_type& ns_map,
-                                                          const std::string&,
-                                                          std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_single_database_affinities(
+        const datacenter_id_t& db_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        const std::string&,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            const namespace_semilattice_metadata_t& ns = i->second.get_ref();
 
             if (!ns.database.in_conflict() && ns.database.get() == db_id) {
                 std::vector<std::string> delta;
