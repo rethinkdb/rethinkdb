@@ -288,6 +288,10 @@ counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
 }
+counted_t<term_t> make_changes_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<changes_term_t>(env, term);
+}
 counted_t<term_t> make_reduce_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<reduce_term_t>(env, term);

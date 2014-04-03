@@ -614,6 +614,8 @@ message Term {
         SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
 
         UNGROUP = 150; // GROUPED_DATA -> ARRAY
+
+        CHANGES = 151; // TABLE -> STREAM
     }
     optional TermType type = 1;
 

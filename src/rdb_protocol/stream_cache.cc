@@ -3,6 +3,8 @@
 
 #include "rdb_protocol/env.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 bool stream_cache_t::contains(int64_t key) {

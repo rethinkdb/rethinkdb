@@ -320,6 +320,7 @@ module RethinkDB
           begin
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
+            PP.pp response
           rescue RqlRuntimeError => e
             @mutex.synchronize {
               @listener = nil

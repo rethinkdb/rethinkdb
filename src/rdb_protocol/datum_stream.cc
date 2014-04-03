@@ -636,7 +636,7 @@ eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
-    if (is_grouped()) return counted_t<const datum_t>();
+    if (is_grouped() || !is_array()) return counted_t<const datum_t>();
     datum_ptr_t arr(datum_t::R_ARRAY);
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     {
