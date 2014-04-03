@@ -1662,8 +1662,7 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     table.push_back(header);
 
-    // RSI: Silly "rdb" option.
-    add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
+    add_namespaces(long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
         admin_print_table(table);
@@ -1671,8 +1670,7 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_namespaces(const std::string&,
-                                          bool long_format,
+void admin_cluster_link_t::add_namespaces(bool long_format,
                                           const map_type& namespaces,
                                           std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = namespaces.begin(); i != namespaces.end(); ++i) {

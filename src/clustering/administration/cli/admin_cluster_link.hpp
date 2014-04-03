@@ -197,7 +197,7 @@ private:
                               std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
-    void add_namespaces(const std::string& protocol, bool long_format, const map_type& namespaces, std::vector<std::vector<std::string> > *table);
+    void add_namespaces(bool long_format, const map_type& namespaces, std::vector<std::vector<std::string> > *table);
 
     struct shard_input_t {
         struct {
