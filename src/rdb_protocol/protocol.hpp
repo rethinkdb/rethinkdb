@@ -20,12 +20,10 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/region.hpp"
 #include "rdb_protocol/shards.hpp"
 
 class btree_store_t;

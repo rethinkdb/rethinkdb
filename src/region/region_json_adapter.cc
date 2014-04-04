@@ -3,10 +3,9 @@
 
 #include <string>
 
-#include "btree/keys.hpp"
-#include "hash_region.hpp"
 #include "http/http.hpp"
 #include "http/json.hpp"
+#include "region/region.hpp"
 
 // json adapter concept for `store_key_t`
 json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *) {

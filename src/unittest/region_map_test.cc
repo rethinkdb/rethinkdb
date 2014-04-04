@@ -1,8 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "hash_region.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "region/region_map.hpp"
 
 namespace unittest {
