@@ -4,7 +4,7 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/machine_metadata.hpp"
-#include "region/region_json_adapter.hpp"
+#include "region/region_map_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
