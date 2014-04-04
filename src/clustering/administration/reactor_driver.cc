@@ -500,8 +500,7 @@ void reactor_driver_t::on_change() {
                 &reactor_driver_t::delete_reactor_data,
                 this,
                 auto_drainer_t::lock_t(&drainer),
-                new typename
-                    reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
+                new reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
             const persistable_blueprint_t *pbp = NULL;
