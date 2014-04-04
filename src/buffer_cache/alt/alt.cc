@@ -29,8 +29,7 @@ const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 
 
 // The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
-// given block id, in order by version.  (See
-// cache_t::snapshot_nodes_by_block_id_.)
+// given block id, in order by version. (See cache_t::snapshot_nodes_by_block_id_.)
 class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
     explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
@@ -101,8 +100,11 @@ alt_snapshot_node_t *
 cache_t::matching_snapshot_node_or_null(block_id_t block_id,
                                         block_version_t block_version) {
     ASSERT_NO_CORO_WAITING;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &snapshot_nodes_by_block_id_[block_id];
+    auto list_it = snapshot_nodes_by_block_id_.find(block_id);
+    if (list_it == snapshot_nodes_by_block_id_.end()) {
+        return NULL;
+    }
+    intrusive_list_t<alt_snapshot_node_t> *list = &(list_it->second);
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         if (p->current_page_acq_->block_version() == block_version) {
             return p;
@@ -132,7 +134,12 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
         stack.pop();
         // Step 1. Remove the node to be deleted from its list in
         // snapshot_nodes_by_block_id_.
-        snapshot_nodes_by_block_id_[pair.first].remove(pair.second);
+        auto list_it = snapshot_nodes_by_block_id_.find(pair.first);
+        rassert(list_it != snapshot_nodes_by_block_id_.end());
+        list_it->second.remove(pair.second);
+        if (list_it->second.empty()) {
+            snapshot_nodes_by_block_id_.erase(list_it);
+        }
 
         const std::map<block_id_t, alt_snapshot_node_t *> children
             = std::move(pair.second->children_);
