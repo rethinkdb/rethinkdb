@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -18,7 +17,7 @@
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
-#include "hash_region.hpp"
+#include "region/region.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
@@ -30,8 +29,6 @@ class store_t;
 class traversal_progress_combiner_t;
 struct write_t;
 struct write_response_t;
-
-typedef hash_region_t<key_range_t> region_t;
 
 class cannot_perform_query_exc_t : public std::exception {
 public:
