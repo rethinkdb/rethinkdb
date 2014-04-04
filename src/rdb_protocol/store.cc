@@ -653,9 +653,6 @@ void backfill_chunk_single_rdb_set(const backfill_atom_t &bf_atom,
             superblock_promise_out);
 }
 
-// RSI
-typedef rdb_protocol::range_key_tester_t range_key_tester_t;
-
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t *_store,
                                    btree_slice_t *_btree,
@@ -682,7 +679,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
-        range_key_tester_t tester(&delete_range.range);
+        rdb_protocol::range_key_tester_t tester(&delete_range.range);
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
         rdb_erase_small_range(&tester, delete_range.range.inner,
