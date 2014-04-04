@@ -11,6 +11,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
+#include "store_view.hpp"
 
 // The number of backfill chunks that may be sent but not yet acknowledged (~processed)
 // by the receiver.
@@ -43,7 +44,7 @@ backfiller_business_card_t backfiller_t::get_business_card() {
                                                   request_progress_mailbox.get_address());
 }
 
-bool backfiller_t::confirm_and_send_metainfo(store_view_t::metainfo_t metainfo,
+bool backfiller_t::confirm_and_send_metainfo(metainfo_t metainfo,
                                              region_map_t<version_range_t> start_point,
                                              mailbox_addr_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_cont) {
     guarantee(metainfo.get_domain() == start_point.get_domain());
@@ -120,7 +121,7 @@ public:
           chunk_semaphore_(chunk_semaphore),
           backfiller_(backfiller) { }
 
-    bool should_backfill_impl(const store_view_t::metainfo_t &metainfo) {
+    bool should_backfill_impl(const metainfo_t &metainfo) {
         return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
     }
 

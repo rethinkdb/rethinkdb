@@ -5,6 +5,7 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "config/args.hpp"
+#include "store_view.hpp"
 
 
 /* Returns true if every peer listed as a primary for this shard in the

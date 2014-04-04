@@ -346,18 +346,6 @@ buf_lock_t btree_store_t::acquire_sindex_block_for_write(
     return buf_lock_t(parent, sindex_block_id, access_t::write);
 }
 
-template <class region_map_t>
-bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::mapped_type state) {
-    for (typename region_map_t::const_iterator it  = metainfo.begin();
-                                               it != metainfo.end();
-                                               ++it) {
-        if (it->second != state) {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool btree_store_t::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
@@ -735,7 +723,7 @@ void btree_store_t::check_and_update_metainfo(
     update_metainfo(old_metainfo, new_metainfo, superblock);
 }
 
-typename btree_store_t::metainfo_t
+metainfo_t
 btree_store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
@@ -820,9 +808,9 @@ get_metainfo_internal(buf_lock_t *sb_buf,
 }
 
 void btree_store_t::set_metainfo(const metainfo_t &new_metainfo,
-                                             UNUSED order_token_t order_token,  // TODO
-                                             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                                 UNUSED order_token_t order_token,  // TODO
+                                 object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?

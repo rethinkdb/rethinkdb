@@ -2,6 +2,7 @@
 #define UNITTEST_MOCK_STORE_HPP_
 
 #include "rdb_protocol/protocol.hpp"
+#include "store_view.hpp"
 
 namespace unittest {
 

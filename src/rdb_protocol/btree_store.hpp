@@ -24,6 +24,7 @@
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "store_view.hpp"
 #include "utils.hpp"
 
 class btree_store_t;
