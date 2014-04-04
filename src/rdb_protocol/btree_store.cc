@@ -137,8 +137,7 @@ void btree_store_t::write(
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
                               real_superblock.get());
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
-    protocol_write(write, response, timestamp, btree.get(), &superblock,
-                   interruptor);
+    protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

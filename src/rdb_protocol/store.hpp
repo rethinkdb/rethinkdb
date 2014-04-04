@@ -16,14 +16,6 @@ public:
     ~store_t();
 
 private:
-    friend struct write_visitor_t;
-    void protocol_write(const write_t &write,
-                        write_response_t *response,
-                        transition_timestamp_t timestamp,
-                        btree_slice_t *btree,
-                        scoped_ptr_t<superblock_t> *superblock,
-                        signal_t *interruptor);
-
     void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
                                 chunk_fun_callback_t *chunk_fun_cb,
                                 superblock_t *superblock,

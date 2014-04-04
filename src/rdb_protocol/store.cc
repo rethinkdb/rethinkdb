@@ -498,13 +498,12 @@ private:
     DISABLE_COPYING(rdb_write_visitor_t);
 };
 
-void store_t::protocol_write(const write_t &write,
-                             write_response_t *response,
-                             transition_timestamp_t timestamp,
-                             btree_slice_t *btree,
-                             scoped_ptr_t<superblock_t> *superblock,
-                             signal_t *interruptor) {
-    rdb_write_visitor_t v(btree, this,
+void btree_store_t::protocol_write(const write_t &write,
+                                   write_response_t *response,
+                                   transition_timestamp_t timestamp,
+                                   scoped_ptr_t<superblock_t> *superblock,
+                                   signal_t *interruptor) {
+    rdb_write_visitor_t v(btree.get(), this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
                           timestamp.to_repli_timestamp(), ctx,
