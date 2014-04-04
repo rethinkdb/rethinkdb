@@ -124,10 +124,7 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-namespace rdb_protocol_details {
-
-typedef ql::transform_variant_t transform_variant_t;
-typedef ql::terminal_variant_t terminal_variant_t;
+namespace rdb_protocol {
 
 struct backfill_atom_t {
     store_key_t key;
@@ -166,7 +163,7 @@ struct single_sindex_status_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-} // namespace rdb_protocol_details
+} // namespace rdb_protocol
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
@@ -265,7 +262,7 @@ struct sindex_list_response_t {
 struct sindex_status_response_t {
     sindex_status_response_t()
     { }
-    std::map<std::string, rdb_protocol_details::single_sindex_status_t> statuses;
+    std::map<std::string, rdb_protocol::single_sindex_status_t> statuses;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -313,8 +310,8 @@ struct sindex_rangespec_t {
 };
 
 class rget_read_t {
-    typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-    typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+    typedef ql::transform_variant_t transform_variant_t;
+    typedef ql::terminal_variant_t terminal_variant_t;
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
@@ -338,8 +335,8 @@ public:
     ql::batchspec_t batchspec; // used to size batches
 
     // We use these two for lazy maps, reductions, etc.
-    std::vector<rdb_protocol_details::transform_variant_t> transforms;
-    boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
+    std::vector<ql::transform_variant_t> transforms;
+    boost::optional<ql::terminal_variant_t> terminal;
 
     // This is non-empty if we're doing an sindex read.
     // TODO: `read_t` should maybe be multiple types.  Determining the type
@@ -690,10 +687,10 @@ struct backfill_chunk_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct key_value_pairs_t {
-        std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
+        std::vector<rdb_protocol::backfill_atom_t> backfill_atoms;
 
         key_value_pairs_t() { }
-        explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
+        explicit key_value_pairs_t(std::vector<rdb_protocol::backfill_atom_t> &&_backfill_atoms)
             : backfill_atoms(std::move(_backfill_atoms)) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -720,7 +717,7 @@ struct backfill_chunk_t {
     static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
         return backfill_chunk_t(delete_key_t(key, recency));
     }
-    static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
+    static backfill_chunk_t set_keys(std::vector<rdb_protocol::backfill_atom_t> &&keys) {
         return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
     }
 
@@ -752,7 +749,7 @@ region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 }  // namespace rdb_protocol
 
 
-namespace rdb_protocol_details {
+namespace rdb_protocol {
 /* TODO: This might be redundant. I thought that `key_tester_t` was only
 originally necessary because in v1.1.x the hashing scheme might be different
 between the source and destination machines. */
@@ -763,7 +760,7 @@ struct range_key_tester_t : public key_tester_t {
 
     const region_t *delete_range;
 };
-} // namespace rdb_protocol_details
+} // namespace rdb_protocol
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
 

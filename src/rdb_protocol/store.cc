@@ -16,7 +16,7 @@
 // RSI: Ugh.
 typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
 // RSI: Ugh.
-typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
+typedef rdb_protocol::backfill_atom_t rdb_backfill_atom_t;
 // RSI: Ugh.
 typedef traversal_progress_combiner_t backfill_progress_t;
 
@@ -68,7 +68,7 @@ store_t::store_t(serializer_t *serializer,
     }
 
     if (!sindexes_to_update.empty()) {
-        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
+        rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                         &sindex_block);
     }
 }
@@ -202,7 +202,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 || sindex_status.sindexes.empty()) {
                 progress_completion_fraction_t frac =
                     store->get_progress(it->second.id);
-                rdb_protocol_details::single_sindex_status_t *s =
+                rdb_protocol::single_sindex_status_t *s =
                     &res->statuses[it->first];
                 s->ready = it->second.post_construction_complete;
                 if (!s->ready) {
@@ -409,7 +409,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         if (res.success) {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
-            rdb_protocol_details::bring_sindexes_up_to_date(
+            rdb_protocol::bring_sindexes_up_to_date(
                 sindexes, store, &sindex_block);
         }
 
@@ -666,7 +666,7 @@ void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
 }
 
 // RSI
-typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
+typedef rdb_protocol::range_key_tester_t range_key_tester_t;
 
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t *_store,
@@ -758,7 +758,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
-            rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+            rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
                                                             &sindex_block);
         }
     }

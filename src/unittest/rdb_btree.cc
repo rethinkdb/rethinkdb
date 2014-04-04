@@ -165,7 +165,7 @@ void bring_sindexes_up_to_date(
     std::set<std::string> created_sindexes;
     created_sindexes.insert(sindex_id);
 
-    rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+    rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
                                                     &sindex_block);
     nap(1000);
 }
@@ -194,7 +194,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t *store,
     std::set<std::string> created_sindexes;
     created_sindexes.insert(sindex_id);
 
-    rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+    rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
                                                     &sindex_block);
 }
 
@@ -235,8 +235,8 @@ void _check_keys_are_present(btree_store_t *store,
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                   counted_t<const ql::datum_t>()),
-            std::vector<rdb_protocol_details::transform_variant_t>(),
-            boost::optional<rdb_protocol_details::terminal_variant_t>(),
+            std::vector<ql::transform_variant_t>(),
+            boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
             &res);
 
@@ -304,8 +304,8 @@ void _check_keys_are_NOT_present(btree_store_t *store,
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                   counted_t<const ql::datum_t>()),
-            std::vector<rdb_protocol_details::transform_variant_t>(),
-            boost::optional<rdb_protocol_details::terminal_variant_t>(),
+            std::vector<ql::transform_variant_t>(),
+            boost::optional<ql::terminal_variant_t>(),
             sorting_t::ASCENDING,
             &res);
 
@@ -425,7 +425,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
                                            &dummy_interruptor);
 
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
-        rdb_protocol_details::range_key_tester_t tester(&test_range);
+        rdb_protocol::range_key_tester_t tester(&test_range);
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());

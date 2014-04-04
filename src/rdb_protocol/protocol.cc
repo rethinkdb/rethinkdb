@@ -14,9 +14,9 @@
 #include "rpc/semilattice/watchable.hpp"
 
 // RSI
-typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
+typedef rdb_protocol::backfill_atom_t rdb_backfill_atom_t;
 // RSI
-typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
+typedef rdb_protocol::range_key_tester_t range_key_tester_t;
 
 // RSI: Ugh.
 typedef traversal_progress_combiner_t backfill_progress_t;
@@ -83,7 +83,7 @@ key_range_t datum_range_t::to_sindex_keyrange() const {
             : store_key_t::max());
 }
 
-namespace rdb_protocol_details {
+namespace rdb_protocol {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 
@@ -327,7 +327,7 @@ void add_status(const single_sindex_status_t &new_status,
     status_out->ready &= new_status.ready;
 }
 
-}  // namespace rdb_protocol_details
+}  // namespace rdb_protocol
 
 rdb_context_t::rdb_context_t()
     : extproc_pool(NULL), ns_repo(NULL),
@@ -1003,7 +1003,7 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_read_response_t, data);

@@ -134,7 +134,7 @@ public:
         repli_timestamp_t recency,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_keyvalues(
-        std::vector<rdb_protocol_details::backfill_atom_t> &&atoms,
+        std::vector<rdb_protocol::backfill_atom_t> &&atoms,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
@@ -191,8 +191,8 @@ void rdb_rget_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
-    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    const std::vector<ql::transform_variant_t> &transforms,
+    const boost::optional<ql::terminal_variant_t> &terminal,
     sorting_t sorting,
     rget_read_response_t *response);
 
@@ -203,8 +203,8 @@ void rdb_rget_secondary_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
-    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    const std::vector<ql::transform_variant_t> &transforms,
+    const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
