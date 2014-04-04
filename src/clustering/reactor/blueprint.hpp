@@ -4,7 +4,7 @@
 
 #include <map>
 
-#include "protocol_api.hpp"
+#include "region/region.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 

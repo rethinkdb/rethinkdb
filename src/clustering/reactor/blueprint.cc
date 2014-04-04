@@ -2,7 +2,6 @@
 #include "clustering/reactor/blueprint.hpp"
 
 #include "debug.hpp"
-#include "protocol_api.hpp"
 #include "stl_utils.hpp"
 
 void blueprint_t::guarantee_valid() const THROWS_NOTHING {
