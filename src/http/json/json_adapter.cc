@@ -7,6 +7,13 @@
 
 #include "utils.hpp"
 
+static const std::string schema_mismatch_msg(cJSON *json, const char *expected) {
+    const char * got = cJSON_type_to_string(json->type);
+    std::string val = cJSON_print_std_string(json);
+
+    return strprintf("Expected '%s' instead got '%s': %s\n", expected, got, val.c_str());
+}
+
 bool is_null(cJSON *json) {
     return json->type == cJSON_NULL;
 }
@@ -19,7 +26,7 @@ bool get_bool(cJSON *json) {
     } else if (json->type == cJSON_False) {
         return false;
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected bool instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "bool").c_str());
     }
 }
 
@@ -27,7 +34,7 @@ std::string get_string(cJSON *json) {
     if (json->type == cJSON_String) {
         return std::string(json->valuestring);
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected string instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "string").c_str());
     }
 }
 
@@ -35,7 +42,7 @@ int64_t get_int(cJSON *json, int64_t min_value, int64_t max_value) {
     if (json->type == cJSON_Number) {
         int64_t value = static_cast<int64_t>(json->valuedouble);
         if (static_cast<double>(value) != json->valuedouble) {
-            throw schema_mismatch_exc_t(strprintf("Expected int instead got non-integer: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+            throw schema_mismatch_exc_t(schema_mismatch_msg(json, "int").c_str());
         }
         if (value < min_value || value > max_value) {
             throw schema_mismatch_exc_t(strprintf("Expected int in range (%" PRIi64 " to %" PRIi64 ") but instead got: %s\n", min_value, max_value, cJSON_print_std_string(json).c_str()).c_str());
@@ -43,7 +50,7 @@ int64_t get_int(cJSON *json, int64_t min_value, int64_t max_value) {
 
         return value;
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected int instead got a non-number: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "int").c_str());
     }
 }
 
@@ -51,7 +58,7 @@ double get_double(cJSON *json) {
     if (json->type == cJSON_Number) {
         return json->valuedouble;
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected double instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "double").c_str());
     }
 }
 
@@ -59,7 +66,7 @@ json_array_iterator_t get_array_it(cJSON *json) {
     if (json->type == cJSON_Array) {
         return json_array_iterator_t(json);
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected array instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "array").c_str());
     }
 }
 
@@ -67,7 +74,7 @@ json_object_iterator_t get_object_it(cJSON *json) {
     if (json->type == cJSON_Object) {
         return json_object_iterator_t(json);
     } else {
-        throw schema_mismatch_exc_t(strprintf("Expected object instead got: %s\n", cJSON_print_std_string(json).c_str()).c_str());
+        throw schema_mismatch_exc_t(schema_mismatch_msg(json, "object").c_str());
     }
 }
 
