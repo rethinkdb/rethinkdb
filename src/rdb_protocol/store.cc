@@ -13,10 +13,6 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
-// RSI: We shouldn't need this decl here, and shard and unshard should be in this
-//ï file, not be part of read_t and write_t.
-void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
-
 store_t::store_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
                  const std::string &perfmon_name,

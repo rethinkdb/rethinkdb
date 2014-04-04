@@ -240,6 +240,8 @@ struct rget_read_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
+
 struct distribution_read_response_t {
     // Supposing the map has keys:
     // k1, k2 ... kn
