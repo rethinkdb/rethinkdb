@@ -7,12 +7,11 @@
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
+
+class rdb_context_t;
 
 namespace unittest {
 

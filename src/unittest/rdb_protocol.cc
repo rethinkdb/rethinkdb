@@ -2,22 +2,24 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/metadata.hpp"
+#include "arch/io/disk.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "region/region_json_adapter.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
+#include "region/region_json_adapter.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "stl_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
-#include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/store.hpp"
-#include "stl_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 namespace {
@@ -30,9 +32,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
     /* Pick shards */
     std::vector<region_t> store_shards;
     if (oversharding) {
-        store_shards.push_back(region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::none, store_key_t())));
+        store_shards.push_back(region_t(key_range_t(key_range_t::none, store_key_t(), key_range_t::none, store_key_t())));
     } else {
-        store_shards.push_back(region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+        store_shards.push_back(region_t(key_range_t(key_range_t::none, store_key_t(), key_range_t::open, store_key_t("n"))));
         store_shards.push_back(region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
     }
 

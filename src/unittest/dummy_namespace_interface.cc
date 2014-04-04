@@ -1,5 +1,7 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
+#include "unittest/clustering_utils.hpp"
+
 namespace unittest {
 
 void dummy_performer_t::read(const read_t &read,
