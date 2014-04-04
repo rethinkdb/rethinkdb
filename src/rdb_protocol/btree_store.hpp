@@ -284,11 +284,10 @@ public:
         return &(secondary_index_slices.at(id));
     }
 
-    virtual void protocol_read(const read_t &read,
-                               read_response_t *response,
-                               btree_slice_t *btree,
-                               superblock_t *superblock,
-                               signal_t *interruptor) = 0;
+    void protocol_read(const read_t &read,
+                       read_response_t *response,
+                       superblock_t *superblock,
+                       signal_t *interruptor);
 
     virtual void protocol_write(const write_t &write,
                                 write_response_t *response,
@@ -394,6 +393,8 @@ public:
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.
     auto_drainer_t drainer;
+
+    rdb_context_t *ctx;
 
 private:
     DISABLE_COPYING(btree_store_t);

@@ -30,13 +30,14 @@ btree_store_t::btree_store_t(serializer_t *serializer,
                              const std::string &perfmon_name,
                              bool create,
                              perfmon_collection_t *parent_perfmon_collection,
-                             rdb_context_t *,  // RSI unused
+                             rdb_context_t *_ctx,
                              io_backender_t *io_backender,
                              const base_path_t &base_path)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
+      ctx(_ctx)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -110,7 +111,7 @@ void btree_store_t::read(
 
     DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
 
-    protocol_read(read, response, btree.get(), superblock.get(), interruptor);
+    protocol_read(read, response, superblock.get(), interruptor);
 }
 
 void btree_store_t::write(

@@ -22,8 +22,7 @@ store_t::store_t(serializer_t *serializer,
                  io_backender_t *io,
                  const base_path_t &base_path) :
     btree_store_t(serializer, balancer, perfmon_name,
-            create, parent_perfmon_collection, _ctx, io, base_path),
-    ctx(_ctx)
+            create, parent_perfmon_collection, _ctx, io, base_path)
 {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
@@ -254,15 +253,13 @@ private:
     DISABLE_COPYING(rdb_read_visitor_t);
 };
 
-void store_t::protocol_read(const read_t &read,
-                            read_response_t *response,
-                            btree_slice_t *btree,
-                            superblock_t *superblock,
-                            signal_t *interruptor) {
-    rdb_read_visitor_t v(
-        btree, this,
-        superblock,
-        ctx, response, read.profile, interruptor);
+void btree_store_t::protocol_read(const read_t &read,
+                                  read_response_t *response,
+                                  superblock_t *superblock,
+                                  signal_t *interruptor) {
+    rdb_read_visitor_t v(btree.get(), this,
+                         superblock,
+                         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
         boost::apply_visitor(v, read.read);
