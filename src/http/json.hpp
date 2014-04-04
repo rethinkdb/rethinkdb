@@ -22,7 +22,7 @@ void project(cJSON *json, std::set<std::string> keys);
 std::string cJSON_print_lexicographic(const cJSON *json);
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
-std::string cJSON_type_to_string(int type);
+const char *cJSON_type_to_string(int type);
 
 class scoped_cJSON_t {
 private:
