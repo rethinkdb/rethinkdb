@@ -5,13 +5,16 @@
 #include <map>
 #include <set>
 
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
-#include "protocol_api.hpp"
+#include "region/region_map.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
+
+class binary_blob_t;
 
 /* The type `version_t` uniquely identifies the state of some region of a
 RethinkDB table at some point in time. Every read operation that passes through

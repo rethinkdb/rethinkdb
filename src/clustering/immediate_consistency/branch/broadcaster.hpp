@@ -13,7 +13,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
-#include "protocol_api.hpp"
 #include "timestamps.hpp"
 
 class ack_checker_t;

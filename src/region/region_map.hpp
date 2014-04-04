@@ -1,14 +1,18 @@
 #ifndef REGION_REGION_MAP_HPP_
 #define REGION_REGION_MAP_HPP_
 
+#include <vector>
+#include <utility>
+
+#include "containers/archive/stl_types.hpp"
 #include "region/region.hpp"
+#include "rpc/serialize_macros.hpp"
 
 /* Regions contained in region_map_t must never intersect. */
 template <class value_t>
 class region_map_t {
 private:
-    typedef std::pair<region_t, value_t> internal_pair_t;
-    typedef std::vector<internal_pair_t> internal_vec_t;
+    typedef std::vector<std::pair<region_t, value_t> > internal_vec_t;
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
@@ -18,11 +22,11 @@ public:
     typedef value_t mapped_type;
 
     region_map_t() THROWS_NOTHING {
-        regions_and_values.push_back(internal_pair_t(region_t::universe(), value_t()));
+        regions_and_values.push_back(std::make_pair(region_t::universe(), value_t()));
     }
 
     explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING {
-        regions_and_values.push_back(internal_pair_t(r, v));
+        regions_and_values.push_back(std::make_pair(r, v));
     }
 
     template <class input_iterator_t>
@@ -65,7 +69,7 @@ public:
         for (size_t i = 0; i < regions_and_values.size(); ++i) {
             region_t ixn = region_intersection(regions_and_values[i].first, region);
             if (!region_is_empty(ixn)) {
-                masked_pairs.push_back(internal_pair_t(ixn, regions_and_values[i].second));
+                masked_pairs.push_back(std::make_pair(ixn, regions_and_values[i].second));
             }
         }
         return region_map_t(masked_pairs.begin(), masked_pairs.end());
@@ -86,7 +90,7 @@ public:
 
             // Insert the unchanged parts of the old region into updated_pairs with the old value
             for (typename std::vector<region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
-                updated_pairs.push_back(internal_pair_t(*j, i->second));
+                updated_pairs.push_back(std::make_pair(*j, i->second));
             }
         }
         std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));

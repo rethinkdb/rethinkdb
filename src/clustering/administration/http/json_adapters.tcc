@@ -12,7 +12,6 @@
 #include "region/region_json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
-#include "protocol_api.hpp"
 
 //json adapter concept for vclock_t
 template <class T>
