@@ -455,7 +455,7 @@ public:
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-        std::vector<rdb_protocol::backfill_atom_t> chunk_atoms;
+        std::vector<backfill_atom_t> chunk_atoms;
         chunk_atoms.reserve(keys.size());
         size_t current_chunk_size = 0;
 
@@ -463,7 +463,7 @@ public:
             rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
             const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
 
-            rdb_protocol::backfill_atom_t atom;
+            backfill_atom_t atom;
             atom.key.assign(keys[i]->size, keys[i]->contents);
             atom.value = get_data(value, leaf_node);
             atom.recency = recencies[i];
@@ -478,7 +478,7 @@ public:
                 // with the remaining values.
                 slice_->stats.pm_keys_read.record(chunk_atoms.size());
                 cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-                chunk_atoms = std::vector<rdb_protocol::backfill_atom_t>();
+                chunk_atoms = std::vector<backfill_atom_t>();
                 chunk_atoms.reserve(keys.size() - (i+1));
                 current_chunk_size = 0;
             }

@@ -13,17 +13,6 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 
-// RSI
-typedef rdb_protocol::backfill_atom_t rdb_backfill_atom_t;
-// RSI
-typedef rdb_protocol::range_key_tester_t range_key_tester_t;
-
-// RSI: Ugh.
-typedef traversal_progress_combiner_t backfill_progress_t;
-
-// RSI
-typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
-
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
@@ -83,9 +72,9 @@ key_range_t datum_range_t::to_sindex_keyrange() const {
             : store_key_t::max());
 }
 
-namespace rdb_protocol {
-
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
+
+namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
@@ -156,7 +145,7 @@ void bring_sindexes_up_to_date(
 /* Helper for `post_construct_and_drain_queue()`. */
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
-    apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
+    apply_sindex_change_visitor_t(const btree_store_t::sindex_access_vector_t *sindexes,
             txn_t *txn,
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
@@ -172,7 +161,7 @@ public:
     }
 
 private:
-    const sindex_access_vector_t *sindexes_;
+    const btree_store_t::sindex_access_vector_t *sindexes_;
     txn_t *txn_;
     signal_t *interruptor_;
 };
@@ -228,7 +217,7 @@ void post_construct_and_drain_queue(
 
             queue_superblock->release();
 
-            sindex_access_vector_t sindexes;
+            btree_store_t::sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     sindexes_to_bring_up_to_date,
                     &queue_sindex_block,

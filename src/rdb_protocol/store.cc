@@ -13,14 +13,6 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
-// RSI: Ugh.
-typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
-// RSI: Ugh.
-typedef rdb_protocol::backfill_atom_t rdb_backfill_atom_t;
-// RSI: Ugh.
-typedef traversal_progress_combiner_t backfill_progress_t;
-
-
 // RSI: We shouldn't need this decl here, and shard and unshard should be in this
 //ï file, not be part of read_t and write_t.
 void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
@@ -493,7 +485,7 @@ private:
         wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, acq.get());
 
-        sindex_access_vector_t sindexes;
+        btree_store_t::sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
                                                                      &sindexes);
         rdb_live_deletion_context_t deletion_context;
@@ -586,7 +578,7 @@ public:
                                  interruptor);
     }
 
-    void on_keyvalues(std::vector<rdb_backfill_atom_t> &&atoms,
+    void on_keyvalues(std::vector<backfill_atom_t> &&atoms,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::set_keys(std::move(atoms)), interruptor);
     }
@@ -612,7 +604,7 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
                        rdb_backfill_callback_t *callback,
                        superblock_t *superblock,
                        buf_lock_t *sindex_block,
-                       backfill_progress_t *progress,
+                       traversal_progress_combiner_t *progress,
                        signal_t *interruptor) THROWS_NOTHING {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
@@ -632,7 +624,7 @@ void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &star
                                      superblock_t *superblock,
                                      buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
-                                     backfill_progress_t *progress,
+                                     traversal_progress_combiner_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
     with_priority_t p(CORO_PRIORITY_BACKFILL_SENDER);
@@ -651,7 +643,7 @@ void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &star
     }
 }
 
-void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
+void backfill_chunk_single_rdb_set(const backfill_atom_t &bf_atom,
                                    btree_slice_t *btree, superblock_t *superblock,
                                    UNUSED auto_drainer_t::lock_t drainer_acq,
                                    rdb_modification_report_t *mod_report_out,
@@ -769,7 +761,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
         scoped_array_t<write_message_t> queue_wms(mod_reports.size());
         {
-            sindex_access_vector_t sindexes;
+            btree_store_t::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                     &sindex_block, &sindexes);
             sindex_block.reset_buf_lock();

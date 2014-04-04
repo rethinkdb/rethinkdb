@@ -124,8 +124,6 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-namespace rdb_protocol {
-
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
@@ -142,6 +140,9 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
+
+
+namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
@@ -687,10 +688,10 @@ struct backfill_chunk_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct key_value_pairs_t {
-        std::vector<rdb_protocol::backfill_atom_t> backfill_atoms;
+        std::vector<backfill_atom_t> backfill_atoms;
 
         key_value_pairs_t() { }
-        explicit key_value_pairs_t(std::vector<rdb_protocol::backfill_atom_t> &&_backfill_atoms)
+        explicit key_value_pairs_t(std::vector<backfill_atom_t> &&_backfill_atoms)
             : backfill_atoms(std::move(_backfill_atoms)) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -717,7 +718,7 @@ struct backfill_chunk_t {
     static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
         return backfill_chunk_t(delete_key_t(key, recency));
     }
-    static backfill_chunk_t set_keys(std::vector<rdb_protocol::backfill_atom_t> &&keys) {
+    static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
         return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
     }
 
