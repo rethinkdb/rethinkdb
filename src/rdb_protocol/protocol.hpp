@@ -24,7 +24,7 @@
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/shards.hpp"
 
-class btree_store_t;
+class store_t;
 class buf_lock_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
@@ -146,7 +146,7 @@ namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t *store,
+        store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
@@ -728,7 +728,7 @@ struct backfill_chunk_t {
         return backfill_chunk_t(sindexes_t(sindexes));
     }
 
-    /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
+    /* This is for `store_t`; it's not part of the ICL protocol API. */
     repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
     RDB_DECLARE_ME_SERIALIZABLE;

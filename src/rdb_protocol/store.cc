@@ -13,17 +13,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
-store_t::store_t(serializer_t *serializer,
-                 cache_balancer_t *balancer,
-                 const std::string &perfmon_name,
-                 bool create,
-                 perfmon_collection_t *parent_perfmon_collection,
-                 rdb_context_t *_ctx,
-                 io_backender_t *io,
-                 const base_path_t &base_path) :
-    btree_store_t(serializer, balancer, perfmon_name,
-            create, parent_perfmon_collection, _ctx, io, base_path)
-{
+void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
     // This uses a dummy interruptor because this is the only thing using the store at
@@ -58,10 +48,6 @@ store_t::store_t(serializer_t *serializer,
         rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                         &sindex_block);
     }
-}
-
-store_t::~store_t() {
-    assert_thread();
 }
 
 // TODO: get rid of this extra response_t copy on the stack
@@ -206,7 +192,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     rdb_read_visitor_t(btree_slice_t *_btree,
-                       btree_store_t *_store,
+                       store_t *_store,
                        superblock_t *_superblock,
                        rdb_context_t *ctx,
                        read_response_t *_response,
@@ -245,7 +231,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 private:
     read_response_t *response;
     btree_slice_t *btree;
-    btree_store_t *store;
+    store_t *store;
     superblock_t *superblock;
     wait_any_t interruptor;
     ql::env_t ql_env;
@@ -253,10 +239,10 @@ private:
     DISABLE_COPYING(rdb_read_visitor_t);
 };
 
-void btree_store_t::protocol_read(const read_t &read,
-                                  read_response_t *response,
-                                  superblock_t *superblock,
-                                  signal_t *interruptor) {
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            superblock_t *superblock,
+                            signal_t *interruptor) {
     rdb_read_visitor_t v(btree.get(), this,
                          superblock,
                          ctx, response, read.profile, interruptor);
@@ -429,7 +415,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 
     rdb_write_visitor_t(btree_slice_t *_btree,
-                        btree_store_t *_store,
+                        store_t *_store,
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
@@ -478,7 +464,7 @@ private:
         wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, acq.get());
 
-        btree_store_t::sindex_access_vector_t sindexes;
+        store_t::sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
                                                                      &sindexes);
         rdb_live_deletion_context_t deletion_context;
@@ -486,7 +472,7 @@ private:
     }
 
     btree_slice_t *btree;
-    btree_store_t *store;
+    store_t *store;
     txn_t *txn;
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
@@ -498,11 +484,11 @@ private:
     DISABLE_COPYING(rdb_write_visitor_t);
 };
 
-void btree_store_t::protocol_write(const write_t &write,
-                                   write_response_t *response,
-                                   transition_timestamp_t timestamp,
-                                   scoped_ptr_t<superblock_t> *superblock,
-                                   signal_t *interruptor) {
+void store_t::protocol_write(const write_t &write,
+                             write_response_t *response,
+                             transition_timestamp_t timestamp,
+                             scoped_ptr_t<superblock_t> *superblock,
+                             signal_t *interruptor) {
     rdb_write_visitor_t v(btree.get(), this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
@@ -615,16 +601,15 @@ void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &star
                                      chunk_fun_callback_t *chunk_fun_cb,
                                      superblock_t *superblock,
                                      buf_lock_t *sindex_block,
-                                     btree_slice_t *btree,
                                      traversal_progress_combiner_t *progress,
                                      signal_t *interruptor)
-                                     THROWS_ONLY(interrupted_exc_t) {
+    THROWS_ONLY(interrupted_exc_t) {
     with_priority_t p(CORO_PRIORITY_BACKFILL_SENDER);
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), std::bind(&call_rdb_backfill, ph::_1,
-                                   btree, regions, &callback,
+                                   btree.get(), regions, &callback,
                                    &refcount_wrapper, sindex_block, progress,
                                    interruptor));
 
@@ -650,7 +635,7 @@ void backfill_chunk_single_rdb_set(const backfill_atom_t &bf_atom,
 }
 
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
-    rdb_receive_backfill_visitor_t(btree_store_t *_store,
+    rdb_receive_backfill_visitor_t(store_t *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
                                    scoped_ptr_t<superblock_t> &&_superblock,
@@ -750,7 +735,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
         scoped_array_t<write_message_t> queue_wms(mod_reports.size());
         {
-            btree_store_t::sindex_access_vector_t sindexes;
+            store_t::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                     &sindex_block, &sindexes);
             sindex_block.reset_buf_lock();
@@ -767,7 +752,7 @@ private:
         store->sindex_queue_push(queue_wms, acq.get());
     }
 
-    btree_store_t *store;
+    store_t *store;
     btree_slice_t *btree;
     txn_t *txn;
     scoped_ptr_t<superblock_t> superblock;
@@ -777,25 +762,23 @@ private:
     DISABLE_COPYING(rdb_receive_backfill_visitor_t);
 };
 
-void store_t::protocol_receive_backfill(btree_slice_t *btree,
-                                        scoped_ptr_t<superblock_t> &&_superblock,
+void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
-    rdb_receive_backfill_visitor_t v(this, btree,
+    rdb_receive_backfill_visitor_t v(this, btree.get(),
                                      superblock->expose_buf().txn(),
                                      std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
 }
 
-void store_t::protocol_reset_data(const region_t& subregion,
-                                  btree_slice_t *btree,
+void store_t::protocol_reset_data(const region_t &subregion,
                                   superblock_t *superblock,
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
+    value_sizer_t<rdb_value_t> sizer(cache->get_block_size());
 
     always_true_key_tester_t key_tester;
     buf_lock_t sindex_block

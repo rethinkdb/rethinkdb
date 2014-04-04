@@ -79,7 +79,7 @@ namespace rdb_protocol {
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t *store,
+        store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
 
@@ -87,7 +87,7 @@ void post_construct_and_drain_queue(
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t *store,
+        store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING
 {
@@ -145,7 +145,7 @@ void bring_sindexes_up_to_date(
 /* Helper for `post_construct_and_drain_queue()`. */
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
-    apply_sindex_change_visitor_t(const btree_store_t::sindex_access_vector_t *sindexes,
+    apply_sindex_change_visitor_t(const store_t::sindex_access_vector_t *sindexes,
             txn_t *txn,
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
@@ -161,7 +161,7 @@ public:
     }
 
 private:
-    const btree_store_t::sindex_access_vector_t *sindexes_;
+    const store_t::sindex_access_vector_t *sindexes_;
     txn_t *txn_;
     signal_t *interruptor_;
 };
@@ -173,7 +173,7 @@ private:
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t *store,
+        store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
@@ -217,7 +217,7 @@ void post_construct_and_drain_queue(
 
             queue_superblock->release();
 
-            btree_store_t::sindex_access_vector_t sindexes;
+            store_t::sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     sindexes_to_bring_up_to_date,
                     &queue_sindex_block,

@@ -27,7 +27,7 @@
 #include "store_view.hpp"
 #include "utils.hpp"
 
-class btree_store_t;
+class store_t;
 class btree_slice_t;
 class cache_conn_t;
 class cache_t;
@@ -81,19 +81,19 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class btree_store_t : public store_view_t {
+class store_t : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    btree_store_t(serializer_t *serializer,
-                  cache_balancer_t *balancer,
-                  const std::string &perfmon_name,
-                  bool create,
-                  perfmon_collection_t *parent_perfmon_collection,
-                  rdb_context_t *,
-                  io_backender_t *io_backender,
-                  const base_path_t &base_path);
-    virtual ~btree_store_t();
+    store_t(serializer_t *serializer,
+            cache_balancer_t *balancer,
+            const std::string &perfmon_name,
+            bool create,
+            perfmon_collection_t *parent_perfmon_collection,
+            rdb_context_t *,
+            io_backender_t *io_backender,
+            const base_path_t &base_path);
+    ~store_t();
 
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
@@ -295,24 +295,21 @@ public:
                         scoped_ptr_t<superblock_t> *superblock,
                         signal_t *interruptor);
 
-    virtual void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
-                                        chunk_fun_callback_t *chunk_fun_cb,
-                                        superblock_t *superblock,
-                                        buf_lock_t *sindex_block,
-                                        btree_slice_t *btree,
-                                        traversal_progress_combiner_t *progress,
-                                        signal_t *interruptor)
-                                        THROWS_ONLY(interrupted_exc_t) = 0;
+    void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
+                                chunk_fun_callback_t *chunk_fun_cb,
+                                superblock_t *superblock,
+                                buf_lock_t *sindex_block,
+                                traversal_progress_combiner_t *progress,
+                                signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
-    virtual void protocol_receive_backfill(btree_slice_t *btree,
-                                           scoped_ptr_t<superblock_t> &&superblock,
-                                           signal_t *interruptor,
-                                           const backfill_chunk_t &chunk) = 0;
+    void protocol_receive_backfill(scoped_ptr_t<superblock_t> &&superblock,
+                                   signal_t *interruptor,
+                                   const backfill_chunk_t &chunk);
 
-    virtual void protocol_reset_data(const region_t &subregion,
-                                     btree_slice_t *btree,
-                                     superblock_t *superblock,
-                                     signal_t *interruptor) = 0;
+    void protocol_reset_data(const region_t &subregion,
+                             superblock_t *superblock,
+                             signal_t *interruptor);
 
     void get_metainfo_internal(buf_lock_t *sb_buf,
                                region_map_t<binary_blob_t> *out)
@@ -344,6 +341,8 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
+    void help_construct_bring_sindexes_up_to_date();
+
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
             int expected_change_count,
@@ -396,7 +395,7 @@ public:
     rdb_context_t *ctx;
 
 private:
-    DISABLE_COPYING(btree_store_t);
+    DISABLE_COPYING(store_t);
 };
 
 #endif  // BTREE_BTREE_STORE_HPP_
