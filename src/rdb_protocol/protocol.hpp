@@ -73,9 +73,6 @@ RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-// RSI: What.  Ugh.
-typedef ql::sorting_t sorting_t;
-
 class key_le_t {
 public:
     explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
@@ -86,12 +83,6 @@ public:
 private:
     sorting_t sorting;
 };
-
-store_key_t key_max(sorting_t sorting);
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        sorting_t, int8_t,
-        sorting_t::UNORDERED, sorting_t::DESCENDING);
 
 namespace ql {
 class datum_t;

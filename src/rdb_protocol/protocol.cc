@@ -1025,6 +1025,9 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
 RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
 RDB_IMPL_ME_SERIALIZABLE_7(rget_read_t,
                            region, optargs, batchspec,
                            transforms, terminal, sindex, sorting);

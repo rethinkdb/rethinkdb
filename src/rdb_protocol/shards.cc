@@ -9,9 +9,9 @@
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-namespace ql {
-
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
+
+namespace ql {
 
 accumulator_t::accumulator_t() : finished(false) { }
 accumulator_t::~accumulator_t() { }
