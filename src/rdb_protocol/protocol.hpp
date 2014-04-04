@@ -16,17 +16,16 @@
 #include <boost/optional.hpp>
 
 #include "btree/erase_range.hpp"
-#include "btree/keys.hpp"
 #include "btree/secondary_operations.hpp"
-#include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "http/json.hpp"
-#include "http/json/cJSON.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "region/region.hpp"
+#include "repli_timestamp.hpp"
 #include "rdb_protocol/shards.hpp"
 
 class btree_store_t;
+class buf_lock_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -36,8 +35,12 @@ class databases_semilattice_metadata_t;
 template <class> class directory_read_manager_t;
 class namespace_repo_t;
 class namespaces_semilattice_metadata_t;
+struct secondary_index_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+class Term;
+class Datum;
+class Backtrace;
 
 
 namespace unittest { struct make_sindex_read_t; }
@@ -70,6 +73,7 @@ RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
+// RSI: What.  Ugh.
 typedef ql::sorting_t sorting_t;
 
 class key_le_t {
