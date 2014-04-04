@@ -6,7 +6,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"

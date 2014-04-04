@@ -9,7 +9,7 @@
 
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "protocol_api.hpp"

@@ -2,7 +2,7 @@
 #include "clustering/generic/nonoverlapping_regions.hpp"
 
 #include "protocol_api.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 
 bool valid_regions_helper(const std::vector<region_t> &regionvec,
                           const std::set<region_t> &regionset) {

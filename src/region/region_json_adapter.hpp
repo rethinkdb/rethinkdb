@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_PROTOCOL_JSON_ADAPTER_HPP_
-#define RDB_PROTOCOL_PROTOCOL_JSON_ADAPTER_HPP_
+#ifndef REGION_REGION_JSON_ADAPTER_HPP_
+#define REGION_REGION_JSON_ADAPTER_HPP_
 
 #include <string>
 
@@ -37,4 +37,4 @@ void apply_json_to(cJSON *, hash_region_t<key_range_t> *);
 std::string render_region_as_string(hash_region_t<key_range_t> *target);
 std::string to_string_for_json_key(hash_region_t<key_range_t> *target);
 
-#endif /* RDB_PROTOCOL_PROTOCOL_JSON_ADAPTER_HPP_ */
+#endif /* REGION_REGION_JSON_ADAPTER_HPP_ */
