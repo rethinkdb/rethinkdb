@@ -6,7 +6,6 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 
-struct rdb_protocol_t;
 
 namespace unittest {
 

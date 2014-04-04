@@ -179,7 +179,7 @@ std::string create_sindex(namespace_interface_t *nsi,
     write_response_t response;
 
     cond_t interruptor;
-    nsi->write(write, &response, osource->check_in("unittest::create_sindex(rdb_protocol_t.cc-A"), &interruptor);
+    nsi->write(write, &response, osource->check_in("unittest::create_sindex(rdb_protocol.cc-A"), &interruptor);
 
     if (!boost::get<sindex_create_response_t>(&response.response)) {
         ADD_FAILURE() << "got wrong type of result back";
@@ -196,7 +196,7 @@ bool drop_sindex(namespace_interface_t *nsi,
     write_response_t response;
 
     cond_t interruptor;
-    nsi->write(write, &response, osource->check_in("unittest::drop_sindex(rdb_protocol_t.cc-A"), &interruptor);
+    nsi->write(write, &response, osource->check_in("unittest::drop_sindex(rdb_protocol.cc-A"), &interruptor);
 
     sindex_drop_response_t *res = boost::get<sindex_drop_response_t>(&response.response);
 
@@ -235,7 +235,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         nsi->write(write,
                    &response,
                    osource->check_in(
-                       "unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"),
+                       "unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
                    &interruptor);
 
         if (point_write_response_t *maybe_point_write_response
@@ -252,7 +252,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         read_response_t response;
 
         cond_t interruptor;
-        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
 
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -276,7 +276,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         write_response_t response;
 
         cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
 
         if (point_delete_response_t *maybe_point_delete_response = boost::get<point_delete_response_t>(&response.response)) {
             ASSERT_EQ(maybe_point_delete_response->result, point_delete_result_t::DELETED);
@@ -291,7 +291,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
         read_response_t response;
 
         cond_t interruptor;
-        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+        nsi->read(read, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"), &interruptor);
 
         if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
             auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -323,7 +323,7 @@ std::set<std::string> list_sindexes(namespace_interface_t *nsi, order_source_t *
     read_response_t response;
 
     cond_t interruptor;
-    nsi->read(read, &response, osource->check_in("unittest::list_sindexes(rdb_protocol_t.cc-A"), &interruptor);
+    nsi->read(read, &response, osource->check_in("unittest::list_sindexes(rdb_protocol.cc-A"), &interruptor);
 
     sindex_list_response_t *res = boost::get<sindex_list_response_t>(&response.response);
 
@@ -406,7 +406,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                            &response,
                            osource->check_in(
                                "unittest::run_sindex_oversized_keys_test("
-                               "rdb_protocol_t.cc-A"),
+                               "rdb_protocol.cc-A"),
                            &interruptor);
 
                 auto resp = boost::get<point_write_response_t>(
@@ -425,7 +425,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                 read_response_t response;
 
                 cond_t interruptor;
-                nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"), &interruptor);
+                nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol.cc-A"), &interruptor);
 
                 if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
                     auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
@@ -475,7 +475,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         nsi->write(write,
                    &response,
                    osource->check_in(
-                       "unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"),
+                       "unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
                    &interruptor);
 
         if (!boost::get<point_write_response_t>(&response.response)) {

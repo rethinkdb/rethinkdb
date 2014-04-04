@@ -22,7 +22,6 @@
 #include "timestamps.hpp"
 
 struct backfill_chunk_t;
-struct rdb_protocol_t;
 struct read_t;
 struct read_response_t;
 class store_t;

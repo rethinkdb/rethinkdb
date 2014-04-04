@@ -25,7 +25,6 @@
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
-struct rdb_protocol_t;
 
 class cluster_semilattice_metadata_t {
 public:

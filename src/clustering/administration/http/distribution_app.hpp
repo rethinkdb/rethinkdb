@@ -10,7 +10,6 @@
 #include "http/http.hpp"
 #include "rpc/semilattice/view.hpp"
 
-struct rdb_protocol_t;
 
 class distribution_app_t : public http_app_t {
 public:

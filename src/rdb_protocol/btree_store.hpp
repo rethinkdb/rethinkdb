@@ -26,7 +26,6 @@
 #include "rdb_protocol/protocol.hpp"
 #include "utils.hpp"
 
-struct rdb_protocol_t;
 class btree_store_t;
 class btree_slice_t;
 class cache_conn_t;

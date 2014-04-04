@@ -30,7 +30,6 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-struct rdb_protocol_t;
 
 /* This is the metadata for a single namespace of a specific protocol. */
 

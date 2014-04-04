@@ -41,7 +41,6 @@ class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
-struct rdb_protocol_t;
 
 namespace unittest { struct make_sindex_read_t; }
 
