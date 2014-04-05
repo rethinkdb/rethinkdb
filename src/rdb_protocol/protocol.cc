@@ -32,6 +32,8 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
+#include "debug.hpp"
+
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
@@ -69,6 +71,9 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
+
+typedef rdb_protocol_t::changefeed_update_t changefeed_update_t;
+typedef rdb_protocol_t::changefeed_update_response_t changefeed_update_response_t;
 
 typedef rdb_protocol_t::sindex_create_t sindex_create_t;
 typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
@@ -835,6 +840,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pd.key);
     }
 
+    region_t operator()(const changefeed_update_t &u) const {
+        return u.region;
+    }
+
     region_t operator()(const sindex_create_t &s) const {
         return s.region;
     }
@@ -940,6 +949,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
+    bool operator()(const changefeed_update_t &u) const {
+        return rangey_write(u);
+    }
+
     bool operator()(const sindex_create_t &c) const {
         return rangey_write(c);
     }
@@ -993,6 +1006,16 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const point_write_t &) const { monokey_response(); }
     void operator()(const point_delete_t &) const { monokey_response(); }
+
+    void operator()(const changefeed_update_t &) const {
+        bool success = true;
+        for (size_t i = 0; i < count; ++i) {
+            auto res = boost::get<changefeed_update_response_t>(&responses[i].response);
+            guarantee(res != NULL);
+            success &= res->success;
+        }
+        response_out->response = changefeed_update_response_t(success);
+    }
 
     void operator()(const sindex_create_t &) const {
         *response_out = responses[0];
@@ -1410,6 +1433,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 res, &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
+    }
+
+    void operator()(const changefeed_update_t &u) {
+        debugf("%d\n", u.action);
+        response->response = changefeed_update_response_t(true);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -1896,11 +1924,13 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::changefeed_update_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_response_t, response, event_log, n_shards);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_response_t,
+                           response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
                            keys, pkey, f, optargs, return_vals);
@@ -1910,6 +1940,11 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::batched_insert_t,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rdb_protocol_t::changefeed_update_t::action_t,
+                                      int8_t,
+                                      rdb_protocol_t::changefeed_update_t::SUBSCRIBE,
+                                      rdb_protocol_t::changefeed_update_t::UNSUBSCRIBE);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::changefeed_update_t, addr, action, region);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);

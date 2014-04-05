@@ -82,6 +82,7 @@ private:
         void operator()(const rdb_protocol_t::batched_insert_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
+        void NORETURN operator()(const rdb_protocol_t::changefeed_update_t &);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sync_t &s);

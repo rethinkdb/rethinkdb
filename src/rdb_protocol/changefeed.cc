@@ -6,29 +6,41 @@
 
 namespace ql {
 
+// RSI: make the interruptor make sense.
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
-    changefeed_updater_t(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+    changefeed_updater_t(mailbox_addr_t<void(counted_t<const datum_t>)> _addr,
+                         base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                          uuid_u uuid)
-        : access(ns_repo, uuid, &cond) { }
+        : addr(_addr), access(ns_repo, uuid, &cond) { }
     ~changefeed_updater_t() { cond.pulse(); }
-    void start_changefeed(mailbox_addr_t<void(counted_t<const datum_t>)> /*addr*/) {
+    void start_changefeed() {
+        // RSI: handle master unavailable exceptions in the layer above us.
+        update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
+    }
+    void stop_changefeed() THROWS_NOTHING { // This is called in a destructor.
+        try {
+            update_changefeed(rdb_protocol_t::changefeed_update_t::UNSUBSCRIBE);
+            // RSI: Exceptions: interrupted_exc_t, master unavailable, ?
+        } catch (...) {
+            // If something goes wrong here (e.g. the master is unavailable), we
+            // just continue.  This behavior is correct, but might be
+            // inefficient (e.g. if the master is only temporarily down we don't
+            // want to stay subscribed forever).
+        }
+    }
+private:
+    void update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action) {
         assert_thread();
         auto_drainer_t::lock_t lock(&interrupt_drainer);
         auto nif = access.get_namespace_if();
-        rdb_protocol_t::write_t write;
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::changefeed_update_t(addr, action),
+            profile_bool_t::DONT_PROFILE);
         rdb_protocol_t::write_response_t resp;
-        try {
-            nif->write(write, &resp, order_token_t::ignore, &cond);
-        } catch (const interrupted_exc_t &) {
-            // We don't need to do anything.
-        }
+        nif->write(write, &resp, order_token_t::ignore, &cond);
     }
-    void stop_changefeed(mailbox_addr_t<void(counted_t<const datum_t>)> /*addr*/) {
-        assert_thread();
-        auto_drainer_t::lock_t lock(&interrupt_drainer);
-    }
-private:
+    mailbox_addr_t<void(counted_t<const datum_t>)> addr;
     cond_t cond;
     base_namespace_repo_t<rdb_protocol_t>::access_t access;
     auto_drainer_t interrupt_drainer;
@@ -43,7 +55,7 @@ public:
                  uuid_u uuid)
         : mailbox(manager, [=](counted_t<const datum_t> d) { this->push_datum(d); }),
           subscribers(get_num_threads()),
-          updater(ns_repo, uuid) { }
+          updater(mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
         // If we have subscribers left, they have a dangling pointer.
         for (int i = 0; i < get_num_threads(); ++i) {
@@ -73,16 +85,18 @@ private:
     void push_datum(counted_t<const datum_t> d) THROWS_NOTHING {
         assert_thread();
         // RSI: do we need a drainer here?
-        rwlock_in_line_t(&subscribers_lock, access_t::read);
+        rwlock_in_line_t spot(&subscribers_lock, access_t::read);
+        spot.read_signal()->wait_lazily_unordered();
         auto f = [&](int i) {
-            auto set = subscribers[i];
-            if (set.size() != 0) {
+            auto set = &subscribers[i];
+            if (set->size() != 0) {
                 on_thread_t th((threadnum_t(i)));
-                for (auto it = set.begin(); it != set.end(); ++it) {
+                for (auto it = set->begin(); it != set->end(); ++it) {
                     (*it)->add_el(d);
                 }
             }
         };
+        // RSI: don't spawn coroutines for unsubscribed threads.
         pmap(get_num_threads(), f);
     }
     mailbox_t<void(counted_t<const datum_t>)> mailbox;
@@ -114,18 +128,28 @@ changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
     : wake_coro(NULL), feed(_feed) {
     threadnum_t feed_thread = feed->home_thread();
     on_thread_t th(feed_thread);
-    rwlock_in_line_t(&feed->subscribers_lock, access_t::write);
-    auto set = feed->subscribers[home_thread().threadnum];
-    auto ret = set.insert(this);
+    rwlock_in_line_t spot(&feed->subscribers_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto set = &feed->subscribers[home_thread().threadnum];
+    auto ret = set->insert(this);
     guarantee(ret.second);
+    debugf("insert (%p: %zu)\n", feed, set->size());
+    if (set->size() == 1) {
+        feed->updater.start_changefeed();
+    }
 }
 changefeed_t::subscription_t::~subscription_t() {
     threadnum_t feed_thread = feed->home_thread();
     on_thread_t th(feed_thread);
-    rwlock_in_line_t(&feed->subscribers_lock, access_t::write);
-    auto set = feed->subscribers[home_thread().threadnum];
-    size_t erased = set.erase(this);
+    rwlock_in_line_t spot(&feed->subscribers_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto set = &feed->subscribers[home_thread().threadnum];
+    size_t erased = set->erase(this);
     guarantee(erased == 1);
+    debugf("erase (%p: %zu)\n", feed, set->size());
+    if (set->size() == 0) {
+        feed->updater.stop_changefeed();
+    }
 }
 
 std::vector<counted_t<const datum_t> >
@@ -178,7 +202,7 @@ counted_t<datum_stream_t> changefeed_manager_t::changefeed(
         feed = &*entry->second;
         assert(feed->home_thread() == home_thread());
     }
-    auto ret = counted_t<datum_stream_t>(new change_stream_t(feed, tbl->backtrace()));
+    counted_t<datum_stream_t> ret(new change_stream_t(feed, tbl->backtrace()));
     send(manager, feed->addr(), make_counted<const datum_t>(3.14));
     return std::move(ret);
 }

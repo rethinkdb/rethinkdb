@@ -215,6 +215,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::changefeed_update_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_create_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

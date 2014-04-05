@@ -25,6 +25,7 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 class extproc_pool_t;
 class cluster_directory_metadata_t;
@@ -465,6 +466,13 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    struct changefeed_update_response_t {
+        changefeed_update_response_t() { }
+        changefeed_update_response_t(bool _success) : success(_success) { }
+        bool success;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     // TODO we're reusing the enums from row writes and reads to avoid name
     // shadowing. Nothing really wrong with this but maybe they could have a
     // more generic name.
@@ -489,6 +497,7 @@ struct rdb_protocol_t {
                        // batched_replace_response_t is also for batched_insert
                        point_write_response_t,
                        point_delete_response_t,
+                       changefeed_update_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t,
                        sync_response_t> response;
@@ -623,11 +632,25 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class changefeed_update_t {
+    public:
+        enum action_t { SUBSCRIBE, UNSUBSCRIBE };
+        changefeed_update_t() { }
+        changefeed_update_t(mailbox_addr_t<void(counted_t<const ql::datum_t>)> _addr,
+                            action_t _action)
+            : addr(_addr), action(_action), region(region_t::universe()) { }
+        mailbox_addr_t<void(counted_t<const ql::datum_t>)> addr;
+        action_t action;
+        region_t region;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct write_t {
         boost::variant<batched_replace_t,
                        batched_insert_t,
                        point_write_t,
                        point_delete_t,
+                       changefeed_update_t,
                        sindex_create_t,
                        sindex_drop_t,
                        sync_t> write;
@@ -647,48 +670,24 @@ struct rdb_protocol_t {
         durability_requirement_t durability() const { return durability_requirement; }
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        write_t(const batched_replace_t &br,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(br), durability_requirement(durability), profile(_profile) { }
-        write_t(const batched_insert_t &bi,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(bi), durability_requirement(durability), profile(_profile) { }
-        write_t(const point_write_t &w,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(w), durability_requirement(durability), profile(_profile) { }
-        write_t(const point_delete_t &d,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(d), durability_requirement(durability), profile(_profile) { }
-        write_t(const sindex_create_t &c, profile_bool_t _profile)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              profile(_profile) { }
-        write_t(const sindex_drop_t &c, profile_bool_t _profile)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              profile(_profile) { }
-        write_t(const sindex_create_t &c,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(c), durability_requirement(durability),
-              profile(_profile) { }
-        write_t(const sindex_drop_t &c,
-                durability_requirement_t durability,
-                profile_bool_t _profile)
-            : write(c), durability_requirement(durability),
-              profile(_profile) { }
         /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
          *  not have the desired effect (of writing unsaved data to disk).
          *  However there are cases where we use sync internally (such as when
          *  splitting up batched replaces/inserts) and want it to only have an
          *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
          *  durability. */
-        write_t(const sync_t &c,
+        // RSI: require rvalue references.
+        template<class T>
+        write_t(T t,
                 durability_requirement_t durability,
                 profile_bool_t _profile)
-            : write(c), durability_requirement(durability), profile(_profile) { }
+            : write(std::move(t)),
+              durability_requirement(durability), profile(_profile) { }
+        template<class T>
+        write_t(T t, profile_bool_t _profile)
+            : write(std::move(t)),
+              durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+              profile(_profile) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
