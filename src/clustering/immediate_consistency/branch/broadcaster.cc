@@ -625,18 +625,17 @@ void broadcaster_t::all_read(
             listener_read(
                 mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
                 timestamp, order_token, enforcer_tokens[i], &interruptor2);
-
-            /* Notice this is a bit of a hack here, we're passing a default
-             * constructed context here to the UNSHARD function. This is
-             * only works if the unsharding of all_reads doesn't require
-             * anything fancy like reads to other databases. Should we ever
-             * have need for a real context here it's not too hard to add but
-             * for the time being I can't see an actual use case so I'm not
-             * adding it.*/
-            read.unshard(responses.data(), responses.size(), response,
-                         static_cast<rdb_context_t *>(NULL),
-                         &interruptor2);
         }
+
+        /* Note this is a bit of a hack. We're passing a NULL
+         * context to the UNSHARD function. This only works if the unsharding
+         * of all_reads doesn't require anything fancy like reads to other
+         * databases. Should we ever have need for a real context here it's
+         * not too hard to add but for the time being I can't see an actual use
+         * case so I'm not adding it.*/
+        read.unshard(responses.data(), responses.size(), response,
+                     static_cast<rdb_context_t *>(NULL),
+                     &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
