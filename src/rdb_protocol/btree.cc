@@ -21,6 +21,8 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
 
+#include "debug.hpp"
+
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
@@ -1064,6 +1066,13 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
+    {
+        auto del = mod_report.info.deleted.first;
+        auto add = mod_report.info.added.first;
+        debugf("***\n%s\n---\n%s\n***\n",
+               (del.has() ? del->print().c_str() : "NULL"),
+               (add.has() ? add->print().c_str() : "NULL"));
+    }
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 

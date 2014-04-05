@@ -1,4 +1,7 @@
 #include "rdb_protocol/changefeed.hpp"
+
+#include "rpc/mailbox/typed.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/val.hpp"
 
@@ -6,10 +9,34 @@
 
 namespace ql {
 
+changefeed_msg_t::changefeed_msg_t() : type(UNINITIALIZED) { }
+changefeed_msg_t::~changefeed_msg_t() { }
+
+changefeed_msg_t changefeed_msg_t::change(const rdb_modification_report_t *report) {
+    changefeed_msg_t ret;
+    ret.type = CHANGE;
+    ret.old_val = report->info.deleted.first;
+    ret.new_val = report->info.added.first;
+    return std::move(ret);
+}
+
+changefeed_msg_t changefeed_msg_t::table_drop() {
+    changefeed_msg_t ret;
+    ret.type = TABLE_DROP;
+    return std::move(ret);
+}
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    changefeed_msg_t::type_t,
+    int8_t,
+    changefeed_msg_t::UNINITIALIZED,
+    changefeed_msg_t::TABLE_DROP);
+RDB_IMPL_ME_SERIALIZABLE_3(changefeed_msg_t, type, empty_ok(old_val), empty_ok(new_val));
+
 // RSI: make the interruptor make sense.
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
-    changefeed_updater_t(mailbox_addr_t<void(counted_t<const datum_t>)> _addr,
+    changefeed_updater_t(mailbox_addr_t<void(changefeed_msg_t)> _addr,
                          base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                          uuid_u uuid)
         : addr(_addr), access(ns_repo, uuid, &cond) { }
@@ -40,7 +67,7 @@ private:
         rdb_protocol_t::write_response_t resp;
         nif->write(write, &resp, order_token_t::ignore, &cond);
     }
-    mailbox_addr_t<void(counted_t<const datum_t>)> addr;
+    mailbox_addr_t<void(changefeed_msg_t)> addr;
     cond_t cond;
     base_namespace_repo_t<rdb_protocol_t>::access_t access;
     auto_drainer_t interrupt_drainer;
@@ -53,7 +80,7 @@ public:
     changefeed_t(mailbox_manager_t *manager,
                  base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                  uuid_u uuid)
-        : mailbox(manager, [=](counted_t<const datum_t> d) { this->push_datum(d); }),
+        : mailbox(manager, [=](changefeed_msg_t msg) { this->handle(std::move(msg)); }),
           subscribers(get_num_threads()),
           updater(mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
@@ -72,34 +99,20 @@ public:
     private:
         friend class changefeed_t;
         void add_el(counted_t<const datum_t> d);
+        void finish() { } // RSI: Implement.
         coro_t *wake_coro; // `add_el` notifies `wake_coro` if it's non-NULL
         changefeed_t *feed;
         std::deque<counted_t<const datum_t> > els;
     };
 
-    mailbox_addr_t<void(counted_t<const datum_t>)> addr() {
+    // RSI: remove
+    mailbox_addr_t<void(changefeed_msg_t)> addr() {
         on_thread_t th(home_thread());
         return mailbox.get_address();
     }
 private:
-    void push_datum(counted_t<const datum_t> d) THROWS_NOTHING {
-        assert_thread();
-        // RSI: do we need a drainer here?
-        rwlock_in_line_t spot(&subscribers_lock, access_t::read);
-        spot.read_signal()->wait_lazily_unordered();
-        auto f = [&](int i) {
-            auto set = &subscribers[i];
-            if (set->size() != 0) {
-                on_thread_t th((threadnum_t(i)));
-                for (auto it = set->begin(); it != set->end(); ++it) {
-                    (*it)->add_el(d);
-                }
-            }
-        };
-        // RSI: don't spawn coroutines for unsubscribed threads.
-        pmap(get_num_threads(), f);
-    }
-    mailbox_t<void(counted_t<const datum_t>)> mailbox;
+    void handle(changefeed_msg_t msg) THROWS_NOTHING;
+    mailbox_t<void(changefeed_msg_t)> mailbox;
     // We use an array rather than a `one_per_thread_t` because it's managed by
     // `changefeed_t`s home thread.
 
@@ -183,6 +196,51 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
     }
 }
 
+void changefeed_t::handle(changefeed_msg_t msg) THROWS_NOTHING {
+    assert_thread();
+    std::function<void(subscription_t *)> action;
+    switch (msg.type) {
+    case changefeed_msg_t::CHANGE: {
+        auto null = make_counted<const datum_t>(datum_t::R_NULL);
+        std::map<std::string, counted_t<const datum_t> > obj{
+            {"new_val", msg.new_val.has() ? msg.new_val : null},
+                {"old_val", msg.old_val.has() ? msg.old_val : null}
+        };
+        auto d = make_counted<const datum_t>(std::move(obj));
+        action = [=](subscription_t *sub) { sub->add_el(d); };
+    } break;
+    case changefeed_msg_t::TABLE_DROP: {
+        action = [](subscription_t *sub) { sub->finish(); };
+    } break;
+    case changefeed_msg_t::UNINITIALIZED: unreachable();
+    default: unreachable();
+    }
+    // RSI: do we need a drainer here?
+    rwlock_in_line_t spot(&subscribers_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+
+    // We do a bit of extra work to avoid spawning coroutines for threads
+    // with no subscribers (since spawning 24 coroutines when we don't need
+    // to is wasteful).
+    std::vector<int> subscribed_threads;
+    auto f = [&](int i) {
+        int threadnum = subscribed_threads[i];
+        auto set = &subscribers[threadnum];
+        rassert(set->size() != 0);
+        on_thread_t th((threadnum_t(threadnum)));
+        for (auto it = set->begin(); it != set->end(); ++it) {
+            action(*it);
+        }
+    };
+    guarantee(subscribers.size() == static_cast<size_t>(get_num_threads()));
+    for (int i = 0; i < get_num_threads(); ++i) {
+        if (subscribers[i].size() != 0) {
+            subscribed_threads.push_back(i);
+        }
+    }
+    pmap(subscribed_threads.size(), f);
+}
+
 changefeed_manager_t::changefeed_manager_t(mailbox_manager_t *_manager)
     : manager(_manager) { }
 changefeed_manager_t::~changefeed_manager_t() { }
@@ -203,7 +261,7 @@ counted_t<datum_stream_t> changefeed_manager_t::changefeed(
         assert(feed->home_thread() == home_thread());
     }
     counted_t<datum_stream_t> ret(new change_stream_t(feed, tbl->backtrace()));
-    send(manager, feed->addr(), make_counted<const datum_t>(3.14));
+    // send(manager, feed->addr(), make_counted<const datum_t>(3.14));
     return std::move(ret);
 }
 

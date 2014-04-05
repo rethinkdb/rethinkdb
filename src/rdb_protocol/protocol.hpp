@@ -24,6 +24,7 @@
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -181,7 +182,6 @@ class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
 
 class mailbox_manager_t;
-namespace ql { class changefeed_manager_t; }
 
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
@@ -636,10 +636,10 @@ struct rdb_protocol_t {
     public:
         enum action_t { SUBSCRIBE, UNSUBSCRIBE };
         changefeed_update_t() { }
-        changefeed_update_t(mailbox_addr_t<void(counted_t<const ql::datum_t>)> _addr,
+        changefeed_update_t(mailbox_addr_t<void(ql::changefeed_msg_t)> _addr,
                             action_t _action)
             : addr(_addr), action(_action), region(region_t::universe()) { }
-        mailbox_addr_t<void(counted_t<const ql::datum_t>)> addr;
+        mailbox_addr_t<void(ql::changefeed_msg_t)> addr;
         action_t action;
         region_t region;
         RDB_DECLARE_ME_SERIALIZABLE;
