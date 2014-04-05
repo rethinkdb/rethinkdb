@@ -13,9 +13,9 @@ namespace unittest {
 
 namespace {
 
-boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > wrap_in_optional(
-        const boost::optional<backfiller_business_card_t<rdb_protocol_t> > &inner) {
-    return boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > >(inner);
+boost::optional<boost::optional<backfiller_business_card_t> > wrap_in_optional(
+        const boost::optional<backfiller_business_card_t> &inner) {
+    return boost::optional<boost::optional<backfiller_business_card_t> >(inner);
 }
 
 }   /* anonymous namespace */
@@ -25,18 +25,18 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     /* Set up two stores */
 
-    rdb_protocol_t::region_t region = rdb_protocol_t::region_t::universe();
+    region_t region = region_t::universe();
 
     mock_store_t backfiller_store;
     mock_store_t backfillee_store;
 
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
     branch_id_t dummy_branch_id = generate_uuid();
     {
-        branch_birth_certificate_t<rdb_protocol_t> dummy_branch;
+        branch_birth_certificate_t dummy_branch;
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
-        dummy_branch.origin = region_map_t<rdb_protocol_t, version_range_t>(
+        dummy_branch.origin = region_map_t<version_range_t>(
             region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero())));
         cond_t non_interruptor;
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
@@ -45,13 +45,13 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     state_timestamp_t timestamp = state_timestamp_t::zero();
 
     // initialize the metainfo in a store
-    store_view_t<rdb_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
+    store_view_t *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
-            region_map_t<rdb_protocol_t, binary_blob_t>(region,
+            region_map_t<binary_blob_t>(region,
                                                         binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
             order_source.check_in(strprintf("set_metainfo(i=%zu)", i)),
             &token,
@@ -73,14 +73,14 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             backfiller_store.new_write_token_pair(&token_pair);
 
 #ifndef NDEBUG
-            equality_metainfo_checker_callback_t<rdb_protocol_t>
+            equality_metainfo_checker_callback_t
                 metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
-            metainfo_checker_t<rdb_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
+            metainfo_checker_t metainfo_checker(&metainfo_checker_callback, region);
 #endif
 
             backfiller_store.write(
                 DEBUG_ONLY(metainfo_checker, )
-                region_map_t<rdb_protocol_t, binary_blob_t>(
+                region_map_t<binary_blob_t>(
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
@@ -99,18 +99,18 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     /* Expose the backfiller to the cluster */
 
-    backfiller_t<rdb_protocol_t> backfiller(
+    backfiller_t backfiller(
         cluster.get_mailbox_manager(),
         &branch_history_manager,
         &backfiller_store);
 
-    watchable_variable_t<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > pseudo_directory(
-        boost::optional<backfiller_business_card_t<rdb_protocol_t> >(backfiller.get_business_card()));
+    watchable_variable_t<boost::optional<backfiller_business_card_t> > pseudo_directory(
+        boost::optional<backfiller_business_card_t>(backfiller.get_business_card()));
 
     /* Run a backfill */
 
     cond_t interruptor;
-    backfillee<rdb_protocol_t>(
+    backfillee(
         cluster.get_mailbox_manager(),
         &branch_history_manager,
         &backfillee_store,
@@ -130,24 +130,24 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token1;
     backfillee_store.new_read_token(&token1);
 
-    region_map_t<rdb_protocol_t, binary_blob_t> untransformed_backfillee_metadata;
+    region_map_t<binary_blob_t> untransformed_backfillee_metadata;
     backfillee_store.do_get_metainfo(order_source.check_in("backfillee_store.do_get_metainfo").with_read_mode(),
                                      &token1, &interruptor, &untransformed_backfillee_metadata);
 
-    region_map_t<rdb_protocol_t, version_range_t> backfillee_metadata =
-        region_map_transform<rdb_protocol_t, binary_blob_t, version_range_t>(
+    region_map_t<version_range_t> backfillee_metadata =
+        region_map_transform<binary_blob_t, version_range_t>(
             untransformed_backfillee_metadata,
             &binary_blob_t::get<version_range_t>);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> token2;
     backfiller_store.new_read_token(&token2);
 
-    region_map_t<rdb_protocol_t, binary_blob_t> untransformed_backfiller_metadata;
+    region_map_t<binary_blob_t> untransformed_backfiller_metadata;
     backfiller_store.do_get_metainfo(order_source.check_in("backfiller_store.do_get_metainfo").with_read_mode(),
                                      &token2, &interruptor, &untransformed_backfiller_metadata);
 
-    region_map_t<rdb_protocol_t, version_range_t> backfiller_metadata =
-        region_map_transform<rdb_protocol_t, binary_blob_t, version_range_t>(untransformed_backfiller_metadata, &binary_blob_t::get<version_range_t>);
+    region_map_t<version_range_t> backfiller_metadata =
+        region_map_transform<binary_blob_t, version_range_t>(untransformed_backfiller_metadata, &binary_blob_t::get<version_range_t>);
 
     EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
 

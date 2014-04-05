@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/btree_store.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
@@ -17,31 +17,6 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
 struct rdb_value_t;
-
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-
-typedef rdb_protocol_t::point_read_t point_read_t;
-typedef rdb_protocol_t::point_read_response_t point_read_response_t;
-
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-
-typedef rdb_protocol_t::distribution_read_t distribution_read_t;
-typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
-
-typedef rdb_protocol_t::write_t write_t;
-typedef rdb_protocol_t::write_response_t write_response_t;
-
-typedef rdb_protocol_t::batched_replace_t batched_replace_t;
-typedef rdb_protocol_t::batched_insert_t batched_insert_t;
-typedef rdb_protocol_t::batched_replace_response_t batched_replace_response_t;
-
-typedef rdb_protocol_t::point_write_t point_write_t;
-typedef rdb_protocol_t::point_write_response_t point_write_response_t;
-
-typedef rdb_protocol_t::point_delete_t point_delete_t;
-typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 class parallel_traversal_progress_t;
 
@@ -190,7 +165,7 @@ void rdb_erase_major_range(key_tester_t *tester,
                            const key_range_t &keys,
                            buf_lock_t *sindex_block,
                            superblock_t *superblock,
-                           btree_store_t<rdb_protocol_t> *store,
+                           btree_store_t *store,
                            signal_t *interruptor);
 
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
@@ -224,7 +199,7 @@ void rdb_rget_slice(
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const datum_range_t &datum_range,
-    const rdb_protocol_t::region_t &sindex_region,
+    const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -282,7 +257,7 @@ typedef boost::variant<rdb_modification_report_t,
 class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
-            btree_store_t<rdb_protocol_t> *store,
+            btree_store_t *store,
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
@@ -293,27 +268,27 @@ public:
 private:
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
-    btree_store_t<rdb_protocol_t> *store_;
+    btree_store_t *store_;
     buf_lock_t *sindex_block_;
 
     /* Fields initialized by calls to on_mod_report */
-    btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
+    btree_store_t::sindex_access_vector_t sindexes_;
 };
 
 void rdb_update_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const btree_store_t::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         txn_t *txn,
         const deletion_context_t *deletion_context);
 
 
 void rdb_erase_major_range_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const btree_store_t::sindex_access_vector_t &sindexes,
         const rdb_erase_major_range_report_t *erase_range,
         signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);

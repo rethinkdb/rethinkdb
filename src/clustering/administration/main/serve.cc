@@ -225,17 +225,17 @@ bool do_serve(
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
         // Namespace repo
-        rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
-                                          NULL,
-                                          semilattice_manager_cluster.get_root_view(),
-                                          auth_manager_cluster.get_root_view(),
-                                          &directory_read_manager,
-                                          machine_id,
-                                          &get_global_perfmon_collection());
+        rdb_context_t rdb_ctx(&extproc_pool,
+                              NULL,
+                              semilattice_manager_cluster.get_root_view(),
+                              auth_manager_cluster.get_root_view(),
+                              &directory_read_manager,
+                              machine_id,
+                              &get_global_perfmon_collection());
 
-        namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        namespace_repo_t rdb_namespace_repo(&mailbox_manager,
             directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);
 
         //This is an annoying chicken and egg problem here
@@ -252,20 +252,20 @@ bool do_serve(
             // Reactor drivers
 
             // RDB
-            scoped_ptr_t<file_based_svs_by_namespace_t<rdb_protocol_t> > rdb_svs_source;
-            scoped_ptr_t<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
+            scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
+            scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
+            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t> >
                 rdb_reactor_directory_copier;
 
             if (i_am_a_server) {
-                rdb_svs_source.init(new file_based_svs_by_namespace_t<rdb_protocol_t>(
+                rdb_svs_source.init(new file_based_svs_by_namespace_t(
                     io_backender, cache_balancer.get(), base_path));
-                rdb_reactor_driver.init(new reactor_driver_t<rdb_protocol_t>(
+                rdb_reactor_driver.init(new reactor_driver_t(
                         base_path,
                         io_backender,
                         &mailbox_manager,
                         directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>,
+                            incremental_field_getter_t<namespaces_directory_metadata_t,
                                                        cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
@@ -278,7 +278,7 @@ bool do_serve(
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));
-                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
+                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(
                     &cluster_directory_metadata_t::rdb_namespaces,
                     rdb_reactor_driver->get_watchable(),
                     &our_root_directory_variable));

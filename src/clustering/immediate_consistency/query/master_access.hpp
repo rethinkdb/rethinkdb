@@ -16,16 +16,15 @@ internally contains a `multi_throttling_client_t` that works with the
 `multi_throttling_server_t` in the `master_t` to throttle read and write queries
 that are being sent to the master. */
 
-template <class protocol_t>
 class master_access_t : public home_thread_mixin_debug_only_t {
 public:
     master_access_t(
             mailbox_manager_t *mm,
-            const clone_ptr_t<watchable_t<boost::optional<boost::optional<master_business_card_t<protocol_t> > > > > &master,
+            const clone_ptr_t<watchable_t<boost::optional<boost::optional<master_business_card_t> > > > &master,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
 
-    typename protocol_t::region_t get_region() {
+    region_t get_region() {
         return region;
     }
 
@@ -36,8 +35,8 @@ public:
     void new_read_token(fifo_enforcer_sink_t::exit_read_t *out);
 
     void read(
-            const typename protocol_t::read_t &read,
-            typename protocol_t::read_response_t *response,
+            const read_t &read,
+            read_response_t *response,
             order_token_t otok,
             fifo_enforcer_sink_t::exit_read_t *token,
             signal_t *interruptor)
@@ -46,8 +45,8 @@ public:
     void new_write_token(fifo_enforcer_sink_t::exit_write_t *out);
 
     void write(
-            const typename protocol_t::write_t &write,
-            typename protocol_t::write_response_t *response,
+            const write_t &write,
+            write_response_t *response,
             order_token_t otok,
             fifo_enforcer_sink_t::exit_write_t *token,
             signal_t *interruptor)
@@ -55,11 +54,11 @@ public:
 
 private:
     typedef multi_throttling_business_card_t<
-            typename master_business_card_t<protocol_t>::request_t,
-            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             > mt_business_card_t;
     static boost::optional<boost::optional<mt_business_card_t> > extract_multi_throttling_business_card(
-            const boost::optional<boost::optional<master_business_card_t<protocol_t> > > &bcard) {
+            const boost::optional<boost::optional<master_business_card_t> > &bcard) {
         if (bcard) {
             if (bcard.get()) {
                 return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>(
@@ -76,15 +75,15 @@ private:
 
     mailbox_manager_t *mailbox_manager;
 
-    typename protocol_t::region_t region;
+    region_t region;
     fifo_enforcer_source_t internal_fifo_source;
     fifo_enforcer_sink_t internal_fifo_sink;
 
     fifo_enforcer_source_t source_for_master;
 
     multi_throttling_client_t<
-            typename master_business_card_t<protocol_t>::request_t,
-            typename master_business_card_t<protocol_t>::inner_client_business_card_t
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t
             > multi_throttling_client;
 
     DISABLE_COPYING(master_access_t);

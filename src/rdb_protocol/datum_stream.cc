@@ -13,7 +13,7 @@
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
+        namespace_interface_t *internal, env_t *env)
     : internal_(internal), env_(env) { }
 
 void rdb_namespace_interface_t::read(
@@ -62,7 +62,7 @@ void rdb_namespace_interface_t::write(
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
-std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
+std::set<region_t> rdb_namespace_interface_t::get_sharding_scheme()
     THROWS_ONLY(cannot_perform_query_exc_t) {
     return internal_->get_sharding_scheme();
 }

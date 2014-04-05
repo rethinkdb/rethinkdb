@@ -5,7 +5,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
-template <class> class listener_t;
+class listener_t;
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
 will inform the `broadcaster_t` that it's ready to reply to queries, and will
@@ -18,11 +18,10 @@ For example, what if we create and then immediately destroy a `replier_t`, and
 the downgrade message arrives at the `broadcaster_t` before the upgrade message
 does? Consider using a FIFO enforcer or something. */
 
-template <class protocol_t>
 class replier_t {
 
 public:
-    replier_t(listener_t<protocol_t> *l, mailbox_manager_t *mm, branch_history_manager_t<protocol_t> *bhm);
+    replier_t(listener_t *l, mailbox_manager_t *mm, branch_history_manager_t *bhm);
 
     /* The destructor immediately stops responding to queries. If there was an
     outstanding write or read that the broadcaster was expecting us to respond
@@ -31,7 +30,7 @@ public:
     The destructor also immediately stops any outstanding backfills. */
     ~replier_t();
 
-    replier_business_card_t<protocol_t> get_business_card();
+    replier_business_card_t get_business_card();
 
     /* TODO: Support warm shutdowns? */
 
@@ -40,13 +39,13 @@ private:
 
     mailbox_manager_t *mailbox_manager_;
 
-    listener_t<protocol_t> *listener_;
+    listener_t *listener_;
 
     auto_drainer_t drainer_;
 
-    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox_;
+    replier_business_card_t::synchronize_mailbox_t synchronize_mailbox_;
 
-    backfiller_t<protocol_t> backfiller_;
+    backfiller_t backfiller_;
 
     DISABLE_COPYING(replier_t);
 };

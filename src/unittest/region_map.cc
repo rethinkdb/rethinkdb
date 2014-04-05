@@ -13,10 +13,10 @@ hash_region_t<key_range_t> make_region(std::string low, std::string high) {
 }
 
 TEST(RegionMap, BasicSets) {
-    region_map_t<rdb_protocol_t, int> rmap(make_region("a", "z"), 0);
+    region_map_t<int> rmap(make_region("a", "z"), 0);
     rmap.set(make_region("a", "n"), 1);
     rmap.set(make_region("n", "z"), 2);
-    for (region_map_t<rdb_protocol_t, int>::iterator it  = rmap.begin();
+    for (region_map_t<int>::iterator it  = rmap.begin();
          it != rmap.end();
          ++it) {
         if (region_is_superset(make_region("a", "n"), it->first)) {
@@ -30,15 +30,15 @@ TEST(RegionMap, BasicSets) {
 }
 
 TEST(RegionMap, Mask) {
-    region_map_t<rdb_protocol_t, int> rmap(make_region("a", "z"), 0);
+    region_map_t<int> rmap(make_region("a", "z"), 0);
     rmap.set(make_region("a", "n"), 1);
     rmap.set(make_region("n", "z"), 2);
 
-    region_map_t<rdb_protocol_t, int> masked_map = rmap.mask(make_region("g", "s"));
+    region_map_t<int> masked_map = rmap.mask(make_region("g", "s"));
 
     EXPECT_TRUE(masked_map.get_domain() == make_region("g", "s"));
 
-    for (region_map_t<rdb_protocol_t, int>::iterator it  = masked_map.begin();
+    for (region_map_t<int>::iterator it  = masked_map.begin();
          it != masked_map.end();
          ++it) {
         if (region_is_superset(make_region("a", "n"), it->first)) {

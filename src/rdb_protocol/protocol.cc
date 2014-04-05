@@ -25,6 +25,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -34,55 +35,13 @@
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
-typedef rdb_protocol_t::context_t context_t;
-
-typedef rdb_protocol_t::store_t store_t;
-typedef rdb_protocol_t::region_t region_t;
-
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-
-typedef rdb_protocol_t::point_read_t point_read_t;
-typedef rdb_protocol_t::point_read_response_t point_read_response_t;
-
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-
-typedef rdb_protocol_t::distribution_read_t distribution_read_t;
-typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
-
-typedef rdb_protocol_t::sindex_list_t sindex_list_t;
-typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
-
-typedef rdb_protocol_t::sindex_status_t sindex_status_t;
-typedef rdb_protocol_t::sindex_status_response_t sindex_status_response_t;
-
-typedef rdb_protocol_t::write_t write_t;
-typedef rdb_protocol_t::write_response_t write_response_t;
-
-typedef rdb_protocol_t::batched_replace_t batched_replace_t;
-typedef rdb_protocol_t::batched_insert_t batched_insert_t;
-
-typedef rdb_protocol_t::point_write_t point_write_t;
-typedef rdb_protocol_t::point_write_response_t point_write_response_t;
-
-typedef rdb_protocol_t::point_delete_t point_delete_t;
-typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
-
-typedef rdb_protocol_t::sindex_create_t sindex_create_t;
-typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
-
-typedef rdb_protocol_t::sindex_drop_t sindex_drop_t;
-typedef rdb_protocol_t::sindex_drop_response_t sindex_drop_response_t;
-
-typedef rdb_protocol_t::sync_t sync_t;
-typedef rdb_protocol_t::sync_response_t sync_response_t;
+typedef rdb_context_t context_t;
 
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
-typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
@@ -152,7 +111,7 @@ RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
 
@@ -160,7 +119,7 @@ void post_construct_and_drain_queue(
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING
 {
@@ -245,7 +204,7 @@ private:
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
+        btree_store_t *store,
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
@@ -390,7 +349,7 @@ void add_status(const single_sindex_status_t &new_status,
 
 }  // namespace rdb_protocol_details
 
-rdb_protocol_t::context_t::context_t()
+rdb_context_t::rdb_context_t()
     : extproc_pool(NULL), ns_repo(NULL),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
@@ -400,9 +359,9 @@ rdb_protocol_t::context_t::context_t()
     ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 { }
 
-rdb_protocol_t::context_t::context_t(
+rdb_context_t::rdb_context_t(
     extproc_pool_t *_extproc_pool,
-    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    namespace_repo_t *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _cluster_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
@@ -423,9 +382,9 @@ rdb_protocol_t::context_t::context_t(
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
-        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
-                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
+        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
+                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
+                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
                                                             metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
@@ -437,7 +396,7 @@ rdb_protocol_t::context_t::context_t(
     }
 }
 
-rdb_protocol_t::context_t::~context_t() { }
+rdb_context_t::~rdb_context_t() { }
 
 // Construct a region containing only the specified key
 region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
@@ -599,7 +558,7 @@ public:
     rdb_r_unshard_visitor_t(read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
-                            rdb_protocol_t::context_t *ctx,
+                            rdb_context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
           env(ctx, interruptor) { }
@@ -1053,7 +1012,7 @@ store_t::store_t(serializer_t *serializer,
                  context_t *_ctx,
                  io_backender_t *io,
                  const base_path_t &base_path) :
-    btree_store_t<rdb_protocol_t>(serializer, balancer, perfmon_name,
+    btree_store_t(serializer, balancer, perfmon_name,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
@@ -1239,9 +1198,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     rdb_read_visitor_t(btree_slice_t *_btree,
-                       btree_store_t<rdb_protocol_t> *_store,
+                       btree_store_t *_store,
                        superblock_t *_superblock,
-                       rdb_protocol_t::context_t *ctx,
+                       rdb_context_t *ctx,
                        read_response_t *_response,
                        profile_bool_t profile,
                        signal_t *_interruptor) :
@@ -1278,7 +1237,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 private:
     read_response_t *response;
     btree_slice_t *btree;
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     superblock_t *superblock;
     wait_any_t interruptor;
     ql::env_t ql_env;
@@ -1463,11 +1422,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 
     rdb_write_visitor_t(btree_slice_t *_btree,
-                        btree_store_t<rdb_protocol_t> *_store,
+                        btree_store_t *_store,
                         txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
-                        rdb_protocol_t::context_t *ctx,
+                        rdb_context_t *ctx,
                         write_response_t *_response,
                         signal_t *_interruptor) :
         btree(_btree),
@@ -1520,7 +1479,7 @@ private:
     }
 
     btree_slice_t *btree;
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     txn_t *txn;
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
@@ -1590,7 +1549,7 @@ struct rdb_backfill_callback_impl_t : public rdb_backfill_callback_t {
 public:
     typedef backfill_chunk_t chunk_t;
 
-    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t<rdb_protocol_t> *_chunk_fun_cb)
+    explicit rdb_backfill_callback_impl_t(chunk_fun_callback_t *_chunk_fun_cb)
         : chunk_fun_cb(_chunk_fun_cb) { }
     ~rdb_backfill_callback_impl_t() { }
 
@@ -1621,7 +1580,7 @@ protected:
     }
 
 private:
-    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb;
+    chunk_fun_callback_t *chunk_fun_cb;
 
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
@@ -1646,8 +1605,8 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
     }
 }
 
-void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
+void store_t::protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
+                                     chunk_fun_callback_t *chunk_fun_cb,
                                      superblock_t *superblock,
                                      buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
@@ -1685,7 +1644,7 @@ void backfill_chunk_single_rdb_set(const rdb_backfill_atom_t &bf_atom,
 }
 
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
-    rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
+    rdb_receive_backfill_visitor_t(btree_store_t *_store,
                                    btree_slice_t *_btree,
                                    txn_t *_txn,
                                    scoped_ptr_t<superblock_t> &&_superblock,
@@ -1802,7 +1761,7 @@ private:
         store->sindex_queue_push(queue_wms, acq.get());
     }
 
-    btree_store_t<rdb_protocol_t> *store;
+    btree_store_t *store;
     btree_slice_t *btree;
     txn_t *txn;
     scoped_ptr_t<superblock_t> superblock;
@@ -1860,18 +1819,18 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_1(point_read_response_t, data);
+RDB_IMPL_ME_SERIALIZABLE_4(rget_read_response_t,
                            result, key_range, truncated, last_key);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_2(distribution_read_response_t,
                            region, key_counts);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_list_response_t, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_3(read_response_t,
                            response, event_log, n_shards);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_status_response_t, statuses);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_status_response_t, statuses);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_rangespec_t,
+RDB_IMPL_ME_SERIALIZABLE_1(point_read_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(sindex_rangespec_t,
                            id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
@@ -1879,37 +1838,37 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
 RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);
-RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
+RDB_IMPL_ME_SERIALIZABLE_7(rget_read_t,
                            region, optargs, batchspec,
                            transforms, terminal, sindex, sorting);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
+RDB_IMPL_ME_SERIALIZABLE_3(distribution_read_t,
                            max_depth, result_limit, region);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_status_t, sindexes, region);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_0(sindex_list_t);
+RDB_IMPL_ME_SERIALIZABLE_2(sindex_status_t, sindexes, region);
+RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
+RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);
+RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
+RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_response_t, response, event_log, n_shards);
+RDB_IMPL_ME_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
 
-RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
+RDB_IMPL_ME_SERIALIZABLE_5(batched_replace_t,
                            keys, pkey, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::batched_insert_t,
+RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
                            inserts, pkey, upsert, return_vals);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
+RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);
+RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
+RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
+RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t,
+RDB_IMPL_ME_SERIALIZABLE_3(write_t,
                            write, durability_requirement, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 

@@ -16,10 +16,10 @@ TEST(ClusteringSuggester, NewNamespace) {
         machines.push_back(generate_uuid());
     }
 
-    std::map<machine_id_t, reactor_business_card_t<rdb_protocol_t> > directory;
+    std::map<machine_id_t, reactor_business_card_t> directory;
     for (int i = 0; i < 10; i++) {
-        reactor_business_card_t<rdb_protocol_t> rb;
-        rb.activities[generate_uuid()] = reactor_business_card_t<rdb_protocol_t>::activity_entry_t(rdb_protocol_t::region_t::universe(), reactor_business_card_t<rdb_protocol_t>::nothing_t());
+        reactor_business_card_t rb;
+        rb.activities[generate_uuid()] = reactor_business_card_t::activity_entry_t(region_t::universe(), reactor_business_card_t::nothing_t());
         directory[machines[i]] = rb;
     }
 
@@ -32,7 +32,7 @@ TEST(ClusteringSuggester, NewNamespace) {
     affinities[primary_datacenter] = 2;
     affinities[secondary_datacenter] = 3;
 
-    nonoverlapping_regions_t<rdb_protocol_t> shards;
+    nonoverlapping_regions_t shards;
     bool success = shards.add_region(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t(""),
                                                                             key_range_t::open, store_key_t("n"))));
     ASSERT_TRUE(success);
@@ -41,14 +41,14 @@ TEST(ClusteringSuggester, NewNamespace) {
     ASSERT_TRUE(success);
 
     std::map<machine_id_t, int> usage;
-    persistable_blueprint_t<rdb_protocol_t> blueprint = suggest_blueprint<rdb_protocol_t>(
+    persistable_blueprint_t blueprint = suggest_blueprint(
         directory,
         primary_datacenter,
         affinities,
         shards,
         machine_data_centers,
-        region_map_t<rdb_protocol_t, machine_id_t>(rdb_protocol_t::region_t::universe(), nil_uuid()),
-        region_map_t<rdb_protocol_t, std::set<machine_id_t> >(),
+        region_map_t<machine_id_t>(region_t::universe(), nil_uuid()),
+        region_map_t<std::set<machine_id_t> >(),
         &usage,
         true);
 

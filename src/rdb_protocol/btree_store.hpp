@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BTREE_BTREE_STORE_HPP_
-#define BTREE_BTREE_STORE_HPP_
+#ifndef RDB_PROTOCOL_BTREE_STORE_HPP_
+#define RDB_PROTOCOL_BTREE_STORE_HPP_
 
 #include <map>
 #include <set>
@@ -13,6 +13,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
+#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
@@ -22,10 +23,11 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "utils.hpp"
 
 struct rdb_protocol_t;
-template <class T> class btree_store_t;
+class btree_store_t;
 class btree_slice_t;
 class cache_conn_t;
 class cache_t;
@@ -79,8 +81,7 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-template <class protocol_t>
-class btree_store_t : public store_view_t<protocol_t> {
+class btree_store_t : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
@@ -89,7 +90,7 @@ public:
                   const std::string &perfmon_name,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
-                  typename protocol_t::context_t *,
+                  rdb_context_t *,
                   io_backender_t *io_backender,
                   const base_path_t &base_path);
     virtual ~btree_store_t();
@@ -97,8 +98,6 @@ public:
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
-
-    typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     void do_get_metainfo(
             order_token_t order_token,
@@ -115,19 +114,19 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void read(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-            const typename protocol_t::read_t &read,
-            typename protocol_t::read_response_t *response,
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
+            const read_t &read,
+            read_response_t *response,
             order_token_t order_token,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void write(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const metainfo_t& new_metainfo,
-            const typename protocol_t::write_t &write,
-            typename protocol_t::write_response_t *response,
+            const write_t &write,
+            write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
@@ -136,21 +135,21 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(
-            const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            send_backfill_callback_t<protocol_t> *send_backfill_cb,
-            typename protocol_t::backfill_progress_t *progress,
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *send_backfill_cb,
+            rdb_protocol_t::backfill_progress_t *progress,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
-            const typename protocol_t::backfill_chunk_t &chunk,
+            const backfill_chunk_t &chunk,
             write_token_pair_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
-            const typename protocol_t::region_t &subregion,
+            const region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
             write_durability_t durability,
@@ -285,40 +284,40 @@ public:
         return &(secondary_index_slices.at(id));
     }
 
-    virtual void protocol_read(const typename protocol_t::read_t &read,
-                               typename protocol_t::read_response_t *response,
+    virtual void protocol_read(const read_t &read,
+                               read_response_t *response,
                                btree_slice_t *btree,
                                superblock_t *superblock,
                                signal_t *interruptor) = 0;
 
-    virtual void protocol_write(const typename protocol_t::write_t &write,
-                                typename protocol_t::write_response_t *response,
+    virtual void protocol_write(const write_t &write,
+                                write_response_t *response,
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 scoped_ptr_t<superblock_t> *superblock,
                                 signal_t *interruptor) = 0;
 
-    virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
+    virtual void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
+                                        chunk_fun_callback_t *chunk_fun_cb,
                                         superblock_t *superblock,
                                         buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
-                                        typename protocol_t::backfill_progress_t *progress,
+                                        rdb_protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
                                         THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
                                            scoped_ptr_t<superblock_t> &&superblock,
                                            signal_t *interruptor,
-                                           const typename protocol_t::backfill_chunk_t &chunk) = 0;
+                                           const backfill_chunk_t &chunk) = 0;
 
-    virtual void protocol_reset_data(const typename protocol_t::region_t& subregion,
+    virtual void protocol_reset_data(const region_t &subregion,
                                      btree_slice_t *btree,
                                      superblock_t *superblock,
                                      signal_t *interruptor) = 0;
 
     void get_metainfo_internal(buf_lock_t *sb_buf,
-                               region_map_t<protocol_t, binary_blob_t> *out)
+                               region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
@@ -359,13 +358,13 @@ private:
 
 public:
     void check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const metainfo_t &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 

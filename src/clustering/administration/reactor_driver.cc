@@ -1,7 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
-#define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
-
 #include "clustering/administration/reactor_driver.hpp"
 
 #include <map>
@@ -17,6 +14,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "stl_utils.hpp"
@@ -25,13 +23,32 @@
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
+stores_lifetimer_t::stores_lifetimer_t() { }
+
+stores_lifetimer_t::~stores_lifetimer_t() {
+    if (stores_.has()) {
+        for (int i = 0, e = stores_.size(); i < e; ++i) {
+            // TODO: This should use pmap.
+            on_thread_t th(stores_[i]->home_thread());
+            stores_[i].reset();
+        }
+    }
+    if (serializer_.has()) {
+        on_thread_t th(serializer_->home_thread());
+        serializer_.reset();
+        if (multiplexer_.has()) {
+            multiplexer_.reset();
+        }
+    }
+}
+
+
 /* The reactor driver is also responsible for the translation from
 `persistable_blueprint_t` to `blueprint_t`. */
-template<class protocol_t>
-blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
+blueprint_t translate_blueprint(const persistable_blueprint_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
 
-    blueprint_t<protocol_t> output;
-    for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
+    blueprint_t output;
+    for (persistable_blueprint_t::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
         if (peer.is_nil()) {
@@ -46,16 +63,15 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
     return output;
 }
 
-template <class protocol_t>
 class per_thread_ack_info_t {
 public:
     per_thread_ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                           const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
-                          const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view,
+                          const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > &namespaces_view,
                           threadnum_t dest_thread)
         : machine_id_translation_table_(machine_id_translation_table, dest_thread),
           machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
-          namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
+          namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(namespaces_view.clone()), dest_thread) { }
 
     // TODO: Just get the value directly.
     // ^^^^^^^^^ What does this mean? (~daniel)
@@ -67,42 +83,41 @@ public:
         return machines_view_.get_watchable()->get();
     }
 
-    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > get_namespaces_view() {
+    cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_view() {
         return namespaces_view_.get_watchable()->get();
     }
 
 private:
     cross_thread_watchable_variable_t<change_tracking_map_t<peer_id_t, machine_id_t> > machine_id_translation_table_;
     cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
-    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
+    cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > namespaces_view_;
     DISABLE_COPYING(per_thread_ack_info_t);
 };
 
-template <class protocol_t>
 class ack_info_t : public home_thread_mixin_t {
 public:
     ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
-               const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
+               const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
           machines_view_(machines_view),
           namespaces_view_(namespaces_view),
           per_thread_info_(get_num_db_threads()) {
         for (size_t i = 0; i < per_thread_info_.size(); ++i) {
-            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, threadnum_t(i)));
+            per_thread_info_[i].init(new per_thread_ack_info_t(machine_id_translation_table_, machines_view_, namespaces_view_, threadnum_t(i)));
         }
     }
 
-    per_thread_ack_info_t<protocol_t> *per_thread_ack_info() {
+    per_thread_ack_info_t *per_thread_ack_info() {
         return per_thread_info_[get_thread_id().threadnum].get();
     }
 
 private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table_;
     semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
-    semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
+    semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > namespaces_view_;
 
-    scoped_array_t<scoped_ptr_t<per_thread_ack_info_t<protocol_t> > > per_thread_info_;
+    scoped_array_t<scoped_ptr_t<per_thread_ack_info_t> > per_thread_info_;
 
     DISABLE_COPYING(ack_info_t);
 };
@@ -110,16 +125,15 @@ private:
 /* This is in part because these types aren't copyable so they can't go in
  * a std::pair. This class is used to hold a reactor and a watchable that
  * it's watching. */
-template <class protocol_t>
 class watchable_and_reactor_t : private ack_checker_t {
 public:
     watchable_and_reactor_t(const base_path_t &_base_path,
                             io_backender_t *io_backender,
-                            reactor_driver_t<protocol_t> *parent,
+                            reactor_driver_t *parent,
                             namespace_id_t namespace_id,
-                            const blueprint_t<protocol_t> &bp,
-                            svs_by_namespace_t<protocol_t> *svs_by_namespace,
-                            typename protocol_t::context_t *_ctx) :
+                            const blueprint_t &bp,
+                            svs_by_namespace_t *svs_by_namespace,
+                            rdb_context_t *_ctx) :
         base_path(_base_path),
         watchable(bp),
         ctx(_ctx),
@@ -127,7 +141,7 @@ public:
         namespace_id_(namespace_id),
         svs_by_namespace_(svs_by_namespace)
     {
-        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
+        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t::initialize_reactor, this, io_backender));
     }
 
     ~watchable_and_reactor_t() {
@@ -153,11 +167,10 @@ public:
 
         /* Finally we remove the reactor bcard. */
         parent_->set_reactor_directory_entry(namespace_id_,
-            boost::optional<
-                typename reactor_driver_t<protocol_t>::reactor_directory_entry_t>());
+            boost::optional<reactor_driver_t::reactor_directory_entry_t>());
     }
 
-    static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
+    static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t *ack_info) {
         /* There are a bunch of weird corner cases: what if the namespace was
         deleted? What if we got an ack from a machine but then it was declared
         dead? What if the namespaces `expected_acks` field is in conflict? We
@@ -169,7 +182,7 @@ public:
         std::multiset<datacenter_id_t> acks_by_dc;
         std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
         machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
-        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
+        cow_ptr_t<namespaces_semilattice_metadata_t> nmd = ack_info->get_namespaces_view();
 
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
@@ -181,7 +194,7 @@ public:
             datacenter_id_t dc = jt->second.get_ref().datacenter.get();
             acks_by_dc.insert(dc);
         }
-        typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
+        namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it =
             nmd->namespaces.find(namespace_id);
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
@@ -226,7 +239,7 @@ public:
     // set.  It figures out what datacenter the peer belongs to, and then, using
     // the ack_expectations_t for the given namespace, figures out whether we
     // want hard durability or soft durability for that datacenter.
-    static write_durability_t compute_write_durability(const peer_id_t &peer, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
+    static write_durability_t compute_write_durability(const peer_id_t &peer, const namespace_id_t &namespace_id, per_thread_ack_info_t *ack_info) {
         // FML
         const std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
         auto it = translation_table_snapshot.find(peer);
@@ -251,9 +264,9 @@ public:
 
         const datacenter_id_t dc = machine_map_it->second.get_ref().datacenter.get();
 
-        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
+        cow_ptr_t<namespaces_semilattice_metadata_t> nmd = ack_info->get_namespaces_view();
 
-        typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::const_iterator ns_it
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >::const_iterator ns_it
             = nmd->namespaces.find(namespace_id);
 
         if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get_ref().ack_expectations.in_conflict()) {
@@ -276,17 +289,17 @@ public:
     }
 
 private:
-    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
+    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >
         extract_reactor_directory_per_peer_result_type;
 
     extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
-        const namespaces_directory_metadata_t<protocol_t> &nss) {
+        const namespaces_directory_metadata_t &nss) {
 
         auto it = nss.reactor_bcards.find(namespace_id_);
         if (it == nss.reactor_bcards.end()) {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >();
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >();
         } else {
-            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(it->second);
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >(it->second);
         }
     }
 
@@ -306,14 +319,14 @@ private:
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, &stores_lifetimer_, &svs_, ctx);
 
         auto const extract_reactor_directory_per_peer_fun =
-            boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
+            boost::bind(&watchable_and_reactor_t::extract_reactor_directory_per_peer,
                         this, _1);
         incremental_map_lens_t<peer_id_t,
-                               namespaces_directory_metadata_t<protocol_t>,
+                               namespaces_directory_metadata_t,
                                typeof extract_reactor_directory_per_peer_fun>
             extract_reactor_directory(extract_reactor_directory_per_peer_fun);
 
-        reactor_.init(new reactor_t<protocol_t>(
+        reactor_.init(new reactor_t(
             base_path,
             io_backender,
             parent_->mbox_manager,
@@ -324,10 +337,10 @@ private:
             svs_.get(), namespace_collection, ctx));
 
         {
-            typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
+            watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
             reactor_directory_subscription_.init(
-                new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
-                    boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
+                new watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t(
+                    boost::bind(&watchable_and_reactor_t::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
 
             parent_->set_reactor_directory_entry(namespace_id_,
@@ -340,38 +353,37 @@ private:
 private:
     const base_path_t base_path;
 public:
-    watchable_variable_t<blueprint_t<protocol_t> > watchable;
+    watchable_variable_t<blueprint_t> watchable;
 
-    typename protocol_t::context_t *const ctx;
+    rdb_context_t *const ctx;
 
 private:
     cond_t reactor_has_been_initialized_;
 
-    reactor_driver_t<protocol_t> *const parent_;
+    reactor_driver_t *const parent_;
     const namespace_id_t namespace_id_;
-    svs_by_namespace_t<protocol_t> *const svs_by_namespace_;
+    svs_by_namespace_t *const svs_by_namespace_;
 
-    stores_lifetimer_t<protocol_t> stores_lifetimer_;
-    scoped_ptr_t<multistore_ptr_t<protocol_t> > svs_;
-    scoped_ptr_t<reactor_t<protocol_t> > reactor_;
+    stores_lifetimer_t stores_lifetimer_;
+    scoped_ptr_t<multistore_ptr_t> svs_;
+    scoped_ptr_t<reactor_t> reactor_;
 
-    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t> reactor_directory_subscription_;
+    scoped_ptr_t<watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::subscription_t> reactor_directory_subscription_;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };
 
-template <class protocol_t>
-reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
-                                               io_backender_t *_io_backender,
-                                               mailbox_manager_t *_mbox_manager,
-                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
-                                               branch_history_manager_t<protocol_t> *_branch_history_manager,
-                                               boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
-                                               boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                                               svs_by_namespace_t<protocol_t> *_svs_by_namespace,
-                                               perfmon_collection_repo_t *_perfmon_collection_repo,
-                                               typename protocol_t::context_t *_ctx)
+reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
+                                   io_backender_t *_io_backender,
+                                   mailbox_manager_t *_mbox_manager,
+                                   const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > &_directory_view,
+                                   branch_history_manager_t *_branch_history_manager,
+                                   boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > _namespaces_view,
+                                   boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
+                                   const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
+                                   svs_by_namespace_t *_svs_by_namespace,
+                                   perfmon_collection_repo_t *_perfmon_collection_repo,
+                                   rdb_context_t *_ctx)
     : base_path(_base_path),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
@@ -382,10 +394,10 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       machines_view(machines_view_),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
-      ack_info(new ack_info_t<protocol_t>(machine_id_translation_table, machines_view, namespaces_view)),
-      watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
-      semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
-      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
+      ack_info(new ack_info_t(machine_id_translation_table, machines_view, namespaces_view)),
+      watchable_variable(namespaces_directory_metadata_t()),
+      semilattice_subscription(boost::bind(&reactor_driver_t::on_change, this), namespaces_view),
+      translation_table_subscription(boost::bind(&reactor_driver_t::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
     watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
@@ -393,14 +405,12 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
     on_change();
 }
 
-template<class protocol_t>
-reactor_driver_t<protocol_t>::~reactor_driver_t() {
+reactor_driver_t::~reactor_driver_t() {
     /* This must be defined in the `.tcc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
 }
 
-template<class protocol_t>
-void reactor_driver_t<protocol_t>::set_reactor_directory_entry(
+void reactor_driver_t::set_reactor_directory_entry(
     const namespace_id_t reactor_namespace,
     const boost::optional<reactor_directory_entry_t> &new_value) {
 
@@ -415,14 +425,13 @@ void reactor_driver_t<protocol_t>::set_reactor_directory_entry(
 
     if (must_initiate_commit) {
         coro_t::spawn_sometime(
-            boost::bind(&reactor_driver_t<protocol_t>::commit_directory_changes,
+            boost::bind(&reactor_driver_t::commit_directory_changes,
                         this,
                         auto_drainer_t::lock_t(&directory_change_drainer)));
     }
 }
 
-template<class protocol_t>
-void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock_t lock) {
+void reactor_driver_t::commit_directory_changes(auto_drainer_t::lock_t lock) {
     // Delay the commit for a moment in anticipation that more changes come in
     lock.assert_is_holding(&directory_change_drainer);
     try {
@@ -443,11 +452,10 @@ void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock
                                                  std::placeholders::_1));
 }
 
-template<class protocol_t>
-bool reactor_driver_t<protocol_t>::apply_directory_changes(
+bool reactor_driver_t::apply_directory_changes(
     std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
         *_changed_reactor_directories,
-    namespaces_directory_metadata_t<protocol_t> *directory) {
+    namespaces_directory_metadata_t *directory) {
 
     for (auto it = _changed_reactor_directories->begin();
          it != _changed_reactor_directories->end();
@@ -463,10 +471,9 @@ bool reactor_driver_t<protocol_t>::apply_directory_changes(
     return true;
 }
 
-template<class protocol_t>
-void reactor_driver_t<protocol_t>::delete_reactor_data(
+void reactor_driver_t::delete_reactor_data(
         auto_drainer_t::lock_t lock,
-        typename reactor_map_t::auto_type *thing_to_delete,
+        reactor_map_t::auto_type *thing_to_delete,
         namespace_id_t namespace_id)
 {
     lock.assert_is_holding(&drainer);
@@ -474,12 +481,11 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
     svs_by_namespace->destroy_svs(namespace_id);
 }
 
-template<class protocol_t>
-void reactor_driver_t<protocol_t>::on_change() {
-    cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
+void reactor_driver_t::on_change() {
+    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces = namespaces_view->get();
     std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get().get_inner();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
+    for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator
              it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
@@ -491,14 +497,14 @@ void reactor_driver_t<protocol_t>::on_change() {
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */
             coro_t::spawn_sometime(boost::bind(
-                &reactor_driver_t<protocol_t>::delete_reactor_data,
+                &reactor_driver_t::delete_reactor_data,
                 this,
                 auto_drainer_t::lock_t(&drainer),
                 new typename
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
-            const persistable_blueprint_t<protocol_t> *pbp = NULL;
+            const persistable_blueprint_t *pbp = NULL;
 
             try {
                 pbp = &it->second.get_ref().blueprint.get_ref();
@@ -508,7 +514,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(*pbp, machine_id_translation_table_value);
+            blueprint_t bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
@@ -516,11 +522,11 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t(base_path, io_backender, this, it->first, bp, svs_by_namespace, ctx));
                 } else {
                     struct op_closure_t {
-                        static bool apply(const blueprint_t<protocol_t> &_bp,
-                                          blueprint_t<protocol_t> *bp_ref) {
+                        static bool apply(const blueprint_t &_bp,
+                                          blueprint_t *bp_ref) {
                             const bool blueprint_changed = (*bp_ref != _bp);
                             if (blueprint_changed) {
                                 *bp_ref = _bp;
@@ -535,11 +541,9 @@ void reactor_driver_t<protocol_t>::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
+                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
                 }
             }
         }
     }
 }
-
-#endif /* CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_ */

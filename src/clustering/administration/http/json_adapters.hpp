@@ -113,14 +113,14 @@ void apply_json_to(cJSON *, peer_id_t *);
 
 
 // ctx-less json adapter concepto for region map
-template <class protocol_t, class value_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *);
+template <class value_t>
+json_adapter_if_t::json_adapter_map_t get_json_subfields(region_map_t<value_t> *);
 
-template <class protocol_t, class value_t>
-cJSON *render_as_json(region_map_t<protocol_t, value_t> *);
+template <class value_t>
+cJSON *render_as_json(region_map_t<value_t> *);
 
-template <class protocol_t, class value_t>
-void apply_json_to(cJSON *, region_map_t<protocol_t, value_t> *);
+template <class value_t>
+void apply_json_to(cJSON *, region_map_t<value_t> *);
 
 #include "clustering/administration/http/json_adapters.tcc"
 

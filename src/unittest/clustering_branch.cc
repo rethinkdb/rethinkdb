@@ -17,24 +17,24 @@ namespace unittest {
 
 namespace {
 
-boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > wrap_broadcaster_in_optional(
-        const boost::optional<broadcaster_business_card_t<rdb_protocol_t> > &inner) {
-    return boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(inner);
+boost::optional<boost::optional<broadcaster_business_card_t> > wrap_broadcaster_in_optional(
+        const boost::optional<broadcaster_business_card_t> &inner) {
+    return boost::optional<boost::optional<broadcaster_business_card_t> >(inner);
 }
 
-boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > wrap_replier_in_optional(
-        const boost::optional<replier_business_card_t<rdb_protocol_t> > &inner) {
-    return boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(inner);
+boost::optional<boost::optional<replier_business_card_t> > wrap_replier_in_optional(
+        const boost::optional<replier_business_card_t> &inner) {
+    return boost::optional<boost::optional<replier_business_card_t> >(inner);
 }
 
 void run_with_broadcaster(
         boost::function<void(io_backender_t *,
                              simple_mailbox_cluster_t *,
-                             branch_history_manager_t<rdb_protocol_t> *,
-                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > >,
-                             scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
+                             branch_history_manager_t *,
+                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
+                             scoped_ptr_t<broadcaster_t> *,
                              mock_store_t *,
-                             scoped_ptr_t<listener_t<rdb_protocol_t> > *,
+                             scoped_ptr_t<listener_t> *,
                              order_source_t *)> fun) {
     order_source_t order_source;
 
@@ -42,7 +42,7 @@ void run_with_broadcaster(
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
@@ -50,8 +50,8 @@ void run_with_broadcaster(
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
 
-    scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
-        new broadcaster_t<rdb_protocol_t>(
+    scoped_ptr_t<broadcaster_t> broadcaster(
+        new broadcaster_t(
             cluster.get_mailbox_manager(),
             &branch_history_manager,
             &initial_store,
@@ -59,11 +59,11 @@ void run_with_broadcaster(
             &order_source,
             &interruptor));
 
-    watchable_variable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > broadcaster_directory_controller(
-        boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster->get_business_card()));
+    watchable_variable_t<boost::optional<broadcaster_business_card_t> > broadcaster_directory_controller(
+        boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card()));
 
-    scoped_ptr_t<listener_t<rdb_protocol_t> > initial_listener(
-        new listener_t<rdb_protocol_t>(base_path_t("."),
+    scoped_ptr_t<listener_t> initial_listener(
+        new listener_t(base_path_t("."),
                                          &io_backender,
                                          cluster.get_mailbox_manager(),
                                          broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
@@ -86,11 +86,11 @@ void run_with_broadcaster(
 void run_in_thread_pool_with_broadcaster(
         boost::function<void(io_backender_t *,
                              simple_mailbox_cluster_t *,
-                             branch_history_manager_t<rdb_protocol_t> *,
-                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > >,
-                             scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
+                             branch_history_manager_t *,
+                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
+                             scoped_ptr_t<broadcaster_t> *,
                              mock_store_t *,
-                             scoped_ptr_t<listener_t<rdb_protocol_t> > *,
+                             scoped_ptr_t<listener_t> *,
                              order_source_t *)> fun)
 {
     unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
@@ -103,15 +103,15 @@ single mirror. */
 
 void run_read_write_test(UNUSED io_backender_t *io_backender,
                          UNUSED simple_mailbox_cluster_t *cluster,
-                         branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                         UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_metadata_view,
-                         scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
+                         branch_history_manager_t *branch_history_manager,
+                         UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
+                         scoped_ptr_t<broadcaster_t> *broadcaster,
                          UNUSED mock_store_t *store,
-                         scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
+                         scoped_ptr_t<listener_t> *initial_listener,
                          order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations. */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
     /* Give time for the broadcaster to see the replier. */
     let_stuff_happen();
@@ -126,7 +126,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         values_inserted[key] = strprintf("%d", i);
         rdb_protocol_t::write_t w = mock_overwrite(key, strprintf("%d", i));
 
-        class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
+        class : public broadcaster_t::write_callback_t, public cond_t {
         public:
             void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
                 /* Ignore. */
@@ -162,12 +162,12 @@ TEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-static void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
+static void write_to_broadcaster(broadcaster_t *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     // TODO: Is this the right place?  Maybe we should have real fifo enforcement for this helper function.
     unittest::fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     rdb_protocol_t::write_t w = mock_overwrite(key, value);
-    class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
+    class : public broadcaster_t::write_callback_t, public cond_t {
     public:
         void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
             /* Ignore. */
@@ -184,18 +184,18 @@ static void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, con
 
 void run_backfill_test(io_backender_t *io_backender,
                        simple_mailbox_cluster_t *cluster,
-                       branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                       clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_metadata_view,
-                       scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
+                       branch_history_manager_t *branch_history_manager,
+                       clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
+                       scoped_ptr_t<broadcaster_t> *broadcaster,
                        mock_store_t *store1,
-                       scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
+                       scoped_ptr_t<listener_t> *initial_listener,
                        order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
-    watchable_variable_t<boost::optional<replier_business_card_t<rdb_protocol_t> > > replier_directory_controller(
-        boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card()));
+    watchable_variable_t<boost::optional<replier_business_card_t> > replier_directory_controller(
+        boost::optional<replier_business_card_t>(replier.get_business_card()));
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
@@ -212,7 +212,7 @@ void run_backfill_test(io_backender_t *io_backender,
     /* Set up a second mirror */
     mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
-    listener_t<rdb_protocol_t> listener2(
+    listener_t listener2(
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
@@ -250,18 +250,18 @@ TEST(ClusteringBranch, Backfill) {
 
 void run_partial_backfill_test(io_backender_t *io_backender,
                                simple_mailbox_cluster_t *cluster,
-                               branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                               clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_metadata_view,
-                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
+                               branch_history_manager_t *branch_history_manager,
+                               clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
+                               scoped_ptr_t<broadcaster_t> *broadcaster,
                                mock_store_t *store1,
-                               scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
+                               scoped_ptr_t<listener_t> *initial_listener,
                                order_source_t *order_source) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
-    watchable_variable_t<boost::optional<replier_business_card_t<rdb_protocol_t> > > replier_directory_controller(
-        boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card()));
+    watchable_variable_t<boost::optional<replier_business_card_t> > replier_directory_controller(
+        boost::optional<replier_business_card_t>(replier.get_business_card()));
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
@@ -277,10 +277,10 @@ void run_partial_backfill_test(io_backender_t *io_backender,
 
     /* Set up a second mirror */
     mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
-    rdb_protocol_t::region_t subregion(key_range_t(key_range_t::closed, store_key_t("a"),
+    region_t subregion(key_range_t(key_range_t::closed, store_key_t("a"),
                                                    key_range_t::open, store_key_t("n")));
     cond_t interruptor;
-    listener_t<rdb_protocol_t> listener2(
+    listener_t listener2(
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),

@@ -8,28 +8,30 @@
 #include <utility>
 #include <vector>
 
+#include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
+#include "hash_region.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
-
+struct backfill_chunk_t;
+struct rdb_protocol_t;
+struct read_t;
+struct read_response_t;
+class store_t;
 class traversal_progress_combiner_t;
+struct write_t;
+struct write_response_t;
 
-/* This file describes the relationship between the protocol-specific logic for
-each protocol and the protocol-agnostic logic that routes queries for all the
-protocols. Each protocol defines a `protocol_t` struct that acts as a
-"container" to hold all the types for that protocol. The protocol-agnostic logic
-will be templatized on a `protocol_t`. `protocol_t` itself is never
-instantiated. For a description of what `protocol_t` must be like, see
-`rethinkdb/docs_internal/protocol_api_notes.hpp`. */
+typedef hash_region_t<key_range_t> region_t;
 
 class cannot_perform_query_exc_t : public std::exception {
 public:
@@ -45,19 +47,18 @@ private:
 /* `namespace_interface_t` is the interface that the protocol-agnostic database
 logic for query routing exposes to the protocol-specific query parser. */
 
-template<class protocol_t>
 class namespace_interface_t {
 public:
-    virtual void read(const typename protocol_t::read_t &, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void read_outdated(const typename protocol_t::read_t &, typename protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const typename protocol_t::write_t &, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read(const read_t &, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read_outdated(const read_t &, read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void write(const write_t &, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
-    virtual std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
-        /* Valid default implementation */
-        std::set<typename protocol_t::region_t> s;
-        s.insert(protocol_t::region_t::universe());
+    // RSI: Can this be removed?  This default implementation?
+    virtual std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+        std::set<region_t> s;
+        s.insert(region_t::universe());
         return s;
     }
 
@@ -68,24 +69,24 @@ protected:
 };
 
 /* Regions contained in region_map_t must never intersect. */
-template<class protocol_t, class value_t>
+template <class value_t>
 class region_map_t {
 private:
-    typedef std::pair<typename protocol_t::region_t, value_t> internal_pair_t;
+    typedef std::pair<region_t, value_t> internal_pair_t;
     typedef std::vector<internal_pair_t> internal_vec_t;
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
 
     /* I got the ypedefs like a std::map. */
-    typedef typename protocol_t::region_t key_type;
+    typedef region_t key_type;
     typedef value_t mapped_type;
 
     region_map_t() THROWS_NOTHING {
-        regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));
+        regions_and_values.push_back(internal_pair_t(region_t::universe(), value_t()));
     }
 
-    explicit region_map_t(typename protocol_t::region_t r, value_t v = value_t()) THROWS_NOTHING {
+    explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(r, v));
     }
 
@@ -97,12 +98,12 @@ public:
     }
 
 public:
-    typename protocol_t::region_t get_domain() const THROWS_NOTHING {
-        std::vector<typename protocol_t::region_t> regions;
+    region_t get_domain() const THROWS_NOTHING {
+        std::vector<region_t> regions;
         for (const_iterator it = begin(); it != end(); ++it) {
             regions.push_back(it->first);
         }
-        typename protocol_t::region_t join;
+        region_t join;
         region_join_result_t join_result = region_join(regions, &join);
         guarantee(join_result == REGION_JOIN_OK);
         return join;
@@ -124,10 +125,10 @@ public:
         return regions_and_values.end();
     }
 
-    MUST_USE region_map_t mask(typename protocol_t::region_t region) const {
+    MUST_USE region_map_t mask(region_t region) const {
         internal_vec_t masked_pairs;
         for (size_t i = 0; i < regions_and_values.size(); ++i) {
-            typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
+            region_t ixn = region_intersection(regions_and_values[i].first, region);
             if (!region_is_empty(ixn)) {
                 masked_pairs.push_back(internal_pair_t(ixn, regions_and_values[i].second));
             }
@@ -138,18 +139,18 @@ public:
     // Important: 'update' assumes that new_values regions do not intersect
     void update(const region_map_t& new_values) {
         rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
-        std::vector<typename protocol_t::region_t> overlay_regions;
+        std::vector<region_t> overlay_regions;
         for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
             overlay_regions.push_back(i->first);
         }
 
         internal_vec_t updated_pairs;
         for (const_iterator i = begin(); i != end(); ++i) {
-            typename protocol_t::region_t old = i->first;
-            std::vector<typename protocol_t::region_t> old_subregions = region_subtract_many(old, overlay_regions);
+            region_t old = i->first;
+            std::vector<region_t> old_subregions = region_subtract_many(old, overlay_regions);
 
             // Insert the unchanged parts of the old region into updated_pairs with the old value
-            for (typename std::vector<typename protocol_t::region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
+            for (typename std::vector<region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
                 updated_pairs.push_back(internal_pair_t(*j, i->second));
             }
         }
@@ -158,7 +159,7 @@ public:
         regions_and_values = updated_pairs;
     }
 
-    void set(const typename protocol_t::region_t &r, const value_t &v) {
+    void set(const region_t &r, const value_t &v) {
         update(region_map_t(r, v));
     }
 
@@ -169,19 +170,24 @@ public:
     // A region map now has an order!  And it's indexable!  The order is
     // guaranteed to stay the same as long as you don't modify the map.
     // Hopefully this horribleness is only temporary.
-    const std::pair<typename protocol_t::region_t, value_t> &get_nth(size_t n) const {
+    const std::pair<region_t, value_t> &get_nth(size_t n) const {
         return regions_and_values[n];
     }
 
 private:
     internal_vec_t regions_and_values;
+
+    // RSI: This is private, soo... is this even used?
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
 };
 
-template <class P, class V>
-void debug_print(printf_buffer_t *buf, const region_map_t<P, V> &map) {
+// RSI: binary_blob_t was only used because of protocolization.  or was it because of performance?
+typedef region_map_t<binary_blob_t> metainfo_t;
+
+template <class V>
+void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
     buf->appendf("rmap{");
-    for (typename region_map_t<P, V>::const_iterator it = map.begin(); it != map.end(); ++it) {
+    for (typename region_map_t<V>::const_iterator it = map.begin(); it != map.end(); ++it) {
         if (it != map.begin()) {
             buf->appendf(", ");
         }
@@ -192,15 +198,15 @@ void debug_print(printf_buffer_t *buf, const region_map_t<P, V> &map) {
     buf->appendf("}");
 }
 
-template<class P, class V>
-bool operator==(const region_map_t<P, V> &left, const region_map_t<P, V> &right) {
+template <class V>
+bool operator==(const region_map_t<V> &left, const region_map_t<V> &right) {
     if (left.get_domain() != right.get_domain()) {
         return false;
     }
 
-    for (typename region_map_t<P, V>::const_iterator i = left.begin(); i != left.end(); ++i) {
-        region_map_t<P, V> r = right.mask(i->first);
-        for (typename region_map_t<P, V>::const_iterator j = r.begin(); j != r.end(); ++j) {
+    for (typename region_map_t<V>::const_iterator i = left.begin(); i != left.end(); ++i) {
+        region_map_t<V> r = right.mask(i->first);
+        for (typename region_map_t<V>::const_iterator j = r.begin(); j != r.end(); ++j) {
             if (j->second != i->second) {
                 return false;
             }
@@ -209,31 +215,30 @@ bool operator==(const region_map_t<P, V> &left, const region_map_t<P, V> &right)
     return true;
 }
 
-template<class P, class V>
-bool operator!=(const region_map_t<P, V> &left, const region_map_t<P, V> &right) {
+template <class P, class V>
+bool operator!=(const region_map_t<V> &left, const region_map_t<V> &right) {
     return !(left == right);
 }
 
-template<class protocol_t, class old_t, class new_t, class callable_t>
-region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol_t, old_t> &original, const callable_t &callable) {
-    std::vector<std::pair<typename protocol_t::region_t, new_t> > new_pairs;
-    for (typename region_map_t<protocol_t, old_t>::const_iterator it =  original.begin();
-                                                                  it != original.end();
-                                                                  it++) {
-        new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
+template<class old_t, class new_t, class callable_t>
+region_map_t<new_t> region_map_transform(const region_map_t<old_t> &original, const callable_t &callable) {
+    std::vector<std::pair<region_t, new_t> > new_pairs;
+    for (typename region_map_t<old_t>::const_iterator it =  original.begin();
+         it != original.end();
+         ++it) {
+        new_pairs.push_back(std::pair<region_t, new_t>(
                 it->first,
                 callable(it->second)));
     }
-    return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
+    return region_map_t<new_t>(new_pairs.begin(), new_pairs.end());
 }
 
 #ifndef NDEBUG
 // Checks that the metainfo has a certain value, or certain kind of value.
-template <class protocol_t>
 class metainfo_checker_callback_t {
 public:
-    virtual void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo,
-                                const typename protocol_t::region_t& domain) const = 0;
+    virtual void check_metainfo(const region_map_t<binary_blob_t>& metainfo,
+                                const region_t& domain) const = 0;
 protected:
     metainfo_checker_callback_t() { }
     virtual ~metainfo_checker_callback_t() { }
@@ -241,11 +246,11 @@ private:
     DISABLE_COPYING(metainfo_checker_callback_t);
 };
 
-template <class protocol_t>
-struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
+
+struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t {
 
     trivial_metainfo_checker_callback_t() { }
-    void check_metainfo(UNUSED const region_map_t<protocol_t, binary_blob_t>& metainfo, UNUSED const typename protocol_t::region_t& region) const {
+    void check_metainfo(UNUSED const region_map_t<binary_blob_t>& metainfo, UNUSED const region_t& region) const {
         /* do nothing */
     }
 
@@ -253,23 +258,22 @@ private:
     DISABLE_COPYING(trivial_metainfo_checker_callback_t);
 };
 
-template <class protocol_t>
 class metainfo_checker_t {
 public:
-    metainfo_checker_t(const metainfo_checker_callback_t<protocol_t> *callback,
-                       const typename protocol_t::region_t& region) : callback_(callback), region_(region) { }
+    metainfo_checker_t(const metainfo_checker_callback_t *callback,
+                       const region_t& region) : callback_(callback), region_(region) { }
 
-    void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo) const {
+    void check_metainfo(const region_map_t<binary_blob_t>& metainfo) const {
         callback_->check_metainfo(metainfo, region_);
     }
-    const typename protocol_t::region_t& get_domain() const { return region_; }
-    const metainfo_checker_t mask(const typename protocol_t::region_t& region) const {
+    const region_t& get_domain() const { return region_; }
+    const metainfo_checker_t mask(const region_t& region) const {
         return metainfo_checker_t(callback_, region_intersection(region, region_));
     }
 
 private:
-    const metainfo_checker_callback_t<protocol_t> *const callback_;
-    const typename protocol_t::region_t region_;
+    const metainfo_checker_callback_t *const callback_;
+    const region_t region_;
 
     // This _is_ copyable because of mask, but all copies' lifetimes
     // are limited by that of callback_.
@@ -277,19 +281,17 @@ private:
 
 #endif  // NDEBUG
 
-/* `store_view_t` is an abstract class that represents a region of a key-value
-store for some protocol. It's templatized on the protocol (`protocol_t`). It
-covers some `protocol_t::region_t`, which is returned by `get_region()`.
+/* `store_view_t` is an abstract class that represents a region of a key-value store
+for some protocol.  It covers some `region_t`, which is returned by `get_region()`.
 
-In addition to the actual data, `store_view_t` is responsible for keeping track
-of metadata which is keyed by region. The metadata is currently implemented as
-opaque binary blob (`binary_blob_t`).
+In addition to the actual data, `store_view_t` is responsible for keeping track of
+metadata which is keyed by region. The metadata is currently implemented as opaque
+binary blob (`binary_blob_t`).
 */
 
-template <class protocol_t>
 class chunk_fun_callback_t {
 public:
-    virtual void send_chunk(const typename protocol_t::backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void send_chunk(const backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     chunk_fun_callback_t() { }
@@ -298,17 +300,16 @@ private:
     DISABLE_COPYING(chunk_fun_callback_t);
 };
 
-template <class protocol_t>
-class send_backfill_callback_t : public chunk_fun_callback_t<protocol_t> {
+class send_backfill_callback_t : public chunk_fun_callback_t {
 public:
-    bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
+    bool should_backfill(const metainfo_t &metainfo) {
         guarantee(!should_backfill_was_called_);
         should_backfill_was_called_ = true;
         return should_backfill_impl(metainfo);
     }
 
 protected:
-    virtual bool should_backfill_impl(const typename protocol_t::store_t::metainfo_t &metainfo) = 0;
+    virtual bool should_backfill_impl(const metainfo_t &metainfo) = 0;
 
     send_backfill_callback_t() : should_backfill_was_called_(false) { }
     virtual ~send_backfill_callback_t() { }
@@ -344,16 +345,15 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
                                       DURABILITY_REQUIREMENT_DEFAULT,
                                       DURABILITY_REQUIREMENT_SOFT);
 
-template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {
 public:
-    typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
+    typedef region_map_t<binary_blob_t> metainfo_t;
 
     virtual ~store_view_t() {
         assert_thread();
     }
 
-    typename protocol_t::region_t get_region() {
+    region_t get_region() {
         return region;
     }
 
@@ -389,9 +389,9 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
     [May block] */
     virtual void read(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
-            const typename protocol_t::read_t &read,
-            typename protocol_t::read_response_t *response,
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
+            const read_t &read,
+            read_response_t *response,
             order_token_t order_token,
             read_token_pair_t *token,
             signal_t *interruptor)
@@ -404,10 +404,10 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
     [May block] */
     virtual void write(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
             const metainfo_t& new_metainfo,
-            const typename protocol_t::write_t &write,
-            typename protocol_t::write_response_t *response,
+            const write_t &write,
+            write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
@@ -423,8 +423,8 @@ public:
     [May block]
     */
     virtual bool send_backfill(
-            const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            send_backfill_callback_t<protocol_t> *send_backfill_cb,
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *progress,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
@@ -437,7 +437,7 @@ public:
     [May block]
     */
     virtual void receive_backfill(
-            const typename protocol_t::backfill_chunk_t &chunk,
+            const backfill_chunk_t &chunk,
             write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -447,7 +447,7 @@ public:
     [May block]
      */
     virtual void reset_data(
-            const typename protocol_t::region_t &subregion,
+            const region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
             write_durability_t durability,
@@ -455,10 +455,10 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
-    explicit store_view_t(typename protocol_t::region_t r) : region(r) { }
+    explicit store_view_t(region_t r) : region(r) { }
 
 private:
-    const typename protocol_t::region_t region;
+    const region_t region;
 
     DISABLE_COPYING(store_view_t);
 };
@@ -478,7 +478,7 @@ private:
     thread on the same node, in that order. The read will return "b".
 
 3.  Arbitrary atomic single-key operations can be performed, as long as they can
-    be expressed as `protocol_t::write_t` objects.
+    be expressed as `write_t` objects.
 
 4.  There are no other atomicity or ordering guarantees.
 
@@ -499,18 +499,15 @@ private:
     be able to fake it by using a key as a "lock".
 */
 
-template <class protocol_t>
-class store_subview_t : public store_view_t<protocol_t>
+class store_subview_t : public store_view_t
 {
 public:
-    typedef typename store_view_t<protocol_t>::metainfo_t metainfo_t;
-
-    store_subview_t(store_view_t<protocol_t> *_store_view, typename protocol_t::region_t region)
-        : store_view_t<protocol_t>(region), store_view(_store_view) {
+    store_subview_t(store_view_t *_store_view, region_t region)
+        : store_view_t(region), store_view(_store_view) {
         rassert(region_is_superset(_store_view->get_region(), region));
     }
 
-    using store_view_t<protocol_t>::get_region;
+    using store_view_t::get_region;
 
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
         home_thread_mixin_t::assert_thread();
@@ -542,9 +539,9 @@ public:
     }
 
     void read(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-            const typename protocol_t::read_t &read,
-            typename protocol_t::read_response_t *response,
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
+            const read_t &read,
+            read_response_t *response,
             order_token_t order_token,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
@@ -556,10 +553,10 @@ public:
     }
 
     void write(
-            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const metainfo_t& new_metainfo,
-            const typename protocol_t::write_t &write,
-            typename protocol_t::write_response_t *response,
+            const write_t &write,
+            write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
@@ -573,11 +570,9 @@ public:
         store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
     }
 
-    // TODO: Make this take protocol_t::progress_t again (or maybe a
-    // progress_receiver_t type that you define).
     bool send_backfill(
-            const region_map_t<protocol_t, state_timestamp_t> &start_point,
-            send_backfill_callback_t<protocol_t> *send_backfill_cb,
+            const region_map_t<state_timestamp_t> &start_point,
+            send_backfill_callback_t *send_backfill_cb,
             traversal_progress_combiner_t *p,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
@@ -589,7 +584,7 @@ public:
     }
 
     void receive_backfill(
-            const typename protocol_t::backfill_chunk_t &chunk,
+            const backfill_chunk_t &chunk,
             write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
@@ -598,7 +593,7 @@ public:
     }
 
     void reset_data(
-            const typename protocol_t::region_t &subregion,
+            const region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
             write_durability_t durability,
@@ -612,7 +607,7 @@ public:
     }
 
 private:
-    store_view_t<protocol_t> *store_view;
+    store_view_t *store_view;
 
     DISABLE_COPYING(store_subview_t);
 };

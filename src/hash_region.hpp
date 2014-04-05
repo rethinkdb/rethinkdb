@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "containers/archive/archive.hpp"
-#include "protocol_api.hpp"
+#include "rdb_protocol/region.hpp"
 #include "rpc/serialize_macros.hpp"
 
 struct key_range_t;
@@ -120,7 +120,7 @@ bool all_have_same_inner(const std::vector< hash_region_t<inner_region_t> > &vec
     return true;
 }
 
-MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_range_t> > &vec,
+MUST_USE region_join_result_t region_join(const std::vector<hash_region_t<key_range_t> > &vec,
                                           hash_region_t<key_range_t> *out);
 
 // hash_value must equal hash_region_hasher(key.contents(), key.size()).

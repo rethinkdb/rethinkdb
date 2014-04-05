@@ -34,26 +34,25 @@ private:
 };
 
 
-template<class protocol_t>
 class master_t {
 public:
     master_t(mailbox_manager_t *mm, ack_checker_t *ac,
-             typename protocol_t::region_t r,
-             broadcaster_t<protocol_t> *b) THROWS_ONLY(interrupted_exc_t);
+             region_t r,
+             broadcaster_t *b) THROWS_ONLY(interrupted_exc_t);
 
     ~master_t();
 
-    master_business_card_t<protocol_t> get_business_card();
+    master_business_card_t get_business_card();
 
 private:
     class client_t {
     public:
         client_t(
                 master_t *p,
-                UNUSED const typename master_business_card_t<protocol_t>::inner_client_business_card_t &) :
+                UNUSED const master_business_card_t::inner_client_business_card_t &) :
             parent(p) { }
         void perform_request(
-                const typename master_business_card_t<protocol_t>::request_t &,
+                const master_business_card_t::request_t &,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
     private:
@@ -63,15 +62,15 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     ack_checker_t *ack_checker;
-    broadcaster_t<protocol_t> *broadcaster;
-    typename protocol_t::region_t region;
+    broadcaster_t *broadcaster;
+    region_t region;
 
     /* See note in `client_t::perform_request()` for what this is about */
     cond_t shutdown_cond;
 
     multi_throttling_server_t<
-            typename master_business_card_t<protocol_t>::request_t,
-            typename master_business_card_t<protocol_t>::inner_client_business_card_t,
+            master_business_card_t::request_t,
+            master_business_card_t::inner_client_business_card_t,
             master_t *,
             client_t
             > multi_throttling_server;

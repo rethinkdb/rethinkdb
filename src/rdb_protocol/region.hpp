@@ -6,11 +6,8 @@
 #include <vector>
 
 #include "btree/keys.hpp"
-#include "protocol_api.hpp"
 
-/* The protocol API specifies that the following standalone functions must be
-defined for `protocol_t::region_t`. Most of them are thin wrappers around
-existing methods or functions with slightly different names. */
+enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 inline bool region_is_empty(const key_range_t &r) {
     return r.is_empty();
