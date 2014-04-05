@@ -221,14 +221,11 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
-            // Create namespace (DB + table pair) and insert into metadata.  The port
-            // here is a legacy from the day when memcached ran on a different port
-            // -- it's a nonsense value for the rdb_protocol.  (The dummy protocol
-            // also uses it.)
+            // Create namespace (DB + table pair) and insert into metadata.
             namespace_semilattice_metadata_t ns =
                 new_namespace(
                     env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                    primary_key, port_defaults::reql_port);
+                    primary_key);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =

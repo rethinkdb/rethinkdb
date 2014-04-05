@@ -1958,17 +1958,13 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary_key = "id";
     }
 
-    // RSI: Remove all specific mention of the "port" option, making sure it is 
-    // Make sure port is valid if required, or not specified if not needed
-    uint64_t port = 0;  // RSI
-
     if (database_info->path[0] != "databases") {
         throw admin_parse_exc_t("specified database is not a database: " + database_id);
     }
 
     if (protocol == "rdb") {
         cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
+        new_id = do_admin_create_table_internal(name, primary, primary_key, database, change.get());
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
     }
@@ -1979,7 +1975,6 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
 // TODO: This is mostly redundant with the new_namespace function?  Or just outdated?
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_string_t& name,
-                                                                    int port,
                                                                     const datacenter_id_t& primary,
                                                                     const std::string& primary_key,
                                                                     const database_id_t& database,
@@ -1995,9 +1990,6 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
 
     obj->primary_datacenter.get_mutable() = primary;
     obj->primary_datacenter.upgrade_version(change_request_id);
-
-    obj->port.get_mutable() = port;
-    obj->port.upgrade_version(change_request_id);
 
     nonoverlapping_regions_t shards;
     bool add_success = shards.add_region(region_t::universe());
@@ -2755,12 +2747,6 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         printf ("with primary_key <conflict>\n");
     }
 
-    // TODO: fix this once multiple protocols are supported again
-    // if (ns.port.in_conflict()) {
-    //     printf("running %s protocol on port <conflict>\n", protocol.c_str());
-    // } else {
-    //     printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
-    // }
     printf("\n");
 
     {
@@ -3361,8 +3347,6 @@ void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadat
         resolve_value(&ns->shards);
     } else if (field == "primary_key") {
         resolve_value(&ns->primary_key);
-    } else if (field == "port") {
-        resolve_value(&ns->port);
     } else if (field == "primary_pinnings") {
         resolve_value(&ns->primary_pinnings);
     } else if (field == "secondary_pinnings") {
