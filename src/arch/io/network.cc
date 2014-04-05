@@ -785,7 +785,9 @@ bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
         if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
             return false;
         } else {
-            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
+            crash("Could not bind socket at %s:%i - %s\n",
+                  addr.to_string().c_str(), *port_out,
+                  errno_string(get_errno()).c_str());
         }
     }
 
