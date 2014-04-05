@@ -1,6 +1,10 @@
 #ifndef UNITTEST_MOCK_STORE_HPP_
 #define UNITTEST_MOCK_STORE_HPP_
 
+#include <map>
+#include <utility>
+#include <string>
+
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 

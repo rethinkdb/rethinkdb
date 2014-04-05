@@ -1,6 +1,7 @@
 #ifndef REGION_REGION_MAP_HPP_
 #define REGION_REGION_MAP_HPP_
 
+#include <algorithm>
 #include <vector>
 #include <utility>
 

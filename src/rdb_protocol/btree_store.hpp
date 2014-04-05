@@ -398,4 +398,4 @@ private:
     DISABLE_COPYING(store_t);
 };
 
-#endif  // BTREE_BTREE_STORE_HPP_
+#endif  // RDB_PROTOCOL_BTREE_STORE_HPP_
