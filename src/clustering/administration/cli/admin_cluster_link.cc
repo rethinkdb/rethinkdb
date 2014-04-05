@@ -353,9 +353,10 @@ void admin_cluster_link_t::clear_metadata_maps() {
     uuid_map.clear();
 }
 
-template <class T>
-void admin_cluster_link_t::add_ns_subset_to_maps(const std::string& base, const T& ns_map) {
-    for (typename T::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_ns_subset_to_maps(
+        const std::string& base,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             metadata_info_t *info = new metadata_info_t;
             info->uuid = i->first;
@@ -383,8 +384,10 @@ void admin_cluster_link_t::add_ns_subset_to_maps(const std::string& base, const 
 }
 
 template <class T>
-void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
-    for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
+void admin_cluster_link_t::add_subset_to_maps(
+        const std::string& base,
+        const std::map<uuid_u, deletable_t<T> >& data_map) {
+    for (auto i = data_map.begin(); i != data_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             metadata_info_t *info = new metadata_info_t;
             info->uuid = i->first;
@@ -818,7 +821,6 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(const shard_input_t& shar
     }
 }
 
-// TODO: templatize on protocol
 void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -1085,7 +1087,7 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
             if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "rdb");
+            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata);
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted()) {
@@ -1367,9 +1369,13 @@ void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::co
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = obj_map.begin(); i != obj_map.end(); ++i) {
+template <class T>
+void admin_cluster_link_t::list_all_internal(
+        const std::string& type,
+        bool long_format,
+        const std::map<uuid_u, deletable_t<T> >& obj_map,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = obj_map.begin(); i != obj_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
 
@@ -1404,8 +1410,6 @@ void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_
     list_all_internal("machine", long_format, cluster_metadata.machines.machines, &table);
     list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, &table);
     list_all_internal("database", long_format, cluster_metadata.databases.databases, &table);
-    // TODO: better differentiation between table types
-    // RSI^ Table types?  The dummy protocol is gone.
     list_all_internal("table", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
@@ -1444,9 +1448,10 @@ std::map<database_id_t, admin_cluster_link_t::database_info_t> admin_cluster_lin
     return results;
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_database_tables(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<database_id_t, database_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() &&
             !i->second.get_ref().database.in_conflict()) {
             ++(*results)[i->second.get_ref().database.get()].tables;
@@ -1454,9 +1459,10 @@ void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_datacenter_affinities(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<datacenter_id_t, datacenter_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             if (!i->second.get_ref().primary_datacenter.in_conflict()) {
                 // TODO: Is this correct?  Are we creating a new value
@@ -1586,8 +1592,8 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
     }
 }
 
-template <class ns_type>
-admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(const ns_type& ns) {
+admin_cluster_link_t::namespace_info_t
+admin_cluster_link_t::get_namespace_info(const namespace_semilattice_metadata_t &ns) {
     namespace_info_t result;
 
     if (ns.shards.in_conflict()) {
@@ -1648,8 +1654,6 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const persistable_
 
 void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::command_data_t& data) {
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
-    std::map<std::string, std::vector<std::string> >::const_iterator type_it = data.params.find("protocol");
-    std::string type = (type_it == data.params.end() ? "" : type_it->second[0]);
     bool long_format = (data.params.count("long") == 1);
 
     std::vector<std::vector<std::string> > table;
@@ -1657,8 +1661,6 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     header.push_back("uuid");
     header.push_back("name");
-    // TODO: fix this once multiple protocols are supported again
-    // header.push_back("protocol");
     if (long_format) {
         header.push_back("shards");
         header.push_back("replicas");
@@ -1669,26 +1671,18 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
 
     table.push_back(header);
 
-    // RSI: Worthless "type" option.
-    if (type.empty()) {
-        add_namespaces("rdb", long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
-    } else if (type == "rdb") {
-        add_namespaces(type, long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
-    } else {
-        throw admin_parse_exc_t("unrecognized protocol: " + type);
-    }
+    add_namespaces(long_format, cluster_metadata.rdb_namespaces->namespaces, &table);
 
     if (table.size() > 1) {
         admin_print_table(table);
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_namespaces(const std::string&,
-                                          bool long_format,
-                                          const map_type& namespaces,
-                                          std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = namespaces.begin(); i != namespaces.end(); ++i) {
+void admin_cluster_link_t::add_namespaces(
+        bool long_format,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &namespaces,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = namespaces.begin(); i != namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
             std::vector<std::string> delta;
 
@@ -1703,9 +1697,6 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
             } else {
                 delta.push_back("<conflict>");
             }
-
-            // TODO: fix this once multiple protocols are supported again
-            // delta.push_back(protocol);
 
             if (long_format) {
                 char buffer[64];
@@ -1762,9 +1753,10 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
     return results;
 }
 
-template <class map_type>
-void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::build_machine_info_internal(
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map,
+        std::map<machine_id_t, machine_info_t> *results) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() && !i->second.get_copy().blueprint.in_conflict()) {
             add_machine_info_from_blueprint(i->second.get_copy().blueprint.get_mutable(), results);
         }
@@ -1920,7 +1912,6 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     database_id_t database = str_to_uuid(database_info->path[1]);
     datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
-    std::string protocol;
     std::string primary_key;
 
     // If primary is specified, use it and verify its validity
@@ -1940,20 +1931,10 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary = str_to_uuid(datacenter_info->path[1]);
     }
 
-    // TODO: fix this once multiple protocols are supported again
-    if (data.params.find("protocol") != data.params.end()) {
-        protocol = guarantee_param_0(data.params, "protocol");
-    } else {
-        protocol = "rdb";
-    }
-
     // Get the primary key
     if (data.params.find("primary-key") != data.params.end()) {
-        if (protocol != "rdb") {
-            throw admin_parse_exc_t("primary-key is only valid for the rdb protocol");
-        }
         primary_key = guarantee_param_0(data.params, "primary-key");
-    } else if (protocol == "rdb") {
+    } else {
         // TODO: get this value from somewhere, rather than hard-code it
         primary_key = "id";
     }
@@ -1962,12 +1943,8 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         throw admin_parse_exc_t("specified database is not a database: " + database_id);
     }
 
-    if (protocol == "rdb") {
-        cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, primary, primary_key, database, change.get());
-    } else {
-        throw admin_parse_exc_t("unrecognized protocol: " + protocol);
-    }
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&cluster_metadata.rdb_namespaces);
+    new_id = do_admin_create_table_internal(name, primary, primary_key, database, change.get());
 
     do_metadata_update(&cluster_metadata, &change_request);
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
@@ -2127,11 +2104,11 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-template <class obj_map>
-void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_u &obj_uuid,
-                                                             const datacenter_id_t &dc,
-                                                             obj_map *metadata) {
-    typename obj_map::iterator i = metadata->find(obj_uuid);
+void admin_cluster_link_t::do_admin_set_datacenter_namespace(
+        const uuid_u &obj_uuid,
+        const datacenter_id_t &dc,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata) {
+    auto i = metadata->find(obj_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
     } else if (i->second.get_ref().primary_datacenter.in_conflict()) {
@@ -2168,11 +2145,11 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_u obj_uuid
     }
 }
 
-template <class obj_map>
-void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t &table_uuid,
-                                                       const database_id_t &db,
-                                                       obj_map *metadata) {
-    typename obj_map::iterator i = metadata->find(table_uuid);
+void admin_cluster_link_t::do_admin_set_database_table(
+        const namespace_id_t &table_uuid,
+        const database_id_t &db,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > *metadata) {
+    auto i = metadata->find(table_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(table_uuid));
     } else if (i->second.get_ref().database.in_conflict()) {
@@ -2302,9 +2279,12 @@ void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THR
 }
 
 
-template <class map_type>
-void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const std::string& name, map_type *obj_map) {
-    typename map_type::iterator i = obj_map->find(id);
+template <class T>
+void admin_cluster_link_t::do_admin_set_name_internal(
+        const uuid_u& id,
+        const std::string& name,
+        std::map<uuid_u, deletable_t<T> > *obj_map) {
+    auto i = obj_map->find(id);
     if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get_ref().name.in_conflict()) {
         do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
         i->second.get_mutable()->name.upgrade_version(change_request_id);
@@ -2484,12 +2464,12 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
     do_metadata_update(&cluster_metadata, &change_request);
 }
 
-template <class map_type>
-void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& ns_id,
-                                                          const datacenter_id_t& dc_id,
-                                                          int num_replicas,
-                                                          map_type &ns_map) {
-    typename map_type::iterator ns_iter = ns_map.find(ns_id);
+void admin_cluster_link_t::do_admin_set_replicas_internal(
+        const namespace_id_t& ns_id,
+        const datacenter_id_t& dc_id,
+        int num_replicas,
+        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > &ns_map) {
+    auto ns_iter = ns_map.find(ns_id);
 
     if (ns_iter == ns_map.end()) {
         throw admin_parse_exc_t("unexpected error, table not found");
@@ -2497,7 +2477,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
         throw admin_cluster_exc_t("unexpected error, table has been deleted");
     }
 
-    typename map_type::mapped_type::value_t *ns = ns_iter->second.get_mutable();
+    namespace_semilattice_metadata_t *ns = ns_iter->second.get_mutable();
 
     if (ns->primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's primary datacenter is in conflict, run 'help resolve' for more information");
@@ -2612,8 +2592,8 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, T> *obj_map) {
-    typename std::map<uuid_u, T>::iterator i = obj_map->find(key);
+void admin_cluster_link_t::do_admin_remove_internal_internal(const uuid_u& key, std::map<uuid_u, deletable_t<T> > *obj_map) {
+    auto i = obj_map->find(key);
 
     if (i == obj_map->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("object not found");
@@ -2702,8 +2682,7 @@ void admin_cluster_link_t::do_admin_touch(const admin_command_parser_t::command_
 
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  const namespace_semilattice_metadata_t& ns,
-                                                 const cluster_semilattice_metadata_t& cluster_metadata,
-                                                 const std::string&) {
+                                                 const cluster_semilattice_metadata_t& cluster_metadata) {
     if (ns.name.in_conflict() || ns.name.get().empty()) {
         printf("table %s\n", uuid_to_str(ns_id).c_str());
     } else {
@@ -2966,8 +2945,6 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         std::vector<std::string> delta;
         delta.push_back("uuid");
         delta.push_back("name");
-        // TODO: fix this once multiple protocols are supported again
-        // delta.push_back("protocol");
         delta.push_back("primary");
         delta.push_back("replicas");
         table.push_back(delta);
@@ -2981,22 +2958,20 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id,
-                                                            const map_type& ns_map,
-                                                            const std::string&,
-                                                            std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_single_datacenter_affinities(
+        const datacenter_id_t& dc_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        const std::string&,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            const namespace_semilattice_metadata_t ns = i->second.get_ref();
             size_t replicas = 0;
 
             std::vector<std::string> delta;
 
             delta.push_back(uuid_to_str(i->first));
             delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
-            // TODO: fix this once multiple protocols are supported again
-            // delta.push_back(protocol);
 
             // TODO: this will only list the replicas required by the user, not the actual replicas (in case of impossible requirements)
             if (!ns.primary_datacenter.in_conflict() &&
@@ -3042,8 +3017,6 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
         std::vector<std::string> delta;
         delta.push_back("uuid");
         delta.push_back("name");
-        // TODO: fix this once multiple protocols are supported again
-        // delta.push_back("protocol");
         delta.push_back("primary");
         table.push_back(delta);
     }
@@ -3056,22 +3029,20 @@ void admin_cluster_link_t::list_single_database(const database_id_t& db_id,
     }
 }
 
-template <class map_type>
-void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t& db_id,
-                                                          const map_type& ns_map,
-                                                          const std::string&,
-                                                          std::vector<std::vector<std::string> > *table) {
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_single_database_affinities(
+        const datacenter_id_t& db_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        const std::string&,
+        std::vector<std::vector<std::string> > *table) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            const namespace_semilattice_metadata_t ns = i->second.get_ref();
 
             if (!ns.database.in_conflict() && ns.database.get() == db_id) {
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
                 delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get().str());
-                // TODO: fix this once multiple protocols are supported again
-                // delta.push_back(protocol);
 
                 if (!ns.primary_datacenter.in_conflict()) {
                     delta.push_back(uuid_to_str(ns.primary_datacenter.get()));
@@ -3129,16 +3100,16 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     }
 }
 
-template <class map_type>
-size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& machine_id,
-                                                         const map_type& ns_map,
-                                                         std::vector<std::vector<std::string> > *table) {
+size_t admin_cluster_link_t::add_single_machine_replicas(
+        const machine_id_t& machine_id,
+        const std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >& ns_map,
+        std::vector<std::vector<std::string> > *table) {
     size_t matches = 0;
 
-    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+    for (auto i = ns_map.begin(); i != ns_map.end(); ++i) {
         // TODO: if there is a blueprint conflict, the values won't be accurate
         if (!i->second.is_deleted() && !i->second.get_ref().blueprint.in_conflict()) {
-            typename map_type::mapped_type::value_t ns = i->second.get_ref();
+            namespace_semilattice_metadata_t ns = i->second.get_ref();
             std::string uuid = uuid_to_str(i->first);
             std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str();
             matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);
