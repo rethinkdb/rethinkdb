@@ -90,7 +90,9 @@ cache_t::cache_t(serializer_t *serializer,
       throttler_(MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT),
       page_cache_(serializer, balancer, &throttler_) { }
 
-cache_t::~cache_t() { }
+cache_t::~cache_t() {
+    guarantee(snapshot_nodes_by_block_id_.empty());
+}
 
 cache_account_t cache_t::create_cache_account(int priority) {
     return page_cache_.create_cache_account(priority);
@@ -104,7 +106,7 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
     if (list_it == snapshot_nodes_by_block_id_.end()) {
         return NULL;
     }
-    intrusive_list_t<alt_snapshot_node_t> *list = &(list_it->second);
+    intrusive_list_t<alt_snapshot_node_t> *list = list_it->second;
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         if (p->current_page_acq_->block_version() == block_version) {
             return p;
@@ -136,8 +138,8 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
         // snapshot_nodes_by_block_id_.
         auto list_it = snapshot_nodes_by_block_id_.find(pair.first);
         rassert(list_it != snapshot_nodes_by_block_id_.end());
-        list_it->second.remove(pair.second);
-        if (list_it->second.empty()) {
+        list_it->second->remove(pair.second);
+        if (list_it->second->empty()) {
             snapshot_nodes_by_block_id_.erase(list_it);
         }
 
