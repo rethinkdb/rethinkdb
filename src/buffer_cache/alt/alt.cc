@@ -342,9 +342,13 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
     // We create at most one child snapshot node.
 
     alt_snapshot_node_t *child = NULL;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &cache->snapshot_nodes_by_block_id_[parent_id];
-    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+    auto list_it = cache->snapshot_nodes_by_block_id_.find(parent_id);
+    if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
+        return;
+    }
+    for (alt_snapshot_node_t *p = list_it->second->tail();
+         p != NULL;
+         p = list_it->second->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.
@@ -371,10 +375,14 @@ void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
                                                          block_id_t parent_id,
                                                          block_id_t child_id) {
     ASSERT_NO_CORO_WAITING;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &cache->snapshot_nodes_by_block_id_[parent_id];
 
-    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+    auto list_it = cache->snapshot_nodes_by_block_id_.find(parent_id);
+    if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
+        return;
+    }
+    for (alt_snapshot_node_t *p = list_it->second->tail();
+         p != NULL;
+         p = list_it->second->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.
