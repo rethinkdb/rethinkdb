@@ -1,12 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 
 #include <string>
 
-#include "btree/keys.hpp"
-#include "hash_region.hpp"
 #include "http/http.hpp"
 #include "http/json.hpp"
+#include "region/region.hpp"
 
 // json adapter concept for `store_key_t`
 json_adapter_if_t::json_adapter_map_t get_json_subfields(store_key_t *) {

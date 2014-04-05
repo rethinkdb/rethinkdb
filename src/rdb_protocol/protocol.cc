@@ -37,13 +37,11 @@ typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
 typedef rdb_context_t context_t;
 
-typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
+typedef backfill_chunk_t backfill_chunk_t;
 
-typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
+typedef traversal_progress_combiner_t backfill_progress_t;
 
 typedef btree_store_t::sindex_access_vector_t sindex_access_vector_t;
-
-const std::string rdb_protocol_t::protocol_name("rdb");
 
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
@@ -95,7 +93,7 @@ key_range_t datum_range_t::to_primary_keyrange() const {
 }
 
 key_range_t datum_range_t::to_sindex_keyrange() const {
-    return rdb_protocol_t::sindex_key_range(
+    return rdb_protocol::sindex_key_range(
         left_bound.has()
             ? store_key_t(left_bound->truncated_secondary())
             : store_key_t::min(),
@@ -398,14 +396,15 @@ rdb_context_t::rdb_context_t(
 
 rdb_context_t::~rdb_context_t() { }
 
+namespace rdb_protocol {
 // Construct a region containing only the specified key
-region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
+region_t monokey_region(const store_key_t &k) {
     uint64_t h = hash_region_hasher(k.contents(), k.size());
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
-key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start,
-                                             const store_key_t &end) {
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end) {
     store_key_t end_key;
     std::string end_key_str(key_to_unescaped_str(end));
 
@@ -424,6 +423,23 @@ key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start,
     return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
 }
 
+region_t cpu_sharding_subspace(int subregion_number,
+                               int num_cpu_shards) {
+    guarantee(subregion_number >= 0);
+    guarantee(subregion_number < num_cpu_shards);
+
+    // We have to be careful with the math here, to avoid overflow.
+    uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
+
+    uint64_t beg = width * subregion_number;
+    uint64_t end = subregion_number + 1 == num_cpu_shards
+        ? HASH_REGION_HASH_SIZE : beg + width;
+
+    return region_t(beg, end, key_range_t::universe());
+}
+
+}  // namespace rdb_protocol
+
 // Returns the key identifying the monokey region used for sindex_list_t
 // operations.
 store_key_t sindex_list_region_key() {
@@ -433,7 +449,7 @@ store_key_t sindex_list_region_key() {
 /* read_t::get_region implementation */
 struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
-        return rdb_protocol_t::monokey_region(pr.key);
+        return rdb_protocol::monokey_region(pr.key);
     }
 
     region_t operator()(const rget_read_t &rg) const {
@@ -445,7 +461,7 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     }
 
     region_t operator()(UNUSED const sindex_list_t &sl) const {
-        return rdb_protocol_t::monokey_region(sindex_list_region_key());
+        return rdb_protocol::monokey_region(sindex_list_region_key());
     }
 
     region_t operator()(const sindex_status_t &ss) const {
@@ -784,11 +800,11 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     }
 
     region_t operator()(const point_write_t &pw) const {
-        return rdb_protocol_t::monokey_region(pw.key);
+        return rdb_protocol::monokey_region(pw.key);
     }
 
     region_t operator()(const point_delete_t &pd) const {
-        return rdb_protocol_t::monokey_region(pd.key);
+        return rdb_protocol::monokey_region(pd.key);
     }
 
     region_t operator()(const sindex_create_t &s) const {
@@ -1801,21 +1817,6 @@ void store_t::protocol_reset_data(const region_t& subregion,
                           interruptor);
 }
 
-region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
-                                               int num_cpu_shards) {
-    guarantee(subregion_number >= 0);
-    guarantee(subregion_number < num_cpu_shards);
-
-    // We have to be careful with the math here, to avoid overflow.
-    uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
-
-    uint64_t beg = width * subregion_number;
-    uint64_t end = subregion_number + 1 == num_cpu_shards
-        ? HASH_REGION_HASH_SIZE : beg + width;
-
-    return region_t(beg, end, key_range_t::universe());
-}
-
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
                            blocks_total, blocks_processed, ready);
 
@@ -1870,13 +1871,13 @@ RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);
 
 RDB_IMPL_ME_SERIALIZABLE_3(write_t,
                            write, durability_requirement, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pairs_t,
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t,
                            backfill_atoms);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t, val);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t, val);

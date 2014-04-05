@@ -6,7 +6,7 @@
 
 #include "http/json.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace reactor_business_card_details {

@@ -119,7 +119,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    rdb_protocol_t::store_t store(
+    store_t store(
             &serializer,
             &balancer,
             "unit_test_store",

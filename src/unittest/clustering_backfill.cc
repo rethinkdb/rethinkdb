@@ -60,9 +60,9 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
     for (int i = 0; i < 20; i++) {
-        rdb_protocol_t::write_response_t response;
+        write_response_t response;
         const std::string key = std::string(1, 'a' + randint(26));
-        rdb_protocol_t::write_t w = mock_overwrite(key, strprintf("%d", i));
+        write_t w = mock_overwrite(key, strprintf("%d", i));
 
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
             transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);

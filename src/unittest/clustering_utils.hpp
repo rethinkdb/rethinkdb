@@ -70,16 +70,16 @@ public:
 };
 
 inline void test_inserter_write_master_access(master_access_t *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
-    rdb_protocol_t::write_t w = mock_overwrite(key, value);
-    rdb_protocol_t::write_response_t response;
+    write_t w = mock_overwrite(key, value);
+    write_response_t response;
     fifo_enforcer_sink_t::exit_write_t write_token;
     ma->new_write_token(&write_token);
     ma->write(w, &response, otok, &write_token, interruptor);
 }
 
 inline std::string test_inserter_read_master_access(master_access_t *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
-    rdb_protocol_t::read_t r = mock_read(key);
-    rdb_protocol_t::read_response_t response;
+    read_t r = mock_read(key);
+    read_response_t response;
     fifo_enforcer_sink_t::exit_read_t read_token;
     ma->new_read_token(&read_token);
     ma->read(r, &response, otok, &read_token, interruptor);
@@ -87,12 +87,12 @@ inline std::string test_inserter_read_master_access(master_access_t *ma, const s
 }
 
 inline void test_inserter_write_namespace_if(namespace_interface_t *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
-    rdb_protocol_t::write_response_t response;
+    write_response_t response;
     nif->write(mock_overwrite(key, value), &response, otok, interruptor);
 }
 
 inline std::string test_inserter_read_namespace_if(namespace_interface_t *nif, const std::string &key, order_token_t otok, signal_t *interruptor) {
-    rdb_protocol_t::read_response_t response;
+    read_response_t response;
     nif->read(mock_read(key), &response, otok, interruptor);
     return mock_parse_read_response(response);
 }

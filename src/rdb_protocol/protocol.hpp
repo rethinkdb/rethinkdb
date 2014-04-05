@@ -20,12 +20,10 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/region.hpp"
 #include "rdb_protocol/shards.hpp"
 
 class btree_store_t;
@@ -41,7 +39,6 @@ class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
-struct rdb_protocol_t;
 
 namespace unittest { struct make_sindex_read_t; }
 
@@ -745,36 +742,19 @@ struct backfill_chunk_t {
 
 class store_t;
 
-struct rdb_protocol_t {
-    static const size_t MAX_PRIMARY_KEY_SIZE = 128;
+namespace rdb_protocol {
+const size_t MAX_PRIMARY_KEY_SIZE = 128;
 
-    static const std::string protocol_name;
+// Construct a region containing only the specified key
+region_t monokey_region(const store_key_t &k);
 
-    // Construct a region containing only the specified key
-    static region_t monokey_region(const store_key_t &k);
+// Constructs a region which will query an sindex for matches to a specific key
+// TODO consider relocating this
+key_range_t sindex_key_range(const store_key_t &start,
+                             const store_key_t &end);
 
-    // Constructs a region which will query an sindex for matches to a specific key
-    // TODO consider relocating this
-    static key_range_t sindex_key_range(const store_key_t &start,
-                                        const store_key_t &end);
-
-    // RSI: Remove these typedefs.
-    typedef rdb_context_t context_t;
-
-    typedef read_t read_t;
-    typedef read_response_t read_response_t;
-
-    typedef write_t write_t;
-    typedef write_response_t write_response_t;
-
-    typedef traversal_progress_combiner_t backfill_progress_t;
-
-    typedef backfill_chunk_t backfill_chunk_t;
-
-    typedef store_t store_t;
-
-    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
-};
+region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+}  // namespace rdb_protocol
 
 
 namespace rdb_protocol_details {

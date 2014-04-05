@@ -124,11 +124,11 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
 
         std::string key = std::string(1, 'a' + randint(26));
         values_inserted[key] = strprintf("%d", i);
-        rdb_protocol_t::write_t w = mock_overwrite(key, strprintf("%d", i));
+        write_t w = mock_overwrite(key, strprintf("%d", i));
 
         class : public broadcaster_t::write_callback_t, public cond_t {
         public:
-            void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
+            void on_response(peer_id_t, const write_response_t &) {
                 /* Ignore. */
             }
             void on_done() {
@@ -147,9 +147,9 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
         unittest::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
 
-        rdb_protocol_t::read_t r = mock_read(it->first);
+        read_t r = mock_read(it->first);
         cond_t non_interruptor;
-        rdb_protocol_t::read_response_t resp;
+        read_response_t resp;
         (*broadcaster)->read(r, &resp, &exiter, order_source->check_in("unittest::run_read_write_test(read)").with_read_mode(), &non_interruptor);
         EXPECT_EQ(it->second, mock_parse_read_response(resp));
     }
@@ -166,10 +166,10 @@ static void write_to_broadcaster(broadcaster_t *broadcaster, const std::string& 
     // TODO: Is this the right place?  Maybe we should have real fifo enforcement for this helper function.
     unittest::fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    rdb_protocol_t::write_t w = mock_overwrite(key, value);
+    write_t w = mock_overwrite(key, value);
     class : public broadcaster_t::write_callback_t, public cond_t {
     public:
-        void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
+        void on_response(peer_id_t, const write_response_t &) {
             /* Ignore. */
         }
         void on_done() {

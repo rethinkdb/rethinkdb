@@ -1,12 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "hash_region.hpp"
+#include "region/hash_region.hpp"
 
 #include <limits.h>
 
 #include "btree/keys.hpp"
-
-// TODO: Perhaps move key_range_t region stuff to btree/keys.hpp.
-#include "rdb_protocol/region.hpp"
+#include "region/region.hpp"
 #include "stl_utils.hpp"
 
 // TODO: Replace this with a real hash function, if it is not one

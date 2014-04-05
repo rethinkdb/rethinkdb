@@ -5,11 +5,11 @@
 
 namespace unittest {
 
-rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value);
+write_t mock_overwrite(std::string key, std::string value);
 
-rdb_protocol_t::read_t mock_read(std::string key);
+read_t mock_read(std::string key);
 
-std::string mock_parse_read_response(const rdb_protocol_t::read_response_t &rr);
+std::string mock_parse_read_response(const read_response_t &rr);
 
 std::string mock_lookup(store_view_t *store, std::string key);
 
@@ -33,8 +33,8 @@ public:
 
     void read(
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-            const rdb_protocol_t::read_t &read,
-            rdb_protocol_t::read_response_t *response,
+            const read_t &read,
+            read_response_t *response,
             order_token_t order_token,
             read_token_pair_t *token,
             signal_t *interruptor)
@@ -43,8 +43,8 @@ public:
     void write(
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
             const metainfo_t& new_metainfo,
-            const rdb_protocol_t::write_t &write,
-            rdb_protocol_t::write_response_t *response,
+            const write_t &write,
+            write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
@@ -61,7 +61,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
-            const rdb_protocol_t::backfill_chunk_t &chunk,
+            const backfill_chunk_t &chunk,
             write_token_pair_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);

@@ -7,7 +7,6 @@
 #include "clustering/administration/reactor_driver.hpp"
 
 class cache_balancer_t;
-struct rdb_protocol_t;
 class rdb_context_t;
 
 class file_based_svs_by_namespace_t : public svs_by_namespace_t {

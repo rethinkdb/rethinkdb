@@ -144,7 +144,7 @@ void btree_store_t::write(
 bool btree_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         send_backfill_callback_t *send_backfill_cb,
-        rdb_protocol_t::backfill_progress_t *progress,
+        traversal_progress_combiner_t *progress,
         read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

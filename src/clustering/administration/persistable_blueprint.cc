@@ -7,7 +7,7 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "stl_utils.hpp"
 
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t &x) {

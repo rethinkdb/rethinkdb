@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef HASH_REGION_HPP_
-#define HASH_REGION_HPP_
+#ifndef REGION_HASH_REGION_HPP_
+#define REGION_HASH_REGION_HPP_
 
 #include <inttypes.h>
 
@@ -8,8 +8,9 @@
 #include <vector>
 
 #include "containers/archive/archive.hpp"
-#include "rdb_protocol/region.hpp"
 #include "rpc/serialize_macros.hpp"
+
+enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
 struct key_range_t;
 struct store_key_t;
@@ -120,6 +121,8 @@ bool all_have_same_inner(const std::vector< hash_region_t<inner_region_t> > &vec
     return true;
 }
 
+// Uh, yeah, this key_range_t dependency here is... fine.  Whatever.  A bit
+// convoluted in dependency order, we are.
 MUST_USE region_join_result_t region_join(const std::vector<hash_region_t<key_range_t> > &vec,
                                           hash_region_t<key_range_t> *out);
 
@@ -239,4 +242,4 @@ void debug_print(printf_buffer_t *buf, const hash_region_t<inner_region_t> &r) {
     buf->appendf("}");
 }
 
-#endif  // HASH_REGION_HPP_
+#endif  // REGION_HASH_REGION_HPP_

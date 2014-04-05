@@ -5,7 +5,7 @@
 
 namespace unittest {
 
-rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
+write_t mock_overwrite(std::string key, std::string value) {
     std::map<std::string, counted_t<const ql::datum_t> > m;
     m["id"] = make_counted<ql::datum_t>(std::string(key));
     m["value"] = make_counted<ql::datum_t>(std::move(value));
@@ -16,7 +16,7 @@ rdb_protocol_t::write_t mock_overwrite(std::string key, std::string value) {
     return write_t(pw, DURABILITY_REQUIREMENT_SOFT, profile_bool_t::DONT_PROFILE);
 }
 
-rdb_protocol_t::read_t mock_read(std::string key) {
+read_t mock_read(std::string key) {
     point_read_t pr((store_key_t(key)));
     return read_t(pr, profile_bool_t::DONT_PROFILE);
 }
@@ -217,7 +217,7 @@ bool mock_store_t::send_backfill(
         read_token_pair_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     {
-        scoped_ptr_t<traversal_progress_t> progress_owner(new rdb_protocol_t::backfill_progress_t(get_thread_id()));
+        scoped_ptr_t<traversal_progress_t> progress_owner(new traversal_progress_combiner_t(get_thread_id()));
         progress->add_constituent(&progress_owner);
     }
 
@@ -251,7 +251,7 @@ bool mock_store_t::send_backfill(
                  ++it) {
                 if (region_contains_key(region, it->first)) {
                     if (start_timestamp < it->second.first) {
-                        typedef rdb_protocol_t::backfill_chunk_t chunk_t;
+                        typedef backfill_chunk_t chunk_t;
                         chunk_t::key_value_pairs_t pairs;
                         pairs.backfill_atoms.push_back(
                                 rdb_protocol_details::backfill_atom_t(it->first,
@@ -274,12 +274,12 @@ bool mock_store_t::send_backfill(
 }
 
 void mock_store_t::receive_backfill(
-        const rdb_protocol_t::backfill_chunk_t &chunk,
+        const backfill_chunk_t &chunk,
         write_token_pair_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
 
-    typedef rdb_protocol_t::backfill_chunk_t chunk_t;
+    typedef backfill_chunk_t chunk_t;
     const chunk_t::key_value_pairs_t *pairs = boost::get<chunk_t::key_value_pairs_t>(&chunk.val);
     guarantee(pairs != NULL);
     guarantee(pairs->backfill_atoms.size() == 1);

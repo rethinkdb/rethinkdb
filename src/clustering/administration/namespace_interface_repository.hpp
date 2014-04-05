@@ -20,7 +20,6 @@ class namespace_interface_t;
 class namespaces_directory_metadata_t;
 class peer_id_t;
 class rdb_context_t;
-struct rdb_protocol_t;
 class signal_t;
 class uuid_u;
 template <class> class watchable_t;

@@ -1,13 +1,10 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_REGION_HPP_
-#define RDB_PROTOCOL_REGION_HPP_
-
-#include <string>
-#include <vector>
+#ifndef REGION_REGION_HPP_
+#define REGION_REGION_HPP_
 
 #include "btree/keys.hpp"
+#include "region/hash_region.hpp"
 
-enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
+typedef hash_region_t<key_range_t> region_t;
 
 inline bool region_is_empty(const key_range_t &r) {
     return r.is_empty();
@@ -29,4 +26,9 @@ MUST_USE region_join_result_t region_join(const std::vector<key_range_t> &vec, k
 
 std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
 
-#endif  // RDB_PROTOCOL_REGION_HPP_
+
+
+
+
+
+#endif  // REGION_REGION_HPP_

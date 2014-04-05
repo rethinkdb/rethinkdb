@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/region.hpp"
+#include "region/region.hpp"
 
 #include <algorithm>
 
@@ -58,3 +58,4 @@ std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::ve
     }
     return buf;
 }
+

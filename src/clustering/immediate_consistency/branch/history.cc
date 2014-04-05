@@ -3,6 +3,8 @@
 
 #include <stack>
 
+#include "containers/binary_blob.hpp"
+
 bool version_is_ancestor(
         branch_history_manager_t *bhm,
         const version_t ancestor,

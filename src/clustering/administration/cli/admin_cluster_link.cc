@@ -22,7 +22,7 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rdb_protocol/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
 

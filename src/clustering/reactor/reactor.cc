@@ -199,7 +199,7 @@ void reactor_t::run_cpu_sharded_role(
         signal_t *interruptor,
         cond_t *abort_roles) THROWS_NOTHING {
     store_view_t *store_view = svs_subview->get_store(cpu_shard_number);
-    region_t cpu_sharded_region = region_intersection(region, rdb_protocol_t::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
+    region_t cpu_sharded_region = region_intersection(region, rdb_protocol::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
 
     switch (role->role) {
     case blueprint_role_primary:

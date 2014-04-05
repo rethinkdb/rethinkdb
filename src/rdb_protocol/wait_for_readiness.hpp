@@ -11,7 +11,6 @@ class cluster_semilattice_metadata_t;
 class base_namespace_repo_t;
 class signal_t;
 template <class metadata_t> class semilattice_readwrite_view_t;
-struct rdb_protocol_t;
 class uuid_u;
 
 void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,

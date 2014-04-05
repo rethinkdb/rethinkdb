@@ -52,20 +52,20 @@ public:
     master's cpu sharding subspace count, and also tells it where to
     send upgrade/downgrade messages. */
 
-    typedef mailbox_t<void(typename writeread_mailbox_t::address_t,
-                           typename read_mailbox_t::address_t)> upgrade_mailbox_t;
+    typedef mailbox_t<void(writeread_mailbox_t::address_t,
+                           read_mailbox_t::address_t)> upgrade_mailbox_t;
 
     typedef mailbox_t<void(mailbox_addr_t<void()>)> downgrade_mailbox_t;
 
     typedef mailbox_t<void(listener_intro_t)> intro_mailbox_t;
 
     listener_business_card_t() { }
-    listener_business_card_t(const typename intro_mailbox_t::address_t &im,
-                             const typename write_mailbox_t::address_t &wm)
+    listener_business_card_t(const intro_mailbox_t::address_t &im,
+                             const write_mailbox_t::address_t &wm)
         : intro_mailbox(im), write_mailbox(wm) { }
 
-    typename intro_mailbox_t::address_t intro_mailbox;
-    typename write_mailbox_t::address_t write_mailbox;
+    intro_mailbox_t::address_t intro_mailbox;
+    write_mailbox_t::address_t write_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
 };
@@ -74,13 +74,13 @@ public:
 class listener_intro_t {
 public:
     state_timestamp_t broadcaster_begin_timestamp;
-    typename listener_business_card_t::upgrade_mailbox_t::address_t upgrade_mailbox;
-    typename listener_business_card_t::downgrade_mailbox_t::address_t downgrade_mailbox;
+    listener_business_card_t::upgrade_mailbox_t::address_t upgrade_mailbox;
+    listener_business_card_t::downgrade_mailbox_t::address_t downgrade_mailbox;
 
     listener_intro_t() { }
     listener_intro_t(state_timestamp_t _broadcaster_begin_timestamp,
-                     typename listener_business_card_t::upgrade_mailbox_t::address_t _upgrade_mailbox,
-                     typename listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox)
+                     listener_business_card_t::upgrade_mailbox_t::address_t _upgrade_mailbox,
+                     listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox)
         : broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
           upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox) { }
 
@@ -117,13 +117,13 @@ struct backfiller_business_card_t {
 
     backfiller_business_card_t() { }
     backfiller_business_card_t(
-            const typename backfill_mailbox_t::address_t &ba,
+            const backfill_mailbox_t::address_t &ba,
             const cancel_backfill_mailbox_t::address_t &cba,
             const request_progress_mailbox_t::address_t &pa) :
         backfill_mailbox(ba), cancel_backfill_mailbox(cba), request_progress_mailbox(pa)
         { }
 
-    typename backfill_mailbox_t::address_t backfill_mailbox;
+    backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
     request_progress_mailbox_t::address_t request_progress_mailbox;
 
