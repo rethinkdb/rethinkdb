@@ -4,16 +4,11 @@ import signal
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import sys, os, datetime, time, copy, json, traceback, csv, string, socket
+import sys, os, datetime, time, json, traceback, csv
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
-
-try:
-    import rethinkdb as r
-except ImportError:
-    print "The RethinkDB python driver is required to use this command."
-    print "Please install the driver via `pip install rethinkdb`."
-    exit(1)
+from ._backup import *
+import rethinkdb as r
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
@@ -78,12 +73,7 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    host_port = options.host.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
-    (res["host"], res["port"]) = host_port
+    (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid --format option
     if options.format not in ["csv", "json"]:
@@ -104,24 +94,14 @@ def parse_options():
         raise RuntimeError("Error: Partial output directory already exists: %s" % res["directory_partial"])
 
     # Verify valid --export options
-    res["tables"] = []
-    for item in options.tables:
-        if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
-        db_table = item.split(".")
-        if len(db_table) == 1:
-            res["tables"].append(db_table)
-        elif len(db_table) == 2:
-            res["tables"].append(tuple(db_table))
-        else:
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
+    res["db_tables"] = parse_db_table_options(options.tables)
 
     # Parse fields
     if options.fields is None:
         if options.format == "csv":
             raise RuntimeError("Error: Cannot write a CSV with no fields selected.  The '--fields' option must be specified.")
         res["fields"] = None
-    elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
+    elif len(res["db_tables"]) != 1 or res["db_tables"][0][1] is None:
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
@@ -135,35 +115,6 @@ def parse_options():
     res["debug"] = options.debug
     return res
 
-def os_call_wrapper(fn, filename, error_str):
-    try:
-        fn(filename)
-    except OSError as ex:
-        raise RuntimeError(error_str % (filename, ex.strerror))
-
-# This function is used to wrap rethinkdb calls to recover from connection errors
-# The first argument to the function is an output parameter indicating if progress
-# has been made since the last call.  This is passed as an array of a single bool
-# such that it works as an output parameter.
-# Using this wrapper, the given function will be called until 5 connection errors
-# occur in a row with no progress being made.  Care should be taken that the given
-# function will terminate as long as progress is being set to true.
-def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
-    i = 0
-    max_attempts = 5
-    progress = [None]
-    while True:
-        last_progress = copy.deepcopy(progress)
-        try:
-            conn = conn_fn()
-            return fn(progress, conn, *args, **kwargs)
-        except socket.error as ex:
-            i = i + 1 if progress == last_progress else 0
-            if i == max_attempts:
-                raise RuntimeError("Connection error during '%s': %s" % (context, ex.message))
-        except (r.RqlError, r.RqlDriverError) as ex:
-            raise RuntimeError("ReQL error during '%s': %s" % (context, ex.message))
-
 # This is called through rdb_call_wrapper and may be called multiple times if
 # connection errors occur.  Don't bother setting progress, because this is a
 # fairly small operation.
@@ -172,13 +123,13 @@ def get_tables(progress, conn, tables):
     res = []
 
     if len(tables) == 0:
-        tables = [[db] for db in dbs]
+        tables = [(db, None) for db in dbs]
 
     for db_table in tables:
         if db_table[0] not in dbs:
             raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
-        if len(db_table) == 1: # This is just a db name
+        if db_table[1] is None: # This is just a db name
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
         else: # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
@@ -341,13 +292,6 @@ def abort_export(signum, frame, exit_event, interrupt_event):
     interrupt_event.set()
     exit_event.set()
 
-def print_progress(ratio):
-    total_width = 40
-    done_width = int(ratio * total_width)
-    undone_width = total_width - done_width
-    print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
-    sys.stdout.flush()
-
 # We sum up the row count from all tables for total percentage completion
 #  This is because table exports can be staggered when there are not enough clients
 #  to export all of them at once.  As a result, the progress bar will not necessarily
@@ -443,8 +387,8 @@ def main():
 
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["tables"])
-        del options["tables"] # This is not needed anymore, db_table_set is more useful
+        db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
+        del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 
         # Determine the actual number of client processes we'll have
         options["clients"] = min(options["clients"], len(db_table_set))
