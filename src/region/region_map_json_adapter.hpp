@@ -1,6 +1,8 @@
 #ifndef REGION_REGION_MAP_JSON_ADAPTER_HPP_
 #define REGION_REGION_MAP_JSON_ADAPTER_HPP_
 
+#include <string>
+
 #include "region/region_json_adapter.hpp"
 #include "region/region_map.hpp"
 

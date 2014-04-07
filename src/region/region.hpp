@@ -1,6 +1,8 @@
 #ifndef REGION_REGION_HPP_
 #define REGION_REGION_HPP_
 
+#include <vector>
+
 #include "btree/keys.hpp"
 #include "region/hash_region.hpp"
 

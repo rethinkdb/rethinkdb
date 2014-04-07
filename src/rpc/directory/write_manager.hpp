@@ -2,6 +2,8 @@
 #ifndef RPC_DIRECTORY_WRITE_MANAGER_HPP_
 #define RPC_DIRECTORY_WRITE_MANAGER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
