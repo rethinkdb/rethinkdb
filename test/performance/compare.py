@@ -13,7 +13,7 @@ from util import compare
 
 def load_files(file1, file2):
     """
-    Save the current results, and if previous results are available, generate an HTML page with the differences
+    Loads the results from two tests, and generate an HTML page with the differences.
     """
 
     f = open("results/"+file1, "r")
