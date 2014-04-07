@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 import signal
 
-import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string, socket
+import sys, os, datetime, time, json, traceback, csv, cPickle
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
-
-try:
-    import rethinkdb as r
-except ImportError:
-    print "The RethinkDB python driver is required to use this command."
-    print "Please install the driver via `pip install rethinkdb`."
-    exit(1)
+from ._backup import *
+import rethinkdb as r
 
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
@@ -112,12 +107,7 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    host_port = options.host.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
-    (res["host"], res["port"]) = host_port
+    (res["host"], res["port"]) = parse_connect_option(options.host)
 
     if options.clients < 1:
         raise RuntimeError("Error: --client option too low, must have at least one client connection")
@@ -158,23 +148,12 @@ def parse_options():
             raise RuntimeError("Error: Directory to import does not exist: %d" % res["directory"])
 
         # Verify valid --import options
-        res["dbs"] = []
-        res["tables"] = []
-        for item in options.tables:
-            if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-                raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
-            db_table = item.split(".")
-            if len(db_table) == 1:
-                res["dbs"].append(db_table[0])
-            elif len(db_table) == 2:
-                res["tables"].append(tuple(db_table))
-            else:
-                raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
+        res["db_tables"] = parse_db_table_options(options.tables)
 
         # Parse fields
         if options.fields is None:
             res["fields"] = None
-        elif len(res["dbs"]) != 0 or len(res["tables"] != 1):
+        elif len(res["db_tables"]) != 1 or res["db_tables"][0][1] is None:
             raise RuntimeError("Error: Can only use the --fields option when importing a single table")
         else:
             res["fields"] = options.fields.split(",")
@@ -207,12 +186,9 @@ def parse_options():
         # Verify valid --table option
         if options.import_table is None:
             raise RuntimeError("Error: Must specify a destination table to import into using the --table option")
-        if not all(c in string.ascii_letters + string.digits + "._" for c in options.import_table):
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % options.import_table)
-        db_table = options.import_table.split(".")
-        if len(db_table) != 2:
-            raise RuntimeError("Error: Invalid 'db.table' format: %s" % db_table)
-        res["import_db_table"] = db_table
+        res["import_db_table"] = parse_db_table(options.import_table)
+        if res["import_db_table"][1] is None:
+            raise RuntimeError("Error: Invalid 'db.table' format: %s" % options.import_table)
 
         # Parse fields
         if options.fields is None:
@@ -253,29 +229,6 @@ def parse_options():
 
     return res
 
-# This function is used to wrap rethinkdb calls to recover from connection errors
-# The first argument to the function is an output parameter indicating if progress
-# has been made since the last call.  This is passed as an array of a single bool
-# such that it works as an output parameter.
-# Using this wrapper, the given function will be called until 5 connection errors
-# occur in a row with no progress being made.  Care should be taken that the given
-# function will terminate as long as progress is being set to true.
-def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
-    i = 0
-    max_attempts = 5
-    progress = [None]
-    while True:
-        last_progress = copy.deepcopy(progress)
-        try:
-            conn = conn_fn()
-            return fn(progress, conn, *args, **kwargs)
-        except socket.error as ex:
-            i = i + 1 if progress[0] == last_progress[0] else 0
-            if i == max_attempts:
-                raise RuntimeError("Connection error during '%s': %s" % (context, ex.message))
-        except (r.RqlError, r.RqlDriverError) as ex:
-            raise RuntimeError("ReQL error during '%s': %s" % (context, ex.message))
-
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
 # is being made, but connection errors occur.  We save a failed task in the progress object
 # so it can be resumed later on a new connection.
@@ -289,13 +242,14 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
         # b) is exactly the same on the server
         task = progress[1]
         pkey = r.db(task[0]).table(task[1]).info().run(conn)["primary_key"]
-        for i in xrange(len(task[2])):
-            obj = task[2][i]
+        for i in reversed(xrange(len(task[2]))):
+            obj = cPickle.loads(task[2][i])
             if pkey not in obj:
                 raise RuntimeError("Connection error while importing.  Current row has no specified primary key, so cannot guarantee absence of duplicates")
             row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
             if row == obj:
-                task[2].pop(i)
+                progress[0] += 1
+                del task[2][i]
             else:
                 raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (pkey, str(obj), str(row)))
 
@@ -627,10 +581,10 @@ def spawn_import_clients(options, files_info):
         if error_queue.empty() and not interrupt_event.is_set():
             print_progress(1.0)
 
-        # Continue past the progress output line
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
+        # Continue past the progress output line
         print ""
         print "%s imported in %s" % (plural(rows_written.value, "row"),
                                      plural(len(files_info), "table"))
@@ -654,16 +608,17 @@ def spawn_import_clients(options, files_info):
                 print >> sys.stderr, "In file: %s" % (error[3])
         raise RuntimeError("Errors occurred during import")
 
-def get_import_info_for_file(filename, db_filter, table_filter):
+def get_import_info_for_file(filename, db_table_filter):
     file_info = { }
     file_info["file"] = filename
     file_info["format"] = os.path.split(filename)[1].split(".")[-1]
     file_info["db"] = os.path.split(os.path.split(filename)[0])[1]
     file_info["table"] = os.path.split(filename)[1].split(".")[0]
 
-    if len(db_filter) > 0 or len(table_filter) > 0:
-        if file_info["db"] not in db_filter and (file_info["db"], file_info["table"]) not in table_filter:
-            return None
+    if len(db_table_filter) > 0:
+        if (file_info["db"], None) not in db_table_filter:
+            if (file_info["db"], file_info["table"]) not in db_table_filter:
+                return None
 
     info_filepath = os.path.join(os.path.split(filename)[0], file_info["table"] + ".info")
     with open(info_filepath, "r") as info_file:
@@ -696,7 +651,7 @@ def tables_check(progress, conn, files_info, force):
 def import_directory(options):
     # Scan for all files, make sure no duplicated tables with different formats
     dbs = False
-    db_filter = set([db_table[0] for db_table in options["tables"]]) | set(options["dbs"])
+    db_filter = set([db_table[0] for db_table in options["db_tables"]])
     files_to_import = []
     files_ignored = []
     for (root, dirs, files) in os.walk(options["directory"]):
@@ -705,7 +660,7 @@ def import_directory(options):
             # The first iteration through should be the top-level directory, which contains the db folders
             dbs = True
             if len(db_filter) > 0:
-                for i in range(len(dirs)):
+                for i in reversed(xrange(len(dirs))):
                     if dirs[i] not in db_filter:
                         del dirs[i]
         else:
@@ -726,7 +681,7 @@ def import_directory(options):
     # For each table to import collect: file, format, db, table, info
     files_info = []
     for filename in files_to_import:
-        res = get_import_info_for_file(filename, options["dbs"], options["tables"])
+        res = get_import_info_for_file(filename, options["db_tables"])
         if res is not None:
             files_info.append(res)
 
