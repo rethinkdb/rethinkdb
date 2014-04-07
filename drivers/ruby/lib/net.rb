@@ -313,6 +313,14 @@ module RethinkDB
       note_data(token, data)
     end
 
+    def stop_listener
+      if @listener
+        @listener.terminate
+        @listener.join
+        @listener = nil
+      end
+    end
+
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
