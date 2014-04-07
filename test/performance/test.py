@@ -8,7 +8,7 @@ import os
 import math
 import subprocess
 
-from util import gen_doc, gen_num_docs
+from util import gen_doc, gen_num_docs, compare
 from queries import constant_queries, table_queries, write_queries, delete_queries
 
 path.insert(0, "../../drivers/python")
@@ -52,11 +52,10 @@ time_per_query = 60 # 1 minute max per query
 executions_per_query = 1000 # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
-results = {}
-
+results = {} # Save the time per query (average, min, max etc.)
 connection = None
 
-def run_tests(build="../../build/release"):
+def run_tests(build="../../build/release", data_dir='./'):
     global connection, servers_data
     for i in range(0, len(servers_data)):
         server_data = servers_data[i]
@@ -64,7 +63,7 @@ def run_tests(build="../../build/release"):
         print "Starting server with cache_size "+str(server_data["cache_size"])+" MB...",
         sys.stdout.flush()
 
-        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"]) as servers:
+        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"], data_dir=data_dir) as servers:
             print " Done."
             sys.stdout.flush()
 
@@ -161,12 +160,14 @@ def execute_read_write_queries(suffix):
         size_batch = 500
         durations = []
         start = time.time()
+        count_batch_insert = 0;
         if i < num_writes:
             while i+size_batch < num_writes:
                 start_query = time.time()
                 resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
                 durations.append(time.time()-start_query)
                 end = time.time()
+                count_batch_insert += 1
 
                 table["ids"] += result["generated_keys"]
                 i += size_batch
@@ -177,7 +178,7 @@ def execute_read_write_queries(suffix):
         
         if num_writes-single_inserts != 0:
             results["batch-inserts-"+table["name"]+"-"+suffix] = {
-                "average": (end-start)/(num_writes-single_inserts),
+                "average": (end-start)/(count_batch_insert*size_batch),
                 "min": durations[0],
                 "max": durations[len(durations)-1],
                 "first_centile": durations[int(math.floor(len(durations)/100.*1))],
@@ -209,7 +210,6 @@ def execute_read_write_queries(suffix):
                 start_query = time.time()
                 eval(write_queries[p]["query"]).run(connection)
                 durations.append(time.time()-start_query)
-                start_query = time.time()
                 i += 1
 
             durations.sort()
@@ -221,7 +221,7 @@ def execute_read_write_queries(suffix):
                 "last_centile": durations[int(math.floor(len(durations)/100.*99))]
             }
 
-            i -= 1 # We will use `i` in write_queries[p]["clean"] to revert only the documents we changed
+            i -= 1 # We need i in write_queries[p]["clean"] (to revert only the document we updated)
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
@@ -261,7 +261,6 @@ def execute_read_write_queries(suffix):
                     sys.stdout.flush()
                     break
                 durations.append(time.time()-start_query)
-
                 count+=1
 
             durations.sort()
@@ -358,11 +357,8 @@ def execute_constant_queries():
                 "last_centile": durations[int(math.floor(len(durations)/100.*99))]
             }
 
-
-
     print " Done."
     sys.stdout.flush()
-
 
 
 
@@ -396,8 +392,10 @@ def save_compare_results():
     # Save results
     if not os.path.exists("results"):
         os.makedirs("results")
+
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
     f = open("results/result_"+str_date+".txt", "w")
+
     str_res = json.dumps(results, indent=2)
     f.write(str_res)
     f.close()
@@ -421,60 +419,18 @@ def save_compare_results():
     else:
         previous_results = {}
 
-    if not os.path.exists("comparisons"):
-        os.makedirs("comparisons")
-
-    f = open("comparisons/comparison_"+str_date+".html", "w")
-    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body>")
-    if "hash" in previous_results:
-        f.write("Previous hash: "+previous_results["hash"]+"<br/>")
-    f.write("Current hash: "+results["hash"]+"<br/><br/>")
-    f.write("<table>")
-    f.write("<thead><tr><th>Query</th><th>Previous avg q/s</th><th>Avg q/s</th><th>Previous 1st centile q/s</th><th>1st centile q/s</th><th>Previous 99 centile q/s</th><th>99 centile q/s</th><th>Diff</th><th>Status</th></tr></thead><tbody>")
-    for key in results:
-        if key in previous_results:
-            if key == "hash":
-                continue
-            if results[key]["average"] > 0:
-                diff = 1.*(previous_results[key]["average"]-results[key]["average"])/(results[key]["average"])
-            else:
-                diff = "undefined"
-
-            if (type(diff) == type(0.)):
-                if(diff < 0.2):
-                    status = "Success"
-                    color = "green"
-                else:
-                    status = "Fail"
-                    color = "red"
-            else:
-                status = "Bug"
-                color = "gray"
-            try:
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(1/previous_results[key]["average"], 1/results[key]["average"], 1/previous_results[key]["first_centile"], 1/results[key]["first_centile"], 1/previous_results[key]["last_centile"], 1/results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-            except:
-                print key
-
-        else:
-            status = "Unknown"
-            color = "gray"
-
-            try:
-                f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>%.4f</td>"%(1/results[key]["average"], 1/results[key]["first_centile"], 1/results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-            except:
-                print key
+    compare(results, previous_results)
 
 
-    f.write("</tbody></table></body></html>")
-    f.close()
-
-
-def main():
+def main(data_dir):
     """
     Main method
     """
     check_driver()
-    run_tests()
+    run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":
-    main()
+    data_dir = ''
+    if len(sys.argv) > 1:
+        data_dir = sys.argv[1]
+    main(data_dir)
