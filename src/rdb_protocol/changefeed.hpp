@@ -37,6 +37,7 @@ public:
     changefeed_manager_t(mailbox_manager_t *_manager);
     ~changefeed_manager_t();
     counted_t<datum_stream_t> changefeed(const counted_t<table_t> &tbl, env_t *env);
+    mailbox_manager_t *get_manager() { return manager; }
 private:
     mailbox_manager_t *manager;
     std::map<uuid_u, scoped_ptr_t<changefeed_t> > changefeeds;

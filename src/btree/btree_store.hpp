@@ -22,6 +22,8 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changefeed.hpp"
+#include "rpc/mailbox/typed.hpp"
 #include "utils.hpp"
 
 struct rdb_protocol_t;
@@ -391,6 +393,9 @@ public:
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
+
+    std::vector<mailbox_addr_t<void(ql::changefeed_msg_t)> > changefeeds;
+    rwlock_t changefeed_lock;
 
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.

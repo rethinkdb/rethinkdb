@@ -328,6 +328,7 @@ private:
 
 void do_a_replace_from_batched_replace(
     auto_drainer_t::lock_t,
+    mailbox_manager_t *manager,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
     const btree_loc_info_t &info,
@@ -352,10 +353,11 @@ void do_a_replace_from_batched_replace(
 
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    sindex_cb->on_mod_report(mod_report);
+    sindex_cb->on_mod_report(manager, mod_report);
 }
 
 batched_replace_response_t rdb_batched_replace(
+    mailbox_manager_t *manager,
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
@@ -382,6 +384,7 @@ batched_replace_response_t rdb_batched_replace(
                 std::bind(
                     &do_a_replace_from_batched_replace,
                     auto_drainer_t::lock_t(&drainer),
+                    manager,
                     &batched_replaces_fifo_sink,
                     batched_replaces_fifo_source.enter_write(),
 
@@ -1065,24 +1068,40 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+    mailbox_manager_t *manager,
+    const rdb_modification_report_t &mod_report) {
+
+    // We spawn the sindex update in its own coroutine because we don't want to
+    // hold the sindex update for the changefeed lock or vice-versa.
+    cond_t sindexes_updated_cond;
+    coro_t::spawn_sometime(
+        [&]() {
+            scoped_ptr_t<new_mutex_in_line_t> acq =
+                store_->get_in_line_for_sindex_queue(sindex_block_);
+
+            write_message_t wm;
+            wm << rdb_sindex_change_t(mod_report);
+            store_->sindex_queue_push(wm, acq.get());
+
+            rdb_live_deletion_context_t deletion_context;
+            rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
+                                &deletion_context);
+            sindexes_updated_cond.pulse();
+        }
+    );
+
     {
-        auto del = mod_report.info.deleted.first;
-        auto add = mod_report.info.added.first;
-        debugf("***\n%s\n---\n%s\n***\n",
-               (del.has() ? del->print().c_str() : "NULL"),
-               (add.has() ? add->print().c_str() : "NULL"));
+        rwlock_in_line_t spot(&store_->changefeed_lock, access_t::read);
+        spot.read_signal()->wait_lazily_unordered();
+        ql::changefeed_msg_t msg = ql::changefeed_msg_t::change(&mod_report);
+        pmap(store_->changefeeds.begin(), store_->changefeeds.end(),
+             [&](const mailbox_addr_t<void(ql::changefeed_msg_t)> &mailbox) {
+                 send(manager, mailbox, msg);
+             }
+        );
     }
-    scoped_ptr_t<new_mutex_in_line_t> acq =
-        store_->get_in_line_for_sindex_queue(sindex_block_);
 
-    write_message_t wm;
-    wm << rdb_sindex_change_t(mod_report);
-    store_->sindex_queue_push(wm, acq.get());
-
-    rdb_live_deletion_context_t deletion_context;
-    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
-                        &deletion_context);
+    sindexes_updated_cond.wait_lazily_unordered();
 }
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
