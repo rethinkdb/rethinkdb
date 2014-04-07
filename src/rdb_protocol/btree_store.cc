@@ -13,6 +13,12 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
+// Some of this implementation is in store.cc and some in btree_store.cc for no
+// particularly good reason.  Historically it turned out that way, and for now
+// there's not enough refactoring urgency to combine them into one.
+//
+// (Really, some of the implementation is also in rdb_protocol/btree.cc.)
+
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
     : info(strprintf("Index `%s` was accessed before its construction was finished.",
