@@ -16,6 +16,24 @@ class superblock_t;
 class signal_t;
 class value_deleter_t;
 
+class value_deleter_t {
+public:
+    value_deleter_t() { }
+    virtual void delete_value(buf_parent_t leaf_node, const void *value) const = 0;
+
+protected:
+    virtual ~value_deleter_t() { }
+
+    DISABLE_COPYING(value_deleter_t);
+};
+
+/* A deleter that does absolutely nothing. */
+class noop_value_deleter_t : public value_deleter_t {
+public:
+    noop_value_deleter_t() { }
+    void delete_value(buf_parent_t, const void *) const;
+};
+
 class key_tester_t {
 public:
     key_tester_t() { }

@@ -7,6 +7,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
+#include "store_view.hpp"
 
 struct multistore_ptr_t::switch_read_token_t {
     bool do_read;

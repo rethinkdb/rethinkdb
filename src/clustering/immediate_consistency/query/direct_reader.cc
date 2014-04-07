@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 #include "protocol_api.hpp"
-#include "rdb_protocol/btree_store.hpp"
+#include "store_view.hpp"
 
 direct_reader_t::direct_reader_t(
         mailbox_manager_t *mm,

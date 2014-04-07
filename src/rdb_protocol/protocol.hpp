@@ -16,17 +16,16 @@
 #include <boost/optional.hpp>
 
 #include "btree/erase_range.hpp"
-#include "btree/keys.hpp"
 #include "btree/secondary_operations.hpp"
-#include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "http/json.hpp"
-#include "http/json/cJSON.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "region/region.hpp"
+#include "repli_timestamp.hpp"
 #include "rdb_protocol/shards.hpp"
 
-class btree_store_t;
+class store_t;
+class buf_lock_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -36,8 +35,12 @@ class databases_semilattice_metadata_t;
 template <class> class directory_read_manager_t;
 class namespace_repo_t;
 class namespaces_semilattice_metadata_t;
+struct secondary_index_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+class Term;
+class Datum;
+class Backtrace;
 
 
 namespace unittest { struct make_sindex_read_t; }
@@ -70,8 +73,6 @@ RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-typedef ql::sorting_t sorting_t;
-
 class key_le_t {
 public:
     explicit key_le_t(sorting_t _sorting) : sorting(_sorting) { }
@@ -82,12 +83,6 @@ public:
 private:
     sorting_t sorting;
 };
-
-store_key_t key_max(sorting_t sorting);
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        sorting_t, int8_t,
-        sorting_t::UNORDERED, sorting_t::DESCENDING);
 
 namespace ql {
 class datum_t;
@@ -129,11 +124,6 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-namespace rdb_protocol_details {
-
-typedef ql::transform_variant_t transform_variant_t;
-typedef ql::terminal_variant_t terminal_variant_t;
-
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
@@ -151,9 +141,12 @@ struct backfill_atom_t {
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
+
+namespace rdb_protocol {
+
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t *store,
+        store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
@@ -171,7 +164,7 @@ struct single_sindex_status_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-} // namespace rdb_protocol_details
+} // namespace rdb_protocol
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
@@ -247,6 +240,8 @@ struct rget_read_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t> *key_counts);
+
 struct distribution_read_response_t {
     // Supposing the map has keys:
     // k1, k2 ... kn
@@ -270,7 +265,7 @@ struct sindex_list_response_t {
 struct sindex_status_response_t {
     sindex_status_response_t()
     { }
-    std::map<std::string, rdb_protocol_details::single_sindex_status_t> statuses;
+    std::map<std::string, rdb_protocol::single_sindex_status_t> statuses;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -318,8 +313,8 @@ struct sindex_rangespec_t {
 };
 
 class rget_read_t {
-    typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-    typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+    typedef ql::transform_variant_t transform_variant_t;
+    typedef ql::terminal_variant_t terminal_variant_t;
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
@@ -343,8 +338,8 @@ public:
     ql::batchspec_t batchspec; // used to size batches
 
     // We use these two for lazy maps, reductions, etc.
-    std::vector<rdb_protocol_details::transform_variant_t> transforms;
-    boost::optional<rdb_protocol_details::terminal_variant_t> terminal;
+    std::vector<ql::transform_variant_t> transforms;
+    boost::optional<ql::terminal_variant_t> terminal;
 
     // This is non-empty if we're doing an sindex read.
     // TODO: `read_t` should maybe be multiple types.  Determining the type
@@ -695,10 +690,10 @@ struct backfill_chunk_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct key_value_pairs_t {
-        std::vector<rdb_protocol_details::backfill_atom_t> backfill_atoms;
+        std::vector<backfill_atom_t> backfill_atoms;
 
         key_value_pairs_t() { }
-        explicit key_value_pairs_t(std::vector<rdb_protocol_details::backfill_atom_t> &&_backfill_atoms)
+        explicit key_value_pairs_t(std::vector<backfill_atom_t> &&_backfill_atoms)
             : backfill_atoms(std::move(_backfill_atoms)) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -725,7 +720,7 @@ struct backfill_chunk_t {
     static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
         return backfill_chunk_t(delete_key_t(key, recency));
     }
-    static backfill_chunk_t set_keys(std::vector<rdb_protocol_details::backfill_atom_t> &&keys) {
+    static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
         return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
     }
 
@@ -733,7 +728,7 @@ struct backfill_chunk_t {
         return backfill_chunk_t(sindexes_t(sindexes));
     }
 
-    /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
+    /* This is for `store_t`; it's not part of the ICL protocol API. */
     repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -757,7 +752,7 @@ region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 }  // namespace rdb_protocol
 
 
-namespace rdb_protocol_details {
+namespace rdb_protocol {
 /* TODO: This might be redundant. I thought that `key_tester_t` was only
 originally necessary because in v1.1.x the hashing scheme might be different
 between the source and destination machines. */
@@ -768,7 +763,7 @@ struct range_key_tester_t : public key_tester_t {
 
     const region_t *delete_range;
 };
-} // namespace rdb_protocol_details
+} // namespace rdb_protocol
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
 

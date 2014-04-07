@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "store_view.hpp"
 
 replier_t::replier_t(listener_t *li,
                                  mailbox_manager_t *mailbox_manager,

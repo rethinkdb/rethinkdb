@@ -10,6 +10,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "store_view.hpp"
 
 // Must be <= than MAX_CHUNKS_OUT in backfiller.cc
 #define ALLOCATION_CHUNK 8
