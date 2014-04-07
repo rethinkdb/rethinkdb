@@ -81,7 +81,7 @@
 
 ## Size of the cache in MB
 ## Default: Half of the available RAM on startup
-# cache_size=1024
+# cache-size=1024
 
 ### Disk
 
