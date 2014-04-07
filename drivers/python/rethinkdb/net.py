@@ -95,7 +95,7 @@ class Connection(object):
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
-            raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
+            raise RqlConnectionError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
 
         self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
@@ -110,7 +110,7 @@ class Connection(object):
 
         if response != b"SUCCESS":
             self.close(noreply_wait=False)
-            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+            raise RqlConnectionError("Server dropped connection with message: \"%s\"" % response.strip())
 
         # Connection is now initialized
 
@@ -230,7 +230,7 @@ class Connection(object):
                 while len(response_header) < 4:
                     chunk = self._sock_recv(4)
                     if len(chunk) == 0:
-                        raise RqlDriverError("Connection is closed.")
+                        raise RqlConnectionError("Connection is closed.")
                     response_header += chunk
 
                 # The first 4 bytes give the expected length of this response
@@ -239,7 +239,7 @@ class Connection(object):
                 while len(response_buf) < response_len:
                     chunk = self._sock_recv(response_len - len(response_buf))
                     if len(chunk) == 0:
-                        raise RqlDriverError("Connection is broken.")
+                        raise RqlConnectionError("Connection is broken.")
                     response_buf += chunk
             except KeyboardInterrupt as err:
                 # When interrupted while waiting for a response cancel the outstanding
@@ -280,7 +280,7 @@ class Connection(object):
     def _send_query(self, query, term, opts={}, async=False):
         # Error if this connection has closed
         if not self.socket:
-            raise RqlDriverError("Connection is closed.")
+            raise RqlConnectionError("Connection is closed.")
 
         query.accepts_r_json = True
 

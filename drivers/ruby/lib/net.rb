@@ -80,7 +80,7 @@ module RethinkDB
     def each (&block) # :nodoc:
       raise RqlRuntimeError, "Can only iterate over Query_Results once!" if @run
       @run = true
-      raise RqlRuntimeError, "Connection has been reset!" if out_of_date
+      raise RqlConnectionError, "Connection has been reset!" if out_of_date
       while true
         @results.each(&block)
         return self if !@more
@@ -140,7 +140,7 @@ module RethinkDB
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
-      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      raise RqlConnectionError, "Error: Connection Closed." if !@socket || !@listener
       q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
       q.query = msg
 
@@ -204,12 +204,12 @@ module RethinkDB
     def wait token
       begin
         res = nil
-        raise RqlRuntimeError, "Connection closed by server!" if not @listener
+        raise RqlConnectionError, "Connection closed by server!" if not @listener
         @mutex.synchronize {
           (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
           res = @data.delete token if @data[token]
         }
-        raise RqlRuntimeError, "Connection closed by server!" if !@listener or !res
+        raise RqlConnectionError, "Connection closed by server!" if !@listener or !res
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
@@ -273,7 +273,7 @@ module RethinkDB
     end
 
     def noreply_wait
-      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      raise RqlConnectionError, "Error: Connection Closed." if !@socket || !@listener
       q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
       res = run_internal(q)
       if res.type != Response::ResponseType::WAIT_COMPLETE
@@ -296,7 +296,7 @@ module RethinkDB
           maybe_timeout(timeout_sec) {
             buf = read len
             if !buf or buf.length != len
-              raise RqlRuntimeError, "Connection closed by server."
+              raise RqlConnectionError, "Connection closed by server."
             end
             return buf
           }
@@ -311,7 +311,7 @@ module RethinkDB
       end
       response = response[0...-1]
       if response != "SUCCESS"
-        raise RqlRuntimeError,"Server dropped connection with message: \"#{response}\""
+        raise RqlConnectionError,"Server dropped connection with message: \"#{response}\""
       end
 
       @listener.terminate if @listener

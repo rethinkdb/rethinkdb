@@ -47,7 +47,7 @@ class Connection extends events.EventEmitter
             if e instanceof err.RqlDriverError
                 callback e
             else
-                callback new err.RqlDriverError "Could not connect to #{@host}:#{@port}.\n#{e.message}"
+                callback new err.RqlConnectionError "Could not connect to #{@host}:#{@port}.\n#{e.message}"
         @once 'error', errCallback
 
         conCallback = =>
@@ -171,7 +171,7 @@ class Connection extends events.EventEmitter
         unless typeof callback is 'function'
             throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
         unless @open
-            callback(new err.RqlDriverError "Connection is closed.")
+            callback(new err.RqlConnectionError "Connection is closed.")
             return
 
         # Assign token
@@ -214,7 +214,7 @@ class Connection extends events.EventEmitter
         @db = db
 
     _start: (term, cb, opts) ->
-        unless @open then throw new err.RqlDriverError "Connection is closed."
+        unless @open then throw new err.RqlConnectionError "Connection is closed."
 
         # Assign token
         token = @nextToken++
@@ -314,7 +314,7 @@ class TcpConnection extends Connection
 
         timeout = setTimeout( (()=>
             @rawSocket.destroy()
-            @emit 'error', new err.RqlDriverError "Handshake timedout"
+            @emit 'error', new err.RqlConnectionError "Handshake timedout"
         ), @timeout*1000)
 
         @rawSocket.once 'error', => clearTimeout(timeout)
@@ -347,7 +347,7 @@ class TcpConnection extends Connection
                             @emit 'connect'
                             return
                         else
-                            @emit 'error', new err.RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
+                            @emit 'error', new err.RqlConnectionError "Server dropped connection with message: \"" + status_str.trim() + "\""
                             return
 
 
@@ -412,7 +412,7 @@ class HttpConnection extends Connection
                     @_connId = (new DataView xhr.response).getInt32(0, true)
                     @emit 'connect'
                 else
-                    @emit 'error', new err.RqlDriverError "XHR error, http status #{xhr.status}."
+                    @emit 'error', new err.RqlConnectionError "XHR error, http status #{xhr.status}."
         xhr.send()
 
         @xhr = xhr # We allow only one query at a time per HTTP connection
