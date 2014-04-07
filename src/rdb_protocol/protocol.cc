@@ -7,7 +7,7 @@
 #include "containers/disk_backed_queue.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/btree_store.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/func.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"

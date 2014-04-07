@@ -2,7 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
-#include "rdb_protocol/btree_store.hpp"
+#include "rdb_protocol/store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"

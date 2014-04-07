@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/btree_store.hpp"
+#include "rdb_protocol/store.hpp"
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"

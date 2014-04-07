@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "rdb_protocol/btree_store.hpp"
+#include "btree/erase_range.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"

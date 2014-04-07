@@ -9,10 +9,13 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
-#include "rdb_protocol/btree_store.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 
+class btree_slice_t;
+class deletion_context_t;
 class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
