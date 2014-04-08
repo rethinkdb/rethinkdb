@@ -4,6 +4,7 @@
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -53,6 +54,7 @@ private:
 listener_t::listener_t(const base_path_t &base_path,
                        io_backender_t *io_backender,
                        mailbox_manager_t *mm,
+                       backfill_throttler_t *backfill_throttler,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
                        branch_history_manager_t *branch_history_manager,
                        store_view_t *svs,
@@ -139,7 +141,6 @@ listener_t::listener_t(const base_path_t &base_path,
     state_timestamp_t streaming_begin_point = listener_intro.broadcaster_begin_timestamp;
 
     try {
-        // TODO! Throttle somewhere. Here? Before backfillee()? Earlier?
         /* Go through a little song and dance to make sure that the
          * backfiller will at least get us to the point that we will being
          * live streaming from. */
@@ -155,16 +156,21 @@ listener_t::listener_t(const base_path_t &base_path,
         wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
         wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
 
-        // TODO! Probably here. Check again what "up to date" here means exactly.
+        // TODO! Check again what "up to date" here means exactly to make sure
+        // that this is the right place for throttling
+        {
+            backfill_throttler_t::lock_t throttler_lock(backfill_throttler,
+                                                        interruptor);
 
-        /* Backfill */
-        backfillee(mailbox_manager_,
-                   branch_history_manager,
-                   svs_,
-                   svs_->get_region(),
-                   replier->subview(&listener_t::get_backfiller_from_replier_bcard),
-                   backfill_session_id,
-                   interruptor);
+            /* Backfill */
+            backfillee(mailbox_manager_,
+                       branch_history_manager,
+                       svs_,
+                       svs_->get_region(),
+                       replier->subview(&listener_t::get_backfiller_from_replier_bcard),
+                       backfill_session_id,
+                       interruptor);
+        } // Release throttler_lock
     } catch (const resource_lost_exc_t &) {
         throw backfiller_lost_exc_t();
     }

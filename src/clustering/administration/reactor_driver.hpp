@@ -10,6 +10,7 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/new_semaphore.hpp"
@@ -117,8 +118,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     rdb_context_t *ctx;
     svs_by_namespace_t *const svs_by_namespace;
-    // `backfill_semaphore` limits the number of incoming backfills
-    new_semaphore_t backfill_semaphore;
+    backfill_throttler_t backfill_throttler;
 
     scoped_ptr_t<ack_info_t> ack_info;
 

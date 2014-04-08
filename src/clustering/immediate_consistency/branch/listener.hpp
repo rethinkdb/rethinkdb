@@ -24,6 +24,7 @@ class replier_t;
 template <class> class semilattice_read_view_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class watchable_t;
+class backfill_throttler_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 contacts a `broadcaster_t` to sign up for real-time updates, and also backfills
@@ -63,6 +64,7 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
+            backfill_throttler_t *backfill_throttler,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
             branch_history_manager_t *branch_history_manager,
             store_view_t *svs,

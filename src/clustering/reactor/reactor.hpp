@@ -16,6 +16,7 @@
 
 class io_backender_t;
 class multistore_ptr_t;
+class backfill_throttler_t;
 
 class reactor_t : public home_thread_mixin_t {
 public:
@@ -23,6 +24,7 @@ public:
             const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
+            backfill_throttler_t *backfill_throttler,
             ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > > > reactor_directory,
             branch_history_manager_t *branch_history_manager,
@@ -158,6 +160,8 @@ private:
     io_backender_t *io_backender;
 
     mailbox_manager_t *mailbox_manager;
+
+    backfill_throttler_t *backfill_throttler;
 
     ack_checker_t *ack_checker;
 
