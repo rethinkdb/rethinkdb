@@ -82,11 +82,9 @@ namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
     const name_string_t &name, const std::string &key);
 
-// RSI cc file
-RDB_MAKE_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_DECLARE_SEMILATTICE_JOINABLE(namespace_semilattice_metadata_t);
 
-// RSI cc file
-RDB_MAKE_EQUALITY_COMPARABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespace_semilattice_metadata_t);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
