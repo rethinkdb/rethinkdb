@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/suggester/suggester.hpp"
+#include "clustering/suggester/suggest_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "rdb_protocol/protocol.hpp"
 
