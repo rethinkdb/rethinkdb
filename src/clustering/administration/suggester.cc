@@ -22,7 +22,7 @@ persistable_blueprint_t suggest_blueprint_for_namespace(
         if (peer.is_nil()) {
             throw missing_machine_exc_t();
         }
-        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >::const_iterator jt =
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > >::const_iterator jt =
             reactor_directory_view.find(peer);
         if (jt != reactor_directory_view.end() && jt->second) {
             directory.insert(std::make_pair(machine, *jt->second->internal));
@@ -85,9 +85,9 @@ std::map<namespace_id_t, persistable_blueprint_t> suggest_blueprints_for_protoco
                                               it != order.end();
                                               ++it) {
         std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > > reactor_directory;
-        for (typename std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator jt =
+        for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator jt =
                 namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator kt =
+            std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator kt =
                 jt->second.reactor_bcards.find(*it);
             if (kt != jt->second.reactor_bcards.end()) {
                 reactor_directory.insert(std::make_pair(
@@ -137,9 +137,9 @@ void fill_in_blueprints_for_protocol(
                                         machine_data_centers,
                                         prioritize_distr_for_ns);
 
-    for (typename blueprint_map_t::iterator it  = suggested_blueprints.begin();
-                                            it != suggested_blueprints.end();
-                                            ++it) {
+    for (blueprint_map_t::iterator it  = suggested_blueprints.begin();
+                                   it != suggested_blueprints.end();
+                                   ++it) {
         ns_goals->namespaces[it->first].get_mutable()->blueprint =
             ns_goals->namespaces[it->first].get_copy().blueprint.make_resolving_version(it->second, us);
     }
