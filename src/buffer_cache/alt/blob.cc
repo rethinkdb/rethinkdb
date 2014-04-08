@@ -962,10 +962,14 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             uint32_t unused_block_size;
             const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));
 
-            for (int i = bigoffset / blob::stepsize(block_size, levels - 1),
-                     e = ceil_divide(end_offset, blob::stepsize(block_size, levels - 1));
-                 i < e;
-                 ++i) {
+            // Detach children: they're getting reattached to `parent`.
+            int lo;
+            int hi;
+            blob::compute_acquisition_offsets(block_size, levels - 1,
+                                              bigoffset, bigsize,
+                                              &lo, &hi);
+
+            for (int i = lo; i < hi; ++i) {
                 lock.detach_child(b[i]);
             }
 
