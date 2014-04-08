@@ -35,9 +35,19 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 
 
-RDB_IMPL_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_IMPL_SEMILATTICE_JOINABLE_10(
+        namespace_semilattice_metadata_t,
+        blueprint, primary_datacenter, replica_affinities, ack_expectations, shards,
+        name, primary_pinnings, secondary_pinnings, primary_key, database);
 
-RDB_IMPL_EQUALITY_COMPARABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_IMPL_EQUALITY_COMPARABLE_10(
+        namespace_semilattice_metadata_t,
+        blueprint, primary_datacenter, replica_affinities, ack_expectations, shards,
+        name, primary_pinnings, secondary_pinnings, primary_key, database);
+
+RDB_IMPL_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
+RDB_IMPL_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
+
 
 
 namespace_semilattice_metadata_t new_namespace(

@@ -109,11 +109,8 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
-// RSI cc file
-RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t, namespaces);
-
-// RSI cc file
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t, namespaces);
+RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
 // json adapter concept for namespaces_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
