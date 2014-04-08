@@ -63,7 +63,11 @@ protected:
 };
 
 
-// RSI: binary_blob_t was only used because of protocolization.  or was it because of performance?
+// At some point the region maps become a binary_blob_t before being stored.  It
+// keeps the raw btree code abstract.  That doesn't mean you couldn't redefine
+// metainfo_t (used in interfaces above the btree code) to be whatever
+// region_map_t<version...> it actually is, pushing the region_map_transform calls to
+// a different API layer.  You are welcome to do so.
 typedef region_map_t<binary_blob_t> metainfo_t;
 
 #ifndef NDEBUG
