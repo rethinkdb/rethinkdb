@@ -140,9 +140,6 @@ const block_id_t *block_ids(const char *ref, int maxreflen);
 // Returns the char bytes of a leaf node.
 const char *leaf_node_data(const void *buf);
 
-// Returns the internal offset of the ref value, which is especially useful when it's not inlined.
-int64_t ref_value_offset(const char *ref, int maxreflen);
-
 }  // namespace blob
 
 class blob_t {
@@ -218,7 +215,7 @@ private:
     void consider_small_shift(buf_parent_t parent, int levels,
                               int64_t *min_shift);
     void deallocate_to_dimensions(buf_parent_t parent, int levels,
-                                  int64_t new_offset, int64_t new_size);
+                                  int64_t new_size);
     int add_level(buf_parent_t parent, int levels);
     bool remove_level(buf_parent_t parent, int *levels_ref);
 

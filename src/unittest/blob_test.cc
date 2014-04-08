@@ -65,17 +65,17 @@ public:
         if (size <= buf_.size() - sizesize) {
             ASSERT_EQ(sizesize + size, rs);
         } else if (size <= static_cast<size_t>(size_after_magic)) {
-            ASSERT_EQ(sizesize + 8 + 8 + sizeof(block_id_t), rs);
-        } else if (size <= int64_t(size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            if (rs != sizesize + 8 + 8 + sizeof(block_id_t)) {
-                ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
-                ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
+            ASSERT_EQ(sizesize + 8 + sizeof(block_id_t), rs);
+        } else if (size <= int64_t(size_after_magic * ((250 - 8) / sizeof(block_id_t)))) {
+            if (rs != sizesize + 8 + sizeof(block_id_t)) {
+                ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
+                ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
             } else {
-                ASSERT_GT(size, size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
+                ASSERT_GT(size, size_after_magic * ((250 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
             }
-        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
-            ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
+        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8) / sizeof(block_id_t)))) {
+            ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
+            ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
         } else {
             ASSERT_GT(0u, size);
         }
@@ -178,42 +178,42 @@ void small_value_boundary_test(cache_t *cache) {
 
     tk.append(&txn, std::string(250, 'a'));
     tk.append(&txn, "b");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
 
     tk.append(&txn, "c");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
     tk.append(&txn, "d");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
     tk.append(&txn, "e");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 2);
     ASSERT_EQ(250u, tk.refsize(block_size));
     tk.append(&txn, "fffff");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 254);
     ASSERT_EQ(1u, tk.refsize(block_size));
 
     tk.append(&txn, std::string(251, 'g'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
 
     tk.unappend(&txn, 251);
     ASSERT_EQ(1u, tk.refsize(block_size));
     tk.append(&txn, std::string(251, 'h'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.append(&txn, std::string(250, 'i'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.append(&txn, std::string(250, 'j'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.unappend(&txn, 1);
@@ -249,7 +249,7 @@ void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
 void combinations_test(cache_t *cache) {
     SCOPED_TRACE("combinations_test");
 
-    int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
+    int64_t inline_sz = size_after_magic * ((250 - 1 - 8) / sizeof(block_id_t));
     //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
     int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
