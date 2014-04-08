@@ -22,7 +22,7 @@ public:
         scoped_ptr_t<new_semaphore_acq_t> global_acq;
     };
 
-    static const int64_t GLOBAL_LIMIT = 32;
+    static const int64_t GLOBAL_LIMIT = 16;
     // TODO! Add a per-peer limit
 
 private:
