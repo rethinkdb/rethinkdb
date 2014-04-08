@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 import sys
 
 """This script is used to generate the RDB_MAKE_SERIALIZABLE_*() and
@@ -45,14 +45,15 @@ def generate_make_me_serializable_macro(nfields):
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
-    print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
-    print "    }"
+    print "    } \\"
+    print "    friend class archive_deserializer_t"
+
 
 def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
