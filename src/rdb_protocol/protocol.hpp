@@ -222,12 +222,6 @@ struct point_read_response_t {
 };
 
 struct rget_read_response_t {
-
-    // RSI: Get rid of this?
-    class empty_t {
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
     key_range_t key_range;
     ql::result_t result;
     bool truncated;
