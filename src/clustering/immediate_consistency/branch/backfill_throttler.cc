@@ -12,8 +12,8 @@ backfill_throttler_t::lock_t::lock_t(backfill_throttler_t *p, signal_t *interrup
     cross_thread_signal_t ct_interruptor(interruptor, parent->home_thread());
     {
         on_thread_t th(parent->home_thread());
-        global_acq.init(&parent->global_sem, 1);
-        wait_interruptible(global_acq.acquisition_signal(), &ct_interruptor);
+        global_acq.init(new new_semaphore_acq_t(&parent->global_sem, 1));
+        wait_interruptible(global_acq->acquisition_signal(), &ct_interruptor);
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include "concurrency/interruptor.hpp"
 #include "concurrency/new_semaphore.hpp"
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "threading.hpp"
 
@@ -18,7 +19,7 @@ public:
     private:
         friend class backfill_throttler_t;
         backfill_throttler_t *parent;
-        new_semaphore_acq_t global_acq;
+        scoped_ptr_t<new_semaphore_acq_t> global_acq;
     };
 
     static const int64_t GLOBAL_LIMIT = 32;
