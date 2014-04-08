@@ -190,21 +190,13 @@ public:
     // Appends size bytes of garbage data to the blob.
     void append_region(buf_parent_t root, int64_t size);
 
-    // Prepends size bytes of garbage data to the blob.
-    void prepend_region(buf_parent_t root, int64_t size);
-
     // Removes size bytes of data from the end of the blob.  size must
     // be <= valuesize().
     void unappend_region(buf_parent_t root, int64_t size);
 
-    // Removes size bytes of data from the beginning of the blob.
-    // size must be <= valuesize().
-    void unprepend_region(buf_parent_t root, int64_t size);
-
-    // Empties the blob, making its valuesize() be zero.  Equivalent
-    // to unappend_region(txn, valuesize()) or unprepend_region(txn,
-    // valuesize()).  In particular, you can be sure that the blob
-    // holds no internal blocks, once it has been cleared.
+    // Empties the blob, making its valuesize() be zero.  Equivalent to
+    // unappend_region(txn, valuesize()).  In particular, you can be sure that the
+    // blob holds no internal blocks, once it has been cleared.
     void clear(buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with

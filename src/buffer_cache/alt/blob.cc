@@ -508,48 +508,6 @@ void blob_t::append_region(buf_parent_t parent, int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
-void blob_t::prepend_region(buf_parent_t parent, int64_t size) {
-    const block_size_t block_size = parent.cache()->max_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
-
-    if (levels == 0) {
-        int small_size = blob::small_size(ref_, maxreflen_);
-        if (small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
-            char *buf = blob::small_buffer(ref_, maxreflen_);
-            memmove(buf + size, buf, small_size);
-            blob::set_small_size(ref_, maxreflen_, small_size + size);
-            return;
-        }
-    }
-
-    // Avoid the empty blob effect.
-    if (levels == 0 && blob::small_size(ref_, maxreflen_) == 0 && size > 0) {
-        blob::set_small_size(ref_, maxreflen_, 1);
-        size -= 1;
-    }
-
-    for (;;) {
-        if (!shift_at_least(parent, levels,
-                            std::max<int64_t>(0, - (blob::ref_value_offset(ref_, maxreflen_) - size)))) {
-            levels = add_level(parent, levels);
-        } else if (!allocate_to_dimensions(parent, levels,
-                                           blob::ref_value_offset(ref_, maxreflen_) - size,
-                                           valuesize() + size)) {
-            levels = add_level(parent, levels);
-        } else {
-            break;
-        }
-    }
-
-    rassert(levels > 0);
-    int64_t final_offset = blob::big_offset(ref_, maxreflen_) - size;
-    rassert(final_offset >= 0);
-    blob::set_big_offset(ref_, maxreflen_, final_offset);
-    blob::set_big_size(ref_, maxreflen_, blob::big_size(ref_, maxreflen_) + size);
-
-    rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
-}
-
 void blob_t::unappend_region(buf_parent_t parent, int64_t size) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
@@ -568,34 +526,6 @@ void blob_t::unappend_region(buf_parent_t parent, int64_t size) {
             shift_at_least(parent, levels,
                            - blob::ref_value_offset(ref_, maxreflen_));
 
-            if (!remove_level(parent, &levels)) {
-                break;
-            }
-        }
-    }
-
-    if (emptying) {
-        rassert(blob::is_small(ref_, maxreflen_));
-        rassert(blob::small_size(ref_, maxreflen_) == 1);
-        blob::set_small_size(ref_, maxreflen_, 0);
-    }
-}
-
-void blob_t::unprepend_region(buf_parent_t parent, int64_t size) {
-    const block_size_t block_size = parent.cache()->max_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
-
-    bool emptying = false;
-    if (valuesize() == size && size > 0) {
-        emptying = true;
-        size -= 1;
-    }
-
-    if (size != 0) {
-        deallocate_to_dimensions(parent, levels,
-                                 blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
-        for (;;) {
-            shift_at_least(parent, levels, - blob::ref_value_offset(ref_, maxreflen_));
             if (!remove_level(parent, &levels)) {
                 break;
             }
