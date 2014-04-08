@@ -20,6 +20,8 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
+const static int MAX_INCOMING_BACKFILLS = 32;
+
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
@@ -394,6 +396,7 @@ reactor_driver_t::reactor_driver_t(const base_path_t &_base_path,
       machines_view(machines_view_),
       ctx(_ctx),
       svs_by_namespace(_svs_by_namespace),
+      backfill_semaphore(MAX_INCOMING_BACKFILLS),
       ack_info(new ack_info_t(machine_id_translation_table, machines_view, namespaces_view)),
       watchable_variable(namespaces_directory_metadata_t()),
       semilattice_subscription(boost::bind(&reactor_driver_t::on_change, this), namespaces_view),

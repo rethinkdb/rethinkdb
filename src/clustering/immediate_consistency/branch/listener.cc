@@ -139,6 +139,7 @@ listener_t::listener_t(const base_path_t &base_path,
     state_timestamp_t streaming_begin_point = listener_intro.broadcaster_begin_timestamp;
 
     try {
+        // TODO! Throttle somewhere. Here? Before backfillee()? Earlier?
         /* Go through a little song and dance to make sure that the
          * backfiller will at least get us to the point that we will being
          * live streaming from. */
@@ -153,6 +154,8 @@ listener_t::listener_t(const base_path_t &base_path,
 
         wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
         wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
+
+        // TODO! Probably here. Check again what "up to date" here means exactly.
 
         /* Backfill */
         backfillee(mailbox_manager_,

@@ -12,6 +12,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
@@ -116,6 +117,8 @@ private:
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     rdb_context_t *ctx;
     svs_by_namespace_t *const svs_by_namespace;
+    // `backfill_semaphore` limits the number of incoming backfills
+    new_semaphore_t backfill_semaphore;
 
     scoped_ptr_t<ack_info_t> ack_info;
 
