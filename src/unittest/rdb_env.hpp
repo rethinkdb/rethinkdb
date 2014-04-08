@@ -59,7 +59,9 @@ public:
                UNUSED order_token_t tok,
                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    std::map<store_key_t, scoped_cJSON_t*>* get_data();
+    std::map<store_key_t, scoped_cJSON_t *> *get_data();
+
+    std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
 private:
     cond_t ready_cond;

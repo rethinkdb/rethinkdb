@@ -53,12 +53,8 @@ public:
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
-    // RSI: Can this be removed?  This default implementation?
-    virtual std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
-        std::set<region_t> s;
-        s.insert(region_t::universe());
-        return s;
-    }
+    virtual std::set<region_t> get_sharding_scheme()
+        THROWS_ONLY(cannot_perform_query_exc_t) = 0;
 
     virtual signal_t *get_initial_ready_signal() { return NULL; }
 

@@ -99,6 +99,8 @@ public:
         return sharder->write(write, response, tok, interruptor);
     }
 
+    std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
+
 private:
     boost::ptr_vector<dummy_performer_t> performers;
     boost::ptr_vector<dummy_timestamper_t> timestampers;
