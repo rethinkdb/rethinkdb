@@ -24,7 +24,7 @@ backfill_throttler_t::lock_t::lock_t(backfill_throttler_t *p,
                         new new_semaphore_t(parent->PER_PEER_LIMIT)).first;
             }
             peer_acq.init(new new_semaphore_acq_t(peer_sem_it->second, 1));
-            wait_interruptible(global_acq->acquisition_signal(), &ct_interruptor);
+            wait_interruptible(peer_acq->acquisition_signal(), &ct_interruptor);
             global_acq.init(new new_semaphore_acq_t(&parent->global_sem, 1));
             wait_interruptible(global_acq->acquisition_signal(), &ct_interruptor);
         } catch (interrupted_exc_t &e) {
