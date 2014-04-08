@@ -78,35 +78,9 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
-// RSI cc file
-inline namespace_semilattice_metadata_t new_namespace(
+namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key) {
-
-    namespace_semilattice_metadata_t ns;
-    ns.database           = make_vclock(database, machine);
-    ns.primary_datacenter = make_vclock(datacenter, machine);
-    ns.name               = make_vclock(name, machine);
-    ns.primary_key        = make_vclock(key, machine);
-
-    std::map<uuid_u, ack_expectation_t> ack_expectations;
-    ack_expectations[datacenter] = ack_expectation_t(1, true);
-    ns.ack_expectations = make_vclock(ack_expectations, machine);
-
-    nonoverlapping_regions_t shards;
-    bool add_region_success = shards.add_region(region_t::universe());
-    guarantee(add_region_success);
-    ns.shards = make_vclock(shards, machine);
-
-    region_map_t<uuid_u> primary_pinnings(region_t::universe(), nil_uuid());
-    ns.primary_pinnings = make_vclock(primary_pinnings, machine);
-
-    region_map_t<std::set<uuid_u> > secondary_pinnings(
-        region_t::universe(), std::set<machine_id_t>());
-    ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
-
-    return ns;
-}
+    const name_string_t &name, const std::string &key);
 
 // RSI cc file
 RDB_MAKE_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
