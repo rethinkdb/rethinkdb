@@ -25,7 +25,7 @@ class cache_balancer_t;
 
 class alt_txn_throttler_t {
 public:
-    alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
+    explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);

@@ -254,7 +254,7 @@ bool mock_store_t::send_backfill(
                         typedef backfill_chunk_t chunk_t;
                         chunk_t::key_value_pairs_t pairs;
                         pairs.backfill_atoms.push_back(
-                                rdb_protocol_details::backfill_atom_t(it->first,
+                                backfill_atom_t(it->first,
                                                                       it->second.second,
                                                                       it->second.first));
                         chunk_t chunk(pairs);
@@ -284,7 +284,7 @@ void mock_store_t::receive_backfill(
     guarantee(pairs != NULL);
     guarantee(pairs->backfill_atoms.size() == 1);
 
-    rdb_protocol_details::backfill_atom_t atom = pairs->backfill_atoms[0];
+    backfill_atom_t atom = pairs->backfill_atoms[0];
 
     rassert(region_contains_key(get_region(), atom.key));
 

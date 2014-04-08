@@ -16,6 +16,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+#include "store_view.hpp"
 
 broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
         branch_history_manager_t *bhm,

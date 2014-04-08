@@ -4,6 +4,7 @@
 #include <string>
 
 #include "containers/printf_buffer.hpp"
+#include "time.hpp"
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
@@ -67,6 +68,18 @@ private:
 class Term;
 void pb_print(Term *t);
 
+// TODO: make this more efficient (use `clock_monotonic` and use a vector of
+// integers rather than accumulating a string).
+class debug_timer_t {
+public:
+    explicit debug_timer_t(std::string _name = "");
+    ~debug_timer_t();
+    microtime_t tick(const std::string &tag);
+private:
+    microtime_t start, last;
+    std::string name, out;
+    DISABLE_COPYING(debug_timer_t);
+};
 
 #endif  // DEBUG_HPP_
 

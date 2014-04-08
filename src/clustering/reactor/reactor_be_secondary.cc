@@ -7,6 +7,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "config/args.hpp"
+#include "store_view.hpp"
 
 bool reactor_t::find_broadcaster_in_directory(
         const region_t &region,

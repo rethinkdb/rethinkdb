@@ -9,10 +9,13 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
-#include "rdb_protocol/btree_store.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 
+class btree_slice_t;
+class deletion_context_t;
 class key_tester_t;
 class parallel_traversal_progress_t;
 template <class> class promise_t;
@@ -134,7 +137,7 @@ public:
         repli_timestamp_t recency,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_keyvalues(
-        std::vector<rdb_protocol_details::backfill_atom_t> &&atoms,
+        std::vector<backfill_atom_t> &&atoms,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
@@ -165,12 +168,12 @@ void rdb_erase_major_range(key_tester_t *tester,
                            const key_range_t &keys,
                            buf_lock_t *sindex_block,
                            superblock_t *superblock,
-                           btree_store_t *store,
+                           store_t *store,
                            signal_t *interruptor);
 
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
  * the btree, and m is the number of documents actually being deleted.
- * It also requires O(m) memory. 
+ * It also requires O(m) memory.
  * In contrast to `rdb_erase_major_range()`, it doesn't update secondary indexes
  * itself, but returns a number of modification reports that should be applied
  * to secondary indexes separately. Furthermore, it detaches blobs rather than
@@ -191,8 +194,8 @@ void rdb_rget_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
-    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    const std::vector<ql::transform_variant_t> &transforms,
+    const boost::optional<ql::terminal_variant_t> &terminal,
     sorting_t sorting,
     rget_read_response_t *response);
 
@@ -203,8 +206,8 @@ void rdb_rget_secondary_slice(
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
-    const std::vector<rdb_protocol_details::transform_variant_t> &transforms,
-    const boost::optional<rdb_protocol_details::terminal_variant_t> &terminal,
+    const std::vector<ql::transform_variant_t> &transforms,
+    const boost::optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
@@ -257,7 +260,7 @@ typedef boost::variant<rdb_modification_report_t,
 class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
-            btree_store_t *store,
+            store_t *store,
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
@@ -268,27 +271,27 @@ public:
 private:
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
-    btree_store_t *store_;
+    store_t *store_;
     buf_lock_t *sindex_block_;
 
     /* Fields initialized by calls to on_mod_report */
-    btree_store_t::sindex_access_vector_t sindexes_;
+    store_t::sindex_access_vector_t sindexes_;
 };
 
 void rdb_update_sindexes(
-        const btree_store_t::sindex_access_vector_t &sindexes,
+        const store_t::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         txn_t *txn,
         const deletion_context_t *deletion_context);
 
 
 void rdb_erase_major_range_sindexes(
-        const btree_store_t::sindex_access_vector_t &sindexes,
+        const store_t::sindex_access_vector_t &sindexes,
         const rdb_erase_major_range_report_t *erase_range,
         signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
-        btree_store_t *store,
+        store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);

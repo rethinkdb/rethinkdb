@@ -53,7 +53,6 @@ module RethinkDB
       :javascript => :js,
       :typeof => :type_of
     }
-    @@allow_json = {:INSERT => true}
 
     termtypes = Term::TermType.constants.map{ |c| c.to_sym }
     termtypes.each {|termtype|
@@ -86,17 +85,13 @@ module RethinkDB
           optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
         end
 
-        args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+        args = ((@body != RQL) ? [self] : []) + a + (b ? [new_func(&b)] : [])
 
-        t = Term.new
-        t.type = Term::TermType.const_get(termtype)
-        t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[termtype]).to_pb}
-        t.optargs = (optargs || {}).map {|k,v|
-          ap = Term::AssocPair.new
-          ap.key = k.to_s
-          ap.val = RQL.new.expr(v, :allow_json => @@allow_json[termtype]).to_pb
-          ap
-        }
+        t = [Term::TermType.const_get(termtype),
+             args.map {|x| RQL.new.expr(x).to_pb},
+             *((optargs && optargs != {}) ?
+               [Hash[optargs.map {|k,v| [k.to_s, RQL.new.expr(v).to_pb]}]] :
+               [])]
         return RQL.new(t, bitop)
       }
 
@@ -108,7 +103,7 @@ module RethinkDB
     }
 
     def connect(*args, &b)
-      unbound_if @body
+      unbound_if @body != RQL
       c = Connection.new(*args)
       b ? begin b.call(c) ensure c.close end : c
     end
@@ -137,15 +132,17 @@ module RethinkDB
     end
 
     def do(*args, &b)
-      a = (@body ? [self] : []) + args.dup
+      a = ((@body != RQL) ? [self] : []) + args.dup
       if a == [] && !b
         raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
       end
-      RQL.new.funcall(*((b ? [new_func(&b)] : [a.pop]) + a))
+      funcall_args = (b ? [new_func(&b)] : [a.pop]) + a
+      # PP.pp funcall_args
+      RQL.new.funcall(*funcall_args)
     end
 
     def row
-      unbound_if @body
+      unbound_if(@body != RQL)
       raise NoMethodError, ("Sorry, r.row is not available in the ruby driver.  " +
                             "Use blocks instead.")
     end

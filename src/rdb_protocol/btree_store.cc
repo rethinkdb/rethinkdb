@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/btree_store.hpp"
+#include "rdb_protocol/store.hpp"
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
@@ -13,6 +13,12 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
+// Some of this implementation is in store.cc and some in btree_store.cc for no
+// particularly good reason.  Historically it turned out that way, and for now
+// there's not enough refactoring urgency to combine them into one.
+//
+// (Really, some of the implementation is also in rdb_protocol/btree.cc.)
+
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
     : info(strprintf("Index `%s` was accessed before its construction was finished.",
@@ -25,18 +31,19 @@ const char* sindex_not_post_constructed_exc_t::what() const throw() {
 
 sindex_not_post_constructed_exc_t::~sindex_not_post_constructed_exc_t() throw() { }
 
-btree_store_t::btree_store_t(serializer_t *serializer,
-                             cache_balancer_t *balancer,
-                             const std::string &perfmon_name,
-                             bool create,
-                             perfmon_collection_t *parent_perfmon_collection,
-                             rdb_context_t *,  // RSI unused
-                             io_backender_t *io_backender,
-                             const base_path_t &base_path)
+store_t::store_t(serializer_t *serializer,
+                 cache_balancer_t *balancer,
+                 const std::string &perfmon_name,
+                 bool create,
+                 perfmon_collection_t *parent_perfmon_collection,
+                 rdb_context_t *_ctx,
+                 io_backender_t *io_backender,
+                 const base_path_t &base_path)
     : store_view_t(region_t::universe()),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
-      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
+      perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
+      ctx(_ctx)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
@@ -86,13 +93,15 @@ btree_store_t::btree_store_t(serializer_t *serializer,
                                                             it->first));
         }
     }
+
+    help_construct_bring_sindexes_up_to_date();
 }
 
-btree_store_t::~btree_store_t() {
+store_t::~store_t() {
     assert_thread();
 }
 
-void btree_store_t::read(
+void store_t::read(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const read_t &read,
         read_response_t *response,
@@ -110,10 +119,10 @@ void btree_store_t::read(
 
     DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
 
-    protocol_read(read, response, btree.get(), superblock.get(), interruptor);
+    protocol_read(read, response, superblock.get(), interruptor);
 }
 
-void btree_store_t::write(
+void store_t::write(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const metainfo_t& new_metainfo,
         const write_t &write,
@@ -136,12 +145,11 @@ void btree_store_t::write(
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
                               real_superblock.get());
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
-    protocol_write(write, response, timestamp, btree.get(), &superblock,
-                   interruptor);
+    protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
-bool btree_store_t::send_backfill(
+bool store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         send_backfill_callback_t *send_backfill_cb,
         traversal_progress_combiner_t *progress,
@@ -162,13 +170,13 @@ bool btree_store_t::send_backfill(
     get_metainfo_internal(superblock->get(), &unmasked_metainfo);
     region_map_t<binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, btree.get(), progress, interruptor);
+        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, progress, interruptor);
         return true;
     }
     return false;
 }
 
-void btree_store_t::receive_backfill(
+void store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_pair_t *token_pair,
         signal_t *interruptor)
@@ -193,13 +201,12 @@ void btree_store_t::receive_backfill(
                                  interruptor);
 
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
-    protocol_receive_backfill(btree.get(),
-                              std::move(superblock),
+    protocol_receive_backfill(std::move(superblock),
                               interruptor,
                               chunk);
 }
 
-void btree_store_t::reset_data(
+void store_t::reset_data(
         const region_t &subregion,
         const metainfo_t &new_metainfo,
         write_token_pair_t *token_pair,
@@ -231,12 +238,11 @@ void btree_store_t::reset_data(
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 
     protocol_reset_data(subregion,
-                        btree.get(),
                         superblock.get(),
                         interruptor);
 }
 
-scoped_ptr_t<new_mutex_in_line_t> btree_store_t::get_in_line_for_sindex_queue(
+scoped_ptr_t<new_mutex_in_line_t> store_t::get_in_line_for_sindex_queue(
         buf_lock_t *sindex_block) {
     assert_thread();
     // The line for the sindex queue is there to guarantee that we push things to
@@ -258,7 +264,7 @@ scoped_ptr_t<new_mutex_in_line_t> btree_store_t::get_in_line_for_sindex_queue(
             new new_mutex_in_line_t(&sindex_queue_mutex));
 }
 
-void btree_store_t::register_sindex_queue(
+void store_t::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
             const new_mutex_in_line_t *acq) {
     assert_thread();
@@ -271,7 +277,7 @@ void btree_store_t::register_sindex_queue(
     sindex_queues.push_back(disk_backed_queue);
 }
 
-void btree_store_t::deregister_sindex_queue(
+void store_t::deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
             const new_mutex_in_line_t *acq) {
     assert_thread();
@@ -286,7 +292,7 @@ void btree_store_t::deregister_sindex_queue(
     }
 }
 
-void btree_store_t::emergency_deregister_sindex_queue(
+void store_t::emergency_deregister_sindex_queue(
     internal_disk_backed_queue_t *disk_backed_queue) {
     assert_thread();
     drainer.assert_draining();
@@ -296,8 +302,8 @@ void btree_store_t::emergency_deregister_sindex_queue(
     deregister_sindex_queue(disk_backed_queue, &acq);
 }
 
-void btree_store_t::sindex_queue_push(const write_message_t &value,
-                                      const new_mutex_in_line_t *acq) {
+void store_t::sindex_queue_push(const write_message_t &value,
+                                const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
@@ -306,7 +312,7 @@ void btree_store_t::sindex_queue_push(const write_message_t &value,
     }
 }
 
-void btree_store_t::sindex_queue_push(
+void store_t::sindex_queue_push(
         const scoped_array_t<write_message_t> &values,
         const new_mutex_in_line_t *acq) {
     assert_thread();
@@ -317,14 +323,14 @@ void btree_store_t::sindex_queue_push(
     }
 }
 
-void btree_store_t::add_progress_tracker(
+void store_t::add_progress_tracker(
         map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
         uuid_u id, const parallel_traversal_progress_t *p) {
     assert_thread();
     sentry->reset(&progress_trackers, id, p);
 }
 
-progress_completion_fraction_t btree_store_t::get_progress(uuid_u id) {
+progress_completion_fraction_t store_t::get_progress(uuid_u id) {
     if (!std_contains(progress_trackers, id)) {
         return progress_completion_fraction_t();
     } else {
@@ -334,31 +340,19 @@ progress_completion_fraction_t btree_store_t::get_progress(uuid_u id) {
 
 // KSI: If we're going to have these functions at all, we could just pass the
 // real_superblock_t directly.
-buf_lock_t btree_store_t::acquire_sindex_block_for_read(
+buf_lock_t store_t::acquire_sindex_block_for_read(
         buf_parent_t parent,
         block_id_t sindex_block_id) {
     return buf_lock_t(parent, sindex_block_id, access_t::read);
 }
 
-buf_lock_t btree_store_t::acquire_sindex_block_for_write(
+buf_lock_t store_t::acquire_sindex_block_for_write(
         buf_parent_t parent,
         block_id_t sindex_block_id) {
     return buf_lock_t(parent, sindex_block_id, access_t::write);
 }
 
-template <class region_map_t>
-bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::mapped_type state) {
-    for (typename region_map_t::const_iterator it  = metainfo.begin();
-                                               it != metainfo.end();
-                                               ++it) {
-        if (it->second != state) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool btree_store_t::add_sindex(
+bool store_t::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block) {
@@ -418,7 +412,7 @@ void clear_sindex(
     }
 }
 
-void btree_store_t::set_sindexes(
+void store_t::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
@@ -486,8 +480,8 @@ void btree_store_t::set_sindexes(
     }
 }
 
-bool btree_store_t::mark_index_up_to_date(const std::string &id,
-                                          buf_lock_t *sindex_block)
+bool store_t::mark_index_up_to_date(const std::string &id,
+                                    buf_lock_t *sindex_block)
     THROWS_NOTHING {
     secondary_index_t sindex;
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
@@ -501,8 +495,8 @@ bool btree_store_t::mark_index_up_to_date(const std::string &id,
     return found;
 }
 
-bool btree_store_t::mark_index_up_to_date(uuid_u id,
-                                          buf_lock_t *sindex_block)
+bool store_t::mark_index_up_to_date(uuid_u id,
+                                    buf_lock_t *sindex_block)
     THROWS_NOTHING {
     secondary_index_t sindex;
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
@@ -516,7 +510,7 @@ bool btree_store_t::mark_index_up_to_date(uuid_u id,
     return found;
 }
 
-MUST_USE bool btree_store_t::drop_sindex(
+MUST_USE bool store_t::drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
@@ -530,7 +524,7 @@ MUST_USE bool btree_store_t::drop_sindex(
     if (!::get_secondary_index(sindex_block, id, &sindex)) {
         return false;
     } else {
-        // Similar to `btree_store_t::set_sindexes()`, we have to pick a deletion
+        // Similar to `store_t::set_sindexes()`, we have to pick a deletion
         // context based on whether the sindex had finished post construction or not.
         const deletion_context_t *actual_deletion_context =
                 sindex.post_construction_complete
@@ -555,7 +549,7 @@ MUST_USE bool btree_store_t::drop_sindex(
     return true;
 }
 
-MUST_USE bool btree_store_t::acquire_sindex_superblock_for_read(
+MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const std::string &id,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -589,7 +583,7 @@ MUST_USE bool btree_store_t::acquire_sindex_superblock_for_read(
     return true;
 }
 
-MUST_USE bool btree_store_t::acquire_sindex_superblock_for_write(
+MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         const std::string &id,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
@@ -620,7 +614,7 @@ MUST_USE bool btree_store_t::acquire_sindex_superblock_for_write(
     return true;
 }
 
-void btree_store_t::acquire_all_sindex_superblocks_for_write(
+void store_t::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out)
@@ -633,7 +627,7 @@ void btree_store_t::acquire_all_sindex_superblocks_for_write(
     acquire_all_sindex_superblocks_for_write(&sindex_block, sindex_sbs_out);
 }
 
-void btree_store_t::acquire_all_sindex_superblocks_for_write(
+void store_t::acquire_all_sindex_superblocks_for_write(
         buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
@@ -643,7 +637,7 @@ void btree_store_t::acquire_all_sindex_superblocks_for_write(
             sindex_sbs_out);
 }
 
-void btree_store_t::acquire_post_constructed_sindex_superblocks_for_write(
+void store_t::acquire_post_constructed_sindex_superblocks_for_write(
         buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING {
@@ -663,7 +657,7 @@ void btree_store_t::acquire_post_constructed_sindex_superblocks_for_write(
             sindex_sbs_out);
 }
 
-bool btree_store_t::acquire_sindex_superblocks_for_write(
+bool store_t::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
@@ -694,7 +688,7 @@ bool btree_store_t::acquire_sindex_superblocks_for_write(
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
 
-bool btree_store_t::acquire_sindex_superblocks_for_write(
+bool store_t::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
@@ -725,7 +719,7 @@ bool btree_store_t::acquire_sindex_superblocks_for_write(
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
 
-void btree_store_t::check_and_update_metainfo(
+void store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         const metainfo_t &new_metainfo,
         real_superblock_t *superblock) const
@@ -735,8 +729,8 @@ void btree_store_t::check_and_update_metainfo(
     update_metainfo(old_metainfo, new_metainfo, superblock);
 }
 
-typename btree_store_t::metainfo_t
-btree_store_t::check_metainfo(
+metainfo_t
+store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
         THROWS_NOTHING {
@@ -749,9 +743,9 @@ btree_store_t::check_metainfo(
     return old_metainfo;
 }
 
-void btree_store_t::update_metainfo(const metainfo_t &old_metainfo,
-                                    const metainfo_t &new_metainfo,
-                                    real_superblock_t *superblock)
+void store_t::update_metainfo(const metainfo_t &old_metainfo,
+                              const metainfo_t &new_metainfo,
+                              real_superblock_t *superblock)
     const THROWS_NOTHING {
     assert_thread();
     region_map_t<binary_blob_t> updated_metadata = old_metainfo;
@@ -777,10 +771,10 @@ void btree_store_t::update_metainfo(const metainfo_t &old_metainfo,
     }
 }
 
-void btree_store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                    signal_t *interruptor,
-                                    metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                              signal_t *interruptor,
+                              metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -792,7 +786,7 @@ void btree_store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
     get_metainfo_internal(superblock->get(), out);
 }
 
-void btree_store_t::
+void store_t::
 get_metainfo_internal(buf_lock_t *sb_buf,
                       region_map_t<binary_blob_t> *out)
     const THROWS_NOTHING {
@@ -819,10 +813,10 @@ get_metainfo_internal(buf_lock_t *sb_buf,
     *out = res;
 }
 
-void btree_store_t::set_metainfo(const metainfo_t &new_metainfo,
-                                             UNUSED order_token_t order_token,  // TODO
-                                             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void store_t::set_metainfo(const metainfo_t &new_metainfo,
+                           UNUSED order_token_t order_token,  // TODO
+                           object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?
@@ -841,7 +835,7 @@ void btree_store_t::set_metainfo(const metainfo_t &new_metainfo,
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 }
 
-void btree_store_t::acquire_superblock_for_read(
+void store_t::acquire_superblock_for_read(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
@@ -859,7 +853,7 @@ void btree_store_t::acquire_superblock_for_read(
         general_cache_conn.get(), cache_snapshotted, sb_out, txn_out);
 }
 
-void btree_store_t::acquire_superblock_for_backfill(
+void store_t::acquire_superblock_for_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
@@ -875,7 +869,7 @@ void btree_store_t::acquire_superblock_for_backfill(
                                                  sb_out, txn_out);
 }
 
-void btree_store_t::acquire_superblock_for_write(
+void store_t::acquire_superblock_for_write(
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
@@ -890,7 +884,7 @@ void btree_store_t::acquire_superblock_for_write(
                                  interruptor);
 }
 
-void btree_store_t::acquire_superblock_for_write(
+void store_t::acquire_superblock_for_write(
         repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
@@ -910,13 +904,13 @@ void btree_store_t::acquire_superblock_for_write(
 }
 
 /* store_view_t interface */
-void btree_store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
+void store_t::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
     assert_thread();
     fifo_enforcer_read_token_t token = main_token_source.enter_read();
     token_out->create(&main_token_sink, token);
 }
 
-void btree_store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
+void store_t::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
     assert_thread();
     fifo_enforcer_write_token_t token = main_token_source.enter_write();
     token_out->create(&main_token_sink, token);
