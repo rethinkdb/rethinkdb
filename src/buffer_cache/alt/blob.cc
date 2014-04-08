@@ -925,6 +925,7 @@ int blob_t::add_level(buf_parent_t parent, int levels) {
 
 
 bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
+    const block_size_t block_size = parent.cache()->max_block_size();
     int levels = *levels_ref;
     if (levels == 0) {
         return false;
@@ -960,6 +961,18 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             // KSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));
+
+            // Detach children: they're getting reattached to `parent`.
+            int lo;
+            int hi;
+            blob::compute_acquisition_offsets(block_size, levels - 1,
+                                              bigoffset, bigsize,
+                                              &lo, &hi);
+
+            for (int i = lo; i < hi; ++i) {
+                lock.detach_child(b[i]);
+            }
+
             memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
         }
 
