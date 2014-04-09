@@ -1437,7 +1437,20 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const changefeed_update_t &u) {
+        rwlock_in_line_t spot(&store->changefeed_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
         debugf("%d\n", u.action);
+        switch (u.action) {
+        case changefeed_update_t::SUBSCRIBE: {
+            auto res = store->changefeeds.insert(u.addr);
+            guarantee(res.second);
+        } break;
+        case changefeed_update_t::UNSUBSCRIBE: {
+            size_t res = store->changefeeds.erase(u.addr);
+            guarantee(res == 1);
+        } break;
+        default: unreachable();
+        }
         response->response = changefeed_update_response_t(true);
     }
 

@@ -18,6 +18,9 @@ template <class> class mailbox_t;
 template <class T>
 class mailbox_addr_t {
 public:
+    bool operator<(const mailbox_addr_t<T> &other) const {
+        return addr < other.addr;
+    }
     bool is_nil() const { return addr.is_nil(); }
     peer_id_t get_peer() const { return addr.get_peer(); }
 

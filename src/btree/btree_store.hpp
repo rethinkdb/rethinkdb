@@ -394,7 +394,7 @@ public:
     new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
-    std::vector<mailbox_addr_t<void(ql::changefeed_msg_t)> > changefeeds;
+    std::set<mailbox_addr_t<void(ql::changefeed_msg_t)> > changefeeds;
     rwlock_t changefeed_lock;
 
     // Mind the constructor ordering. We must destruct drainer before destructing

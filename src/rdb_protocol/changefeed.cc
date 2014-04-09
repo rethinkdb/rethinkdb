@@ -82,6 +82,7 @@ public:
                  uuid_u uuid)
         : mailbox(manager, [=](changefeed_msg_t msg) { this->handle(std::move(msg)); }),
           subscribers(get_num_threads()),
+          total_subscribers(0),
           updater(mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
         // If we have subscribers left, they have a dangling pointer.
@@ -105,18 +106,18 @@ public:
         std::deque<counted_t<const datum_t> > els;
     };
 
-    // RSI: remove
-    mailbox_addr_t<void(changefeed_msg_t)> addr() {
-        on_thread_t th(home_thread());
-        return mailbox.get_address();
-    }
 private:
+    // Used by `subscription_t`.
+    void add_subscriber(int threadnum, subscription_t *subscriber);
+    void del_subscriber(int threadnum, subscription_t *subscriber) THROWS_NOTHING;
+
     void handle(changefeed_msg_t msg) THROWS_NOTHING;
     mailbox_t<void(changefeed_msg_t)> mailbox;
     // We use an array rather than a `one_per_thread_t` because it's managed by
     // `changefeed_t`s home thread.
 
     scoped_array_t<std::set<subscription_t *> > subscribers;
+    int64_t total_subscribers;
     rwlock_t subscribers_lock;
     changefeed_updater_t updater;
 };
@@ -136,34 +137,6 @@ public:
 private:
     changefeed_t::subscription_t subscription;
 };
-
-changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
-    : wake_coro(NULL), feed(_feed) {
-    threadnum_t feed_thread = feed->home_thread();
-    on_thread_t th(feed_thread);
-    rwlock_in_line_t spot(&feed->subscribers_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
-    auto set = &feed->subscribers[home_thread().threadnum];
-    auto ret = set->insert(this);
-    guarantee(ret.second);
-    debugf("insert (%p: %zu)\n", feed, set->size());
-    if (set->size() == 1) {
-        feed->updater.start_changefeed();
-    }
-}
-changefeed_t::subscription_t::~subscription_t() {
-    threadnum_t feed_thread = feed->home_thread();
-    on_thread_t th(feed_thread);
-    rwlock_in_line_t spot(&feed->subscribers_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
-    auto set = &feed->subscribers[home_thread().threadnum];
-    size_t erased = set->erase(this);
-    guarantee(erased == 1);
-    debugf("erase (%p: %zu)\n", feed, set->size());
-    if (set->size() == 0) {
-        feed->updater.stop_changefeed();
-    }
-}
 
 std::vector<counted_t<const datum_t> >
 changefeed_t::subscription_t::get_els(batcher_t *batcher) {
@@ -193,6 +166,41 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
         auto coro = wake_coro;
         wake_coro = NULL;
         coro->notify_sometime();
+    }
+}
+
+changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
+    : wake_coro(NULL), feed(_feed) {
+    feed->add_subscriber(home_thread().threadnum, this);
+}
+changefeed_t::subscription_t::~subscription_t() {
+    feed->del_subscriber(home_thread().threadnum, this);
+}
+
+void changefeed_t::add_subscriber(int threadnum, subscription_t *subscriber) {
+    on_thread_t th(home_thread());
+    rwlock_in_line_t spot(&subscribers_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto set = &subscribers[threadnum];
+    auto ret = set->insert(subscriber);
+    guarantee(ret.second);
+    total_subscribers += 1;
+    if (total_subscribers == 1) {
+        updater.start_changefeed();
+    }
+}
+
+void changefeed_t::del_subscriber(int threadnum, subscription_t *subscriber)
+    THROWS_NOTHING {
+    on_thread_t th(home_thread());
+    rwlock_in_line_t spot(&subscribers_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto set = &subscribers[threadnum];
+    size_t erased = set->erase(subscriber);
+    guarantee(erased == 1);
+    total_subscribers -= 1;
+    if (total_subscribers == 0) {
+        updater.stop_changefeed();
     }
 }
 

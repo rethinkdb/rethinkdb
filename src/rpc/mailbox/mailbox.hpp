@@ -52,6 +52,9 @@ private:
 
 public:
     struct address_t {
+        bool operator<(const address_t &other) const {
+            return mailbox_id < other.mailbox_id;
+        }
 
         /* Constructs a nil address */
         address_t();
