@@ -1,6 +1,21 @@
+# Release 1.12.2 (The Wizard of Oz)
+
+Released on 2014-04-08
+
+Bug fix update.
+
+* Fixed a bug that caused `illegal to destroy fifo_enforcer_sink_t` errors (#2092)
+* Fixed a bug that caused `Guarantee failed: [resp != __null]` errors (#2214)
+* Fixed a bug that caused `Segmentation fault` errors (#2222)
+* Use less memory for common operations (#2164, #2213)
+* Ruby 2.1.1 support (#2177)
+* Fixed the `PageTest` unit test (#2187)
+* Updated the documentation (#2197)
+* Updated the sample config file (#2205)
+
 # Release 1.12.1 (The Wizard of Oz)
 
-Released on 2014-04-27
+Released on 2014-03-27
 
 Bug fix update.
 
@@ -15,7 +30,7 @@ Bug fix update.
 
 # Release 1.12.0 (The Wizard of Oz)
 
-Released on 2014-04-26
+Released on 2014-03-26
 
 The highlights of this release are a simplified map/reduce, an
 experimental ARM port, and a new caching infrastructure.

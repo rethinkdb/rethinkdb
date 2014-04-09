@@ -7,7 +7,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "clustering/suggester/suggester.hpp"
+#include "clustering/suggester/suggest_blueprint.hpp"
 #include "clustering/administration/metadata.hpp"
 
 struct missing_machine_exc_t : public std::exception {

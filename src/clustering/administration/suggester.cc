@@ -184,5 +184,3 @@ void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
     }
 }
 
-
-// RSI: Rename this file, there's a suggester/suggester.cc.

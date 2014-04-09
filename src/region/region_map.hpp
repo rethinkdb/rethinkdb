@@ -117,7 +117,6 @@ public:
 private:
     internal_vec_t regions_and_values;
 
-    // RSI: This is private, soo... is this even used?
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
 };
 

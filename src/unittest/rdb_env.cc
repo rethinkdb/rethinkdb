@@ -21,7 +21,7 @@ ql::env_t *mock_namespace_repo_t::get_env() {
     return env;
 }
 
-mock_namespace_interface_t* mock_namespace_repo_t::get_ns_if(const namespace_id_t &ns_id) {
+mock_namespace_interface_t *mock_namespace_repo_t::get_ns_if(const namespace_id_t &ns_id) {
     get_cache_entry(ns_id); // This will create it if it doesn't already exist
     if (cache.find(ns_id) != cache.end()) {
         return &cache[ns_id]->mock_ns_if;
@@ -82,8 +82,15 @@ void mock_namespace_interface_t::write(const write_t &query,
     boost::apply_visitor(v, query.write);
 }
 
-std::map<store_key_t, scoped_cJSON_t*>* mock_namespace_interface_t::get_data() {
+std::map<store_key_t, scoped_cJSON_t *> *mock_namespace_interface_t::get_data() {
     return &data;
+}
+
+std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
+    std::set<region_t> s;
+    s.insert(region_t::universe());
+    return s;
 }
 
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {

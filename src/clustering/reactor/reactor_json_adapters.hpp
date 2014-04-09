@@ -15,7 +15,6 @@ void apply_json_to(cJSON *, backfill_location_t *) NORETURN;
 // ctx-less json adapter for primary_when_safe
 json_adapter_if_t::json_adapter_map_t get_json_subfields(primary_when_safe_t *);
 cJSON *render_as_json(primary_when_safe_t *);
-// RSI: Should apply_json_to simply not be implemented for these exception-throwing functions?
 void apply_json_to(cJSON *, primary_when_safe_t *) NORETURN;
 
 // ctx-less json adapter for primary

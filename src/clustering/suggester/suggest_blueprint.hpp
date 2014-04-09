@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_SUGGESTER_SUGGESTER_HPP_
-#define CLUSTERING_SUGGESTER_SUGGESTER_HPP_
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_
+#define CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_
 
 #include <map>
 #include <set>
@@ -39,4 +39,4 @@ persistable_blueprint_t suggest_blueprint(
         std::map<machine_id_t, int> *usage,
         bool prioritize_distribution);
 
-#endif /* CLUSTERING_SUGGESTER_SUGGESTER_HPP_ */
+#endif /* CLUSTERING_SUGGESTER_SUGGEST_BLUEPRINT_HPP_ */
