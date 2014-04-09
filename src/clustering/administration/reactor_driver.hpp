@@ -13,7 +13,6 @@
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
-#include "concurrency/new_semaphore.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
