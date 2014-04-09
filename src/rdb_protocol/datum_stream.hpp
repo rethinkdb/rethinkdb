@@ -30,7 +30,6 @@ class env_t;
  * - Call the corresponding method on internal_
  * - splitter_t::give_splits with the event logs from the shards
  */
-// RSI: This should be renamed.
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(

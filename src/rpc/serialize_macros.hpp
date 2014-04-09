@@ -52,11 +52,11 @@ the class scope. */
     friend class write_message_t; \
     void rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(UNUSED read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_0(typ) \
     void typ::rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
@@ -86,13 +86,13 @@ the class scope. */
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_1(typ, field1) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -129,7 +129,6 @@ the class scope. */
         msg << field1; \
         msg << field2; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -137,7 +136,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field2)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_2(typ, field1, field2) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -181,7 +181,6 @@ the class scope. */
         msg << field2; \
         msg << field3; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -191,7 +190,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field3)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_3(typ, field1, field2, field3) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -242,7 +242,6 @@ the class scope. */
         msg << field3; \
         msg << field4; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -254,7 +253,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field4)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_4(typ, field1, field2, field3, field4) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -312,7 +312,6 @@ the class scope. */
         msg << field4; \
         msg << field5; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -326,7 +325,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field5)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_5(typ, field1, field2, field3, field4, field5) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -391,7 +391,6 @@ the class scope. */
         msg << field5; \
         msg << field6; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -407,7 +406,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field6)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_6(typ, field1, field2, field3, field4, field5, field6) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -479,7 +479,6 @@ the class scope. */
         msg << field6; \
         msg << field7; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -497,7 +496,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field7)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_7(typ, field1, field2, field3, field4, field5, field6, field7) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -576,7 +576,6 @@ the class scope. */
         msg << field7; \
         msg << field8; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -596,7 +595,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field8)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_8(typ, field1, field2, field3, field4, field5, field6, field7, field8) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -682,7 +682,6 @@ the class scope. */
         msg << field8; \
         msg << field9; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -704,7 +703,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field9)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_9(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -797,7 +797,6 @@ the class scope. */
         msg << field9; \
         msg << field10; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -821,7 +820,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field10)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_10(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -921,7 +921,6 @@ the class scope. */
         msg << field10; \
         msg << field11; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -947,7 +946,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field11)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_11(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1054,7 +1054,6 @@ the class scope. */
         msg << field11; \
         msg << field12; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1082,7 +1081,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field12)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_12(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1196,7 +1196,6 @@ the class scope. */
         msg << field12; \
         msg << field13; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1226,7 +1225,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field13)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1347,7 +1347,6 @@ the class scope. */
         msg << field13; \
         msg << field14; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1379,7 +1378,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field14)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_14(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1507,7 +1507,6 @@ the class scope. */
         msg << field14; \
         msg << field15; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1541,7 +1540,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field15)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_15(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1676,7 +1676,6 @@ the class scope. */
         msg << field15; \
         msg << field16; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1712,7 +1711,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field16)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_16(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -1854,7 +1854,6 @@ the class scope. */
         msg << field16; \
         msg << field17; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -1892,7 +1891,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field17)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_17(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -2041,7 +2041,6 @@ the class scope. */
         msg << field17; \
         msg << field18; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -2081,7 +2080,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field18)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_18(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
@@ -2237,7 +2237,6 @@ the class scope. */
         msg << field18; \
         msg << field19; \
     } \
-    friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         res = deserialize(s, deserialize_deref(field1)); \
@@ -2279,7 +2278,8 @@ the class scope. */
         res = deserialize(s, deserialize_deref(field19)); \
         if (bad(res)) { return res; } \
         return res; \
-    }
+    } \
+    friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_19(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \

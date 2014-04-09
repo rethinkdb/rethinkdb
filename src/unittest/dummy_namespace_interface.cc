@@ -207,6 +207,14 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
     sharder.init(new dummy_sharder_t(shards_of_this_db, ctx));
 }
 
+std::set<region_t> dummy_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
+    std::set<region_t> s;
+    s.insert(region_t::universe());
+    return s;
+}
+
+
 
 
 }  // namespace unittest

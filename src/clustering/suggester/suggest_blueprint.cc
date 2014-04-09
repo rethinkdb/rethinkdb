@@ -1,5 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "clustering/suggester/suggester.hpp"
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/suggester/suggest_blueprint.hpp"
 
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "containers/priority_queue.hpp"
