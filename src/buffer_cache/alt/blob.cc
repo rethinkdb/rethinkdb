@@ -236,6 +236,7 @@ int64_t clamp(int64_t x, int64_t lo, int64_t hi) {
     return x < lo ? lo : x > hi ? hi : x;
 }
 
+
 void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out) {
     int64_t step = stepsize(block_size, levels);
 
@@ -247,6 +248,15 @@ void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, i
 
     *suboffset_out = suboffset - clamp_low;
     *subsize_out = subsize;
+}
+
+// Exists so callers passing a 0 offset don't have to analyze that the suboffset will
+// be 0.
+void shrink(block_size_t block_size, int levels,
+            int64_t size, int index, int64_t *subsize_out) {
+    int64_t suboffset;
+    shrink(block_size, levels, 0, size, index, &suboffset, subsize_out);
+    guarantee(suboffset == 0);
 }
 
 void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t offset, int64_t size, int *lo_out, int *hi_out) {
@@ -541,18 +551,17 @@ struct traverse_helper_t {
 };
 
 void traverse_recursively(buf_parent_t parent, int levels,
-                          block_id_t *block_ids, int64_t old_offset,
-                          int64_t old_size, int64_t new_offset, int64_t new_size,
+                          block_id_t *block_ids,
+                          int64_t old_size, int64_t new_size,
                           traverse_helper_t *helper);
 
 void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
-                    int index, int64_t old_offset, int64_t old_size,
-                    int64_t new_offset, int64_t new_size,
+                    int index, int64_t old_size, int64_t new_size,
                     traverse_helper_t *helper) {
     const block_size_t block_size = parent.cache()->max_block_size();
-    int64_t sub_old_offset, sub_old_size, sub_new_offset, sub_new_size;
-    blob::shrink(block_size, levels, old_offset, old_size, index, &sub_old_offset, &sub_old_size);
-    blob::shrink(block_size, levels, new_offset, new_size, index, &sub_new_offset, &sub_new_size);
+    int64_t sub_old_size, sub_new_size;
+    blob::shrink(block_size, levels, old_size, index, &sub_old_size);
+    blob::shrink(block_size, levels, new_size, index, &sub_new_size);
 
     if (sub_old_size > 0) {
         if (levels > 1) {
@@ -562,8 +571,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
-                                 sub_old_offset, sub_old_size,
-                                 sub_new_offset, sub_new_size,
+                                 sub_old_size, sub_new_size,
                                  helper);
         }
 
@@ -576,8 +584,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
             void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
-                                 sub_old_offset, sub_old_size,
-                                 sub_new_offset, sub_new_size,
+                                 old_size, sub_new_size,
                                  helper);
         }
 
@@ -586,48 +593,29 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 }
 
 void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
-                          int64_t old_offset, int64_t old_size, int64_t new_offset,
-                          int64_t new_size, traverse_helper_t *helper) {
+                          int64_t old_size, int64_t new_size,
+                          traverse_helper_t *helper) {
     const block_size_t block_size = parent.cache()->max_block_size();
 
     int old_lo, old_hi, new_lo, new_hi;
-    compute_acquisition_offsets(block_size, levels, old_offset, old_size,
+    compute_acquisition_offsets(block_size, levels, 0, old_size,
                                 &old_lo, &old_hi);
-    compute_acquisition_offsets(block_size, levels, new_offset, new_size,
+    compute_acquisition_offsets(block_size, levels, 0, new_size,
                                 &new_lo, &new_hi);
 
     int64_t leafsize = leaf_size(block_size);
 
+    // RSI: This seems like vestigial offset logic.
     // This highest_i variable makes sure, rigorously, that the two
     // for loops don't trace the same subtree twice.
     int highest_i = -1;
 
-    if (new_offset / leafsize < old_offset / leafsize) {
-        // See comment [1] below.
-        for (int i = new_lo; i <= old_lo && i < new_hi; ++i) {
-            traverse_index(parent, levels, block_ids, i, old_offset, old_size,
-                           new_offset, new_size, helper);
-            highest_i = i;
-        }
-    }
-    if (ceil_divide(new_offset + new_size, leafsize)
-        > ceil_divide(old_offset + old_size, leafsize)) {
+    if (ceil_divide(new_size, leafsize) > ceil_divide(old_size, leafsize)) {
         for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
-            traverse_index(parent, levels, block_ids, i, old_offset,
-                           old_size, new_offset, new_size, helper);
+            traverse_index(parent, levels, block_ids, i,
+                           old_size, new_size, helper);
         }
     }
-
-    // [1] We have a problem that if old_offset is on a multiple of
-    // the step size, we'll visit the left edge of the completely
-    // acquired branch.  However, when old_lo = 1020, we'd actually be
-    // walking past the end of the value.  We make the mistake in the
-    // design of this function of allowing old_size to be zero and
-    // trying to handle such cases.  The check that i < new_hi
-    // prevents us from walking off the edge when old_lo = 1020,
-    // because new_hi cannot be more than 1020.
-    //
-    // Really, we should require that old_size be greater than zero.
 }
 
 
@@ -643,7 +631,7 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
         if (levels != 0) {
             blob::traverse_recursively(parent, levels,
                                        blob::block_ids(ref_, maxreflen_),
-                                       /* old_offset */ 0, old_size, /* new_offset */ 0, new_size,
+                                       old_size, new_size,
                                        helper);
         }
         return true;
@@ -774,7 +762,7 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             int lo;
             int hi;
             blob::compute_acquisition_offsets(block_size, levels - 1,
-                                              /* bigoffset */ 0, bigsize,
+                                              0, bigsize,
                                               &lo, &hi);
 
             for (int i = lo; i < hi; ++i) {
