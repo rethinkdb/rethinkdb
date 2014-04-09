@@ -351,3 +351,16 @@ void backfillee(
         interruptor);
 }
 
+peer_id_t extract_backfiller_peer_id(
+        const boost::optional<boost::optional<backfiller_business_card_t> >
+        &backfiller_metadata) {
+    peer_id_t peer;
+    if (backfiller_metadata) {
+        auto option2 = backfiller_metadata.get();
+        if (option2 && !option2->backfill_mailbox.is_nil()) {
+            peer = option2->backfill_mailbox.get_peer();
+        }
+    }
+    return peer;
+}
+

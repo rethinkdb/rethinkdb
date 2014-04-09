@@ -157,20 +157,8 @@ listener_t::listener_t(const base_path_t &base_path,
         wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
 
         {
-            peer_id_t peer;
-            {
-                // Get out the peer id of the backfiller, which is annoyingly
-                // complicated from in here because of all the options.
-                // If we fail to get the id somehow, we just use the nil id for
-                // throttling.
-                const auto option1 = get_backfiller_from_replier_bcard(replier->get());
-                if (option1) {
-                    auto option2 = option1.get();
-                    if (option2 && !option2->backfill_mailbox.is_nil()) {
-                        peer = option2->backfill_mailbox.get_peer();
-                    }
-                }
-            }
+            const peer_id_t peer = extract_backfiller_peer_id(
+                    get_backfiller_from_replier_bcard(replier->get()));
             backfill_throttler_t::lock_t throttler_lock(backfill_throttler, peer,
                                                         interruptor);
 

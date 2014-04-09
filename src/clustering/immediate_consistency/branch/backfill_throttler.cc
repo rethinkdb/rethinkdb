@@ -42,6 +42,9 @@ backfill_throttler_t::lock_t::lock_t(backfill_throttler_t *p,
             // the wrong thread.
             reset();
             throw;
+        } catch (...) {
+            crash("Encountered an unexpected exception in " \
+                  "backfill_throttler_t::lock_t::lock_t().");
         }
     }
 }
