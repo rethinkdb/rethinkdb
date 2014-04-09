@@ -681,10 +681,7 @@ void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
     deallocate_helper_t helper;
     if (levels == 0) {
         rassert(0 <= new_size);
-        rassert(new_size <= int64_t(blob::small_size(ref_, maxreflen_)));
-        char *buf = blob::small_buffer(ref_, maxreflen_);
-        // RSI: No memmove necessary.
-        memmove(buf, buf, new_size);
+        rassert(new_size <= blob::small_size(ref_, maxreflen_));
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
         DEBUG_VAR bool res = traverse_to_dimensions(parent, levels, new_size, valuesize(), &helper);
