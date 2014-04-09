@@ -20,8 +20,6 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-const static int MAX_INCOMING_BACKFILLS = 32;
-
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
