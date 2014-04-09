@@ -636,11 +636,10 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
 bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
                                     int64_t old_size, int64_t new_size,
                                     blob::traverse_helper_t *helper) {
-    DEBUG_VAR int64_t old_end = old_size;  // RSI
-    int64_t new_end = new_size; // RSI
-    rassert(new_end >= old_end);
+    // RSI: These are misnamed -- new and old should be bigger and smaller.
+    rassert(new_size >= old_size);
     const block_size_t block_size = parent.cache()->max_block_size();
-    if (new_end <= blob::max_end_offset(block_size, levels, maxreflen_)) {
+    if (new_size <= blob::max_end_offset(block_size, levels, maxreflen_)) {
         if (levels != 0) {
             blob::traverse_recursively(parent, levels,
                                        blob::block_ids(ref_, maxreflen_),
