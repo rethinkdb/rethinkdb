@@ -1,9 +1,12 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILL_THROTTLER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILL_THROTTLER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/optional.hpp>
 
 #include "concurrency/interruptor.hpp"
 #include "concurrency/new_semaphore.hpp"
@@ -23,6 +26,11 @@ public:
     private:
         void reset();
         backfill_throttler_t *parent;
+        // An optional to handle cases where reset() is called twice.
+        // That shouldn't happen, unless the constructor throws an exception and
+        // the ~lock_t() destructor is still executed somewhow. But let's better be
+        // on the safe side here.
+        boost::optional<peer_id_t> peer;
         scoped_ptr_t<new_semaphore_acq_t> global_acq;
         scoped_ptr_t<new_semaphore_acq_t> peer_acq;
     };
@@ -33,8 +41,8 @@ public:
 private:
     friend class lock_t;
     new_semaphore_t global_sem;
-    // TODO (daniel): Evict peer_sems that have become unused.
     boost::ptr_map<peer_id_t, new_semaphore_t> peer_sems;
+    std::map<peer_id_t, intptr_t> peer_sems_refcount;
 
     DISABLE_COPYING(backfill_throttler_t);
 };

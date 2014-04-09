@@ -156,8 +156,6 @@ listener_t::listener_t(const base_path_t &base_path,
         wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
         wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
 
-        // TODO! Check again what "up to date" here means exactly to make sure
-        // that this is the right place for throttling
         {
             peer_id_t peer;
             {
