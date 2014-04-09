@@ -605,13 +605,8 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
 
     int64_t leafsize = leaf_size(block_size);
 
-    // RSI: This seems like vestigial offset logic.
-    // This highest_i variable makes sure, rigorously, that the two
-    // for loops don't trace the same subtree twice.
-    int highest_i = -1;
-
     if (ceil_divide(new_size, leafsize) > ceil_divide(old_size, leafsize)) {
-        for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
+        for (int i = std::max(0, old_hi - 1); i < new_hi; ++i) {
             traverse_index(parent, levels, block_ids, i,
                            old_size, new_size, helper);
         }
