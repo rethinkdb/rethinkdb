@@ -317,6 +317,7 @@ private:
             base_path,
             io_backender,
             parent_->mbox_manager,
+            &parent_->backfill_throttler,
             this,
             parent_->directory_view->incremental_subview(extract_reactor_directory),
             parent_->branch_history_manager,

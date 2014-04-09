@@ -49,6 +49,7 @@ reactor_t<protocol_t>::reactor_t(
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
+        backfill_throttler_t *backfill_throttler_,
         ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
@@ -62,6 +63,7 @@ reactor_t<protocol_t>::reactor_t(
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
     io_backender(_io_backender),
     mailbox_manager(mm),
+    backfill_throttler(backfill_throttler_),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<protocol_t> >()),
     directory_echo_mirror(mailbox_manager, rd->template incremental_subview<

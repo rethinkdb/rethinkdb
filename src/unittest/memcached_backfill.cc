@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -138,6 +139,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         &inserter_state);
     nap(10000);
 
+    backfill_throttler_t backfill_throttler;
+
     /* Set up a second mirror */
     test_store_t<memcached_protocol_t> store2(io_backender, order_source, static_cast<memcached_protocol_t::context_t *>(NULL));
     cond_t interruptor;
@@ -145,6 +148,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,

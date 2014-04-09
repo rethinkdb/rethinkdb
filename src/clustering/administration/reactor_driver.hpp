@@ -10,6 +10,7 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
@@ -132,6 +133,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     typename protocol_t::context_t *ctx;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
+    backfill_throttler_t backfill_throttler;
 
     scoped_ptr_t<ack_info_t<protocol_t> > ack_info;
 

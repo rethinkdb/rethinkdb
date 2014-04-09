@@ -11,6 +11,7 @@
 
 #include "arch/io/io_utils.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
@@ -98,6 +99,7 @@ public:
     }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
+    backfill_throttler_t backfill_throttler;
     reactor_t<protocol_t> reactor;
     field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
 
@@ -152,7 +154,7 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
 template <class protocol_t>
 test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, io_backender, &r->mailbox_manager, this,
+    reactor(base_path, io_backender, &r->mailbox_manager, &backfill_throttler, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {

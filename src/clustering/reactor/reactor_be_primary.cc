@@ -9,6 +9,7 @@
 
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -260,6 +261,7 @@ void do_backfill(
         mailbox_manager_t *mailbox_manager,
         branch_history_manager_t<protocol_t> *branch_history_manager,
         store_view_t<protocol_t> *svs,
+        backfill_throttler_t *backfill_throttler,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -269,13 +271,22 @@ void do_backfill(
     bool result = false;
 
     try {
+        const peer_id_t peer = extract_backfiller_peer_id(backfiller_metadata->get());
+        backfill_throttler_t::lock_t throttler_lock(backfill_throttler, peer,
+                                                    interruptor);
+
         cross_thread_watchable_variable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > ct_backfiller_metadata(backfiller_metadata, svs->home_thread());
         cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
-        on_thread_t th(svs->home_thread());
+        {
+            on_thread_t backfill_th(svs->home_thread());
 
-        backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, ct_backfiller_metadata.get_watchable(), backfill_session_id, &ct_interruptor);
+            backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region,
+                       ct_backfiller_metadata.get_watchable(), backfill_session_id,
+                       &ct_interruptor);
 
-        result = true;
+            result = true;
+        } // Return from svs thread
+        // Release throttler_lock
     } catch (const interrupted_exc_t &) {
     } catch (const resource_lost_exc_t &) {
     }
@@ -359,6 +370,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
                                                mailbox_manager,
                                                branch_history_manager,
                                                svs,
+                                               backfill_throttler,
                                                it->first,
                                                it->second.places_to_get_this_version[0].backfiller,
                                                backfill_session_id,

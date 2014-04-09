@@ -5,6 +5,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/generic/resource.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template <class> class clone_ptr_t;
@@ -35,5 +36,22 @@ void backfillee(
 
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+
+/* Convenience function for extracting the backfiller's peer_id_t from the
+ * backfiller metadata. Returns a nil ID if no peer id exists. */
+template<class protocol_t>
+peer_id_t extract_backfiller_peer_id(
+        const boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >
+        &backfiller_metadata) {
+    peer_id_t peer;
+    if (backfiller_metadata) {
+        auto option2 = backfiller_metadata.get();
+        if (option2 && !option2->backfill_mailbox.is_nil()) {
+            peer = option2->backfill_mailbox.get_peer();
+        }
+    }
+    return peer;
+}
+
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_ */
