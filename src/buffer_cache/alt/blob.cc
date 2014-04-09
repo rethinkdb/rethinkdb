@@ -473,7 +473,6 @@ void blob_t::append_region(buf_parent_t parent, int64_t size) {
     }
 
     while (!allocate_to_dimensions(parent, levels,
-                                   /* RSI: ref_value_offset */ 0,
                                    valuesize() + size)) {
         levels = add_level(parent, levels);
     }
@@ -673,11 +672,12 @@ struct allocate_helper_t : public blob::traverse_helper_t {
 };
 
 bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
-                                    int64_t new_offset, int64_t new_size) {
+                                    int64_t new_size) {
     allocate_helper_t helper;
     return traverse_to_dimensions(parent, levels,
                                   /* RSI: ref_value_offset */ 0,
-                                  valuesize(), new_offset, new_size, &helper);
+                                  valuesize(), /* RSI: new_offset */ 0,
+                                  new_size, &helper);
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {

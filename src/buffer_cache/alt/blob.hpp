@@ -208,7 +208,7 @@ private:
                                 int64_t new_offset, int64_t new_size,
                                 blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(buf_parent_t parent, int levels,
-                                int64_t new_offset, int64_t new_size);
+                                int64_t new_size);
     bool shift_at_least(buf_parent_t parent, int levels, int64_t min_shift);
     void consider_big_shift(buf_parent_t parent, int levels,
                             int64_t *min_shift);
