@@ -2,6 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -187,6 +188,8 @@ void run_backfill_test(size_t value_padding_length,
         &inserter_state);
     nap(10000);
 
+    backfill_throttler_t backfill_throttler;
+
     /* Set up a second mirror */
     test_store_t store2(io_backender, order_source, ctx);
     cond_t interruptor;
@@ -194,6 +197,7 @@ void run_backfill_test(size_t value_padding_length,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,
@@ -251,6 +255,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                               rdb_context_t *ctx,
                               order_source_t *order_source) {
     io_backender_t *const io_backender = io_backender_and_cluster.first;
+    backfill_throttler_t backfill_throttler;
     simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
 
     recreate_temporary_directory(base_path_t("."));
@@ -309,6 +314,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,

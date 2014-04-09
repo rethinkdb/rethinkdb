@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -209,6 +210,8 @@ void run_backfill_test(io_backender_t *io_backender,
         &inserter_state);
     nap(100);
 
+    backfill_throttler_t backfill_throttler;
+
     /* Set up a second mirror */
     mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
@@ -216,6 +219,7 @@ void run_backfill_test(io_backender_t *io_backender,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
         &store2,
@@ -275,6 +279,8 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         &inserter_state);
     nap(100);
 
+    backfill_throttler_t backfill_throttler;
+
     /* Set up a second mirror */
     mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
     region_t subregion(key_range_t(key_range_t::closed, store_key_t("a"),
@@ -284,6 +290,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
         &store2,
