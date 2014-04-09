@@ -78,14 +78,4 @@ public:
 RDB_MAKE_EQUALITY_COMPARABLE_2(master_business_card_t,
     region, multi_throttling);
 
-// RSI: These are probably unused.  Remove these.
-
-// RDB_MAKE_EQUALITY_COMPARABLE_4(
-//     master_business_card_t::read_request_t,
-//     read, order_token, fifo_token, cont_addr);
-
-// RDB_MAKE_EQUALITY_COMPARABLE_4(
-//     master_business_card_t::write_request_t,
-//     write, order_token, fifo_token, cont_addr);
-
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_ */
