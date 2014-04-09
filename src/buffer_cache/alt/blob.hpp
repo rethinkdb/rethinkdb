@@ -204,8 +204,7 @@ public:
 
 private:
     bool traverse_to_dimensions(buf_parent_t parent, int levels,
-                                int64_t old_offset, int64_t old_size,
-                                int64_t new_offset, int64_t new_size,
+                                int64_t old_size, int64_t new_size,
                                 blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(buf_parent_t parent, int levels,
                                 int64_t new_size);

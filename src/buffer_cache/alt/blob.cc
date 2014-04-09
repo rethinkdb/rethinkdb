@@ -634,18 +634,17 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
 }  // namespace blob
 
 bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
-                                    int64_t old_offset, int64_t old_size,
-                                    int64_t new_offset, int64_t new_size,
+                                    int64_t old_size, int64_t new_size,
                                     blob::traverse_helper_t *helper) {
-    DEBUG_VAR int64_t old_end = old_offset + old_size;
-    int64_t new_end = new_offset + new_size;
-    rassert(new_offset <= old_offset && new_end >= old_end);
+    DEBUG_VAR int64_t old_end = old_size;  // RSI
+    int64_t new_end = new_size; // RSI
+    rassert(new_end >= old_end);
     const block_size_t block_size = parent.cache()->max_block_size();
-    if (new_offset >= 0 && new_end <= blob::max_end_offset(block_size, levels, maxreflen_)) {
+    if (new_end <= blob::max_end_offset(block_size, levels, maxreflen_)) {
         if (levels != 0) {
             blob::traverse_recursively(parent, levels,
                                        blob::block_ids(ref_, maxreflen_),
-                                       old_offset, old_size, new_offset, new_size,
+                                       /* old_offset */ 0, old_size, /* new_offset */ 0, new_size,
                                        helper);
         }
         return true;
@@ -675,9 +674,7 @@ bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
                                     int64_t new_size) {
     allocate_helper_t helper;
     return traverse_to_dimensions(parent, levels,
-                                  /* RSI: ref_value_offset */ 0,
-                                  valuesize(), /* RSI: new_offset */ 0,
-                                  new_size, &helper);
+                                  valuesize(), new_size, &helper);
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
@@ -703,7 +700,7 @@ void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
         memmove(buf, buf, new_size);
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
-        DEBUG_VAR bool res = traverse_to_dimensions(parent, levels, /* RSI: new_offset */ 0, new_size, /* RSI: ref_value_offset */ 0, valuesize(), &helper);
+        DEBUG_VAR bool res = traverse_to_dimensions(parent, levels, new_size, valuesize(), &helper);
         blob::set_big_size(ref_, maxreflen_, new_size);
         rassert(res);
     }
