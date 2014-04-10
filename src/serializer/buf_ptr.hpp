@@ -6,6 +6,10 @@
 #include "serializer/types.hpp"
 
 // Memory-aligned bufs.
+
+// Note: This wastes 4 bytes of space on a 64-bit system.  (Arguably, it wastes more
+// than that given that block sizes could be 16 bits and pointers are really 48
+// bits.)  If you want to optimize page_t, you could store a 32-bit type in here.
 class buf_ptr {
 public:
     buf_ptr() : block_size_(block_size_t::undefined()) { }
