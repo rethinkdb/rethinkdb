@@ -43,7 +43,7 @@ void buf_ptr::resize_fill_zero(block_size_t new_size) {
         if (new_size.ser_value() < block_size_.ser_value()) {
             // Set the newly unused part of the block to zero.
             // RSI: Performance? -- and can this entire function just go away?
-            memset(reinterpret_cast<char *>(ser_buffer_.get()) + block_size_.ser_value(),
+            memset(reinterpret_cast<char *>(ser_buffer_.get()) + new_size.ser_value(),
                    0,
                    block_size_.ser_value() - new_size.ser_value());
         }
