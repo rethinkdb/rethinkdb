@@ -170,7 +170,7 @@ void extract(cJSON *json, Query *q) {
     transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
 }
 
-bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
+bool parse_json_pb(Query *q, const char *str) THROWS_NOTHING {
     try {
         q->Clear();
         scoped_cJSON_t json_holder(cJSON_Parse(str));
@@ -195,12 +195,12 @@ bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
     }
 }
 
-int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
+void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
     try {
-        *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
-        for (int i = 0; i < r->response_size(); ++i) {
+        *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r.type(), r.token());
+        for (int i = 0; i < r.response_size(); ++i) {
             *s += (i == 0) ? "" : ",";
-            const Datum *d = &r->response(i);
+            const Datum *d = &r.response(i);
             if (d->type() == Datum::R_JSON) {
                 *s += d->r_str();
             } else if (d->type() == Datum::R_STR) {
@@ -212,9 +212,9 @@ int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
         }
         *s += "]";
 
-        if (r->has_backtrace()) {
+        if (r.has_backtrace()) {
             *s += ",\"b\":";
-            const Backtrace *bt = &r->backtrace();
+            const Backtrace *bt = &r.backtrace();
             scoped_cJSON_t arr(cJSON_CreateArray());
             for (int i = 0; i < bt->frames_size(); ++i) {
                 const Frame *f = &bt->frames(i);
@@ -231,24 +231,22 @@ int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
             *s += arr.PrintUnformatted();
         }
 
-        if (r->has_profile()) {
+        if (r.has_profile()) {
             *s += ",\"p\":";
-            const Datum *d = &r->profile();
+            const Datum *d = &r.profile();
             guarantee(d->type() == Datum::R_JSON);
             *s += d->r_str();
         }
 
         *s += "}";
-        return r->token();
     } catch (...) {
 #ifndef NDEBUG
         throw;
 #else
         *s = strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[\"%s\"]}",
                        Response::RUNTIME_ERROR,
-                       r->token(),
+                       r.token(),
                        "Internal error in `write_json_pb`, please report this.");
-        return r->token();
 #endif // NDEBUG
     }
 }

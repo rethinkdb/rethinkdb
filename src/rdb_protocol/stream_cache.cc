@@ -5,11 +5,11 @@
 
 namespace ql {
 
-bool stream_cache2_t::contains(int64_t key) {
+bool stream_cache_t::contains(int64_t key) {
     return streams.find(key) != streams.end();
 }
 
-void stream_cache2_t::insert(int64_t key,
+void stream_cache_t::insert(int64_t key,
                              use_json_t use_json,
                              scoped_ptr_t<env_t> &&val_env,
                              counted_t<datum_stream_t> val_stream) {
@@ -19,12 +19,12 @@ void stream_cache2_t::insert(int64_t key,
     guarantee(res.second);
 }
 
-void stream_cache2_t::erase(int64_t key) {
+void stream_cache_t::erase(int64_t key) {
     size_t num_erased = streams.erase(key);
     guarantee(num_erased == 1);
 }
 
-bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
+bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
@@ -64,11 +64,11 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     return true;
 }
 
-void stream_cache2_t::maybe_evict() {
+void stream_cache_t::maybe_evict() {
     // We never evict right now.
 }
 
-stream_cache2_t::entry_t::entry_t(time_t _last_activity,
+stream_cache_t::entry_t::entry_t(time_t _last_activity,
                                   use_json_t _use_json,
                                   scoped_ptr_t<env_t> &&env_ptr,
                                   counted_t<datum_stream_t> _stream)
@@ -79,7 +79,7 @@ stream_cache2_t::entry_t::entry_t(time_t _last_activity,
       max_age(DEFAULT_MAX_AGE),
       has_sent_batch(false) { }
 
-stream_cache2_t::entry_t::~entry_t() { }
+stream_cache_t::entry_t::~entry_t() { }
 
 
 } // namespace ql
