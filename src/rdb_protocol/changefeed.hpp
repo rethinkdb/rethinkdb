@@ -36,7 +36,8 @@ class changefeed_manager_t : public home_thread_mixin_t {
 public:
     changefeed_manager_t(mailbox_manager_t *_manager);
     ~changefeed_manager_t();
-    counted_t<datum_stream_t> changefeed(const counted_t<table_t> &tbl, env_t *env);
+    counted_t<datum_stream_t> changefeed(const counted_t<table_t> &tbl, env_t *env)
+        THROWS_ONLY(cannot_perform_query_exc_t);
     mailbox_manager_t *get_manager() { return manager; }
 private:
     mailbox_manager_t *manager;

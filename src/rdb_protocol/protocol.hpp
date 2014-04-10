@@ -676,7 +676,6 @@ struct rdb_protocol_t {
          *  splitting up batched replaces/inserts) and want it to only have an
          *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
          *  durability. */
-        // RSI: require rvalue references.
         template<class T>
         write_t(T t,
                 durability_requirement_t durability,

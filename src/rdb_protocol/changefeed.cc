@@ -33,7 +33,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     changefeed_msg_t::TABLE_DROP);
 RDB_IMPL_ME_SERIALIZABLE_3(changefeed_msg_t, type, empty_ok(old_val), empty_ok(new_val));
 
-// RSI: make the interruptor make sense.
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
     changefeed_updater_t(mailbox_addr_t<void(changefeed_msg_t)> _addr,
@@ -41,31 +40,34 @@ public:
                          uuid_u uuid)
         : addr(_addr), access(ns_repo, uuid, &cond) { }
     ~changefeed_updater_t() { cond.pulse(); }
-    void start_changefeed() {
-        // RSI: handle master unavailable exceptions in the layer above us.
+    void start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
         update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
     }
     void stop_changefeed() THROWS_NOTHING { // This is called in a destructor.
         try {
             update_changefeed(rdb_protocol_t::changefeed_update_t::UNSUBSCRIBE);
-            // RSI: Exceptions: interrupted_exc_t, master unavailable, ?
-        } catch (...) {
-            // If something goes wrong here (e.g. the master is unavailable), we
-            // just continue.  This behavior is correct, but might be
-            // inefficient (e.g. if the master is only temporarily down we don't
-            // want to stay subscribed forever).
+        } catch (const cannot_perform_query_exc_t &e) {
+            // RSI: We can't access the table to unsubscribe.  Not sure what to
+            // do here; how should we handle the dangling mailbox on the other
+            // end?
         }
     }
 private:
-    void update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action) {
+    void update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
+        THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
-        auto_drainer_t::lock_t lock(&interrupt_drainer);
-        auto nif = access.get_namespace_if();
-        rdb_protocol_t::write_t write(
-            rdb_protocol_t::changefeed_update_t(addr, action),
-            profile_bool_t::DONT_PROFILE);
-        rdb_protocol_t::write_response_t resp;
-        nif->write(write, &resp, order_token_t::ignore, &cond);
+        try {
+            auto_drainer_t::lock_t lock(&interrupt_drainer);
+            auto nif = access.get_namespace_if();
+            rdb_protocol_t::write_t write(
+                rdb_protocol_t::changefeed_update_t(addr, action),
+                profile_bool_t::DONT_PROFILE);
+            rdb_protocol_t::write_response_t resp;
+            nif->write(write, &resp, order_token_t::ignore, &cond);
+        } catch (const interrupted_exc_t &e) {
+            // RSI: We're being destroyed.  Not sure what to do here; how should
+            // we handle the dangling mailbox on the other end?
+        }
     }
     mailbox_addr_t<void(changefeed_msg_t)> addr;
     cond_t cond;
@@ -83,7 +85,7 @@ public:
         : mailbox(manager, [=](changefeed_msg_t msg) { this->handle(std::move(msg)); }),
           subscribers(get_num_threads()),
           total_subscribers(0),
-          updater(mailbox.get_address(), ns_repo, uuid) { }
+          updater(mailbox.get_address(), ns_repo, uuid), { }
     ~changefeed_t() {
         // If we have subscribers left, they have a dangling pointer.
         for (int i = 0; i < get_num_threads(); ++i) {
@@ -112,10 +114,10 @@ private:
     void del_subscriber(int threadnum, subscription_t *subscriber) THROWS_NOTHING;
 
     void handle(changefeed_msg_t msg) THROWS_NOTHING;
+
     mailbox_t<void(changefeed_msg_t)> mailbox;
     // We use an array rather than a `one_per_thread_t` because it's managed by
     // `changefeed_t`s home thread.
-
     scoped_array_t<std::set<subscription_t *> > subscribers;
     int64_t total_subscribers;
     rwlock_t subscribers_lock;
@@ -254,7 +256,8 @@ changefeed_manager_t::changefeed_manager_t(mailbox_manager_t *_manager)
 changefeed_manager_t::~changefeed_manager_t() { }
 
 counted_t<datum_stream_t> changefeed_manager_t::changefeed(
-    const counted_t<table_t> &tbl, env_t *env) {
+    const counted_t<table_t> &tbl, env_t *env)
+    THROWS_ONLY(cannot_perform_query_exc_t) {
     uuid_u uuid = tbl->get_uuid();
     base_namespace_repo_t<rdb_protocol_t> *ns_repo = env->cluster_access.ns_repo;
     changefeed_t *feed;
@@ -268,9 +271,7 @@ counted_t<datum_stream_t> changefeed_manager_t::changefeed(
         feed = &*entry->second;
         assert(feed->home_thread() == home_thread());
     }
-    counted_t<datum_stream_t> ret(new change_stream_t(feed, tbl->backtrace()));
-    // send(manager, feed->addr(), make_counted<const datum_t>(3.14));
-    return std::move(ret);
+    return counted_t<datum_stream_t>(new change_stream_t(feed, tbl->backtrace()));
 }
 
 }
