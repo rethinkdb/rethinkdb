@@ -43,7 +43,6 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_deferred_loaded(this);
@@ -59,7 +58,6 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -77,11 +75,10 @@ page_t::page_t(block_id_t block_id, block_size_t block_size,
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(block_size.ser_value()),
-      buf_(std::move(buf)),
+      serbuf_(block_size, std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
-    rassert(buf_.has());
+    rassert(serbuf_.has());
     page_cache->evicter().add_to_evictable_unbacked(this);
 }
 
@@ -92,12 +89,11 @@ page_t::page_t(block_id_t block_id,
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(block_token->block_size().ser_value()),
-      buf_(std::move(buf)),
+      serbuf_(block_token->block_size(), std::move(buf)),
       block_token_(block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
       snapshot_refcount_(0) {
-    rassert(buf_.has());
+    rassert(serbuf_.has());
     page_cache->evicter().add_to_evictable_disk_backed(this);
 }
 
@@ -105,7 +101,6 @@ page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *accoun
     : block_id_(copyee->block_id_),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -154,15 +149,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.
 
-            uint32_t ser_buf_size = copyee->ser_buf_size_;
-            rassert(copyee->buf_.has());
-            scoped_malloc_t<ser_buffer_t> buf
-                = serializer_t::allocate_buffer(page_cache->max_block_size());
-
-            memcpy(buf.get(), copyee->buf_.get(), ser_buf_size);
-
-            page->ser_buf_size_ = ser_buf_size;
-            page->buf_ = std::move(buf);
+            page->serbuf_ = buf_ptr::alloc_copy(copyee->serbuf_);
             page->loader_ = NULL;
 
             page->pulse_waiters_or_make_evictable(page_cache);
@@ -183,10 +170,9 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                        counted_t<standard_block_token_t> block_token,
                                        scoped_malloc_t<ser_buffer_t> buf) {
     rassert(!page->block_token_.has());
-    rassert(!page->buf_.has());
+    rassert(!page->serbuf_.has());
     rassert(block_token.has());
-    page->ser_buf_size_ = block_token->block_size().ser_value();
-    page->buf_ = std::move(buf);
+    page->serbuf_ = buf_ptr(block_token->block_size(), std::move(buf));
     page->block_token_ = std::move(block_token);
     page->loader_ = NULL;
 
@@ -319,10 +305,9 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     }
 
     rassert(!page->block_token_.has());
-    rassert(!page->buf_.has());
+    rassert(!page->serbuf_.has());
     rassert(loader.block_token_ptr() == on_heap_token);
     rassert(on_heap_token->token.has());
-    page->ser_buf_size_ = on_heap_token->token->block_size().ser_value();
     page->block_token_ = std::move(on_heap_token->token);
     page->loader_ = NULL;
 
@@ -419,7 +404,7 @@ void page_t::add_waiter(page_acq_t *acq, cache_account_t *account) {
         = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.push_back(acq);
     acq->page_cache()->evicter().change_to_correct_eviction_bag(old_bag, this);
-    if (buf_.has()) {
+    if (serbuf_.has()) {
         acq->buf_ready_signal_.pulse();
     } else if (loader_ != NULL) {
         loader_->added_waiter(acq->page_cache(), account);
@@ -466,28 +451,25 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     }
 
     rassert(page->block_token_.get() == block_token.get());
-    rassert(!page->buf_.has());
-    rassert(page->ser_buf_size_ == block_token->block_size().ser_value());
-    block_token.reset();
-    page->buf_ = std::move(buf);
+    rassert(!page->serbuf_.has());
+    page->serbuf_ = buf_ptr(block_token->block_size(), std::move(buf));
     page->loader_ = NULL;
+    block_token.reset();
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
 
 void page_t::set_page_buf_size(block_size_t block_size) {
-    rassert(buf_.has(),
+    rassert(serbuf_.has(),
             "Called outside page_acq_t or without waiting for the buf_ready_signal_?");
-    rassert(ser_buf_size_ != 0);
     rassert(!block_token_.has(),
             "Modified a page_t without resetting the block token.");
-    ser_buf_size_ = block_size.ser_value();
+    serbuf_.resize_fill_zero(block_size);
 }
 
 block_size_t page_t::get_page_buf_size() {
-    rassert(buf_.has());
-    rassert(ser_buf_size_ != 0);
-    return block_size_t::unsafe_make(ser_buf_size_);
+    rassert(serbuf_.has());
+    return serbuf_.block_size();
 }
 
 uint32_t page_t::hypothetical_memory_usage() const {
@@ -495,9 +477,9 @@ uint32_t page_t::hypothetical_memory_usage() const {
 }
 
 void *page_t::get_page_buf(page_cache_t *page_cache) {
-    rassert(buf_.has());
+    rassert(serbuf_.has());
     access_time_ = page_cache->evicter().next_access_time();
-    return buf_->cache_data;
+    return serbuf_.cache_data();
 }
 
 void page_t::reset_block_token() {
@@ -523,8 +505,8 @@ void page_t::evict_self() {
     // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());
-    rassert(buf_.has());
-    buf_.reset();
+    rassert(serbuf_.has());
+    serbuf_.reset();
 }
 
 

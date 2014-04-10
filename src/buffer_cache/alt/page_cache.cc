@@ -1231,14 +1231,17 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // acquired the buf, and the only way to get rid of the buf
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
+
+                        // RSI: Can we use public members of page_t instead of these
+                        // privates?
                         rassert(page->loader_ == NULL);
-                        rassert(page->buf_.has());
+                        rassert(page->serbuf_.has());
 
                         // KSI: Is there a page_acq_t for this buf we're writing?  Is it
                         // possible that we might be trying to do an unbacked eviction
                         // for this page right now?  (No, we don't do that yet.)
-                        write_infos.push_back(buf_write_info_t(page->buf_.get(),
-                                                               block_size_t::unsafe_make(page->ser_buf_size_),
+                        write_infos.push_back(buf_write_info_t(page->serbuf_.ser_buffer(),
+                                                               page->serbuf_.block_size(),
                                                                it->first));
                         ancillary_infos.push_back(ancillary_info_t(it->second.tstamp,
                                                                    page));

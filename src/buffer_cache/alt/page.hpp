@@ -4,6 +4,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/backindex_bag.hpp"
 #include "repli_timestamp.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/types.hpp"
 
 class cache_account_t;
@@ -45,6 +46,7 @@ public:
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
+    // RSI: set_page_buf_size is bullshit?
     void set_page_buf_size(block_size_t block_size);
     block_size_t get_page_buf_size();
 
@@ -58,7 +60,7 @@ public:
         return loader_ != NULL && page_t::loader_is_loading(loader_);
     }
     bool has_waiters() const { return !waiters_.empty(); }
-    bool is_not_loaded() const { return !buf_.has(); }
+    bool is_not_loaded() const { return !serbuf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self();
@@ -118,10 +120,10 @@ private:
     // max_block_size_ is const and named max_block_size_ for now, because we can't
     // change the in-memory block size of a page (even if we can change the
     // serialized size).
+    // RSI: Get rid of this.
     const uint32_t max_ser_block_size_;
-    uint32_t ser_buf_size_;
 
-    scoped_malloc_t<ser_buffer_t> buf_;
+    buf_ptr serbuf_;
     counted_t<standard_block_token_t> block_token_;
 
     uint64_t access_time_;

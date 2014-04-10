@@ -6,7 +6,8 @@
 #include "math.hpp"
 #include "serializer/types.hpp"
 
-// Memory-aligned bufs.
+// Memory-aligned bufs.  This type also keeps the unused part of the buf (up to the
+// DEVICE_BLOCK_SIZE multiple) zeroed out.
 
 // Note: This wastes 4 bytes of space on a 64-bit system.  (Arguably, it wastes more
 // than that given that block sizes could be 16 bits and pointers are really 48
@@ -21,6 +22,15 @@ public:
         movee.ser_buffer_.reset();
     }
 
+    // RSI: Remove this.
+    buf_ptr(block_size_t size,
+            scoped_malloc_t<ser_buffer_t> ser_buffer)
+        : block_size_(size),
+          ser_buffer_(std::move(ser_buffer)) {
+        guarantee(block_size_.ser_value() != 0);
+        guarantee(ser_buffer_.has());
+    }
+
     buf_ptr &operator=(buf_ptr &&movee) {
         buf_ptr tmp(std::move(movee));
         std::swap(block_size_, tmp.block_size_);
@@ -29,18 +39,35 @@ public:
         return *this;
     }
 
-    static buf_ptr alloc(block_size_t size);
+    void reset() {
+        block_size_ = block_size_t::undefined();
+        ser_buffer_.reset();
+    }
 
-    block_size_t size() const {
+    static buf_ptr alloc_zeroed(block_size_t size);
+
+    static buf_ptr alloc_copy(const buf_ptr &copyee);
+
+    block_size_t block_size() const {
         guarantee(ser_buffer_.has());
         return block_size_;
     }
+
+    ser_buffer_t *ser_buffer() const {
+        guarantee(ser_buffer_.has());
+        return ser_buffer_.get();
+    }
+
+    void *cache_data() const {
+        return ser_buffer()->cache_data;
+    }
+
 
     // RSI: Will anybody use this?
     block_size_t reserved() const {
         guarantee(ser_buffer_.has());
         return block_size_t::unsafe_make(
-                buf_ptr::compute_in_memory_size(block_size_.ser_value()));
+                buf_ptr::compute_in_memory_size(block_size_));
     }
 
     // RSI: Get rid of this.
@@ -51,9 +78,19 @@ public:
         *ser_buffer_out = std::move(tmp.ser_buffer_);
     }
 
+    bool has() const {
+        return ser_buffer_.has();
+    }
+
+    // Increases or decreases the block size of the pointee, reallocating if
+    // necessary, filling unused space with zeros.  RSI: I hope we can get rid of
+    // this.
+    void resize_fill_zero(block_size_t new_size);
+
+
 private:
-    static uint32_t compute_in_memory_size(uint32_t ser_block_size) {
-        return ceil_aligned(ser_block_size, DEVICE_BLOCK_SIZE);
+    static uint32_t compute_in_memory_size(block_size_t block_size) {
+        return ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
     block_size_t block_size_;
