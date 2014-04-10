@@ -215,6 +215,7 @@ class scoped_malloc_t {
 public:
     scoped_malloc_t() : ptr_(NULL) { }
     explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
+    // RSI: Remove this function.
     explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(rmalloc(n))) { }
     scoped_malloc_t(const char *beg, const char *end) {
         rassert(beg <= end);

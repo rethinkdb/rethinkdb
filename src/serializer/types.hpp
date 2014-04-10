@@ -235,7 +235,7 @@ void debug_print(printf_buffer_t *buf,
 
 
 
-#else
+#else  // SEMANTIC_SERIALIZER_CHECK
 
 typedef log_serializer_t standard_serializer_t;
 

@@ -5,6 +5,7 @@
 #include "boost_utils.hpp"
 #include "math.hpp"
 
+// RSI: Remove this function.
 scoped_malloc_t<ser_buffer_t>
 serializer_t::allocate_buffer(block_size_t block_size) {
     scoped_malloc_t<ser_buffer_t> buf(
