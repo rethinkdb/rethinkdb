@@ -229,7 +229,8 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_2_JSON
+    @@magic_number = VersionDummy::Version::V0_3
+    @@wire_protocol = "json"
 
     def debug_socket; @socket; end
 
@@ -339,6 +340,7 @@ module RethinkDB
       @socket.write([@@magic_number].pack('L<'))
 
       @socket.write([@auth_key.size].pack('L<') + @auth_key)
+      @socket.write([@@wire_protocol.size].pack('L<') + @@wire_protocol)
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)
