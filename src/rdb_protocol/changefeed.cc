@@ -31,15 +31,19 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     int8_t,
     changefeed_msg_t::UNINITIALIZED,
     changefeed_msg_t::TABLE_DROP);
-RDB_IMPL_ME_SERIALIZABLE_3(changefeed_msg_t, type, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_3(
+    changefeed_msg_t, type, empty_ok(old_val), empty_ok(new_val));
 
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
     changefeed_updater_t(mailbox_addr_t<void(changefeed_msg_t)> _addr,
                          base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                          uuid_u uuid)
-        : addr(_addr), access(ns_repo, uuid, &cond) { }
-    ~changefeed_updater_t() { cond.pulse(); }
+        : addr(_addr) {
+        auto_drainer_t::lock_t lock(&drainer);
+        access.init(new base_namespace_repo_t<rdb_protocol_t>::access_t(
+                        ns_repo, uuid, lock.get_drain_signal()));
+    }
     void start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
         update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
     }
@@ -47,7 +51,7 @@ public:
         try {
             update_changefeed(rdb_protocol_t::changefeed_update_t::UNSUBSCRIBE);
         } catch (const cannot_perform_query_exc_t &e) {
-            // RSI: We can't access the table to unsubscribe.  Not sure what to
+            // RSI(CR): We can't access the table to unsubscribe.  Not sure what to
             // do here; how should we handle the dangling mailbox on the other
             // end?
         }
@@ -57,22 +61,21 @@ private:
         THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
         try {
-            auto_drainer_t::lock_t lock(&interrupt_drainer);
-            auto nif = access.get_namespace_if();
+            auto_drainer_t::lock_t lock(&drainer);
+            auto nif = access->get_namespace_if();
             rdb_protocol_t::write_t write(
                 rdb_protocol_t::changefeed_update_t(addr, action),
                 profile_bool_t::DONT_PROFILE);
             rdb_protocol_t::write_response_t resp;
-            nif->write(write, &resp, order_token_t::ignore, &cond);
+            nif->write(write, &resp, order_token_t::ignore, lock.get_drain_signal());
         } catch (const interrupted_exc_t &e) {
-            // RSI: We're being destroyed.  Not sure what to do here; how should
+            // RSI(CR): We're being destroyed.  Not sure what to do here; how should
             // we handle the dangling mailbox on the other end?
         }
     }
     mailbox_addr_t<void(changefeed_msg_t)> addr;
-    cond_t cond;
-    base_namespace_repo_t<rdb_protocol_t>::access_t access;
-    auto_drainer_t interrupt_drainer;
+    scoped_ptr_t<base_namespace_repo_t<rdb_protocol_t>::access_t> access;
+    auto_drainer_t drainer;
 };
 
 class change_stream_t;
@@ -87,10 +90,13 @@ public:
           total_subscribers(0),
           updater(mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
-        // If we have subscribers left, they have a dangling pointer.
-        for (int i = 0; i < get_num_threads(); ++i) {
-            guarantee(subscribers[i].size() == 0);
-        }
+        // If we have subscribers left, they have a dangling pointer.  This
+        // assertion should be true because we're only destroyed when shutting
+        // down, and the `change_stream_t`s holding `subscription_t`s should be
+        // destroyed before us.
+
+        // RSI(test): test that!
+        guarantee(total_subscribers == 0);
     }
 
     class subscription_t : public home_thread_mixin_t {
@@ -98,18 +104,23 @@ public:
         subscription_t(changefeed_t *_feed);
         ~subscription_t();
         // Will wait for at least one element.
-        std::vector<counted_t<const datum_t> > get_els(batcher_t *batcher);
+        std::vector<counted_t<const datum_t> > get_els(
+            batcher_t *batcher, const signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
     private:
         friend class changefeed_t;
-        void maybe_wake_coro();
+        void maybe_signal_cond();
         void add_el(counted_t<const datum_t> d);
         void finish();
 
         bool finished;
         scoped_ptr_t<base_exc_t> exc;
-        coro_t *wake_coro; // `add_el` notifies `wake_coro` if it's non-NULL
+        // `add_el` and `finish` call `maybe_signal_cond`, which signals `cond`
+        // if it's non-NULL.  (Used to wait on more data.)
+        cond_t *cond; // NULL unless we're waiting.
         changefeed_t *feed;
         std::deque<counted_t<const datum_t> > els;
+        auto_drainer_t drainer;
     };
 
 private:
@@ -136,20 +147,30 @@ public:
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual std::vector<counted_t<const datum_t> >
-    next_raw_batch(env_t *, const batchspec_t &bs) {
+    next_raw_batch(env_t *env, const batchspec_t &bs) {
         batcher_t batcher = bs.to_batcher();
-        return subscription.get_els(&batcher);
+        return subscription.get_els(&batcher, env->interruptor);
     }
 private:
     changefeed_t::subscription_t subscription;
 };
 
 std::vector<counted_t<const datum_t> >
-changefeed_t::subscription_t::get_els(batcher_t *batcher) {
+changefeed_t::subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+    guarantee(cond == NULL); // Can't call `get_els` while already blocking.
+    auto_drainer_t::lock_t lock(&drainer);
     if (els.size() == 0 && !finished) {
-        wake_coro = coro_t::self();
-        coro_t::wait();
+        cond_t wait_for_data;
+        cond = &wait_for_data;
+        try {
+            wait_interruptible(cond, interruptor);
+        } catch (const interrupted_exc_t &e) {
+            cond = NULL;
+            throw e;
+        }
+        guarantee(cond == NULL);
     }
     if (finished) {
         if (exc.has()) {
@@ -169,12 +190,12 @@ changefeed_t::subscription_t::get_els(batcher_t *batcher) {
     return std::move(v);
 }
 
-void changefeed_t::subscription_t::maybe_wake_coro() {
+void changefeed_t::subscription_t::maybe_signal_cond() {
     assert_thread();
-    if (wake_coro) {
-        auto coro = wake_coro;
-        wake_coro = NULL;
-        coro->notify_sometime();
+    if (cond != NULL) {
+        auto tmp = cond;
+        cond = NULL;
+        tmp->pulse();
     }
 }
 
@@ -191,7 +212,7 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
                                      "make sure your client can keep up."));
 
         }
-        maybe_wake_coro();
+        maybe_signal_cond();
     }
 }
 
@@ -202,14 +223,22 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
 void changefeed_t::subscription_t::finish() {
     assert_thread();
     finished = true;
-    maybe_wake_coro();
+    maybe_signal_cond();
 }
 
 changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
-    : finished(true), wake_coro(NULL), feed(_feed) {
+    : finished(false), cond(NULL), feed(_feed) {
     feed->add_subscriber(home_thread().threadnum, this);
 }
 changefeed_t::subscription_t::~subscription_t() {
+    finished = true;
+    // This will only actually get thrown if `maybe_signal_cond` wakes a
+    // coroutine, in which case we were deleted while a `change_stream_t` was
+    // waiting on us, which means we should wake it up and give it some
+    // reasonable error before shutting down (which is enforced by the drainer).
+    exc.init(new datum_exc_t(base_exc_t::GENERIC,
+                             "Subscription destroyed (shutting down?)"));
+    maybe_signal_cond();
     feed->del_subscriber(home_thread().threadnum, this);
 }
 
@@ -259,7 +288,6 @@ void changefeed_t::handle(changefeed_msg_t msg) THROWS_NOTHING {
     case changefeed_msg_t::UNINITIALIZED: unreachable();
     default: unreachable();
     }
-    // RSI: do we need a drainer here?
     rwlock_in_line_t spot(&subscribers_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 

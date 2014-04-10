@@ -23,6 +23,8 @@
 #include "rdb_protocol/env.hpp"
 #include "utils.hpp"
 
+#include "debug.hpp"
+
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(
     const std::set<ip_address_t> &local_addresses,
@@ -57,7 +59,9 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     }
 }
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
+protob_server_t<request_t, response_t, context_t>::~protob_server_t() {
+    debugf("foo\n");
+}
 
 template <class request_t, class response_t, class context_t>
 int protob_server_t<request_t, response_t, context_t>::get_port() const {

@@ -227,6 +227,7 @@ struct rdb_protocol_t {
         boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
+
         // TODO figure out where we're going to want to interrupt this from and
         // put this there instead
         cond_t interruptor;
