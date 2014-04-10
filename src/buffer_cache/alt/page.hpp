@@ -53,6 +53,10 @@ public:
     // How much memory the block would use, if it were in memory.  (If the block is
     // already in memory, this is how much memory the block is currently
     // using, of course.)
+
+    // RSI: Um, we won't know this while loading the page.  This function is just
+    // crap.  Should we fix the organization of pages and the evicter before fixing
+    // everything else?  (Should unevictable pages not be stored in the evicter_t?)
     uint32_t hypothetical_memory_usage() const;
     uint64_t access_time() const { return access_time_; }
 
