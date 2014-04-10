@@ -5,6 +5,7 @@
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class mailbox_manager_t;

@@ -85,7 +85,7 @@ public:
         : mailbox(manager, [=](changefeed_msg_t msg) { this->handle(std::move(msg)); }),
           subscribers(get_num_threads()),
           total_subscribers(0),
-          updater(mailbox.get_address(), ns_repo, uuid), { }
+          updater(mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
         // If we have subscribers left, they have a dangling pointer.
         for (int i = 0; i < get_num_threads(); ++i) {
@@ -101,8 +101,11 @@ public:
         std::vector<counted_t<const datum_t> > get_els(batcher_t *batcher);
     private:
         friend class changefeed_t;
+        void maybe_wake_coro();
         void add_el(counted_t<const datum_t> d);
-        void finish() { } // RSI: Implement.
+        void finish();
+
+        bool finished;
         coro_t *wake_coro; // `add_el` notifies `wake_coro` if it's non-NULL
         changefeed_t *feed;
         std::deque<counted_t<const datum_t> > els;
@@ -143,27 +146,23 @@ private:
 std::vector<counted_t<const datum_t> >
 changefeed_t::subscription_t::get_els(batcher_t *batcher) {
     assert_thread();
-    if (els.size() == 0) {
+    if (els.size() == 0 && !finished) {
         wake_coro = coro_t::self();
         coro_t::wait();
     }
-    guarantee(els.size() != 0);
+    guarantee(els.size() != 0 || finished);
     std::vector<counted_t<const datum_t> > v;
     while (els.size() > 0 && !batcher->should_send_batch()) {
         batcher->note_el(els.front());
         v.push_back(std::move(els.front()));
         els.pop_front();
     }
-    guarantee(v.size() != 0);
+    guarantee(v.size() != 0 || finished);
     return std::move(v);
 }
 
-void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
+void changefeed_t::subscription_t::maybe_wake_coro() {
     assert_thread();
-    els.push_back(d);
-    if (els.size() > array_size_limit()) {
-        // RSI: Do something smart.
-    }
     if (wake_coro) {
         auto coro = wake_coro;
         wake_coro = NULL;
@@ -171,8 +170,29 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
     }
 }
 
+void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
+    assert_thread();
+    if (!finished) {
+        els.push_back(d);
+        if (els.size() > array_size_limit()) {
+            // RSI: Do something smart.
+        }
+        maybe_wake_coro();
+    }
+}
+
+// We don't remove ourselves from our feed, because the `change_stream_t`
+// reading from us needs us to still exist.  We'll cease to exist when it reads
+// the end-of-stream empty batch from us and is removed from the stream cache.
+// (In the meantime, `add_el` becomes a noop.)
+void changefeed_t::subscription_t::finish() {
+    assert_thread();
+    finished = true;
+    maybe_wake_coro();
+}
+
 changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
-    : wake_coro(NULL), feed(_feed) {
+    : finished(true), wake_coro(NULL), feed(_feed) {
     feed->add_subscriber(home_thread().threadnum, this);
 }
 changefeed_t::subscription_t::~subscription_t() {
