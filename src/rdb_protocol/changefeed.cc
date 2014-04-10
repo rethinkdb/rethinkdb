@@ -106,6 +106,7 @@ public:
         void finish();
 
         bool finished;
+        scoped_ptr_t<base_exc_t> exc;
         coro_t *wake_coro; // `add_el` notifies `wake_coro` if it's non-NULL
         changefeed_t *feed;
         std::deque<counted_t<const datum_t> > els;
@@ -150,14 +151,21 @@ changefeed_t::subscription_t::get_els(batcher_t *batcher) {
         wake_coro = coro_t::self();
         coro_t::wait();
     }
-    guarantee(els.size() != 0 || finished);
+    if (finished) {
+        if (exc.has()) {
+            throw *exc;
+        } else {
+            return std::vector<counted_t<const datum_t> >();
+        }
+    }
+    guarantee(els.size() != 0);
     std::vector<counted_t<const datum_t> > v;
     while (els.size() > 0 && !batcher->should_send_batch()) {
         batcher->note_el(els.front());
         v.push_back(std::move(els.front()));
         els.pop_front();
     }
-    guarantee(v.size() != 0 || finished);
+    guarantee(v.size() != 0);
     return std::move(v);
 }
 
@@ -175,7 +183,13 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
     if (!finished) {
         els.push_back(d);
         if (els.size() > array_size_limit()) {
-            // RSI: Do something smart.
+            els.clear();
+            finished = true;
+            exc.init(new datum_exc_t(base_exc_t::GENERIC,
+                                     "Changefeed buffer over array size limit.  "
+                                     "If you're making a lot of changes to your data, "
+                                     "make sure your client can keep up."));
+
         }
         maybe_wake_coro();
     }
