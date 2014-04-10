@@ -3,6 +3,7 @@
 
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "math.hpp"
 #include "serializer/types.hpp"
 
 // Memory-aligned bufs.
@@ -28,16 +29,25 @@ public:
         return *this;
     }
 
-    // Allocates a buf_ptr whose block_size() is GREATER THAN OR EQUAL TO size.
-    // (It's rounded to the nearest alignment multiple.)
     static buf_ptr alloc(block_size_t size);
 
-    block_size_t block_size() const {
+    block_size_t size() const {
         guarantee(ser_buffer_.has());
         return block_size_;
     }
 
+    // RSI: Will anybody use this?
+    block_size_t room_to_grow() const {
+        guarantee(ser_buffer_.has());
+        return block_size_t::unsafe_make(
+                buf_ptr::compute_in_memory_size(block_size_.ser_value()));
+    }
+
 private:
+    static uint32_t compute_in_memory_size(uint32_t ser_block_size) {
+        return ceil_aligned(ser_block_size, DEVICE_BLOCK_SIZE);
+    }
+
     block_size_t block_size_;
     scoped_malloc_t<ser_buffer_t> ser_buffer_;
 
