@@ -1268,15 +1268,14 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        // RSI: Fix this creepy deserialization here.
-        wire_string_t *value;
+        scoped_ptr_t<wire_string_t> value;
         res = deserialize(s, &value);
         if (bad(res)) {
-            guarantee(value == NULL);
             return res;
         }
+        rassert(value.has());
         try {
-            datum->reset(new datum_t(scoped_ptr_t<wire_string_t>(value)));
+            datum->reset(new datum_t(std::move(value)));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }

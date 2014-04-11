@@ -106,9 +106,7 @@ write_message_t &operator<<(write_message_t &msg, const wire_string_t &s) {
     return msg;
 }
 
-archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHING {
-    *out = NULL;
-
+archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) THROWS_NOTHING {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }
@@ -117,19 +115,17 @@ archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHI
         return archive_result_t::RANGE_ERROR;
     }
 
-    *out = wire_string_t::create(sz);
+    scoped_ptr_t<wire_string_t> value(wire_string_t::create(sz));
 
-    int64_t num_read = force_read(s, (*out)->data(), sz);
+    int64_t num_read = force_read(s, value->data(), sz);
     if (num_read == -1) {
-        delete *out;
-        *out = NULL;
         return archive_result_t::SOCK_ERROR;
     }
     if (static_cast<uint64_t>(num_read) < sz) {
-        delete *out;
-        *out = NULL;
         return archive_result_t::SOCK_EOF;
     }
+
+    *out = std::move(value);
 
     return archive_result_t::SUCCESS;
 }

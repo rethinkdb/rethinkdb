@@ -23,6 +23,7 @@ class wire_string_t {
 public:
     wire_string_t() = delete;
 
+    // RSI: Return scoped_ptr_t as appropriate.
     static wire_string_t *create(size_t _size);
     static wire_string_t *create_and_init(size_t _size, const char *_data);
     static void operator delete(void *p);
@@ -65,6 +66,7 @@ size_t serialized_size(const wire_string_t &s);
 
 write_message_t &operator<<(write_message_t &msg, const wire_string_t &s);
 
-archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHING;
+// Empty scoped_ptr_t's not possible.
+archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) THROWS_NOTHING;
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_
