@@ -31,6 +31,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
     entry->last_activity = time(0);
+
+    boost::optional<std::exception_ptr> exc;
     try {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
@@ -53,16 +55,22 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {
-        erase(key);
-        throw;
+        exc = std::current_exception();
     }
+    if (exc) {
+        // We can't do this in the `catch` statement because erase may trigger
+        // destructors that might need to switch coroutines to do some bookkeeping,
+        // and we can't switch coroutines inside an exception handler.
+        erase(key);
+        std::rethrow_exception(*exc);
+    }
+
     if (entry->stream->is_exhausted() || res->response_size() == 0) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
-
     return true;
 }
 
