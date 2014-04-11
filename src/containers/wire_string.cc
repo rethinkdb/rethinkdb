@@ -66,10 +66,14 @@ bool wire_string_t::operator==(const char *other) const {
     return strcmp(data_, other) == 0;
 }
 bool wire_string_t::operator==(const wire_string_t &other) const {
+    if (size_ != other.size_) {
+        return false;
+    }
+
     return compare(other) == 0;
 }
 bool wire_string_t::operator!=(const wire_string_t &other) const {
-    return compare(other) != 0;
+    return !operator==(other);
 }
 bool wire_string_t::operator<(const wire_string_t &other) const {
     return compare(other) < 0;
