@@ -58,7 +58,7 @@ private:
 };
 
 
-scoped_ptr_t<wire_string_t> concat(const wire_string_t *a, const wire_string_t *b);
+scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &b);
 
 
 size_t serialized_size(const wire_string_t &s);

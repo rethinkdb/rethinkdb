@@ -92,11 +92,11 @@ std::string wire_string_t::to_std() const {
     return std::string(data_, size_);
 }
 
-scoped_ptr_t<wire_string_t> concat(const wire_string_t *a, const wire_string_t *b) {
-    scoped_ptr_t<wire_string_t> result(wire_string_t::create(a->size() + b->size()));
+scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &b) {
+    scoped_ptr_t<wire_string_t> result(wire_string_t::create(a.size() + b.size()));
     char *data = result->data();
-    memcpy(data, a->data(), a->size());
-    memcpy(data + a->size(), b->data(), b->size());
+    memcpy(data, a.data(), a.size());
+    memcpy(data + a.size(), b.data(), b.size());
     return result;
 }
 
