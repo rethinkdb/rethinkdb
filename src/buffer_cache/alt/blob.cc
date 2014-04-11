@@ -687,6 +687,7 @@ void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
 
 // Always returns levels + 1.
 int blob_t::add_level(buf_parent_t parent, int levels) {
+    // RSI: Pass a tight size to this constructor.
     buf_lock_t lock(parent, alt_create_t::create);
     buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
@@ -742,7 +743,9 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             // RSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
-            memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
+            memcpy(blob::small_buffer(ref_, maxreflen_), b, bigsize);
+            // RSI: Should we zero out the [big_size_offset + bigsize, maxreflen_)
+            // region here?
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
             buf_read_t lock_read(&lock);
@@ -757,11 +760,14 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
                                               0, bigsize,
                                               &lo, &hi);
 
+
+            // RSI: Should we zero out the [block_ids_offset + i*sizeof(block_id),
+            // maxreflen_) region?
+            block_id_t *block_ids = blob::block_ids(ref_, maxreflen_);
             for (int i = lo; i < hi; ++i) {
                 lock.detach_child(b[i]);
+                block_ids[i] = b[i];
             }
-
-            memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
         }
 
         lock.mark_deleted();
