@@ -6,6 +6,8 @@
 
 #include "containers/archive/archive.hpp"
 
+template <class> class scoped_ptr_t;
+
 /* `wire_string_t` is a length-prefixed ("Pascal style") string.
  * This has two advantages over C-strings:
  * - it can be efficiently serialized and deserialized
@@ -48,16 +50,15 @@ public:
 
     std::string to_std() const;
 
-    // Creates a new wire_string_t and returns a pointer to it.
-    // The new string is the concatenation of this and other.
-    wire_string_t *operator+(const wire_string_t &other) const;
-
 private:
     size_t size_;
     char data_[1];
 
     DISABLE_COPYING(wire_string_t);
 };
+
+
+scoped_ptr_t<wire_string_t> concat(const wire_string_t *a, const wire_string_t *b);
 
 
 size_t serialized_size(const wire_string_t &s);

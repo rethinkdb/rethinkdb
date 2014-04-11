@@ -4,9 +4,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <limits>
 
 #include "containers/archive/varint.hpp"
+#include "containers/scoped.hpp"
 #include "utils.hpp"
 
 wire_string_t *wire_string_t::create(size_t _size) {
@@ -86,13 +88,13 @@ std::string wire_string_t::to_std() const {
     return std::string(data_, size_);
 }
 
-wire_string_t *wire_string_t::operator+(const wire_string_t &other) const {
-    wire_string_t *result = create(size_ + other.size_);
-    memcpy(result->data_, data_, size_);
-    memcpy(&result->data_[size_], other.data_, other.size_);
+scoped_ptr_t<wire_string_t> concat(const wire_string_t *a, const wire_string_t *b) {
+    scoped_ptr_t<wire_string_t> result(wire_string_t::create(a->size() + b->size()));
+    char *data = result->data();
+    memcpy(data, a->data(), a->size());
+    memcpy(data + a->size(), b->data(), b->size());
     return result;
 }
-
 
 size_t serialized_size(const wire_string_t &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
