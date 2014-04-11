@@ -44,8 +44,7 @@ private:
             return make_counted<datum_t>(lhs->as_num() + rhs->as_num());
         } else if (lhs->get_type() == datum_t::R_STR) {
             rhs->check_type(datum_t::R_STR);
-            // RSI: Remove this release(), creepy reference dereferencing.
-            return make_counted<datum_t>(concat(&lhs->as_str(), &rhs->as_str()).release());
+            return make_counted<datum_t>(concat(&lhs->as_str(), &rhs->as_str()));
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
             datum_ptr_t out(datum_t::R_ARRAY);

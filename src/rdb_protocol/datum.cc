@@ -43,8 +43,8 @@ datum_t::datum_t(std::string &&_str)
     check_str_validity(r_str);
 }
 
-datum_t::datum_t(wire_string_t *str)
-    : type(R_STR), r_str(str) {
+datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
+    : type(R_STR), r_str(str.release()) {
     check_str_validity(r_str);
 }
 
@@ -1268,6 +1268,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_STR: {
+        // RSI: Fix this creepy deserialization here.
         wire_string_t *value;
         res = deserialize(s, &value);
         if (bad(res)) {
@@ -1275,7 +1276,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return res;
         }
         try {
-            datum->reset(new datum_t(value));
+            datum->reset(new datum_t(scoped_ptr_t<wire_string_t>(value)));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
