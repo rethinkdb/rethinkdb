@@ -59,9 +59,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     }
 }
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::~protob_server_t() {
-    debugf("foo\n");
-}
+protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
 
 template <class request_t, class response_t, class context_t>
 int protob_server_t<request_t, response_t, context_t>::get_port() const {

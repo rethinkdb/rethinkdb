@@ -210,13 +210,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
         counted_t<table_t> tbl = arg(env, 0)->as_table();
         changefeed_manager_t *mgr = env->env->changefeed_manager;
-        try {
-            return new_val(env->env, mgr->changefeed(tbl, env->env));
-        } catch (const cannot_perform_query_exc_t &e) {
-            rfail(ql::base_exc_t::GENERIC,
-                  "cannot subscribe to table `%s`: %s",
-                  tbl->name.c_str(), e.what());
-        }
+        return new_val(env->env, mgr->changefeed(tbl, env->env));
     }
     virtual const char *name() const { return "changes"; }
 };

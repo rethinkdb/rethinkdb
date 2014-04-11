@@ -9,6 +9,8 @@
 
 namespace ql {
 
+typedef changefeed_manager_t::subscription_t subscription_t;
+
 changefeed_msg_t::changefeed_msg_t() : type(UNINITIALIZED) { }
 changefeed_msg_t::~changefeed_msg_t() { }
 
@@ -43,7 +45,12 @@ public:
         auto_drainer_t::lock_t lock(&drainer);
         access.init(new base_namespace_repo_t<rdb_protocol_t>::access_t(
                         ns_repo, uuid, lock.get_drain_signal()));
+        start_changefeed();
     }
+    ~changefeed_updater_t() {
+        stop_changefeed();
+    }
+private:
     void start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
         update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
     }
@@ -56,7 +63,6 @@ public:
             // end?
         }
     }
-private:
     void update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
         THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
@@ -99,31 +105,8 @@ public:
         guarantee(total_subscribers == 0);
     }
 
-    class subscription_t : public home_thread_mixin_t {
-    public:
-        subscription_t(changefeed_t *_feed);
-        ~subscription_t();
-        // Will wait for at least one element.
-        std::vector<counted_t<const datum_t> > get_els(
-            batcher_t *batcher, const signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-    private:
-        friend class changefeed_t;
-        void maybe_signal_cond();
-        void add_el(counted_t<const datum_t> d);
-        void finish();
-
-        bool finished;
-        scoped_ptr_t<base_exc_t> exc;
-        // `add_el` and `finish` call `maybe_signal_cond`, which signals `cond`
-        // if it's non-NULL.  (Used to wait on more data.)
-        cond_t *cond; // NULL unless we're waiting.
-        changefeed_t *feed;
-        std::deque<counted_t<const datum_t> > els;
-        auto_drainer_t drainer;
-    };
-
 private:
+    friend class changefeed_manager_t::subscription_t;
     // Used by `subscription_t`.
     void add_subscriber(int threadnum, subscription_t *subscriber);
     void del_subscriber(int threadnum, subscription_t *subscriber) THROWS_NOTHING;
@@ -142,8 +125,13 @@ private:
 class change_stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    change_stream_t(changefeed_t *feed, Args... args)
-        : eager_datum_stream_t(std::forward<Args...>(args...)), subscription(feed) { }
+    change_stream_t(uuid_u uuid,
+                    base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+                    changefeed_manager_t *manager,
+                    Args... args)
+        THROWS_ONLY(cannot_perform_query_exc_t, exc_t, datum_exc_t)
+        : eager_datum_stream_t(std::forward<Args...>(args...)),
+          subscription(uuid, ns_repo, manager) { }
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
     virtual std::vector<counted_t<const datum_t> >
@@ -152,15 +140,15 @@ public:
         return subscription.get_els(&batcher, env->interruptor);
     }
 private:
-    changefeed_t::subscription_t subscription;
+    subscription_t subscription;
 };
 
 std::vector<counted_t<const datum_t> >
-changefeed_t::subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor)
+subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     guarantee(cond == NULL); // Can't call `get_els` while already blocking.
-    auto_drainer_t::lock_t lock(&drainer);
+    auto_drainer_t::lock_t lock(&*drainer);
     if (els.size() == 0 && !finished) {
         cond_t wait_for_data;
         cond = &wait_for_data;
@@ -190,7 +178,7 @@ changefeed_t::subscription_t::get_els(batcher_t *batcher, const signal_t *interr
     return std::move(v);
 }
 
-void changefeed_t::subscription_t::maybe_signal_cond() {
+void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
     if (cond != NULL) {
         auto tmp = cond;
@@ -199,7 +187,7 @@ void changefeed_t::subscription_t::maybe_signal_cond() {
     }
 }
 
-void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
+void subscription_t::add_el(counted_t<const datum_t> d) {
     assert_thread();
     if (!finished) {
         els.push_back(d);
@@ -220,17 +208,30 @@ void changefeed_t::subscription_t::add_el(counted_t<const datum_t> d) {
 // reading from us needs us to still exist.  We'll cease to exist when it reads
 // the end-of-stream empty batch from us and is removed from the stream cache.
 // (In the meantime, `add_el` becomes a noop.)
-void changefeed_t::subscription_t::finish() {
+void subscription_t::finish() {
     assert_thread();
     finished = true;
     maybe_signal_cond();
 }
 
-changefeed_t::subscription_t::subscription_t(changefeed_t *_feed)
-    : finished(false), cond(NULL), feed(_feed) {
-    feed->add_subscriber(home_thread().threadnum, this);
+subscription_t::subscription_t(
+    uuid_u uuid,
+    base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+    changefeed_manager_t *_manager)
+    THROWS_ONLY(cannot_perform_query_exc_t)
+    : finished(false), cond(NULL), manager(_manager), drainer(new auto_drainer_t()) {
+    on_thread_t th(manager->home_thread());
+    changefeed = manager->changefeeds.find(uuid);
+    if (changefeed == manager->changefeeds.end()) {
+        auto cfeed = make_scoped<changefeed_t>(manager->manager, ns_repo, uuid);
+        changefeed = manager->changefeeds.insert(
+            std::make_pair(uuid, std::move(cfeed))).first;
+    }
+    guarantee(changefeed->second->home_thread() == manager->home_thread());
+    changefeed->second->total_subscribers += 1;
+    changefeed->second->add_subscriber(home_thread().threadnum, this);
 }
-changefeed_t::subscription_t::~subscription_t() {
+subscription_t::~subscription_t() {
     finished = true;
     // This will only actually get thrown if `maybe_signal_cond` wakes a
     // coroutine, in which case we were deleted while a `change_stream_t` was
@@ -239,34 +240,37 @@ changefeed_t::subscription_t::~subscription_t() {
     exc.init(new datum_exc_t(base_exc_t::GENERIC,
                              "Subscription destroyed (shutting down?)"));
     maybe_signal_cond();
-    feed->del_subscriber(home_thread().threadnum, this);
+    on_thread_t th(changefeed->second->home_thread());
+    changefeed->second->total_subscribers -= 1;
+    changefeed->second->del_subscriber(home_thread().threadnum, this);
+    if (changefeed->second->total_subscribers == 0) {
+        // It's safe to do this because the `subscription_t` constructor doesn't
+        // block between finding the changefeed in the map and incrementing its
+        // `total_subcribers` count, so right now we're 100% sure that no other
+        // subscription has a reference to this changefeed.
+        guarantee(changefeed->second->home_thread() == manager->home_thread());
+        manager->changefeeds.erase(changefeed);
+    }
 }
 
 void changefeed_t::add_subscriber(int threadnum, subscription_t *subscriber) {
-    on_thread_t th(home_thread());
+    assert_thread();
+    guarantee(total_subscribers != 0);
     rwlock_in_line_t spot(&subscribers_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto set = &subscribers[threadnum];
     auto ret = set->insert(subscriber);
     guarantee(ret.second);
-    total_subscribers += 1;
-    if (total_subscribers == 1) {
-        updater.start_changefeed();
-    }
 }
 
 void changefeed_t::del_subscriber(int threadnum, subscription_t *subscriber)
     THROWS_NOTHING {
-    on_thread_t th(home_thread());
+    assert_thread();
     rwlock_in_line_t spot(&subscribers_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto set = &subscribers[threadnum];
     size_t erased = set->erase(subscriber);
     guarantee(erased == 1);
-    total_subscribers -= 1;
-    if (total_subscribers == 0) {
-        updater.stop_changefeed();
-    }
 }
 
 void changefeed_t::handle(changefeed_msg_t msg) THROWS_NOTHING {
@@ -318,22 +322,19 @@ changefeed_manager_t::changefeed_manager_t(mailbox_manager_t *_manager)
 changefeed_manager_t::~changefeed_manager_t() { }
 
 counted_t<datum_stream_t> changefeed_manager_t::changefeed(
-    const counted_t<table_t> &tbl, env_t *env)
-    THROWS_ONLY(cannot_perform_query_exc_t) {
-    uuid_u uuid = tbl->get_uuid();
-    base_namespace_repo_t<rdb_protocol_t> *ns_repo = env->cluster_access.ns_repo;
-    changefeed_t *feed;
-    {
-        on_thread_t th(home_thread());
-        auto entry = changefeeds.find(uuid);
-        if (entry == changefeeds.end()) {
-            auto cfeed = make_scoped<changefeed_t>(manager, ns_repo, uuid);
-            entry = changefeeds.insert(std::make_pair(uuid, std::move(cfeed))).first;
-        }
-        feed = &*entry->second;
-        assert(feed->home_thread() == home_thread());
+    const counted_t<table_t> &tbl, env_t *env) {
+    try {
+        return counted_t<datum_stream_t>(
+            new change_stream_t(
+                tbl->get_uuid(),
+                env->cluster_access.ns_repo,
+                this,
+                tbl->backtrace()));
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail_datum(ql::base_exc_t::GENERIC,
+                    "cannot subscribe to table `%s`: %s",
+                    tbl->name.c_str(), e.what());
     }
-    return counted_t<datum_stream_t>(new change_stream_t(feed, tbl->backtrace()));
 }
 
 }
