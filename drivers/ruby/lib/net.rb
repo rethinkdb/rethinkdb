@@ -307,7 +307,6 @@ module RethinkDB
     def note_error(token, e) # Synchronize around this!
       data = {
         't' => 16,
-        'k' => token,
         'r' => [e.inspect],
         'b' => []
       }

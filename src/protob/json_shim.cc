@@ -43,7 +43,7 @@ void safe_extract(cJSON *json, T *t) {
 template<class T, class U>
 void transfer(cJSON *json, T *dest, void (T::*setter)(U)) {
     U tmp;
-    if (json) {
+    if (json != NULL) {
         safe_extract(json, &tmp);
         (dest->*setter)(std::move(tmp));
     }
@@ -51,14 +51,14 @@ void transfer(cJSON *json, T *dest, void (T::*setter)(U)) {
 
 template<class T, class U>
 void transfer(cJSON *json, T *dest, U *(T::*mut)()) {
-    if (json) {
+    if (json != NULL) {
         safe_extract(json, (dest->*mut)());
     }
 }
 
 template<class T, class U>
 void transfer_arr(cJSON *arr, T *dest, U *(T::*adder)()) {
-    if (arr) {
+    if (arr != NULL) {
         if (arr->type != cJSON_Object && arr->type != cJSON_Array) throw exc_t();
         int sz = cJSON_GetArraySize(arr);
         for (int i = 0; i < sz; ++i) {
@@ -102,44 +102,49 @@ void extract(cJSON *json, Term *t) {
 template<>
 void extract(cJSON *json, Datum *d) {
     switch (json->type) {
-    case cJSON_False: {
+    case cJSON_False:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(false);
-    } break;
-    case cJSON_True: {
+        break;
+    case cJSON_True:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(true);
-    } break;
-    case cJSON_NULL: {
+        break;
+    case cJSON_NULL:
         d->set_type(Datum::R_NULL);
-    } break;
-    case cJSON_Number: {
+        break;
+    case cJSON_Number:
         d->set_type(Datum::R_NUM);
         d->set_r_num(json->valuedouble);
-    } break;
-    case cJSON_String: {
+        break;
+    case cJSON_String:
         d->set_type(Datum::R_STR);
         d->set_r_str(json->valuestring);
-    } break;
-    case cJSON_Array: {
-        d->set_type(Datum::R_ARRAY);
-        int sz = cJSON_GetArraySize(json);
-        for (int i = 0; i < sz; ++i) {
-            cJSON *item = cJSON_GetArrayItem(json, i);
-            extract(item, d->add_r_array());
+        break;
+    case cJSON_Array:
+        {
+            d->set_type(Datum::R_ARRAY);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                extract(item, d->add_r_array());
+            }
         }
-    } break;
-    case cJSON_Object: {
-        d->set_type(Datum::R_OBJECT);
-        int sz = cJSON_GetArraySize(json);
-        for (int i = 0; i < sz; ++i) {
-            cJSON *item = cJSON_GetArrayItem(json, i);
-            Datum::AssocPair *ap = d->add_r_object();
-            ap->set_key(item->string);
-            extract(item, ap->mutable_val());
+        break;
+    case cJSON_Object:
+        {
+            d->set_type(Datum::R_OBJECT);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                Datum::AssocPair *ap = d->add_r_object();
+                ap->set_key(item->string);
+                extract(item, ap->mutable_val());
+            }
         }
-    } break;
-    default: unreachable();
+        break;
+    default:
+        unreachable();
     }
 }
 
@@ -197,7 +202,7 @@ bool parse_json_pb(Query *q, const char *str) THROWS_NOTHING {
 
 void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
     try {
-        *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r.type(), r.token());
+        *s += strprintf("{\"t\":%d,\"r\":[", r.type());
         for (int i = 0; i < r.response_size(); ++i) {
             *s += (i == 0) ? "" : ",";
             const Datum *d = &r.response(i);
@@ -219,13 +224,14 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
             for (int i = 0; i < bt->frames_size(); ++i) {
                 const Frame *f = &bt->frames(i);
                 switch (f->type()) {
-                case Frame::POS: {
+                case Frame::POS:
                     arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
-                } break;
-                case Frame::OPT: {
+                    break;
+                case Frame::OPT:
                     arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
-                } break;
-                default: unreachable();
+                    break;
+                default:
+                    unreachable();
                 }
             }
             *s += arr.PrintUnformatted();
@@ -243,9 +249,8 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
 #ifndef NDEBUG
         throw;
 #else
-        *s = strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[\"%s\"]}",
+        *s = strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
                        Response::RUNTIME_ERROR,
-                       r.token(),
                        "Internal error in `write_json_pb`, please report this.");
 #endif // NDEBUG
     }
