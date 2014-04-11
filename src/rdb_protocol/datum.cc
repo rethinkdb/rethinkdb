@@ -39,7 +39,7 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
 }
 
 datum_t::datum_t(std::string &&_str)
-    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data())) {
+    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data()).release()) {
     check_str_validity(r_str);
 }
 
@@ -49,7 +49,7 @@ datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
 }
 
 datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr)) { }
+    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
@@ -124,7 +124,7 @@ datum_t::~datum_t() {
 
 void datum_t::init_str(size_t size, const char *data) {
     type = R_STR;
-    r_str = wire_string_t::create_and_init(size, data);
+    r_str = wire_string_t::create_and_init(size, data).release();
 }
 
 void datum_t::init_array() {

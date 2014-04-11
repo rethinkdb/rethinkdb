@@ -23,9 +23,8 @@ class wire_string_t {
 public:
     wire_string_t() = delete;
 
-    // RSI: Return scoped_ptr_t as appropriate.
-    static wire_string_t *create(size_t _size);
-    static wire_string_t *create_and_init(size_t _size, const char *_data);
+    static scoped_ptr_t<wire_string_t> create(size_t _size);
+    static scoped_ptr_t<wire_string_t> create_and_init(size_t _size, const char *_data);
     static void operator delete(void *p);
 
     // The memory pointed to by the result to c_str() is guaranteed to be null

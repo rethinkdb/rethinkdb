@@ -11,19 +11,19 @@
 #include "containers/scoped.hpp"
 #include "utils.hpp"
 
-wire_string_t *wire_string_t::create(size_t _size) {
+scoped_ptr_t<wire_string_t> wire_string_t::create(size_t size) {
     // This allocates _size + 1 bytes for the data_ field (which is declared as char[1])
-    size_t memory_size = sizeof(wire_string_t) + _size;
+    size_t memory_size = sizeof(wire_string_t) + size;
     void *raw_result = ::rmalloc(memory_size);
-    wire_string_t *result = reinterpret_cast<wire_string_t *>(raw_result);
-    result->size_ = _size;
+    wire_string_t *result = static_cast<wire_string_t *>(raw_result);
+    result->size_ = size;
     // Append a 0 character to allow for an efficient `c_str()`
-    result->data_[_size] = '\0';
-    return result;
+    result->data_[size] = '\0';
+    return scoped_ptr_t<wire_string_t>(result);
 }
-wire_string_t *wire_string_t::create_and_init(size_t _size, const char *_data) {
-    wire_string_t *result = create(_size);
-    memcpy(result->data_, _data, _size);
+scoped_ptr_t<wire_string_t> wire_string_t::create_and_init(size_t size, const char *data) {
+    scoped_ptr_t<wire_string_t> result = wire_string_t::create(size);
+    memcpy(result->data_, data, size);
     return result;
 }
 void wire_string_t::operator delete(void *p) {
@@ -102,7 +102,7 @@ size_t serialized_size(const wire_string_t &s) {
 
 write_message_t &operator<<(write_message_t &msg, const wire_string_t &s) {
     serialize_varint_uint64(&msg, static_cast<uint64_t>(s.size()));
-    msg.append(reinterpret_cast<const void *>(s.data()), s.size());
+    msg.append(s.data(), s.size());
     return msg;
 }
 
