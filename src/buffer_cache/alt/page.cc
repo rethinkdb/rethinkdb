@@ -168,11 +168,11 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                        counted_t<standard_block_token_t> block_token,
-                                       scoped_malloc_t<ser_buffer_t> buf) {
+                                       buf_ptr buf) {
     rassert(!page->block_token_.has());
     rassert(!page->serbuf_.has());
     rassert(block_token.has());
-    page->serbuf_ = buf_ptr(block_token->block_size(), std::move(buf));
+    page->serbuf_ = std::move(buf);
     page->block_token_ = std::move(block_token);
     page->loader_ = NULL;
 
@@ -248,10 +248,9 @@ void page_t::catch_up_with_deferred_load(
     // Before blocking, tell the evicter to put us in the right category.
     page_cache->evicter().catch_up_deferred_load(page);
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
 
         // We use the fact that on_thread_t preserves order with the on_thread_t in
         // deferred_load_with_block_id.  This means that it's already run its section
@@ -259,9 +258,8 @@ void page_t::catch_up_with_deferred_load(
         on_thread_t th(serializer->home_thread());
         // Now finish what the rest of load_with_block_id would do.
         rassert(block_token_ptr->token.has());
-        serializer->block_read(block_token_ptr->token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token_ptr->token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -332,19 +330,16 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
 
     auto_drainer_t::lock_t lock(page_cache->drainer_.get());
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr buf;
     counted_t<standard_block_token_t> block_token;
 
     {
         serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
-
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
         rassert(block_token.has());
-        serializer->block_read(block_token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -434,15 +429,13 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     counted_t<standard_block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr buf;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
 
         on_thread_t th(serializer->home_thread());
-        serializer->block_read(block_token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -452,9 +445,9 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
 
     rassert(page->block_token_.get() == block_token.get());
     rassert(!page->serbuf_.has());
-    page->serbuf_ = buf_ptr(block_token->block_size(), std::move(buf));
-    page->loader_ = NULL;
     block_token.reset();
+    page->serbuf_ = std::move(buf);
+    page->loader_ = NULL;
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }

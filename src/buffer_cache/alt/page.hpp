@@ -87,7 +87,7 @@ private:
 
     static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                           counted_t<standard_block_token_t> block_token,
-                                          scoped_malloc_t<ser_buffer_t> buf);
+                                          buf_ptr buf);
 
     static void catch_up_with_deferred_load(
             deferred_page_loader_t *deferred_loader,

@@ -147,7 +147,8 @@ public:
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const counted_t<ls_block_token_pointee_t> &token, ser_buffer_t *buf, file_account_t *io_account);
+    buf_ptr block_read(const counted_t<ls_block_token_pointee_t> &token,
+                       file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
                      const std::vector<index_write_op_t> &write_ops,

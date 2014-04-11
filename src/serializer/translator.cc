@@ -7,8 +7,9 @@
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"
-#include "serializer/types.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/config.hpp"
+#include "serializer/types.hpp"
 
 /* serializer_multiplexer_t */
 
@@ -105,11 +106,13 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    scoped_malloc_t<ser_buffer_t> buf
-        = serializer_t::allocate_buffer(ser->max_block_size());
-    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
+    buf_ptr buf
+        = ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id),
+                          DEFAULT_DISK_ACCOUNT);
+    guarantee(buf.block_size() == ser->max_block_size());
+
     multiplexer_config_block_t *c
-        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
+        = reinterpret_cast<multiplexer_config_block_t *>(buf.cache_data());
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -157,12 +160,11 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        scoped_malloc_t<ser_buffer_t> buf
-            = serializer_t::allocate_buffer(underlying[0]->max_block_size());
-        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
+        buf_ptr buf = underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), DEFAULT_DISK_ACCOUNT);
+        guarantee(buf.block_size() == underlying[0]->max_block_size());
 
         multiplexer_config_block_t *c
-            = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
+            = reinterpret_cast<multiplexer_config_block_t *>(buf.cache_data());
         guarantee(c->magic == multiplexer_config_block_t::expected_magic,
                   "c->magic is %s", debug_strprint(c->magic).c_str());
         creation_timestamp = c->creation_timestamp;
@@ -248,8 +250,9 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account) {
-    return inner->block_read(token, buf, io_account);
+buf_ptr translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
+                                            file_account_t *io_account) {
+    return inner->block_read(token, io_account);
 }
 
 counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {

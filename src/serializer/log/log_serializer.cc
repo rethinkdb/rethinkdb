@@ -15,6 +15,7 @@
 #include "concurrency/new_mutex.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
 filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath,
@@ -409,8 +410,8 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
-                                  ser_buffer_t *buf, file_account_t *io_account) {
+buf_ptr log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
+                                     file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
     guarantee(state == state_ready);
@@ -418,10 +419,14 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &tok
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
+    // RSI: Push buf_ptr down further?
+    // RSI: alloc_zeroed performance.
+    buf_ptr ret = buf_ptr::alloc_zeroed(token->block_size());
     data_block_manager->read(token->offset_, token->block_size().ser_value(),
-                             buf, io_account);
+                             ret.ser_buffer(), io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
+    return ret;
 }
 
 // God this is such a hack.
