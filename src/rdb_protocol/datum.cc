@@ -19,6 +19,10 @@
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
+// Enough precision to reconstruct doubles from their decimal representations.
+// Unlike the late DBLPRI, this lacks a percent sign.
+#define PR_RECONSTRUCTABLE_DOUBLE ".20g"
+
 namespace ql {
 
 const size_t tag_size = 8;
@@ -35,7 +39,7 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
     using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
-           strprintf("Non-finite number: " DBLPRI, r_num));
+           strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, r_num));
 }
 
 datum_t::datum_t(std::string &&_str)
@@ -306,7 +310,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     }
     // The formatting here is sensitive.  Talk to mlucy before changing it.
     str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
-    str_out->append(strprintf("#" DBLPRI, as_num()));
+    str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, as_num()));
 }
 
 void datum_t::str_to_str_key(std::string *str_out) const {
@@ -641,7 +645,7 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
         return i;
     } else {
         rfail_target(target, base_exc_t::GENERIC,
-                     "Number not an integer%s: " DBLPRI,
+                     "Number not an integer%s: %" PR_RECONSTRUCTABLE_DOUBLE,
                      d < min_dbl_int ? " (<-2^53)" :
                          d > max_dbl_int ? " (>2^53)" : "",
                      d);
@@ -978,7 +982,8 @@ void datum_t::init_from_pb(const Datum *d) {
         using namespace std;  // NOLINT(build/namespaces)
         rcheck(isfinite(r_num),
                base_exc_t::GENERIC,
-               strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
+               strprintf("Illegal non-finite number `%" PR_RECONSTRUCTABLE_DOUBLE "`.",
+                         r_num));
     } break;
     case Datum::R_STR: {
         init_str(d->r_str().size(), d->r_str().data());
