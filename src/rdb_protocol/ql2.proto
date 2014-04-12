@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Process: When you first open a connection, send the magic number
-// for the version of the protobuf you're targetting (in the [Version]
+// for the version of the protobuf you're targeting (in the [Version]
 // enum).  This should **NOT** be sent as a protobuf; just send the
 // little-endian 32-bit integer over the wire raw.  This number should
 // only be sent once per connection.
@@ -11,10 +11,17 @@
 // The magic number shall be followed by an authorization key.  The
 // first 4 bytes are the length of the key to be sent as a little-endian
 // 32-bit integer, followed by the key string.  Even if there is no key,
-// an empty string should be sent (length 0 and no data).  The server will
-// then respond with a NULL-terminated string response.  "SUCCESS" indicates
-// that the connection has been accepted. Any other response indicates an
-// error, and the response string should describe the error.
+// an empty string should be sent (length 0 and no data).
+
+// Following the authorization key, the client shall send the communication
+// protocol they want to use.  Accepted values are 'protobuf' and 'json'.
+// This should be performed in the same method as the authorization key,
+// with the length followed by the string.
+
+// The server will then respond with a NULL-terminated string response.
+// "SUCCESS" indicates that the connection has been accepted. Any other
+// response indicates an error, and the response string should describe
+// the error.
 
 // Next, for each query you want to send, construct a [Query] protobuf
 // and serialize it to a binary blob.  Send the blob's size to the
@@ -38,9 +45,9 @@
 message VersionDummy { // We need to wrap it like this for some
                        // non-conforming protobuf libraries
     enum Version {
-        V0_1 = 0x3f61ba36;
-        V0_2 = 0x723081e1;
-        V0_3 = 0x0c7eb13c;
+        V0_1      = 0x3f61ba36;
+        V0_2      = 0x723081e1; // Authorization key during handshake
+        V0_3      = 0xdf75e83e; // Protocol string during handshake
     }
 }
 
