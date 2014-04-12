@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 scoped_ptr_t<wire_string_t> wire_string_t::create(size_t size) {
-    // This allocates _size + 1 bytes for the data_ field (which is declared as char[1])
+    // This allocates size + 1 bytes for the data_ field (which is declared as char[1])
     size_t memory_size = sizeof(wire_string_t) + size;
     void *raw_result = ::rmalloc(memory_size);
     wire_string_t *result = static_cast<wire_string_t *>(raw_result);
@@ -110,7 +110,7 @@ write_message_t &operator<<(write_message_t &msg, const wire_string_t &s) {
     return msg;
 }
 
-archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) THROWS_NOTHING {
+archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }

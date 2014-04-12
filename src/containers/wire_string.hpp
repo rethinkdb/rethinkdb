@@ -65,7 +65,7 @@ size_t serialized_size(const wire_string_t &s);
 
 write_message_t &operator<<(write_message_t &msg, const wire_string_t &s);
 
-// Empty scoped_ptr_t's not possible.
-archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) THROWS_NOTHING;
+// The deserialized value cannot be an empty scoped_ptr_t.
+archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out);
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_
