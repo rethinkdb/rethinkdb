@@ -345,6 +345,7 @@ void listener_read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
+    // TODO! If local, get direct_reader and call directly.
     cond_t resp_cond;
     mailbox_t<void(read_response_t)> resp_mailbox(
         mailbox_manager,
@@ -443,6 +444,7 @@ void broadcaster_t::spawn_write(const write_t &write,
 void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
+    // TODO! Prefer local reader if we have one
 
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
@@ -570,6 +572,7 @@ void broadcaster_t::single_read(
 
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+        // TODO! Short-cirquit if reader is local
         listener_read(mailbox_manager, reader->read_mailbox,
                       read, response, timestamp, order_token, enforcer_token,
                       &interruptor2);

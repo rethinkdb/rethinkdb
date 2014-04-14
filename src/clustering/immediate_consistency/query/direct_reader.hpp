@@ -25,10 +25,7 @@ private:
     void on_read(
             const read_t &,
             const mailbox_addr_t<void(read_response_t)> &);
-    void perform_read(
-            const read_t &,
-            const mailbox_addr_t<void(read_response_t)> &,
-            auto_drainer_t::lock_t);
+    read_response_t perform_read(const read_t &) THROWS_ONLY(interrupted_exc_t);
 
     mailbox_manager_t *mailbox_manager;
     store_view_t *svs;

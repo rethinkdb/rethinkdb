@@ -209,6 +209,7 @@ cluster_namespace_interface_t::dispatch_outdated_read(
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
 
+            // TODO! Prefer local reader if we have one
             const std::set<relationship_t *> *relationship_map = &it->second;
             for (auto jt = relationship_map->begin();
                  jt != relationship_map->end();
@@ -270,6 +271,7 @@ void cluster_namespace_interface_t::perform_outdated_read(
     signal_t *interruptor)
     THROWS_NOTHING
 {
+    // TODO! Again, if this is local, short-circuit.
     outdated_read_info_t *direct_reader_to_contact = &(*direct_readers_to_contact)[i];
 
     try {
