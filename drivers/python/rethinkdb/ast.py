@@ -22,6 +22,18 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
+    elif isinstance(val, list):
+        val = [expr(v, nesting_depth - 1) for v in val]
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        obj = {}
+        for (k,v) in val.iteritems():
+            obj[k] = expr(v, nesting_depth - 1)
+        return MakeObj(obj)
+    elif isinstance(val, collections.Callable):
+        return Func(val)
     elif isinstance(val, datetime.datetime) or isinstance(val, datetime.date):
         if not hasattr(val, 'tzinfo') or not val.tzinfo:
             raise RqlDriverError("""Cannot convert %s to ReQL time object
@@ -31,18 +43,6 @@ def expr(val, nesting_depth=20):
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
             """ % (type(val).__name__))
         return ISO8601(val.isoformat())
-    elif isinstance(val, list):
-        val = [expr(v, nesting_depth - 1) for v in val]
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        obj = {}
-        for k in val.keys():
-            obj[k] = expr(val[k], nesting_depth - 1)
-        return MakeObj(obj)
-    elif isinstance(val, collections.Callable):
-        return Func(val)
     else:
         return Datum(val)
 
@@ -53,10 +53,10 @@ class RqlQuery(object):
         self.args = [expr(e) for e in args]
 
         self.optargs = {}
-        for k in optargs.keys():
-            if not isinstance(optargs[k], RqlQuery) and optargs[k] == ():
+        for (k,v) in optargs.iteritems():
+            if not isinstance(v, RqlQuery) and v == ():
                 continue
-            self.optargs[k] = expr(optargs[k])
+            self.optargs[k] = expr(v)
 
     # Send this query to the server to be executed
     def run(self, c=None, **global_optargs):
@@ -501,7 +501,7 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for k,v in optargs.items()])
+        args.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -510,7 +510,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([T(k, '=', v) for k,v in optargs.items()])
+        restargs.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
@@ -574,7 +574,7 @@ def recursively_make_hashable(obj):
     if isinstance(obj, list):
         return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.items()])
+        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.iteritems()])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
@@ -652,10 +652,10 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for k in obj_dict.keys():
+        for (k,v) in obj_dict.iteritems():
             if not isinstance(k, types.StringTypes):
                 raise RqlDriverError("Object keys must be strings.");
-            self.optargs[k] = expr(obj_dict[k])
+            self.optargs[k] = expr(v)
 
     def build(self):
         res = { }
@@ -665,7 +665,7 @@ class MakeObj(RqlQuery):
         return res
 
     def compose(self, args, optargs):
-        return T('r.expr({', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '})')
+        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in optargs.iteritems()], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = p.Term.VAR
@@ -1227,7 +1227,7 @@ def func_wrap(val):
             return True
         if any([ivar_scan(arg) for arg in node.args]):
             return True
-        if any([ivar_scan(arg) for k,arg in node.optargs.items()]):
+        if any([ivar_scan(arg) for k,arg in node.optargs.iteritems()]):
             return True
         return False
 

@@ -14,12 +14,6 @@ from rethinkdb import repl # For the repl connection
 from rethinkdb.errors import *
 from rethinkdb.ast import RqlQuery, DB, recursively_convert_pseudotypes
 
-def build_optargs(optargs):
-    optargs_out = { }
-    for (k,v) in optargs.iteritems():
-        optargs_out[k] = v.build() if isinstance(v, RqlQuery) else v
-    return optargs_out
-
 class Query(object):
     def __init__(self, type, token, term, global_optargs):
         self.type = type
@@ -32,7 +26,10 @@ class Query(object):
         if self.term is not None:
             res.append(self.term.build())
         if self.global_optargs is not None:
-            res.append(build_optargs(self.global_optargs))
+            optargs = { }
+            for (k,v) in self.global_optargs.iteritems():
+                optargs[k] = v.build() if isinstance(v, RqlQuery) else v
+            res.append(optargs)
         return json.dumps(res, ensure_ascii=False)
 
 class Response(object):
