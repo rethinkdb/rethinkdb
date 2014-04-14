@@ -47,7 +47,7 @@ message VersionDummy { // We need to wrap it like this for some
     enum Version {
         V0_1      = 0x3f61ba36;
         V0_2      = 0x723081e1; // Authorization key during handshake
-        V0_3      = 0xdf75e83e; // Protocol string during handshake
+        V0_3      = 0x5f75e83e; // Protocol string during handshake
     }
 }
 

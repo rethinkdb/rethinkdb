@@ -1,18 +1,12 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor', 'protobuf_implementation']
+__all__ = ['connect', 'Connection', 'Cursor']
 
 import errno
 import socket
 import struct
 import json
 from os import environ
-
-try:
-    import rethinkdb.pbcpp
-    protobuf_implementation = 'cpp'
-except ImportError:
-    protobuf_implementation = 'python'
 
 from rethinkdb import ql2_pb2 as p
 
@@ -47,9 +41,14 @@ class Response(object):
         self.token = token
         self.full_response = json.loads(json_str)
         self.type = self.full_response["t"]
-        self.data = self.full_response["r"]
         self.backtrace = self.full_response.get("b", None)
         self.profile = self.full_response.get("p", None)
+        self.data = None
+
+    def get_data(self):
+        if self.data is None:
+            self.data = self.full_response["r"]
+        return self.data
 
 class Cursor(object):
     def __init__(self, conn, query, opts):
@@ -81,7 +80,7 @@ class Cursor(object):
             if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
                 raise RqlDriverError("Unexpected response type received for cursor")
 
-            response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
+            response_data = recursively_convert_pseudotypes(self.responses[0].get_data(), self.opts)
             del self.responses[0]
             for item in response_data:
                 yield item
@@ -275,15 +274,15 @@ class Connection(object):
 
     def _check_error_response(self, response, term):
         if response.type == p.Response.RUNTIME_ERROR:
-            message = response.data[0]
+            message = response.get_data()[0]
             frames = response.backtrace
             raise RqlRuntimeError(message, term, frames)
         elif response.type == p.Response.COMPILE_ERROR:
-            message = response.data[0]
+            message = response.get_data()[0]
             frames = response.backtrace
             raise RqlCompileError(message, term, frames)
         elif response.type == p.Response.CLIENT_ERROR:
-            message = response.data[0]
+            message = response.get_data()[0]
             frames = response.backtrace
             raise RqlClientError(message, term, frames)
 
@@ -294,7 +293,7 @@ class Connection(object):
 
         query.accepts_r_json = True
 
-        # Send protobuf
+        # Send json
         query_str = query.serialize().encode('utf-8')
         query_header = struct.pack("<L", len(query_str))
         self._sock_sendall(query_header)
@@ -314,9 +313,9 @@ class Connection(object):
             value._extend(response)
         elif response.type == p.Response.SUCCESS_ATOM:
             # Atom response
-            if len(response.data) < 1:
+            if len(response.get_data()) < 1:
                 value = None
-            value = recursively_convert_pseudotypes(response.data[0], opts)
+            value = recursively_convert_pseudotypes(response.get_data()[0], opts)
         elif response.type == p.Response.WAIT_COMPLETE:
             # Noreply_wait response
             return None

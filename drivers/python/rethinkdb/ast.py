@@ -75,7 +75,7 @@ class RqlQuery(object):
     def __repr__(self):
         return "<RqlQuery instance: %s >" % str(self)
 
-    # Compile this query to a binary protobuf buffer
+    # Compile this query to a json-serializable object
     def build(self):
         res = [self.tt, [arg.build() for arg in self.args]]
         if len(self.optargs) > 0:
@@ -665,7 +665,7 @@ class MakeObj(RqlQuery):
         return res
 
     def compose(self, args, optargs):
-        return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
+        return T('r.expr({', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = p.Term.VAR
