@@ -296,8 +296,7 @@ class Connection(object):
         # Send json
         query_str = query.serialize().encode('utf-8')
         query_header = struct.pack("<L", len(query_str))
-        self._sock_sendall(query_header)
-        self._sock_sendall(query_str)
+        self._sock_sendall(query_header + query_str)
 
         if async or ('noreply' in opts and opts['noreply']):
             return None
