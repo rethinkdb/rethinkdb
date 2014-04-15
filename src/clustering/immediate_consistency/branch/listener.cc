@@ -397,18 +397,7 @@ void listener_t::on_write(const write_t &write,
     rassert(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::enqueue_write, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::enqueue_write(const write_t &write,
-        transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void()> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    auto_drainer_t::lock_t keepalive(&drainer_);
     try {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
@@ -475,19 +464,7 @@ void listener_t::on_writeread(const write_t &write,
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
 
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::perform_writeread(const write_t &write,
-        transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void(write_response_t)> ack_addr,
-        const write_durability_t durability,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    auto_drainer_t::lock_t keepalive(&drainer_);
     try {
         write_token_pair_t write_token_pair;
         {
@@ -547,18 +524,7 @@ void listener_t::on_read(const read_t &read,
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();
 
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::perform_read, this,
-        read, expected_timestamp, order_token, fifo_token, ack_addr,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::perform_read(const read_t &read,
-        state_timestamp_t expected_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_read_token_t fifo_token,
-        mailbox_addr_t<void(read_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    auto_drainer_t::lock_t keepalive(&drainer_);
     try {
         read_token_pair_t read_token_pair;
         {
