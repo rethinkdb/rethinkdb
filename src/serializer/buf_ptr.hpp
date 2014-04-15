@@ -98,6 +98,16 @@ public:
     // this.
     void resize_fill_zero(block_size_t new_size);
 
+    // Fills the padding space with zeroes.  Generally speaking, you want to write
+    // blocks with zero padding, not uninitialized memory or other arbitrary scruff.
+    void fill_padding_zero() const;
+
+#ifndef NDEBUG
+    void assert_padding_zero() const;
+#else
+    void assert_padding_zero() const { }
+#endif
+
 
 private:
     static uint32_t compute_in_memory_size(block_size_t block_size) {

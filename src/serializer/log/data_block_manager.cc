@@ -679,20 +679,21 @@ buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
                                    file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
-        // RSI: alloc_zeroed performance.
-
-        // RSI: perform_read_ahead could very well write nonzeros past the end of
-        // block_size.
-        buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+        buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
         dbm_read_ahead_t::perform_read_ahead(this, off_in, block_size.ser_value(),
                                              ret.ser_buffer(), io_account);
+        // We have to fill the padding with zero, since only the first part of the
+        // buf got memcpy'd into.
+        ret.fill_padding_zero();
         return ret;
     } else {
         if (divides(DEVICE_BLOCK_SIZE, off_in)) {
-            // RSI: alloc_zeroed performance.
-            buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+            buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
             co_read(dbfile, off_in, ret.aligned_block_size(),
                     ret.ser_buffer(), io_account);
+            // Blocks are written DEVICE_BLOCK_SIZE-aligned -- so the block on disk
+            // should have been written with zero padding.
+            ret.assert_padding_zero();
             return ret;
         } else {
             int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
@@ -703,10 +704,11 @@ buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
-            // RSI: alloc_zeroed performance
-            buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+            buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
             memcpy(ret.ser_buffer(), buf.get() + (off_in - floor_off_in),
                    block_size.ser_value());
+            // We have to fill the padding to zero, in this case.
+            ret.fill_padding_zero();
             return ret;
         }
     }

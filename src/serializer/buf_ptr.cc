@@ -65,3 +65,21 @@ void buf_ptr::resize_fill_zero(block_size_t new_size) {
     }
     block_size_ = new_size;
 }
+
+void buf_ptr::fill_padding_zero() const {
+    guarantee(has());
+    char *p = reinterpret_cast<char *>(ser_buffer());
+    uint32_t ser_block_size = block_size().ser_value();
+    uint32_t aligned = aligned_block_size();
+    memset(p + ser_block_size, 0, aligned - ser_block_size);
+}
+
+void buf_ptr::assert_padding_zero() const {
+    guarantee(has());
+    char *p = reinterpret_cast<char *>(ser_buffer());
+    uint32_t ser_block_size = block_size().ser_value();
+    uint32_t aligned = aligned_block_size();
+    for (uint32_t i = ser_block_size; i < aligned; ++i) {
+        rassert(p[i] == 0);
+    }
+}
