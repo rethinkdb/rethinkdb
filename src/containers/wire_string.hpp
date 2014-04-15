@@ -65,7 +65,9 @@ size_t serialized_size(const wire_string_t &s);
 
 write_message_t &operator<<(write_message_t &msg, const wire_string_t &s);
 
-// The deserialized value cannot be an empty scoped_ptr_t.
+// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
+// functions, the value of `*out` is left in an unspecified state, should
+// serialization fail.
 archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out);
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_
