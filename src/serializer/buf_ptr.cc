@@ -73,6 +73,7 @@ void buf_ptr::fill_padding_zero() const {
     memset(p + ser_block_size, 0, aligned - ser_block_size);
 }
 
+#ifndef NDEBUG
 void buf_ptr::assert_padding_zero() const {
     guarantee(has());
     char *p = reinterpret_cast<char *>(ser_buffer());
@@ -82,3 +83,5 @@ void buf_ptr::assert_padding_zero() const {
         rassert(p[i] == 0);
     }
 }
+#endif
+
