@@ -48,11 +48,6 @@ public:
     serializer_t() { }
     virtual ~serializer_t() { }
 
-    /* The buffers that are used with do_read() and do_write() must be allocated using
-    this function. They can be safely called from any thread. */
-
-    static scoped_malloc_t<ser_buffer_t> allocate_buffer(block_size_t block_size);
-
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
     file_account_t *make_io_account(int priority);
