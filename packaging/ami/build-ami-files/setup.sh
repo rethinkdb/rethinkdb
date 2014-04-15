@@ -4,6 +4,7 @@ set -ex
 add-apt-repository -y ppa:rethinkdb/ppa
 add-apt-repository -y ppa:chris-lea/node.js
 aptitude -y update
+aptitude -y upgrade
 aptitude install -y rethinkdb nginx-light apache2-utils python-twisted \
     rubygems python-pip npm nodejs ruby1.9.1 rubygems1.9.1 python-dev ruby1.9.1-dev \
     build-essential
