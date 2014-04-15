@@ -419,11 +419,8 @@ buf_ptr log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    // RSI: Push buf_ptr down further?
-    // RSI: alloc_zeroed performance.
-    buf_ptr ret = buf_ptr::alloc_zeroed(token->block_size());
-    data_block_manager->read(token->offset_, token->block_size().ser_value(),
-                             ret.ser_buffer(), io_account);
+    buf_ptr ret = data_block_manager->read(token->offset_, token->block_size(),
+                                           io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
     return ret;

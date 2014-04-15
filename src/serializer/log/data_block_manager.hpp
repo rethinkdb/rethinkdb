@@ -10,6 +10,7 @@
 #include "containers/scoped.hpp"
 #include "containers/two_level_array.hpp"
 #include "perfmon/types.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/log/config.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
@@ -64,8 +65,8 @@ public:
     static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
 
-    void read(int64_t off_in, uint32_t ser_block_size,
-              void *buf_out, file_account_t *io_account);
+    buf_ptr read(int64_t off_in, block_size_t block_size,
+                 file_account_t *io_account);
 
     /* exposed gc api */
     /* mark a buffer as garbage */

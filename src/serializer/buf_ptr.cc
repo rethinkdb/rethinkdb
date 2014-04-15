@@ -2,13 +2,19 @@
 
 #include "math.hpp"
 
-buf_ptr buf_ptr::alloc_zeroed(block_size_t size) {
+buf_ptr buf_ptr::alloc_uninitialized(block_size_t size) {
     guarantee(size.ser_value() != 0);
     const size_t count = compute_in_memory_size(size);
     buf_ptr ret;
     ret.block_size_ = size;
     ret.ser_buffer_.init(malloc_aligned(count, DEVICE_BLOCK_SIZE));
-    memset(ret.ser_buffer_.get(), 0, count);
+    return ret;
+}
+
+buf_ptr buf_ptr::alloc_zeroed(block_size_t size) {
+    buf_ptr ret = alloc_uninitialized(size);
+    char *buf = reinterpret_cast<char *>(ret.ser_buffer());
+    memset(buf, 0, compute_in_memory_size(size));
     return ret;
 }
 

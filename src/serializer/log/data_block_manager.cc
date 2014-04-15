@@ -675,27 +675,39 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
-                                void *buf_out, file_account_t *io_account) {
+buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
+                                   file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
-        dbm_read_ahead_t::perform_read_ahead(this, off_in, ser_block_size_in,
-                                             buf_out, io_account);
+        // RSI: alloc_zeroed performance.
+
+        // RSI: perform_read_ahead could very well write nonzeros past the end of
+        // block_size.
+        buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+        dbm_read_ahead_t::perform_read_ahead(this, off_in, block_size.ser_value(),
+                                             ret.ser_buffer(), io_account);
+        return ret;
     } else {
-        if (divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf_out)) &&
-            divides(DEVICE_BLOCK_SIZE, off_in) &&
-            divides(DEVICE_BLOCK_SIZE, ser_block_size_in)) {
-            co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
+        if (divides(DEVICE_BLOCK_SIZE, off_in)) {
+            // RSI: alloc_zeroed performance.
+            buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+            co_read(dbfile, off_in, ret.aligned_block_size(),
+                    ret.ser_buffer(), io_account);
+            return ret;
         } else {
             int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
-            int64_t ceil_off_end = ceil_aligned(off_in + ser_block_size_in,
+            int64_t ceil_off_end = ceil_aligned(off_in + block_size.ser_value(),
                                                 DEVICE_BLOCK_SIZE);
             scoped_malloc_t<char> buf(malloc_aligned(ceil_off_end - floor_off_in,
                                                      DEVICE_BLOCK_SIZE));
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
-            memcpy(buf_out, buf.get() + (off_in - floor_off_in), ser_block_size_in);
+            // RSI: alloc_zeroed performance
+            buf_ptr ret = buf_ptr::alloc_zeroed(block_size);
+            memcpy(ret.ser_buffer(), buf.get() + (off_in - floor_off_in),
+                   block_size.ser_value());
+            return ret;
         }
     }
 }

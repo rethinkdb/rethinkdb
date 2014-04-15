@@ -44,7 +44,11 @@ public:
         ser_buffer_.reset();
     }
 
+    // Allocates a block, all of whose bytes are zeroed.
     static buf_ptr alloc_zeroed(block_size_t size);
+
+    // Allocates a block, none of whose bytes are zeroed.  Be sure to zero its bytes!
+    static buf_ptr alloc_uninitialized(block_size_t size);
 
     static buf_ptr alloc_copy(const buf_ptr &copyee);
 
@@ -68,6 +72,13 @@ public:
         guarantee(ser_buffer_.has());
         return block_size_t::unsafe_make(
                 buf_ptr::compute_in_memory_size(block_size_));
+    }
+
+    // The buf is DEVICE_BLOCK_SIZE-aligned in both offset and size.  Returns the
+    // value of block_size().ser_value() rounded up to the next multiple of
+    // DEVICE_BLOCK_SIZE -- this is the true size of the buffer.
+    uint32_t aligned_block_size() const {
+        return buf_ptr::compute_in_memory_size(block_size_);
     }
 
     // RSI: Get rid of this.
