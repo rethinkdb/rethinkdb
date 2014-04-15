@@ -24,6 +24,7 @@
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
