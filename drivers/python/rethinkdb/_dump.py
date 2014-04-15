@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
+from ._backup import *
 
 info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
 usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
@@ -53,12 +54,7 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    host_port = options.host.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
-    (res["host"], res["port"]) = host_port
+    (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid output file
     res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
