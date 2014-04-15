@@ -209,7 +209,6 @@ cluster_namespace_interface_t::dispatch_outdated_read(
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
 
-            // TODO! Prefer local reader if we have one
             const std::set<relationship_t *> *relationship_map = &it->second;
             for (auto jt = relationship_map->begin();
                  jt != relationship_map->end();
