@@ -183,7 +183,10 @@ bool mailbox_manager_t::try_local_delivery(const raw_mailbox_t::address_t &dest,
                 dest.thread == raw_mailbox_t::address_t::ANY_THREAD
                 ? get_thread_id().threadnum
                 : dest.thread);
-            coro_t::spawn_sometime(
+            // This is `spawn_now_dangerously` for performance reasons.
+            // It cuts query latency by >20% in some scenarios compared to
+            // `spawn_sometime`.
+            coro_t::spawn_now_dangerously(
                 std::bind(&mailbox_manager_t::local_delivery_coroutine<arg_ts...>,
                           this, dest_thread, dest.mailbox_id, data...));
             return true;
