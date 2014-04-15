@@ -637,10 +637,10 @@ struct rdb_protocol_t {
     public:
         enum action_t { SUBSCRIBE, UNSUBSCRIBE };
         changefeed_update_t() { }
-        changefeed_update_t(mailbox_addr_t<void(ql::changefeed_msg_t)> _addr,
+        changefeed_update_t(mailbox_addr_t<void(ql::changefeed::msg_t)> _addr,
                             action_t _action)
             : addr(_addr), action(_action), region(region_t::universe()) { }
-        mailbox_addr_t<void(ql::changefeed_msg_t)> addr;
+        mailbox_addr_t<void(ql::changefeed::msg_t)> addr;
         action_t action;
         region_t region;
         RDB_DECLARE_ME_SERIALIZABLE;

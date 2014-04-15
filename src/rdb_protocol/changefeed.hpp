@@ -4,9 +4,14 @@
 #include <deque>
 #include <map>
 
+#include "errors.hpp"
+
+#include <boost/variant.hpp>
+
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
@@ -25,19 +30,38 @@ class datum_t;
 class env_t;
 class table_t;
 
-struct changefeed_msg_t {
-    enum type_t { UNINITIALIZED, CHANGE, TABLE_DROP };
+namespace changefeed {
 
-    changefeed_msg_t();
-    ~changefeed_msg_t();
-    static changefeed_msg_t change(const rdb_modification_report_t *report);
-    static changefeed_msg_t table_drop();
+struct msg_t {
+    struct start_t  {
+        start_t() { }
+        start_t(const peer_id_t &_peer_id) : peer_id(_peer_id) { }
+        peer_id_t peer_id;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct change_t {
+        change_t();
+        change_t(const rdb_modification_report_t *report);
+        ~change_t();
+        counted_t<const datum_t> old_val, new_val;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+    struct stop_t { RDB_DECLARE_ME_SERIALIZABLE; };
 
-    type_t type;
-    counted_t<const datum_t> old_val;
-    counted_t<const datum_t> new_val;
+    msg_t() { }
+    msg_t(msg_t &&msg);
+    msg_t(const msg_t &msg);
+    msg_t(stop_t &&op);
+    msg_t(start_t &&op);
+    msg_t(change_t &&op);
+
+    // Starts with STOP to avoid doing work for default initialization.
+    boost::variant<stop_t, start_t, change_t> op;
+
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+} // namespace changefeed
 
 class changefeed_manager_t : public home_thread_mixin_t {
 public:
@@ -56,11 +80,11 @@ public:
         std::vector<counted_t<const datum_t> > get_els(
             batcher_t *batcher, const signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-    private:
-        friend class changefeed_t;
-        void maybe_signal_cond() THROWS_NOTHING;
+
         void add_el(counted_t<const datum_t> d);
         void finish();
+    private:
+        void maybe_signal_cond() THROWS_NOTHING;
 
         bool finished;
         scoped_ptr_t<base_exc_t> exc;

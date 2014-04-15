@@ -1,5 +1,6 @@
 #include "rdb_protocol/changefeed.hpp"
 
+#include "containers/archive/boost_types.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
@@ -11,34 +12,9 @@ namespace ql {
 
 typedef changefeed_manager_t::subscription_t subscription_t;
 
-changefeed_msg_t::changefeed_msg_t() : type(UNINITIALIZED) { }
-changefeed_msg_t::~changefeed_msg_t() { }
-
-changefeed_msg_t changefeed_msg_t::change(const rdb_modification_report_t *report) {
-    changefeed_msg_t ret;
-    ret.type = CHANGE;
-    ret.old_val = report->info.deleted.first;
-    ret.new_val = report->info.added.first;
-    return std::move(ret);
-}
-
-changefeed_msg_t changefeed_msg_t::table_drop() {
-    changefeed_msg_t ret;
-    ret.type = TABLE_DROP;
-    return std::move(ret);
-}
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    changefeed_msg_t::type_t,
-    int8_t,
-    changefeed_msg_t::UNINITIALIZED,
-    changefeed_msg_t::TABLE_DROP);
-RDB_IMPL_ME_SERIALIZABLE_3(
-    changefeed_msg_t, type, empty_ok(old_val), empty_ok(new_val));
-
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
-    changefeed_updater_t(mailbox_addr_t<void(changefeed_msg_t)> _addr,
+    changefeed_updater_t(mailbox_addr_t<void(changefeed::msg_t)> _addr,
                          base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                          uuid_u uuid)
         : addr(_addr) {
@@ -79,19 +55,20 @@ private:
             // we handle the dangling mailbox on the other end?
         }
     }
-    mailbox_addr_t<void(changefeed_msg_t)> addr;
+    mailbox_addr_t<void(changefeed::msg_t)> addr;
     scoped_ptr_t<base_namespace_repo_t<rdb_protocol_t>::access_t> access;
     auto_drainer_t drainer;
 };
 
 class change_stream_t;
+void handle_msg(changefeed_t *feed, const changefeed::msg_t &msg);
 
 class changefeed_t : public home_thread_mixin_t {
 public:
     changefeed_t(mailbox_manager_t *manager,
                  base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                  uuid_u uuid)
-        : mailbox(manager, [=](changefeed_msg_t msg) { this->handle(std::move(msg)); }),
+        : mailbox(manager, [=](changefeed::msg_t msg) { handle_msg(this, msg); }),
           subscribers(get_num_threads()),
           total_subscribers(0),
           updater(mailbox.get_address(), ns_repo, uuid) { }
@@ -105,15 +82,16 @@ public:
         guarantee(total_subscribers == 0);
     }
 
+    void each_subscriber(std::function<void(subscription_t *)> action) THROWS_NOTHING;
 private:
     friend class changefeed_manager_t::subscription_t;
     // Used by `subscription_t`.
     void add_subscriber(int threadnum, subscription_t *subscriber);
     void del_subscriber(int threadnum, subscription_t *subscriber) THROWS_NOTHING;
 
-    void handle(changefeed_msg_t msg) THROWS_NOTHING;
+    void handle(changefeed::msg_t msg) THROWS_NOTHING;
 
-    mailbox_t<void(changefeed_msg_t)> mailbox;
+    mailbox_t<void(changefeed::msg_t)> mailbox;
     // We use an array rather than a `one_per_thread_t` because it's managed by
     // `changefeed_t`s home thread.
     scoped_array_t<std::set<subscription_t *> > subscribers;
@@ -121,6 +99,52 @@ private:
     rwlock_t subscribers_lock;
     changefeed_updater_t updater;
 };
+
+namespace changefeed {
+
+msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
+msg_t::msg_t(const msg_t &msg) : op(msg.op) { }
+msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
+msg_t::msg_t(start_t &&_op) : op(std::move(_op)) { }
+msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
+
+msg_t::change_t::change_t() { }
+msg_t::change_t::change_t(const rdb_modification_report_t *report)
+  : old_val(report->info.deleted.first), new_val(report->info.added.first) { }
+msg_t::change_t::~change_t() { }
+
+RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
+RDB_IMPL_ME_SERIALIZABLE_1(msg_t::start_t, peer_id);
+RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
+
+class msg_visitor_t : public boost::static_visitor<void> {
+public:
+    msg_visitor_t(changefeed_t *_changefeed) : changefeed(_changefeed) { }
+    void operator()(const msg_t::start_t &) const {
+        // RSI: Something.
+    }
+    void operator()(const msg_t::change_t &change) const {
+        auto null = make_counted<const datum_t>(datum_t::R_NULL);
+        std::map<std::string, counted_t<const datum_t> > obj{
+            {"new_val", change.new_val.has() ? change.new_val : null},
+            {"old_val", change.old_val.has() ? change.old_val : null}
+        };
+        auto d = make_counted<const datum_t>(std::move(obj));
+        changefeed->each_subscriber([=](subscription_t *sub) { sub->add_el(d); });
+    }
+    void operator()(const msg_t::stop_t &) const {
+        changefeed->each_subscriber([](subscription_t *sub) { sub->finish(); });
+    }
+private:
+    changefeed_t *changefeed;
+};
+
+} // namespace changefeed
+
+void handle_msg(changefeed_t *feed, const changefeed::msg_t &msg) {
+    boost::apply_visitor(changefeed::msg_visitor_t(feed), msg.op);
+}
 
 class change_stream_t : public eager_datum_stream_t {
 public:
@@ -273,25 +297,10 @@ void changefeed_t::del_subscriber(int threadnum, subscription_t *subscriber)
     guarantee(erased == 1);
 }
 
-void changefeed_t::handle(changefeed_msg_t msg) THROWS_NOTHING {
+void changefeed_t::each_subscriber(std::function<void(subscription_t *)> action)
+// RSI: does this actually never throw?
+    THROWS_NOTHING {
     assert_thread();
-    std::function<void(subscription_t *)> action;
-    switch (msg.type) {
-    case changefeed_msg_t::CHANGE: {
-        auto null = make_counted<const datum_t>(datum_t::R_NULL);
-        std::map<std::string, counted_t<const datum_t> > obj{
-            {"new_val", msg.new_val.has() ? msg.new_val : null},
-                {"old_val", msg.old_val.has() ? msg.old_val : null}
-        };
-        auto d = make_counted<const datum_t>(std::move(obj));
-        action = [=](subscription_t *sub) { sub->add_el(d); };
-    } break;
-    case changefeed_msg_t::TABLE_DROP: {
-        action = [](subscription_t *sub) { sub->finish(); };
-    } break;
-    case changefeed_msg_t::UNINITIALIZED: unreachable();
-    default: unreachable();
-    }
     rwlock_in_line_t spot(&subscribers_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
