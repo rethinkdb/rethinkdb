@@ -469,8 +469,7 @@ struct rdb_protocol_t {
 
     struct changefeed_update_response_t {
         changefeed_update_response_t() { }
-        changefeed_update_response_t(bool _success) : success(_success) { }
-        bool success;
+        std::vector<peer_id_t> peers;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 

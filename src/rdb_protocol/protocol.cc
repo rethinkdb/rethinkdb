@@ -1008,13 +1008,15 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_delete_t &) const { monokey_response(); }
 
     void operator()(const changefeed_update_t &) const {
-        bool success = true;
+        response_out->response = changefeed_update_response_t();
+        auto out = boost::get<changefeed_update_response_t>(&response_out->response);
         for (size_t i = 0; i < count; ++i) {
             auto res = boost::get<changefeed_update_response_t>(&responses[i].response);
             guarantee(res != NULL);
-            success &= res->success;
+            out->peers.reserve(out->peers.size() + res->peers.size());
+            std::move(res->peers.begin(), res->peers.end(),
+                      std::back_inserter(out->peers));
         }
-        response_out->response = changefeed_update_response_t(success);
     }
 
     void operator()(const sindex_create_t &) const {
@@ -1451,7 +1453,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         } break;
         default: unreachable();
         }
-        response->response = changefeed_update_response_t(true);
+        response->response = changefeed_update_response_t();
+        boost::get<changefeed_update_response_t>(&response->response)->peers.push_back(
+            ql_env.changefeed_manager->get_manager()
+            ->get_connectivity_service()->get_me());
     }
 
     void operator()(const sindex_create_t &c) {
@@ -1938,7 +1943,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::changefeed_update_response_t, success);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::changefeed_update_response_t, peers);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);

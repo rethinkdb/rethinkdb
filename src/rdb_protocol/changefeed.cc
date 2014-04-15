@@ -14,21 +14,34 @@ typedef changefeed_manager_t::subscription_t subscription_t;
 
 class changefeed_updater_t : public home_thread_mixin_t {
 public:
-    changefeed_updater_t(mailbox_addr_t<void(changefeed::msg_t)> _addr,
+    changefeed_updater_t(mailbox_manager_t *manager,
+                         mailbox_addr_t<void(changefeed::msg_t)> _addr,
                          base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                          uuid_u uuid)
         : addr(_addr) {
         auto_drainer_t::lock_t lock(&drainer);
         access.init(new base_namespace_repo_t<rdb_protocol_t>::access_t(
                         ns_repo, uuid, lock.get_drain_signal()));
-        start_changefeed();
+        std::vector<peer_id_t> peers = start_changefeed();
+        any_disconnect.init(new wait_any_t());
+        for (auto it = peers.begin(); it != peers.end(); ++it) {
+            peer_disconnects.push_back(
+                make_scoped<disconnect_watcher_t>(
+                    manager->get_connectivity_service(),
+                    *it));
+            any_disconnect->add(&*peer_disconnects.back());
+        }
     }
     ~changefeed_updater_t() {
         stop_changefeed();
     }
+    signal_t *get_disconnect_signal() {
+        return &*any_disconnect;
+    }
 private:
-    void start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
-        update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
+    friend class changefeed_manager_t::subscription_t;
+    std::vector<peer_id_t> start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
+        return update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
     }
     void stop_changefeed() THROWS_NOTHING { // This is called in a destructor.
         try {
@@ -39,7 +52,8 @@ private:
             // end?
         }
     }
-    void update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
+    std::vector<peer_id_t>
+    update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
         THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
         try {
@@ -50,13 +64,22 @@ private:
                 profile_bool_t::DONT_PROFILE);
             rdb_protocol_t::write_response_t resp;
             nif->write(write, &resp, order_token_t::ignore, lock.get_drain_signal());
+            auto update_response =
+                boost::get<rdb_protocol_t::changefeed_update_response_t>(
+                    &resp.response);
+            guarantee(update_response);
+            return std::move(update_response->peers);
         } catch (const interrupted_exc_t &e) {
             // RSI(CR): We're being destroyed.  Not sure what to do here; how should
             // we handle the dangling mailbox on the other end?
+            return std::vector<peer_id_t>();
         }
     }
+
     mailbox_addr_t<void(changefeed::msg_t)> addr;
     scoped_ptr_t<base_namespace_repo_t<rdb_protocol_t>::access_t> access;
+    std::vector<scoped_ptr_t<disconnect_watcher_t> > peer_disconnects;
+    scoped_ptr_t<wait_any_t> any_disconnect;
     auto_drainer_t drainer;
 };
 
@@ -71,7 +94,7 @@ public:
         : mailbox(manager, [=](changefeed::msg_t msg) { handle_msg(this, msg); }),
           subscribers(get_num_threads()),
           total_subscribers(0),
-          updater(mailbox.get_address(), ns_repo, uuid) { }
+          updater(manager, mailbox.get_address(), ns_repo, uuid) { }
     ~changefeed_t() {
         // If we have subscribers left, they have a dangling pointer.  This
         // assertion should be true because we're only destroyed when shutting
@@ -97,6 +120,8 @@ private:
     scoped_array_t<std::set<subscription_t *> > subscribers;
     int64_t total_subscribers;
     rwlock_t subscribers_lock;
+
+    // This should be at the end of the class so it's destroyed first.
     changefeed_updater_t updater;
 };
 
@@ -245,15 +270,41 @@ subscription_t::subscription_t(
     THROWS_ONLY(cannot_perform_query_exc_t)
     : finished(false), cond(NULL), manager(_manager), drainer(new auto_drainer_t()) {
     on_thread_t th(manager->home_thread());
+
+    bool need_to_spawn_disconnect_watcher = false;
     changefeed = manager->changefeeds.find(uuid);
     if (changefeed == manager->changefeeds.end()) {
         auto cfeed = make_scoped<changefeed_t>(manager->manager, ns_repo, uuid);
         changefeed = manager->changefeeds.insert(
             std::make_pair(uuid, std::move(cfeed))).first;
+        need_to_spawn_disconnect_watcher = true;
     }
     guarantee(changefeed->second->home_thread() == manager->home_thread());
     changefeed->second->total_subscribers += 1;
     changefeed->second->add_subscriber(home_thread().threadnum, this);
+    if (need_to_spawn_disconnect_watcher) {
+        changefeed_t *changefeed_ptr = &*changefeed->second;
+        // We need to spawn now to make sure that `changefeed_ptr` isn't invalidated
+        // before the coroutine runs.
+        coro_t::spawn_now_dangerously(
+            [=]() {
+                auto_drainer_t::lock_t lock(&changefeed_ptr->updater.drainer);
+                signal_t *disconnect = changefeed_ptr->updater.get_disconnect_signal();
+                wait_any_t wait_any(disconnect, lock.get_drain_signal());
+                wait_any.wait_lazily_unordered();
+                // We know `changefeed_ptr` hasn't been invalidated because we have
+                // a lock on its updater, which is destroyed before the
+                // subscriber information.  (If the updater is being destroyed
+                // this `each_subscriber` is a no-op because `total_subscribers`
+                // will be 0.)
+                changefeed_ptr->each_subscriber(
+                    [](subscription_t *sub) {
+                        sub->finish();
+                    }
+                );
+            }
+        );
+    }
 }
 subscription_t::~subscription_t() {
     finished = true;
