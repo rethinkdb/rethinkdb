@@ -29,15 +29,15 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
-                                                         block_size_t block_size,
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr &buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
 
     std::vector<counted_t<standard_block_token_t> > tokens
-        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+        = ser->block_writes({ buf_write_info_t(buf.ser_buffer(), buf.block_size(),
+                                               block_id) },
                             io_account, &cb);
     guarantee(tokens.size() == 1);
     cb.wait();
@@ -58,13 +58,12 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    scoped_malloc_t<ser_buffer_t> buf
-        = serializer_t::allocate_buffer(ser->max_block_size());
-    multiplexer_config_block_t *c
-        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
-
     const block_size_t config_block_size = ser->max_block_size();
-    memset(c, 0, config_block_size.value());
+    buf_ptr buf = buf_ptr::alloc_zeroed(config_block_size);
+
+    multiplexer_config_block_t *c
+        = static_cast<multiplexer_config_block_t *>(buf.cache_data());
+
     c->magic = multiplexer_config_block_t::expected_magic;
     c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
@@ -72,7 +71,7 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), config_block_size,
+    op.token = serializer_block_write(ser, buf,
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     {
