@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 
+#include <functional>
 #include <set>
 
 #include "errors.hpp"
@@ -82,7 +83,7 @@ public:
             return remote_metadata;
         }
 
-        bool update(const metadata_t& metadata) {
+        bool update(const metadata_t &metadata) {
             interest_acquired = false;
             promise_t<bool> result_promise;
             result_mailbox_t result_mailbox(mailbox_manager,
@@ -103,7 +104,7 @@ public:
 
     private:
         void handle_ack(cond_t *done,
-                        metadata_t& metadata,
+                        const metadata_t& metadata,
                         typename commit_mailbox_t::address_t _commit_mailbox_address) {
             commit_mailbox_address = _commit_mailbox_address;
             remote_metadata = metadata;

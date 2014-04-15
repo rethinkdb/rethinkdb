@@ -65,6 +65,11 @@ def generate_async_message_template(nargs):
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("arg#")
     print "        }"
+    print "        const void *get_local_delivery_cb() {"
+    print "            return &parent->fun;"
+    print "        }"
+
+
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
     print "    };"
@@ -75,7 +80,7 @@ def generate_async_message_template(nargs):
     print "    typedef mailbox_addr_t< void(%s) > address_t;" % csep("arg#_t")
     print
     print "    mailbox_t(mailbox_manager_t *manager,"
-    print "              const boost::function< void(%s)> &f) :" % csep("arg#_t")
+    print "              const std::function< void(%s)> &f) :" % csep("arg#_t")
     print "        reader(this), fun(f), mailbox(manager, &reader)"
     print "        { }"
     print
@@ -93,7 +98,7 @@ def generate_async_message_template(nargs):
         print "    friend void send(mailbox_manager_t*,"
         print "                     typename mailbox_t< void(%s) >::address_t%s);" % (csep("a#_t"), cpre("const a#_t&"))
     print
-    print "    boost::function< void(%s) > fun;" % csep("arg#_t")
+    print "    std::function< void(%s) > fun;" % csep("arg#_t")
     print "    raw_mailbox_t mailbox;"
     print "};"
     print
@@ -105,11 +110,13 @@ def generate_async_message_template(nargs):
     print "          %s %s::address_t dest%s) {" % (("typename" if nargs > 0 else ""),
                                                     mailbox_t_str,
                                                     cpre("const arg#_t &arg#"))
+    print "    if (!src->try_local_delivery(dest.addr%s)) {" % cpre("arg#")
     if nargs == 0:
-        print "    %s::write_impl_t writer;" % mailbox_t_str
+        print "        %s::write_impl_t writer;" % mailbox_t_str
     else:
-        print "    typename %s::write_impl_t writer(%s);" % (mailbox_t_str, csep("arg#"))
-    print "    send(src, dest.addr, &writer);"
+        print "        typename %s::write_impl_t writer(%s);" % (mailbox_t_str, csep("arg#"))
+    print "        send(src, dest.addr, &writer);"
+    print "    }"
     print "}"
     print
 
@@ -123,8 +130,7 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include \"errors.hpp\""
-    print "#include <boost/function.hpp>"
+    print "#include <functional>"
     print
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""

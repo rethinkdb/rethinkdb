@@ -271,7 +271,6 @@ void cluster_namespace_interface_t::perform_outdated_read(
     signal_t *interruptor)
     THROWS_NOTHING
 {
-    // TODO! Again, if this is local, short-circuit.
     outdated_read_info_t *direct_reader_to_contact = &(*direct_readers_to_contact)[i];
 
     try {

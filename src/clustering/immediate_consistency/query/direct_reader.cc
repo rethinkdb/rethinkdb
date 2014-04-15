@@ -23,32 +23,23 @@ void direct_reader_t::on_read(
     auto_drainer_t::lock_t keepalive(&drainer);
 
     try {
-        const read_response_t response = perform_read(read);
+        read_token_pair_t token_pair;
+        svs->new_read_token_pair(&token_pair);
+
+#ifndef NDEBUG
+        trivial_metainfo_checker_callback_t metainfo_checker_callback;
+        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs->get_region());
+#endif
+
+        read_response_t response;
+        svs->read(DEBUG_ONLY(metainfo_checker, )
+                  read,
+                  &response,
+                  order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
+                  &token_pair,
+                  keepalive.get_drain_signal());
         send(mailbox_manager, cont, response);
     } catch (const interrupted_exc_t &) {
         /* ignore */
     }
-}
-
-read_response_t direct_reader_t::perform_read(const read_t &read)
-        THROWS_ONLY(interrupted_exc_t) {
-    auto_drainer_t::lock_t keepalive(&drainer);
-
-    read_token_pair_t token_pair;
-    svs->new_read_token_pair(&token_pair);
-
-#ifndef NDEBUG
-    trivial_metainfo_checker_callback_t metainfo_checker_callback;
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs->get_region());
-#endif
-
-    read_response_t response;
-    svs->read(DEBUG_ONLY(metainfo_checker, )
-              read,
-              &response,
-              order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
-              &token_pair,
-              keepalive.get_drain_signal());
-
-    return response;
 }
