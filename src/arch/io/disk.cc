@@ -493,7 +493,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     // Call fsync() on the parent directory to guarantee that the newly
     // created file's directory entry is persisted to disk.
-    guarantee_fsync_parent_directory(path);
+    warn_fsync_parent_directory(path);
 
     out->init(new linux_file_t(std::move(fd), file_size, backender->get_diskmgr_ptr()));
 
@@ -584,7 +584,13 @@ MUST_USE int fsync_parent_directory(const char *path) {
     return 0;
 }
 
-void guarantee_fsync_parent_directory(const char *path) {
+void warn_fsync_parent_directory(const char *path) {
     int sync_res = fsync_parent_directory(path);
-    guarantee_xerr(sync_res == 0, sync_res, "Failed to fsync() parent directory of '%s'.", path);
+    if (sync_res != 0) {
+        logWRN("Failed to sync parent directory of \"%s\". "
+               "You may encounter data loss in case of failure. "
+               "(Is the file located on a filesystem that doesn't support directory sync? "
+               "e.g. VirtualBox shared folders)",
+               path);
+    }
 }
