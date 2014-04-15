@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
 #include <deque>
+#include <exception>
 #include <map>
 
 #include "errors.hpp"
@@ -75,19 +76,18 @@ public:
         subscription_t(uuid_u uuid,
                        base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                        changefeed_manager_t *manager)
-            THROWS_ONLY(cannot_perform_query_exc_t);
+        THROWS_ONLY(cannot_perform_query_exc_t);
         ~subscription_t();
         std::vector<counted_t<const datum_t> > get_els(
-            batcher_t *batcher, const signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+            batcher_t *batcher, const signal_t *interruptor);
 
         void add_el(counted_t<const datum_t> d);
-        void finish(const char *msg);
+        void abort(const char *msg);
     private:
         void maybe_signal_cond() THROWS_NOTHING;
 
         bool finished;
-        scoped_ptr_t<base_exc_t> exc;
+        std::exception_ptr exc;
         cond_t *cond; // NULL unless we're waiting.
         std::deque<counted_t<const datum_t> > els;
 

@@ -160,7 +160,7 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "table dropped";
-        changefeed->each_subscriber([=](subscription_t *sub) { sub->finish(msg); });
+        changefeed->each_subscriber([=](subscription_t *sub) { sub->abort(msg); });
     }
 private:
     changefeed_t *changefeed;
@@ -194,8 +194,7 @@ private:
 };
 
 std::vector<counted_t<const datum_t> >
-subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
+subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't call `get_els` while already blocking.
     auto_drainer_t::lock_t lock(&*drainer);
@@ -211,8 +210,8 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor)
         guarantee(cond == NULL);
     }
     if (finished) {
-        if (exc.has()) {
-            throw *exc;
+        if (exc) {
+            std::rethrow_exception(exc);
         } else {
             return std::vector<counted_t<const datum_t> >();
         }
@@ -243,14 +242,12 @@ void subscription_t::add_el(counted_t<const datum_t> d) {
         els.push_back(d);
         if (els.size() > array_size_limit()) {
             els.clear();
-            finished = true;
-            exc.init(new datum_exc_t(base_exc_t::GENERIC,
-                                     "Changefeed buffer over array size limit.  "
-                                     "If you're making a lot of changes to your data, "
-                                     "make sure your client can keep up."));
-
+            abort("Changefeed buffer over array size limit.  "
+                   "If you're making a lot of changes to your data, "
+                   "make sure your client can keep up.");
+        } else {
+            maybe_signal_cond();
         }
-        maybe_signal_cond();
     }
 }
 
@@ -258,11 +255,12 @@ void subscription_t::add_el(counted_t<const datum_t> d) {
 // reading from us needs us to still exist.  We'll cease to exist when it reads
 // the end-of-stream empty batch from us and is removed from the stream cache.
 // (In the meantime, `add_el` becomes a noop.)
-void subscription_t::finish(const char *msg) {
+void subscription_t::abort(const char *msg) {
     assert_thread();
     finished = true;
-    exc.init(new datum_exc_t(base_exc_t::GENERIC,
-                             strprintf("Changefeed aborted (%s).", msg)));
+    if (msg != NULL && !exc) {
+        exc = std::make_exception_ptr(datum_exc_t(base_exc_t::GENERIC, msg));
+    }
     maybe_signal_cond();
 }
 
@@ -302,7 +300,7 @@ subscription_t::subscription_t(
                 // will be 0.)
                 changefeed_ptr->each_subscriber(
                     [](subscription_t *sub) {
-                        sub->finish("disconnected from peer");
+                        sub->abort("disconnected from peer");
                     }
                 );
             }
@@ -310,14 +308,7 @@ subscription_t::subscription_t(
     }
 }
 subscription_t::~subscription_t() {
-    finished = true;
-    // This will only actually get thrown if `maybe_signal_cond` wakes a
-    // coroutine, in which case we were deleted while a `change_stream_t` was
-    // waiting on us, which means we should wake it up and give it some
-    // reasonable error before shutting down (which is enforced by the drainer).
-    exc.init(new datum_exc_t(base_exc_t::GENERIC,
-                             "Subscription destroyed (shutting down?)"));
-    maybe_signal_cond();
+    abort("Subscription destroyed (shutting down?).");
     on_thread_t th(changefeed->second->home_thread());
     changefeed->second->total_subscribers -= 1;
     changefeed->second->del_subscriber(home_thread().threadnum, this);
