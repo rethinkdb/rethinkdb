@@ -587,10 +587,10 @@ MUST_USE int fsync_parent_directory(const char *path) {
 void warn_fsync_parent_directory(const char *path) {
     int sync_res = fsync_parent_directory(path);
     if (sync_res != 0) {
-        logWRN("Failed to sync parent directory of \"%s\". "
-               "You may encounter data loss in case of failure. "
+        logWRN("Failed to sync parent directory of \"%s\" (errno: %d). "
+               "You may encounter data loss in case of a system failure. "
                "(Is the file located on a filesystem that doesn't support directory sync? "
                "e.g. VirtualBox shared folders)",
-               path);
+               path, sync_res);
     }
 }
