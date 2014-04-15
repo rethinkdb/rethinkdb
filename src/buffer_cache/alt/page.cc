@@ -83,13 +83,13 @@ page_t::page_t(block_id_t block_id, block_size_t block_size,
 }
 
 page_t::page_t(block_id_t block_id,
-               scoped_malloc_t<ser_buffer_t> buf,
+               buf_ptr buf,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      serbuf_(block_token->block_size(), std::move(buf)),
+      serbuf_(std::move(buf)),
       block_token_(block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
       snapshot_refcount_(0) {

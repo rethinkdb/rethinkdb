@@ -29,10 +29,11 @@ public:
     // Loads the block for the given block id.
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
 
+    // RSI: Fix this constructor.
     page_t(block_id_t block_id, block_size_t block_size,
            scoped_malloc_t<ser_buffer_t> buf,
            page_cache_t *page_cache);
-    page_t(block_id_t block_id, scoped_malloc_t<ser_buffer_t> buf,
+    page_t(block_id_t block_id, buf_ptr buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);

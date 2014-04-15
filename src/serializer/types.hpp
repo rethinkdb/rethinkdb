@@ -14,6 +14,7 @@
 #include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
+class buf_ptr;
 
 class printf_buffer_t;
 
@@ -267,11 +268,11 @@ class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
 
-    // Offers a ser_buffer_t pointer to the callback.  The callee is free to take
-    // ownership of the `ser_buffer_t *` from `*buf`.  It's also free to decline
-    // ownership, by leaving the pointer owned by `*buf`.
+    // Offers a buf_ptr to the callback.  The callee is free to take
+    // ownership of the `buf_ptr` from `*buf`.  It's also free to decline
+    // ownership, by leaving `*buf` untouched.
     virtual void offer_read_ahead_buf(block_id_t block_id,
-                                      scoped_malloc_t<ser_buffer_t> *buf,
+                                      buf_ptr *buf,
                                       const counted_t<standard_block_token_t> &token) = 0;
 };
 

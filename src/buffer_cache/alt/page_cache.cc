@@ -54,10 +54,18 @@ page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
-        scoped_malloc_t<ser_buffer_t> *buf_ptr,
+        buf_ptr *buf,
         const counted_t<standard_block_token_t> &token) {
     assert_thread();
-    scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
+    buf_ptr local_buf = std::move(*buf);
+
+    block_size_t block_size = block_size_t::undefined();
+    scoped_malloc_t<ser_buffer_t> ptr;
+    local_buf.release(&block_size, &ptr);
+
+    // We're going to reconstruct the buf_ptr on the other side of this do_on_thread
+    // call, so we'd better make sure the block size is right.
+    guarantee(block_size.value() == token->block_size().value());
 
     // Notably, this code relies on do_on_thread to preserve callback order (which it
     // does do).
@@ -65,7 +73,7 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
                  std::bind(&page_cache_t::add_read_ahead_buf,
                            page_cache_,
                            block_id,
-                           buf.release(),
+                           ptr.release(),
                            token));
 }
 
@@ -111,11 +119,11 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
 }
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
-                                      ser_buffer_t *buf_ptr,
+                                      ser_buffer_t *ser_buffer,
                                       const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
-    scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
+    scoped_malloc_t<ser_buffer_t> ptr(ser_buffer);
 
     // We MUST stop if read_ahead_cb_ is NULL because that means current_page_t's
     // could start being destroyed.
@@ -136,6 +144,7 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
     // (not to mention that we've already got the page in memory, so there is no
     // useful work to be done).
 
+    buf_ptr buf(token->block_size(), std::move(ptr));
     current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
@@ -650,7 +659,7 @@ current_page_t::current_page_t(block_id_t block_id,
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               scoped_malloc_t<ser_buffer_t> buf,
+                               buf_ptr buf,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),

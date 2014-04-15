@@ -299,7 +299,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
-        scoped_malloc_t<ser_buffer_t> *buf,
+        buf_ptr *buf,
         const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
@@ -318,7 +318,7 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     // Okay, we take ownership of the buf, it's ours (even if read_ahead_callback is
     // NULL).
-    scoped_malloc_t<ser_buffer_t> local_buf = std::move(*buf);
+    buf_ptr local_buf = std::move(*buf);
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);

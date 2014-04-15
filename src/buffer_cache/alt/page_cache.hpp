@@ -80,7 +80,7 @@ public:
                    block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
                    page_cache_t *page_cache);
     current_page_t(block_id_t block_id,
-                   scoped_malloc_t<ser_buffer_t> buf,
+                   buf_ptr buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
@@ -268,7 +268,7 @@ public:
                          page_cache_t *cache);
 
     void offer_read_ahead_buf(block_id_t block_id,
-                              scoped_malloc_t<ser_buffer_t> *buf,
+                              buf_ptr *buf,
                               const counted_t<standard_block_token_t> &token);
 
     void destroy_self();

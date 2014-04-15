@@ -171,7 +171,7 @@ private:
 
     void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
-            scoped_malloc_t<ser_buffer_t> &&buf,
+            buf_ptr &&buf,
             const counted_t<standard_block_token_t> &token);
     bool should_perform_read_ahead();
 

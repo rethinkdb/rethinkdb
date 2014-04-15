@@ -640,21 +640,23 @@ public:
                     continue;
                 }
 
-                scoped_malloc_t<ser_buffer_t> data
-                    = serializer_t::allocate_buffer(parent->serializer->max_block_size());
-                memcpy(data.get(), current_buf, info.ser_block_size);
+                const block_size_t block_size = block_size_t::unsafe_make(info.ser_block_size);
+                buf_ptr buf = buf_ptr::alloc_uninitialized(block_size);
+                memcpy(buf.ser_buffer(), current_buf, info.ser_block_size);
+                buf.fill_padding_zero();
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 
                 counted_t<ls_block_token_pointee_t> ls_token
                     = parent->serializer->generate_block_token(current_offset,
-                                                               block_size_t::unsafe_make(info.ser_block_size));
+                                                               block_size);
 
+                // RSI: Could to_standard_block_token use an rvalue reference?
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
-                        std::move(data),
+                        std::move(buf),
                         token);
             }
         }
