@@ -529,7 +529,7 @@ void recreate_temporary_directory(const base_path_t& base_path) {
 
     // Call fsync() on the parent directory to guarantee that the newly
     // created directory's directory entry is persisted to disk.
-    guarantee_fsync_parent_directory(path.c_str());
+    warn_fsync_parent_directory(path.c_str());
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
