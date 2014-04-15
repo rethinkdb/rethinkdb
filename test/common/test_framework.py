@@ -733,6 +733,11 @@ class TestTree(Test):
         else:
             self.tests[name] = test
 
+    def add(self, name, test):
+        if name in self.tests:
+            raise Exception('Test already exists: %s' % (name,))
+        self.tests[name] = test
+
     def __iter__(self):
         for name in sorted(self.tests.keys()):
             for subname, test in self.tests[name]:

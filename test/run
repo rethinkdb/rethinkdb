@@ -31,14 +31,17 @@ def generate_test(tree):
 
 # load the tests from full_test/*.test
 def load_tests():
-    for (dirpath, __, filenames) in os.walk(join(dirname(__file__), "full_test")):
-        filenames = [f for f in filenames if f.split('.')[-1] == 'test']
-        for filename in filenames:
-            base_name = filename.split('.')[0]
+    dirpath = join(dirname(__file__), "full_test")
+    for filename in os.listdir(dirpath):
+        parts = filename.split('.')
+        if parts[-1] == 'test':
+            if len(parts) > 2:
+                raise Exception("Filename contains to many `.': %s" % (filename,))
+            base_name = parts[0]
             tree = TestTree();
             full_path = os.path.join(dirpath, filename)
             execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test(tree)})
-            tests[base_name] = tree
+            tests.add(base_name, tree)
 
 # Test groups
 groups = {}
@@ -80,7 +83,7 @@ argparser.add_argument('-b', '--build-dir', default=None,
 
 
 if __name__ == '__main__':
+    args = argparser.parse_args(sys.argv[1:])
     load_tests()
     load_groups()
-    args = argparser.parse_args(sys.argv[1:])
     run(tests, groups, lambda reqs: configure(reqs, args), args)
