@@ -82,7 +82,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
         void add_el(counted_t<const datum_t> d);
-        void finish();
+        void finish(const char *msg);
     private:
         void maybe_signal_cond() THROWS_NOTHING;
 

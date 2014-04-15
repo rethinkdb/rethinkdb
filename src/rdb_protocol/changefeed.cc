@@ -159,7 +159,8 @@ public:
         changefeed->each_subscriber([=](subscription_t *sub) { sub->add_el(d); });
     }
     void operator()(const msg_t::stop_t &) const {
-        changefeed->each_subscriber([](subscription_t *sub) { sub->finish(); });
+        const char *msg = "table dropped";
+        changefeed->each_subscriber([=](subscription_t *sub) { sub->finish(msg); });
     }
 private:
     changefeed_t *changefeed;
@@ -257,9 +258,11 @@ void subscription_t::add_el(counted_t<const datum_t> d) {
 // reading from us needs us to still exist.  We'll cease to exist when it reads
 // the end-of-stream empty batch from us and is removed from the stream cache.
 // (In the meantime, `add_el` becomes a noop.)
-void subscription_t::finish() {
+void subscription_t::finish(const char *msg) {
     assert_thread();
     finished = true;
+    exc.init(new datum_exc_t(base_exc_t::GENERIC,
+                             strprintf("Changefeed aborted (%s).", msg)));
     maybe_signal_cond();
 }
 
@@ -299,7 +302,7 @@ subscription_t::subscription_t(
                 // will be 0.)
                 changefeed_ptr->each_subscriber(
                     [](subscription_t *sub) {
-                        sub->finish();
+                        sub->finish("disconnected from peer");
                     }
                 );
             }
