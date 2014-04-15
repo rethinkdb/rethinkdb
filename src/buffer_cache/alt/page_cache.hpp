@@ -76,11 +76,8 @@ class current_page_help_t;
 
 class current_page_t {
 public:
-    current_page_t(block_id_t block_id,
-                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
-                   page_cache_t *page_cache);
-    current_page_t(block_id_t block_id,
-                   buf_ptr buf,
+    current_page_t(block_id_t block_id, buf_ptr buf, page_cache_t *page_cache);
+    current_page_t(block_id_t block_id, buf_ptr buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
@@ -128,8 +125,7 @@ private:
 
     bool is_deleted() const { return is_deleted_; }
 
-    void make_non_deleted(block_size_t block_size,
-                          scoped_malloc_t<ser_buffer_t> buf,
+    void make_non_deleted(buf_ptr buf,
                           current_page_help_t page_cache);
 
     // KSI: We could get rid of this variable if

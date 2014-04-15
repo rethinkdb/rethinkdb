@@ -363,24 +363,20 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
 
-    scoped_malloc_t<ser_buffer_t> buf = serializer_t::allocate_buffer(max_block_size_);
+    buf_ptr buf = buf_ptr::alloc_uninitialized(max_block_size_);
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
     // where we write uninitialized data to disk.
-    memset(buf.get()->cache_data, 0xCD, max_block_size_.value());
+    memset(buf.cache_data(), 0xCD, max_block_size_.value());
 #endif
 
     resize_current_pages_to_id(block_id);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(block_id,
-                               max_block_size_,
-                               std::move(buf),
-                               this);
+            new current_page_t(block_id, std::move(buf), this);
     } else {
-        current_pages_[block_id]->make_non_deleted(max_block_size_,
-                                                   std::move(buf),
+        current_pages_[block_id]->make_non_deleted(std::move(buf),
                                                    current_page_help_t(block_id, this));
     }
 
@@ -645,11 +641,10 @@ current_page_t::current_page_t(block_id_t block_id)
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf,
+                               buf_ptr buf,
                                page_cache_t *page_cache)
     : block_id_(block_id),
-      page_(new page_t(block_id, block_size, std::move(buf), page_cache)),
+      page_(new page_t(block_id, std::move(buf), page_cache)),
       is_deleted_(false),
       last_write_acquirer_(NULL) {
     // Increment the block version so that we can distinguish between unassigned
@@ -724,12 +719,11 @@ bool current_page_t::should_be_evicted() const {
     return true;
 }
 
-void current_page_t::make_non_deleted(block_size_t block_size,
-                                      scoped_malloc_t<ser_buffer_t> buf,
+void current_page_t::make_non_deleted(buf_ptr buf,
                                       current_page_help_t help) {
     rassert(is_deleted_);
     is_deleted_ = false;
-    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache));
+    page_.init(new page_t(help.block_id, std::move(buf), help.page_cache));
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -847,19 +841,17 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
 
-                    scoped_malloc_t<ser_buffer_t> buf
-                        = serializer_t::allocate_buffer(help.page_cache->max_block_size());
+                    // RSI: Creation-acquirers shall specify the block size they want.
+                    buf_ptr buf = buf_ptr::alloc_uninitialized(help.page_cache->max_block_size());
 
 #if !defined(NDEBUG) || defined(VALGRIND)
                     // KSI: This should actually _not_ exist -- we are ignoring
                     // legitimate errors where we write uninitialized data to disk.
-                    memset(buf.get()->cache_data, 0xCD,
+                    memset(buf.cache_data(), 0xCD,
                            help.page_cache->max_block_size().value());
 #endif
 
-                    make_non_deleted(help.page_cache->max_block_size(),
-                                     std::move(buf),
-                                     help);
+                    make_non_deleted(std::move(buf), help);
                 }
                 repli_timestamp_t superceding
                     = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
@@ -1241,8 +1233,6 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
 
-                        // RSI: Can we use public members of page_t instead of these
-                        // privates?
                         rassert(page->loader_ == NULL);
                         rassert(page->serbuf_.has());
 

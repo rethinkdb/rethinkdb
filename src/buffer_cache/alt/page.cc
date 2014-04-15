@@ -69,13 +69,12 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                                             account));
 }
 
-page_t::page_t(block_id_t block_id, block_size_t block_size,
-               scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id, buf_ptr buf,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
       max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      serbuf_(block_size, std::move(buf)),
+      serbuf_(std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     rassert(serbuf_.has());
