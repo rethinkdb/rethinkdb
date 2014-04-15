@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import sys, os, datetime, time, shutil, tempfile, subprocess, string
+import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
+from ._backup import *
 
 info = "'rethinkdb restore' loads data into a RethinkDB cluster from an archive"
 usage = "rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--clients NUM] [--force] [-i (DB | DB.TABLE)]..."
@@ -64,12 +65,7 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    host_port = options.host.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
-    (res["host"], res["port"]) = host_port
+    (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid input file
     res["in_file"] = os.path.abspath(args[0])
@@ -78,18 +74,7 @@ def parse_options():
         raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
-    res["dbs"] = []
-    res["tables"] = []
-    for item in options.tables:
-        if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
-        db_table = item.split(".")
-        if len(db_table) == 1:
-            res["dbs"].append(db_table[0])
-        elif len(db_table) == 2:
-            res["tables"].append(tuple(db_table))
-        else:
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
+    res["tables"] = parse_db_table_options(options.tables)
 
     res["auth_key"] = options.auth_key
     res["clients"] = options.clients
@@ -110,10 +95,13 @@ def do_unzip(temp_dir, options):
 
     # Only untar the selected tables
     # Apparently tar has problems if the same file is specified by two filters, so remove dupes
-    for db in set(options["dbs"]):
-        tar_args.append(os.path.join("*", db))
+    dbs_to_export = set()
     for db, table in set(options["tables"]):
-        if db not in options["dbs"]:
+        if table is None:
+            dbs_to_export.add(db)
+            tar_args.append(os.path.join("*", db))
+    for db, table in set(options["tables"]):
+        if table is not None and db not in dbs_to_export:
             tar_args.append(os.path.join("*", db, table + ".*"))
 
     res = subprocess.call(tar_args)
@@ -131,10 +119,11 @@ def do_import(temp_dir, options):
     import_args.extend(["--auth", options["auth_key"]])
     import_args.extend(["--clients", str(options["clients"])])
 
-    for db in options["dbs"]:
-        import_args.extend(["--import", db])
     for db, table in options["tables"]:
-        import_args.extend(["--import", "%s.%s" % (db, table)])
+        if table is None:
+            import_args.extend(["--import", db])
+        else:
+            import_args.extend(["--import", "%s.%s" % (db, table)])
 
     if options["hard"]:
         import_args.append("--hard-durability")
@@ -143,6 +132,7 @@ def do_import(temp_dir, options):
     if options["debug"]:
         export_args.extend(["--debug"])
 
+    print "importing with args: %s" % str(import_args)
     res = subprocess.call(import_args)
     if res != 0:
         raise RuntimeError("Error: rethinkdb-import failed")
