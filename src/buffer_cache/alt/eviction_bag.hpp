@@ -8,6 +8,7 @@
 namespace alt {
 
 class page_t;
+class page_cache_t;
 
 class eviction_bag_t {
 public:
@@ -29,7 +30,8 @@ public:
 
     uint64_t size() const { return size_; }
 
-    bool remove_oldish(page_t **page_out, uint64_t access_time_offset);
+    bool remove_oldish(page_t **page_out, uint64_t access_time_offset,
+                       page_cache_t *page_cache);
 
 private:
     backindex_bag_t<page_t *> bag_;

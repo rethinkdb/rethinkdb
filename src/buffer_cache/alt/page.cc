@@ -42,7 +42,6 @@ static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_deferred_loaded(this);
@@ -57,7 +56,6 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                cache_account_t *account)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -73,7 +71,6 @@ page_t::page_t(block_id_t block_id, buf_ptr buf,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
       serbuf_(std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
@@ -87,7 +84,6 @@ page_t::page_t(block_id_t block_id,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
       serbuf_(std::move(buf)),
       block_token_(block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
@@ -99,7 +95,6 @@ page_t::page_t(block_id_t block_id,
 page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
     : block_id_(copyee->block_id_),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -148,7 +143,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.
 
-            const uint32_t usage_before = page->hypothetical_memory_usage();
+            const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
             page->serbuf_ = buf_ptr::alloc_copy(copyee->serbuf_);
             page->loader_ = NULL;
             page_cache->evicter().adjust_usage(page, usage_before);
@@ -173,7 +168,7 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
     rassert(!page->block_token_.has());
     rassert(!page->serbuf_.has());
     rassert(block_token.has());
-    const uint32_t usage_before = page->hypothetical_memory_usage();
+    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
     page->serbuf_ = std::move(buf);
     page->block_token_ = std::move(block_token);
     page->loader_ = NULL;
@@ -309,7 +304,7 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     rassert(!page->serbuf_.has());
     rassert(loader.block_token_ptr() == on_heap_token);
     rassert(on_heap_token->token.has());
-    const uint32_t usage_before = page->hypothetical_memory_usage();
+    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
     page->block_token_ = std::move(on_heap_token->token);
     page->loader_ = NULL;
     page_cache->evicter().adjust_usage(page, usage_before);
@@ -451,7 +446,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     rassert(page->block_token_.get() == block_token.get());
     rassert(!page->serbuf_.has());
     block_token.reset();
-    const uint32_t usage_before = page->hypothetical_memory_usage();
+    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
     page->serbuf_ = std::move(buf);
     page->loader_ = NULL;
     page_cache->evicter().adjust_usage(page, usage_before);
@@ -464,7 +459,7 @@ void page_t::set_page_buf_size(block_size_t block_size, page_cache_t *page_cache
             "Called outside page_acq_t or without waiting for the buf_ready_signal_?");
     rassert(!block_token_.has(),
             "Modified a page_t without resetting the block token.");
-    const uint32_t usage_before = hypothetical_memory_usage();
+    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
     serbuf_.resize_fill_zero(block_size);
     page_cache->evicter().adjust_usage(this, usage_before);
 }
@@ -474,7 +469,7 @@ block_size_t page_t::get_page_buf_size() {
     return serbuf_.block_size();
 }
 
-uint32_t page_t::hypothetical_memory_usage() const {
+uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
     // RSI: Check all assigners of serbuf_ and block_token_, making sure this is
     // correct.
     if (serbuf_.has()) {
@@ -484,7 +479,7 @@ uint32_t page_t::hypothetical_memory_usage() const {
     } else {
         // If the block isn't loaded and we don't know, we respond conservatively,
         // to stay on the proper side of the memory limit.
-        return max_ser_block_size_;
+        return page_cache->max_block_size().ser_value();
     }
 }
 
@@ -494,7 +489,7 @@ void *page_t::get_page_buf(page_cache_t *page_cache) {
     return serbuf_.cache_data();
 }
 
-void page_t::reset_block_token() {
+void page_t::reset_block_token(DEBUG_VAR page_cache_t *page_cache) {
     // The page is supposed to have its buffer acquired in reset_block_token -- it's
     // the thing modifying the page.  We thus assume that the page is unevictable and
     // resetting block_token_ doesn't change that.
@@ -503,12 +498,12 @@ void page_t::reset_block_token() {
     if (block_token_.has()) {
         rassert(serbuf_.block_size().value() == block_token_->block_size().value());
 #ifndef NDEBUG
-        const uint32_t usage_before = hypothetical_memory_usage();
+        const uint32_t usage_before = hypothetical_memory_usage(page_cache);
 #endif
         block_token_.reset();
         // Hypothetical memory usage shouldn't have changed -- because the buf is
         // already loaded in memory.
-        rassert(usage_before == hypothetical_memory_usage());
+        rassert(usage_before == hypothetical_memory_usage(page_cache));
     }
 }
 
@@ -523,19 +518,19 @@ void page_t::remove_waiter(page_acq_t *acq) {
     rassert(snapshot_refcount_ > 0);
 }
 
-void page_t::evict_self() {
+void page_t::evict_self(DEBUG_VAR page_cache_t *page_cache) {
     // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());
     rassert(serbuf_.has());
     rassert(block_token_->block_size().value() == serbuf_.block_size().value());
 #ifndef NDEBUG
-    const uint32_t usage_before = hypothetical_memory_usage();
+    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
 #endif
     serbuf_.reset();
     // Hypothetical memory usage shouldn't have changed -- the block token has the
     // same block size.
-    rassert(usage_before == hypothetical_memory_usage());
+    rassert(usage_before == hypothetical_memory_usage(page_cache));
 }
 
 ser_buffer_t *page_t::get_loaded_ser_buffer() {
@@ -593,7 +588,7 @@ block_size_t page_acq_t::get_buf_size() {
 
 void *page_acq_t::get_buf_write(block_size_t block_size) {
     buf_ready_signal_.wait();
-    page_->reset_block_token();
+    page_->reset_block_token(page_cache_);
     page_->set_page_buf_size(block_size, page_cache_);
     return page_->get_page_buf(page_cache_);
 }

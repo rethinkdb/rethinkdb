@@ -43,7 +43,7 @@ public:
 
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
-    void reset_block_token();
+    void reset_block_token(page_cache_t *page_cache);
     void set_page_buf_size(block_size_t block_size, page_cache_t *page_cache);
 
     block_size_t get_page_buf_size();
@@ -52,7 +52,7 @@ public:
     // already in memory, this is how much memory the block is currently
     // using, of course.)
 
-    uint32_t hypothetical_memory_usage() const;
+    uint32_t hypothetical_memory_usage(page_cache_t *page_cache) const;
     uint64_t access_time() const { return access_time_; }
 
     bool is_loading() const {
@@ -62,7 +62,7 @@ public:
     bool is_loaded() const { return serbuf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
-    void evict_self();
+    void evict_self(page_cache_t *page_cache);
 
     block_id_t block_id() const { return block_id_; }
 
@@ -121,12 +121,6 @@ private:
     // KSI: Explain this more.
     // One of loader_, buf_, or block_token_ is non-null.
     page_loader_t *loader_;
-
-    // max_block_size_ is const and named max_block_size_ for now, because we can't
-    // change the in-memory block size of a page (even if we can change the
-    // serialized size).
-    // RSI: Get rid of this.
-    const uint32_t max_ser_block_size_;
 
     buf_ptr serbuf_;
     counted_t<standard_block_token_t> block_token_;

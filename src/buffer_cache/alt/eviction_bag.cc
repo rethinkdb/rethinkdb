@@ -37,7 +37,8 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset) {
+bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset,
+                                   page_cache_t *page_cache) {
     if (bag_.size() == 0) {
         return false;
     } else {
@@ -53,7 +54,7 @@ bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offse
             }
         }
 
-        remove(oldest, oldest->hypothetical_memory_usage());
+        remove(oldest, oldest->hypothetical_memory_usage(page_cache));
         *page_out = oldest;
         return true;
     }
