@@ -105,7 +105,13 @@ public:
 
 
 private:
+    // Valid only when ser_buffer_.has() is true.  Contains the size of the buffer as
+    // exposed to outside users of the cache.  The buffer is actually allocated to
+    // size `compute_aligned_block_size(block_size_)` (the next multiple of
+    // DEVICE_BLOCK_SIZE), and the extra space is left zero-padded, so that we can
+    // more efficiently write the buffer to disk.
     block_size_t block_size_;
+    // The buffer, or empty if this buf_ptr is empty.
     scoped_malloc_t<ser_buffer_t> ser_buffer_;
 
     DISABLE_COPYING(buf_ptr);
