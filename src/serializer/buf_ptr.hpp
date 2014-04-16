@@ -22,7 +22,6 @@ public:
         movee.ser_buffer_.reset();
     }
 
-    // RSI: Remove this.
     buf_ptr(block_size_t size,
             scoped_malloc_t<ser_buffer_t> ser_buffer)
         : block_size_(size),
