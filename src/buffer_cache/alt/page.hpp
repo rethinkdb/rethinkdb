@@ -44,7 +44,6 @@ public:
     // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
-    // RSI: set_page_buf_size is bullshit?
     void set_page_buf_size(block_size_t block_size, page_cache_t *page_cache);
 
     block_size_t get_page_buf_size();
@@ -53,9 +52,6 @@ public:
     // already in memory, this is how much memory the block is currently
     // using, of course.)
 
-    // RSI: Um, we won't know this while loading the page.  This function is just
-    // crap.  Should we fix the organization of pages and the evicter before fixing
-    // everything else?  (Should unevictable pages not be stored in the evicter_t?)
     uint32_t hypothetical_memory_usage() const;
     uint64_t access_time() const { return access_time_; }
 
