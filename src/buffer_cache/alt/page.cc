@@ -501,6 +501,20 @@ void page_t::evict_self() {
     serbuf_.reset();
 }
 
+ser_buffer_t *page_t::get_loaded_ser_buffer() {
+    rassert(serbuf_.has());
+    return serbuf_.ser_buffer();
+}
+
+// Used for after we've flushed the page.
+void page_t::init_block_token(counted_t<standard_block_token_t> token) {
+    rassert(serbuf_.has());
+    rassert(serbuf_.block_size().value() == token->block_size().value());
+    rassert(!block_token_.has());
+    block_token_ = std::move(token);
+}
+
+
 
 page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
 }

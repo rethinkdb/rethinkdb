@@ -1218,11 +1218,11 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                     // snapshotted_dirtied_pages_ a bit sooner than we do.
 
                     page_t *page = it->second.page;
-                    if (page->block_token_.has()) {
+                    if (page->block_token().has()) {
                         // It's already on disk, we're not going to flush it.
                         blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                         false,
-                                                                        page->block_token_,
+                                                                        page->block_token(),
                                                                         it->second.tstamp,
                                                                         page));
                     } else {
@@ -1233,14 +1233,13 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
 
-                        rassert(page->loader_ == NULL);
-                        rassert(page->serbuf_.has());
+                        rassert(page->is_loaded());
 
                         // KSI: Is there a page_acq_t for this buf we're writing?  Is it
                         // possible that we might be trying to do an unbacked eviction
                         // for this page right now?  (No, we don't do that yet.)
-                        write_infos.push_back(buf_write_info_t(page->serbuf_.ser_buffer(),
-                                                               page->serbuf_.block_size(),
+                        write_infos.push_back(buf_write_info_t(page->get_loaded_ser_buffer(),
+                                                               page->get_page_buf_size(),
                                                                it->first));
                         ancillary_infos.push_back(ancillary_info_t(it->second.tstamp,
                                                                    page));
@@ -1333,10 +1332,10 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
             // KSI: This assertion would fail if we try to force-evict the page
             // simultaneously as this write.
-            rassert(!it->page->block_token_.has());
+            rassert(!it->page->block_token().has());
             eviction_bag_t *old_bag
                 = page_cache->evicter().correct_eviction_category(it->page);
-            it->page->block_token_ = std::move(it->block_token);
+            it->page->init_block_token(std::move(it->block_token));
             page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
         }
     }

@@ -46,6 +46,7 @@ public:
     void reset_block_token();
     // RSI: set_page_buf_size is bullshit?
     void set_page_buf_size(block_size_t block_size);
+
     block_size_t get_page_buf_size();
 
     // How much memory the block would use, if it were in memory.  (If the block is
@@ -62,7 +63,9 @@ public:
         return loader_ != NULL && page_t::loader_is_loading(loader_);
     }
     bool has_waiters() const { return !waiters_.empty(); }
-    bool is_not_loaded() const { return !serbuf_.has(); }
+    bool is_loaded() const { return serbuf_.has(); }
+    // RSI: Remove is_not_loaded, it's redundant.
+    bool is_not_loaded() const { return !is_loaded(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self();
@@ -70,6 +73,13 @@ public:
     block_id_t block_id() const { return block_id_; }
 
     bool page_ptr_count() const { return snapshot_refcount_; }
+
+    const counted_t<standard_block_token_t> &block_token() const {
+        return block_token_;
+    }
+
+    ser_buffer_t *get_loaded_ser_buffer();
+    void init_block_token(counted_t<standard_block_token_t> token);
 
 private:
     friend class page_ptr_t;
@@ -108,7 +118,6 @@ private:
     static void load_using_block_token(page_t *page, page_cache_t *page_cache,
                                        cache_account_t *account);
 
-    friend class page_cache_t;
     friend backindex_bag_index_t *access_backindex(page_t *page);
 
     // The block id.  Used to (potentially) delete the page_t and current_page_t when
