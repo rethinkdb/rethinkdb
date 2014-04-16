@@ -204,6 +204,8 @@ void set_superblock_metainfo(buf_lock_t *superblock,
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
+    std::vector<char> to_append;
+    uint64_t offset;
 
     {
         blob_acq_t acq;
@@ -220,7 +222,6 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-    blob.clear(buf_parent_t(superblock));
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -234,6 +235,11 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         std::vector<char>::iterator p = metainfo.erase(beg, end);
 
         metainfo.insert(p, value.begin(), value.end());
+
+        // we simply remove old data and write the modified one
+        offset = 0;
+        to_append = std::move(metainfo);
+        blob.clear(buf_parent_t(superblock));
     } else {
         union {
             char x[sizeof(uint32_t)];
@@ -243,24 +249,27 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         rassert(value.size() < UINT32_MAX);
 
         u.y = key.size();
-        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
-        metainfo.insert(metainfo.end(), key.begin(), key.end());
+        to_append.insert(to_append.end(), u.x, u.x + sizeof(uint32_t));
+        to_append.insert(to_append.end(), key.begin(), key.end());
 
         u.y = value.size();
-        metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
-        metainfo.insert(metainfo.end(), value.begin(), value.end());
+        to_append.insert(to_append.end(), u.x, u.x + sizeof(uint32_t));
+        to_append.insert(to_append.end(), value.begin(), value.end());
+
+        // append new key and value at tail
+        offset = blob.valuesize();
     }
 
-    blob.append_region(buf_parent_t(superblock), metainfo.size());
+    blob.append_region(buf_parent_t(superblock), to_append.size());
 
     {
         blob_acq_t acq;
         buffer_group_t write_group;
-        blob.expose_all(buf_parent_t(superblock), access_t::write,
+        blob.expose_region(buf_parent_t(superblock), access_t::write, offset, to_append.size(),
                         &write_group, &acq);
 
         buffer_group_t group_cpy;
-        group_cpy.add_buffer(metainfo.size(), metainfo.data());
+        group_cpy.add_buffer(to_append.size(), to_append.data());
 
         buffer_group_copy_data(&write_group, const_view(&group_cpy));
     }
