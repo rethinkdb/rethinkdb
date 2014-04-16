@@ -841,7 +841,6 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
 
-                    // RSI: Creation-acquirers shall specify the block size they want.
                     buf_ptr buf = buf_ptr::alloc_uninitialized(help.page_cache->max_block_size());
 
 #if !defined(NDEBUG) || defined(VALGRIND)

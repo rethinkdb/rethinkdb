@@ -78,7 +78,6 @@ public:
         return ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
-    // RSI: Get rid of this.
     void release(block_size_t *block_size_out,
                  scoped_malloc_t<ser_buffer_t> *ser_buffer_out) {
         buf_ptr tmp(std::move(*this));
@@ -91,8 +90,7 @@ public:
     }
 
     // Increases or decreases the block size of the pointee, reallocating if
-    // necessary, filling unused space with zeros.  RSI: I hope we can get rid of
-    // this.
+    // necessary, filling unused space with zeros.
     void resize_fill_zero(block_size_t new_size);
 
     // Fills the padding space with zeroes.  Generally speaking, you want to write
