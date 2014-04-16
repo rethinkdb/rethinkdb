@@ -166,7 +166,7 @@ eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
     guarantee(initialized_);
     if (page->is_loading() || page->has_waiters()) {
         return &unevictable_;
-    } else if (page->is_not_loaded()) {
+    } else if (!page->is_loaded()) {
         return &evicted_;
     } else if (page->is_disk_backed()) {
         return &evictable_disk_backed_;

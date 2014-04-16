@@ -64,8 +64,6 @@ public:
     }
     bool has_waiters() const { return !waiters_.empty(); }
     bool is_loaded() const { return serbuf_.has(); }
-    // RSI: Remove is_not_loaded, it's redundant.
-    bool is_not_loaded() const { return !is_loaded(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self();

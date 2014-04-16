@@ -708,11 +708,11 @@ bool current_page_t::should_be_evicted() const {
     // current_page_t's with unloaded, otherwise unused page_t's.)
     if (page_.has()) {
         page_t *page = page_.get_page_for_read();
-        if (page->is_loading() || page->has_waiters() || !page->is_not_loaded()
+        if (page->is_loading() || page->has_waiters() || page->is_loaded()
             || page->page_ptr_count() != 1) {
             return false;
         }
-        // is_loading is false and is_not_loaded is true -- it must be disk-backed.
+        // is_loading is false and is_loaded is false -- it must be disk-backed.
         rassert(page->is_disk_backed());
     }
 
