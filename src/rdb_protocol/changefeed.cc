@@ -180,7 +180,7 @@ public:
         changefeed->each_subscriber([=](subscription_t *sub) { sub->add_el(d); });
     }
     void operator()(const msg_t::stop_t &) const {
-        const char *msg = "table dropped";
+        const char *msg = "Changefeed aborted (table dropped).";
         changefeed->each_subscriber([=](subscription_t *sub) { sub->abort(msg); });
     }
 private:
@@ -321,7 +321,7 @@ subscription_t::subscription_t(
                 // will be 0.)
                 changefeed_ptr->each_subscriber(
                     [](subscription_t *sub) {
-                        sub->abort("disconnected from peer");
+                        sub->abort("Changefeed aborted (disconnected from peer).");
                     }
                 );
             }
