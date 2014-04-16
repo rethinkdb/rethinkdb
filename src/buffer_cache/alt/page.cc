@@ -537,11 +537,18 @@ ser_buffer_t *page_t::get_loaded_ser_buffer() {
 }
 
 // Used for after we've flushed the page.
-void page_t::init_block_token(counted_t<standard_block_token_t> token) {
+void page_t::init_block_token(counted_t<standard_block_token_t> token,
+                              DEBUG_VAR page_cache_t *page_cache) {
     rassert(serbuf_.has());
     rassert(serbuf_.block_size().value() == token->block_size().value());
     rassert(!block_token_.has());
+#ifndef NDEBUG
+    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
+#endif
     block_token_ = std::move(token);
+    // Hypothetical memory usage shouldn't have changed -- the block token has the
+    // same block size.
+    rassert(usage_before == hypothetical_memory_usage(page_cache));
 }
 
 

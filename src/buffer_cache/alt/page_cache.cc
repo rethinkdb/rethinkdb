@@ -1334,7 +1334,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             rassert(!it->page->block_token().has());
             eviction_bag_t *old_bag
                 = page_cache->evicter().correct_eviction_category(it->page);
-            it->page->init_block_token(std::move(it->block_token));
+            it->page->init_block_token(std::move(it->block_token), page_cache);
             page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
         }
     }

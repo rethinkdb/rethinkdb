@@ -73,7 +73,8 @@ public:
     }
 
     ser_buffer_t *get_loaded_ser_buffer();
-    void init_block_token(counted_t<standard_block_token_t> token);
+    void init_block_token(counted_t<standard_block_token_t> token,
+                          page_cache_t *page_cache);
 
 private:
     friend class page_ptr_t;
