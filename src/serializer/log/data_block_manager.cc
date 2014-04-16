@@ -650,9 +650,8 @@ public:
                     = parent->serializer->generate_block_token(current_offset,
                                                                block_size);
 
-                // RSI: Could to_standard_block_token use an rvalue reference?
                 counted_t<standard_block_token_t> token
-                    = to_standard_block_token(block_id, ls_token);
+                    = to_standard_block_token(block_id, std::move(ls_token));
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,

@@ -178,9 +178,9 @@ struct scs_block_info_t {
 template <class inner_serializer_t>
 struct scs_block_token_t {
     scs_block_token_t(block_id_t _block_id, const scs_block_info_t &_info,
-                      const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> &tok)
-        : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
-        rassert(inner_token, "scs_block_token wrapping null token");
+                      counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> tok)
+        : block_id(_block_id), info(_info), inner_token(std::move(tok)), ref_count_(0) {
+        rassert(inner_token.has(), "scs_block_token wrapping null token");
     }
 
     block_size_t block_size() const {
@@ -221,10 +221,12 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 };
 
 // God this is such a hack (Part 1 of 2)
-inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(block_id_t block_id, const counted_t<ls_block_token_pointee_t> &tok) {
+inline counted_t< scs_block_token_t<log_serializer_t> >
+to_standard_block_token(block_id_t block_id,
+                        counted_t<ls_block_token_pointee_t> tok) {
     return make_counted<scs_block_token_t<log_serializer_t> >(block_id,
                                                               scs_block_info_t(),
-                                                              tok);
+                                                              std::move(tok));
 }
 
 template <class inner_serializer_t>
@@ -244,8 +246,11 @@ typedef log_serializer_t standard_serializer_t;
 inline
 counted_t<ls_block_token_pointee_t>
 to_standard_block_token(UNUSED block_id_t block_id,
-                        const counted_t<ls_block_token_pointee_t> &tok) {
-    return tok;
+                        counted_t<ls_block_token_pointee_t> tok) {
+    // Move to a local variable so that the return value move-optimization can take
+    // place.
+    counted_t<ls_block_token_pointee_t> local_tok = std::move(tok);
+    return local_tok;
 }
 
 #endif
