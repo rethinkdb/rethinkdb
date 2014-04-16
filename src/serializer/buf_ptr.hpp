@@ -64,18 +64,11 @@ public:
         return ser_buffer()->cache_data;
     }
 
-
-    // RSI: Will anybody use this?
-    block_size_t reserved() const {
-        guarantee(ser_buffer_.has());
-        return block_size_t::unsafe_make(
-                buf_ptr::compute_in_memory_size(block_size_));
-    }
-
     // The buf is DEVICE_BLOCK_SIZE-aligned in both offset and size.  Returns the
     // value of block_size().ser_value() rounded up to the next multiple of
     // DEVICE_BLOCK_SIZE -- this is the true size of the buffer.
     uint32_t aligned_block_size() const {
+        guarantee(ser_buffer_.has());
         return buf_ptr::compute_in_memory_size(block_size_);
     }
 

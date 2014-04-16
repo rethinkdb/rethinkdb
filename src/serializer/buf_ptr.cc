@@ -35,7 +35,7 @@ buf_ptr buf_ptr::alloc_copy(const buf_ptr &copyee) {
     return buf_ptr(copyee.block_size(),
                    help_allocate_copy(copyee.ser_buffer_.get(),
                                       copyee.block_size().ser_value(),
-                                      copyee.reserved().ser_value()));
+                                      copyee.aligned_block_size()));
 }
 
 void buf_ptr::resize_fill_zero(block_size_t new_size) {
