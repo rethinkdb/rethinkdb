@@ -470,8 +470,6 @@ block_size_t page_t::get_page_buf_size() {
 }
 
 uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
-    // RSI: Check all assigners of serbuf_ and block_token_, making sure this is
-    // correct.
     if (serbuf_.has()) {
         return serbuf_.aligned_block_size();
     } else if (block_token_.has()) {
