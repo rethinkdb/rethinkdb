@@ -312,7 +312,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         func_replacer_t replacer(&ql_env, br.f, br.return_vals);
         response->response =
             rdb_batched_replace(
-                ql_env.changefeed_manager->get_manager(),
                 btree_info_t(btree, timestamp,
                              &br.pkey),
                 superblock, br.keys, &replacer, &sindex_cb,
@@ -332,7 +331,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         }
         response->response =
             rdb_batched_replace(
-                ql_env.changefeed_manager->get_manager(),
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
                 superblock, keys, &replacer, &sindex_cb,
@@ -365,19 +363,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
+    // RSI: make this update a subscribe
     void operator()(const changefeed_update_t &u) {
-        rwlock_in_line_t spot(&store->changefeed_lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
         debugf("%d\n", u.action);
         switch (u.action) {
         case changefeed_update_t::SUBSCRIBE: {
-            auto res = store->changefeeds.insert(u.addr);
-            guarantee(res.second);
+            store->changefeed_server.add_client(u.addr);
         } break;
-        case changefeed_update_t::UNSUBSCRIBE: {
-            size_t res = store->changefeeds.erase(u.addr);
-            guarantee(res == 1);
-        } break;
+        case changefeed_update_t::UNSUBSCRIBE: // fallthru
         default: unreachable();
         }
         response->response = changefeed_update_response_t();

@@ -132,18 +132,30 @@ namespace changefeed {
 // * Does send ever block?
 // * When is it OK to invalidate a variable (`this`) captured by the function
 //   passed to a mailbox?
-feedset_t::feedset_t(mailbox_manager_t *_manager)
+server_t::server_t(mailbox_manager_t *_manager)
     : manager(_manager), stop_mailbox(manager, [=](msg_t::addr_t addr) {
-            this->addrs.erase(addr);
+            this->clients.erase(addr);
         }) { }
 
-void feedset_t::add_addr(const msg_t::addr_t &addr) {
-    addrs.insert(addr);
+void server_t::add_client(const msg_t::addr_t &addr) {
+    ASSERT_NO_CORO_WAITING;
+    clients.insert(addr);
     send(manager, addr, msg_t(msg_t::start_t(stop_mailbox.get_address())));
 }
 
-void feedset_t::send_all(const msg_t &msg) {
-    for (auto it = addrs.begin(); it != addrs.end(); ++it) {
+// Old implementation
+            // rwlock_in_line_t spot(&store_->changefeed_lock, access_t::read);
+            // spot.read_signal()->wait_lazily_unordered();
+            // ql::changefeed::msg_t msg((ql::changefeed::msg_t::change_t(&mod_report)));
+            // pmap(store_->changefeeds.begin(), store_->changefeeds.end(),
+            //      [&](const mailbox_addr_t<void(ql::changefeed::msg_t)> &addr) {
+            //          send(manager, addr, msg);
+            //      }
+            // );
+
+void server_t::send_all(const msg_t &msg) {
+    ASSERT_NO_CORO_WAITING;
+    for (auto it = clients.begin(); it != clients.end(); ++it) {
         send(manager, *it, msg);
     }
 }

@@ -64,14 +64,14 @@ struct msg_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class feedset_t {
+class server_t {
 public:
-    feedset_t(mailbox_manager_t *_manager);
-    void add_addr(const msg_t::addr_t &addr);
+    server_t(mailbox_manager_t *_manager);
+    void add_client(const msg_t::addr_t &addr);
     void send_all(const msg_t &msg);
 private:
     mailbox_manager_t *manager;
-    std::set<msg_t::addr_t> addrs;
+    std::set<msg_t::addr_t> clients;
     mailbox_t<void(msg_t::addr_t)> stop_mailbox;
 };
 

@@ -110,7 +110,6 @@ struct btree_point_replacer_t {
 };
 
 batched_replace_response_t rdb_batched_replace(
-    mailbox_manager_t *manager,
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
@@ -265,8 +264,7 @@ public:
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
-    void on_mod_report(mailbox_manager_t *manager,
-                       const rdb_modification_report_t &mod_report);
+    void on_mod_report(const rdb_modification_report_t &mod_report);
 
     ~rdb_modification_report_cb_t();
 

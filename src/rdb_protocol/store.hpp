@@ -372,14 +372,12 @@ public:
     new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
-    std::set<mailbox_addr_t<void(ql::changefeed::msg_t)> > changefeeds;
-    rwlock_t changefeed_lock;
+    rdb_context_t *ctx;
+    ql::changefeed::server_t changefeed_server;
 
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.
     auto_drainer_t drainer;
-
-    rdb_context_t *ctx;
 
 private:
     DISABLE_COPYING(store_t);
