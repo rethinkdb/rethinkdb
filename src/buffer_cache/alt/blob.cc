@@ -437,8 +437,8 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
             void *leaf_buf;
             if (mode == access_t::read) {
                 buf_read_t *buf_read = new buf_read_t(buf);
-                // RSI: We can't use an assertion yet because immediately after
-                // creation, the blob has size max_value_size.
+                // We can't use an assertion here because immediately after creation,
+                // the blob has size max_value_size.
                 uint32_t block_size;
                 leaf_buf = const_cast<void *>(buf_read->get_data_read(&block_size));
                 acq_group_out->add_buf(buf, buf_read);
@@ -685,7 +685,6 @@ void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
 
 // Always returns levels + 1.
 int blob_t::add_level(buf_parent_t parent, int levels) {
-    // RSI: Pass a tight size to this constructor.
     buf_lock_t lock(parent, alt_create_t::create);
     buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
@@ -738,18 +737,15 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
                         access_t::write);
         if (levels == 1) {
             buf_read_t lock_read(&lock);
-            // RSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
-            memcpy(blob::small_buffer(ref_, maxreflen_), b, bigsize);
-            // RSI: Should we zero out the [big_size_offset + bigsize, maxreflen_)
-            // region here?
+            char *small = blob::small_buffer(ref_, maxreflen_);
+            memcpy(small, b, bigsize);
+            std::fill(small + bigsize, ref_ + maxreflen_, 0);
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
             buf_read_t lock_read(&lock);
-            // RSI: Use the block size for an assert or something.
-            uint32_t unused_block_size;
-            const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));
+            const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read());
 
             // Detach children: they're getting reattached to `parent`.
             int lo;
@@ -759,13 +755,15 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
                                               &lo, &hi);
 
 
-            // RSI: Should we zero out the [block_ids_offset + i*sizeof(block_id),
-            // maxreflen_) region?
             block_id_t *block_ids = blob::block_ids(ref_, maxreflen_);
             for (int i = lo; i < hi; ++i) {
                 lock.detach_child(b[i]);
                 block_ids[i] = b[i];
             }
+
+            // Zero out the unused [block_ids_offset + i*sizeof(block_id),
+            // maxreflen_) region.
+            std::fill(reinterpret_cast<char *>(block_ids + hi), ref_ + maxreflen_, 0);
         }
 
         lock.mark_deleted();
