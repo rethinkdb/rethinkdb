@@ -1095,8 +1095,8 @@ void rdb_modification_report_cb_t::on_mod_report(
             spot.read_signal()->wait_lazily_unordered();
             ql::changefeed::msg_t msg((ql::changefeed::msg_t::change_t(&mod_report)));
             pmap(store_->changefeeds.begin(), store_->changefeeds.end(),
-                 [&](const mailbox_addr_t<void(ql::changefeed::msg_t)> &mailbox) {
-                     send(manager, mailbox, msg);
+                 [&](const mailbox_addr_t<void(ql::changefeed::msg_t)> &addr) {
+                     send(manager, addr, msg);
                  }
             );
         }

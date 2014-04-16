@@ -128,6 +128,26 @@ private:
 
 namespace changefeed {
 
+// RSI: Does this actually work?
+// * Does send ever block?
+// * When is it OK to invalidate a variable (`this`) captured by the function
+//   passed to a mailbox?
+feedset_t::feedset_t(mailbox_manager_t *_manager)
+    : manager(_manager), stop_mailbox(manager, [=](msg_t::addr_t addr) {
+            this->addrs.erase(addr);
+        }) { }
+
+void feedset_t::add_addr(const msg_t::addr_t &addr) {
+    addrs.insert(addr);
+    send(manager, addr, msg_t(msg_t::start_t(stop_mailbox.get_address())));
+}
+
+void feedset_t::send_all(const msg_t &msg) {
+    for (auto it = addrs.begin(); it != addrs.end(); ++it) {
+        send(manager, *it, msg);
+    }
+}
+
 msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
 msg_t::msg_t(const msg_t &msg) : op(msg.op) { }
 msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
@@ -140,7 +160,7 @@ msg_t::change_t::change_t(const rdb_modification_report_t *report)
 msg_t::change_t::~change_t() { }
 
 RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_1(msg_t::start_t, peer_id);
+RDB_IMPL_ME_SERIALIZABLE_1(msg_t::start_t, stop_addr);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
 

@@ -13,6 +13,7 @@
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
@@ -34,15 +35,17 @@ class table_t;
 namespace changefeed {
 
 struct msg_t {
+    typedef mailbox_addr_t<void(msg_t)> addr_t;
     struct start_t  {
         start_t() { }
-        start_t(const peer_id_t &_peer_id) : peer_id(_peer_id) { }
-        peer_id_t peer_id;
+        explicit start_t(const mailbox_addr_t<void(addr_t)> &_stop_addr)
+            : stop_addr(_stop_addr) { }
+        mailbox_addr_t<void(addr_t)> stop_addr;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct change_t {
         change_t();
-        change_t(const rdb_modification_report_t *report);
+        explicit change_t(const rdb_modification_report_t *report);
         ~change_t();
         counted_t<const datum_t> old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -52,14 +55,25 @@ struct msg_t {
     msg_t() { }
     msg_t(msg_t &&msg);
     msg_t(const msg_t &msg);
-    msg_t(stop_t &&op);
-    msg_t(start_t &&op);
-    msg_t(change_t &&op);
+    explicit msg_t(stop_t &&op);
+    explicit msg_t(start_t &&op);
+    explicit msg_t(change_t &&op);
 
     // Starts with STOP to avoid doing work for default initialization.
     boost::variant<stop_t, start_t, change_t> op;
 
     RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class feedset_t {
+public:
+    feedset_t(mailbox_manager_t *_manager);
+    void add_addr(const msg_t::addr_t &addr);
+    void send_all(const msg_t &msg);
+private:
+    mailbox_manager_t *manager;
+    std::set<msg_t::addr_t> addrs;
+    mailbox_t<void(msg_t::addr_t)> stop_mailbox;
 };
 
 } // namespace changefeed
