@@ -32,13 +32,13 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(process1.files.machine_name, dc1)
     dc2 = http.add_datacenter()
     http.move_server_to_datacenter(process2.files.machine_name, dc2)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = dc1, affinities = {dc1: 0, dc2: 1})
+    ns = scenario_common.prepare_table_for_workload(http, primary = dc1, affinities = {dc1: 0, dc2: 1})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
     workload_ports = scenario_common.get_workload_ports(opts, ns, [process1, process2])
-    with workload_runner.SplitOrContinuousWorkload(opts, "UNUSED", workload_ports) as workload:
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()

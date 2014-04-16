@@ -16,7 +16,7 @@ class RDBPorts(object):
         env["DB_NAME"] = self.db_name
         env["TABLE_NAME"] = self.table_name
 
-def run(__unused, command_line, ports, timeout):
+def run(command_line, ports, timeout):
     assert isinstance(ports, RDBPorts)
 
     start_time = time.time()
@@ -52,7 +52,7 @@ def run(__unused, command_line, ports, timeout):
     exit(1)
 
 class ContinuousWorkload(object):
-    def __init__(self, command_line, __unused, ports):
+    def __init__(self, command_line, ports):
         assert isinstance(ports, RDBPorts)
         self.command_line = command_line
         self.ports = ports
@@ -129,13 +129,13 @@ def prepare_option_parser_for_split_or_continuous_workload(op, allow_between = F
     op["timeout-after"] = IntFlag("--timeout-after", 600)
 
 class SplitOrContinuousWorkload(object):
-    def __init__(self, opts, __unused, ports):
+    def __init__(self, opts, ports):
         self.opts = opts
         self.ports = ports
     def __enter__(self):
         self.continuous_workloads = []
         for cl in self.opts["workload-during"]:
-            cwl = ContinuousWorkload(cl, "UNUSED", self.ports)
+            cwl = ContinuousWorkload(cl, self.ports)
             cwl.__enter__()
             self.continuous_workloads.append(cwl)
         return self
@@ -149,7 +149,7 @@ class SplitOrContinuousWorkload(object):
                 self.check()
     def run_before(self):
         if self.opts["workload-before"] is not None:
-            run("UNUSED", self.opts["workload-before"], self.ports, self.opts["timeout-before"])
+            run(self.opts["workload-before"], self.ports, self.opts["timeout-before"])
         if self.opts["workload-during"]:
             for cwl in self.continuous_workloads:
                 cwl.start()
@@ -161,7 +161,7 @@ class SplitOrContinuousWorkload(object):
         self.check()
         assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
         if self.opts["workload-between"] is not None:
-            run("UNUSED", self.opts["workload-between"], self.ports, self.opts["timeout-between"])
+            run(self.opts["workload-between"], self.ports, self.opts["timeout-between"])
         if self.opts["workload-during"]:
             self._spin_continuous_workloads(self.opts["extra-between"])
     def run_after(self):
@@ -170,7 +170,7 @@ class SplitOrContinuousWorkload(object):
             for cwl in self.continuous_workloads:
                 cwl.stop()
         if self.opts["workload-after"] is not None:
-            run("UNUSED", self.opts["workload-after"], self.ports, self.opts["timeout-after"])
+            run(self.opts["workload-after"], self.ports, self.opts["timeout-after"])
     def __exit__(self, exc = None, ty = None, tb = None):
         if self.opts["workload-during"] is not None:
             for cwl in self.continuous_workloads:

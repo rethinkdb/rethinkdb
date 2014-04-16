@@ -30,9 +30,9 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_table("UNUSED", primary = dc)
+    ns = http.add_table(primary = dc)
     time.sleep(10)
-    host, port = driver.get_table_host(ns.port, processes)
+    host, port = driver.get_table_host(processes)
     access = http
 
     invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]

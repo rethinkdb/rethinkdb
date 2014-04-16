@@ -27,12 +27,12 @@ with driver.Metacluster() as metacluster:
     http1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
     dc = http1.add_datacenter()
     http1.move_server_to_datacenter(files1.machine_name, dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http1, primary = dc)
+    ns = scenario_common.prepare_table_for_workload(http1, primary = dc)
     http1.wait_until_blueprint_satisfied(ns)
     rdb_workload_common.wait_for_table(host='localhost', port=process1.driver_port, table=ns.name)
 
     workload_ports_1 = scenario_common.get_workload_ports(opts, ns, [process1])
-    workload_runner.run("UNUSED", opts["workload1"], workload_ports_1, opts["timeout"])
+    workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second", log_path = "create-output-second",
@@ -60,6 +60,6 @@ with driver.Metacluster() as metacluster:
     rdb_workload_common.wait_for_table(host='localhost', port=process2.driver_port, table=ns.name)
 
     workload_ports_2 = scenario_common.get_workload_ports(opts, http2.find_table(ns.name), [process2])
-    workload_runner.run("UNUSED", opts["workload2"], workload_ports_2, opts["timeout"])
+    workload_runner.run(opts["workload2"], workload_ports_2, opts["timeout"])
 
     cluster.check_and_stop()

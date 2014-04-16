@@ -22,7 +22,7 @@ with driver.Metacluster() as metacluster:
     http = http_admin.ClusterAccess([("localhost", process.http_port)])
     dc = http.add_datacenter()
     http.move_server_to_datacenter(http.machines.keys()[0], dc)
-    ns = http.add_table("UNUSED", primary = dc)
+    ns = http.add_table(primary = dc)
     print "Restarting server..."
     process.check_and_stop()
 

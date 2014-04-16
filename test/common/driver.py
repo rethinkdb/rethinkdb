@@ -47,7 +47,7 @@ def find_rethinkdb_executable(mode = ""):
             mode = 'debug'
     return find_subpath("build/%s/rethinkdb" % mode)
 
-def get_table_host(__unused, processes):
+def get_table_host(processes):
     return ("localhost", random.choice(processes).driver_port)
 
 class Metacluster(object):

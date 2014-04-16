@@ -27,14 +27,14 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_table("UNUSED", primary = dc)
+    ns = http.add_table(primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
     print "Getting distribution first time."
     distribution = http.get_distribution(ns)
 
     print "Inserting a bunch."
-    host, port = driver.get_table_host("UNUSED", processes)
+    host, port = driver.get_table_host(processes)
     with r.connect(host, port) as conn:
         r.table_create('distribution').run(conn)
         batch = []

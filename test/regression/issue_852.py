@@ -44,7 +44,7 @@ with driver.Metacluster() as metacluster:
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
-    host, port = driver.get_table_host('UNUSED', [process1, process2])
+    host, port = driver.get_table_host([process1, process2])
 
     rdb_workload_common.insert_many(host=host, port=port, database=db.name, table=ns.name, count=10000)
 

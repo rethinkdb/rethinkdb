@@ -31,13 +31,13 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(database_machine.files.machine_name, database_dc)
     other_dc = http.add_datacenter()
     http.move_server_to_datacenter(access_machine.files.machine_name, other_dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = database_dc)
+    ns = scenario_common.prepare_table_for_workload(http, primary = database_dc)
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
     workload_ports = scenario_common.get_workload_ports(opts, ns, [access_machine])
-    with workload_runner.ContinuousWorkload(opts["workload"], "UNUSED", workload_ports) as workload:
+    with workload_runner.ContinuousWorkload(opts["workload"], workload_ports) as workload:
         workload.start()
         print "Running workload for 10 seconds..."
         time.sleep(10)

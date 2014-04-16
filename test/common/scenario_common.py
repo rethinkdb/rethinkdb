@@ -32,7 +32,7 @@ def parse_mode_flags(parsed_opts):
 
     return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 
-def prepare_table_for_workload(unused__, http, **kwargs):
+def prepare_table_for_workload(http, **kwargs):
     db = http.add_database(name = "test")
     return http.add_table(database = db, **kwargs)
 

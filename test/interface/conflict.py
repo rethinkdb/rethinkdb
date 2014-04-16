@@ -30,7 +30,7 @@ with driver.Metacluster() as metacluster:
     dc = access1.add_datacenter("new_dc")
     db = access1.add_database('new_db')
 
-    table = access1.add_table("rdb", "new_table", None, None, {}, {}, None, db)
+    table = access1.add_table("new_table", None, None, {}, {}, None, db)
     access2.update_cluster_data(10)
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
 

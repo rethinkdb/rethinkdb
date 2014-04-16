@@ -30,7 +30,7 @@ with driver.Metacluster() as metacluster:
     db = http.add_database(name="test")
     ns = http.add_table(primary = dc, name="test", primary_key="foo")
     time.sleep(10)
-    host, port = driver.get_table_host('UNUSED', processes)
+    host, port = driver.get_table_host(processes)
     cluster.check()
 
     rdb_workload_common.insert_many(host=host, port=port, table="test", count=10000)

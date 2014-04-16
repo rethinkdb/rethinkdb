@@ -58,7 +58,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(machines[0], primary_dc)
     http.move_server_to_datacenter(machines[1], primary_dc)
     http.move_server_to_datacenter(machines[2], secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc,
+    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc,
         affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
     shard_boundaries = set(random.sample(candidate_shard_boundaries, opts["sequence"].initial))
     print "Split points are:", list(shard_boundaries)
@@ -67,7 +67,7 @@ with driver.Metacluster() as metacluster:
     cluster.check()
 
     workload_ports = scenario_common.get_workload_ports(opts, ns, processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, "UNUSED", workload_ports) as workload:
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         for i, (num_adds, num_removes) in enumerate(opts["sequence"].steps):
