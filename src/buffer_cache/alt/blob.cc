@@ -740,7 +740,6 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
             char *small = blob::small_buffer(ref_, maxreflen_);
             memcpy(small, b, bigsize);
-            std::fill(small + bigsize, ref_ + maxreflen_, 0);
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
             buf_read_t lock_read(&lock);
@@ -759,10 +758,6 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
                 lock.detach_child(b[i]);
                 block_ids[i] = b[i];
             }
-
-            // Zero out the unused [block_ids_offset + i*sizeof(block_id),
-            // maxreflen_) region.
-            std::fill(reinterpret_cast<char *>(block_ids + hi), ref_ + maxreflen_, 0);
         }
 
         lock.mark_deleted();
