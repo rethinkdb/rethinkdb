@@ -554,14 +554,14 @@ void traverse_recursively(buf_parent_t parent, int levels,
                           traverse_helper_t *helper);
 
 void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
-                    int index, int64_t old_size, int64_t new_size,
+                    int index, int64_t smaller_size, int64_t bigger_size,
                     traverse_helper_t *helper) {
     const block_size_t block_size = parent.cache()->max_block_size();
-    int64_t sub_old_size, sub_new_size;
-    blob::shrink(block_size, levels, old_size, index, &sub_old_size);
-    blob::shrink(block_size, levels, new_size, index, &sub_new_size);
+    int64_t sub_smaller_size, sub_bigger_size;
+    blob::shrink(block_size, levels, smaller_size, index, &sub_smaller_size);
+    blob::shrink(block_size, levels, bigger_size, index, &sub_bigger_size);
 
-    if (sub_old_size > 0) {
+    if (sub_smaller_size > 0) {
         if (levels > 1) {
             buf_lock_t lock(parent, block_ids[index], access_t::write);
             buf_write_t write(&lock);
@@ -569,7 +569,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
-                                 sub_old_size, sub_new_size,
+                                 sub_smaller_size, sub_bigger_size,
                                  helper);
         }
 
@@ -582,7 +582,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
             void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
-                                 old_size, sub_new_size,
+                                 smaller_size, sub_bigger_size,
                                  helper);
         }
 
@@ -591,22 +591,22 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 }
 
 void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
-                          int64_t old_size, int64_t new_size,
+                          int64_t smaller_size, int64_t bigger_size,
                           traverse_helper_t *helper) {
     const block_size_t block_size = parent.cache()->max_block_size();
 
     int old_lo, old_hi, new_lo, new_hi;
-    compute_acquisition_offsets(block_size, levels, 0, old_size,
+    compute_acquisition_offsets(block_size, levels, 0, smaller_size,
                                 &old_lo, &old_hi);
-    compute_acquisition_offsets(block_size, levels, 0, new_size,
+    compute_acquisition_offsets(block_size, levels, 0, bigger_size,
                                 &new_lo, &new_hi);
 
     int64_t leafsize = leaf_size(block_size);
 
-    if (ceil_divide(new_size, leafsize) > ceil_divide(old_size, leafsize)) {
+    if (ceil_divide(bigger_size, leafsize) > ceil_divide(smaller_size, leafsize)) {
         for (int i = std::max(0, old_hi - 1); i < new_hi; ++i) {
             traverse_index(parent, levels, block_ids, i,
-                           old_size, new_size, helper);
+                           smaller_size, bigger_size, helper);
         }
     }
 }
@@ -615,16 +615,15 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
 }  // namespace blob
 
 bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
-                                    int64_t old_size, int64_t new_size,
+                                    int64_t smaller_size, int64_t bigger_size,
                                     blob::traverse_helper_t *helper) {
-    // RSI: These are misnamed -- new and old should be bigger and smaller.
-    rassert(new_size >= old_size);
+    rassert(bigger_size >= smaller_size);
     const block_size_t block_size = parent.cache()->max_block_size();
-    if (new_size <= blob::max_end_offset(block_size, levels, maxreflen_)) {
+    if (bigger_size <= blob::max_end_offset(block_size, levels, maxreflen_)) {
         if (levels != 0) {
             blob::traverse_recursively(parent, levels,
                                        blob::block_ids(ref_, maxreflen_),
-                                       old_size, new_size,
+                                       smaller_size, bigger_size,
                                        helper);
         }
         return true;
