@@ -45,7 +45,7 @@ public:
     void *get_page_buf(page_cache_t *page_cache);
     void reset_block_token();
     // RSI: set_page_buf_size is bullshit?
-    void set_page_buf_size(block_size_t block_size);
+    void set_page_buf_size(block_size_t block_size, page_cache_t *page_cache);
 
     block_size_t get_page_buf_size();
 

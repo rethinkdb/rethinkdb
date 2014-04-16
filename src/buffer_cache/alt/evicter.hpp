@@ -33,6 +33,7 @@ public:
     eviction_bag_t *evicted_category() { return &evicted_; }
     void remove_page(page_t *page);
     void reloading_page(page_t *page);
+    void adjust_usage(page_t *page, uint32_t old_hypothetical_usage);
 
     // Evicter will be unusable until initialize is called
     explicit evicter_t();

@@ -110,6 +110,15 @@ void evicter_t::reloading_page(page_t *page) {
     notify_bytes_loading(page->hypothetical_memory_usage());
 }
 
+void evicter_t::adjust_usage(page_t *page, uint32_t old_hypothetical_usage) {
+    int64_t old64 = old_hypothetical_usage;
+    int64_t new64 = page->hypothetical_memory_usage();
+    int64_t adjustment = new64 - old64;
+    correct_eviction_category(page)->change_size(adjustment);
+    evict_if_necessary();
+    notify_bytes_loading(adjustment);
+}
+
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
     assert_thread();
     guarantee(initialized_);

@@ -64,12 +64,18 @@ public:
         return ser_buffer()->cache_data;
     }
 
-    // The buf is DEVICE_BLOCK_SIZE-aligned in both offset and size.  Returns the
-    // value of block_size().ser_value() rounded up to the next multiple of
-    // DEVICE_BLOCK_SIZE -- this is the true size of the buffer.
+    // Returns the actual allocated size of the buffer, wich is
+    // DEVICE_BLOCK_SIZE-aligned.  (Returns the value of block_size().ser_value()
+    // rounded up to the next multiple of DEVICE_BLOCK_SIZE.)
     uint32_t aligned_block_size() const {
         guarantee(ser_buffer_.has());
         return buf_ptr::compute_in_memory_size(block_size_);
+    }
+
+    // Returns what aligned_block_size() would return for a buf_ptr that has the
+    // given block size.
+    static uint32_t compute_aligned_block_size(block_size_t block_size) {
+        return ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
     // RSI: Get rid of this.
@@ -101,8 +107,9 @@ public:
 
 
 private:
+    // RSI: Remove this function.
     static uint32_t compute_in_memory_size(block_size_t block_size) {
-        return ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE);
+        return compute_aligned_block_size(block_size);
     }
 
     block_size_t block_size_;
