@@ -43,17 +43,17 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
 }
 
 datum_t::datum_t(std::string &&_str)
-    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data())) {
+    : type(R_STR), r_str(wire_string_t::create_and_init(_str.size(), _str.data()).release()) {
     check_str_validity(r_str);
 }
 
-datum_t::datum_t(wire_string_t *str)
-    : type(R_STR), r_str(str) {
+datum_t::datum_t(scoped_ptr_t<wire_string_t> str)
+    : type(R_STR), r_str(str.release()) {
     check_str_validity(r_str);
 }
 
 datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr)) { }
+    : type(R_STR), r_str(wire_string_t::create_and_init(::strlen(cstr), cstr).release()) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
@@ -128,7 +128,7 @@ datum_t::~datum_t() {
 
 void datum_t::init_str(size_t size, const char *data) {
     type = R_STR;
-    r_str = wire_string_t::create_and_init(size, data);
+    r_str = wire_string_t::create_and_init(size, data).release();
 }
 
 void datum_t::init_array() {
@@ -1273,14 +1273,14 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_STR: {
-        wire_string_t *value;
+        scoped_ptr_t<wire_string_t> value;
         res = deserialize(s, &value);
         if (bad(res)) {
-            guarantee(value == NULL);
             return res;
         }
+        rassert(value.has());
         try {
-            datum->reset(new datum_t(value));
+            datum->reset(new datum_t(std::move(value)));
         } catch (const base_exc_t &) {
             return archive_result_t::RANGE_ERROR;
         }
