@@ -22,7 +22,8 @@ public:
         auto_drainer_t::lock_t lock(&drainer);
         access.init(new base_namespace_repo_t<rdb_protocol_t>::access_t(
                         ns_repo, uuid, lock.get_drain_signal()));
-        std::vector<peer_id_t> peers = start_changefeed();
+        std::set<peer_id_t> peers = start_changefeed();
+        debugf("*** %zu\n", peers.size());
         any_disconnect.init(new wait_any_t());
         for (auto it = peers.begin(); it != peers.end(); ++it) {
             peer_disconnects.push_back(
@@ -40,7 +41,7 @@ public:
     }
 private:
     friend class changefeed_manager_t::subscription_t;
-    std::vector<peer_id_t> start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
+    std::set<peer_id_t> start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
         return update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
     }
     void stop_changefeed() THROWS_NOTHING { // This is called in a destructor.
@@ -52,7 +53,7 @@ private:
             // end?
         }
     }
-    std::vector<peer_id_t>
+    std::set<peer_id_t>
     update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
         THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
@@ -72,7 +73,7 @@ private:
         } catch (const interrupted_exc_t &e) {
             // RSI(CR): We're being destroyed.  Not sure what to do here; how should
             // we handle the dangling mailbox on the other end?
-            return std::vector<peer_id_t>();
+            return std::set<peer_id_t>();
         }
     }
 

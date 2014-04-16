@@ -1011,11 +1011,9 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
         response_out->response = changefeed_update_response_t();
         auto out = boost::get<changefeed_update_response_t>(&response_out->response);
         for (size_t i = 0; i < count; ++i) {
-            auto res = boost::get<changefeed_update_response_t>(&responses[i].response);
-            guarantee(res != NULL);
-            out->peers.reserve(out->peers.size() + res->peers.size());
-            std::move(res->peers.begin(), res->peers.end(),
-                      std::back_inserter(out->peers));
+            auto res = boost::get<changefeed_update_response_t>(
+                &responses[i].response);
+            out->peers.insert(res->peers.begin(), res->peers.end());
         }
     }
 
@@ -1454,7 +1452,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         default: unreachable();
         }
         response->response = changefeed_update_response_t();
-        boost::get<changefeed_update_response_t>(&response->response)->peers.push_back(
+        boost::get<changefeed_update_response_t>(&response->response)->peers.insert(
             ql_env.changefeed_manager->get_manager()
             ->get_connectivity_service()->get_me());
     }
