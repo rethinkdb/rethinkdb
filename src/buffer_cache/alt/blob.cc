@@ -550,7 +550,7 @@ struct traverse_helper_t {
 
 void traverse_recursively(buf_parent_t parent, int levels,
                           block_id_t *block_ids,
-                          int64_t old_size, int64_t new_size,
+                          int64_t smaller_size, int64_t bigger_size,
                           traverse_helper_t *helper);
 
 void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
