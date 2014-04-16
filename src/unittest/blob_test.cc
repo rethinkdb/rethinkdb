@@ -250,8 +250,9 @@ void combinations_test(cache_t *cache) {
     SCOPED_TRACE("combinations_test");
 
     int64_t inline_sz = size_after_magic * ((250 - 1 - 8) / sizeof(block_id_t));
-    //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
-    int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+    int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
+    int64_t szs[] = { 0, 251, size_after_magic, size_after_magic + 1, inline_sz - 300,
+                      inline_sz, inline_sz + 1, l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
     int n = sizeof(szs) / sizeof(szs[0]);
 
