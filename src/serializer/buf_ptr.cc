@@ -4,7 +4,7 @@
 
 buf_ptr buf_ptr::alloc_uninitialized(block_size_t size) {
     guarantee(size.ser_value() != 0);
-    const size_t count = compute_in_memory_size(size);
+    const size_t count = compute_aligned_block_size(size);
     buf_ptr ret;
     ret.block_size_ = size;
     ret.ser_buffer_.init(malloc_aligned(count, DEVICE_BLOCK_SIZE));
@@ -14,7 +14,7 @@ buf_ptr buf_ptr::alloc_uninitialized(block_size_t size) {
 buf_ptr buf_ptr::alloc_zeroed(block_size_t size) {
     buf_ptr ret = alloc_uninitialized(size);
     char *buf = reinterpret_cast<char *>(ret.ser_buffer());
-    memset(buf, 0, compute_in_memory_size(size));
+    memset(buf, 0, compute_aligned_block_size(size));
     return ret;
 }
 
@@ -42,8 +42,8 @@ void buf_ptr::resize_fill_zero(block_size_t new_size) {
     guarantee(new_size.ser_value() != 0);
     guarantee(ser_buffer_.has());
 
-    uint32_t old_reserved = compute_in_memory_size(block_size_);
-    uint32_t new_reserved = compute_in_memory_size(new_size);
+    uint32_t old_reserved = compute_aligned_block_size(block_size_);
+    uint32_t new_reserved = compute_aligned_block_size(new_size);
 
     if (old_reserved == new_reserved) {
         if (new_size.ser_value() < block_size_.ser_value()) {

@@ -69,7 +69,7 @@ public:
     // rounded up to the next multiple of DEVICE_BLOCK_SIZE.)
     uint32_t aligned_block_size() const {
         guarantee(ser_buffer_.has());
-        return buf_ptr::compute_in_memory_size(block_size_);
+        return buf_ptr::compute_aligned_block_size(block_size_);
     }
 
     // Returns what aligned_block_size() would return for a buf_ptr that has the
@@ -107,11 +107,6 @@ public:
 
 
 private:
-    // RSI: Remove this function.
-    static uint32_t compute_in_memory_size(block_size_t block_size) {
-        return compute_aligned_block_size(block_size);
-    }
-
     block_size_t block_size_;
     scoped_malloc_t<ser_buffer_t> ser_buffer_;
 
