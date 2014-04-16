@@ -127,7 +127,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     rassert(page->loader_ == NULL);
     page->loader_ = &loader;
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
     page_ptr_t copyee_ptr(copyee);
 
     // Okay, it's safe to block.
@@ -250,7 +250,7 @@ void page_t::catch_up_with_deferred_load(
 
     buf_ptr buf;
     {
-        serializer_t *const serializer = page_cache->serializer_;
+        serializer_t *const serializer = page_cache->serializer();
 
         // We use the fact that on_thread_t preserves order with the on_thread_t in
         // deferred_load_with_block_id.  This means that it's already run its section
@@ -285,10 +285,10 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     // deferred_block_token_t pointer.
     deferred_block_token_t *on_heap_token = loader.block_token_ptr();
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     {
-        serializer_t *const serializer = page_cache->serializer_;
+        serializer_t *const serializer = page_cache->serializer();
         on_thread_t th(serializer->home_thread());
         // The index_read should not block.  It must not block, because we're
         // depending on order preservation across the on_thread_t.
@@ -331,13 +331,13 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     rassert(page->loader_ == NULL);
     page->loader_ = &loader;
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     buf_ptr buf;
     counted_t<standard_block_token_t> block_token;
 
     {
-        serializer_t *const serializer = page_cache->serializer_;
+        serializer_t *const serializer = page_cache->serializer();
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
         rassert(block_token.has());
@@ -427,14 +427,14 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
 
     page_cache->evicter().reloading_page(page);
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     counted_t<standard_block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
     buf_ptr buf;
     {
-        serializer_t *const serializer = page_cache->serializer_;
+        serializer_t *const serializer = page_cache->serializer();
 
         on_thread_t th(serializer->home_thread());
         buf = serializer->block_read(block_token,

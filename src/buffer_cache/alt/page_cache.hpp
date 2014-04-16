@@ -345,6 +345,9 @@ public:
 
     evicter_t &evicter() { return evicter_; }
 
+    auto_drainer_t::lock_t drainer_lock() { return drainer_->lock(); }
+    serializer_t *serializer() { return serializer_; }
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
@@ -355,9 +358,6 @@ private:
 
 
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
-
-    // RSI: Can we remove this friend class?
-    friend class page_t;
 
     // KSI: Maybe just have txn_t hold a single list of block_change_t objects.
     struct block_change_t {
@@ -409,7 +409,6 @@ private:
     }
 
     friend class current_page_t;
-    serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
 
     void resize_current_pages_to_id(block_id_t block_id);
