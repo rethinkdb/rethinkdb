@@ -34,7 +34,6 @@ public:
     buf_ptr &operator=(buf_ptr &&movee) {
         buf_ptr tmp(std::move(movee));
         std::swap(block_size_, tmp.block_size_);
-        // RSI: Check that this works on Ubuntu 10.04.
         std::swap(ser_buffer_, tmp.ser_buffer_);
         return *this;
     }
