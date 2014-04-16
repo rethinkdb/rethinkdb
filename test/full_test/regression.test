@@ -9,11 +9,11 @@ generate_test(
     )
 
 generate_test(
-    "$RETHINKDB/test/regression/issue_676.py '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 20s'",
+    "$RETHINKDB/test/regression/issue_676.py",
     name = '676'
     )
 
 generate_test(
-    "$RETHINKDB/test/regression/issue_852.py '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10000q'",
+    "$RETHINKDB/test/regression/issue_852.py",
     name = '852'
     )

@@ -19,27 +19,27 @@ with driver.Metacluster() as metacluster:
             executable_path = driver.find_rethinkdb_executable())
         for i in xrange(num_nodes)]
     time.sleep(10)
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = http.add_table(primary = dc)
     time.sleep(10)
     cluster.check()
 
     print "Splitting into two shards..."
-    http.add_namespace_shard(ns, "t")
+    http.add_table_shard(ns, "t")
     time.sleep(10)
     cluster.check()
 
     print "Increasing replication factor..."
-    http.set_namespace_affinities(ns, {dc: 1})
+    http.set_table_affinities(ns, {dc: 1})
     time.sleep(10)
     cluster.check()
 
     print "Merging shards together again..."
-    http.remove_namespace_shard(ns, "t")
+    http.remove_table_shard(ns, "t")
     time.sleep(10)
     cluster.check()
 

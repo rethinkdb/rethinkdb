@@ -2,14 +2,15 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import memcached_workload_common
 import httplib, time
+from vcoptparse import OptParser, StringFlag
 
 # This isn't really a memcached workload...
 
-op = memcached_workload_common.option_parser_for_socket()
+op = OptParser()
+op['address'] = StringFlag('--address', 'localhost:8080')
 opts = op.parse(sys.argv)
-host, port = opts["address"]
+host, port = opts["address"].split(':')
 
 def fetch(resource, expect = [200]):
     conn = httplib.HTTPConnection(host, port)
