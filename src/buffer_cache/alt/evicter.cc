@@ -110,15 +110,6 @@ void evicter_t::reloading_page(page_t *page) {
     notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
-void evicter_t::adjust_usage(page_t *page, uint32_t old_hypothetical_usage) {
-    int64_t old64 = old_hypothetical_usage;
-    int64_t new64 = page->hypothetical_memory_usage(page_cache_);
-    int64_t adjustment = new64 - old64;
-    correct_eviction_category(page)->change_size(adjustment);
-    evict_if_necessary();
-    notify_bytes_loading(adjustment);
-}
-
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
     assert_thread();
     guarantee(initialized_);
@@ -217,6 +208,21 @@ void evicter_t::evict_if_necessary() {
         page->evict_self(page_cache_);
         page_cache_->consider_evicting_current_page(page->block_id());
     }
+}
+
+usage_adjuster_t::usage_adjuster_t(page_cache_t *page_cache, page_t *page)
+    : page_cache_(page_cache),
+      page_(page),
+      eviction_bag_(page_cache->evicter().correct_eviction_category(page)),
+      original_usage_(page->hypothetical_memory_usage(page_cache)) { }
+
+usage_adjuster_t::~usage_adjuster_t() {
+    int64_t old64 = original_usage_;
+    int64_t new64 = page_->hypothetical_memory_usage(page_cache_);
+    int64_t adjustment = new64 - old64;
+    eviction_bag_->change_size(adjustment);
+    page_cache_->evicter().evict_if_necessary();
+    page_cache_->evicter().notify_bytes_loading(adjustment);
 }
 
 }  // namespace alt

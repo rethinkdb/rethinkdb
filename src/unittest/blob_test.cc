@@ -4,7 +4,6 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
-#include "debug.hpp"
 #include "math.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/mock_file.hpp"

@@ -143,10 +143,11 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.
 
-            const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
-            page->serbuf_ = buf_ptr::alloc_copy(copyee->serbuf_);
-            page->loader_ = NULL;
-            page_cache->evicter().adjust_usage(page, usage_before);
+            {
+                usage_adjuster_t adjuster(page_cache, page);
+                page->serbuf_ = buf_ptr::alloc_copy(copyee->serbuf_);
+                page->loader_ = NULL;
+            }
 
             page->pulse_waiters_or_make_evictable(page_cache);
         }
@@ -168,11 +169,12 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
     rassert(!page->block_token_.has());
     rassert(!page->serbuf_.has());
     rassert(block_token.has());
-    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
-    page->serbuf_ = std::move(buf);
-    page->block_token_ = std::move(block_token);
-    page->loader_ = NULL;
-    page_cache->evicter().adjust_usage(page, usage_before);
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->serbuf_ = std::move(buf);
+        page->block_token_ = std::move(block_token);
+        page->loader_ = NULL;
+    }
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
@@ -304,10 +306,11 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     rassert(!page->serbuf_.has());
     rassert(loader.block_token_ptr() == on_heap_token);
     rassert(on_heap_token->token.has());
-    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
-    page->block_token_ = std::move(on_heap_token->token);
-    page->loader_ = NULL;
-    page_cache->evicter().adjust_usage(page, usage_before);
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->block_token_ = std::move(on_heap_token->token);
+        page->loader_ = NULL;
+    }
 
     rassert(page->waiters_.empty());
 
@@ -446,10 +449,11 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     rassert(page->block_token_.get() == block_token.get());
     rassert(!page->serbuf_.has());
     block_token.reset();
-    const uint32_t usage_before = page->hypothetical_memory_usage(page_cache);
-    page->serbuf_ = std::move(buf);
-    page->loader_ = NULL;
-    page_cache->evicter().adjust_usage(page, usage_before);
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->serbuf_ = std::move(buf);
+        page->loader_ = NULL;
+    }
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
@@ -459,9 +463,10 @@ void page_t::set_page_buf_size(block_size_t block_size, page_cache_t *page_cache
             "Called outside page_acq_t or without waiting for the buf_ready_signal_?");
     rassert(!block_token_.has(),
             "Modified a page_t without resetting the block token.");
-    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
-    serbuf_.resize_fill_zero(block_size);
-    page_cache->evicter().adjust_usage(this, usage_before);
+    {
+        usage_adjuster_t adjuster(page_cache, this);
+        serbuf_.resize_fill_zero(block_size);
+    }
 }
 
 block_size_t page_t::get_page_buf_size() {

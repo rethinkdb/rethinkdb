@@ -343,6 +343,8 @@ public:
 
     void have_read_ahead_cb_destroyed();
 
+    evicter_t &evicter() { return evicter_; }
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
@@ -354,8 +356,8 @@ private:
 
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
 
+    // RSI: Can we remove this friend class?
     friend class page_t;
-    evicter_t &evicter() { return evicter_; }
 
     // KSI: Maybe just have txn_t hold a single list of block_change_t objects.
     struct block_change_t {
