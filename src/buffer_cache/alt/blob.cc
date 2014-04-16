@@ -372,10 +372,8 @@ struct region_tree_filler_t {
         if (levels > 1) {
             buf_lock_t lock(parent, block_ids[lo + i], mode);
             buf_read_t buf_read(&lock);
-            // RSI: Use this block size for an assertion or something.
-            uint32_t unused_block_size;
             const block_id_t *sub_ids
-                = blob::internal_node_block_ids(buf_read.get_data_read(&unused_block_size));
+                = blob::internal_node_block_ids(buf_read.get_data_read());
 
             int64_t suboffset, subsize;
             shrink(parent.cache()->max_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
