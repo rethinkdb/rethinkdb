@@ -1,12 +1,12 @@
 err = require('./errors')
 util = require('./util')
-pb = require('./protobuf')
+
+protoResponseType = require('./proto-def').Response.ResponseType
 
 # Import some names to this namespace for convenience
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-deconstructDatum = util.deconstructDatum
 mkErr = util.mkErr
 
 # setImmediate is not defined in some browsers (including Chrome)
@@ -72,14 +72,7 @@ class Cursor extends IterableResult
     _addResponse: (response) ->
         @_responses.push response
         @_outstandingRequests -= 1
-
-        pb.ResponseTypeSwitch(response, {
-            "SUCCESS_PARTIAL": =>
-                @_endFlag = false
-            },
-                => @_endFlag = true
-        )
-
+        @_endFlag = !(response.t is protoResponseType.SUCCESS_PARTIAL)
         @_contFlag = false
         @_promptNext()
         @
@@ -96,13 +89,13 @@ class Cursor extends IterableResult
 
     _handleRow: ->
         response = @_responses[0]
-        row = deconstructDatum(response.response[@_responseIndex], @_opts)
+        row = util.recursivelyConvertPseudotype(response.r[@_responseIndex], @_opts)
         cb = @_getCallback()
 
         @_responseIndex += 1
 
         # If we're done with this response, discard it
-        if @_responseIndex is response.response.length
+        if @_responseIndex is response.r.length
             @_responses.shift()
             @_responseIndex = 0
 
@@ -123,38 +116,36 @@ class Cursor extends IterableResult
                     # We're low on data, prebuffer
                     @_promptCont()
 
-                    if !@_endFlag && response.response? && @_responseIndex is response.response.length - 1
+                    if !@_endFlag && response.r? && @_responseIndex is response.r.length - 1
                         # Only one row left and we aren't at the end of the stream, we have to hold
                         #  onto this so we know if there's more data for hasNext
                         return
 
                 # Error responses are not discarded, and the error will be sent to all future callbacks
-                pb.ResponseTypeSwitch(response, {
-                    "SUCCESS_PARTIAL": =>
+                switch response.t
+                    when protoResponseType.SUCCESS_PARTIAL
                         @_handleRow()
-                    ,"SUCCESS_SEQUENCE": =>
-                        if response.response.length is 0
+                    when protoResponseType.SUCCESS_SEQUENCE
+                        if response.r.length is 0
                             @_responses.shift()
                         else
                             @_handleRow()
-                    ,"COMPILE_ERROR": =>
+                    when protoResponseType.COMPILE_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlCompileError, response, @_root)
-                    ,"CLIENT_ERROR": =>
+                    when protoResponseType.CLIENT_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlClientError, response, @_root)
-                    ,"RUNTIME_ERROR": =>
+                    when protoResponseType.RUNTIME_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlRuntimeError, response, @_root)
-                    },
-                        =>
-                            @_responses.shift()
-                            cb = @_getCallback()
-                            cb new err.RqlDriverError "Unknown response type for cursor"
-                )
+                    else
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb new err.RqlDriverError "Unknown response type for cursor"
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
@@ -166,7 +157,7 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> @_responses[0]? && @_responses[0].response.length > 0
+    hasNext: ar () -> @_responses[0]? && @_responses[0].r.length > 0
 
     next: ar (cb) ->
         nextCbCheck(cb)
@@ -234,6 +225,5 @@ nextCbCheck = (cb) ->
     unless typeof cb is 'function'
         throw new err.RqlDriverError "Argument to next must be a function."
 
-module.exports.deconstructDatum = deconstructDatum
 module.exports.Cursor = Cursor
 module.exports.makeIterable = ArrayResult::makeIterable

@@ -30,7 +30,7 @@ class Query(object):
             for (k,v) in self.global_optargs.iteritems():
                 optargs[k] = v.build() if isinstance(v, RqlQuery) else v
             res.append(optargs)
-        return json.dumps(res, ensure_ascii=False)
+        return json.dumps(res, ensure_ascii=False, allow_nan=False)
 
 class Response(object):
     def __init__(self, token, json_str):

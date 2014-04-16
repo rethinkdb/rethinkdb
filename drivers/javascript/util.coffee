@@ -1,5 +1,4 @@
 err = require('./errors')
-pb = require('./protobuf')
 
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments
@@ -86,44 +85,14 @@ recursivelyConvertPseudotype = (obj, opts) ->
         obj = convertPseudotype(obj, opts)
     obj
 
-deconstructDatum = (datum, opts) ->
-    pb.DatumTypeSwitch(datum, {
-        "R_JSON": =>
-            obj = JSON.parse(datum.r_str)
-            recursivelyConvertPseudotype(obj, opts)
-       ,"R_NULL": =>
-            null
-       ,"R_BOOL": =>
-            datum.r_bool
-       ,"R_NUM": =>
-            datum.r_num
-       ,"R_STR": =>
-            datum.r_str
-       ,"R_ARRAY": =>
-            deconstructDatum(dt, opts) for dt in datum.r_array
-       ,"R_OBJECT": =>
-            obj = {}
-            for pair in datum.r_object
-                obj[pair.key] = deconstructDatum(pair.val, opts)
+mkAtom = (response, opts) -> recursivelyConvertPseudotype(response.r[0], opts)
 
-            convertPseudotype(obj, opts)
-        },
-            => throw new err.RqlDriverError "Unknown Datum type"
-        )
-
-mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
-
-mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
+mkSeq = (response, opts) -> recursivelyConvertPseudotype(response.r, opts)
 
 mkErr = (ErrClass, response, root) ->
-    msg = mkAtom response
+    new ErrClass(mkAtom(response), root, response.b)
 
-    bt = for frame in response.backtrace.frames
-        pb.convertFrame frame
-
-    new ErrClass msg, root, bt
-
-module.exports.deconstructDatum = deconstructDatum
+module.exports.recursivelyConvertPseudotype = recursivelyConvertPseudotype
 module.exports.mkAtom = mkAtom
 module.exports.mkSeq = mkSeq
 module.exports.mkErr = mkErr
