@@ -17,10 +17,9 @@
 #include "rpc/serialize_macros.hpp"
 
 class auto_drainer_t;
-template<class T> class base_namespace_repo_t;
+class base_namespace_repo_t;
 class mailbox_manager_t;
 struct rdb_modification_report_t;
-struct rdb_protocol_t;
 
 namespace ql {
 
@@ -88,7 +87,7 @@ public:
     class subscription_t : public home_thread_mixin_t {
     public:
         subscription_t(uuid_u uuid,
-                       base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+                       base_namespace_repo_t *ns_repo,
                        changefeed_manager_t *manager)
         THROWS_ONLY(cannot_perform_query_exc_t);
         ~subscription_t();

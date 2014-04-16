@@ -13,6 +13,8 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
+#include "debug.hpp"
+
 void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
@@ -204,6 +206,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
+               ctx->changefeed_manager.get(),
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
@@ -309,6 +312,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         func_replacer_t replacer(&ql_env, br.f, br.return_vals);
         response->response =
             rdb_batched_replace(
+                ql_env.changefeed_manager->get_manager(),
                 btree_info_t(btree, timestamp,
                              &br.pkey),
                 superblock, br.keys, &replacer, &sindex_cb,
@@ -328,6 +332,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         }
         response->response =
             rdb_batched_replace(
+                ql_env.changefeed_manager->get_manager(),
                 btree_info_t(btree, timestamp,
                              &bi.pkey),
                 superblock, keys, &replacer, &sindex_cb,
@@ -451,6 +456,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
+               ctx->changefeed_manager.get(),
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),

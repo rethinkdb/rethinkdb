@@ -181,6 +181,7 @@ class rdb_context_t {
 public:
     rdb_context_t();
     rdb_context_t(extproc_pool_t *_extproc_pool,
+                  mailbox_manager_t *mailbox_manager,
                   namespace_repo_t *_ns_repo,
                   boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -624,6 +625,7 @@ struct write_t {
                    batched_insert_t,
                    point_write_t,
                    point_delete_t,
+                   changefeed_update_t,
                    sindex_create_t,
                    sindex_drop_t,
                    sync_t> write;

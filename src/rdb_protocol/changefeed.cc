@@ -16,11 +16,11 @@ class changefeed_updater_t : public home_thread_mixin_t {
 public:
     changefeed_updater_t(mailbox_manager_t *manager,
                          mailbox_addr_t<void(changefeed::msg_t)> _addr,
-                         base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+                         base_namespace_repo_t *ns_repo,
                          uuid_u uuid)
         : addr(_addr) {
         auto_drainer_t::lock_t lock(&drainer);
-        access.init(new base_namespace_repo_t<rdb_protocol_t>::access_t(
+        access.init(new base_namespace_repo_t::access_t(
                         ns_repo, uuid, lock.get_drain_signal()));
         std::set<peer_id_t> peers = start_changefeed();
         debugf("*** %zu\n", peers.size());
@@ -42,11 +42,11 @@ public:
 private:
     friend class changefeed_manager_t::subscription_t;
     std::set<peer_id_t> start_changefeed() THROWS_ONLY(cannot_perform_query_exc_t) {
-        return update_changefeed(rdb_protocol_t::changefeed_update_t::SUBSCRIBE);
+        return update_changefeed(changefeed_update_t::SUBSCRIBE);
     }
     void stop_changefeed() THROWS_NOTHING { // This is called in a destructor.
         try {
-            update_changefeed(rdb_protocol_t::changefeed_update_t::UNSUBSCRIBE);
+            update_changefeed(changefeed_update_t::UNSUBSCRIBE);
         } catch (const cannot_perform_query_exc_t &e) {
             // RSI(CR): We can't access the table to unsubscribe.  Not sure what to
             // do here; how should we handle the dangling mailbox on the other
@@ -54,19 +54,19 @@ private:
         }
     }
     std::set<peer_id_t>
-    update_changefeed(rdb_protocol_t::changefeed_update_t::action_t action)
+    update_changefeed(changefeed_update_t::action_t action)
         THROWS_ONLY(cannot_perform_query_exc_t) {
         assert_thread();
         try {
             auto_drainer_t::lock_t lock(&drainer);
             auto nif = access->get_namespace_if();
-            rdb_protocol_t::write_t write(
-                rdb_protocol_t::changefeed_update_t(addr, action),
+            write_t write(
+                changefeed_update_t(addr, action),
                 profile_bool_t::DONT_PROFILE);
-            rdb_protocol_t::write_response_t resp;
+            write_response_t resp;
             nif->write(write, &resp, order_token_t::ignore, lock.get_drain_signal());
             auto update_response =
-                boost::get<rdb_protocol_t::changefeed_update_response_t>(
+                boost::get<changefeed_update_response_t>(
                     &resp.response);
             guarantee(update_response);
             return std::move(update_response->peers);
@@ -78,7 +78,7 @@ private:
     }
 
     mailbox_addr_t<void(changefeed::msg_t)> addr;
-    scoped_ptr_t<base_namespace_repo_t<rdb_protocol_t>::access_t> access;
+    scoped_ptr_t<base_namespace_repo_t::access_t> access;
     std::vector<scoped_ptr_t<disconnect_watcher_t> > peer_disconnects;
     scoped_ptr_t<wait_any_t> any_disconnect;
     auto_drainer_t drainer;
@@ -90,7 +90,7 @@ void handle_msg(changefeed_t *feed, const changefeed::msg_t &msg);
 class changefeed_t : public home_thread_mixin_t {
 public:
     changefeed_t(mailbox_manager_t *manager,
-                 base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+                 base_namespace_repo_t *ns_repo,
                  uuid_u uuid)
         : mailbox(manager, [=](changefeed::msg_t msg) { handle_msg(this, msg); }),
           subscribers(get_num_threads()),
@@ -197,7 +197,7 @@ class change_stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
     change_stream_t(uuid_u uuid,
-                    base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+                    base_namespace_repo_t *ns_repo,
                     changefeed_manager_t *manager,
                     Args... args)
         THROWS_ONLY(cannot_perform_query_exc_t, exc_t, datum_exc_t)
@@ -287,7 +287,7 @@ void subscription_t::abort(const char *msg) {
 
 subscription_t::subscription_t(
     uuid_u uuid,
-    base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+    base_namespace_repo_t *ns_repo,
     changefeed_manager_t *_manager)
     THROWS_ONLY(cannot_perform_query_exc_t)
     : finished(false), cond(NULL), manager(_manager), drainer(new auto_drainer_t()) {
