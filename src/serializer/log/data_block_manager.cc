@@ -12,6 +12,7 @@
 #include "concurrency/mutex.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "stl_utils.hpp"
 

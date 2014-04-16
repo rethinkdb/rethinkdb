@@ -10,15 +10,13 @@
 #include "containers/scoped.hpp"
 #include "containers/two_level_array.hpp"
 #include "perfmon/types.hpp"
-#include "serializer/buf_ptr.hpp"
 #include "serializer/log/config.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
 
+class buf_ptr;
 class log_serializer_t;
-
 class data_block_manager_t;
-
 class gc_entry_t;
 
 struct gc_entry_less_t {
