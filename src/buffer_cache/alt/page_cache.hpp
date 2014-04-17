@@ -101,6 +101,8 @@ private:
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
     void pulse_pulsables(current_page_acq_t *acq);
+    void add_keepalive();
+    void remove_keepalive();
 
     page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
@@ -154,6 +156,11 @@ private:
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
+
+    // Avoids eviction if > 0. This is used by snapshotted current_page_acq_t's
+    // that have a snapshotted version of this block. If the current_page_t
+    // would be evicted that would mess with the block version.
+    intptr_t num_keepalives_;
 
     DISABLE_COPYING(current_page_t);
 };
