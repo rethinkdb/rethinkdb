@@ -5,8 +5,8 @@ Released on 2014-04-17
 Bug fix update.
 
 * Compilation no longer fails with SEMANTIC_SERIALIZER_CHECK=1 (#2239)
-* Identical join options no longer cause a crash (#2219)
-* Fixed a race condition in the ruby driver (#2194)
+* Identical `--join` options no longer cause a crash (#2219)
+* Fixed a race condition in the Ruby driver (#2194)
 * Concurrent backfills are now limited to 4 per peer and 12 total (#2211)
 * Failure to `fsync` a directory is now a warning instead of an error (#2255)
 * Packages are now available for Ubuntu 14.04, codename Trusty Tahr (#2101)
