@@ -57,6 +57,9 @@ public:
     bool is_loading() const {
         return loader_ != NULL && page_t::loader_is_loading(loader_);
     }
+    bool is_deferred_loading() const {
+        return loader_ != NULL && !page_t::loader_is_loading(loader_);
+    }
     bool has_waiters() const { return !waiters_.empty(); }
     bool is_not_loaded() const { return !buf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
