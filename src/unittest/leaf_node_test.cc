@@ -230,7 +230,7 @@ public:
 
     // This only prints if we enable printing.
     void Print() {
-        // leaf::print(stdout, &sizer_, node_);
+        // leaf::print(stdout, &sizer_, node());
     }
 
     class verify_receptor_t : public leaf::entry_reception_callback_t {
