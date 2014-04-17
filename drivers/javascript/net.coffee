@@ -67,6 +67,7 @@ class Connection extends events.EventEmitter
 
         while @buffer.length >= 12 
             token = @buffer.readUInt32LE(0) + 0x100000000 * @buffer.readUInt32LE(4)
+
             responseLength = @buffer.readUInt32LE(8)
             unless @buffer.length >= (12 + responseLength)
                 break
@@ -228,22 +229,22 @@ class Connection extends events.EventEmitter
         query.token = token
         # Set global options
         if @db?
-            query.global_optargs.db = r.db(@db).build()
+            query.global_optargs['db'] = r.db(@db).build()
 
         if opts.useOutdated?
-            query.global_optargs.use_outdated = r.expr(!!opts.useOutdated).build()
+            query.global_optargs['use_outdated'] = r.expr(!!opts.useOutdated).build()
 
         if opts.noreply?
-            query.global_optargs.noreply = r.expr(!!opts.noreply).build()
+            query.global_optargs['noreply'] = r.expr(!!opts.noreply).build()
 
         if opts.profile?
-            query.global_optargs.profile = r.expr(!!opts.profile).build()
+            query.global_optargs['profile'] = r.expr(!!opts.profile).build()
 
         if opts.durability?
-            query.global_optargs.durability = r.expr(opts.durability).build()
+            query.global_optargs['durability'] = r.expr(opts.durability).build()
 
         if opts.batchConf?
-            query.global_optargs.batchConf = r.expr(opts.batchConf).build()
+            query.global_optargs['batchConf'] = r.expr(opts.batchConf).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply
@@ -276,12 +277,7 @@ class Connection extends events.EventEmitter
             if query.global_optargs? and Object.keys(query.global_optargs).length > 0
                 data.push(query.global_optargs)
 
-        data = JSON.stringify(data)
-
-        lengthBuffer = new Buffer(4)
-        lengthBuffer.writeUInt32LE(Buffer.byteLength(data), 0)
-        @write lengthBuffer
-        @write data
+        @write new Buffer(JSON.stringify(data))
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -307,17 +303,16 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new Buffer(8)
+            buf = new Buffer(4)
             buf.writeUInt32LE(protoVersion, 0)
-            buf.writeUInt32LE(@authKey.length, 4)
+            @rawSocket.write buf
+
+            buf = new Buffer(@authKey, 'ascii')
             @write buf
-            @rawSocket.write @authKey, 'ascii'
 
             # Send the protocol type that we will be using to communicate with the server
-            buf = new Buffer(4)
-            buf.writeUInt32LE(@wire_protocol.length, 0)
+            buf = new Buffer(@wire_protocol, 'ascii')
             @write buf
-            @rawSocket.write @wire_protocol, 'ascii'
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
@@ -379,7 +374,11 @@ class TcpConnection extends Connection
         @rawSocket.destroy()
         super()
 
-    write: (chunk) -> @rawSocket.write chunk
+    write: (chunk) ->
+        lengthBuffer = new Buffer(4)
+        lengthBuffer.writeUInt32LE(chunk.length, 0)
+        @rawSocket.write lengthBuffer
+        @rawSocket.write chunk
 
 class HttpConnection extends Connection
     DEFAULT_PROTOCOL: 'http'
@@ -440,8 +439,6 @@ class HttpConnection extends Connection
         # anonymous function
         HttpConnection.__super__.close.call(this, opts, wrappedCb)
     )
-
-
 
     write: (chunk) ->
         xhr = new XMLHttpRequest

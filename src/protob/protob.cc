@@ -329,15 +329,12 @@ void query_server_t::handle(const http_req_t &req,
             http_conn_cache.erase(conn_id);
             result->code = HTTP_OK;
         } else {
-            // Extract protobuf from http request body
-            const char *data = req.body.data();
-            int32_t req_size = *reinterpret_cast<const int32_t *>(data);
-            data += sizeof(req_size);
-
             ql::protob_t<Query> query;
             make_empty_protob_bearer(&query);
+            // The JSON protocol doesn't actually require the size, so we pass 0 rather than
+            // risk an inaccurate length from the header - the query is null-terminated
             const bool parse_succeeded =
-                json_protocol_t::parse_query(&query, data, req_size);
+                json_protocol_t::parse_query(&query, req.body.data(), 0);
 
             Response response;
             if (!parse_succeeded) {
@@ -386,10 +383,13 @@ void query_server_t::handle(const http_req_t &req,
             json_shim::write_json_pb(response, &str);
             size = str.size();
 
+            char header_buffer[sizeof(token) + sizeof(size)];
+            memcpy(&header_buffer[0], &token, sizeof(token));
+            memcpy(&header_buffer[sizeof(token)], &size, sizeof(size));
+
             std::string body_data;
-            body_data.reserve(sizeof(token) + sizeof(size) + str.length());
-            body_data.append(&token, &token + 1);
-            body_data.append(&size, &size + 1);
+            body_data.reserve(sizeof(header_buffer) + str.length());
+            body_data.append(&header_buffer[0], sizeof(header_buffer));
             body_data.append(str);
             result->set_body("application/octet-stream", body_data);
             result->code = HTTP_OK;
