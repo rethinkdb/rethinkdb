@@ -709,7 +709,7 @@ bool current_page_t::should_be_evicted() const {
             return false;
         }
         // is_loading is false and is_not_loaded is true -- it must be disk-backed.
-        rassert(page->is_disk_backed());
+        rassert(page->is_disk_backed() || page->is_deferred_loading());
     }
 
     return true;
