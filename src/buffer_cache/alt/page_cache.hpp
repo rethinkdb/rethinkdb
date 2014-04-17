@@ -128,14 +128,10 @@ private:
 
     bool is_deleted() const { return is_deleted_; }
 
-    void make_non_deleted(block_size_t block_size,
-                          scoped_malloc_t<ser_buffer_t> buf,
-                          current_page_help_t page_cache);
-
     // KSI: We could get rid of this variable if
     // page_txn_t::pages_write_acquired_last_ noted each page's block_id_t.  Other
     // space reductions are more important.
-    const block_id_t block_id_;
+    block_id_t block_id_;
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.
