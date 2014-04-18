@@ -7,6 +7,7 @@ cursors = require('./cursor')
 
 protodef = require('./proto-def')
 protoVersion = protodef.VersionDummy.Version.V0_3
+protoProtocol = protodef.VersionDummy.Protocol.JSON
 protoQueryType = protodef.Query.QueryType
 protoResponseType = protodef.Response.ResponseType
 
@@ -35,7 +36,6 @@ class Connection extends events.EventEmitter
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
         @authKey = host.authKey || @DEFAULT_AUTH_KEY
-        @wire_protocol = 'json'
         @timeout = host.timeout || @DEFAULT_TIMEOUT
 
         @outstandingCallbacks = {}
@@ -311,8 +311,9 @@ class TcpConnection extends Connection
             @write buf
 
             # Send the protocol type that we will be using to communicate with the server
-            buf = new Buffer(@wire_protocol, 'ascii')
-            @write buf
+            buf = new Buffer(4)
+            buf.writeUInt32LE(protoProtocol, 0)
+            @rawSocket.write buf
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
