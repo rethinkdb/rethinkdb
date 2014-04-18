@@ -44,11 +44,6 @@ publish: $(GEMSPEC) driver-ruby
 
 clean:
 ifeq ($(VERBOSE),0)
-	@echo "    RM $(RUBY_PBDIR)/$(RUBY_PBFILE)"
-endif
-	$(QUIET) if [ -e $(RUBY_PBDIR)/$(RUBY_PBFILE) ] ; then rm -f $(RUBY_PBDIR)/$(RUBY_PBFILE) ; fi ;
-	$(QUIET) if [ -e $(RUBY_PBDIR)/toolchain ] ; then rm -rf $(RUBY_PBDIR)/toolchain ; fi ;
-ifeq ($(VERBOSE),0)
 	@echo "    RM $(RUBY_PBDIR)/$(RUBY_PBFILE2)"
 endif
 	$(QUIET) if [ -e $(RUBY_PBDIR)/$(RUBY_PBFILE2) ] ; then rm -f $(RUBY_PBDIR)/$(RUBY_PBFILE2) ; fi ;
