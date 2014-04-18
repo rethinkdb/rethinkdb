@@ -200,6 +200,14 @@ void mailbox_manager_t::local_delivery_coroutine(threadnum_t dest_thread,
                                                  raw_mailbox_t::id_t dest,
                                                  const arg_ts&... data) {
     on_thread_t rethreader(dest_thread);
+    if (rethreader.home_thread() == dest_thread) {
+        // Some message handlers might not expect messages to be delivered
+        // immediately (there could be issues with reentrancy).
+        // So we make sure that we yield at least once before delivering the
+        // message. Note that we don't yield again if on_thread_t already had
+        // to switch the thread (in which case it will already have yielded).
+        coro_t::yield();
+    }
     // Check if the mailbox still exists (if not: ignore)
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest);
     if (mbox != NULL) {
