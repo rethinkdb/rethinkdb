@@ -247,7 +247,7 @@ module RethinkDB
       self.noreply_wait() if opts[:noreply_wait]
 
       stop_listener
-      @socket.close if @socket
+      @socket.close rescue nil if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
       @opts = {}
