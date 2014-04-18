@@ -489,10 +489,14 @@ current_page_acq_t::~current_page_acq_t() {
             the_txn_->remove_acquirer(this);
         }
         rassert(current_page_ != NULL);
-        if (!declared_snapshotted_) {
+        if (in_a_list()) {
+            // Note that the current_page_acq can be in the current_page_ acquirer
+            // list and still be snapshotted. However it will not have a
+            // snapshotted_page_.
             rassert(!snapshotted_page_.has());
             current_page_->remove_acquirer(this);
-        } else {
+        }
+        if (declared_snapshotted_) {
             snapshotted_page_.reset_page_ptr(page_cache_);
             current_page_->remove_keepalive();
         }
