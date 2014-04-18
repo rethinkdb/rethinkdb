@@ -147,7 +147,6 @@ private:
                                          const std::string &length_error_msg,
                                          signal_t *interruptor);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
-    static std::string read_protocol_string(tcp_conn_t *conn, signal_t *interruptor);
 
     // For the client driver socket
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,

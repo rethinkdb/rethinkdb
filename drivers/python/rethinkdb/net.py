@@ -89,7 +89,6 @@ class Connection(object):
         self.next_token = 1
         self.db = db
         self.auth_key = auth_key
-        self.wire_protocol = "json"
         self.timeout = timeout
         self.cursor_cache = { }
 
@@ -120,7 +119,7 @@ class Connection(object):
 
         self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_3))
         self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
-        self._sock_sendall(struct.pack("<L", len(self.wire_protocol)) + str.encode(self.wire_protocol, 'ascii'))
+        self._sock_sendall(struct.pack("<L", p.VersionDummy.JSON))
 
         # Read out the response from the server, which will be a null-terminated string
         response = b""

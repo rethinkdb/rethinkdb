@@ -135,13 +135,6 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
     return ret;
 }
 
-std::string query_server_t::read_protocol_string(tcp_conn_t *conn,
-                                                 signal_t *interruptor) {
-    const size_t max_protocol_size = 64;
-    const std::string length_error_msg("Client provided a protocol string that is too long.");
-    return read_sized_string(conn, max_protocol_size, length_error_msg, interruptor);
-}
-
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
     // This must be read here because of home threads and stuff
@@ -173,7 +166,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 "resolve it through the admin UI before connecting clients.");
         }
 
-        conn->read(&client_magic_number, sizeof(int32_t), &interruptor);
+        conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
         // With version 0_2 and up, the client drivers specifies the authorization key
         if (client_magic_number == VersionDummy::V0_1) {
@@ -194,18 +187,18 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         }
 
         // With version 0_3, the client driver specifies which protocol to use
-        std::string protocol_str("protobuf");
+        int32_t wire_protocol = VersionDummy::PROTOBUF;
         if (client_magic_number == VersionDummy::V0_3) {
-            protocol_str = read_protocol_string(conn.get(), &interruptor);
+            conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
         }
 
-        if (protocol_str == "json") {
+        if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(conn.get(), &client_ctx);
-        } else if (protocol_str == "protobuf") {
+        } else if (wire_protocol == VersionDummy::PROTOBUF) {
             connection_loop<protobuf_protocol_t>(conn.get(), &client_ctx);
         } else {
-            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%s'",
-                                                protocol_str.c_str()));
+            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
+                                                wire_protocol));
         }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler

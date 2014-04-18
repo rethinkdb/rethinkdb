@@ -360,9 +360,9 @@ class TestBatching(TestWithConnection):
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
-            self.assertEqual(len(cursor.responses[0].response), batch_size)
+            self.assertEqual(len(cursor.responses[0].data), batch_size)
         else:
-            self.assertLess(len(cursor.responses[0].response), batch_size)
+            self.assertLess(len(cursor.responses[0].data), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):
