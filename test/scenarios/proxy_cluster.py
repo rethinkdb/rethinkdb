@@ -33,7 +33,7 @@ with driver.Metacluster() as metacluster:
     ns = scenario_common.prepare_table_for_workload(http, primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, [proxy_process])
+    workload_ports = scenario_common.get_workload_ports(ns, [proxy_process])
     workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()

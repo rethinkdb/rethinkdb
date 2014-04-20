@@ -20,7 +20,7 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
             random.shuffle(keys)
         i = 0
         for key in keys:
-            response = table.insert({'id': str(key), 'val': key}).run(conn)
+            response = table.insert({'id': key, 'val': key}).run(conn)
             if response['inserted'] != 1:
                 raise ValueError("Could not set %r" % key)
             i += 1

@@ -539,10 +539,10 @@ class ClusterAccess(object):
                 return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (table.uuid, depth))
             except BadServerResponse as response:
                 if response.status == 500 and 'No direct reader available' in response.reason:
-                    print 'Distribution is not yet available, retrying (%d)' % tries
                     tries = tries - 1
                     if not tries:
                         raise
+                    print 'Distribution is not yet available, retrying (%d)' % tries
                     time.sleep(delay)
                 else:
                     raise

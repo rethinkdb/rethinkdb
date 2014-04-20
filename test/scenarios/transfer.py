@@ -31,7 +31,7 @@ with driver.Metacluster() as metacluster:
     http1.wait_until_blueprint_satisfied(ns)
     rdb_workload_common.wait_for_table(host='localhost', port=process1.driver_port, table=ns.name)
 
-    workload_ports_1 = scenario_common.get_workload_ports(opts, ns, [process1])
+    workload_ports_1 = scenario_common.get_workload_ports(ns, [process1])
     workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
 
     print "Bringing up new server..."
@@ -59,7 +59,7 @@ with driver.Metacluster() as metacluster:
     http2.wait_until_blueprint_satisfied(ns.name)
     rdb_workload_common.wait_for_table(host='localhost', port=process2.driver_port, table=ns.name)
 
-    workload_ports_2 = scenario_common.get_workload_ports(opts, http2.find_table(ns.name), [process2])
+    workload_ports_2 = scenario_common.get_workload_ports(http2.find_table(ns.name), [process2])
     workload_runner.run(opts["workload2"], workload_ports_2, opts["timeout"])
 
     cluster.check_and_stop()

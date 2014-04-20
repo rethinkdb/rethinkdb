@@ -30,7 +30,7 @@ with driver.Metacluster() as metacluster:
         r.db_create('test').run(conn)
         r.db('test').table_create('restart').run(conn)
     ns = TableShim(name='restart')
-    workload_ports = scenario_common.get_workload_ports(opts, ns, [process])
+    workload_ports = scenario_common.get_workload_ports(ns, [process])
     workload_runner.run(opts["workload1"], workload_ports, opts["timeout"])
     print "Restarting server..."
     process.check_and_stop()
@@ -39,7 +39,7 @@ with driver.Metacluster() as metacluster:
     process2.wait_until_started_up()
     cluster.check()
     rdb_workload_common.wait_for_table(host="localhost", port=process2.driver_port, table=ns.name)
-    workload_ports2 = scenario_common.get_workload_ports(opts, ns, [process2])
+    workload_ports2 = scenario_common.get_workload_ports(ns, [process2])
     workload_runner.run(opts["workload2"], workload_ports2, opts["timeout"])
     print "Shutting down..."
     cluster.check_and_stop()

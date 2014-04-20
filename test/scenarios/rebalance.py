@@ -66,7 +66,7 @@ with driver.Metacluster() as metacluster:
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, processes)
+    workload_ports = scenario_common.get_workload_ports(ns, processes)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()

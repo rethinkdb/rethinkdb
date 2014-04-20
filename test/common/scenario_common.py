@@ -36,7 +36,7 @@ def prepare_table_for_workload(http, **kwargs):
     db = http.add_database(name = "test")
     return http.add_table(database = db, **kwargs)
 
-def get_workload_ports(parsed_opts, table, processes):
+def get_workload_ports(table, processes):
     for process in processes:
         assert isinstance(process, (driver.Process, driver.ProxyProcess))
     process = random.choice(processes)
