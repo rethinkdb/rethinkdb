@@ -205,16 +205,16 @@ private:
     char *value_ptr;
 };
 
-buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb);
+buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb);
 
-void check_and_handle_split(value_sizer_t<void> *sizer,
+void check_and_handle_split(value_sizer_t *sizer,
                             buf_lock_t *buf,
                             buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value,
                             const value_deleter_t *detacher);
 
-void check_and_handle_underfull(value_sizer_t<void> *sizer,
+void check_and_handle_underfull(value_sizer_t *sizer,
                                 buf_lock_t *buf,
                                 buf_lock_t *last_buf,
                                 superblock_t *sb,

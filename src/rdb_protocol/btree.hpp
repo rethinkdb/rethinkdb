@@ -25,10 +25,9 @@ class parallel_traversal_progress_t;
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
 
-template <>
-class value_sizer_t<rdb_value_t> : public value_sizer_t<void> {
+class rdb_value_sizer_t : public value_sizer_t {
 public:
-    explicit value_sizer_t<rdb_value_t>(block_size_t bs);
+    explicit rdb_value_sizer_t(block_size_t bs);
 
     static const rdb_value_t *as_rdb(const void *p);
 
@@ -49,7 +48,7 @@ private:
     // some subclasses, too.
     block_size_t block_size_;
 
-    DISABLE_COPYING(value_sizer_t<rdb_value_t>);
+    DISABLE_COPYING(rdb_value_sizer_t);
 };
 
 struct rdb_modification_info_t;

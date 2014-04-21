@@ -11,10 +11,9 @@
 
 struct short_value_t;
 
-template <>
-class value_sizer_t<short_value_t> : public value_sizer_t<void> {
+class short_value_sizer_t : public value_sizer_t {
 public:
-    explicit value_sizer_t<short_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit short_value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
     int size(const void *value) const {
         int x = *reinterpret_cast<const uint8_t *>(value);
@@ -39,7 +38,7 @@ public:
 private:
     block_size_t block_size_;
 
-    DISABLE_COPYING(value_sizer_t<short_value_t>);
+    DISABLE_COPYING(short_value_sizer_t);
 };
 
 namespace unittest {
@@ -295,7 +294,7 @@ public:
 
 public:
     block_size_t bs_;
-    value_sizer_t<short_value_t> sizer_;
+    short_value_sizer_t sizer_;
     scoped_malloc_t<leaf_node_t> node_;
 
     uint64_t tstamp_counter_;

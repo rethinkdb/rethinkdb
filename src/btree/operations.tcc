@@ -9,6 +9,22 @@
 #include "concurrency/promise.hpp"
 #include "rdb_protocol/profile.hpp"
 
+struct rdb_value_t;
+class rdb_value_sizer_t;
+class short_value_t;
+class short_value_sizer_t;
+
+template <class> struct sizer_trait_t;
+template <>
+struct sizer_trait_t<rdb_value_t> {
+    typedef rdb_value_sizer_t sizer_type;
+};
+template <>
+struct sizer_trait_t<short_value_t> {
+    typedef short_value_sizer_t sizer_type;
+};
+
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 /* Passing in a pass_back_superblock parameter will cause this function to
@@ -27,7 +43,7 @@ void find_keyvalue_location_for_write(
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
-    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
+    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
 
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
@@ -131,7 +147,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
-    value_sizer_t<Value> sizer(superblock->cache()->max_block_size());
+    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -210,7 +226,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         const value_deleter_t *detacher,
         key_modification_callback_t<Value> *km_callback) {
 
-    value_sizer_t<Value> sizer(kv_loc->buf.cache()->get_block_size());
+    typename sizer_trait_t<Value>::sizer_type sizer(kv_loc->buf.cache()->get_block_size());
 
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
