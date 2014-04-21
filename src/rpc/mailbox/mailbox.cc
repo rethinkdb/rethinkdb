@@ -142,7 +142,7 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
         // Avoid copying the data
         vector_stream->swap(&stream_data, &stream_data_offset);
         if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
-            // Either we go a vector_read_stream_t that contained more data
+            // Either we got a vector_read_stream_t that contained more data
             // than just ours (which shouldn't happen), or we got a wrong data_length
             // from the network.
             throw fake_archive_exc_t();

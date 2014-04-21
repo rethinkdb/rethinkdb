@@ -98,9 +98,9 @@ public:
     address_t get_address() const;
 };
 
-/* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
-a coroutine; it does not block. If the mailbox does not exist or the peer is
-inaccessible, `send()` will silently fail. */
+/* `send()` sends a message to a mailbox. `send()` can block and must be called
+in a coroutine. If the mailbox does not exist or the peer is inaccessible, `send()`
+will silently fail. */
 
 void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
@@ -121,9 +121,9 @@ public:
         return message_service->get_connectivity_service();
     }
 
-    template<class... arg_ts>
+    template<class... Args>
     bool try_local_delivery(const raw_mailbox_t::address_t &dest,
-                            const arg_ts&... data);
+                            const Args&... data);
 
 private:
     friend struct raw_mailbox_t;
@@ -158,47 +158,41 @@ private:
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset);
 
-    template<class... arg_ts>
+    template<class... Args>
     void local_delivery_coroutine(threadnum_t dest_thread,
                                   raw_mailbox_t::id_t dest,
-                                  const arg_ts&... data);
+                                  const Args&... data);
 };
 
 
 /* Template member implementations */
 
-template<class... arg_ts>
+template<class... Args>
 bool mailbox_manager_t::try_local_delivery(const raw_mailbox_t::address_t &dest,
-                                           const arg_ts&... data) {
+                                           const Args&... data) {
     // Check if dest is a local mailbox
-    raw_mailbox_t *potential_dest_mbox =
-        mailbox_tables.get()->find_mailbox(dest.mailbox_id);
-    if (potential_dest_mbox != NULL) {
-        if (potential_dest_mbox->get_address().peer != dest.peer) {
-            // Nope, dest is on a different host.
-            return false;
-        } else {
-            // Ok, it's local. Deliver the message.
-            threadnum_t dest_thread(
-                dest.thread == raw_mailbox_t::address_t::ANY_THREAD
-                ? get_thread_id().threadnum
-                : dest.thread);
-            // This is `spawn_now_dangerously` for performance reasons.
-            // It cuts query latency by >20% in some scenarios compared to
-            // `spawn_sometime`.
-            coro_t::spawn_now_dangerously(
-                std::bind(&mailbox_manager_t::local_delivery_coroutine<arg_ts...>,
-                          this, dest_thread, dest.mailbox_id, data...));
-            return true;
-        }
+    if (dest.peer == get_connectivity_service()->get_me()) {
+        // Ok, it's local. Deliver the message.
+        threadnum_t dest_thread(
+            dest.thread == raw_mailbox_t::address_t::ANY_THREAD
+            ? get_thread_id().threadnum
+            : dest.thread);
+        // This is `spawn_now_dangerously` for performance reasons.
+        // It cuts query latency by >20% in some scenarios compared to
+        // `spawn_sometime`.
+        coro_t::spawn_now_dangerously(
+            std::bind(&mailbox_manager_t::local_delivery_coroutine<Args...>,
+                      this, dest_thread, dest.mailbox_id, data...));
+        return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
-template<class... arg_ts>
+template<class... Args>
 void mailbox_manager_t::local_delivery_coroutine(threadnum_t dest_thread,
                                                  raw_mailbox_t::id_t dest,
-                                                 const arg_ts&... data) {
+                                                 const Args&... data) {
     on_thread_t rethreader(dest_thread);
     if (rethreader.home_thread() == dest_thread) {
         // Some message handlers might not expect messages to be delivered
@@ -211,8 +205,8 @@ void mailbox_manager_t::local_delivery_coroutine(threadnum_t dest_thread,
     // Check if the mailbox still exists (if not: ignore)
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest);
     if (mbox != NULL) {
-        const std::function<void(arg_ts...)> *cb =
-            static_cast<const std::function<void(arg_ts...)> *>(
+        const std::function<void(Args...)> *cb =
+            static_cast<const std::function<void(Args...)> *>(
                 mbox->callback->get_local_delivery_cb());
         guarantee(cb != NULL);
         (*cb)(data...);
