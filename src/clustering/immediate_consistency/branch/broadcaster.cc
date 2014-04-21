@@ -445,7 +445,6 @@ void broadcaster_t::spawn_write(const write_t &write,
 void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
-    dispatchee_t *selected_dispatchee = NULL;
 
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
@@ -453,6 +452,7 @@ void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mu
     }
 
     /* Prefer a local dispatchee (at the moment there always should be exactly one) */
+    dispatchee_t *selected_dispatchee = NULL;
     for (dispatchee_t *d = readable_dispatchees.head();
          d != NULL;
          d = readable_dispatchees.next(d)) {
