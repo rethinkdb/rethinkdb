@@ -149,7 +149,7 @@ class RDBVal extends TermBase
 
     merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: varar(1, 2, (func) -> new Reduce {}, @, funcWrap(func))
+    reduce: ar (func) -> new Reduce {}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
