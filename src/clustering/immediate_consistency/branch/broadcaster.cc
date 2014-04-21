@@ -445,7 +445,7 @@ void broadcaster_t::spawn_write(const write_t &write,
 void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
-    *dispatchee_out = NULL;
+    dispatchee_t *selected_dispatchee = NULL;
 
     if (readable_dispatchees.empty()) {
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
@@ -459,16 +459,17 @@ void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mu
         const bool is_local =
             d->get_peer() == mailbox_manager->get_connectivity_service()->get_me();
         if (is_local) {
-            *dispatchee_out = d;
+            selected_dispatchee = d;
             break;
         }
     }
-    if (dispatchee_out == NULL) {
+    if (selected_dispatchee == NULL) {
         /* If we don't have a local one, just pick the first one we can get */
-        *dispatchee_out = readable_dispatchees.head();
+        selected_dispatchee = readable_dispatchees.head();
     }
 
-    *lock_out = dispatchees[*dispatchee_out];
+    *dispatchee_out = selected_dispatchee;
+    *lock_out = dispatchees[selected_dispatchee];
 }
 
 void broadcaster_t::get_all_readable_dispatchees(
