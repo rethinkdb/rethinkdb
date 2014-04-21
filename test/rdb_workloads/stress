@@ -74,20 +74,39 @@ def spawn_clients(options, start_event, exit_event, stat_queue):
 
     return client_procs
 
-def stop_clients(exit_event, child_procs, num_clients, timeout):
+def stop_clients(exit_event, child_procs_list, num_clients, timeout):
     exit_event.set()
     end_time = time.time()
+    child_procs = set(child_procs_list)
 
     # Check that all processes have exited, allow some time to shut down
     kill_time = end_time + timeout
 
+    failed_procs = []
+
     for proc in child_procs:
-        while time.time() < kill_time and proc.is_alive():
-            time.sleep(0.1)
-        if proc.is_alive():
-            proc.terminate()
-    if time.time() > kill_time:
-        print "Timed out waiting for processes to shut down"
+        proc.terminate()
+
+    while True:
+        for proc in child_procs.copy():
+            if not proc.is_alive():
+                if proc.exitcode not in [0, -15]:
+                    failed_procs.append(proc)
+                child_procs.remove(proc)
+        if child_procs:
+            break
+        if time.time() < kill_time:
+            failed_procs += child_procs
+            break
+        time.sleep(0.1)
+
+    if failed_procs:
+        reasons = ["process " + str(child_procs_list.index(proc) + 1) +
+                   (" failed with code " + str(proc.exitcode)
+                    if proc.exitcode else " timed out")
+                   for proc in failed_procs]
+        print "Sub-processes failed: " + ", ".join(reasons)
+        sys.exit(1)
 
     return end_time
 
@@ -145,40 +164,44 @@ class QueryThrottler:
     def __init__(self, options, stat_queue):
         self.workload = options["workload"]
         self.stat_queue = stat_queue
-        self.secs_per_op = float(options["clients"]) / options["ops_per_sec"]
+        if options["ops_per_sec"] != 0:
+            self.secs_per_op = float(options["clients"]) / options["ops_per_sec"]
+        else:
+            self.secs_per_op = 0
 
         # Time at which to send the next query
         self.next_query_time = None
 
     def send_query(self, conn):
-        if self.next_query_time is None:
-            # Desync from other clients by waiting a random amount of time less than one op's duration
-            time.sleep(random.random() * self.secs_per_op)
-            self.next_query_time = time.time()
+        if self.secs_per_op != 0:
+            if self.next_query_time is None:
+                # Desync from other clients by waiting a random amount of time less than one op's duration
+                time.sleep(random.random() * self.secs_per_op)
+                self.next_query_time = time.time()
 
-        # Sync up with our schedule
-        now = time.time()
-        time_overdue = now - self.next_query_time
+            # Sync up with our schedule
+            now = time.time()
+            time_overdue = now - self.next_query_time
 
-        if time_overdue > 10 * self.secs_per_op:
-            # Don't allow us to get more than 10 ops behind or we'll overload if/when the system recovers
-            self.next_query_time = now - (10 * self.secs_per_op)
-        elif time_overdue >= 0.0:
-            self.next_query_time += self.secs_per_op
-        else:
-            self.next_query_time += self.secs_per_op
-            time.sleep(-time_overdue)
+            if time_overdue > 10 * self.secs_per_op:
+                # Don't allow us to get more than 10 ops behind or we'll overload if/when the system recovers
+                self.next_query_time = now - (10 * self.secs_per_op)
+            elif time_overdue >= 0.0:
+                self.next_query_time += self.secs_per_op
+            else:
+                self.next_query_time += self.secs_per_op
+                time.sleep(-time_overdue)
 
         start_time = time.time()
         result = { "timestamp": start_time }
         try:
             result.update(self.workload.run(conn))
         except (r.RqlError, r.RqlDriverError) as ex:
-            result["errors"] = [ ex.message ]
+            result["errors"] = result.get('errors', []) + [ ex.message ]
         except (IOError, OSError) as ex:
             if ex.errno != errno.EINTR:
                 raise
-            result["errors"] = [ "Interrupted system call" ]
+            result["errors"] = result.get('errors', []) + [ "Interrupted system call" ]
         result["latency"] = time.time() - start_time
 
         self.stat_queue.put(result)
@@ -189,6 +212,7 @@ def stress_controller(options):
     start_event = multiprocessing.Event()
     exit_event = multiprocessing.Event()
     child_procs = [ ]
+    op_count = options["op_count"]
 
     # Register interrupt, now that we're spawning client processes
     parent_pid = os.getpid()
@@ -220,16 +244,25 @@ def stress_controller(options):
                 stats["count"] += 1
                 stats["latency"] += stat["latency"]
                 for error in stat.get("errors", [ ]):
-                    print "  - %s" % error
+                    if not options["ignore_errors"]:
+                        print "  - %s" % error
                     stats["errors"][error] = stats["errors"].get(error, 0) + 1
+
+                if op_count != 0 and stats["count"] >= op_count:
+                    exit_event.set()
+
             else:
+                if options["duration"] != 0:
+                    if time.time() - start_time > options["duration"]:
+                        exit_event.set()
                 time.sleep(0.1)
 
     except:
         traceback.print_exc()
+        sys.exit(1)
     finally:
         # Allow some time for operations to complete
-        stop_timeout = max(2.0, 3.0 / options["ops_per_sec"])
+        stop_timeout = max(2.0, 3.0 / (options["ops_per_sec"] or 1))
         end_time = stop_clients(exit_event, child_procs, options["clients"], stop_timeout)
 
         while not stat_queue.empty():
@@ -244,19 +277,25 @@ def stress_controller(options):
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--seed", dest="seed", metavar="FLOAT", default=None, type="float")
-    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
+    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default='test.stress', type="string")
     parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=100, type="float")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=0, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
     parser.add_option("--workload", "-w", dest="workload", metavar="WORKLOAD", default=None, type="string")
     parser.add_option("--host", dest="hosts", metavar="HOST:PORT", action="append", default=[], type="string")
     parser.add_option("--quiet", dest="quiet", action="store_true", default=False)
+    parser.add_option("--duration", dest="duration", type="int", default=0)
+    parser.add_option("--op-count", dest="op_count", type="int", default=0)
+    parser.add_option("--ignore-errors", dest="ignore_errors", action="store_true", default=False)
     (parsed_options, args) = parser.parse_args()
     options = { "clients": parsed_options.clients,
                 "ops_per_sec": parsed_options.ops_per_sec,
                 "ops_per_conn": parsed_options.ops_per_conn,
                 "quiet": parsed_options.quiet,
-                "hosts": [ ] }
+                "hosts": [ ],
+                "duration": parsed_options.duration,
+                "op_count": parsed_options.op_count,
+                "ignore_errors": parsed_options.ignore_errors}
 
     if len(args) != 0:
         print "no positional arguments supported"
@@ -267,8 +306,7 @@ if __name__ == "__main__":
         (host, port) = host_port.split(":")
         options["hosts"].append((host, int(port)))
     if len(options["hosts"]) == 0:
-        print "no host specified"
-        exit(1)
+        options["hosts"].append(("localhost", 28015))
 
     if parsed_options.workload is None:
         print "no workload specified"

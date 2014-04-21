@@ -363,17 +363,12 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 #endif
 
     resize_current_pages_to_id(block_id);
-    if (current_pages_[block_id] == NULL) {
-        current_pages_[block_id] =
-            new current_page_t(block_id,
-                               max_block_size_,
-                               std::move(buf),
-                               this);
-    } else {
-        current_pages_[block_id]->make_non_deleted(max_block_size_,
-                                                   std::move(buf),
-                                                   current_page_help_t(block_id, this));
-    }
+    guarantee(current_pages_[block_id] == NULL);
+    current_pages_[block_id] =
+        new current_page_t(block_id,
+                           max_block_size_,
+                           std::move(buf),
+                           this);
 
     return current_pages_[block_id];
 }
@@ -493,10 +488,18 @@ current_page_acq_t::~current_page_acq_t() {
             guarantee(access_ == access_t::write);
             the_txn_->remove_acquirer(this);
         }
-        if (current_page_ != NULL) {
+        rassert(current_page_ != NULL);
+        if (in_a_list()) {
+            // Note that the current_page_acq can be in the current_page_ acquirer
+            // list and still be snapshotted. However it will not have a
+            // snapshotted_page_.
+            rassert(!snapshotted_page_.has());
             current_page_->remove_acquirer(this);
         }
-        snapshotted_page_.reset_page_ptr(page_cache_);
+        if (declared_snapshotted_) {
+            snapshotted_page_.reset_page_ptr(page_cache_);
+            current_page_->remove_keepalive();
+        }
         page_cache_->consider_evicting_current_page(block_id_);
     }
 }
@@ -517,6 +520,7 @@ void current_page_acq_t::declare_snapshotted() {
     if (!declared_snapshotted_) {
         declared_snapshotted_ = true;
         rassert(current_page_ != NULL);
+        current_page_->add_keepalive();
         current_page_->pulse_pulsables(this);
     }
 }
@@ -628,7 +632,8 @@ void current_page_acq_t::pulse_write_available() {
 current_page_t::current_page_t(block_id_t block_id)
     : block_id_(block_id),
       is_deleted_(false),
-      last_write_acquirer_(NULL) {
+      last_write_acquirer_(NULL),
+      num_keepalives_(0) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -642,7 +647,8 @@ current_page_t::current_page_t(block_id_t block_id,
     : block_id_(block_id),
       page_(new page_t(block_id, block_size, std::move(buf), page_cache)),
       is_deleted_(false),
-      last_write_acquirer_(NULL) {
+      last_write_acquirer_(NULL),
+      num_keepalives_(0) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -656,7 +662,8 @@ current_page_t::current_page_t(block_id_t block_id,
     : block_id_(block_id),
       page_(new page_t(block_id, std::move(buf), token, page_cache)),
       is_deleted_(false),
-      last_write_acquirer_(NULL) {
+      last_write_acquirer_(NULL),
+      num_keepalives_(0) {
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(last_write_acquirer_version_.debug_value() == 0);
@@ -669,10 +676,12 @@ current_page_t::~current_page_t() {
 
     // An imperfect sanity check.
     rassert(!page_.has());
+    rassert(num_keepalives_ == 0);
 }
 
 void current_page_t::reset(page_cache_t *page_cache) {
     rassert(acquirers_.empty());
+    rassert(num_keepalives_ == 0);
 
     // KSI: Does last_write_acquirer_ even need to be NULL?  Could we not just inform
     // it of our impending destruction?
@@ -684,6 +693,11 @@ void current_page_t::reset(page_cache_t *page_cache) {
 
     // For the sake of the ~current_page_t assertion.
     last_write_acquirer_version_ = block_version_t();
+
+    if (is_deleted_ && block_id_ != NULL_BLOCK_ID) {
+        page_cache->free_list()->release_block_id(block_id_);
+        block_id_ = NULL_BLOCK_ID;
+    }
 }
 
 bool current_page_t::should_be_evicted() const {
@@ -699,6 +713,11 @@ bool current_page_t::should_be_evicted() const {
         return false;
     }
 
+    // A reason: The current_page_t is kept alive for another reason.  (Important.)
+    if (num_keepalives_ > 0) {
+        return false;
+    }
+
     // A reason: Its page_t isn't evicted, or has other snapshotters or waiters
     // anyway.  (Getting this wrong can only hurt performance.  We want to evict
     // current_page_t's with unloaded, otherwise unused page_t's.)
@@ -709,18 +728,10 @@ bool current_page_t::should_be_evicted() const {
             return false;
         }
         // is_loading is false and is_not_loaded is true -- it must be disk-backed.
-        rassert(page->is_disk_backed());
+        rassert(page->is_disk_backed() || page->is_deferred_loading());
     }
 
     return true;
-}
-
-void current_page_t::make_non_deleted(block_size_t block_size,
-                                      scoped_malloc_t<ser_buffer_t> buf,
-                                      current_page_help_t help) {
-    rassert(is_deleted_);
-    is_deleted_ = false;
-    page_.init(new page_t(help.block_id, block_size, std::move(buf), help.page_cache));
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -764,10 +775,6 @@ void current_page_t::remove_acquirer(current_page_acq_t *acq) {
     acquirers_.remove(acq);
     if (next != NULL) {
         pulse_pulsables(next);
-    } else {
-        if (is_deleted_) {
-            acq->page_cache()->free_list()->release_block_id(acq->block_id());
-        }
     }
 }
 
@@ -818,12 +825,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 cur->snapshotted_page_.init(
                         current_recency,
                         the_page_for_read_or_deleted(help));
-                cur->current_page_ = NULL;
                 acquirers_.remove(cur);
-                // KSI: Dedup this with remove_acquirer.
-                if (is_deleted_) {
-                    cur->page_cache()->free_list()->release_block_id(acq->block_id());
-                }
             }
             cur = next;
         } else {
@@ -832,26 +834,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
             // write-acquirer might modify the value.
             if (acquirers_.prev(cur) == NULL) {
                 // (It gets exclusive write access if there's no preceding reader.)
-                if (is_deleted_) {
-                    // Also, if the block is in an "is_deleted_" state right now, we
-                    // need to put it into a non-deleted state.  We initialize the
-                    // page to a full-sized page.
-                    // TODO: We should consider whether we really want this behavior.
-
-                    scoped_malloc_t<ser_buffer_t> buf
-                        = serializer_t::allocate_buffer(help.page_cache->max_block_size());
-
-#if !defined(NDEBUG) || defined(VALGRIND)
-                    // KSI: This should actually _not_ exist -- we are ignoring
-                    // legitimate errors where we write uninitialized data to disk.
-                    memset(buf.get()->cache_data, 0xCD,
-                           help.page_cache->max_block_size().value());
-#endif
-
-                    make_non_deleted(help.page_cache->max_block_size(),
-                                     std::move(buf),
-                                     help);
-                }
+                guarantee(!is_deleted_);
                 repli_timestamp_t superceding
                     = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
                 help.page_cache->set_recency_for_block_id(help.block_id, superceding);
@@ -860,6 +843,15 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
             break;
         }
     }
+}
+
+void current_page_t::add_keepalive() {
+    ++num_keepalives_;
+}
+
+void current_page_t::remove_keepalive() {
+    guarantee(num_keepalives_ > 0);
+    --num_keepalives_;
 }
 
 void current_page_t::mark_deleted(current_page_help_t help) {
@@ -1010,8 +1002,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         acq->declare_readonly();
         acq->declare_snapshotted();
 
-        // Since we snapshotted the lead acquirer, it gets detached.
-        rassert(acq->current_page_ == NULL);
         // Steal the snapshotted page_ptr_t.
         timestamped_page_ptr_t local = std::move(acq->snapshotted_page_);
         // It's okay to have two dirtied_page_t's or touched_page_t's for the
