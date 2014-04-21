@@ -65,8 +65,6 @@ def generate_async_message_template(nargs):
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("arg#")
     print "        }"
-
-
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
     print "    };"
