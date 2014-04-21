@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include <functional>
-
 #include "arch/timing.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/mailbox/mailbox.hpp"
@@ -17,10 +15,6 @@ You can send to a `dummy_mailbox_t` with `send()`. */
 
 struct dummy_mailbox_t {
 private:
-    void cb(int i) {
-        inbox.insert(i);
-    }
-
     std::set<int> inbox;
 
     class read_impl_t;
@@ -38,20 +32,14 @@ private:
 
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        explicit read_impl_t(dummy_mailbox_t *_parent) :
-            local_cb(std::bind(&dummy_mailbox_t::cb, parent, ph::_1)),
-            parent(_parent) { }
+        explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
         void read(read_stream_t *stream) {
             int i;
             archive_result_t res = deserialize(stream, &i);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->cb(i);
-        }
-        const void *get_local_delivery_cb() {
-            return &local_cb;
+            parent->inbox.insert(i);
         }
     private:
-        std::function<void(int)> local_cb;
         dummy_mailbox_t *parent;
     };
 

@@ -88,9 +88,6 @@ class mailbox_t< void() > {
         void read(UNUSED read_stream_t *stream) {
             parent->fun();
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void() > *parent;
     };
@@ -121,10 +118,8 @@ private:
 inline
 void send(mailbox_manager_t *src,
            mailbox_t< void() >::address_t dest) {
-    if (!src->try_local_delivery(dest.addr)) {
-        mailbox_t< void() >::write_impl_t writer;
-        send(src, dest.addr, &writer);
-    }
+    mailbox_t< void() >::write_impl_t writer;
+    send(src, dest.addr, &writer);
 }
 
 
@@ -150,9 +145,6 @@ class mailbox_t< void(arg0_t) > {
             archive_result_t res = deserialize(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0);
-        }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
         }
     private:
         mailbox_t< void(arg0_t) > *parent;
@@ -186,10 +178,8 @@ private:
 template<class arg0_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
-    if (!src->try_local_delivery(dest.addr, arg0)) {
-        typename mailbox_t< void(arg0_t) >::write_impl_t writer(arg0);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t) >::write_impl_t writer(arg0);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -220,9 +210,6 @@ class mailbox_t< void(arg0_t, arg1_t) > {
             res = deserialize(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1);
-        }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
         }
     private:
         mailbox_t< void(arg0_t, arg1_t) > *parent;
@@ -256,10 +243,8 @@ private:
 template<class arg0_t, class arg1_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1)) {
-        typename mailbox_t< void(arg0_t, arg1_t) >::write_impl_t writer(arg0, arg1);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t) >::write_impl_t writer(arg0, arg1);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -296,9 +281,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
     };
@@ -331,10 +313,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write_impl_t writer(arg0, arg1, arg2);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write_impl_t writer(arg0, arg1, arg2);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -376,9 +356,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
     };
@@ -411,10 +388,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write_impl_t writer(arg0, arg1, arg2, arg3);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write_impl_t writer(arg0, arg1, arg2, arg3);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -461,9 +436,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
     };
@@ -496,10 +468,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -551,9 +521,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
     };
@@ -586,10 +553,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -646,9 +611,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
     };
@@ -681,10 +643,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -746,9 +706,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
     };
@@ -781,10 +738,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -851,9 +806,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
     };
@@ -886,10 +838,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -961,9 +911,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
     };
@@ -996,10 +943,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -1076,9 +1021,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
     };
@@ -1111,10 +1053,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -1196,9 +1136,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
     };
@@ -1231,10 +1168,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -1321,9 +1256,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
     };
@@ -1356,10 +1288,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+    send(src, dest.addr, &writer);
 }
 
 
@@ -1451,9 +1381,6 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
         }
-        const void *get_local_delivery_cb() {
-            return &parent->fun;
-        }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;
     };
@@ -1486,10 +1413,8 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 void send(mailbox_manager_t *src,
           typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
-    if (!src->try_local_delivery(dest.addr, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)) {
-        typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
-        send(src, dest.addr, &writer);
-    }
+    typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write_impl_t writer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+    send(src, dest.addr, &writer);
 }
 
 #endif // RPC_MAILBOX_TYPED_HPP_
