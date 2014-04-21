@@ -15,27 +15,3 @@ tests:
 
     - cd: r.json("[1,2")
       ot: err("RqlRuntimeError", 'Failed to parse "[1,2" as JSON.', [0])
-
-    # Test automatic json conversion
-    - py: r.exprJSON(1)
-      js: r.exprJSON(1)
-      ot: 1
-
-    - py: r.exprJSON({"a":"string"})
-      js: r.exprJSON({"a":"string"})
-      ot: ({'a':"string"})
-
-    - py: r.exprJSON({"a":r.expr(1) + 1})
-      js: r.exprJSON({"a":r(1).add(1)})
-      ot: ({'a':2})
-
-    - py: r.exprJSON({'a':{'b':3}, 'b':'str', 'c':r.expr('str2')})
-      js: r.exprJSON({'a':{'b':3}, 'b':'str', 'c':r.expr('str2')})
-      ot: ({'a':{'b':3}, 'b':'str', 'c':'str2'})
-
-    - py: r.exprJSON({1:True})
-      js: []
-      rb: r.expr({1 => true})
-      ot:
-        rb: err('RqlDriverError', 'Object keys must be strings or symbols.  (Got object `1` of class `Fixnum`.)', [])
-        py: err('RqlDriverError', 'Object keys must be strings.', [])

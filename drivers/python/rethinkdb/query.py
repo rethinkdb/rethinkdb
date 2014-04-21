@@ -20,7 +20,7 @@ def do(arg0, *args):
 
 row = ImplicitVar()
 
-def table(tbl_name, use_outdated=False):
+def table(tbl_name, use_outdated=()):
     return Table(tbl_name, use_outdated=use_outdated)
 
 def db(db_name):

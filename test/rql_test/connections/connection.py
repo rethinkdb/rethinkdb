@@ -93,7 +93,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
 
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, auth_key="hunter2")
 
 class BlackHoleRequestHandler(SocketServer.BaseRequestHandler):
@@ -136,20 +136,20 @@ class TestAuthConnection(unittest.TestCase):
 
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port)
 
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="hunter3")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key="hunter22")
 
     def test_connect_long_auth(self):
@@ -157,11 +157,11 @@ class TestAuthConnection(unittest.TestCase):
         not_long_key = str("k") * 2048
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: client provided an authorization key that is too long\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
             r.connect, port=self.port, auth_key=long_key)
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
@@ -360,9 +360,9 @@ class TestBatching(TestWithConnection):
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
-            self.assertEqual(len(cursor.responses[0].response), batch_size)
+            self.assertEqual(len(cursor.responses[0].data), batch_size)
         else:
-            self.assertLess(len(cursor.responses[0].response), batch_size)
+            self.assertLess(len(cursor.responses[0].data), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):

@@ -98,6 +98,8 @@ private:
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
     void pulse_pulsables(current_page_acq_t *acq);
+    void add_keepalive();
+    void remove_keepalive();
 
     page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
@@ -125,13 +127,10 @@ private:
 
     bool is_deleted() const { return is_deleted_; }
 
-    void make_non_deleted(buf_ptr buf,
-                          current_page_help_t page_cache);
-
     // KSI: We could get rid of this variable if
     // page_txn_t::pages_write_acquired_last_ noted each page's block_id_t.  Other
     // space reductions are more important.
-    const block_id_t block_id_;
+    block_id_t block_id_;
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.
@@ -154,6 +153,11 @@ private:
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
+
+    // Avoids eviction if > 0. This is used by snapshotted current_page_acq_t's
+    // that have a snapshotted version of this block. If the current_page_t
+    // would be evicted that would mess with the block version.
+    intptr_t num_keepalives_;
 
     DISABLE_COPYING(current_page_t);
 };

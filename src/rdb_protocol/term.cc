@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
+#include "containers/cow_ptr.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -8,11 +11,8 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
-
 #include "rdb_protocol/terms/terms.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
 #include "thread_local.hpp"
-#include "protob/protob.hpp"
 
 namespace ql {
 
@@ -171,8 +171,8 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
 void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
-         Response *res,
-         stream_cache2_t *stream_cache2) {
+         stream_cache_t *stream_cache,
+         Response *res) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -212,7 +212,7 @@ void run(protob_t<Query> q,
         }
 
         try {
-            rcheck_toplevel(!stream_cache2->contains(token),
+            rcheck_toplevel(!stream_cache->contains(token),
                             base_exc_t::GENERIC,
                             strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
@@ -253,8 +253,8 @@ void run(protob_t<Query> q,
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache2->insert(token, use_json, std::move(env), seq);
-                    bool b = stream_cache2->serve(token, res, interruptor);
+                    stream_cache->insert(token, use_json, std::move(env), seq);
+                    bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -274,7 +274,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache2->serve(token, res, interruptor);
+            bool b = stream_cache->serve(token, res, interruptor);
             rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
@@ -284,9 +284,9 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_STOP: {
         try {
-            rcheck_toplevel(stream_cache2->contains(token), base_exc_t::GENERIC,
+            rcheck_toplevel(stream_cache->contains(token), base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
-            stream_cache2->erase(token);
+            stream_cache->erase(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
@@ -295,7 +295,7 @@ void run(protob_t<Query> q,
     } break;
     case Query_QueryType_NOREPLY_WAIT: {
         try {
-            rcheck_toplevel(!stream_cache2->contains(token),
+            rcheck_toplevel(!stream_cache->contains(token),
                             base_exc_t::GENERIC,
                             strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
