@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "serializer/buf_ptr.hpp"
 #include "serializer/semantic_checking_internal.hpp"
 
 template<class inner_serializer_t>
@@ -195,7 +196,7 @@ bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
 }
 
 template<class inner_serializer_t>
-block_size_t semantic_checking_serializer_t<inner_serializer_t>::
+max_block_size_t semantic_checking_serializer_t<inner_serializer_t>::
 max_block_size() const { return inner_serializer.max_block_size(); }
 
 template<class inner_serializer_t>

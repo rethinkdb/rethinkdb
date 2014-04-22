@@ -45,7 +45,7 @@ struct log_serializer_on_disk_static_config_t {
     uint64_t extent_index(int64_t offset) const { return offset / extent_size_; }
 
     // Minimize calls to these.
-    block_size_t block_size() const { return block_size_t::unsafe_make(block_size_); }
+    max_block_size_t max_block_size() const { return max_block_size_t::unsafe_make(block_size_); }
     uint64_t extent_size() const { return extent_size_; }
 };
 

@@ -708,8 +708,8 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-block_size_t log_serializer_t::max_block_size() const {
-    return static_config.block_size();
+max_block_size_t log_serializer_t::max_block_size() const {
+    return static_config.max_block_size();
 }
 
 bool log_serializer_t::coop_lock_and_check() {

@@ -113,7 +113,7 @@ public:
                  iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
-    virtual block_size_t max_block_size() const = 0;
+    virtual max_block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;
