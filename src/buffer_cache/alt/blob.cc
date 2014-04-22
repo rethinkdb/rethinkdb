@@ -582,7 +582,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
             void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
-                                 smaller_size, sub_bigger_size,
+                                 sub_smaller_size, sub_bigger_size,
                                  helper);
         }
 
