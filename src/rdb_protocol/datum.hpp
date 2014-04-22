@@ -70,9 +70,9 @@ public:
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
     // TODO: Eventually get rid of the std::string constructor (in favor of
-    //   wire_string_t *)
+    //   scoped_ptr_t<wire_string_t>)
     explicit datum_t(std::string &&str);
-    explicit datum_t(wire_string_t *str);
+    explicit datum_t(scoped_ptr_t<wire_string_t> str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);

@@ -990,12 +990,9 @@ private:
 
             condX2.wait();
 
-            // Thanks to predictable free list behavior, we expect this new block to have
-            // the same block id as the block id b[8], which was deleted by run_txn11
-            // just before condX2 got pulsed.
             auto acq8 = make_scoped<current_test_acq_t>(txn12.get(),
                                                         alt_create_t::create);
-            ASSERT_EQ(b[8], acq8->block_id());
+            b[8] = acq8->block_id();
             acq7.reset();
 
             make_empty(acq8);

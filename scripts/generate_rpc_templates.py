@@ -65,11 +65,6 @@ def generate_async_message_template(nargs):
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("arg#")
     print "        }"
-    print "        const void *get_local_delivery_cb() {"
-    print "            return &parent->fun;"
-    print "        }"
-
-
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
     print "    };"
@@ -110,13 +105,11 @@ def generate_async_message_template(nargs):
     print "          %s %s::address_t dest%s) {" % (("typename" if nargs > 0 else ""),
                                                     mailbox_t_str,
                                                     cpre("const arg#_t &arg#"))
-    print "    if (!src->try_local_delivery(dest.addr%s)) {" % cpre("arg#")
     if nargs == 0:
-        print "        %s::write_impl_t writer;" % mailbox_t_str
+        print "    %s::write_impl_t writer;" % mailbox_t_str
     else:
-        print "        typename %s::write_impl_t writer(%s);" % (mailbox_t_str, csep("arg#"))
-    print "        send(src, dest.addr, &writer);"
-    print "    }"
+        print "    typename %s::write_impl_t writer(%s);" % (mailbox_t_str, csep("arg#"))
+    print "    send(src, dest.addr, &writer);"
     print "}"
     print
 
