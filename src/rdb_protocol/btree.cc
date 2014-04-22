@@ -22,7 +22,7 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
 
-rdb_value_sizer_t::rdb_value_sizer_t(block_size_t bs) : block_size_(bs) { }
+rdb_value_sizer_t::rdb_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
 const rdb_value_t *rdb_value_sizer_t::as_rdb(const void *p) {
     return reinterpret_cast<const rdb_value_t *>(p);
@@ -49,9 +49,9 @@ block_magic_t rdb_value_sizer_t::btree_leaf_magic() const {
     return leaf_magic();
 }
 
-block_size_t rdb_value_sizer_t::block_size() const { return block_size_; }
+max_block_size_t rdb_value_sizer_t::block_size() const { return block_size_; }
 
-bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
+bool btree_value_fits(max_block_size_t bs, int data_length, const rdb_value_t *value) {
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
@@ -100,7 +100,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     guarantee(kv_location->value.has());
 
     // As noted above, we can be sure that buf is valid.
-    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
+    const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
@@ -131,7 +131,7 @@ void kv_location_set(keyvalue_location_t *kv_location,
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
-    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
+    const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
         serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
@@ -730,7 +730,7 @@ void rdb_erase_small_range(key_tester_t *tester,
             // Get the full data
             mod_report.info.deleted.first = get_data(value, parent);
             // Get the inline value
-            block_size_t block_size = parent.cache()->get_block_size();
+            max_block_size_t block_size = parent.cache()->max_block_size();
             mod_report.info.deleted.second.assign(value->value_ref(),
                 value->value_ref() + value->inline_size(block_size));
 
@@ -1323,7 +1323,7 @@ public:
             const store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-            const block_size_t block_size = leaf_node_buf->cache()->get_block_size();
+            const max_block_size_t block_size = leaf_node_buf->cache()->max_block_size();
             mod_report.info.added
                 = std::make_pair(
                     get_data(rdb_value, buf_parent_t(leaf_node_buf)),

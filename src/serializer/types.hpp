@@ -94,6 +94,7 @@ public:
     using block_size_t::ser_value;
 
     static max_block_size_t unsafe_make(uint32_t ser_bs) {
+        CT_ASSERT(sizeof(block_size_t) == sizeof(max_block_size_t));
         return max_block_size_t(ser_bs);
     }
 

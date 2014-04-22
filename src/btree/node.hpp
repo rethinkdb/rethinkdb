@@ -22,7 +22,7 @@ public:
     virtual bool fits(const void *value, int length_available) const = 0;
     virtual int max_possible_size() const = 0;
     virtual block_magic_t btree_leaf_magic() const = 0;
-    virtual block_size_t block_size() const = 0;
+    virtual max_block_size_t block_size() const = 0;
 
 private:
     DISABLE_COPYING(value_sizer_t);
