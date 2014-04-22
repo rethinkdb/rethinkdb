@@ -86,28 +86,28 @@ void evicter_t::notify_bytes_loading(int64_t in_memory_buf_change) {
 void evicter_t::add_deferred_loaded(page_t *page) {
     assert_thread();
     guarantee(initialized_);
-    evicted_.add(page, page->hypothetical_memory_usage());
+    evicted_.add(page, page->hypothetical_memory_usage(page_cache_));
 }
 
 void evicter_t::catch_up_deferred_load(page_t *page) {
     assert_thread();
     guarantee(initialized_);
     rassert(unevictable_.has_page(page));
-    notify_bytes_loading(page->hypothetical_memory_usage());
+    notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
     assert_thread();
     guarantee(initialized_);
-    unevictable_.add(page, page->hypothetical_memory_usage());
+    unevictable_.add(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
-    notify_bytes_loading(page->hypothetical_memory_usage());
+    notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
 void evicter_t::reloading_page(page_t *page) {
     assert_thread();
     guarantee(initialized_);
-    notify_bytes_loading(page->hypothetical_memory_usage());
+    notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -125,28 +125,28 @@ bool evicter_t::page_is_in_evicted_bag(page_t *page) const {
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     guarantee(initialized_);
-    evictable_unbacked_.add(page, page->hypothetical_memory_usage());
+    evictable_unbacked_.add(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
-    notify_bytes_loading(page->hypothetical_memory_usage());
+    notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     guarantee(initialized_);
-    evictable_disk_backed_.add(page, page->hypothetical_memory_usage());
+    evictable_disk_backed_.add(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
-    notify_bytes_loading(page->hypothetical_memory_usage());
+    notify_bytes_loading(page->hypothetical_memory_usage(page_cache_));
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
     assert_thread();
     guarantee(initialized_);
     rassert(unevictable_.has_page(page));
-    unevictable_.remove(page, page->hypothetical_memory_usage());
+    unevictable_.remove(page, page->hypothetical_memory_usage(page_cache_));
     eviction_bag_t *new_bag = correct_eviction_category(page);
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
-    new_bag->add(page, page->hypothetical_memory_usage());
+    new_bag->add(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
 }
 
@@ -155,9 +155,9 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
     assert_thread();
     guarantee(initialized_);
     rassert(current_bag->has_page(page));
-    current_bag->remove(page, page->hypothetical_memory_usage());
+    current_bag->remove(page, page->hypothetical_memory_usage(page_cache_));
     eviction_bag_t *new_bag = correct_eviction_category(page);
-    new_bag->add(page, page->hypothetical_memory_usage());
+    new_bag->add(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
 }
 
@@ -166,7 +166,7 @@ eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
     guarantee(initialized_);
     if (page->is_loading() || page->has_waiters()) {
         return &unevictable_;
-    } else if (page->is_not_loaded()) {
+    } else if (!page->is_loaded()) {
         return &evicted_;
     } else if (page->is_disk_backed()) {
         return &evictable_disk_backed_;
@@ -179,9 +179,9 @@ void evicter_t::remove_page(page_t *page) {
     assert_thread();
     guarantee(initialized_);
     eviction_bag_t *bag = correct_eviction_category(page);
-    bag->remove(page, page->hypothetical_memory_usage());
+    bag->remove(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
-    notify_bytes_loading(-static_cast<int64_t>(page->hypothetical_memory_usage()));
+    notify_bytes_loading(-static_cast<int64_t>(page->hypothetical_memory_usage(page_cache_)));
 }
 
 uint64_t evicter_t::in_memory_size() const {
@@ -202,11 +202,27 @@ void evicter_t::evict_if_necessary() {
 
     page_t *page;
     while (in_memory_size() > memory_limit_
-           && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
-        evicted_.add(page, page->hypothetical_memory_usage());
-        page->evict_self();
+           && evictable_disk_backed_.remove_oldish(&page, access_time_counter_,
+                                                   page_cache_)) {
+        evicted_.add(page, page->hypothetical_memory_usage(page_cache_));
+        page->evict_self(page_cache_);
         page_cache_->consider_evicting_current_page(page->block_id());
     }
+}
+
+usage_adjuster_t::usage_adjuster_t(page_cache_t *page_cache, page_t *page)
+    : page_cache_(page_cache),
+      page_(page),
+      eviction_bag_(page_cache->evicter().correct_eviction_category(page)),
+      original_usage_(page->hypothetical_memory_usage(page_cache)) { }
+
+usage_adjuster_t::~usage_adjuster_t() {
+    int64_t old64 = original_usage_;
+    int64_t new64 = page_->hypothetical_memory_usage(page_cache_);
+    int64_t adjustment = new64 - old64;
+    eviction_bag_->change_size(adjustment);
+    page_cache_->evicter().evict_if_necessary();
+    page_cache_->evicter().notify_bytes_loading(adjustment);
 }
 
 }  // namespace alt

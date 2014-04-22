@@ -76,11 +76,8 @@ class current_page_help_t;
 
 class current_page_t {
 public:
-    current_page_t(block_id_t block_id,
-                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
-                   page_cache_t *page_cache);
-    current_page_t(block_id_t block_id,
-                   scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
+    current_page_t(block_id_t block_id, buf_ptr_t buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
@@ -271,7 +268,7 @@ public:
                          page_cache_t *cache);
 
     void offer_read_ahead_buf(block_id_t block_id,
-                              scoped_malloc_t<ser_buffer_t> *buf,
+                              buf_ptr_t *buf,
                               const counted_t<standard_block_token_t> &token);
 
     void destroy_self();
@@ -350,6 +347,11 @@ public:
 
     void have_read_ahead_cb_destroyed();
 
+    evicter_t &evicter() { return evicter_; }
+
+    auto_drainer_t::lock_t drainer_lock() { return drainer_->lock(); }
+    serializer_t *serializer() { return serializer_; }
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
@@ -360,9 +362,6 @@ private:
 
 
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
-
-    friend class page_t;
-    evicter_t &evicter() { return evicter_; }
 
     // KSI: Maybe just have txn_t hold a single list of block_change_t objects.
     struct block_change_t {
@@ -414,7 +413,6 @@ private:
     }
 
     friend class current_page_t;
-    serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
 
     void resize_current_pages_to_id(block_id_t block_id);
