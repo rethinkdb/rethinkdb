@@ -437,8 +437,10 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
             void *leaf_buf;
             if (mode == access_t::read) {
                 buf_read_t *buf_read = new buf_read_t(buf);
-                // We can't use an assertion here because immediately after creation,
-                // the blob has size max_value_size.
+                // We can't assert a specific block size here (without undesirably
+                // intricate logic), because immediately after creation, the blob has
+                // size max_value_size, but after we've written to the block, its
+                // size could be shrunken.
                 uint32_t block_size;
                 leaf_buf = const_cast<void *>(buf_read->get_data_read(&block_size));
                 acq_group_out->add_buf(buf, buf_read);

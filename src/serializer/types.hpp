@@ -247,10 +247,7 @@ inline
 counted_t<ls_block_token_pointee_t>
 to_standard_block_token(UNUSED block_id_t block_id,
                         counted_t<ls_block_token_pointee_t> tok) {
-    // Move to a local variable so that the return value move-optimization can take
-    // place.
-    counted_t<ls_block_token_pointee_t> local_tok = std::move(tok);
-    return local_tok;
+    return tok;
 }
 
 #endif
