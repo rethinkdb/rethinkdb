@@ -545,8 +545,8 @@ void blob_t::write_from_string(const std::string &val,
 namespace blob {
 
 struct traverse_helper_t {
-    virtual void preprocess(buf_parent_t parent, int levels,
-                            buf_lock_t *lock_out, block_id_t *block_id) = 0;
+    virtual buf_lock_t preprocess(buf_parent_t parent, int levels,
+                                  block_id_t *block_id) = 0;
     virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
@@ -577,8 +577,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
         }
 
     } else {
-        buf_lock_t lock;
-        helper->preprocess(parent, levels, &lock, &block_ids[index]);
+        buf_lock_t lock = helper->preprocess(parent, levels, &block_ids[index]);
 
         if (levels > 1) {
             buf_write_t write(&lock);
@@ -636,18 +635,20 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
 }
 
 struct allocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(buf_parent_t parent, int levels,
-                    buf_lock_t *lock_out, block_id_t *block_id) {
+    buf_lock_t preprocess(buf_parent_t parent, int levels,
+                          block_id_t *block_id) {
         buf_lock_t temp_lock(parent, alt_create_t::create);
-        lock_out->swap(temp_lock);
-        *block_id = lock_out->block_id();
-        buf_write_t lock_write(lock_out);
-        void *b = lock_write.get_data_write();
-        if (levels == 1) {
-            *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
-        } else {
-            *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
+        *block_id = temp_lock.block_id();
+        {
+            buf_write_t lock_write(&temp_lock);
+            void *b = lock_write.get_data_write();
+            if (levels == 1) {
+                *static_cast<block_magic_t *>(b) = blob::leaf_node_magic;
+            } else {
+                *static_cast<block_magic_t *>(b) = blob::internal_node_magic;
+            }
         }
+        return temp_lock;
     }
     void postprocess(UNUSED buf_lock_t *lock) { }
 };
@@ -660,10 +661,9 @@ bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(buf_parent_t parent, UNUSED int levels,
-                    buf_lock_t *lock_out, block_id_t *block_id) {
-        buf_lock_t tmp(parent, *block_id, access_t::write);
-        lock_out->swap(tmp);
+    buf_lock_t preprocess(buf_parent_t parent, UNUSED int levels,
+                          block_id_t *block_id) {
+        return buf_lock_t(parent, *block_id, access_t::write);
     }
 
     void postprocess(buf_lock_t *lock) {
