@@ -67,7 +67,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                                             account));
 }
 
-page_t::page_t(block_id_t block_id, buf_ptr buf,
+page_t::page_t(block_id_t block_id, buf_ptr_t buf,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
@@ -79,7 +79,7 @@ page_t::page_t(block_id_t block_id, buf_ptr buf,
 }
 
 page_t::page_t(block_id_t block_id,
-               buf_ptr buf,
+               buf_ptr_t buf,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
     : block_id_(block_id),
@@ -145,7 +145,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
             {
                 usage_adjuster_t adjuster(page_cache, page);
-                page->serbuf_ = buf_ptr::alloc_copy(copyee->serbuf_);
+                page->serbuf_ = buf_ptr_t::alloc_copy(copyee->serbuf_);
                 page->loader_ = NULL;
             }
 
@@ -165,7 +165,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                        counted_t<standard_block_token_t> block_token,
-                                       buf_ptr buf) {
+                                       buf_ptr_t buf) {
     rassert(!page->block_token_.has());
     rassert(!page->serbuf_.has());
     rassert(block_token.has());
@@ -248,7 +248,7 @@ void page_t::catch_up_with_deferred_load(
     // Before blocking, tell the evicter to put us in the right category.
     page_cache->evicter().catch_up_deferred_load(page);
 
-    buf_ptr buf;
+    buf_ptr_t buf;
     {
         serializer_t *const serializer = page_cache->serializer();
 
@@ -333,7 +333,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
 
     auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
-    buf_ptr buf;
+    buf_ptr_t buf;
     counted_t<standard_block_token_t> block_token;
 
     {
@@ -432,7 +432,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
     counted_t<standard_block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
-    buf_ptr buf;
+    buf_ptr_t buf;
     {
         serializer_t *const serializer = page_cache->serializer();
 
@@ -478,7 +478,7 @@ uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
     if (serbuf_.has()) {
         return serbuf_.aligned_block_size();
     } else if (block_token_.has()) {
-        return buf_ptr::compute_aligned_block_size(block_token_->block_size());
+        return buf_ptr_t::compute_aligned_block_size(block_token_->block_size());
     } else {
         // If the block isn't loaded and we don't know, we respond conservatively,
         // to stay on the proper side of the memory limit.

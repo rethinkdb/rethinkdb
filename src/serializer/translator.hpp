@@ -135,13 +135,13 @@ public:
                                                             block_id_t step);
     bool get_delete_bit(block_id_t id);
 
-    buf_ptr block_read(const counted_t<standard_block_token_t> &token,
+    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
                        file_account_t *io_account);
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
     void offer_read_ahead_buf(block_id_t block_id,
-                              buf_ptr *buf,
+                              buf_ptr_t *buf,
                               const counted_t<standard_block_token_t> &token);
 };
 

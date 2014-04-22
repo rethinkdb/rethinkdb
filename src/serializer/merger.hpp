@@ -49,7 +49,7 @@ public:
     }
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
-    buf_ptr block_read(const counted_t<standard_block_token_t> &token,
+    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
                        file_account_t *io_account) {
         return inner->block_read(token, io_account);
     }

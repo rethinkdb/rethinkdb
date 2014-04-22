@@ -642,7 +642,7 @@ public:
                 }
 
                 const block_size_t block_size = block_size_t::unsafe_make(info.ser_block_size);
-                buf_ptr buf = buf_ptr::alloc_uninitialized(block_size);
+                buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(block_size);
                 memcpy(buf.ser_buffer(), current_buf, info.ser_block_size);
                 buf.fill_padding_zero();
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
@@ -677,11 +677,11 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
+buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
                                    file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
-        buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
+        buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
         dbm_read_ahead_t::perform_read_ahead(this, off_in, block_size.ser_value(),
                                              ret.ser_buffer(), io_account);
         // We have to fill the padding with zero, since only the first part of the
@@ -690,7 +690,7 @@ buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
         return ret;
     } else {
         if (divides(DEVICE_BLOCK_SIZE, off_in)) {
-            buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
+            buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
             co_read(dbfile, off_in, ret.aligned_block_size(),
                     ret.ser_buffer(), io_account);
             // Blocks are written DEVICE_BLOCK_SIZE-aligned -- so the block on disk
@@ -706,7 +706,7 @@ buf_ptr data_block_manager_t::read(int64_t off_in, block_size_t block_size,
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
-            buf_ptr ret = buf_ptr::alloc_uninitialized(block_size);
+            buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
             memcpy(ret.ser_buffer(), buf.get() + (off_in - floor_off_in),
                    block_size.ser_value());
             // We have to fill the padding to zero, in this case.

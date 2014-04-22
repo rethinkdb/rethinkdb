@@ -112,7 +112,7 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 }
 
 template<class inner_serializer_t>
-buf_ptr semantic_checking_serializer_t<inner_serializer_t>::
+buf_ptr_t semantic_checking_serializer_t<inner_serializer_t>::
 block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token,
            file_account_t *io_account) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
@@ -120,7 +120,7 @@ block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token,
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
 #endif
-    buf_ptr ret = inner_serializer.block_read(token->inner_token, io_account);
+    buf_ptr_t ret = inner_serializer.block_read(token->inner_token, io_account);
     read_check_state(token, ret.cache_data());
     return ret;
 }

@@ -28,7 +28,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
                               &file_opener,
                               &get_global_perfmon_collection());
 
-    buf_ptr buf = buf_ptr::alloc_zeroed(ser.max_block_size());
+    buf_ptr_t buf = buf_ptr_t::alloc_zeroed(ser.max_block_size());
 
     scoped_ptr_t<file_account_t> account(ser.make_io_account(1));
 

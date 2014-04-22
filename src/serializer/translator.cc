@@ -29,7 +29,7 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr &buf,
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -59,7 +59,7 @@ void prep_serializer(
 
     /* Write the initial configuration block */
     const block_size_t config_block_size = ser->max_block_size();
-    buf_ptr buf = buf_ptr::alloc_zeroed(config_block_size);
+    buf_ptr_t buf = buf_ptr_t::alloc_zeroed(config_block_size);
 
     multiplexer_config_block_t *c
         = static_cast<multiplexer_config_block_t *>(buf.cache_data());
@@ -105,7 +105,7 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    buf_ptr buf
+    buf_ptr_t buf
         = ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id),
                           DEFAULT_DISK_ACCOUNT);
     guarantee(buf.block_size() == ser->max_block_size());
@@ -159,7 +159,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        buf_ptr buf = underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), DEFAULT_DISK_ACCOUNT);
+        buf_ptr_t buf = underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), DEFAULT_DISK_ACCOUNT);
         guarantee(buf.block_size() == underlying[0]->max_block_size());
 
         multiplexer_config_block_t *c
@@ -249,7 +249,7 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-buf_ptr translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
+buf_ptr_t translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
                                             file_account_t *io_account) {
     return inner->block_read(token, io_account);
 }
@@ -298,7 +298,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
-        buf_ptr *buf,
+        buf_ptr_t *buf,
         const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
@@ -317,7 +317,7 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     // Okay, we take ownership of the buf, it's ours (even if read_ahead_callback is
     // NULL).
-    buf_ptr local_buf = std::move(*buf);
+    buf_ptr_t local_buf = std::move(*buf);
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);

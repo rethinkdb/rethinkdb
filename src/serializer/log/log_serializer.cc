@@ -410,7 +410,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-buf_ptr log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
+buf_ptr_t log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
                                      file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
@@ -419,7 +419,7 @@ buf_ptr log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    buf_ptr ret = data_block_manager->read(token->offset_, token->block_size(),
+    buf_ptr_t ret = data_block_manager->read(token->offset_, token->block_size(),
                                            io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
@@ -915,11 +915,11 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
-        buf_ptr &&buf,
+        buf_ptr_t &&buf,
         const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
-    buf_ptr local_buf = std::move(buf);
+    buf_ptr_t local_buf = std::move(buf);
     for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
         read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
                                                       &local_buf,

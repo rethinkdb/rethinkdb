@@ -12,17 +12,17 @@
 // Note: This wastes 4 bytes of space on a 64-bit system.  (Arguably, it wastes more
 // than that given that block sizes could be 16 bits and pointers are really 48
 // bits.)  If you want to optimize page_t, you could store a 32-bit type in here.
-class buf_ptr {
+class buf_ptr_t {
 public:
-    buf_ptr() : block_size_(block_size_t::undefined()) { }
-    buf_ptr(buf_ptr &&movee)
+    buf_ptr_t() : block_size_(block_size_t::undefined()) { }
+    buf_ptr_t(buf_ptr_t &&movee)
         : block_size_(movee.block_size_),
           ser_buffer_(std::move(movee.ser_buffer_)) {
         movee.block_size_ = block_size_t::undefined();
         movee.ser_buffer_.reset();
     }
 
-    buf_ptr(block_size_t size,
+    buf_ptr_t(block_size_t size,
             scoped_malloc_t<ser_buffer_t> ser_buffer)
         : block_size_(size),
           ser_buffer_(std::move(ser_buffer)) {
@@ -30,8 +30,8 @@ public:
         guarantee(ser_buffer_.has());
     }
 
-    buf_ptr &operator=(buf_ptr &&movee) {
-        buf_ptr tmp(std::move(movee));
+    buf_ptr_t &operator=(buf_ptr_t &&movee) {
+        buf_ptr_t tmp(std::move(movee));
         std::swap(block_size_, tmp.block_size_);
         std::swap(ser_buffer_, tmp.ser_buffer_);
         return *this;
@@ -43,12 +43,12 @@ public:
     }
 
     // Allocates a block, all of whose bytes are zeroed.
-    static buf_ptr alloc_zeroed(block_size_t size);
+    static buf_ptr_t alloc_zeroed(block_size_t size);
 
     // Allocates a block, none of whose bytes are zeroed.  Be sure to zero its bytes!
-    static buf_ptr alloc_uninitialized(block_size_t size);
+    static buf_ptr_t alloc_uninitialized(block_size_t size);
 
-    static buf_ptr alloc_copy(const buf_ptr &copyee);
+    static buf_ptr_t alloc_copy(const buf_ptr_t &copyee);
 
     block_size_t block_size() const {
         guarantee(ser_buffer_.has());
@@ -69,10 +69,10 @@ public:
     // rounded up to the next multiple of DEVICE_BLOCK_SIZE.)
     uint32_t aligned_block_size() const {
         guarantee(ser_buffer_.has());
-        return buf_ptr::compute_aligned_block_size(block_size_);
+        return buf_ptr_t::compute_aligned_block_size(block_size_);
     }
 
-    // Returns what aligned_block_size() would return for a buf_ptr that has the
+    // Returns what aligned_block_size() would return for a buf_ptr_t that has the
     // given block size.
     static uint32_t compute_aligned_block_size(block_size_t block_size) {
         return ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE);
@@ -80,7 +80,7 @@ public:
 
     void release(block_size_t *block_size_out,
                  scoped_malloc_t<ser_buffer_t> *ser_buffer_out) {
-        buf_ptr tmp(std::move(*this));
+        buf_ptr_t tmp(std::move(*this));
         *block_size_out = tmp.block_size_;
         *ser_buffer_out = std::move(tmp.ser_buffer_);
     }
@@ -111,10 +111,10 @@ private:
     // DEVICE_BLOCK_SIZE), and the extra space is left zero-padded, so that we can
     // more efficiently write the buffer to disk.
     block_size_t block_size_;
-    // The buffer, or empty if this buf_ptr is empty.
+    // The buffer, or empty if this buf_ptr_t is empty.
     scoped_malloc_t<ser_buffer_t> ser_buffer_;
 
-    DISABLE_COPYING(buf_ptr);
+    DISABLE_COPYING(buf_ptr_t);
 };
 
 

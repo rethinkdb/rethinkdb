@@ -53,7 +53,7 @@ public:
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    buf_ptr block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token,
+    buf_ptr_t block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token,
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,

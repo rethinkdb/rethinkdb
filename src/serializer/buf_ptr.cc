@@ -2,17 +2,17 @@
 
 #include "math.hpp"
 
-buf_ptr buf_ptr::alloc_uninitialized(block_size_t size) {
+buf_ptr_t buf_ptr_t::alloc_uninitialized(block_size_t size) {
     guarantee(size.ser_value() != 0);
     const size_t count = compute_aligned_block_size(size);
-    buf_ptr ret;
+    buf_ptr_t ret;
     ret.block_size_ = size;
     ret.ser_buffer_.init(malloc_aligned(count, DEVICE_BLOCK_SIZE));
     return ret;
 }
 
-buf_ptr buf_ptr::alloc_zeroed(block_size_t size) {
-    buf_ptr ret = alloc_uninitialized(size);
+buf_ptr_t buf_ptr_t::alloc_zeroed(block_size_t size) {
+    buf_ptr_t ret = alloc_uninitialized(size);
     char *buf = reinterpret_cast<char *>(ret.ser_buffer());
     memset(buf, 0, compute_aligned_block_size(size));
     return ret;
@@ -30,15 +30,15 @@ scoped_malloc_t<ser_buffer_t> help_allocate_copy(const ser_buffer_t *copyee,
     return scoped_malloc_t<ser_buffer_t>(buf);
 }
 
-buf_ptr buf_ptr::alloc_copy(const buf_ptr &copyee) {
+buf_ptr_t buf_ptr_t::alloc_copy(const buf_ptr_t &copyee) {
     guarantee(copyee.has());
-    return buf_ptr(copyee.block_size(),
+    return buf_ptr_t(copyee.block_size(),
                    help_allocate_copy(copyee.ser_buffer_.get(),
                                       copyee.block_size().ser_value(),
                                       copyee.aligned_block_size()));
 }
 
-void buf_ptr::resize_fill_zero(block_size_t new_size) {
+void buf_ptr_t::resize_fill_zero(block_size_t new_size) {
     guarantee(new_size.ser_value() != 0);
     guarantee(ser_buffer_.has());
 
@@ -65,7 +65,7 @@ void buf_ptr::resize_fill_zero(block_size_t new_size) {
     block_size_ = new_size;
 }
 
-void buf_ptr::fill_padding_zero() const {
+void buf_ptr_t::fill_padding_zero() const {
     guarantee(has());
     char *p = reinterpret_cast<char *>(ser_buffer());
     uint32_t ser_block_size = block_size().ser_value();
@@ -74,7 +74,7 @@ void buf_ptr::fill_padding_zero() const {
 }
 
 #ifndef NDEBUG
-void buf_ptr::assert_padding_zero() const {
+void buf_ptr_t::assert_padding_zero() const {
     guarantee(has());
     char *p = reinterpret_cast<char *>(ser_buffer());
     uint32_t ser_block_size = block_size().ser_value();

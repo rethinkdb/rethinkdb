@@ -29,8 +29,8 @@ public:
     // Loads the block for the given block id.
     page_t(block_id_t block_id, page_cache_t *page_cache, cache_account_t *account);
 
-    page_t(block_id_t block_id, buf_ptr buf, page_cache_t *page_cache);
-    page_t(block_id_t block_id, buf_ptr buf,
+    page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
+    page_t(block_id_t block_id, buf_ptr_t buf,
            const counted_t<standard_block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
@@ -93,7 +93,7 @@ private:
 
     static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                           counted_t<standard_block_token_t> block_token,
-                                          buf_ptr buf);
+                                          buf_ptr_t buf);
 
     static void catch_up_with_deferred_load(
             deferred_page_loader_t *deferred_loader,
@@ -126,7 +126,7 @@ private:
     // One of loader_, buf_, or block_token_ is non-null.
     page_loader_t *loader_;
 
-    buf_ptr serbuf_;
+    buf_ptr_t serbuf_;
     counted_t<standard_block_token_t> block_token_;
 
     uint64_t access_time_;

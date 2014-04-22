@@ -54,16 +54,16 @@ page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
-        buf_ptr *buf,
+        buf_ptr_t *buf,
         const counted_t<standard_block_token_t> &token) {
     assert_thread();
-    buf_ptr local_buf = std::move(*buf);
+    buf_ptr_t local_buf = std::move(*buf);
 
     block_size_t block_size = block_size_t::undefined();
     scoped_malloc_t<ser_buffer_t> ptr;
     local_buf.release(&block_size, &ptr);
 
-    // We're going to reconstruct the buf_ptr on the other side of this do_on_thread
+    // We're going to reconstruct the buf_ptr_t on the other side of this do_on_thread
     // call, so we'd better make sure the block size is right.
     guarantee(block_size.value() == token->block_size().value());
 
@@ -144,7 +144,7 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
     // (not to mention that we've already got the page in memory, so there is no
     // useful work to be done).
 
-    buf_ptr buf(token->block_size(), std::move(ptr));
+    buf_ptr_t buf(token->block_size(), std::move(ptr));
     current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
@@ -363,7 +363,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
 
-    buf_ptr buf = buf_ptr::alloc_uninitialized(max_block_size_);
+    buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(max_block_size_);
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
@@ -646,7 +646,7 @@ current_page_t::current_page_t(block_id_t block_id)
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               buf_ptr buf,
+                               buf_ptr_t buf,
                                page_cache_t *page_cache)
     : block_id_(block_id),
       page_(new page_t(block_id, std::move(buf), page_cache)),
@@ -660,7 +660,7 @@ current_page_t::current_page_t(block_id_t block_id,
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               buf_ptr buf,
+                               buf_ptr_t buf,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),
