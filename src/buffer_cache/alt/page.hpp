@@ -122,8 +122,8 @@ private:
     // it gets evicted.
     const block_id_t block_id_;
 
-    // KSI: Explain this more.
-    // One of loader_, buf_, or block_token_ is non-null.
+    // One of loader_, buf_, or block_token_ is non-null.  (Either the page is in
+    // memory, or there is always a way to get the page into memory.)
     page_loader_t *loader_;
 
     buf_ptr_t buf_;
