@@ -2,11 +2,12 @@
 #ifndef RPC_CONNECTIVITY_MESSAGES_HPP_
 #define RPC_CONNECTIVITY_MESSAGES_HPP_
 
+#include <vector>
+
 class connectivity_service_t;
 class peer_id_t;
+class read_stream_t;
 class write_stream_t;
-
-#include "containers/archive/string_stream.hpp"
 
 namespace boost {
 template <class> class function;
@@ -64,6 +65,9 @@ protected:
 class message_handler_t {
 public:
     virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
+
+    // Default implementation. Overwrite to optimize for the local case.
+    virtual void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
 protected:
     virtual ~message_handler_t() { }
 };

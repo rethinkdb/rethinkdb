@@ -948,8 +948,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        vector_read_stream_t read_stream(std::move(buffer_data));
-        current_run->message_handler->on_message(me, &read_stream);
+        current_run->message_handler->on_local_message(me, std::move(buffer_data));
     } else {
         guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());
