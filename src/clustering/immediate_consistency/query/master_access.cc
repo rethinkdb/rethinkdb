@@ -53,8 +53,7 @@ void master_access_t::read(
     mailbox_t<void(boost::variant<read_response_t, std::string>)>
         result_or_failure_mailbox(
             mailbox_manager,
-            std::bind(&promise_t<boost::variant<read_response_t,
-                                                  std::string> >::pulse,
+            std::bind(&promise_t<boost::variant<read_response_t, std::string> >::pulse,
                         &result_or_failure, ph::_1));
 
     wait_interruptible(token, interruptor);

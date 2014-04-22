@@ -2,7 +2,6 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
-#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -145,11 +144,14 @@ private:
                                       mailbox_write_callback_t *callback);
 
     void on_message(peer_id_t source_peer, read_stream_t *stream);
+    void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
 
+    enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
     void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
-                                int64_t stream_data_offset);
+                                int64_t stream_data_offset,
+                                force_yield_t force_yield);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */
