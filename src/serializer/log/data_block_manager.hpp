@@ -14,10 +14,9 @@
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
 
+class buf_ptr_t;
 class log_serializer_t;
-
 class data_block_manager_t;
-
 class gc_entry_t;
 
 struct gc_entry_less_t {
@@ -64,8 +63,8 @@ public:
     static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
 
-    void read(int64_t off_in, uint32_t ser_block_size,
-              void *buf_out, file_account_t *io_account);
+    buf_ptr_t read(int64_t off_in, block_size_t block_size,
+                 file_account_t *io_account);
 
     /* exposed gc api */
     /* mark a buffer as garbage */

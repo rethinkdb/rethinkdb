@@ -54,10 +54,18 @@ page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
-        scoped_malloc_t<ser_buffer_t> *buf_ptr,
+        buf_ptr_t *buf,
         const counted_t<standard_block_token_t> &token) {
     assert_thread();
-    scoped_malloc_t<ser_buffer_t> buf = std::move(*buf_ptr);
+    buf_ptr_t local_buf = std::move(*buf);
+
+    block_size_t block_size = block_size_t::undefined();
+    scoped_malloc_t<ser_buffer_t> ptr;
+    local_buf.release(&block_size, &ptr);
+
+    // We're going to reconstruct the buf_ptr_t on the other side of this do_on_thread
+    // call, so we'd better make sure the block size is right.
+    guarantee(block_size.value() == token->block_size().value());
 
     // Notably, this code relies on do_on_thread to preserve callback order (which it
     // does do).
@@ -65,7 +73,7 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
                  std::bind(&page_cache_t::add_read_ahead_buf,
                            page_cache_,
                            block_id,
-                           buf.release(),
+                           ptr.release(),
                            token));
 }
 
@@ -111,11 +119,11 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
 }
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
-                                      ser_buffer_t *buf_ptr,
+                                      ser_buffer_t *ser_buffer,
                                       const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
-    scoped_malloc_t<ser_buffer_t> buf(buf_ptr);
+    scoped_malloc_t<ser_buffer_t> ptr(ser_buffer);
 
     // We MUST stop if read_ahead_cb_ is NULL because that means current_page_t's
     // could start being destroyed.
@@ -136,6 +144,7 @@ void page_cache_t::add_read_ahead_buf(block_id_t block_id,
     // (not to mention that we've already got the page in memory, so there is no
     // useful work to be done).
 
+    buf_ptr_t buf(token->block_size(), std::move(ptr));
     current_pages_[block_id] = new current_page_t(block_id, std::move(buf), token, this);
 }
 
@@ -354,21 +363,17 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
 
-    scoped_malloc_t<ser_buffer_t> buf = serializer_t::allocate_buffer(max_block_size_);
+    buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(max_block_size_);
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // KSI: This should actually _not_ exist -- we are ignoring legitimate errors
     // where we write uninitialized data to disk.
-    memset(buf.get()->cache_data, 0xCD, max_block_size_.value());
+    memset(buf.cache_data(), 0xCD, max_block_size_.value());
 #endif
 
     resize_current_pages_to_id(block_id);
     guarantee(current_pages_[block_id] == NULL);
-    current_pages_[block_id] =
-        new current_page_t(block_id,
-                           max_block_size_,
-                           std::move(buf),
-                           this);
+    current_pages_[block_id] = new current_page_t(block_id, std::move(buf), this);
 
     return current_pages_[block_id];
 }
@@ -641,11 +646,10 @@ current_page_t::current_page_t(block_id_t block_id)
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf,
+                               buf_ptr_t buf,
                                page_cache_t *page_cache)
     : block_id_(block_id),
-      page_(new page_t(block_id, block_size, std::move(buf), page_cache)),
+      page_(new page_t(block_id, std::move(buf), page_cache)),
       is_deleted_(false),
       last_write_acquirer_(NULL),
       num_keepalives_(0) {
@@ -656,7 +660,7 @@ current_page_t::current_page_t(block_id_t block_id,
 }
 
 current_page_t::current_page_t(block_id_t block_id,
-                               scoped_malloc_t<ser_buffer_t> buf,
+                               buf_ptr_t buf,
                                const counted_t<standard_block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),
@@ -723,11 +727,11 @@ bool current_page_t::should_be_evicted() const {
     // current_page_t's with unloaded, otherwise unused page_t's.)
     if (page_.has()) {
         page_t *page = page_.get_page_for_read();
-        if (page->is_loading() || page->has_waiters() || !page->is_not_loaded()
+        if (page->is_loading() || page->has_waiters() || page->is_loaded()
             || page->page_ptr_count() != 1) {
             return false;
         }
-        // is_loading is false and is_not_loaded is true -- it must be disk-backed.
+        // is_loading is false and is_loaded is false -- it must be disk-backed.
         rassert(page->is_disk_backed() || page->is_deferred_loading());
     }
 
@@ -1207,11 +1211,11 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                     // snapshotted_dirtied_pages_ a bit sooner than we do.
 
                     page_t *page = it->second.page;
-                    if (page->block_token_.has()) {
+                    if (page->block_token().has()) {
                         // It's already on disk, we're not going to flush it.
                         blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                         false,
-                                                                        page->block_token_,
+                                                                        page->block_token(),
                                                                         it->second.tstamp,
                                                                         page));
                     } else {
@@ -1221,14 +1225,14 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         // acquired the buf, and the only way to get rid of the buf
                         // is for it to be evicted, in which case the block token
                         // would be non-empty.
-                        rassert(page->loader_ == NULL);
-                        rassert(page->buf_.has());
+
+                        rassert(page->is_loaded());
 
                         // KSI: Is there a page_acq_t for this buf we're writing?  Is it
                         // possible that we might be trying to do an unbacked eviction
                         // for this page right now?  (No, we don't do that yet.)
-                        write_infos.push_back(buf_write_info_t(page->buf_.get(),
-                                                               block_size_t::unsafe_make(page->ser_buf_size_),
+                        write_infos.push_back(buf_write_info_t(page->get_loaded_ser_buffer(),
+                                                               page->get_page_buf_size(),
                                                                it->first));
                         ancillary_infos.push_back(ancillary_info_t(it->second.tstamp,
                                                                    page));
@@ -1321,10 +1325,10 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
             // KSI: This assertion would fail if we try to force-evict the page
             // simultaneously as this write.
-            rassert(!it->page->block_token_.has());
+            rassert(!it->page->block_token().has());
             eviction_bag_t *old_bag
                 = page_cache->evicter().correct_eviction_category(it->page);
-            it->page->block_token_ = std::move(it->block_token);
+            it->page->init_block_token(std::move(it->block_token), page_cache);
             page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
         }
     }
