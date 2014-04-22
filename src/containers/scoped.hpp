@@ -268,13 +268,13 @@ public:
         return ptr_ != NULL;
     }
 
+private:
     void swap(scoped_malloc_t &other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
     }
 
-private:
     T *ptr_;
 
     DISABLE_COPYING(scoped_malloc_t);
