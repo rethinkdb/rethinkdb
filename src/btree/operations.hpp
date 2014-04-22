@@ -105,19 +105,8 @@ public:
     template <class T>
     T *value_as() { return static_cast<T *>(value.get()); }
 
-    // RSI: Do we use this?
-    void swap(keyvalue_location_t &other) {
-        std::swap(superblock, other.superblock);
-        std::swap(stat_block, other.stat_block);
-        last_buf.swap(other.last_buf);
-        buf.swap(other.buf);
-        std::swap(there_originally_was_value, other.there_originally_was_value);
-        std::swap(stats, other.stats);
-        value.swap(other.value);
-    }
-
-
-    //Stat block when modifications are made using this class the statblock is update
+    // Stat block when modifications are made using this class the statblock is
+    // update.
     block_id_t stat_block;
 
     btree_stats_t *stats;
