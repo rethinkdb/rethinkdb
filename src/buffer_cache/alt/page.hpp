@@ -62,7 +62,7 @@ public:
         return loader_ != NULL && !page_t::loader_is_loading(loader_);
     }
     bool has_waiters() const { return !waiters_.empty(); }
-    bool is_loaded() const { return serbuf_.has(); }
+    bool is_loaded() const { return buf_.has(); }
     bool is_disk_backed() const { return block_token_.has(); }
 
     void evict_self(page_cache_t *page_cache);
@@ -126,7 +126,7 @@ private:
     // One of loader_, buf_, or block_token_ is non-null.
     page_loader_t *loader_;
 
-    buf_ptr_t serbuf_;
+    buf_ptr_t buf_;
     counted_t<standard_block_token_t> block_token_;
 
     uint64_t access_time_;
