@@ -53,7 +53,8 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
 
 
 int small_size(const char *ref, int maxreflen) {
-    // small value sizes range from 0 to maxreflen - big_size_offset(maxreflen), and maxreflen indicates large value.
+    // small value sizes range from 0 to maxreflen - big_size_offset(maxreflen), and
+    // maxreflen indicates large value.
     if (maxreflen <= 255) {
         return *reinterpret_cast<const uint8_t *>(ref);
     } else {
