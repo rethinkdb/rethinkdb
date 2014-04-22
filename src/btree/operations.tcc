@@ -142,11 +142,11 @@ void find_keyvalue_location_for_write(
 
 template <class Value>
 void find_keyvalue_location_for_read(
+        typename sizer_trait_t<Value>::sizer_type *sizer,
         superblock_t *superblock, const btree_key_t *key,
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
-    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -168,7 +168,7 @@ void find_keyvalue_location_for_read(
 #ifndef NDEBUG
     {
         buf_read_t read(&buf);
-        node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+        node::validate(sizer, static_cast<const node_t *>(read.get_data_read()));
     }
 #endif  // NDEBUG
 
@@ -196,19 +196,19 @@ void find_keyvalue_location_for_read(
 #ifndef NDEBUG
         {
             buf_read_t read(&buf);
-            node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+            node::validate(sizer, static_cast<const node_t *>(read.get_data_read()));
         }
 #endif  // NDEBUG
     }
 
     // Got down to the leaf, now probe it.
-    scoped_malloc_t<Value> value(sizer.max_possible_size());
+    scoped_malloc_t<Value> value(sizer->max_possible_size());
     bool value_found;
     {
         buf_read_t read(&buf);
         const leaf_node_t *leaf
             = static_cast<const leaf_node_t *>(read.get_data_read());
-        value_found = leaf::lookup(&sizer, leaf, key, value.get());
+        value_found = leaf::lookup(sizer, leaf, key, value.get());
     }
     if (value_found) {
         keyvalue_location_out->buf = std::move(buf);

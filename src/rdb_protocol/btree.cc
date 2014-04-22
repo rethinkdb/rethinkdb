@@ -77,7 +77,9 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
              superblock_t *superblock, point_read_response_t *response,
              profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_read(superblock, store_key.btree_key(), &kv_location,
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_read(&sizer, superblock,
+                                    store_key.btree_key(), &kv_location,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
