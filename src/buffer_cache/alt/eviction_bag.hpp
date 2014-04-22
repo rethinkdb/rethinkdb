@@ -8,19 +8,16 @@
 namespace alt {
 
 class page_t;
+class page_cache_t;
 
 class eviction_bag_t {
 public:
     eviction_bag_t();
     ~eviction_bag_t();
 
-    // For adding a page that doesn't have a size yet -- its size is not yet
-    // accounted for, because its buf isn't loaded yet.
-    void add_without_size(page_t *page);
-
-    // Adds the size for a page that was added with add_without_size, now that it has
-    // been loaded and we know the size.
-    void add_size(uint32_t ser_buf_size);
+    // Adjusts the size, given how much the size has changed of one of the pages in
+    // the bag.
+    void change_size(int64_t adjustment);
 
     // Adds the page with its known size.
     void add(page_t *page, uint32_t ser_buf_size);
@@ -33,7 +30,8 @@ public:
 
     uint64_t size() const { return size_; }
 
-    bool remove_oldish(page_t **page_out, uint64_t access_time_offset);
+    bool remove_oldish(page_t **page_out, uint64_t access_time_offset,
+                       page_cache_t *page_cache);
 
 private:
     backindex_bag_t<page_t *> bag_;

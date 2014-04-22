@@ -5,17 +5,6 @@
 #include "boost_utils.hpp"
 #include "math.hpp"
 
-scoped_malloc_t<ser_buffer_t>
-serializer_t::allocate_buffer(block_size_t block_size) {
-    scoped_malloc_t<ser_buffer_t> buf(
-            malloc_aligned(ceil_aligned(block_size.ser_value(), DEVICE_BLOCK_SIZE),
-                           DEVICE_BLOCK_SIZE));
-
-    return buf;
-}
-
-
-
 void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op) {
     buf->appendf("iwop{id=%" PRIu64 ", token=", write_op.block_id);
     debug_print(buf, write_op.token);
