@@ -587,16 +587,18 @@ void broadcaster_t::single_read(
     }
 
     try {
-        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
         if (reader->local_listener != NULL) {
             // TODO! This is just a copy. Implement a proper interface on listener_t.
+            // Also allow passing in an interruptor.
             *response = reader->local_listener->perform__local_read(read, timestamp,
                                                                     order_token,
                                                                     enforcer_token);
+        } else {
+            wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+            listener_read(mailbox_manager, reader->read_mailbox,
+                          read, response, timestamp, order_token, enforcer_token,
+                          &interruptor2);
         }
-        listener_read(mailbox_manager, reader->read_mailbox,
-                      read, response, timestamp, order_token, enforcer_token,
-                      &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
