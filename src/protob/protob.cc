@@ -5,6 +5,7 @@
 
 #include <set>
 #include <string>
+#include <limits>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -33,6 +34,9 @@ private:
     std::string info;
 };
 
+const uint32_t MAX_QUERY_SIZE = 64 * MEGABYTE;
+const size_t MAX_RESPONSE_SIZE = std::numeric_limits<uint32_t>::max();
+
 class json_protocol_t {
 public:
     static bool parse_query(tcp_conn_t *conn,
@@ -40,16 +44,17 @@ public:
                             query_handler_t *handler,
                             ql::protob_t<Query> *query_out) {
         int64_t token;
-        int32_t size;
+        uint32_t size;
         conn->read(&token, sizeof(token), interruptor);
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size < 0) {
+        if (size > MAX_QUERY_SIZE) {
             Response error_response;
             handler->unparseable_query(token, &error_response,
-                                       strprintf("Negative payload size (%d).", size));
-            send_response(error_response, conn, interruptor);
-            return false;
+                                       strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                                                 size, MAX_QUERY_SIZE));
+            send_response(error_response, handler, conn, interruptor);
+            throw tcp_conn_read_closed_exc_t();
         } else {
             scoped_array_t<char> data(size + 1);
             conn->read(data.data(), size, interruptor);
@@ -59,19 +64,30 @@ public:
                 Response error_response;
                 handler->unparseable_query(token, &error_response,
                                            "Client is buggy (failed to deserialize query).");
-                send_response(error_response, conn, interruptor);
+                send_response(error_response, handler, conn, interruptor);
                 return false;
             }
         }
         return true;
     }
 
-    static void send_response(const Response &response, tcp_conn_t *conn, signal_t *interruptor) {
+    static void send_response(const Response &response,
+                              query_handler_t *handler,
+                              tcp_conn_t *conn,
+                              signal_t *interruptor) {
         int64_t token = response.token();
-        int32_t size;
+        uint32_t size;
         std::string str;
 
         json_shim::write_json_pb(response, &str);
+        if (str.size() > MAX_RESPONSE_SIZE) {
+            Response error_response;
+            handler->unparseable_query(token, &error_response,
+                strprintf("Response size (%zu) is greater than maximum (%zu).",
+                          str.size(), MAX_RESPONSE_SIZE));
+            send_response(error_response, handler, conn, interruptor);
+            return;
+        }
         size = str.size();
 
         conn->write(&token, sizeof(token), interruptor);
@@ -86,14 +102,15 @@ public:
                             signal_t *interruptor,
                             query_handler_t *handler,
                             ql::protob_t<Query> *query_out) {
-        int32_t size;
+        uint32_t size;
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size < 0) {
+        if (size > MAX_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(-1, &error_response,
-                                       strprintf("Negative payload size (%d).", size));
-            send_response(error_response, conn, interruptor);
+            handler->unparseable_query(0, &error_response,
+                                       strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                                                 size, MAX_QUERY_SIZE));
+            send_response(error_response, handler, conn, interruptor);
             return false;
         } else {
             scoped_array_t<char> data(size);
@@ -101,20 +118,32 @@ public:
 
             if (!query_out->get()->ParseFromArray(data.data(), size)) {
                 Response error_response;
-                int64_t token = query_out->get()->has_token() ? query_out->get()->token() : -1;
+                int64_t token = query_out->get()->has_token() ? query_out->get()->token() : 0;
                 handler->unparseable_query(token, &error_response,
                                            "Client is buggy (failed to deserialize query).");
-                send_response(error_response, conn, interruptor);
+                send_response(error_response, handler, conn, interruptor);
                 return false;
             }
         }
         return true;
     }
 
-    static void send_response(const Response &response, tcp_conn_t *conn, signal_t *interruptor) {
+    static void send_response(const Response &response,
+                              query_handler_t *handler,
+                              tcp_conn_t *conn,
+                              signal_t *interruptor) {
         scoped_array_t<char> scoped_array;
         const char *data;
-        int32_t size;
+        uint32_t size;
+
+        if (static_cast<uint64_t>(response.ByteSize()) > MAX_RESPONSE_SIZE) {
+            Response error_response;
+            handler->unparseable_query(response.token(), &error_response,
+                strprintf("Response size (%d) is greater than maximum (%zu).",
+                          response.ByteSize(), MAX_RESPONSE_SIZE));
+            send_response(error_response, handler, conn, interruptor);
+            return;
+        }
         size = response.ByteSize();
         scoped_array.init(size);
         response.SerializeToArray(scoped_array.data(), size);
@@ -282,7 +311,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
         if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
             Response response;
             if (handler->run_query(query, &response, client_ctx)) {
-                protocol_t::send_response(response, conn, client_ctx->interruptor);
+                protocol_t::send_response(response, handler, conn, client_ctx->interruptor);
             }
         }
     }
@@ -360,58 +389,62 @@ void query_server_t::handle(const http_req_t &req,
             result->code = HTTP_OK;
         } else {
             ql::protob_t<Query> query(ql::make_counted_query());
-
-            // Parse the token out from the start of the request
-            const char *data = req.body.data();
-            int64_t token = *reinterpret_cast<const int64_t *>(data);
-            data += sizeof(token);
-
-            // The JSON protocol doesn't actually require the size, so we pass 0 rather than
-            // risk an inaccurate length from the header - the query is null-terminated
-            const bool parse_succeeded =
-                json_shim::parse_json_pb(query.get(), token, data);
-
             Response response;
-            if (!parse_succeeded) {
-                handler->unparseable_query(token, &response,
-                                           "Client is buggy (failed to deserialize query).");
+            int64_t token;
+
+            if (req.body.size() < sizeof(token)) {
+                handler->unparseable_query(0, &response,
+                                           "Client is buggy (request too small).");
             } else {
-                boost::shared_ptr<http_conn_cache_t::http_conn_t> conn =
-                    http_conn_cache.find(conn_id);
-                if (!conn) {
+                // Parse the token out from the start of the request
+                const char *data = req.body.c_str();
+                token = *reinterpret_cast<const uint64_t *>(data);
+                data += sizeof(token);
+
+                const bool parse_succeeded =
+                    json_shim::parse_json_pb(query.get(), token, data);
+
+                if (!parse_succeeded) {
                     handler->unparseable_query(token, &response,
-                                               "This HTTP connection is not open.");
+                                               "Client is buggy (failed to deserialize query).");
                 } else {
-                    // Make sure the connection is not already running a query
-                    conn_acq_t conn_acq;
+                    boost::shared_ptr<http_conn_cache_t::http_conn_t> conn =
+                        http_conn_cache.find(conn_id);
+                    if (!conn) {
+                        handler->unparseable_query(token, &response,
+                                                   "This HTTP connection is not open.");
+                    } else {
+                        // Make sure the connection is not already running a query
+                        conn_acq_t conn_acq;
 
-                    if (!conn_acq.init(conn.get())) {
-                        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                             "Session is already running a query");
-                        return;
+                        if (!conn_acq.init(conn.get())) {
+                            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                                 "Session is already running a query");
+                            return;
+                        }
+
+                        // Check for noreply, which we don't support here, as it causes
+                        // problems with interruption
+                        counted_t<const ql::datum_t> noreply = static_optarg("noreply", query);
+                        bool response_needed = !(noreply.has() &&
+                             noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+                             noreply->as_bool());
+
+                        if (!response_needed) {
+                            *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                                 "Noreply writes unsupported over HTTP\n");
+                            return;
+                        }
+
+                        client_context_t *client_ctx = conn->get_ctx();
+                        interruptor_mixer_t interruptor_mixer(client_ctx, interruptor);
+                        response_needed = handler->run_query(query, &response, client_ctx);
+                        rassert(response_needed);
                     }
-
-                    // Check for noreply, which we don't support here, as it causes
-                    // problems with interruption
-                    counted_t<const ql::datum_t> noreply = static_optarg("noreply", query);
-                    bool response_needed = !(noreply.has() &&
-                         noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
-                         noreply->as_bool());
-
-                    if (!response_needed) {
-                        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
-                                             "Noreply writes unsupported over HTTP\n");
-                        return;
-                    }
-
-                    client_context_t *client_ctx = conn->get_ctx();
-                    interruptor_mixer_t interruptor_mixer(client_ctx, interruptor);
-                    response_needed = handler->run_query(query, &response, client_ctx);
-                    rassert(response_needed);
                 }
             }
 
-            int32_t size;
+            uint32_t size;
             std::string str;
 
             json_shim::write_json_pb(response, &str);
