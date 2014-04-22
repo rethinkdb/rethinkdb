@@ -334,15 +334,18 @@ feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
             if (!detached) {
                 detached = true;
                 client->detach_feed(uuid);
+                each_sub([](sub_t *sub) { sub->abort("Disconnected from peer."); });
             }
-            each_sub([](sub_t *sub) { sub->abort("Disconnected from peer."); });
         }
     );
 }
 
 feed_t::~feed_t() {
     debugf("~feed_t()\n");
+    guarantee(num_subs == 0);
     detached = true;
+    // RSI: Are these sends expensive enough that we should avoid holding up
+    // destruction for them?  Also, can they throw?
     for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
         send(manager, *it, mailbox.get_address());
     }
