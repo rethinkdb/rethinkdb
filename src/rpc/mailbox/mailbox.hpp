@@ -152,6 +152,4 @@ private:
                                 int64_t stream_data_offset);
 };
 
-
-
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */
