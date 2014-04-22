@@ -5,7 +5,7 @@ Released on 2014-04-22
 Bug fix update.
 
 * Fixed a bug that caused `Assertion failed: [page->is_disk_backed()]` errors (#2260)
-* Fixed a bug that caused `Guarantee failed: [block_size == lock_->cache()->max_block_size().value()]` errors (#2237)
+* Fixed a bug that caused incorrect query results and frequent server crashes under low memory conditions (#2237)
 
 --
 
