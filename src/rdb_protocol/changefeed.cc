@@ -16,32 +16,39 @@ namespace changefeed {
 // RSI: Does this actually work?
 // * When is it OK to invalidate a variable (`this`) captured by the function
 //   passed to a mailbox?
-// * Does `send` block?  (Do we need an rwlock?)
 server_t::server_t(mailbox_manager_t *_manager)
     : manager(_manager), stop_mailbox(manager, [this](msg_t::addr_t addr) {
-            // RSI: some asserts.
+            auto_drainer_t::lock_t lock(&drainer);
+            rwlock_in_line_t spot(&clients_lock, access_t::read);
+            spot.read_signal()->wait_lazily_unordered();
             clients[addr]->pulse();
         }) { }
 
 void server_t::add_client(const msg_t::addr_t &addr) {
-    // RSI: Some asserts.
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
     clients[addr].init(new cond_t());
     signal_t *stopped = &*clients[addr];
     // We spawn now so the auto drainer lock is acquired immediately.
     coro_t::spawn_now_dangerously(
         [this, stopped, addr]() {
-            auto_drainer_t::lock_t lock(&drainer);
+            auto_drainer_t::lock_t coro_lock(&drainer);
             disconnect_watcher_t disconnect(manager->get_connectivity_service(),
                                             addr.get_peer());
-            wait_any_t wait_any(&disconnect, stopped, lock.get_drain_signal());
+            wait_any_t wait_any(&disconnect, stopped, coro_lock.get_drain_signal());
             wait_any.wait_lazily_unordered();
+            rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
+            coro_spot.write_signal()->wait_lazily_unordered();
             clients.erase(addr);
         }
     );
 }
 
 void server_t::send_all(const msg_t &msg) {
-    ASSERT_NO_CORO_WAITING;
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
         send(manager, it->first, msg);
     }
@@ -71,7 +78,6 @@ class sub_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
     sub_t(counted_t<feed_t> _feed);
-    sub_t(sub_t &&sub);
     ~sub_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
@@ -83,7 +89,7 @@ private:
     cond_t *cond; // NULL unless we're waiting.
     std::deque<counted_t<const datum_t> > els;
     counted_t<feed_t> feed;
-    scoped_ptr_t<auto_drainer_t> drainer;
+    auto_drainer_t drainer;
     DISABLE_COPYING(sub_t);
 };
 
@@ -131,7 +137,7 @@ void handle_msg(feed_t *feed, const msg_t &msg) {
 class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    stream_t(sub_t &&_sub, Args... args)
+    stream_t(scoped_ptr_t<sub_t> &&_sub, Args... args)
         : eager_datum_stream_t(std::forward<Args...>(args...)),
           sub(std::move(_sub)) { }
     virtual bool is_array() { return false; }
@@ -139,35 +145,34 @@ public:
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         batcher_t batcher = bs.to_batcher();
-        return sub.get_els(&batcher, env->interruptor);
+        return sub->get_els(&batcher, env->interruptor);
     }
 private:
-    sub_t sub;
+    scoped_ptr_t<sub_t> sub;
 };
 
-sub_t::sub_t(counted_t<feed_t> _feed)
-    : cond(NULL), feed(_feed), drainer(new auto_drainer_t()) {
-    auto_drainer_t::lock_t lock(drainer.get());
+sub_t::sub_t(counted_t<feed_t> _feed) : cond(NULL), feed(_feed) {
+    auto_drainer_t::lock_t lock(&drainer);
     feed->add_sub(this);
 }
-sub_t::sub_t(sub_t &&sub) :
-    exc(std::move(sub.exc)),
-    cond(std::move(sub.cond)),
-    els(std::move(sub.els)),
-    feed(std::move(sub.feed)),
-    drainer(std::move(sub.drainer)) { }
 
 sub_t::~sub_t() {
+    debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
     abort("Subscription destroyed (shutting down?).");
-    feed->del_sub(this);
+    if (feed.has()) {
+        debugf("del_sub %p\n", this);
+        // RSI: make sure this runs after `feed->add_sub` is *done*.
+        feed->del_sub(this);
+    }
+    debugf("destroyed %p\n", this);
 }
 
 std::vector<counted_t<const datum_t> >
 sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
-    auto_drainer_t::lock_t lock(drainer.get());
+    auto_drainer_t::lock_t lock(&drainer);
     if (els.size() == 0 && !exc) {
         cond_t wait_for_data;
         cond = &wait_for_data;
@@ -230,10 +235,12 @@ void feed_t::add_sub(sub_t *sub) {
     subs[sub->home_thread().threadnum].insert(sub);
 }
 void feed_t::del_sub(sub_t *sub) {
+    // RSI: unsubscribe
     on_thread_t th(home_thread());
     rwlock_in_line_t spot(&subs_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
-    subs[sub->home_thread().threadnum].insert(sub);
+    size_t erased = subs[sub->home_thread().threadnum].erase(sub);
+    guarantee(erased == 1);
 }
 
 // RSI: does this actually never throw?
@@ -255,6 +262,7 @@ void feed_t::each_sub(const T &t) THROWS_NOTHING {
              guarantee(set->size() != 0);
              on_thread_t th((threadnum_t(sub_threads[i])));
              for (auto it = set->begin(); it != set->end(); ++it) {
+                 debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
                  t(*it);
              }
          });
@@ -321,7 +329,8 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             }
             feed = feed_it->second;
         }
-        return counted_t<datum_stream_t>(new stream_t(sub_t(feed), tbl->backtrace()));
+        return counted_t<datum_stream_t>(
+            new stream_t(make_scoped<sub_t>(feed), tbl->backtrace()));
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",

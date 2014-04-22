@@ -9,6 +9,7 @@
 
 #include <boost/variant.hpp>
 
+#include "concurrency/rwlock.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
@@ -67,6 +68,7 @@ public:
 private:
     mailbox_manager_t *manager;
     std::map<msg_t::addr_t, scoped_ptr_t<cond_t> > clients;
+    rwlock_t clients_lock;
     mailbox_t<void(msg_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;
 };
