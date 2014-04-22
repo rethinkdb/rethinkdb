@@ -5,6 +5,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "arch/io/network.hpp"
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
@@ -24,7 +25,7 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/extproc_pool.hpp"
-#include "rdb_protocol/pb_server.hpp"
+#include "rdb_protocol/query_server.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -285,10 +286,10 @@ bool do_serve(
             }
 
             {
-                query2_server_t rdb_pb2_server(address_ports.local_addresses,
-                                               address_ports.reql_port, &rdb_ctx);
+                rdb_query_server_t rdb_query_server(address_ports.local_addresses,
+                                                    address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
-                       rdb_pb2_server.get_port());
+                       rdb_query_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
@@ -322,7 +323,7 @@ bool do_serve(
                                 directory_read_manager.get_root_view(),
                                 &rdb_namespace_repo,
                                 &admin_tracker,
-                                rdb_pb2_server.get_http_app(),
+                                rdb_query_server.get_http_app(),
                                 machine_id,
                                 web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n", admin_server_ptr->get_port());

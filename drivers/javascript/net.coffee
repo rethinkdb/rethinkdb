@@ -4,7 +4,12 @@ events = require('events')
 util = require('./util')
 err = require('./errors')
 cursors = require('./cursor')
-pb = require('./protobuf')
+
+protodef = require('./proto-def')
+protoVersion = protodef.VersionDummy.Version.V0_3
+protoProtocol = protodef.VersionDummy.Protocol.JSON
+protoQueryType = protodef.Query.QueryType
+protoResponseType = protodef.Response.ResponseType
 
 r = require('./ast')
 
@@ -12,7 +17,6 @@ r = require('./ast')
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-deconstructDatum = util.deconstructDatum
 mkAtom = util.mkAtom
 mkErr = util.mkErr
 
@@ -61,16 +65,18 @@ class Connection extends events.EventEmitter
         # Buffer data, execute return results if need be
         @buffer = Buffer.concat([@buffer, buf])
 
-        while @buffer.length >= 4
-            responseLength = @buffer.readUInt32LE(0)
-            unless @buffer.length >= (4 + responseLength)
+        while @buffer.length >= 12 
+            token = @buffer.readUInt32LE(0) + 0x100000000 * @buffer.readUInt32LE(4)
+
+            responseLength = @buffer.readUInt32LE(8)
+            unless @buffer.length >= (12 + responseLength)
                 break
 
-            responseBuffer = @buffer.slice(4, responseLength + 4)
-            response = pb.ParseResponse(responseBuffer)
-            @_processResponse response
+            responseBuffer = @buffer.slice(12, responseLength + 12)
+            response = JSON.parse(responseBuffer)
 
-            @buffer = @buffer.slice(4 + responseLength)
+            @_processResponse response, token
+            @buffer = @buffer.slice(12 + responseLength)
 
     _delQuery: (token) ->
         # This query is done, delete this cursor
@@ -79,11 +85,8 @@ class Connection extends events.EventEmitter
         if Object.keys(@outstandingCallbacks).length < 1 and not @open
             @cancel()
 
-    _processResponse: (response) ->
-        token = response.token
-        profile = response.profile
-        if profile?
-            profile = deconstructDatum(profile, {})
+    _processResponse: (response, token) ->
+        profile = response.p
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
@@ -94,17 +97,17 @@ class Connection extends events.EventEmitter
 
             else if cb?
                 # Behavior varies considerably based on response type
-                pb.ResponseTypeSwitch(response, {
-                    "COMPILE_ERROR": =>
+                switch response.t
+                    when protoResponseType.COMPILE_ERROR
                         cb mkErr(err.RqlCompileError, response, root)
                         @_delQuery(token)
-                   ,"CLIENT_ERROR": =>
+                    when protoResponseType.CLIENT_ERROR
                         cb mkErr(err.RqlClientError, response, root)
                         @_delQuery(token)
-                   ,"RUNTIME_ERROR": =>
+                    when protoResponseType.RUNTIME_ERROR
                         cb mkErr(err.RqlRuntimeError, response, root)
                         @_delQuery(token)
-                   ,"SUCCESS_ATOM": =>
+                    when protoResponseType.SUCCESS_ATOM
                         response = mkAtom response, opts
                         if Array.isArray response
                             response = cursors.makeIterable response
@@ -112,26 +115,25 @@ class Connection extends events.EventEmitter
                             response = {profile: profile, value: response}
                         cb null, response
                         @_delQuery(token)
-                   ,"SUCCESS_PARTIAL": =>
+                    when protoResponseType.SUCCESS_PARTIAL
                         cursor = new cursors.Cursor @, token, opts, root
                         @outstandingCallbacks[token].cursor = cursor
                         if profile?
                             cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
                             cb null, cursor._addResponse(response)
-                   ,"SUCCESS_SEQUENCE": =>
+                    when protoResponseType.SUCCESS_SEQUENCE
                         cursor = new cursors.Cursor @, token, opts, root
                         @_delQuery(token)
                         if profile?
                             cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
                             cb null, cursor._addResponse(response)
-                   ,"WAIT_COMPLETE": =>
+                    when protoResponseType.WAIT_COMPLETE
                         @_delQuery(token)
                         cb null, null
-                },
-                    => cb new err.RqlDriverError "Unknown response type"
-                )
+                    else
+                        cb new err.RqlDriverError "Unknown response type"
         else
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
@@ -179,7 +181,7 @@ class Connection extends events.EventEmitter
 
         # Construct query
         query = {}
-        query.type = "NOREPLY_WAIT"
+        query.type = protoQueryType.NOREPLY_WAIT
         query.token = token
 
         # Save callback
@@ -220,46 +222,29 @@ class Connection extends events.EventEmitter
         token = @nextToken++
 
         # Construct query
-        query = {'global_optargs':[]}
-        query.type = "START"
+        query = {}
+        query.global_optargs = {}
+        query.type = protoQueryType.START
         query.query = term.build()
         query.token = token
         # Set global options
         if @db?
-            pair =
-                key: 'db'
-                val: r.db(@db).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['db'] = r.db(@db).build()
 
         if opts.useOutdated?
-            pair =
-                key: 'use_outdated'
-                val: r.expr(!!opts.useOutdated).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['use_outdated'] = r.expr(!!opts.useOutdated).build()
 
         if opts.noreply?
-            pair =
-                key: 'noreply'
-                val: r.expr(!!opts.noreply).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['noreply'] = r.expr(!!opts.noreply).build()
 
         if opts.profile?
-            pair =
-                key: 'profile'
-                val: r.expr(!!opts.profile).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['profile'] = r.expr(!!opts.profile).build()
 
         if opts.durability?
-            pair =
-                key: 'durability'
-                val: r.expr(opts.durability).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['durability'] = r.expr(opts.durability).build()
 
         if opts.batchConf?
-            pair =
-                key: 'batch_conf'
-                val: r.expr(opts.batchConf).build()
-            query.global_optargs.push(pair)
+            query.global_optargs['batchConf'] = r.expr(opts.batchConf).build()
 
         # Save callback
         if (not opts.noreply?) or !opts.noreply
@@ -272,30 +257,27 @@ class Connection extends events.EventEmitter
 
     _continueQuery: (token) ->
         query =
-            type: "CONTINUE"
+            type: protoQueryType.CONTINUE
             token: token
 
         @_sendQuery(query)
 
     _endQuery: (token) ->
         query =
-            type: "STOP"
+            type: protoQueryType.STOP
             token: token
 
         @_sendQuery(query)
 
     _sendQuery: (query) ->
-        query.accepts_r_json = true
+        # Serialize query to JSON
+        data = [query.type, query.token]
+        if !(query.query is undefined)
+            data.push(query.query)
+            if query.global_optargs? and Object.keys(query.global_optargs).length > 0
+                data.push(query.global_optargs)
 
-        # Serialize protobuf
-        data = pb.SerializeQuery(query)
-
-        lengthBuffer = new Buffer(4)
-        lengthBuffer.writeUInt32LE(data.length, 0)
-
-        totalBuf = Buffer.concat([lengthBuffer, data])
-
-        @write totalBuf
+        @write new Buffer(JSON.stringify(data))
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -321,11 +303,17 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new Buffer(8)
-            buf.writeUInt32LE(0x723081e1, 0) # VersionDummy.Version.V0_2
-            buf.writeUInt32LE(@authKey.length, 4)
+            buf = new Buffer(4)
+            buf.writeUInt32LE(protoVersion, 0)
+            @rawSocket.write buf
+
+            buf = new Buffer(@authKey, 'ascii')
             @write buf
-            @rawSocket.write @authKey, 'ascii'
+
+            # Send the protocol type that we will be using to communicate with the server
+            buf = new Buffer(4)
+            buf.writeUInt32LE(protoProtocol, 0)
+            @rawSocket.write buf
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
@@ -387,7 +375,11 @@ class TcpConnection extends Connection
         @rawSocket.destroy()
         super()
 
-    write: (chunk) -> @rawSocket.write chunk
+    write: (chunk) ->
+        lengthBuffer = new Buffer(4)
+        lengthBuffer.writeUInt32LE(chunk.length, 0)
+        @rawSocket.write lengthBuffer
+        @rawSocket.write chunk
 
 class HttpConnection extends Connection
     DEFAULT_PROTOCOL: 'http'
@@ -448,8 +440,6 @@ class HttpConnection extends Connection
         # anonymous function
         HttpConnection.__super__.close.call(this, opts, wrappedCb)
     )
-
-
 
     write: (chunk) ->
         xhr = new XMLHttpRequest

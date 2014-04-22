@@ -18,7 +18,7 @@ class rdb_namespace_access_t;
 class env_t;
 template <class> class protob_t;
 class scope_env_t;
-class stream_cache2_t;
+class stream_cache_t;
 class term_t;
 class val_t;
 
@@ -125,7 +125,7 @@ public:
     class type_t {
         friend class val_t;
         friend void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
-                        Response *res, stream_cache2_t *stream_cache2,
+                        Response *res, stream_cache_t *stream_cache,
                         bool *response_needed_out);
     public:
         enum raw_type_t {

@@ -1,5 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "rdb_protocol/pb_server.hpp"
+#include "rdb_protocol/query_server.hpp"
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
@@ -9,40 +9,29 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
-    Response res;
-    res.set_token((q.has() && q->has_token()) ? q->token() : -1);
-    ql::fill_error(&res, Response::CLIENT_ERROR, msg);
-    return res;
-}
-
-query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
-                                 int port,
-                                 rdb_context_t *_ctx) :
-    server(local_addresses,
-           port,
-           boost::bind(&query2_server_t::handle, this, _1, _2, _3),
-           &on_unparsable_query2,
-           _ctx->auth_metadata,
-           INLINE),
-    ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
+rdb_query_server_t::rdb_query_server_t(const std::set<ip_address_t> &local_addresses,
+                                       int port,
+                                       rdb_context_t *_rdb_ctx) :
+    server(local_addresses, port, this, _rdb_ctx->auth_metadata),
+    rdb_ctx(_rdb_ctx),
+    thread_counters(0)
 { }
 
-http_app_t *query2_server_t::get_http_app() {
+http_app_t *rdb_query_server_t::get_http_app() {
     return &server;
 }
 
-int query2_server_t::get_port() const {
+int rdb_query_server_t::get_port() const {
     return server.get_port();
 }
 
+// Predeclaration for run, only used here
 namespace ql {
-    // Predeclaration for run, only used here
     void run(protob_t<Query> q,
              rdb_context_t *ctx,
              signal_t *interruptor,
-             Response *res,
-             stream_cache2_t *stream_cache2);
+             stream_cache_t *stream_cache,
+             Response *response_out);
 }
 
 class scoped_ops_running_stat_t {
@@ -59,23 +48,25 @@ private:
     DISABLE_COPYING(scoped_ops_running_stat_t);
 };
 
-bool query2_server_t::handle(ql::protob_t<Query> q,
-                             Response *response_out,
-                             context_t *query2_context) {
-    ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
-    signal_t *interruptor = query2_context->interruptor;
-    guarantee(interruptor);
-    response_out->set_token(q->token());
+bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
+                                   Response *response_out,
+                                   client_context_t *client_ctx) {
+    guarantee(client_ctx->interruptor != NULL);
+    response_out->set_token(query->token());
 
-    counted_t<const ql::datum_t> noreply = static_optarg("noreply", q);
+    counted_t<const ql::datum_t> noreply = static_optarg("noreply", query);
     bool response_needed = !(noreply.has() &&
          noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply->as_bool());
     try {
-        scoped_ops_running_stat_t stat(&ctx->ql_ops_running);
-        guarantee(ctx->directory_read_manager);
+        scoped_ops_running_stat_t stat(&rdb_ctx->ql_ops_running);
+        guarantee(rdb_ctx->directory_read_manager);
         // `ql::run` will set the status code
-        ql::run(q, ctx, interruptor, response_out, stream_cache2);
+        ql::run(query,
+                rdb_ctx,
+                client_ctx->interruptor,
+                &client_ctx->stream_cache,
+                response_out);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {
@@ -89,6 +80,13 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     }
 
     return response_needed;
+}
+
+void rdb_query_server_t::unparseable_query(const ql::protob_t<Query> &query,
+                                          Response *response_out,
+                                          const std::string &info) {
+    response_out->set_token((query.has() && query->has_token()) ? query->token() : -1);
+    ql::fill_error(response_out, Response::CLIENT_ERROR, info);
 }
 
 void make_empty_protob_bearer(ql::protob_t<Query> *request) {

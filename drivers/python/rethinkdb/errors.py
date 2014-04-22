@@ -3,7 +3,7 @@ from . import ql2_pb2 as p
 class RqlError(Exception):
     def __init__(self, message, term, frames):
         self.message = message
-        self.frames = [frame.pos if frame.type == p.Frame.POS else frame.opt for frame in frames]
+        self.frames = frames
         self.query_printer = QueryPrinter(term, self.frames)
 
     def __str__(self):
@@ -43,8 +43,8 @@ class QueryPrinter(object):
     def compose_term(self, term):
         args = [self.compose_term(a) for a in term.args]
         optargs = {}
-        for name in term.optargs.keys():
-            optargs[name] = self.compose_term(term.optargs[name])
+        for (k,v) in term.optargs.iteritems():
+            optargs[k] = self.compose_term(v)
         return term.compose(args, optargs)
 
     def compose_carrots(self, term, frames):
@@ -56,11 +56,11 @@ class QueryPrinter(object):
         args = [self.compose_carrots(arg, frames[1:]) if cur_frame == i else self.compose_term(arg) for i,arg in enumerate(term.args)]
 
         optargs = {}
-        for name in term.optargs.keys():
-            if cur_frame == name:
-                optargs[name] = self.compose_carrots(term.optargs[name], frames[1:])
+        for (k,v) in term.optargs.iteritems():
+            if cur_frame == k:
+                optargs[k] = self.compose_carrots(v, frames[1:])
             else:
-                optargs[name] = self.compose_term(term.optargs[name])
+                optargs[k] = self.compose_term(v)
 
         return [' ' if i != '^' else '^' for i in term.compose(args, optargs)]
 

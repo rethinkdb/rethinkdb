@@ -229,7 +229,8 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_2_JSON
+    @@magic_number = VersionDummy::Version::V0_3
+    @@wire_protocol = VersionDummy::Protocol::JSON
 
     def debug_socket; @socket; end
 
@@ -306,7 +307,6 @@ module RethinkDB
     def note_error(token, e) # Synchronize around this!
       data = {
         't' => 16,
-        'k' => token,
         'r' => [e.inspect],
         'b' => []
       }
@@ -339,6 +339,7 @@ module RethinkDB
       @socket.write([@@magic_number].pack('L<'))
 
       @socket.write([@auth_key.size].pack('L<') + @auth_key)
+      @socket.write([@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)

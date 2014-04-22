@@ -1,6 +1,7 @@
 util = require('./util')
 err = require('./errors')
 net = require('./net')
+protoTermType = require('./proto-def').Term.TermType
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -251,11 +252,7 @@ class RDBVal extends TermBase
 
         new GetAll opts, @, keys...
 
-    # For this function only use `exprJSON` rather than letting it default to regular
-    # `expr`. This will attempt to serialize as much of the document as JSON as possible.
-    # This behavior can be manually overridden with either direct JSON serialization
-    # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
-    insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
+    insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
@@ -308,26 +305,10 @@ class DatumTerm extends RDBVal
                 ''+@data
 
     build: ->
-        datum = {}
-        if @data is null
-            datum.type = "R_NULL"
-        else
-            switch typeof @data
-                when 'number'
-                    datum.type = "R_NUM"
-                    datum.r_num = @data
-                when 'boolean'
-                    datum.type = "R_BOOL"
-                    datum.r_bool = @data
-                when 'string'
-                    datum.type = "R_STR"
-                    datum.r_str = @data
-                else
-                    throw new err.RqlDriverError "Cannot convert `#{@data}` to Datum."
-        term =
-            type: "DATUM"
-            datum: datum
-        return term
+        if typeof(@data) is 'number'
+            if !isFinite(@data)
+                throw new TypeError("Illegal non-finite number `" + @data.toString() + "`.")
+        @data
 
 translateBackOptargs = (optargs) ->
     result = {}
@@ -376,16 +357,20 @@ class RDBOp extends RDBVal
         return self
 
     build: ->
-        term = {args:[], optargs:[]}
-        term.type = @tt
+        res = [@tt, []]
         for arg in @args
-            term.args.push(arg.build())
+            res[1].push(arg.build())
+
+        opts = {}
+        add_opts = false
+
         for own key,val of @optargs
-            pair =
-                key: key
-                val: val.build()
-            term.optargs.push(pair)
-        return term
+            add_opts = true
+            opts[key] = val.build()
+
+        if add_opts
+            res.push(opts)
+        res
 
     compose: (args, optargs) ->
         if @st
@@ -419,13 +404,13 @@ shouldWrap = (arg) ->
     arg instanceof DatumTerm or arg instanceof MakeArray or arg instanceof MakeObject
 
 class MakeArray extends RDBOp
-    tt: "MAKE_ARRAY"
+    tt: protoTermType.MAKE_ARRAY
     st: '[...]' # This is only used by the `undefined` argument checker
 
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
-    tt: "MAKE_OBJ"
+    tt: protoTermType.MAKE_OBJECT
     st: '{...}' # This is only used by the `undefined` argument checker
 
     constructor: (obj) ->
@@ -439,32 +424,38 @@ class MakeObject extends RDBOp
 
     compose: (args, optargs) -> kved(optargs)
 
+    build: ->
+        res = {}
+        for own key,val of @optargs
+            res[key] = val.build()
+        return res
+
 class Var extends RDBOp
-    tt: "VAR"
+    tt: protoTermType.VAR
     compose: (args) -> ['var_'+args[0]]
 
 class JavaScript extends RDBOp
-    tt: "JAVASCRIPT"
+    tt: protoTermType.JAVASCRIPT
     st: 'js'
 
 class Json extends RDBOp
-    tt: "JSON"
+    tt: protoTermType.JSON
     st: 'json'
 
 class UserError extends RDBOp
-    tt: "ERROR"
+    tt: protoTermType.ERROR
     st: 'error'
 
 class ImplicitVar extends RDBOp
-    tt: "IMPLICIT_VAR"
+    tt: protoTermType.IMPLICIT_VAR
     compose: -> ['r.row']
 
 class Db extends RDBOp
-    tt: "DB"
+    tt: protoTermType.DB
     st: 'db'
 
 class Table extends RDBOp
-    tt: "TABLE"
+    tt: protoTermType.TABLE
     st: 'table'
 
     compose: (args, optargs) ->
@@ -474,345 +465,345 @@ class Table extends RDBOp
             ['r.table(', intspallargs(args, optargs), ')']
 
 class Get extends RDBOp
-    tt: "GET"
+    tt: protoTermType.GET
     mt: 'get'
 
 class GetAll extends RDBOp
-    tt: "GET_ALL"
+    tt: protoTermType.GET_ALL
     mt: 'getAll'
 
 class Eq extends RDBOp
-    tt: "EQ"
+    tt: protoTermType.EQ
     mt: 'eq'
 
 class Ne extends RDBOp
-    tt: "NE"
+    tt: protoTermType.NE
     mt: 'ne'
 
 class Lt extends RDBOp
-    tt: "LT"
+    tt: protoTermType.LT
     mt: 'lt'
 
 class Le extends RDBOp
-    tt: "LE"
+    tt: protoTermType.LE
     mt: 'le'
 
 class Gt extends RDBOp
-    tt: "GT"
+    tt: protoTermType.GT
     mt: 'gt'
 
 class Ge extends RDBOp
-    tt: "GE"
+    tt: protoTermType.GE
     mt: 'ge'
 
 class Not extends RDBOp
-    tt: "NOT"
+    tt: protoTermType.NOT
     mt: 'not'
 
 class Add extends RDBOp
-    tt: "ADD"
+    tt: protoTermType.ADD
     mt: 'add'
 
 class Sub extends RDBOp
-    tt: "SUB"
+    tt: protoTermType.SUB
     mt: 'sub'
 
 class Mul extends RDBOp
-    tt: "MUL"
+    tt: protoTermType.MUL
     mt: 'mul'
 
 class Div extends RDBOp
-    tt: "DIV"
+    tt: protoTermType.DIV
     mt: 'div'
 
 class Mod extends RDBOp
-    tt: "MOD"
+    tt: protoTermType.MOD
     mt: 'mod'
 
 class Append extends RDBOp
-    tt: "APPEND"
+    tt: protoTermType.APPEND
     mt: 'append'
 
 class Prepend extends RDBOp
-    tt: "PREPEND"
+    tt: protoTermType.PREPEND
     mt: 'prepend'
 
 class Difference extends RDBOp
-    tt: "DIFFERENCE"
+    tt: protoTermType.DIFFERENCE
     mt: 'difference'
 
 class SetInsert extends RDBOp
-    tt: "SET_INSERT"
+    tt: protoTermType.SET_INSERT
     mt: 'setInsert'
 
 class SetUnion extends RDBOp
-    tt: "SET_UNION"
+    tt: protoTermType.SET_UNION
     mt: 'setUnion'
 
 class SetIntersection extends RDBOp
-    tt: "SET_INTERSECTION"
+    tt: protoTermType.SET_INTERSECTION
     mt: 'setIntersection'
 
 class SetDifference extends RDBOp
-    tt: "SET_DIFFERENCE"
+    tt: protoTermType.SET_DIFFERENCE
     mt: 'setDifference'
 
 class Slice extends RDBOp
-    tt: "SLICE"
+    tt: protoTermType.SLICE
     mt: 'slice'
 
 class Skip extends RDBOp
-    tt: "SKIP"
+    tt: protoTermType.SKIP
     mt: 'skip'
 
 class Limit extends RDBOp
-    tt: "LIMIT"
+    tt: protoTermType.LIMIT
     mt: 'limit'
 
 class GetField extends RDBOp
-    tt: "GET_FIELD"
+    tt: protoTermType.GET_FIELD
     st: '(...)' # This is only used by the `undefined` argument checker
 
     compose: (args) -> [args[0], '(', args[1], ')']
 
 class Contains extends RDBOp
-    tt: "CONTAINS"
+    tt: protoTermType.CONTAINS
     mt: 'contains'
 
 class InsertAt extends RDBOp
-    tt: "INSERT_AT"
+    tt: protoTermType.INSERT_AT
     mt: 'insertAt'
 
 class SpliceAt extends RDBOp
-    tt: "SPLICE_AT"
+    tt: protoTermType.SPLICE_AT
     mt: 'spliceAt'
 
 class DeleteAt extends RDBOp
-    tt: "DELETE_AT"
+    tt: protoTermType.DELETE_AT
     mt: 'deleteAt'
 
 class ChangeAt extends RDBOp
-    tt: "CHANGE_AT"
+    tt: protoTermType.CHANGE_AT
     mt: 'changeAt'
 
 class Contains extends RDBOp
-    tt: "CONTAINS"
+    tt: protoTermType.CONTAINS
     mt: 'contains'
 
 class HasFields extends RDBOp
-    tt: "HAS_FIELDS"
+    tt: protoTermType.HAS_FIELDS
     mt: 'hasFields'
 
 class WithFields extends RDBOp
-    tt: "WITH_FIELDS"
+    tt: protoTermType.WITH_FIELDS
     mt: 'withFields'
 
 class Keys extends RDBOp
-    tt: "KEYS"
+    tt: protoTermType.KEYS
     mt: 'keys'
 
 class Object_ extends RDBOp
-    tt: "OBJECT"
+    tt: protoTermType.OBJECT
     mt: 'object'
 
 class Pluck extends RDBOp
-    tt: "PLUCK"
+    tt: protoTermType.PLUCK
     mt: 'pluck'
 
 class IndexesOf extends RDBOp
-    tt: "INDEXES_OF"
+    tt: protoTermType.INDEXES_OF
     mt: 'indexesOf'
 
 class Without extends RDBOp
-    tt: "WITHOUT"
+    tt: protoTermType.WITHOUT
     mt: 'without'
 
 class Merge extends RDBOp
-    tt: "MERGE"
+    tt: protoTermType.MERGE
     mt: 'merge'
 
 class Between extends RDBOp
-    tt: "BETWEEN"
+    tt: protoTermType.BETWEEN
     mt: 'between'
 
 class Reduce extends RDBOp
-    tt: "REDUCE"
+    tt: protoTermType.REDUCE
     mt: 'reduce'
 
 class Map extends RDBOp
-    tt: "MAP"
+    tt: protoTermType.MAP
     mt: 'map'
 
 class Filter extends RDBOp
-    tt: "FILTER"
+    tt: protoTermType.FILTER
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: "CONCATMAP"
+    tt: protoTermType.CONCATMAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: "ORDERBY"
+    tt: protoTermType.ORDERBY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
-    tt: "DISTINCT"
+    tt: protoTermType.DISTINCT
     mt: 'distinct'
 
 class Count extends RDBOp
-    tt: "COUNT"
+    tt: protoTermType.COUNT
     mt: 'count'
 
 class Union extends RDBOp
-    tt: "UNION"
+    tt: protoTermType.UNION
     mt: 'union'
 
 class Nth extends RDBOp
-    tt: "NTH"
+    tt: protoTermType.NTH
     mt: 'nth'
 
 class Match extends RDBOp
-    tt: "MATCH"
+    tt: protoTermType.MATCH
     mt: 'match'
 
 class Split extends RDBOp
-    tt: "SPLIT"
+    tt: protoTermType.SPLIT
     mt: 'split'
 
 class Upcase extends RDBOp
-    tt: "UPCASE"
+    tt: protoTermType.UPCASE
     mt: 'upcase'
 
 class Downcase extends RDBOp
-    tt: "DOWNCASE"
+    tt: protoTermType.DOWNCASE
     mt: 'downcase'
 
 class IsEmpty extends RDBOp
-    tt: "IS_EMPTY"
+    tt: protoTermType.IS_EMPTY
     mt: 'isEmpty'
 
 class Group extends RDBOp
-    tt: "GROUP"
+    tt: protoTermType.GROUP
     mt: 'group'
 
 class Sum extends RDBOp
-    tt: "SUM"
+    tt: protoTermType.SUM
     mt: 'sum'
 
 class Avg extends RDBOp
-    tt: "AVG"
+    tt: protoTermType.AVG
     mt: 'avg'
 
 class Min extends RDBOp
-    tt: "MIN"
+    tt: protoTermType.MIN
     mt: 'min'
 
 class Max extends RDBOp
-    tt: "MAX"
+    tt: protoTermType.MAX
     mt: 'max'
 
 class InnerJoin extends RDBOp
-    tt: "INNER_JOIN"
+    tt: protoTermType.INNER_JOIN
     mt: 'innerJoin'
 
 class OuterJoin extends RDBOp
-    tt: "OUTER_JOIN"
+    tt: protoTermType.OUTER_JOIN
     mt: 'outerJoin'
 
 class EqJoin extends RDBOp
-    tt: "EQ_JOIN"
+    tt: protoTermType.EQ_JOIN
     mt: 'eqJoin'
 
 class Zip extends RDBOp
-    tt: "ZIP"
+    tt: protoTermType.ZIP
     mt: 'zip'
 
 class CoerceTo extends RDBOp
-    tt: "COERCE_TO"
+    tt: protoTermType.COERCE_TO
     mt: 'coerceTo'
 
 class Ungroup extends RDBOp
-    tt: "UNGROUP"
+    tt: protoTermType.UNGROUP
     mt: 'ungroup'
 
 class TypeOf extends RDBOp
-    tt: "TYPEOF"
+    tt: protoTermType.TYPEOF
     mt: 'typeOf'
 
 class Info extends RDBOp
-    tt: "INFO"
+    tt: protoTermType.INFO
     mt: 'info'
 
 class Sample extends RDBOp
-    tt: "SAMPLE"
+    tt: protoTermType.SAMPLE
     mt: 'sample'
 
 class Update extends RDBOp
-    tt: "UPDATE"
+    tt: protoTermType.UPDATE
     mt: 'update'
 
 class Delete extends RDBOp
-    tt: "DELETE"
+    tt: protoTermType.DELETE
     mt: 'delete'
 
 class Replace extends RDBOp
-    tt: "REPLACE"
+    tt: protoTermType.REPLACE
     mt: 'replace'
 
 class Insert extends RDBOp
-    tt: "INSERT"
+    tt: protoTermType.INSERT
     mt: 'insert'
 
 class DbCreate extends RDBOp
-    tt: "DB_CREATE"
+    tt: protoTermType.DB_CREATE
     st: 'dbCreate'
 
 class DbDrop extends RDBOp
-    tt: "DB_DROP"
+    tt: protoTermType.DB_DROP
     st: 'dbDrop'
 
 class DbList extends RDBOp
-    tt: "DB_LIST"
+    tt: protoTermType.DB_LIST
     st: 'dbList'
 
 class TableCreate extends RDBOp
-    tt: "TABLE_CREATE"
+    tt: protoTermType.TABLE_CREATE
     mt: 'tableCreate'
 
 class TableDrop extends RDBOp
-    tt: "TABLE_DROP"
+    tt: protoTermType.TABLE_DROP
     mt: 'tableDrop'
 
 class TableList extends RDBOp
-    tt: "TABLE_LIST"
+    tt: protoTermType.TABLE_LIST
     mt: 'tableList'
 
 class IndexCreate extends RDBOp
-    tt: "INDEX_CREATE"
+    tt: protoTermType.INDEX_CREATE
     mt: 'indexCreate'
 
 class IndexDrop extends RDBOp
-    tt: "INDEX_DROP"
+    tt: protoTermType.INDEX_DROP
     mt: 'indexDrop'
 
 class IndexList extends RDBOp
-    tt: "INDEX_LIST"
+    tt: protoTermType.INDEX_LIST
     mt: 'indexList'
 
 class IndexStatus extends RDBOp
-    tt: "INDEX_STATUS"
+    tt: protoTermType.INDEX_STATUS
     mt: 'indexStatus'
 
 class IndexWait extends RDBOp
-    tt: "INDEX_WAIT"
+    tt: protoTermType.INDEX_WAIT
     mt: 'indexWait'
 
 class Sync extends RDBOp
-    tt: "SYNC"
+    tt: protoTermType.SYNC
     mt: 'sync'
 
 class FunCall extends RDBOp
-    tt: "FUNCALL"
+    tt: protoTermType.FUNCALL
     st: 'do' # This is only used by the `undefined` argument checker
 
     compose: (args) ->
@@ -824,27 +815,27 @@ class FunCall extends RDBOp
             [args[1], '.do(', args[0], ')']
 
 class Default extends RDBOp
-    tt: "DEFAULT"
+    tt: protoTermType.DEFAULT
     mt: 'default'
 
 class Branch extends RDBOp
-    tt: "BRANCH"
+    tt: protoTermType.BRANCH
     st: 'branch'
 
 class Any extends RDBOp
-    tt: "ANY"
+    tt: protoTermType.ANY
     mt: 'or'
 
 class All extends RDBOp
-    tt: "ALL"
+    tt: protoTermType.ALL
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: "FOREACH"
+    tt: protoTermType.FOREACH
     mt: 'forEach'
 
 class Func extends RDBOp
-    tt: "FUNC"
+    tt: protoTermType.FUNC
     @nextVarId: 0
 
     constructor: (optargs, func) ->
@@ -877,91 +868,91 @@ class Func extends RDBOp
             ['function(', varStr, ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
-    tt: "ASC"
+    tt: protoTermType.ASC
     st: 'asc'
 
 class Desc extends RDBOp
-    tt: "DESC"
+    tt: protoTermType.DESC
     st: 'desc'
 
 class Literal extends RDBOp
-    tt: "LITERAL"
+    tt: protoTermType.LITERAL
     st: 'literal'
 
 class ISO8601 extends RDBOp
-    tt: 'ISO8601'
+    tt: protoTermType.ISO8601
     st: 'ISO8601'
 
 class ToISO8601 extends RDBOp
-    tt: 'TO_ISO8601'
+    tt: protoTermType.TO_ISO8601
     mt: 'toISO8601'
 
 class EpochTime extends RDBOp
-    tt: 'EPOCH_TIME'
+    tt: protoTermType.EPOCH_TIME
     st: 'epochTime'
 
 class ToEpochTime extends RDBOp
-    tt: 'TO_EPOCH_TIME'
+    tt: protoTermType.TO_EPOCH_TIME
     mt: 'toEpochTime'
 
 class Now extends RDBOp
-    tt: 'NOW'
+    tt: protoTermType.NOW
     st: 'now'
 
 class InTimezone extends RDBOp
-    tt: 'IN_TIMEZONE'
+    tt: protoTermType.IN_TIMEZONE
     mt: 'inTimezone'
 
 class During extends RDBOp
-    tt: 'DURING'
+    tt: protoTermType.DURING
     mt: 'during'
 
 class RQLDate extends RDBOp
-    tt: 'DATE'
+    tt: protoTermType.DATE
     mt: 'date'
 
 class TimeOfDay extends RDBOp
-    tt: 'TIME_OF_DAY'
+    tt: protoTermType.TIME_OF_DAY
     mt: 'timeOfDay'
 
 class Timezone extends RDBOp
-    tt: 'TIMEZONE'
+    tt: protoTermType.TIMEZONE
     mt: 'timezone'
 
 class Year extends RDBOp
-    tt: 'YEAR'
+    tt: protoTermType.YEAR
     mt: 'year'
 
 class Month extends RDBOp
-    tt: 'MONTH'
+    tt: protoTermType.MONTH
     mt: 'month'
 
 class Day extends RDBOp
-    tt: 'DAY'
+    tt: protoTermType.DAY
     mt: 'day'
 
 class DayOfWeek extends RDBOp
-    tt: 'DAY_OF_WEEK'
+    tt: protoTermType.DAY_OF_WEEK
     mt: 'dayOfWeek'
 
 class DayOfYear extends RDBOp
-    tt: 'DAY_OF_YEAR'
+    tt: protoTermType.DAY_OF_YEAR
     mt: 'dayOfYear'
 
 class Hours extends RDBOp
-    tt: 'HOURS'
+    tt: protoTermType.HOURS
     mt: 'hours'
 
 class Minutes extends RDBOp
-    tt: 'MINUTES'
+    tt: protoTermType.MINUTES
     mt: 'minutes'
 
 class Seconds extends RDBOp
-    tt: 'SECONDS'
+    tt: protoTermType.SECONDS
     mt: 'seconds'
 
 class Time extends RDBOp
-    tt: 'TIME'
+    tt: protoTermType.TIME
     st: 'time'
 
 # All top level exported functions
@@ -983,6 +974,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     else if Array.isArray val
         val = (rethinkdb.expr(v, nestingDepth - 1) for v in val)
         new MakeArray {}, val...
+    else if typeof(val) is 'number'
+        new DatumTerm val
     else if val == Object(val)
         obj = {}
         for own k,v of val
@@ -992,48 +985,6 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new MakeObject obj
     else
         new DatumTerm val
-
-# Use r.json to serialize as much of the obect as JSON as is
-# feasible to avoid doing too much protobuf serialization.
-rethinkdb.exprJSON = varar 1, 2, (val, nestingDepth=20) ->
-    if nestingDepth <= 0
-        throw new err.RqlDriverError "Nesting depth limit exceeded"
-
-    if isJSON(val, nestingDepth - 1)
-        rethinkdb.json(JSON.stringify(val))
-    else if (val instanceof TermBase)
-        val
-    else if (val instanceof Date)
-        rethinkdb.expr(val)
-    else
-        if Array.isArray(val)
-            wrapped = []
-        else
-            wrapped = {}
-
-        for k,v of val
-            wrapped[k] = rethinkdb.exprJSON(v, nestingDepth - 1)
-        rethinkdb.expr(wrapped, nestingDepth - 1)
-
-# Is this JS value representable as JSON?
-isJSON = (val, nestingDepth=20) ->
-    if nestingDepth <= 0
-        throw new err.RqlDriverError "Nesting depth limit exceeded"
-
-    if (val instanceof TermBase)
-        false
-    else if (val instanceof Function)
-        false
-    else if (val instanceof Date)
-        false
-    else if (val instanceof Object)
-        # Covers array case as well
-        for own k,v of val
-            if not isJSON(v, nestingDepth - 1) then return false
-        true
-    else
-        # Primitive types can always be represented as JSON
-        true
 
 rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
 
@@ -1090,26 +1041,26 @@ rethinkdb.epochTime = ar (num) -> new EpochTime {}, num
 rethinkdb.now = ar () -> new Now {}
 rethinkdb.time = varar 3, 7, (args...) -> new Time {}, args...
 
-rethinkdb.monday = new (class extends RDBOp then tt: 'MONDAY')()
-rethinkdb.tuesday = new (class extends RDBOp then tt: 'TUESDAY')()
-rethinkdb.wednesday = new (class extends RDBOp then tt: 'WEDNESDAY')()
-rethinkdb.thursday = new (class extends RDBOp then tt: 'THURSDAY')()
-rethinkdb.friday = new (class extends RDBOp then tt: 'FRIDAY')()
-rethinkdb.saturday = new (class extends RDBOp then tt: 'SATURDAY')()
-rethinkdb.sunday = new (class extends RDBOp then tt: 'SUNDAY')()
+rethinkdb.monday = new (class extends RDBOp then tt: protoTermType.MONDAY)()
+rethinkdb.tuesday = new (class extends RDBOp then tt: protoTermType.TUESDAY)()
+rethinkdb.wednesday = new (class extends RDBOp then tt: protoTermType.WEDNESDAY)()
+rethinkdb.thursday = new (class extends RDBOp then tt: protoTermType.THURSDAY)()
+rethinkdb.friday = new (class extends RDBOp then tt: protoTermType.FRIDAY)()
+rethinkdb.saturday = new (class extends RDBOp then tt: protoTermType.SATURDAY)()
+rethinkdb.sunday = new (class extends RDBOp then tt: protoTermType.SUNDAY)()
 
-rethinkdb.january = new (class extends RDBOp then tt: 'JANUARY')()
-rethinkdb.february = new (class extends RDBOp then tt: 'FEBRUARY')()
-rethinkdb.march = new (class extends RDBOp then tt: 'MARCH')()
-rethinkdb.april = new (class extends RDBOp then tt: 'APRIL')()
-rethinkdb.may = new (class extends RDBOp then tt: 'MAY')()
-rethinkdb.june = new (class extends RDBOp then tt: 'JUNE')()
-rethinkdb.july = new (class extends RDBOp then tt: 'JULY')()
-rethinkdb.august = new (class extends RDBOp then tt: 'AUGUST')()
-rethinkdb.september = new (class extends RDBOp then tt: 'SEPTEMBER')()
-rethinkdb.october = new (class extends RDBOp then tt: 'OCTOBER')()
-rethinkdb.november = new (class extends RDBOp then tt: 'NOVEMBER')()
-rethinkdb.december = new (class extends RDBOp then tt: 'DECEMBER')()
+rethinkdb.january = new (class extends RDBOp then tt: protoTermType.JANUARY)()
+rethinkdb.february = new (class extends RDBOp then tt: protoTermType.FEBRUARY)()
+rethinkdb.march = new (class extends RDBOp then tt: protoTermType.MARCH)()
+rethinkdb.april = new (class extends RDBOp then tt: protoTermType.APRIL)()
+rethinkdb.may = new (class extends RDBOp then tt: protoTermType.MAY)()
+rethinkdb.june = new (class extends RDBOp then tt: protoTermType.JUNE)()
+rethinkdb.july = new (class extends RDBOp then tt: protoTermType.JULY)()
+rethinkdb.august = new (class extends RDBOp then tt: protoTermType.AUGUST)()
+rethinkdb.september = new (class extends RDBOp then tt: protoTermType.SEPTEMBER)()
+rethinkdb.october = new (class extends RDBOp then tt: protoTermType.OCTOBER)()
+rethinkdb.november = new (class extends RDBOp then tt: protoTermType.NOVEMBER)()
+rethinkdb.december = new (class extends RDBOp then tt: protoTermType.DECEMBER)()
 
 rethinkdb.object = varar 0, null, (args...) -> new Object_ {}, args...
 
