@@ -220,13 +220,12 @@ void find_keyvalue_location_for_read(
 enum class expired_t { NO, YES };
 
 template <class Value>
-void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
+void apply_keyvalue_change(
+        typename sizer_trait_t<Value>::sizer_type *sizer,
+        keyvalue_location_t<Value> *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
         const value_deleter_t *detacher,
         key_modification_callback_t<Value> *km_callback) {
-
-    typename sizer_trait_t<Value>::sizer_type sizer(kv_loc->buf.cache()->get_block_size());
-
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
 
@@ -241,7 +240,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+        check_and_handle_split(sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key, kv_loc->value.get(),
                                detacher);
 
@@ -249,7 +248,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
 #ifndef NDEBUG
             buf_read_t read(&kv_loc->buf);
             auto leaf_node = static_cast<const leaf_node_t *>(read.get_data_read());
-            rassert(!leaf::is_full(&sizer, leaf_node, key, kv_loc->value.get()));
+            rassert(!leaf::is_full(sizer, leaf_node, key, kv_loc->value.get()));
 #endif
         }
 
@@ -262,7 +261,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         {
             buf_write_t write(&kv_loc->buf);
             auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-            leaf::insert(&sizer,
+            leaf::insert(sizer,
                          leaf_node,
                          key,
                          kv_loc->value.get(),
@@ -279,7 +278,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                 {
                     buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                    leaf::remove(&sizer,
+                    leaf::remove(sizer,
                                  leaf_node,
                                  key,
                                  tstamp,
@@ -293,7 +292,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                 {
                     buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                    leaf::erase_presence(&sizer,
+                    leaf::erase_presence(sizer,
                                          leaf_node,
                                          key,
                                          km_proof);
@@ -308,7 +307,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
-    check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+    check_and_handle_underfull(sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key, detacher);
 
     // Modify the stats block.  The stats block is detached from the rest of the

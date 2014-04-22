@@ -99,7 +99,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     guarantee(kv_location->value.has());
 
     // As noted above, we can be sure that buf is valid.
-    const block_size_t block_size = kv_location->buf.cache()->get_block_size();
+    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
@@ -115,8 +115,9 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                                                       kv_location->value.get());
 
     kv_location->value.reset();
+    rdb_value_sizer_t sizer(block_size);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
             expired_t::NO, deletion_context->balancing_detacher(), &null_cb);
 }
 
@@ -129,7 +130,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
-    const block_size_t block_size = kv_location->buf.cache()->get_block_size();
+    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
         serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
@@ -156,7 +157,9 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+    rdb_value_sizer_t sizer(block_size);
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
+                          timestamp, expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
@@ -178,7 +181,9 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     kv_location->value = std::move(new_value);
 
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+    rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
+                          expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
