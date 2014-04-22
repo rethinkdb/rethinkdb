@@ -37,14 +37,13 @@ struct sizer_trait_t<short_value_t> {
 // Is that possible?  (promise_t makes it hard.)
 template <class Value>
 void find_keyvalue_location_for_write(
+        typename sizer_trait_t<Value>::sizer_type *sizer,
         superblock_t *superblock, const btree_key_t *key,
         const value_deleter_t *detacher,
         keyvalue_location_t<Value> *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
-    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
-
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
@@ -63,7 +62,7 @@ void find_keyvalue_location_for_write(
         // worsen the performance of the program -- sometimes we only end up using
         // this block for read.  So the profiling information is not very good.
         profile::starter_t starter("Acquiring block for write.\n", trace);
-        buf = get_root(&sizer, superblock);
+        buf = get_root(sizer, superblock);
     }
 
     // Walk down the tree to the leaf.
@@ -77,14 +76,14 @@ void find_keyvalue_location_for_write(
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            check_and_handle_split(&sizer, &buf, &last_buf, superblock, key,
+            check_and_handle_split(sizer, &buf, &last_buf, superblock, key,
                                    static_cast<Value *>(NULL), detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
-            check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key,
+            check_and_handle_underfull(sizer, &buf, &last_buf, superblock, key,
                                        detacher);
         }
 
@@ -124,12 +123,12 @@ void find_keyvalue_location_for_write(
     }
 
     {
-        scoped_malloc_t<Value> tmp(sizer.max_possible_size());
+        scoped_malloc_t<Value> tmp(sizer->max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
         buf_read_t read(&buf);
         auto node = static_cast<const leaf_node_t *>(read.get_data_read());
-        bool key_found = leaf::lookup(&sizer, node, key, tmp.get());
+        bool key_found = leaf::lookup(sizer, node, key, tmp.get());
 
         if (key_found) {
             keyvalue_location_out->there_originally_was_value = true;

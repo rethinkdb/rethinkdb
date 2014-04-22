@@ -194,7 +194,9 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(info.superblock, info.key->btree_key(),
+        rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
+        find_keyvalue_location_for_write(&sizer, info.superblock,
+                                         info.key->btree_key(),
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
                                          &info.btree->slice->stats,
@@ -409,7 +411,8 @@ void rdb_set(const store_key_t &key,
              profile::trace_t *trace,
              promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, key.btree_key(),
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
                                      deletion_context->balancing_detacher(),
                                      &kv_location, &slice->stats, trace,
                                      pass_back_superblock);
@@ -506,7 +509,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
                                superblock, sindex_block, p, interruptor);
 }
@@ -519,7 +522,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, key.btree_key(),
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
             deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
     bool exists = kv_location.value.has();
 
@@ -1130,7 +1134,9 @@ void rdb_update_single_sindex(
                 promise_t<superblock_t *> return_superblock_local;
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
-                    find_keyvalue_location_for_write(super_block,
+                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    find_keyvalue_location_for_write(&sizer,
+                                                     super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
@@ -1164,7 +1170,9 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
 
-                    find_keyvalue_location_for_write(super_block,
+                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    find_keyvalue_location_for_write(&sizer,
+                                                     super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
