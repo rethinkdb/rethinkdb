@@ -83,7 +83,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
-        response->data = get_data(kv_location.value.get(),
+        response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));
     }
 }
@@ -103,9 +103,9 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
         guarantee(mod_info_out->deleted.second.empty());
 
         mod_info_out->deleted.second.assign(
-                kv_location->value->value_ref(),
-                kv_location->value->value_ref()
-                + kv_location->value->inline_size(block_size));
+                kv_location->value_as<rdb_value_t>()->value_ref(),
+                kv_location->value_as<rdb_value_t>()->value_ref()
+                + kv_location->value_as<rdb_value_t>()->inline_size(block_size));
     }
 
     // Detach/Delete
@@ -145,9 +145,9 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
         if (mod_info_out != NULL) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
-                    kv_location->value->value_ref(),
-                    kv_location->value->value_ref()
-                    + kv_location->value->inline_size(block_size));
+                    kv_location->value_as<rdb_value_t>()->value_ref(),
+                    kv_location->value_as<rdb_value_t>()->value_ref()
+                    + kv_location->value_as<rdb_value_t>()->inline_size(block_size));
         }
     }
 
@@ -210,7 +210,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            old_val = get_data(kv_location.value.get(),
+            old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
@@ -417,7 +417,7 @@ void rdb_set(const store_key_t &key,
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_info->deleted.first = get_data(kv_location.value.get(),
+        mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
     }
 
@@ -525,7 +525,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     /* Update the modification report. */
     if (exists) {
-        mod_info->deleted.first = get_data(kv_location.value.get(),
+        mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
     }

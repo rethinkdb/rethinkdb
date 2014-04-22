@@ -213,6 +213,9 @@ private:
 template <class T>
 class scoped_malloc_t {
 public:
+    template <class U>
+    friend class scoped_malloc_t;
+
     scoped_malloc_t() : ptr_(NULL) { }
     explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
     explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(rmalloc(n))) { }
@@ -223,6 +226,12 @@ public:
         memcpy(ptr_, beg, n);
     }
     scoped_malloc_t(scoped_malloc_t &&movee)
+        : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+
+    template <class U>
+    scoped_malloc_t(scoped_malloc_t<U> &&movee)
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
@@ -259,13 +268,13 @@ public:
         return ptr_ != NULL;
     }
 
-private:
     void swap(scoped_malloc_t &other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
     }
 
+private:
     T *ptr_;
 
     DISABLE_COPYING(scoped_malloc_t);

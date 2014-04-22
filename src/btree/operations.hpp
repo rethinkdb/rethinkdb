@@ -104,8 +104,12 @@ public:
     bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
     // value, otherwise NULL.
-    scoped_malloc_t<Value> value;
+    scoped_malloc_t<void> value;
 
+    template <class T>
+    T *value_as() { return static_cast<T *>(value.get()); }
+
+    // RSI: Do we use this?
     void swap(keyvalue_location_t &other) {
         std::swap(superblock, other.superblock);
         std::swap(stat_block, other.stat_block);
