@@ -271,7 +271,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace);
 
-enum class expired_t { NO, YES };
+enum class expired_t { NO };
 
 void apply_keyvalue_change(
         value_sizer_t *sizer,
