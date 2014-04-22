@@ -140,9 +140,6 @@ const block_id_t *block_ids(const char *ref, int maxreflen);
 // Returns the char bytes of a leaf node.
 const char *leaf_node_data(const void *buf);
 
-// Returns the internal offset of the ref value, which is especially useful when it's not inlined.
-int64_t ref_value_offset(const char *ref, int maxreflen);
-
 }  // namespace blob
 
 class blob_t {
@@ -190,21 +187,13 @@ public:
     // Appends size bytes of garbage data to the blob.
     void append_region(buf_parent_t root, int64_t size);
 
-    // Prepends size bytes of garbage data to the blob.
-    void prepend_region(buf_parent_t root, int64_t size);
-
     // Removes size bytes of data from the end of the blob.  size must
     // be <= valuesize().
     void unappend_region(buf_parent_t root, int64_t size);
 
-    // Removes size bytes of data from the beginning of the blob.
-    // size must be <= valuesize().
-    void unprepend_region(buf_parent_t root, int64_t size);
-
-    // Empties the blob, making its valuesize() be zero.  Equivalent
-    // to unappend_region(txn, valuesize()) or unprepend_region(txn,
-    // valuesize()).  In particular, you can be sure that the blob
-    // holds no internal blocks, once it has been cleared.
+    // Empties the blob, making its valuesize() be zero.  Equivalent to
+    // unappend_region(txn, valuesize()).  In particular, you can be sure that the
+    // blob holds no internal blocks, once it has been cleared.
     void clear(buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with
@@ -215,18 +204,17 @@ public:
 
 private:
     bool traverse_to_dimensions(buf_parent_t parent, int levels,
-                                int64_t old_offset, int64_t old_size,
-                                int64_t new_offset, int64_t new_size,
+                                int64_t smaller_size, int64_t bigger_size,
                                 blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(buf_parent_t parent, int levels,
-                                int64_t new_offset, int64_t new_size);
+                                int64_t new_size);
     bool shift_at_least(buf_parent_t parent, int levels, int64_t min_shift);
     void consider_big_shift(buf_parent_t parent, int levels,
                             int64_t *min_shift);
     void consider_small_shift(buf_parent_t parent, int levels,
                               int64_t *min_shift);
     void deallocate_to_dimensions(buf_parent_t parent, int levels,
-                                  int64_t new_offset, int64_t new_size);
+                                  int64_t new_size);
     int add_level(buf_parent_t parent, int levels);
     bool remove_level(buf_parent_t parent, int *levels_ref);
 
