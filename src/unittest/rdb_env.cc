@@ -222,7 +222,7 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const poin
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const changefeed_update_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const changefeed_subscribe_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 

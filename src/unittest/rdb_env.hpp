@@ -84,7 +84,7 @@ private:
         void operator()(const batched_insert_t &br);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
-        void NORETURN operator()(const changefeed_update_t &);
+        void NORETURN operator()(const changefeed_subscribe_t &);
         void NORETURN operator()(UNUSED const sindex_create_t &s);
         void NORETURN operator()(UNUSED const sindex_drop_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);

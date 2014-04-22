@@ -206,7 +206,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               ctx->changefeed_manager.get(),
+               // RSI: none of the rest of these are stored in the context;
+               // double-check how many contexts there are.
+               &ctx->changefeed_client,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
@@ -363,20 +365,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
-    // RSI: make this update a subscribe
-    void operator()(const changefeed_update_t &u) {
-        debugf("%d\n", u.action);
-        switch (u.action) {
-        case changefeed_update_t::SUBSCRIBE: {
-            store->changefeed_server.add_client(u.addr);
-        } break;
-        case changefeed_update_t::UNSUBSCRIBE: // fallthru
-        default: unreachable();
-        }
-        response->response = changefeed_update_response_t();
-        boost::get<changefeed_update_response_t>(&response->response)->peers.insert(
-            ql_env.changefeed_manager->get_manager()
-            ->get_connectivity_service()->get_me());
+    void operator()(const changefeed_subscribe_t &u) {
+        debugf("Subscribing to %p.\n", store);
+        store->changefeed_server.add_client(u.addr);
+        response->response = changefeed_subscribe_response_t();
+        boost::get<changefeed_subscribe_response_t>(&response->response)
+            ->addrs.push_back( store->changefeed_server.get_stop_addr());
     }
 
     void operator()(const sindex_create_t &c) {
@@ -449,7 +443,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               ctx->changefeed_manager.get(),
+               &ctx->changefeed_client,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),

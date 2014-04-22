@@ -34,14 +34,8 @@ class table_t;
 namespace changefeed {
 
 struct msg_t {
+    // RSI: make this client_t::addr_t
     typedef mailbox_addr_t<void(msg_t)> addr_t;
-    struct start_t  {
-        start_t() { }
-        explicit start_t(const mailbox_addr_t<void(addr_t)> &_stop_addr)
-            : stop_addr(_stop_addr) { }
-        mailbox_addr_t<void(addr_t)> stop_addr;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
     struct change_t {
         change_t();
         explicit change_t(const rdb_modification_report_t *report);
@@ -55,69 +49,44 @@ struct msg_t {
     msg_t(msg_t &&msg);
     msg_t(const msg_t &msg);
     explicit msg_t(stop_t &&op);
-    explicit msg_t(start_t &&op);
     explicit msg_t(change_t &&op);
 
     // Starts with STOP to avoid doing work for default initialization.
-    boost::variant<stop_t, start_t, change_t> op;
+    boost::variant<stop_t, change_t> op;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 class server_t {
 public:
+    typedef mailbox_addr_t<void(msg_t::addr_t)> addr_t;
     server_t(mailbox_manager_t *_manager);
     void add_client(const msg_t::addr_t &addr);
     void send_all(const msg_t &msg);
+    addr_t get_stop_addr();
 private:
     mailbox_manager_t *manager;
-    std::set<msg_t::addr_t> clients;
+    std::map<msg_t::addr_t, scoped_ptr_t<cond_t> > clients;
     mailbox_t<void(msg_t::addr_t)> stop_mailbox;
+    auto_drainer_t drainer;
+};
+
+class feed_t;
+class client_t : public home_thread_mixin_t {
+public:
+    client_t(mailbox_manager_t *_manager);
+    ~client_t();
+    // Throws QL exceptions.
+    counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
+    void remove_feed(const uuid_u &uuid);
+    mailbox_manager_t *get_manager() { return manager; }
+private:
+    friend class sub_t;
+    mailbox_manager_t *manager;
+    std::map<uuid_u, counted_t<feed_t> > feeds;
 };
 
 } // namespace changefeed
-
-class changefeed_manager_t : public home_thread_mixin_t {
-public:
-    changefeed_manager_t(mailbox_manager_t *_manager);
-    ~changefeed_manager_t();
-
-    // Uses the home thread of the subscribing stream, NOT the home thread of
-    // the changefeed manager.
-    class subscription_t : public home_thread_mixin_t {
-    public:
-        subscription_t(uuid_u uuid,
-                       base_namespace_repo_t *ns_repo,
-                       changefeed_manager_t *manager)
-        THROWS_ONLY(cannot_perform_query_exc_t);
-        ~subscription_t();
-        std::vector<counted_t<const datum_t> > get_els(
-            batcher_t *batcher, const signal_t *interruptor);
-
-        void add_el(counted_t<const datum_t> d);
-        void abort(const char *msg);
-    private:
-        void maybe_signal_cond() THROWS_NOTHING;
-
-        bool finished;
-        std::exception_ptr exc;
-        cond_t *cond; // NULL unless we're waiting.
-        std::deque<counted_t<const datum_t> > els;
-
-        changefeed_manager_t *manager;
-        std::map<uuid_u, scoped_ptr_t<changefeed_t> >::iterator changefeed;
-
-        scoped_ptr_t<auto_drainer_t> drainer;
-    };
-
-    // Throws query language exceptions.
-    counted_t<datum_stream_t> changefeed(const counted_t<table_t> &tbl, env_t *env);
-    mailbox_manager_t *get_manager() { return manager; }
-private:
-    mailbox_manager_t *manager;
-    std::map<uuid_u, scoped_ptr_t<changefeed_t> > changefeeds;
-};
-
 } // namespace ql
 
 #endif // RDB_PROTOCOL_CHANGEFEED_HPP_

@@ -323,13 +323,16 @@ void add_status(const single_sindex_status_t &new_status,
 }  // namespace rdb_protocol
 
 rdb_context_t::rdb_context_t()
-    : extproc_pool(NULL), ns_repo(NULL),
-    cross_thread_namespace_watchables(get_num_threads()),
-    cross_thread_database_watchables(get_num_threads()),
-    directory_read_manager(NULL),
-    signals(get_num_threads()),
-    ql_stats_membership(&get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
-    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
+    : extproc_pool(NULL),
+      ns_repo(NULL),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads()),
+      directory_read_manager(NULL),
+      signals(get_num_threads()),
+      changefeed_client(NULL),
+      ql_stats_membership(
+          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 { }
 
 rdb_context_t::rdb_context_t(
@@ -352,7 +355,7 @@ rdb_context_t::rdb_context_t(
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id),
-      changefeed_manager(new ql::changefeed_manager_t(mailbox_manager)),
+      changefeed_client(mailbox_manager),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {
@@ -441,8 +444,8 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol::monokey_region(sindex_list_region_key());
     }
 
-    region_t operator()(const changefeed_update_t &u) const {
-        return u.region;
+    region_t operator()(const changefeed_subscribe_t &s) const {
+        return s.region;
     }
 
     region_t operator()(const sindex_status_t &ss) const {
@@ -788,8 +791,8 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol::monokey_region(pd.key);
     }
 
-    region_t operator()(const changefeed_update_t &u) const {
-        return u.region;
+    region_t operator()(const changefeed_subscribe_t &s) const {
+        return s.region;
     }
 
     region_t operator()(const sindex_create_t &s) const {
@@ -897,7 +900,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
-    bool operator()(const changefeed_update_t &u) const {
+    bool operator()(const changefeed_subscribe_t &u) const {
         return rangey_write(u);
     }
 
@@ -955,13 +958,15 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_write_t &) const { monokey_response(); }
     void operator()(const point_delete_t &) const { monokey_response(); }
 
-    void operator()(const changefeed_update_t &) const {
-        response_out->response = changefeed_update_response_t();
-        auto out = boost::get<changefeed_update_response_t>(&response_out->response);
+    void operator()(const changefeed_subscribe_t &) const {
+        response_out->response = changefeed_subscribe_response_t();
+        auto out = boost::get<changefeed_subscribe_response_t>(&response_out->response);
         for (size_t i = 0; i < count; ++i) {
-            auto res = boost::get<changefeed_update_response_t>(
+            auto res = boost::get<changefeed_subscribe_response_t>(
                 &responses[i].response);
-            out->peers.insert(res->peers.begin(), res->peers.end());
+            out->addrs.reserve(out->addrs.size() + res->addrs.size());
+            std::move(res->addrs.begin(), res->addrs.end(),
+                      std::back_inserter(out->addrs));
         }
     }
 
@@ -1056,7 +1061,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(changefeed_update_response_t, peers);
+RDB_IMPL_ME_SERIALIZABLE_1(changefeed_subscribe_response_t, addrs);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
@@ -1070,11 +1075,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
 
 RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(changefeed_update_t::action_t,
-                                      int8_t,
-                                      changefeed_update_t::SUBSCRIBE,
-                                      changefeed_update_t::UNSUBSCRIBE);
-RDB_IMPL_ME_SERIALIZABLE_3(changefeed_update_t, addr, action, region);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
 RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);

@@ -210,7 +210,7 @@ public:
     scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
     uuid_u machine_id;
 
-    scoped_ptr_t<ql::changefeed_manager_t> changefeed_manager;
+    ql::changefeed::client_t changefeed_client;
 
     perfmon_collection_t ql_stats_collection;
     perfmon_membership_t ql_stats_membership;
@@ -442,9 +442,9 @@ struct point_delete_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-struct changefeed_update_response_t {
-    changefeed_update_response_t() { }
-    std::set<peer_id_t> peers;
+struct changefeed_subscribe_response_t {
+    changefeed_subscribe_response_t() { }
+    std::vector<ql::changefeed::server_t::addr_t> addrs;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
@@ -472,7 +472,7 @@ struct write_response_t {
                    // batched_replace_response_t is also for batched_insert
                    point_write_response_t,
                    point_delete_response_t,
-                   changefeed_update_response_t,
+                   changefeed_subscribe_response_t,
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sync_response_t> response;
@@ -567,15 +567,12 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class changefeed_update_t {
+class changefeed_subscribe_t {
 public:
-    enum action_t { SUBSCRIBE, UNSUBSCRIBE };
-    changefeed_update_t() { }
-    changefeed_update_t(mailbox_addr_t<void(ql::changefeed::msg_t)> _addr,
-                        action_t _action)
-        : addr(_addr), action(_action), region(region_t::universe()) { }
+    changefeed_subscribe_t() { }
+    changefeed_subscribe_t(mailbox_addr_t<void(ql::changefeed::msg_t)> _addr)
+        : addr(_addr), region(region_t::universe()) { }
     mailbox_addr_t<void(ql::changefeed::msg_t)> addr;
-    action_t action;
     region_t region;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -625,7 +622,7 @@ struct write_t {
                    batched_insert_t,
                    point_write_t,
                    point_delete_t,
-                   changefeed_update_t,
+                   changefeed_subscribe_t,
                    sindex_create_t,
                    sindex_drop_t,
                    sync_t> write;
