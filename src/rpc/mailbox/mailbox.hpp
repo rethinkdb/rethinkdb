@@ -94,9 +94,9 @@ public:
     address_t get_address() const;
 };
 
-/* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
-a coroutine; it does not block. If the mailbox does not exist or the peer is
-inaccessible, `send()` will silently fail. */
+/* `send()` sends a message to a mailbox. `send()` can block and must be called
+in a coroutine. If the mailbox does not exist or the peer is inaccessible, `send()`
+will silently fail. */
 
 void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
@@ -144,11 +144,14 @@ private:
                                       mailbox_write_callback_t *callback);
 
     void on_message(peer_id_t source_peer, read_stream_t *stream);
+    void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
 
+    enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
     void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
-                                int64_t stream_data_offset);
+                                int64_t stream_data_offset,
+                                force_yield_t force_yield);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

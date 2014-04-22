@@ -20,16 +20,8 @@ direct_reader_business_card_t direct_reader_t::get_business_card() {
 void direct_reader_t::on_read(
         const read_t &read,
         const mailbox_addr_t<void(read_response_t)> &cont) {
-    coro_t::spawn_sometime(std::bind(
-        &direct_reader_t::perform_read, this,
-        read, cont,
-        auto_drainer_t::lock_t(&drainer)));
-}
+    auto_drainer_t::lock_t keepalive(&drainer);
 
-void direct_reader_t::perform_read(
-        const read_t &read,
-        const mailbox_addr_t<void(read_response_t)> &cont,
-        auto_drainer_t::lock_t keepalive) {
     try {
         read_token_pair_t token_pair;
         svs->new_read_token_pair(&token_pair);
@@ -46,9 +38,7 @@ void direct_reader_t::perform_read(
                   order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
                   &token_pair,
                   keepalive.get_drain_signal());
-
         send(mailbox_manager, cont, response);
-
     } catch (const interrupted_exc_t &) {
         /* ignore */
     }
