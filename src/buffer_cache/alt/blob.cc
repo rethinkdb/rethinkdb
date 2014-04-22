@@ -727,8 +727,8 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
         return false;
     }
 
-    // If the size is zero and the offset is zero, the entire tree will have already
-    // been deallocated.  (But we don't do this, at this precise moment..)
+    // If the size is zero, the entire tree will have already been deallocated.  (But
+    // we don't do this, at this precise moment..)
     rassert(bigsize != 0);
     if (bigsize != 0) {
 
