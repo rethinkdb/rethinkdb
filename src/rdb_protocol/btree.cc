@@ -119,7 +119,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(block_size);
     null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-            expired_t::NO, deletion_context->balancing_detacher(), &null_cb);
+            deletion_context->balancing_detacher(), &null_cb);
 }
 
 void kv_location_set(keyvalue_location_t *kv_location,
@@ -160,7 +160,7 @@ void kv_location_set(keyvalue_location_t *kv_location,
     null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(block_size);
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
-                          timestamp, expired_t::NO,
+                          timestamp,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
@@ -184,7 +184,6 @@ void kv_location_set(keyvalue_location_t *kv_location,
     null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-                          expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 

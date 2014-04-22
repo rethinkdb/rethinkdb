@@ -937,7 +937,7 @@ void find_keyvalue_location_for_read(
 void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
-        const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        const btree_key_t *key, repli_timestamp_t tstamp,
         const value_deleter_t *detacher,
         key_modification_callback_t *km_callback) {
     key_modification_proof_t km_proof
@@ -987,8 +987,6 @@ void apply_keyvalue_change(
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            guarantee(expired == expired_t::NO);
-
             rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
             {
                 buf_write_t write(&kv_loc->buf);
@@ -1001,7 +999,6 @@ void apply_keyvalue_change(
             }
             population_change = -1;
             kv_loc->stats->pm_keys_set.record();
-            // RSI: Remove pm_keys_expired.
         } else {
             population_change = 0;
         }

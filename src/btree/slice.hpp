@@ -25,19 +25,16 @@ public:
           btree_collection_membership(parent, &btree_collection, "btree-" + identifier),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
-          pm_keys_expired(secs_to_ticks(1)),
           pm_keys_membership(&btree_collection,
               &pm_keys_read, "keys_read",
-              &pm_keys_set, "keys_set",
-              &pm_keys_expired, "keys_expired")
+              &pm_keys_set, "keys_set")
     { }
 
     perfmon_collection_t btree_collection;
     perfmon_membership_t btree_collection_membership;
     perfmon_rate_monitor_t
         pm_keys_read,
-        pm_keys_set,
-        pm_keys_expired;
+        pm_keys_set;
     perfmon_multi_membership_t pm_keys_membership;
 };
 
