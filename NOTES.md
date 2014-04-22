@@ -1,3 +1,14 @@
+# Release 1.12.4 (The Wizard of Oz)
+
+Released on 2014-04-22
+
+Bug fix update.
+
+* Fixed a bug that caused `Assertion failed: [page->is_disk_backed()]` errors (#2260)
+* Fixed a bug that caused incorrect query results and frequent server crashes under low memory conditions (#2237)
+
+--
+
 # Release 1.12.3 (The Wizard of Oz)
 
 Released on 2014-04-17

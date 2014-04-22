@@ -16,7 +16,9 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
+#ifndef VALGRIND
 const int SEGV_STACK_SIZE = SIGSTKSZ;
+#endif  // VALGRIND
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
