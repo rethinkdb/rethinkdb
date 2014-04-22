@@ -35,8 +35,35 @@ private:
 
 class json_protocol_t {
 public:
-    static bool parse_query(ql::protob_t<Query> *query, const char *data, UNUSED int32_t size) {
-        return json_shim::parse_json_pb(underlying_protob_value(query), data);
+    static bool parse_query(tcp_conn_t *conn,
+                            signal_t *interruptor,
+                            query_handler_t *handler,
+                            ql::protob_t<Query> *query_out) {
+        int64_t token;
+        int32_t size;
+        conn->read(&token, sizeof(token), interruptor);
+        conn->read(&size, sizeof(size), interruptor);
+
+        if (size < 0) {
+            Response error_response;
+            handler->unparseable_query(token, &error_response,
+                                       strprintf("Negative payload size (%d).", size));
+            send_response(error_response, conn, interruptor);
+            return false;
+        } else {
+            scoped_array_t<char> data(size + 1);
+            conn->read(data.data(), size, interruptor);
+            data[size] = 0; // Null terminate the string, which the json parser requires
+
+            if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
+                Response error_response;
+                handler->unparseable_query(token, &error_response,
+                                           "Client is buggy (failed to deserialize query).");
+                send_response(error_response, conn, interruptor);
+                return false;
+            }
+        }
+        return true;
     }
 
     static void send_response(const Response &response, tcp_conn_t *conn, signal_t *interruptor) {
@@ -55,8 +82,33 @@ public:
 
 class protobuf_protocol_t {
 public:
-    static bool parse_query(ql::protob_t<Query> *query, const char *data, int32_t size) {
-        return underlying_protob_value(query)->ParseFromArray(data, size);
+    static bool parse_query(tcp_conn_t *conn,
+                            signal_t *interruptor,
+                            query_handler_t *handler,
+                            ql::protob_t<Query> *query_out) {
+        int32_t size;
+        conn->read(&size, sizeof(size), interruptor);
+
+        if (size < 0) {
+            Response error_response;
+            handler->unparseable_query(-1, &error_response,
+                                       strprintf("Negative payload size (%d).", size));
+            send_response(error_response, conn, interruptor);
+            return false;
+        } else {
+            scoped_array_t<char> data(size);
+            conn->read(data.data(), size, interruptor);
+
+            if (!query_out->get()->ParseFromArray(data.data(), size)) {
+                Response error_response;
+                int64_t token = query_out->get()->has_token() ? query_out->get()->token() : -1;
+                handler->unparseable_query(token, &error_response,
+                                           "Client is buggy (failed to deserialize query).");
+                send_response(error_response, conn, interruptor);
+                return false;
+            }
+        }
+        return true;
     }
 
     static void send_response(const Response &response, tcp_conn_t *conn, signal_t *interruptor) {
@@ -225,35 +277,13 @@ template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      client_context_t *client_ctx) {
     for (;;) {
-        ql::protob_t<Query> query;
-        make_empty_protob_bearer(&query);
-        bool send_response = false;
-        Response response;
+        ql::protob_t<Query> query(ql::make_counted_query());
 
-        int32_t size;
-        conn->read(&size, sizeof(int32_t), client_ctx->interruptor);
-        if (size < 0) {
-            handler->unparseable_query(query, &response,
-                                       strprintf("Negative payload size (%d).", size));
-            send_response = true;
-        } else {
-            scoped_array_t<char> data(size + 1);
-            conn->read(data.data(), size, client_ctx->interruptor);
-            data[size] = 0; // Null terminate the string, which some protocols require
-
-            if (!protocol_t::parse_query(&query, data.data(), size)) {
-                handler->unparseable_query(query, &response,
-                                           "Client is buggy (failed to deserialize query).");
-                send_response = true;
+        if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
+            Response response;
+            if (handler->run_query(query, &response, client_ctx)) {
+                protocol_t::send_response(response, conn, client_ctx->interruptor);
             }
-        }
-
-        if (!send_response) {
-            send_response = handler->run_query(query, &response, client_ctx);
-        }
-
-        if (send_response) {
-            protocol_t::send_response(response, conn, client_ctx->interruptor);
         }
     }
 }
@@ -329,22 +359,27 @@ void query_server_t::handle(const http_req_t &req,
             http_conn_cache.erase(conn_id);
             result->code = HTTP_OK;
         } else {
-            ql::protob_t<Query> query;
-            make_empty_protob_bearer(&query);
+            ql::protob_t<Query> query(ql::make_counted_query());
+
+            // Parse the token out from the start of the request
+            const char *data = req.body.data();
+            int64_t token = *reinterpret_cast<const int64_t *>(data);
+            data += sizeof(token);
+
             // The JSON protocol doesn't actually require the size, so we pass 0 rather than
             // risk an inaccurate length from the header - the query is null-terminated
             const bool parse_succeeded =
-                json_protocol_t::parse_query(&query, req.body.data(), 0);
+                json_shim::parse_json_pb(query.get(), token, data);
 
             Response response;
             if (!parse_succeeded) {
-                handler->unparseable_query(query, &response,
+                handler->unparseable_query(token, &response,
                                            "Client is buggy (failed to deserialize query).");
             } else {
                 boost::shared_ptr<http_conn_cache_t::http_conn_t> conn =
                     http_conn_cache.find(conn_id);
                 if (!conn) {
-                    handler->unparseable_query(query, &response,
+                    handler->unparseable_query(token, &response,
                                                "This HTTP connection is not open.");
                 } else {
                     // Make sure the connection is not already running a query
@@ -376,7 +411,6 @@ void query_server_t::handle(const http_req_t &req,
                 }
             }
 
-            int64_t token = response.token();
             int32_t size;
             std::string str;
 

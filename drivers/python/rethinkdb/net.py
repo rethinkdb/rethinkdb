@@ -22,7 +22,7 @@ class Query(object):
         self.global_optargs = global_optargs
 
     def serialize(self):
-        res = [self.type, self.token]
+        res = [self.type]
         if self.term is not None:
             res.append(self.term.build())
         if self.global_optargs is not None:
@@ -286,7 +286,7 @@ class Connection(object):
 
         # Send json
         query_str = query.serialize().encode('utf-8')
-        query_header = struct.pack("<L", len(query_str))
+        query_header = struct.pack("<QL", query.token, len(query_str))
         self._sock_sendall(query_header + query_str)
 
         if async or ('noreply' in opts and opts['noreply']):

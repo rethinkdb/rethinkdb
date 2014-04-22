@@ -169,15 +169,15 @@ void extract(cJSON *json, Datum::AssocPair *ap) {
 template<>
 void extract(cJSON *json, Query *q) {
     transfer(cJSON_GetArrayItem(json, 0), q, &Query::set_type);
-    transfer(cJSON_GetArrayItem(json, 1), q, &Query::set_token);
-    transfer(cJSON_GetArrayItem(json, 2), q, &Query::mutable_query);
+    transfer(cJSON_GetArrayItem(json, 1), q, &Query::mutable_query);
     q->set_accepts_r_json(true);
-    transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
+    transfer_arr(cJSON_GetArrayItem(json, 2), q, &Query::add_global_optargs);
 }
 
-bool parse_json_pb(Query *q, const char *str) THROWS_NOTHING {
+bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
     try {
         q->Clear();
+        q->set_token(token);
         scoped_cJSON_t json_holder(cJSON_Parse(str));
         cJSON *json = json_holder.get();
         if (json == NULL) return false;

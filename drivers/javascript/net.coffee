@@ -271,13 +271,14 @@ class Connection extends events.EventEmitter
 
     _sendQuery: (query) ->
         # Serialize query to JSON
-        data = [query.type, query.token]
+        data = [query.type]
         if !(query.query is undefined)
             data.push(query.query)
             if query.global_optargs? and Object.keys(query.global_optargs).length > 0
                 data.push(query.global_optargs)
 
-        @write new Buffer(JSON.stringify(data))
+        @_writeQuery(query.token, JSON.stringify(data))
+
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -375,6 +376,13 @@ class TcpConnection extends Connection
         @rawSocket.destroy()
         super()
 
+    _writeQuery: (token, data) ->
+        tokenBuf = new Buffer(8)
+        tokenBuf.writeUInt32LE(token & 0xFFFFFFFF, 0)
+        tokenBuf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
+        @rawSocket.write tokenBuf
+        @write new Buffer(data)
+
     write: (chunk) ->
         lengthBuffer = new Buffer(4)
         lengthBuffer.writeUInt32LE(chunk.length, 0)
@@ -440,6 +448,13 @@ class HttpConnection extends Connection
         # anonymous function
         HttpConnection.__super__.close.call(this, opts, wrappedCb)
     )
+
+    _writeQuery: (token, data) ->
+        buf = new Buffer(data.length + 8)
+        buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
+        buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
+        buf.write(data, 8)
+        @write buf
 
     write: (chunk) ->
         xhr = new XMLHttpRequest
