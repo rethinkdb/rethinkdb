@@ -9,22 +9,6 @@
 #include "concurrency/promise.hpp"
 #include "rdb_protocol/profile.hpp"
 
-struct rdb_value_t;
-class rdb_value_sizer_t;
-class short_value_t;
-class short_value_sizer_t;
-
-template <class> struct sizer_trait_t;
-template <>
-struct sizer_trait_t<rdb_value_t> {
-    typedef rdb_value_sizer_t sizer_type;
-};
-template <>
-struct sizer_trait_t<short_value_t> {
-    typedef short_value_sizer_t sizer_type;
-};
-
-
 // TODO: consider B#/B* trees to improve space efficiency
 
 /* Passing in a pass_back_superblock parameter will cause this function to
@@ -35,12 +19,11 @@ struct sizer_trait_t<short_value_t> {
  * */
 // KSI: It seems like really we should pass the superblock_t via rvalue reference.
 // Is that possible?  (promise_t makes it hard.)
-template <class Value>
-void find_keyvalue_location_for_write(
-        typename sizer_trait_t<Value>::sizer_type *sizer,
+inline void find_keyvalue_location_for_write(
+        value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
         const value_deleter_t *detacher,
-        keyvalue_location_t<Value> *keyvalue_location_out,
+        keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
@@ -77,7 +60,7 @@ void find_keyvalue_location_for_write(
         {
             profile::starter_t starter("Perhaps split node.", trace);
             check_and_handle_split(sizer, &buf, &last_buf, superblock, key,
-                                   static_cast<Value *>(NULL), detacher);
+                                   NULL, detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
@@ -123,7 +106,7 @@ void find_keyvalue_location_for_write(
     }
 
     {
-        scoped_malloc_t<Value> tmp(sizer->max_possible_size());
+        scoped_malloc_t<void> tmp(sizer->max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
         buf_read_t read(&buf);
@@ -140,11 +123,10 @@ void find_keyvalue_location_for_write(
     keyvalue_location_out->buf.swap(buf);
 }
 
-template <class Value>
-void find_keyvalue_location_for_read(
-        typename sizer_trait_t<Value>::sizer_type *sizer,
+inline void find_keyvalue_location_for_read(
+        value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
-        keyvalue_location_t<Value> *keyvalue_location_out,
+        keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
 
@@ -202,7 +184,7 @@ void find_keyvalue_location_for_read(
     }
 
     // Got down to the leaf, now probe it.
-    scoped_malloc_t<Value> value(sizer->max_possible_size());
+    scoped_malloc_t<void> value(sizer->max_possible_size());
     bool value_found;
     {
         buf_read_t read(&buf);
@@ -219,13 +201,12 @@ void find_keyvalue_location_for_read(
 
 enum class expired_t { NO, YES };
 
-template <class Value>
-void apply_keyvalue_change(
-        typename sizer_trait_t<Value>::sizer_type *sizer,
-        keyvalue_location_t<Value> *kv_loc,
+inline void apply_keyvalue_change(
+        value_sizer_t *sizer,
+        keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
         const value_deleter_t *detacher,
-        key_modification_callback_t<Value> *km_callback) {
+        key_modification_callback_t *km_callback) {
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
 

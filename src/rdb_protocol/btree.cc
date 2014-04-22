@@ -76,7 +76,7 @@ void detach_rdb_value(buf_parent_t parent, const void *value) {
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
              superblock_t *superblock, point_read_response_t *response,
              profile::trace_t *trace) {
-    keyvalue_location_t<rdb_value_t> kv_location;
+    keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     find_keyvalue_location_for_read(&sizer, superblock,
                                     store_key.btree_key(), &kv_location,
@@ -90,7 +90,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
     }
 }
 
-void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_delete(keyvalue_location_t *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
                         const deletion_context_t *deletion_context,
@@ -116,12 +116,12 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
 
     kv_location->value.reset();
     rdb_value_sizer_t sizer(block_size);
-    null_key_modification_callback_t<rdb_value_t> null_cb;
+    null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
             expired_t::NO, deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
@@ -156,14 +156,14 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
-    null_key_modification_callback_t<rdb_value_t> null_cb;
+    null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(block_size);
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
                           timestamp, expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
                      repli_timestamp_t timestamp,
@@ -180,7 +180,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
 
-    null_key_modification_callback_t<rdb_value_t> null_cb;
+    null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
                           expired_t::NO,
@@ -200,7 +200,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
-        keyvalue_location_t<rdb_value_t> kv_location;
+        keyvalue_location_t kv_location;
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
         find_keyvalue_location_for_write(&sizer, info.superblock,
                                          info.key->btree_key(),
@@ -417,7 +417,7 @@ void rdb_set(const store_key_t &key,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
              promise_t<superblock_t *> *pass_back_superblock) {
-    keyvalue_location_t<rdb_value_t> kv_location;
+    keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
                                      deletion_context->balancing_detacher(),
@@ -528,7 +528,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace) {
-    keyvalue_location_t<rdb_value_t> kv_location;
+    keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
             deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
@@ -1140,7 +1140,7 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
-                    keyvalue_location_t<rdb_value_t> kv_location;
+                    keyvalue_location_t kv_location;
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
                     find_keyvalue_location_for_write(&sizer,
                                                      super_block,
@@ -1175,7 +1175,7 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
-                    keyvalue_location_t<rdb_value_t> kv_location;
+                    keyvalue_location_t kv_location;
 
                     rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
                     find_keyvalue_location_for_write(&sizer,

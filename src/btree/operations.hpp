@@ -74,10 +74,6 @@ private:
 
 class btree_stats_t;
 
-template <class Value>
-class key_modification_callback_t;
-
-template <class Value>
 class keyvalue_location_t {
 public:
     keyvalue_location_t()
@@ -133,14 +129,13 @@ private:
 
 // KSI: This type is stupid because the only subclass is
 // null_key_modification_callback_t?
-template <class Value>
 class key_modification_callback_t {
 public:
     // Perhaps this modifies the kv_loc in place, swapping in its own
     // scoped_malloc_t.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
-    virtual key_modification_proof_t value_modification(keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+    virtual key_modification_proof_t value_modification(keyvalue_location_t *kv_loc, const btree_key_t *key) = 0;
 
     key_modification_callback_t() { }
 protected:
@@ -152,10 +147,9 @@ private:
 
 
 
-template <class Value>
-class null_key_modification_callback_t : public key_modification_callback_t<Value> {
+class null_key_modification_callback_t : public key_modification_callback_t {
     key_modification_proof_t
-    value_modification(UNUSED keyvalue_location_t<Value> *kv_loc,
+    value_modification(UNUSED keyvalue_location_t *kv_loc,
                        UNUSED const btree_key_t *key) {
         // do nothing
         return key_modification_proof_t::real_proof();
