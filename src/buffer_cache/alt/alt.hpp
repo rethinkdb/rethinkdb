@@ -50,8 +50,6 @@ public:
     ~cache_t();
 
     max_block_size_t max_block_size() const { return page_cache_.max_block_size(); }
-    // RSI: Remove this.
-    max_block_size_t get_block_size() const { return max_block_size(); }
 
     // These todos come from the mirrored cache.  The real problem is that whole
     // cache account / priority thing is just one ghetto hack amidst a dozen other

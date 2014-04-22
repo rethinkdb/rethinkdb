@@ -58,7 +58,7 @@ bool btree_value_fits(max_block_size_t bs, int data_length, const rdb_value_t *v
 // Remember that secondary indexes and the main btree both point to the same rdb
 // value -- you don't want to double-delete that value!
 void actually_delete_rdb_value(buf_parent_t parent, void *value) {
-    blob_t blob(parent.cache()->get_block_size(),
+    blob_t blob(parent.cache()->max_block_size(),
                 static_cast<rdb_value_t *>(value)->value_ref(),
                 blob::btree_maxreflen);
     blob.clear(parent);
@@ -68,7 +68,7 @@ void detach_rdb_value(buf_parent_t parent, const void *value) {
     // This const_cast is ok, since `detach_subtrees` is one of the operations
     // that does not actually change value.
     void *non_const_value = const_cast<void *>(value);
-    blob_t blob(parent.cache()->get_block_size(),
+    blob_t blob(parent.cache()->max_block_size(),
                 static_cast<rdb_value_t *>(non_const_value)->value_ref(),
                 blob::btree_maxreflen);
     blob.detach_subtrees(parent);
@@ -546,7 +546,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
 void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) const {
     // To not destroy constness, we operate on a copy of the value
-    rdb_value_sizer_t sizer(parent.cache()->get_block_size());
+    rdb_value_sizer_t sizer(parent.cache()->max_block_size());
     scoped_malloc_t<rdb_value_t> value_copy(sizer.max_possible_size());
     memcpy(value_copy.get(), value, sizer.size(value));
     actually_delete_rdb_value(parent, value_copy.get());
@@ -576,7 +576,7 @@ void sindex_erase_range(const key_range_t &key_range,
         signal_t *interruptor, bool release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
-    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     sindex_key_range_tester_t tester(key_range);
 
@@ -687,7 +687,7 @@ void rdb_erase_major_range(key_tester_t *tester,
             &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     /* Actually delete the values */
     rdb_value_deleter_t deleter;
@@ -713,7 +713,7 @@ void rdb_erase_small_range(key_tester_t *tester,
              &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     struct on_erase_cb_t {
         static void on_erase(const store_key_t &key, const char *data,
