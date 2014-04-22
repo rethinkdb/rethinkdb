@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/http/progress_app.hpp"
 
+#include <functional>
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
@@ -151,7 +153,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
             mbox_manager,
-            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
+            std::bind(&promise_t<std::pair<int, int> >::pulse, value, ph::_1));
 
         send(mbox_manager, backfiller->request_progress_mailbox, loc.backfill_session_id, resp_mbox->get_address());
 
