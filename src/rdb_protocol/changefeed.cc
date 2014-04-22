@@ -36,11 +36,16 @@ void server_t::add_client(const msg_t::addr_t &addr) {
             auto_drainer_t::lock_t coro_lock(&drainer);
             disconnect_watcher_t disconnect(manager->get_connectivity_service(),
                                             addr.get_peer());
-            wait_any_t wait_any(&disconnect, stopped, coro_lock.get_drain_signal());
-            wait_any.wait_lazily_unordered();
+            {
+                wait_any_t wait_any(&disconnect, stopped, coro_lock.get_drain_signal());
+                wait_any.wait_lazily_unordered();
+            }
+            debugf("Stopping...\n");
             rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
             coro_spot.write_signal()->wait_lazily_unordered();
-            clients.erase(addr);
+            size_t erased = clients.erase(addr);
+            guarantee(erased == 1);
+            debugf("Stopped!\n");
         }
     );
 }
@@ -77,7 +82,7 @@ RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
 class sub_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    sub_t(counted_t<feed_t> _feed);
+    sub_t(feed_t *_feed);
     ~sub_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
@@ -88,7 +93,7 @@ private:
     std::exception_ptr exc;
     cond_t *cond; // NULL unless we're waiting.
     std::deque<counted_t<const datum_t> > els;
-    counted_t<feed_t> feed;
+    feed_t *feed;
     auto_drainer_t drainer;
     DISABLE_COPYING(sub_t);
 };
@@ -97,10 +102,13 @@ class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t
 public:
     feed_t(client_t *client, base_namespace_repo_t *ns_repo, uuid_u uuid);
     ~feed_t();
-    void add_sub(sub_t *sub);
-    void del_sub(sub_t *sub);
+    void add_sub(sub_t *sub) THROWS_NOTHING;
+    void del_sub(sub_t *sub) THROWS_NOTHING;
     template<class T> void each_sub(const T &t) THROWS_NOTHING;
+    bool can_be_removed();
 private:
+    client_t *client;
+    uuid_u uuid;
     mailbox_manager_t *manager;
     mailbox_t<void(msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
@@ -108,6 +116,8 @@ private:
     wait_any_t any_disconnect;
     std::vector<std::set<sub_t *> > subs;
     rwlock_t subs_lock;
+    int64_t num_subs;
+    bool detached;
     auto_drainer_t drainer;
 };
 
@@ -151,7 +161,7 @@ private:
     scoped_ptr_t<sub_t> sub;
 };
 
-sub_t::sub_t(counted_t<feed_t> _feed) : cond(NULL), feed(_feed) {
+sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
     auto_drainer_t::lock_t lock(&drainer);
     feed->add_sub(this);
 }
@@ -160,11 +170,9 @@ sub_t::~sub_t() {
     debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
     abort("Subscription destroyed (shutting down?).");
-    if (feed.has()) {
-        debugf("del_sub %p\n", this);
-        // RSI: make sure this runs after `feed->add_sub` is *done*.
-        feed->del_sub(this);
-    }
+    debugf("del_sub %p\n", this);
+    // RSI: make sure this runs after `feed->add_sub` is *done*.
+    feed->del_sub(this);
     debugf("destroyed %p\n", this);
 }
 
@@ -228,19 +236,34 @@ void sub_t::maybe_signal_cond() THROWS_NOTHING {
     }
 }
 
-void feed_t::add_sub(sub_t *sub) {
+// If this throws we might leak the increment to `num_subs`.
+void feed_t::add_sub(sub_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
+    auto_drainer_t::lock_t lock(&drainer);
+    num_subs += 1;
     rwlock_in_line_t spot(&subs_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     subs[sub->home_thread().threadnum].insert(sub);
+    if (detached) {
+        sub->abort("Disconnected from peer.");
+    }
 }
-void feed_t::del_sub(sub_t *sub) {
-    // RSI: unsubscribe
+// Can't throw because it's called in a destructor.
+void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
-    rwlock_in_line_t spot(&subs_lock, access_t::write);
-    spot.write_signal()->wait_lazily_unordered();
-    size_t erased = subs[sub->home_thread().threadnum].erase(sub);
-    guarantee(erased == 1);
+    {
+        auto_drainer_t::lock_t lock(&drainer);
+        rwlock_in_line_t spot(&subs_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        size_t erased = subs[sub->home_thread().threadnum].erase(sub);
+        guarantee(erased == 1);
+    }
+    num_subs -= 1;
+    if (num_subs == 0) {
+        // It's possible that by the time we get the lock to remove the feed,
+        // another subscriber might have already found the feed and subscribed.
+        client->maybe_remove_feed(uuid);
+    }
 }
 
 // RSI: does this actually never throw?
@@ -268,10 +291,19 @@ void feed_t::each_sub(const T &t) THROWS_NOTHING {
          });
 }
 
-feed_t::feed_t(client_t *client, base_namespace_repo_t *ns_repo, uuid_u uuid)
-    : manager(client->get_manager()),
+bool feed_t::can_be_removed() {
+    return num_subs == 0;
+}
+
+feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
+    : client(_client),
+      uuid(_uuid),
+      manager(client->get_manager()),
       mailbox(manager, [this](changefeed::msg_t msg) { handle_msg(this, msg); }),
-      subs(get_num_threads()) {
+      subs(get_num_threads()),
+      num_subs(0),
+      detached(false) {
+    // RSI: this doesn't do anything, does it?
     auto_drainer_t::lock_t lock(&drainer);
     base_namespace_repo_t::access_t access(ns_repo, uuid, lock.get_drain_signal());
     auto nif = access.get_namespace_if();
@@ -295,20 +327,26 @@ feed_t::feed_t(client_t *client, base_namespace_repo_t *ns_repo, uuid_u uuid)
     }
     // We spawn now to make sure `this` is valid when it runs.
     coro_t::spawn_now_dangerously(
-        [this, client, uuid]() {
+        [this]() {
             auto_drainer_t::lock_t coro_lock(&drainer);
             wait_any_t wait_any(&any_disconnect, coro_lock.get_drain_signal());
             wait_any.wait_lazily_unordered();
-            client->remove_feed(uuid);
+            if (!detached) {
+                detached = true;
+                client->detach_feed(uuid);
+            }
             each_sub([](sub_t *sub) { sub->abort("Disconnected from peer."); });
         }
     );
 }
 
 feed_t::~feed_t() {
+    debugf("~feed_t()\n");
+    detached = true;
     for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
         send(manager, *it, mailbox.get_address());
     }
+    debugf("~feed_t() DONE\n");
 }
 
 client_t::client_t(mailbox_manager_t *_manager) : manager(_manager) { }
@@ -316,30 +354,76 @@ client_t::~client_t() { }
 
 counted_t<datum_stream_t>
 client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
+    debugf("CLIENT: calling `new_feed`...\n");
     try {
         uuid_u uuid = tbl->get_uuid();
-        counted_t<feed_t> feed;
+        scoped_ptr_t<sub_t> sub;
         {
+            threadnum_t old_thread = get_thread_id();
             on_thread_t th(home_thread());
+            debugf("CLIENT: On home thread...\n");
+            auto_drainer_t::lock_t lock(&drainer);
+            rwlock_in_line_t spot(&feeds_lock, access_t::write);
+            spot.read_signal()->wait_lazily_unordered();
+            debugf("CLIENT: getting feed...\n");
             auto feed_it = feeds.find(uuid);
             if (feed_it == feeds.end()) {
-                auto val = make_counted<feed_t>(
-                    this, env->cluster_access.ns_repo, uuid);
+                debugf("CLIENT: making feed...\n");
+                spot.write_signal()->wait_lazily_unordered();
+                auto val = make_scoped<feed_t>(this, env->cluster_access.ns_repo, uuid);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
-            feed = feed_it->second;
+            on_thread_t th2(old_thread);
+            sub.init(new sub_t(feed_it->second.get()));
         }
         return counted_t<datum_stream_t>(
-            new stream_t(make_scoped<sub_t>(feed), tbl->backtrace()));
+            new stream_t(std::move(sub), tbl->backtrace()));
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
                     tbl->name.c_str(), e.what());
     }
 }
-void client_t::remove_feed(const uuid_u &uuid) {
+
+// This is called when there are no more subs for a feed.  It might not do
+// anything if another sub managed to find the feed before it gets the lock.
+void client_t::maybe_remove_feed(const uuid_u &uuid) {
+    debugf("CLIENT: maybe_remove_feed...\n");
     assert_thread();
-    feeds.erase(uuid);
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&feeds_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto feed_it = feeds.find(uuid);
+    if (feed_it == feeds.end()) {
+        auto detached_feed_it = detached_feeds.find(uuid);
+        guarantee(detached_feed_it != detached_feeds.end());
+        if (detached_feed_it->second->can_be_removed()) {
+            debugf("CLIENT: removing DETACHED_feed...\n");
+            detached_feeds.erase(detached_feed_it);
+        }
+    } else {
+        if (feed_it->second->can_be_removed()) {
+            debugf("CLIENT: removing feed...\n");
+            feeds.erase(feed_it);
+        }
+    }
+    debugf("CLIENT: maybe remove feed DONE!\n");
+}
+
+// This detaches a feed so that no new subs can find it.  This is used when one
+// of our peers that we're reading changes from disconnects.  We need to keep
+// the feed somewhere until all the subs are done with it, but we don't want to
+// let new subs find it because the user might bring the disconnected peer back
+// up and want to start a new feed before the old feed is destroyed.
+void client_t::detach_feed(const uuid_u &uuid) {
+    assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&feeds_lock, access_t::write);
+    spot.write_signal()->wait_lazily_unordered();
+    auto feed_it = feeds.find(uuid);
+    guarantee(feed_it != feeds.end());
+    detached_feeds.insert(std::make_pair(uuid, std::move(feed_it->second)));
+    feeds.erase(feed_it);
 }
 
 } // namespace changefeed
