@@ -16,6 +16,10 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
+namespace profile {
+class trace_t;
+}
+
 class btree_slice_t;
 class value_deleter_t;
 
@@ -252,6 +256,28 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out);
 
-#include "btree/operations.tcc"
+void find_keyvalue_location_for_write(
+        value_sizer_t *sizer,
+        superblock_t *superblock, const btree_key_t *key,
+        const value_deleter_t *detacher,
+        keyvalue_location_t *keyvalue_location_out,
+        btree_stats_t *stats,
+        profile::trace_t *trace,
+        promise_t<superblock_t *> *pass_back_superblock = NULL);
+
+void find_keyvalue_location_for_read(
+        value_sizer_t *sizer,
+        superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t *keyvalue_location_out,
+        btree_stats_t *stats, profile::trace_t *trace);
+
+enum class expired_t { NO, YES };
+
+void apply_keyvalue_change(
+        value_sizer_t *sizer,
+        keyvalue_location_t *kv_loc,
+        const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        const value_deleter_t *detacher,
+        key_modification_callback_t *km_callback);
 
 #endif  // BTREE_OPERATIONS_HPP_
