@@ -183,6 +183,7 @@ private:
 class broadcaster_t::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t d) THROWS_NOTHING :
+        local_listener(NULL), listener_id(generate_uuid()),
         write_mailbox(d.write_mailbox), is_readable(false),
         queue_count(),
         queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
@@ -233,6 +234,10 @@ public:
         return write_mailbox.get_peer();
     }
 
+    // TODO! An experimental setup...
+    listener_t *local_listener;
+    uuid_u listener_id;
+
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(listener_business_card_t to_send_intro_to,
@@ -243,8 +248,9 @@ private:
 
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
              listener_intro_t(intro_timestamp,
-                                          upgrade_mailbox.get_address(),
-                                          downgrade_mailbox.get_address()));
+                              upgrade_mailbox.get_address(),
+                              downgrade_mailbox.get_address(),
+                              listener_id));
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
@@ -307,6 +313,18 @@ private:
 
     DISABLE_COPYING(dispatchee_t);
 };
+
+void broadcaster_t::register_local_listener(const uuid_u &listener_id,
+                                            listener_t *listener) {
+    for (auto it = dispatchees.begin(); it != dispatchees.end(); ++it) {
+        if (it->first->listener_id == listener_id) {
+            it->first->local_listener = listener;
+            return;
+        }
+    }
+    // TODO!
+    fprintf(stderr, "Couldn't install local listener.\n");
+}
 
 /* Functions to send a read or write to a mirror and wait for a response.
 Important: These functions must send the message before responding to
@@ -570,6 +588,12 @@ void broadcaster_t::single_read(
 
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+        if (reader->local_listener != NULL) {
+            // TODO! This is just a copy. Implement a proper interface on listener_t.
+            *response = reader->local_listener->perform__local_read(read, timestamp,
+                                                                    order_token,
+                                                                    enforcer_token);
+        }
         listener_read(mailbox_manager, reader->read_mailbox,
                       read, response, timestamp, order_token, enforcer_token,
                       &interruptor2);

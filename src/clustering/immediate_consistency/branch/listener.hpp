@@ -120,6 +120,12 @@ public:
         return registration_done_cond_.wait();
     }
 
+    // TODO! Temporary hack
+    read_response_t perform__local_read(const read_t &read,
+            state_timestamp_t expected_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_read_token_t fifo_token);
+
 
 private:
     class write_queue_entry_t {

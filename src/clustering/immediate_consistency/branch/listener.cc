@@ -294,6 +294,11 @@ listener_t::listener_t(const base_path_t &base_path,
     bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
     guarantee(registration_is_done);
 
+    /* Now that we are registered, install a shortcut for local access */
+    // TODO! Figure out how to unregister. Probably have register_local return
+    // a registration object
+    broadcaster->register_local_listener(listener_intro.listener_id, this);
+
 #ifndef NDEBUG
     region_map_t<version_range_t> expected_initial_metainfo(svs_->get_region(),
                                                                         version_range_t(version_t(branch_id_,
@@ -549,6 +554,49 @@ void listener_t::on_read(const read_t &read,
         &listener_t::perform_read, this,
         read, expected_timestamp, order_token, fifo_token, ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
+}
+
+read_response_t listener_t::perform__local_read(const read_t &read,
+            state_timestamp_t expected_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_read_token_t fifo_token) {
+    auto_drainer_t::lock_t keepalive = drainer_.lock();
+
+    read_token_pair_t read_token_pair;
+    {
+        {
+            /* Briefly pass through `write_queue_entrance_sink_` in case we
+            are receiving a mix of writes and write-reads */
+            fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
+                &write_queue_entrance_sink_, fifo_token);
+        }
+
+        fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
+            &store_entrance_sink_, fifo_token);
+        wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
+
+        guarantee(current_timestamp_ == expected_timestamp);
+
+        svs_->new_read_token_pair(&read_token_pair);
+    }
+
+#ifndef NDEBUG
+    version_leq_metainfo_checker_callback_t metainfo_checker_callback(
+        expected_timestamp);
+    metainfo_checker_t metainfo_checker(
+        &metainfo_checker_callback, svs_->get_region());
+#endif
+
+    // Perform the operation
+    read_response_t response;
+    svs_->read(
+        DEBUG_ONLY(metainfo_checker, )
+        read,
+        &response,
+        order_token,
+        &read_token_pair,
+        keepalive.get_drain_signal());
+    return response;
 }
 
 void listener_t::perform_read(const read_t &read,

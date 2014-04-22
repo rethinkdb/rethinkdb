@@ -20,6 +20,7 @@ class listener_t;
 template <class> class semilattice_readwrite_view_t;
 class multistore_ptr_t;
 class mailbox_manager_t;
+class uuid_u;
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
@@ -88,6 +89,8 @@ public:
     broadcaster_business_card_t get_business_card();
 
     MUST_USE store_view_t *release_bootstrap_svs_for_listener();
+
+    void register_local_listener(const uuid_u &listener_id, listener_t *listener);
 
 private:
     class incomplete_write_ref_t;
