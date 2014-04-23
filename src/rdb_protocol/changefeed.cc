@@ -310,6 +310,7 @@ void sub_t::maybe_signal_cond() THROWS_NOTHING {
 // If this throws we might leak the increment to `num_subs`.
 void feed_t::add_sub(sub_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
+    guarantee(!detached);
     auto_drainer_t::lock_t lock(&drainer);
     num_subs += 1;
     rwlock_in_line_t spot(&subs_lock, access_t::write);
@@ -390,8 +391,15 @@ feed_t::feed_t(client_t *_client,
       mailbox(
           manager,
           [this](stamped_msg_t msg) {
-              check_stamp(msg.server_uuid, msg.timestamp);
-              handle_msg(this, msg);
+              // We stop receiving messages when detached (we're only receiving
+              // messages because we haven't managed to get a message to the
+              // stop mailboxes for some of the masters yet).  This also stops
+              // us from trying to handle a message while waiting on the auto
+              // drainer.
+              if (!detached) {
+                  check_stamp(msg.server_uuid, msg.timestamp);
+                  handle_msg(this, msg);
+              }
           }
       ),
       subs(get_num_threads()),
