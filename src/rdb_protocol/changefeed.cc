@@ -225,7 +225,6 @@ sub_t::~sub_t() {
     // This error is only sent if we're getting destroyed while blocking.
     abort("Subscription destroyed (shutting down?).");
     debugf("del_sub %p\n", this);
-    // RSI: make sure this runs after `feed->add_sub` is *done*.
     feed->del_sub(this);
     debugf("destroyed %p\n", this);
 }
@@ -323,10 +322,10 @@ void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
     }
 }
 
-// RSI: does this actually never throw?
 template<class T>
 void feed_t::each_sub(const T &t) THROWS_NOTHING {
     assert_thread();
+    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
