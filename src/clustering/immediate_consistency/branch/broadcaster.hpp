@@ -55,6 +55,23 @@ public:
         incomplete_write_t *write;
     };
 
+    class local_listener_registration_t {
+    public:
+        local_listener_registration_t();
+        ~local_listener_registration_t();
+
+        local_listener_registration_t(local_listener_registration_t &&other);
+        local_listener_registration_t &operator=(local_listener_registration_t &&other);
+    private:
+        friend class broadcaster_t;
+        local_listener_registration_t(broadcaster_t *_broadcaster,
+                                      const uuid_u &_listener_id);
+        // TODO! Needs a keep alive
+        broadcaster_t *broadcaster;
+        uuid_u listener_id;
+        DISABLE_COPYING(local_listener_registration_t);
+    };
+
     broadcaster_t(
             mailbox_manager_t *mm,
             branch_history_manager_t *bhm,
@@ -90,7 +107,8 @@ public:
 
     MUST_USE store_view_t *release_bootstrap_svs_for_listener();
 
-    void register_local_listener(const uuid_u &listener_id, listener_t *listener);
+    MUST_USE local_listener_registration_t register_local_listener(
+            const uuid_u &listener_id, listener_t *listener);
 
 private:
     class incomplete_write_ref_t;

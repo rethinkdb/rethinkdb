@@ -297,9 +297,9 @@ listener_t::listener_t(const base_path_t &base_path,
     guarantee(registration_is_done);
 
     /* Now that we are registered, install a shortcut for local access */
-    // TODO! Figure out how to unregister. Probably have register_local return
-    // a registration object
-    broadcaster->register_local_listener(listener_intro.listener_id, this);
+    // TODO! Add the field
+    local_listener_registration =
+        broadcaster->register_local_listener(listener_intro.listener_id, this);
 
 #ifndef NDEBUG
     region_map_t<version_range_t> expected_initial_metainfo(svs_->get_region(),

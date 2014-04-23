@@ -4,6 +4,7 @@
 
 #include <map>
 
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
@@ -258,6 +259,7 @@ private:
     listener_business_card_t::read_mailbox_t read_mailbox_;
 
     scoped_ptr_t<registrant_t<listener_business_card_t> > registrant_;
+    broadcaster_t::local_listener_registration_t local_listener_registration;
 
     DISABLE_COPYING(listener_t);
 };

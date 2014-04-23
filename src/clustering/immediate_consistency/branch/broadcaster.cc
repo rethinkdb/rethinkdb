@@ -18,6 +18,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+#include "logger.hpp"
 #include "store_view.hpp"
 
 broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
@@ -185,8 +186,8 @@ private:
 class broadcaster_t::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t d) THROWS_NOTHING :
-        local_listener(NULL), listener_id(generate_uuid()),
         write_mailbox(d.write_mailbox), is_readable(false),
+        local_listener(NULL), listener_id(generate_uuid()),
         queue_count(),
         queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
@@ -236,10 +237,6 @@ public:
         return write_mailbox.get_peer();
     }
 
-    // TODO! An experimental setup...
-    listener_t *local_listener;
-    uuid_u listener_id;
-
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(listener_business_card_t to_send_intro_to,
@@ -288,10 +285,15 @@ public:
     listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
     listener_business_card_t::read_mailbox_t::address_t read_mailbox;
 
+    /* `local_listener` is non-NULL is the dispatchee is local on this node. */
+    listener_t *local_listener;
+
     /* This is used to enforce that operations are performed on the
        destination machine in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
+
+    uuid_u listener_id;
 
     // Accompanies the fifo_source.  It is questionable that we have a
     // separate order source just for the background writes.  What
@@ -316,16 +318,19 @@ private:
     DISABLE_COPYING(dispatchee_t);
 };
 
-void broadcaster_t::register_local_listener(const uuid_u &listener_id,
-                                            listener_t *listener) {
+// TODO! Make this return a sentry object
+broadcaster_t::local_listener_registration_t broadcaster_t::register_local_listener(
+        const uuid_u &listener_id,
+        listener_t *listener) {
     for (auto it = dispatchees.begin(); it != dispatchees.end(); ++it) {
         if (it->first->listener_id == listener_id) {
             it->first->local_listener = listener;
-            return;
+            return local_listener_registration_t(this, listener_id);
         }
     }
-    // TODO!
-    fprintf(stderr, "Couldn't install local listener.\n");
+    logERR("Non-critical error: Could not install local listener. "
+           "You may experience reduced query performance.");
+    return local_listener_registration_t();
 }
 
 /* Functions to send a read or write to a mirror and wait for a response.
@@ -714,3 +719,54 @@ broadcaster_t::write_callback_t::~write_callback_t() {
     }
 }
 
+broadcaster_t::local_listener_registration_t::local_listener_registration_t() :
+    broadcaster(NULL) { }
+
+broadcaster_t::local_listener_registration_t::local_listener_registration_t(
+        broadcaster_t *_broadcaster,
+        const uuid_u &_listener_id) :
+    broadcaster(_broadcaster), listener_id(_listener_id) { }
+
+broadcaster_t::local_listener_registration_t::local_listener_registration_t(
+        local_listener_registration_t &&other) {
+    *this = std::move(other);
+}
+
+broadcaster_t::local_listener_registration_t
+    &broadcaster_t::local_listener_registration_t::operator=(
+        local_listener_registration_t &&other) {
+    // Can only be applied to default initialized registrations
+    guarantee(broadcaster == NULL);
+    broadcaster = other.broadcaster;
+    listener_id = other.listener_id;
+    other.broadcaster = NULL;
+    return *this;
+}
+
+broadcaster_t::local_listener_registration_t::~local_listener_registration_t() {
+    if (broadcaster == NULL) {
+        return;
+    }
+    bool any_removed = false;
+    // This code is made to handle UUID collisions gracefully. We don't do that
+    // anywhere else I think, but it's good to start somewhere (in case of faulty
+    // rngs).
+    for (auto it = broadcaster->dispatchees.begin();
+         it != broadcaster->dispatchees.end();
+         ++it) {
+        if (it->first->listener_id == listener_id) {
+            if (it->first->local_listener == NULL) {
+                any_removed = true;
+                it->first->local_listener = NULL;
+            }
+        }
+    }
+    // TODO! the registrant should just contain a pointer to the dispatchee, together
+    // with a drainer lock into the dispatchee.
+    // TODO! Could a listener cease to become a dispatchee without being destructed?
+    // Maybe it could. Better not print a message maybe?
+    if (!any_removed) {
+        logERR("Could not unregister local listener. This could be a UUID collision, "
+               "or a bug in RethinkDB.");
+    }
+}
