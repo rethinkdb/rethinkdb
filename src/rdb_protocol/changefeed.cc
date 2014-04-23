@@ -13,9 +13,6 @@ namespace ql {
 
 namespace changefeed {
 
-// RSI: Does this actually work?
-// * When is it OK to invalidate a variable (`this`) captured by the function
-//   passed to a mailbox?
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
       manager(_manager),
@@ -220,7 +217,6 @@ private:
 
 sub_t::sub_t(feed_t *_feed, std::map<uuid_u, repli_timestamp_t> &&_start_timestamps)
     : cond(NULL), feed(_feed), start_timestamps(std::move(_start_timestamps)) {
-    auto_drainer_t::lock_t lock(&drainer);
     feed->add_sub(this);
 }
 
