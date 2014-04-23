@@ -1,5 +1,6 @@
 #include "rdb_protocol/changefeed.hpp"
 
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -123,12 +124,13 @@ RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, timestamp, submsg);
 class sub_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    sub_t(feed_t *_feed, std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
+    sub_t(feed_t *_feed);
     ~sub_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
     void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
                 counted_t<const datum_t> d);
+    void start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
     void abort(const std::string &msg);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
@@ -143,7 +145,10 @@ private:
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
-    feed_t(client_t *client, base_namespace_repo_t *ns_repo, uuid_u uuid);
+    feed_t(client_t *client,
+           base_namespace_repo_t *ns_repo,
+           uuid_u uuid,
+           signal_t *interruptor);
     ~feed_t();
     void add_sub(sub_t *sub) THROWS_NOTHING;
     void del_sub(sub_t *sub) THROWS_NOTHING;
@@ -215,8 +220,7 @@ private:
     scoped_ptr_t<sub_t> sub;
 };
 
-sub_t::sub_t(feed_t *_feed, std::map<uuid_u, repli_timestamp_t> &&_start_timestamps)
-    : cond(NULL), feed(_feed), start_timestamps(std::move(_start_timestamps)) {
+sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
     feed->add_sub(this);
 }
 
@@ -263,18 +267,29 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
 void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
                    counted_t<const datum_t> d) {
     assert_thread();
-    auto it = start_timestamps.find(uuid);
-    guarantee(it != start_timestamps.end());
-    if (timestamp > it->second && !exc) {
-        els.push_back(d);
-        if (els.size() > array_size_limit()) {
-            els.clear();
-            abort("Changefeed buffer over array size limit.  If you're making a lot of "
-                  "changes to your data, make sure your client can keep up.");
-        } else {
-            maybe_signal_cond();
+    // If we don't have start timestamps, we haven't started, and if we have
+    // exc, we've stopped.
+    if (start_timestamps.size() != 0 && !exc) {
+        auto it = start_timestamps.find(uuid);
+        guarantee(it != start_timestamps.end());
+        if (timestamp > it->second) {
+            els.push_back(d);
+            if (els.size() > array_size_limit()) {
+                els.clear();
+                abort("Changefeed buffer over array size limit.  "
+                      "If you're making a lot of changes to your data, "
+                      "make sure your client can keep up.");
+            } else {
+                maybe_signal_cond();
+            }
         }
     }
+}
+
+void sub_t::start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps) {
+    assert_thread();
+    start_timestamps = std::move(_start_timestamps);
+    guarantee(start_timestamps.size() != 0);
 }
 
 void sub_t::abort(const std::string &msg) {
@@ -365,7 +380,10 @@ void feed_t::check_stamp(uuid_u server_uuid, repli_timestamp_t timestamp) {
     last_timestamps[server_uuid] = timestamp;
 }
 
-feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
+feed_t::feed_t(client_t *_client,
+               base_namespace_repo_t *ns_repo,
+               uuid_u _uuid,
+               signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
       manager(client->get_manager()),
@@ -379,15 +397,13 @@ feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
       subs(get_num_threads()),
       num_subs(0),
       detached(false) {
-    // RSI: this doesn't do anything, does it?
-    auto_drainer_t::lock_t lock(&drainer);
-    base_namespace_repo_t::access_t access(ns_repo, uuid, lock.get_drain_signal());
+    base_namespace_repo_t::access_t access(ns_repo, uuid, interruptor);
     auto nif = access.get_namespace_if();
     write_t write(changefeed_subscribe_t(mailbox.get_address()),
                   profile_bool_t::DONT_PROFILE);
     write_response_t write_resp;
     // RSI: handle exceptions
-    nif->write(write, &write_resp, order_token_t::ignore, lock.get_drain_signal());
+    nif->write(write, &write_resp, order_token_t::ignore, interruptor);
     auto resp = boost::get<changefeed_subscribe_response_t>(&write_resp.response);
     guarantee(resp);
     stop_addrs = std::move(resp->addrs);
@@ -404,8 +420,8 @@ feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
     // We spawn now to make sure `this` is valid when it runs.
     coro_t::spawn_now_dangerously(
         [this]() {
-            auto_drainer_t::lock_t coro_lock(&drainer);
-            wait_any_t wait_any(&any_disconnect, coro_lock.get_drain_signal());
+            auto_drainer_t::lock_t lock(&drainer);
+            wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
             wait_any.wait_lazily_unordered();
             if (!detached) {
                 detached = true;
@@ -439,6 +455,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
         scoped_ptr_t<sub_t> sub;
         {
             threadnum_t old_thread = get_thread_id();
+            cross_thread_signal_t interruptor(env->interruptor, home_thread());
             on_thread_t th(home_thread());
             debugf("CLIENT: On home thread...\n");
             auto_drainer_t::lock_t lock(&drainer);
@@ -449,22 +466,26 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             if (feed_it == feeds.end()) {
                 debugf("CLIENT: making feed...\n");
                 spot.write_signal()->wait_lazily_unordered();
-                auto val = make_scoped<feed_t>(this, env->cluster_access.ns_repo, uuid);
+                auto val = make_scoped<feed_t>(
+                    this, env->cluster_access.ns_repo, uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
+            // We need to do this while holding `feeds_lock` to make sure the
+            // feed isn't destroyed before we subscribe to it.
             on_thread_t th2(old_thread);
-            base_namespace_repo_t::access_t access(
-                env->cluster_access.ns_repo, uuid, env->interruptor);
-            auto nif = access.get_namespace_if();
-            write_t write(changefeed_timestamp_t(), profile_bool_t::DONT_PROFILE);
-            write_response_t write_resp;
-            nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
-            auto resp = boost::get<changefeed_timestamp_response_t>(
-                &write_resp.response);
-            guarantee(resp);
-            sub.init(new sub_t(feed_it->second.get(), std::move(resp->timestamps)));
+            sub.init(new sub_t(feed_it->second.get()));
         }
+        base_namespace_repo_t::access_t access(
+            env->cluster_access.ns_repo, uuid, env->interruptor);
+        auto nif = access.get_namespace_if();
+        write_t write(changefeed_timestamp_t(), profile_bool_t::DONT_PROFILE);
+        write_response_t write_resp;
+        nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
+        auto resp = boost::get<changefeed_timestamp_response_t>(
+            &write_resp.response);
+        guarantee(resp);
+        sub->start(std::move(resp->timestamps));
         return counted_t<datum_stream_t>(
             new stream_t(std::move(sub), tbl->backtrace()));
     } catch (const cannot_perform_query_exc_t &e) {
