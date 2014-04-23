@@ -410,7 +410,6 @@ feed_t::feed_t(client_t *_client,
     write_t write(changefeed_subscribe_t(mailbox.get_address()),
                   profile_bool_t::DONT_PROFILE);
     write_response_t write_resp;
-    // RSI: handle exceptions
     nif->write(write, &write_resp, order_token_t::ignore, interruptor);
     auto resp = boost::get<changefeed_subscribe_response_t>(&write_resp.response);
     guarantee(resp);
