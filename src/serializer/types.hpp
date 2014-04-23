@@ -14,6 +14,7 @@
 #include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
+class buf_ptr_t;
 
 class printf_buffer_t;
 
@@ -177,9 +178,9 @@ struct scs_block_info_t {
 template <class inner_serializer_t>
 struct scs_block_token_t {
     scs_block_token_t(block_id_t _block_id, const scs_block_info_t &_info,
-                      const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> &tok)
-        : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
-        rassert(inner_token, "scs_block_token wrapping null token");
+                      counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> tok)
+        : block_id(_block_id), info(_info), inner_token(std::move(tok)), ref_count_(0) {
+        rassert(inner_token.has(), "scs_block_token wrapping null token");
     }
 
     block_size_t block_size() const {
@@ -220,10 +221,12 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 };
 
 // God this is such a hack (Part 1 of 2)
-inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(block_id_t block_id, const counted_t<ls_block_token_pointee_t> &tok) {
+inline counted_t< scs_block_token_t<log_serializer_t> >
+to_standard_block_token(block_id_t block_id,
+                        counted_t<ls_block_token_pointee_t> tok) {
     return make_counted<scs_block_token_t<log_serializer_t> >(block_id,
                                                               scs_block_info_t(),
-                                                              tok);
+                                                              std::move(tok));
 }
 
 template <class inner_serializer_t>
@@ -235,7 +238,7 @@ void debug_print(printf_buffer_t *buf,
 
 
 
-#else
+#else  // SEMANTIC_SERIALIZER_CHECK
 
 typedef log_serializer_t standard_serializer_t;
 
@@ -243,7 +246,7 @@ typedef log_serializer_t standard_serializer_t;
 inline
 counted_t<ls_block_token_pointee_t>
 to_standard_block_token(UNUSED block_id_t block_id,
-                        const counted_t<ls_block_token_pointee_t> &tok) {
+                        counted_t<ls_block_token_pointee_t> tok) {
     return tok;
 }
 
@@ -267,11 +270,11 @@ class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
 
-    // Offers a ser_buffer_t pointer to the callback.  The callee is free to take
-    // ownership of the `ser_buffer_t *` from `*buf`.  It's also free to decline
-    // ownership, by leaving the pointer owned by `*buf`.
+    // Offers a buf_ptr_t to the callback.  The callee is free to take
+    // ownership of the `buf_ptr_t` from `*buf`.  It's also free to decline
+    // ownership, by leaving `*buf` untouched.
     virtual void offer_read_ahead_buf(block_id_t block_id,
-                                      scoped_malloc_t<ser_buffer_t> *buf,
+                                      buf_ptr_t *buf,
                                       const counted_t<standard_block_token_t> &token) = 0;
 };
 

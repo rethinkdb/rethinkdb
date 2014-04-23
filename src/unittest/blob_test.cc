@@ -65,17 +65,17 @@ public:
         if (size <= buf_.size() - sizesize) {
             ASSERT_EQ(sizesize + size, rs);
         } else if (size <= static_cast<size_t>(size_after_magic)) {
-            ASSERT_EQ(sizesize + 8 + 8 + sizeof(block_id_t), rs);
-        } else if (size <= int64_t(size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            if (rs != sizesize + 8 + 8 + sizeof(block_id_t)) {
-                ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
-                ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
+            ASSERT_EQ(sizesize + 8 + sizeof(block_id_t), rs);
+        } else if (size <= int64_t(size_after_magic * ((250 - 8) / sizeof(block_id_t)))) {
+            if (rs != sizesize + 8 + sizeof(block_id_t)) {
+                ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
+                ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
             } else {
-                ASSERT_GT(size, size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
+                ASSERT_GT(size, size_after_magic * ((250 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
             }
-        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
-            ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
+        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8) / sizeof(block_id_t)))) {
+            ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
+            ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
         } else {
             ASSERT_GT(0u, size);
         }
@@ -109,43 +109,6 @@ public:
 
             expected_ += x;
         }
-
-        check(txn);
-    }
-
-    void prepend(txn_t *txn, const std::string &x) {
-        SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
-        int64_t n = x.size();
-
-        blob_.prepend_region(buf_parent_t(txn), n);
-
-        ASSERT_EQ(static_cast<int64_t>(n + expected_.size()), blob_.valuesize());
-
-        {
-            buffer_group_t bg;
-            blob_acq_t bacq;
-            blob_.expose_region(buf_parent_t(txn), access_t::write, 0, n,
-                                &bg, &bacq);
-
-            ASSERT_EQ(n, static_cast<int64_t>(bg.get_size()));
-
-            const_buffer_group_t copyee;
-            copyee.add_buffer(x.size(), x.data());
-
-            buffer_group_copy_data(&bg, &copyee);
-
-            expected_ = x + expected_;
-        }
-
-        check(txn);
-    }
-
-    void unprepend(txn_t *txn, int64_t n) {
-        SCOPED_TRACE("unprepend " + strprintf("%" PRIi64, n));
-        ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
-
-        blob_.unprepend_region(buf_parent_t(txn), n);
-        expected_.erase(0, n);
 
         check(txn);
     }
@@ -189,27 +152,18 @@ void small_value_test(cache_t *cache) {
 
     tk.append(&txn, "a");
     tk.append(&txn, "b");
-    tk.prepend(&txn, "c");
     tk.unappend(&txn, 1);
-    tk.unappend(&txn, 2);
+    tk.unappend(&txn, 1);
     tk.append(&txn, std::string(250, 'd'));
     for (int i = 0; i < 250; ++i) {
         tk.unappend(&txn, 1);
     }
-    tk.prepend(&txn, std::string(250, 'e'));
-    for (int i = 0; i < 125; ++i) {
-        tk.unprepend(&txn, 2);
-    }
-
     tk.append(&txn, std::string(125, 'f'));
-    tk.prepend(&txn, std::string(125, 'g'));
-    tk.unprepend(&txn, 0);
+    tk.append(&txn, std::string(125, 'g'));
     tk.unappend(&txn, 0);
-    tk.unprepend(&txn, 250);
+    tk.unappend(&txn, 250);
     tk.unappend(&txn, 0);
-    tk.unprepend(&txn, 0);
     tk.append(&txn, "");
-    tk.prepend(&txn, "");
 }
 
 void small_value_boundary_test(cache_t *cache) {
@@ -224,89 +178,49 @@ void small_value_boundary_test(cache_t *cache) {
 
     tk.append(&txn, std::string(250, 'a'));
     tk.append(&txn, "b");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
 
-    tk.prepend(&txn, "c");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.append(&txn, "c");
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
     tk.append(&txn, "d");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-    tk.unprepend(&txn, 1);
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 1);
     ASSERT_EQ(251u, tk.refsize(block_size));
     tk.append(&txn, "e");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-    tk.unprepend(&txn, 2);
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 2);
     ASSERT_EQ(250u, tk.refsize(block_size));
-    tk.prepend(&txn, "fffff");
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-    tk.unprepend(&txn, 254);
+    tk.append(&txn, "fffff");
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 254);
     ASSERT_EQ(1u, tk.refsize(block_size));
 
     tk.append(&txn, std::string(251, 'g'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
 
     tk.unappend(&txn, 251);
     ASSERT_EQ(1u, tk.refsize(block_size));
-    tk.prepend(&txn, std::string(251, 'h'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.append(&txn, std::string(251, 'h'));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
-    tk.prepend(&txn, std::string(250, 'i'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
-    tk.unprepend(&txn, 250);
+    tk.append(&txn, std::string(250, 'i'));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.append(&txn, std::string(250, 'j'));
-    ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
+    ASSERT_EQ(1 + 8 + sizeof(block_id_t), tk.refsize(block_size));
     tk.unappend(&txn, 250);
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(1u, tk.refsize(block_size));
 }
 
-void special_4080_prepend_4081_test(cache_t *cache) {
-    SCOPED_TRACE("special_4080_prepend_4081_test");
-    block_size_t block_size = cache->get_block_size();
-
-    ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
-
-    cache_conn_t cache_conn(cache);
-    txn_t txn(&cache_conn, write_durability_t::SOFT,
-              repli_timestamp_t::distant_past, 0);
-
-    blob_tracker_t tk(251);
-
-    tk.append(&txn, std::string(size_after_magic, 'a'));
-    tk.prepend(&txn, "b");
-    tk.unappend(&txn, size_after_magic + 1);
-}
-
-// Regression test - these magic numbers caused failures previously.
-void special_4161600_prepend_12484801_test(cache_t *cache) {
-    SCOPED_TRACE("special_4080_prepend_4081_test");
-
-    cache_conn_t cache_conn(cache);
-    txn_t txn(&cache_conn, write_durability_t::SOFT,
-              repli_timestamp_t::distant_past, 0);
-
-    blob_tracker_t tk(251);
-
-    int64_t lo_size = size_after_magic * (size_after_magic / sizeof(block_id_t));
-    int64_t hi_size = 3 * lo_size + 1;
-    tk.append(&txn, std::string(lo_size, 'a'));
-    tk.prepend(&txn, std::string(hi_size - lo_size, 'b'));
-    tk.unappend(&txn, hi_size);
-}
-
-struct step_t {
-    int64_t size;
-    bool prepend;
-    step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
-};
-
-void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
+void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
     UNUSED block_size_t block_size = cache->get_block_size();
 
     cache_conn_t cache_conn(cache);
@@ -317,25 +231,15 @@ void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
     char v = 'A';
     int64_t size = 0;
     for (int i = 0, n = steps.size(); i < n; ++i) {
-        if (steps[i].prepend) {
-            if (steps[i].size <= size) {
-                SCOPED_TRACE(strprintf("unprepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                tk.unprepend(&txn, size - steps[i].size);
-            } else {
-                SCOPED_TRACE(strprintf("prepending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                tk.prepend(&txn, std::string(steps[i].size - size, v));
-            }
+        if (steps[i] <= size) {
+            SCOPED_TRACE(strprintf("unappending from %" PRIi64 " to %" PRIi64, size, steps[i]));
+            tk.unappend(&txn, size - steps[i]);
         } else {
-            if (steps[i].size <= size) {
-                SCOPED_TRACE(strprintf("unappending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                tk.unappend(&txn, size - steps[i].size);
-            } else {
-                SCOPED_TRACE(strprintf("appending from %" PRIi64 " to %" PRIi64, size, steps[i].size));
-                tk.append(&txn, std::string(steps[i].size - size, v));
-            }
+            SCOPED_TRACE(strprintf("appending from %" PRIi64 " to %" PRIi64, size, steps[i]));
+            tk.append(&txn, std::string(steps[i] - size, v));
         }
 
-        size = steps[i].size;
+        size = steps[i];
 
         v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
     }
@@ -345,35 +249,21 @@ void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
 void combinations_test(cache_t *cache) {
     SCOPED_TRACE("combinations_test");
 
-    int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
-    //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
-    int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+    int64_t inline_sz = size_after_magic * ((250 - 1 - 8) / sizeof(block_id_t));
+    int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
+    int64_t szs[] = { 0, 251, size_after_magic, size_after_magic + 1, inline_sz - 300,
+                      inline_sz, inline_sz + 1, l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
     int n = sizeof(szs) / sizeof(szs[0]);
 
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
-            std::vector<step_t> steps;
-            steps.push_back(step_t(szs[i], false));
-            steps.push_back(step_t(szs[j], false));
+            std::vector<int64_t> steps;
+            steps.push_back(szs[i]);
+            steps.push_back(szs[j]);
             {
                 SCOPED_TRACE("ap ap");
-                general_journey_test(cache, steps);
-            }
-            steps[1].prepend = true;
-            {
-                SCOPED_TRACE("ap prep");
-                general_journey_test(cache, steps);
-            }
-            steps[0].prepend = true;
-            {
-                SCOPED_TRACE("prep prep");
-                general_journey_test(cache, steps);
-            }
-            steps[1].prepend = false;
-            {
-                SCOPED_TRACE("prep ap");
                 general_journey_test(cache, steps);
             }
         }
@@ -392,8 +282,6 @@ void run_tests(cache_t *cache) {
 
     small_value_test(cache);
     small_value_boundary_test(cache);
-    special_4080_prepend_4081_test(cache);
-    special_4161600_prepend_12484801_test(cache);
     combinations_test(cache);
 }
 

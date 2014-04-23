@@ -12,6 +12,7 @@
 #include "concurrency/mutex.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "stl_utils.hpp"
 
@@ -640,21 +641,22 @@ public:
                     continue;
                 }
 
-                scoped_malloc_t<ser_buffer_t> data
-                    = serializer_t::allocate_buffer(parent->serializer->max_block_size());
-                memcpy(data.get(), current_buf, info.ser_block_size);
+                const block_size_t block_size = block_size_t::unsafe_make(info.ser_block_size);
+                buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(block_size);
+                memcpy(buf.ser_buffer(), current_buf, info.ser_block_size);
+                buf.fill_padding_zero();
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 
                 counted_t<ls_block_token_pointee_t> ls_token
                     = parent->serializer->generate_block_token(current_offset,
-                                                               block_size_t::unsafe_make(info.ser_block_size));
+                                                               block_size);
 
                 counted_t<standard_block_token_t> token
-                    = to_standard_block_token(block_id, ls_token);
+                    = to_standard_block_token(block_id, std::move(ls_token));
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
-                        std::move(data),
+                        std::move(buf),
                         token);
             }
         }
@@ -675,27 +677,41 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
-                                void *buf_out, file_account_t *io_account) {
+buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
+                                   file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
-        dbm_read_ahead_t::perform_read_ahead(this, off_in, ser_block_size_in,
-                                             buf_out, io_account);
+        buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
+        dbm_read_ahead_t::perform_read_ahead(this, off_in, block_size.ser_value(),
+                                             ret.ser_buffer(), io_account);
+        // We have to fill the padding with zero, since only the first part of the
+        // buf got memcpy'd into.
+        ret.fill_padding_zero();
+        return ret;
     } else {
-        if (divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf_out)) &&
-            divides(DEVICE_BLOCK_SIZE, off_in) &&
-            divides(DEVICE_BLOCK_SIZE, ser_block_size_in)) {
-            co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
+        if (divides(DEVICE_BLOCK_SIZE, off_in)) {
+            buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
+            co_read(dbfile, off_in, ret.aligned_block_size(),
+                    ret.ser_buffer(), io_account);
+            // Blocks are written DEVICE_BLOCK_SIZE-aligned -- so the block on disk
+            // should have been written with zero padding.
+            ret.assert_padding_zero();
+            return ret;
         } else {
             int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
-            int64_t ceil_off_end = ceil_aligned(off_in + ser_block_size_in,
+            int64_t ceil_off_end = ceil_aligned(off_in + block_size.ser_value(),
                                                 DEVICE_BLOCK_SIZE);
             scoped_malloc_t<char> buf(malloc_aligned(ceil_off_end - floor_off_in,
                                                      DEVICE_BLOCK_SIZE));
             co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
                     buf.get(), io_account);
 
-            memcpy(buf_out, buf.get() + (off_in - floor_off_in), ser_block_size_in);
+            buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
+            memcpy(ret.ser_buffer(), buf.get() + (off_in - floor_off_in),
+                   block_size.ser_value());
+            // We have to fill the padding to zero, in this case.
+            ret.fill_padding_zero();
+            return ret;
         }
     }
 }

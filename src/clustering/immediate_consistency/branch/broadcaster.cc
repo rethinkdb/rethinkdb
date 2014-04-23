@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
+#include <functional>
+
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
@@ -341,7 +343,7 @@ void listener_write(
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        boost::bind(&cond_t::pulse, &ack_cond));
+        std::bind(&cond_t::pulse, &ack_cond));
 
     send(mailbox_manager, write_mailbox,
          w, ts, order_token, token, ack_mailbox.get_address());
@@ -366,7 +368,7 @@ void listener_read(
     cond_t resp_cond;
     mailbox_t<void(read_response_t)> resp_mailbox(
         mailbox_manager,
-        boost::bind(&store_listener_response<read_response_t>, response, _1, &resp_cond));
+        std::bind(&store_listener_response<read_response_t>, response, ph::_1, &resp_cond));
 
     send(mailbox_manager, read_mailbox,
          r, ts, order_token, token, resp_mailbox.get_address());
@@ -466,14 +468,26 @@ void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mu
         throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
             "the primary mirror should be always readable.");
     }
-    *dispatchee_out = readable_dispatchees.head();
 
-    /* Cycle the readable dispatchees so that the load gets distributed
-    evenly */
-    readable_dispatchees.pop_front();
-    readable_dispatchees.push_back(*dispatchee_out);
+    /* Prefer a local dispatchee (at the moment there always should be exactly one) */
+    dispatchee_t *selected_dispatchee = NULL;
+    for (dispatchee_t *d = readable_dispatchees.head();
+         d != NULL;
+         d = readable_dispatchees.next(d)) {
+        const bool is_local =
+            d->get_peer() == mailbox_manager->get_connectivity_service()->get_me();
+        if (is_local) {
+            selected_dispatchee = d;
+            break;
+        }
+    }
+    if (selected_dispatchee == NULL) {
+        /* If we don't have a local one, just pick the first one we can get */
+        selected_dispatchee = readable_dispatchees.head();
+    }
 
-    *lock_out = dispatchees[*dispatchee_out];
+    *dispatchee_out = selected_dispatchee;
+    *lock_out = dispatchees[selected_dispatchee];
 }
 
 void broadcaster_t::get_all_readable_dispatchees(

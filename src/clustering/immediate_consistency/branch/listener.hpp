@@ -165,14 +165,6 @@ private:
             mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING;
 
-    void enqueue_write(const write_t &write,
-            transition_timestamp_t transition_timestamp,
-            order_token_t order_token,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void()> ack_addr,
-            auto_drainer_t::lock_t keepalive)
-        THROWS_NOTHING;
-
     void perform_enqueued_write(const write_queue_entry_t &serialized_write, state_timestamp_t backfill_end_timestamp, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -187,28 +179,11 @@ private:
             write_durability_t durability)
         THROWS_NOTHING;
 
-    void perform_writeread(const write_t &write,
-            transition_timestamp_t transition_timestamp,
-            order_token_t order_token,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(write_response_t)> ack_addr,
-            write_durability_t durability,
-            auto_drainer_t::lock_t keepalive)
-        THROWS_NOTHING;
-
     void on_read(const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(read_response_t)> ack_addr)
-        THROWS_NOTHING;
-
-    void perform_read(const read_t &read,
-            state_timestamp_t expected_timestamp,
-            order_token_t order_token,
-            fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(read_response_t)> ack_addr,
-            auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
