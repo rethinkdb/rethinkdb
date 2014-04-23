@@ -9,8 +9,10 @@
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "concurrency/cond_var.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/wait_any.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 
@@ -297,7 +299,6 @@ listener_t::listener_t(const base_path_t &base_path,
     guarantee(registration_is_done);
 
     /* Now that we are registered, install a shortcut for local access */
-    // TODO! Add the field
     local_listener_registration =
         broadcaster->register_local_listener(listener_intro.listener_id, this);
 
@@ -400,7 +401,9 @@ void listener_t::on_write(const write_t &write,
         mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING {
     try {
-        local_write(write, transition_timestamp, order_token, fifo_token);
+        cond_t dummy_interruptor;
+        local_write(write, transition_timestamp, order_token, fifo_token,
+                    &dummy_interruptor);
         send(mailbox_manager_, ack_addr);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -410,16 +413,18 @@ void listener_t::on_write(const write_t &write,
 void listener_t::local_write(const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
-        fifo_enforcer_write_token_t fifo_token)
+        fifo_enforcer_write_token_t fifo_token,
+        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
     auto_drainer_t::lock_t keepalive(&drainer_);
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
     fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
-    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
-    write_queue_semaphore_.co_lock_interruptible(keepalive.get_drain_signal());
+    wait_interruptible(&fifo_exit, &combined_interruptor);
+    write_queue_semaphore_.co_lock_interruptible(&combined_interruptor);
     write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
 }
 
@@ -474,9 +479,10 @@ void listener_t::on_writeread(const write_t &write,
         write_durability_t durability)
         THROWS_NOTHING {
     try {
+        cond_t dummy_interruptor;
         write_response_t response = local_writeread(write, transition_timestamp,
                                                     order_token, fifo_token,
-                                                    durability);
+                                                    durability, &dummy_interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -487,7 +493,8 @@ write_response_t listener_t::local_writeread(const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
-        write_durability_t durability)
+        write_durability_t durability,
+        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
@@ -495,6 +502,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
     order_token.assert_write_mode();
 
     auto_drainer_t::lock_t keepalive(&drainer_);
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
     write_token_pair_t write_token_pair;
     {
         {
@@ -504,7 +512,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
         }
 
         fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
-        wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
+        wait_interruptible(&fifo_exit_2, &combined_interruptor);
 
         advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
@@ -531,7 +539,7 @@ write_response_t listener_t::local_writeread(const write_t &write,
                 transition_timestamp,
                 order_token,
                 &write_token_pair,
-                keepalive.get_drain_signal());
+                &combined_interruptor);
     return response;
 }
 
@@ -542,8 +550,9 @@ void listener_t::on_read(const read_t &read,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
     try {
+        cond_t dummy_interruptor;
         read_response_t response = local_read(read, expected_timestamp, order_token,
-                                              fifo_token);
+                                              fifo_token, &dummy_interruptor);
         send(mailbox_manager_, ack_addr, response);
     } catch (const interrupted_exc_t &) {
         /* pass */
@@ -553,7 +562,8 @@ void listener_t::on_read(const read_t &read,
 read_response_t listener_t::local_read(const read_t &read,
         state_timestamp_t expected_timestamp,
         order_token_t order_token,
-        fifo_enforcer_read_token_t fifo_token)
+        fifo_enforcer_read_token_t fifo_token,
+        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
@@ -561,6 +571,7 @@ read_response_t listener_t::local_read(const read_t &read,
     order_token.assert_read_mode();
 
     auto_drainer_t::lock_t keepalive = drainer_.lock();
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
     read_token_pair_t read_token_pair;
     {
         {
@@ -572,7 +583,7 @@ read_response_t listener_t::local_read(const read_t &read,
 
         fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
             &store_entrance_sink_, fifo_token);
-        wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
+        wait_interruptible(&fifo_exit_2, &combined_interruptor);
 
         guarantee(current_timestamp_ == expected_timestamp);
 
@@ -594,7 +605,7 @@ read_response_t listener_t::local_read(const read_t &read,
         &response,
         order_token,
         &read_token_pair,
-        keepalive.get_drain_signal());
+        &combined_interruptor);
     return response;
 }
 

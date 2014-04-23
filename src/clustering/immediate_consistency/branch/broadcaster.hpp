@@ -153,6 +153,20 @@ private:
         signal_t *interruptor)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
+    void listener_read(
+        broadcaster_t::dispatchee_t *mirror,
+        const read_t &r, read_response_t *response, state_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_read_token_t token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void listener_write(
+        broadcaster_t::dispatchee_t *mirror,
+        const write_t &w, transition_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_write_token_t token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
     and `newest_complete_timestamp`. It mostly exists as a form of executable
