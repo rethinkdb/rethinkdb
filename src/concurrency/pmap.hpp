@@ -29,27 +29,33 @@ void spawn_pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding,
 }
 
 template <class callable_t>
-void pmap(int count, const callable_t &c) {
-    if (count == 0) {
+void pmap(int begin, int end, const callable_t &c) {
+    guarantee(begin >= 0);  // We don't want `end - begin` to overflow, do we?
+    guarantee(begin <= end);
+    if (begin == end) {
         return;
     }
-    if (count == 1) {
-        // Assigning this to a variable first is a ghetto hack to get gcc 4.4 more friendly with
-        // std::bind callables.
-        const int zero = 0;
-        c(zero);
+    if (end - begin == 1) {
+        // A ghetto hack to get gcc 4.4 more friendly with std::bind callables.
+        const int x = begin;
+        c(x);
         return;
     }
 
     cond_t cond;
-    int outstanding = count - 1;
-    for (int i = 0; i < count - 1; i++) {
+    int outstanding = (end - begin) - 1;
+    for (int i = begin; i < end - 1; ++i) {
         coro_t::spawn_now_dangerously(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
     }
     // Ghetto hack to get gcc 4.4 more friendly with std::bind callables.
-    const int c_minus_1 = count - 1;
-    c(c_minus_1);
+    const int e_minus_1 = end - 1;
+    c(e_minus_1);
     cond.wait();
+}
+
+template <class callable_t>
+void pmap(int count, const callable_t &c) {
+    pmap(0, count, c);
 }
 
 template <class callable_t, class iterator_t>
