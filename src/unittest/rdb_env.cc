@@ -226,6 +226,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const chan
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const changefeed_timestamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }

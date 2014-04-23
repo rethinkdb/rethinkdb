@@ -365,12 +365,19 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
-    void operator()(const changefeed_subscribe_t &u) {
+    void operator()(const changefeed_subscribe_t &s) {
         debugf("Subscribing to %p.\n", store);
-        store->changefeed_server.add_client(u.addr);
+        store->changefeed_server.add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
         boost::get<changefeed_subscribe_response_t>(&response->response)
             ->addrs.push_back( store->changefeed_server.get_stop_addr());
+    }
+
+    void operator()(const changefeed_timestamp_t &) {
+        debugf("Getting timestamp from %p.\n", store);
+        response->response = changefeed_timestamp_response_t();
+        boost::get<changefeed_timestamp_response_t>(&response->response)
+            ->timestamps[store->changefeed_server.get_uuid()] = timestamp;
     }
 
     void operator()(const sindex_create_t &c) {
@@ -515,7 +522,8 @@ void store_t::protocol_write(const write_t &write,
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
-    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    //This is a tad hacky, this just adds a stop event to signal the end of the
+    //parallal task.
     response->event_log.push_back(profile::stop_t());
 }
 

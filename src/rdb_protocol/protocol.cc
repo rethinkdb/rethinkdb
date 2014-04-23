@@ -448,6 +448,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return s.region;
     }
 
+    region_t operator()(const changefeed_timestamp_t &t) const {
+        return t.region;
+    }
+
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
@@ -795,6 +799,10 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return s.region;
     }
 
+    region_t operator()(const changefeed_timestamp_t &t) const {
+        return t.region;
+    }
+
     region_t operator()(const sindex_create_t &s) const {
         return s.region;
     }
@@ -900,8 +908,12 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
-    bool operator()(const changefeed_subscribe_t &u) const {
-        return rangey_write(u);
+    bool operator()(const changefeed_subscribe_t &s) const {
+        return rangey_write(s);
+    }
+
+    bool operator()(const changefeed_timestamp_t &t) const {
+        return rangey_write(t);
     }
 
     bool operator()(const sindex_create_t &c) const {
@@ -967,6 +979,23 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
             out->addrs.reserve(out->addrs.size() + res->addrs.size());
             std::move(res->addrs.begin(), res->addrs.end(),
                       std::back_inserter(out->addrs));
+        }
+    }
+
+    void operator()(const changefeed_timestamp_t &) const {
+        response_out->response = changefeed_timestamp_response_t();
+        auto out = boost::get<changefeed_timestamp_response_t>(&response_out->response);
+        for (size_t i = 0; i < count; ++i) {
+            auto res = boost::get<changefeed_timestamp_response_t>(
+                &responses[i].response);
+            for (auto it = res->timestamps.begin(); it != res->timestamps.end(); ++it) {
+                auto it_out = out->timestamps.find(it->first);
+                if (it_out == out->timestamps.end()) {
+                    out->timestamps[it->first] = it->second;
+                } else {
+                    it_out->second = superceding_recency(it->second, it_out->second);
+                }
+            }
         }
     }
 
@@ -1062,6 +1091,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(changefeed_subscribe_response_t, addrs);
+RDB_IMPL_ME_SERIALIZABLE_1(changefeed_timestamp_response_t, timestamps);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
@@ -1076,6 +1106,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
 RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
 RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
+RDB_IMPL_ME_SERIALIZABLE_1(changefeed_timestamp_t, region);
 RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);

@@ -13,6 +13,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
+#include "repli_timestamp.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -34,9 +35,10 @@ class table_t;
 
 namespace changefeed {
 
+struct stamped_msg_t;
 struct msg_t {
     // RSI: make this client_t::addr_t
-    typedef mailbox_addr_t<void(msg_t)> addr_t;
+    typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
     struct change_t {
         change_t();
         explicit change_t(const rdb_modification_report_t *report);
@@ -63,11 +65,13 @@ public:
     typedef mailbox_addr_t<void(msg_t::addr_t)> addr_t;
     server_t(mailbox_manager_t *_manager);
     void add_client(const msg_t::addr_t &addr);
-    void send_all(const msg_t &msg);
+    void send_all(repli_timestamp_t timestamp, msg_t msg);
     addr_t get_stop_addr();
+    uuid_u get_uuid();
 private:
+    uuid_u uuid;
     mailbox_manager_t *manager;
-    std::map<msg_t::addr_t, scoped_ptr_t<cond_t> > clients;
+    std::map<msg_t::addr_t, std::pair<int64_t, scoped_ptr_t<cond_t> > > clients;
     rwlock_t clients_lock;
     mailbox_t<void(msg_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;

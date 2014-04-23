@@ -447,6 +447,11 @@ struct changefeed_subscribe_response_t {
     std::vector<ql::changefeed::server_t::addr_t> addrs;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+struct changefeed_timestamp_response_t {
+    changefeed_timestamp_response_t() { }
+    std::map<uuid_u, repli_timestamp_t> timestamps;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
 
 // TODO we're reusing the enums from row writes and reads to avoid name
 // shadowing. Nothing really wrong with this but maybe they could have a
@@ -473,6 +478,7 @@ struct write_response_t {
                    point_write_response_t,
                    point_delete_response_t,
                    changefeed_subscribe_response_t,
+                   changefeed_timestamp_response_t,
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sync_response_t> response;
@@ -570,9 +576,16 @@ public:
 class changefeed_subscribe_t {
 public:
     changefeed_subscribe_t() { }
-    changefeed_subscribe_t(mailbox_addr_t<void(ql::changefeed::msg_t)> _addr)
+    changefeed_subscribe_t(ql::changefeed::msg_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
-    mailbox_addr_t<void(ql::changefeed::msg_t)> addr;
+    ql::changefeed::msg_t::addr_t addr;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class changefeed_timestamp_t {
+public:
+    changefeed_timestamp_t() : region(region_t::universe()) { }
     region_t region;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -623,6 +636,7 @@ struct write_t {
                    point_write_t,
                    point_delete_t,
                    changefeed_subscribe_t,
+                   changefeed_timestamp_t,
                    sindex_create_t,
                    sindex_drop_t,
                    sync_t> write;

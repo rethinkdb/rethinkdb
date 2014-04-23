@@ -14,6 +14,7 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 """
 
+# RSI: These macros should all be using prefixed names to avoid name collisions.
 
 def generate_make_serializable_macro(nfields):
     print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \

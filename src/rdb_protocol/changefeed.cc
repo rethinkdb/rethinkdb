@@ -17,50 +17,94 @@ namespace changefeed {
 // * When is it OK to invalidate a variable (`this`) captured by the function
 //   passed to a mailbox?
 server_t::server_t(mailbox_manager_t *_manager)
-    : manager(_manager), stop_mailbox(manager, [this](msg_t::addr_t addr) {
-            auto_drainer_t::lock_t lock(&drainer);
-            rwlock_in_line_t spot(&clients_lock, access_t::read);
-            spot.read_signal()->wait_lazily_unordered();
-            clients[addr]->pulse();
-        }) { }
+    : uuid(generate_uuid()),
+      manager(_manager),
+      stop_mailbox(
+          manager,
+          [this](msg_t::addr_t addr) {
+              auto_drainer_t::lock_t lock(&drainer);
+              rwlock_in_line_t spot(&clients_lock, access_t::write);
+              spot.read_signal()->wait_lazily_unordered();
+              auto it = clients.find(addr);
+              // The client might have already been removed from e.g. a peer
+              // disconnect or drainer destruction.
+              if (it != clients.end()) {
+                  auto pair = &it->second;
+                  spot.write_signal()->wait_lazily_unordered();
+                  pair->first -= 1;
+                  if (pair->first == 0) {
+                      // This won't get pulsed twice because the clients can't
+                      // send to this mailbox until the original subscribing write
+                      // has completed, which means `add_client` has been called
+                      // with `addr` as many times as it's ever going to be, so
+                      // we'll never hit `0` more than once.
+                      pair->second->pulse();
+                  }
+              }
+          }
+      ) { }
 
 void server_t::add_client(const msg_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
-    clients[addr].init(new cond_t());
-    signal_t *stopped = &*clients[addr];
-    // We spawn now so the auto drainer lock is acquired immediately.
-    coro_t::spawn_now_dangerously(
-        [this, stopped, addr]() {
-            auto_drainer_t::lock_t coro_lock(&drainer);
-            disconnect_watcher_t disconnect(manager->get_connectivity_service(),
-                                            addr.get_peer());
-            {
-                wait_any_t wait_any(&disconnect, stopped, coro_lock.get_drain_signal());
-                wait_any.wait_lazily_unordered();
+    auto pair = &clients[addr];
+    if (pair->second.has()) {
+        pair->first += 1;
+    } else {
+        pair->first = 1;
+        pair->second.init(new cond_t());
+        signal_t *stopped = &*pair->second;
+        // We spawn now so the auto drainer lock is acquired immediately.
+        coro_t::spawn_now_dangerously(
+            [this, stopped, addr]() {
+                auto_drainer_t::lock_t coro_lock(&drainer);
+                disconnect_watcher_t disconnect(
+                    manager->get_connectivity_service(), addr.get_peer());
+                {
+                    wait_any_t wait_any(
+                        &disconnect, stopped, coro_lock.get_drain_signal());
+                    wait_any.wait_lazily_unordered();
+                }
+                debugf("Stopping...\n");
+                rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
+                coro_spot.write_signal()->wait_lazily_unordered();
+                size_t erased = clients.erase(addr);
+                guarantee(erased == 1);
+                debugf("Stopped!\n");
             }
-            debugf("Stopping...\n");
-            rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
-            coro_spot.write_signal()->wait_lazily_unordered();
-            size_t erased = clients.erase(addr);
-            guarantee(erased == 1);
-            debugf("Stopped!\n");
-        }
-    );
+        );
+    }
 }
 
-void server_t::send_all(const msg_t &msg) {
+struct stamped_msg_t {
+    stamped_msg_t() { }
+    stamped_msg_t(uuid_u _server_uuid, repli_timestamp_t _timestamp, msg_t _submsg)
+        : server_uuid(std::move(_server_uuid)),
+          timestamp(std::move(_timestamp)),
+          submsg(std::move(_submsg)) { }
+    uuid_u server_uuid;
+    repli_timestamp_t timestamp;
+    msg_t submsg;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+void server_t::send_all(repli_timestamp_t timestamp, msg_t msg) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
-        send(manager, it->first, msg);
+        send(manager, it->first,
+             stamped_msg_t(uuid, std::move(timestamp), std::move(msg)));
     }
 }
 
 server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
+}
+
+uuid_u server_t::get_uuid() {
+    return uuid;
 }
 
 msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
@@ -76,17 +120,18 @@ msg_t::change_t::~change_t() { }
 RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
-
+RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, timestamp, submsg);
 
 // Uses the home thread of the subscriber, not the client.
 class sub_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    sub_t(feed_t *_feed);
+    sub_t(feed_t *_feed, std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
     ~sub_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    void add_el(counted_t<const datum_t> d);
+    void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
+                counted_t<const datum_t> d);
     void abort(const std::string &msg);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
@@ -94,6 +139,7 @@ private:
     cond_t *cond; // NULL unless we're waiting.
     std::deque<counted_t<const datum_t> > els;
     feed_t *feed;
+    std::map<uuid_u, repli_timestamp_t> start_timestamps;
     auto_drainer_t drainer;
     DISABLE_COPYING(sub_t);
 };
@@ -107,10 +153,13 @@ public:
     template<class T> void each_sub(const T &t) THROWS_NOTHING;
     bool can_be_removed();
 private:
+    void check_stamp(uuid_u uuid, repli_timestamp_t timestamp);
+    std::map<uuid_u, repli_timestamp_t> last_timestamps;
+
     client_t *client;
     uuid_u uuid;
     mailbox_manager_t *manager;
-    mailbox_t<void(msg_t)> mailbox;
+    mailbox_t<void(stamped_msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
     wait_any_t any_disconnect;
@@ -123,7 +172,8 @@ private:
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
-    msg_visitor_t(feed_t *_feed) : feed(_feed) { }
+    msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, repli_timestamp_t _timestamp)
+        : feed(_feed), server_uuid(_server_uuid), timestamp(_timestamp) { }
     void operator()(const msg_t::change_t &change) const {
         auto null = make_counted<const datum_t>(datum_t::R_NULL);
         std::map<std::string, counted_t<const datum_t> > obj{
@@ -131,7 +181,11 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_sub([d](sub_t *sub) { sub->add_el(d); });
+        feed->each_sub(
+            [this, d](sub_t *sub) {
+                sub->add_el(server_uuid, timestamp, d);
+            }
+        );
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
@@ -139,9 +193,12 @@ public:
     }
 private:
     feed_t *feed;
+    uuid_u server_uuid;
+    repli_timestamp_t timestamp;
 };
-void handle_msg(feed_t *feed, const msg_t &msg) {
-    boost::apply_visitor(msg_visitor_t(feed), msg.op);
+void handle_msg(feed_t *feed, const stamped_msg_t &msg) {
+    msg_visitor_t visitor(feed, msg.server_uuid, msg.timestamp);
+    boost::apply_visitor(visitor, msg.submsg.op);
 }
 
 class stream_t : public eager_datum_stream_t {
@@ -161,7 +218,8 @@ private:
     scoped_ptr_t<sub_t> sub;
 };
 
-sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
+sub_t::sub_t(feed_t *_feed, std::map<uuid_u, repli_timestamp_t> &&_start_timestamps)
+    : cond(NULL), feed(_feed), start_timestamps(std::move(_start_timestamps)) {
     auto_drainer_t::lock_t lock(&drainer);
     feed->add_sub(this);
 }
@@ -207,9 +265,12 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
-void sub_t::add_el(counted_t<const datum_t> d) {
+void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
+                   counted_t<const datum_t> d) {
     assert_thread();
-    if (!exc) {
+    auto it = start_timestamps.find(uuid);
+    guarantee(it != start_timestamps.end());
+    if (timestamp > it->second && !exc) {
         els.push_back(d);
         if (els.size() > array_size_limit()) {
             els.clear();
@@ -295,11 +356,31 @@ bool feed_t::can_be_removed() {
     return num_subs == 0;
 }
 
+void feed_t::check_stamp(uuid_u server_uuid, repli_timestamp_t timestamp) {
+    auto it = last_timestamps.find(server_uuid);
+    if (it != last_timestamps.end()) {
+        if (timestamp < it->second) {
+            debugf("%s: %" PRIu64 " < %" PRIu64 "\n",
+                   uuid_to_str(server_uuid).c_str(),
+                   timestamp.longtime,
+                   it->second.longtime);
+            guarantee(false);
+        }
+    }
+    last_timestamps[server_uuid] = timestamp;
+}
+
 feed_t::feed_t(client_t *_client, base_namespace_repo_t *ns_repo, uuid_u _uuid)
     : client(_client),
       uuid(_uuid),
       manager(client->get_manager()),
-      mailbox(manager, [this](changefeed::msg_t msg) { handle_msg(this, msg); }),
+      mailbox(
+          manager,
+          [this](stamped_msg_t msg) {
+              check_stamp(msg.server_uuid, msg.timestamp);
+              handle_msg(this, msg);
+          }
+      ),
       subs(get_num_threads()),
       num_subs(0),
       detached(false) {
@@ -376,8 +457,18 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
                 auto val = make_scoped<feed_t>(this, env->cluster_access.ns_repo, uuid);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
+
             on_thread_t th2(old_thread);
-            sub.init(new sub_t(feed_it->second.get()));
+            base_namespace_repo_t::access_t access(
+                env->cluster_access.ns_repo, uuid, env->interruptor);
+            auto nif = access.get_namespace_if();
+            write_t write(changefeed_timestamp_t(), profile_bool_t::DONT_PROFILE);
+            write_response_t write_resp;
+            nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
+            auto resp = boost::get<changefeed_timestamp_response_t>(
+                &write_resp.response);
+            guarantee(resp);
+            sub.init(new sub_t(feed_it->second.get(), std::move(resp->timestamps)));
         }
         return counted_t<datum_stream_t>(
             new stream_t(std::move(sub), tbl->backtrace()));
