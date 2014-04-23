@@ -120,11 +120,26 @@ public:
         return registration_done_cond_.wait();
     }
 
-    // TODO! Temporary hack
-    read_response_t perform__local_read(const read_t &read,
+    /* Interface for performing local reads without going through a mailbox */
+    // TODO! Pass in a second interruptor
+    read_response_t local_read(const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
-            fifo_enforcer_read_token_t fifo_token);
+            fifo_enforcer_read_token_t fifo_token)
+        THROWS_ONLY(interrupted_exc_t);
+
+    write_response_t local_writeread(const write_t &write,
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token,
+            write_durability_t durability)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void local_write(const write_t &write,
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token)
+        THROWS_ONLY(interrupted_exc_t);
 
 
 private:

@@ -340,6 +340,7 @@ void listener_write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
+    // TODO! Local stuff
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
@@ -521,6 +522,7 @@ void broadcaster_t::background_write(dispatchee_t *mirror, auto_drainer_t::lock_
 
 void broadcaster_t::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
     try {
+        // TODO! Local writeread
         cond_t response_cond;
         write_response_t response;
         mailbox_t<void(write_response_t)> response_mailbox(
@@ -602,11 +604,11 @@ void broadcaster_t::single_read(
 
     try {
         if (reader->local_listener != NULL) {
-            // TODO! This is just a copy. Implement a proper interface on listener_t.
-            // Also allow passing in an interruptor.
-            *response = reader->local_listener->perform__local_read(read, timestamp,
-                                                                    order_token,
-                                                                    enforcer_token);
+            // TODO! Allow passing an interruptor
+            // TODO! Integrate this logic into listener_read.
+            *response = reader->local_listener->local_read(read, timestamp,
+                                                           order_token,
+                                                           enforcer_token);
         } else {
             wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
             listener_read(mailbox_manager, reader->read_mailbox,
