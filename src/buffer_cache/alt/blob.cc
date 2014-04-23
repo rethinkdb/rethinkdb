@@ -606,10 +606,9 @@ void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids
     int64_t leafsize = leaf_size(block_size);
 
     if (ceil_divide(bigger_size, leafsize) > ceil_divide(smaller_size, leafsize)) {
-        for (int i = std::max(0, old_hi - 1); i < new_hi; ++i) {
-            traverse_index(parent, levels, block_ids, i,
-                           smaller_size, bigger_size, helper);
-        }
+        pmap(std::max(0, old_hi - 1), new_hi,
+             std::bind(&traverse_index, parent, levels, block_ids, ph::_1,
+                       smaller_size, bigger_size, helper));
     }
 }
 
