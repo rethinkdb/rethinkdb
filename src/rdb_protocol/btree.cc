@@ -1064,7 +1064,7 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 void rdb_modification_report_cb_t::on_mod_report(
     repli_timestamp_t timestamp,
     const rdb_modification_report_t &mod_report) {
-    debugf("%" PRIu64 "\n", timestamp.longtime);
+    // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.

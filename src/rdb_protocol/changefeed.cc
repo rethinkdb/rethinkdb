@@ -357,7 +357,7 @@ void feed_t::each_sub(const T &t) THROWS_NOTHING {
              guarantee(set->size() != 0);
              on_thread_t th((threadnum_t(sub_threads[i])));
              for (auto it = set->begin(); it != set->end(); ++it) {
-                 debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
+                 // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
                  t(*it);
              }
          });
