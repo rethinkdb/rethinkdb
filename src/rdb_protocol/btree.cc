@@ -352,7 +352,6 @@ void do_a_replace_from_batched_replace(
 
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    // RSI: does this timestamp make sense?
     sindex_cb->on_mod_report(info.btree->timestamp, mod_report);
 }
 

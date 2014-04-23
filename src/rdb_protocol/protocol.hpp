@@ -576,9 +576,9 @@ public:
 class changefeed_subscribe_t {
 public:
     changefeed_subscribe_t() { }
-    changefeed_subscribe_t(ql::changefeed::msg_t::addr_t _addr)
+    changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
-    ql::changefeed::msg_t::addr_t addr;
+    ql::changefeed::client_t::addr_t addr;
     region_t region;
     RDB_DECLARE_ME_SERIALIZABLE;
 };

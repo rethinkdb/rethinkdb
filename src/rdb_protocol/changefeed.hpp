@@ -35,10 +35,7 @@ class table_t;
 
 namespace changefeed {
 
-struct stamped_msg_t;
 struct msg_t {
-    // RSI: make this client_t::addr_t
-    typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
     struct change_t {
         change_t();
         explicit change_t(const rdb_modification_report_t *report);
@@ -60,26 +57,11 @@ struct msg_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class server_t {
-public:
-    typedef mailbox_addr_t<void(msg_t::addr_t)> addr_t;
-    server_t(mailbox_manager_t *_manager);
-    void add_client(const msg_t::addr_t &addr);
-    void send_all(repli_timestamp_t timestamp, msg_t msg);
-    addr_t get_stop_addr();
-    uuid_u get_uuid();
-private:
-    uuid_u uuid;
-    mailbox_manager_t *manager;
-    std::map<msg_t::addr_t, std::pair<int64_t, scoped_ptr_t<cond_t> > > clients;
-    rwlock_t clients_lock;
-    mailbox_t<void(msg_t::addr_t)> stop_mailbox;
-    auto_drainer_t drainer;
-};
-
 class feed_t;
+struct stamped_msg_t;
 class client_t : public home_thread_mixin_t {
 public:
+    typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
     client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
@@ -93,6 +75,23 @@ private:
     std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
     std::map<uuid_u, scoped_ptr_t<feed_t> > detached_feeds;
     rwlock_t feeds_lock;
+    auto_drainer_t drainer;
+};
+
+class server_t {
+public:
+    typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
+    server_t(mailbox_manager_t *_manager);
+    void add_client(const client_t::addr_t &addr);
+    void send_all(repli_timestamp_t timestamp, msg_t msg);
+    addr_t get_stop_addr();
+    uuid_u get_uuid();
+private:
+    uuid_u uuid;
+    mailbox_manager_t *manager;
+    std::map<client_t::addr_t, std::pair<int64_t, scoped_ptr_t<cond_t> > > clients;
+    rwlock_t clients_lock;
+    mailbox_t<void(client_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;
 };
 

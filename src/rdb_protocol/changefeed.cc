@@ -21,7 +21,7 @@ server_t::server_t(mailbox_manager_t *_manager)
       manager(_manager),
       stop_mailbox(
           manager,
-          [this](msg_t::addr_t addr) {
+          [this](client_t::addr_t addr) {
               auto_drainer_t::lock_t lock(&drainer);
               rwlock_in_line_t spot(&clients_lock, access_t::write);
               spot.read_signal()->wait_lazily_unordered();
@@ -44,7 +44,7 @@ server_t::server_t(mailbox_manager_t *_manager)
           }
       ) { }
 
-void server_t::add_client(const msg_t::addr_t &addr) {
+void server_t::add_client(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
