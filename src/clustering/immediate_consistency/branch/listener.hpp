@@ -4,8 +4,8 @@
 
 #include <map>
 
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
@@ -260,8 +260,12 @@ private:
     listener_business_card_t::writeread_mailbox_t writeread_mailbox_;
     listener_business_card_t::read_mailbox_t read_mailbox_;
 
+    /* The local listener registration is released after the registrant_'s destructor
+    has unregistered with the broadcaster. That's why we must make sure that
+    registrant_ is destructed before local_listener_registration_ is, or we would
+    dead-lock on destruction. */
+    auto_drainer_t local_listener_registration_;
     scoped_ptr_t<registrant_t<listener_business_card_t> > registrant_;
-    broadcaster_t::local_listener_registration_t local_listener_registration;
 
     DISABLE_COPYING(listener_t);
 };

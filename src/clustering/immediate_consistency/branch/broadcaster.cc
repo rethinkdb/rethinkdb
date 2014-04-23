@@ -6,7 +6,7 @@
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
-#include "concurrency/coro_fifo.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
@@ -288,8 +288,10 @@ public:
     listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
     listener_business_card_t::read_mailbox_t::address_t read_mailbox;
 
-    /* `local_listener` is non-NULL is the dispatchee is local on this node. */
+    /* `local_listener` can be non-NULL if the dispatchee is local on this node
+    (and on the same thread). */
     listener_t *local_listener;
+    auto_drainer_t::lock_t local_listener_keepalive;
 
     /* This is used to enforce that operations are performed on the
        destination machine in the same order that we send them, even if the
@@ -321,18 +323,19 @@ private:
     DISABLE_COPYING(dispatchee_t);
 };
 
-broadcaster_t::local_listener_registration_t broadcaster_t::register_local_listener(
+void broadcaster_t::register_local_listener(
         const uuid_u &listener_id,
-        listener_t *listener) {
+        listener_t *listener,
+        auto_drainer_t::lock_t listener_keepalive) {
     for (auto it = dispatchees.begin(); it != dispatchees.end(); ++it) {
         if (it->first->listener_id == listener_id) {
             it->first->local_listener = listener;
-            return local_listener_registration_t(this, listener_id);
+            it->first->local_listener_keepalive = listener_keepalive;
+            return;
         }
     }
     logERR("Non-critical error: Could not install local listener. "
            "You may experience reduced query performance.");
-    return local_listener_registration_t();
 }
 
 /* Functions to send a read or write to a mirror and wait for a response.
@@ -737,57 +740,5 @@ broadcaster_t::write_callback_t::~write_callback_t() {
     if (write) {
         guarantee(write->callback == this);
         write->callback = NULL;
-    }
-}
-
-broadcaster_t::local_listener_registration_t::local_listener_registration_t() :
-    broadcaster(NULL) { }
-
-broadcaster_t::local_listener_registration_t::local_listener_registration_t(
-        broadcaster_t *_broadcaster,
-        const uuid_u &_listener_id) :
-    broadcaster(_broadcaster), listener_id(_listener_id) { }
-
-broadcaster_t::local_listener_registration_t::local_listener_registration_t(
-        local_listener_registration_t &&other) {
-    *this = std::move(other);
-}
-
-broadcaster_t::local_listener_registration_t
-    &broadcaster_t::local_listener_registration_t::operator=(
-        local_listener_registration_t &&other) {
-    // Can only be applied to default initialized registrations
-    guarantee(broadcaster == NULL);
-    broadcaster = other.broadcaster;
-    listener_id = other.listener_id;
-    other.broadcaster = NULL;
-    return *this;
-}
-
-broadcaster_t::local_listener_registration_t::~local_listener_registration_t() {
-    if (broadcaster == NULL) {
-        return;
-    }
-    bool any_removed = false;
-    // This code is made to handle UUID collisions gracefully. We don't do that
-    // anywhere else I think, but it's good to start somewhere (in case of faulty
-    // rngs).
-    for (auto it = broadcaster->dispatchees.begin();
-         it != broadcaster->dispatchees.end();
-         ++it) {
-        if (it->first->listener_id == listener_id) {
-            if (it->first->local_listener != NULL) {
-                any_removed = true;
-                it->first->local_listener = NULL;
-            }
-        }
-    }
-    // TODO! the registrant should just contain a pointer to the dispatchee, together
-    // with a drainer lock into the dispatchee.
-    // TODO! Could a listener cease to become a dispatchee without being destructed?
-    // Maybe it could. Better not print a message maybe?
-    if (!any_removed) {
-        logERR("Could not unregister local listener. This could be a UUID collision, "
-               "or a bug in RethinkDB.");
     }
 }
