@@ -29,6 +29,7 @@ class Cursor(object):
         self.responses = [ ]
         self.outstanding_requests = 0
         self.end_flag = False
+        self.connection_closed = False
 
     def _extend(self, response):
         self.end_flag = response.type != p.Response.SUCCESS_PARTIAL
@@ -41,6 +42,8 @@ class Cursor(object):
         format_opts = self.format_opts
         deconstruct = Datum.deconstruct
         while True:
+            if len(self.responses) == 0 and self.connection_closed:
+                raise RqlDriverError("Connection closed, cannot read cursor")
             if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
             if len(self.responses) == 1 and not self.end_flag:
@@ -127,6 +130,9 @@ class Connection(object):
                 pass
             self.socket.close()
             self.socket = None
+        for (token, cursor) in self.cursor_cache.iteritems():
+            cursor.end_flag = True
+            cursor.connection_closed = True
         self.cursor_cache = { }
 
     def noreply_wait(self):
