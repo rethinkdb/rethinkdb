@@ -42,6 +42,11 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
         print "Running JS"
         res = res | call(["node", "connections/cursor.js", str(port), str(num_rows)])
         print ''
+    if not lang or lang == 'js-promise':
+        print "Running JS Promise"
+        res = res | call(["node", "connections/promise.js", str(port), str(num_rows)])
+        print ''
+
 
 if res is not 0:
     exit(1)

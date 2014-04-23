@@ -2,6 +2,7 @@ util = require('./util')
 err = require('./errors')
 net = require('./net')
 protoTermType = require('./proto-def').Term.TermType
+Promise = require('bluebird')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -57,18 +58,23 @@ class TermBase
     run: (connection, options, callback) ->
         # Valid syntaxes are
         # connection, callback
+        # connection, options # return a Promise
         # connection, options, callback
         # connection, null, callback
+        # connection, null # return a Promise
         # 
         # Depreciated syntaxes are
         # optionsWithConnection, callback
         
         if net.isConnection(connection) is true
             # Handle run(connection, callback)
-            if typeof options is "function"
-                callback = options
-                options = {}
-            # else we suppose that we have run(connection, options, callback)
+            if typeof options is "function" 
+                if callback is undefined
+                    callback = options
+                    options = {}
+                else
+                    throw new err.RqlDriverError "Second argument to `run` cannot be a function is a third argument is provided."
+            # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
                 process?.stderr.write("RethinkDB warning: This syntax is deprecated. Please use `run(connection[, options], callback)`.")
@@ -79,7 +85,7 @@ class TermBase
             connection = connection.connection
             delete options["connection"]
 
-        options = {} if options is null
+        options = {} if not options?
 
         # Check if the arguments are valid types
         for own key of options
@@ -88,22 +94,28 @@ class TermBase
         if net.isConnection(connection) is false
             throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
-        # We only require a callback if noreply isn't set
-        if not options.noreply and typeof(callback) isnt 'function'
-            throw new err.RqlDriverError "The last argument to `run` must be a callback to invoke "+
-                                         "with either an error or the result of the query."
+        if options.noreply is true or typeof callback is 'function'
+            try
+                connection._start @, callback, options
+            catch e
+                # It was decided that, if we can, we prefer to invoke the callback
+                # with any errors rather than throw them as normal exceptions.
+                # Thus we catch errors here and invoke the callback instead of
+                # letting the error bubble up.
+                if typeof(callback) is 'function'
+                    callback(e)
+        else
+            new Promise (resolve, reject) =>
+                callback = (err, result) ->
+                    if err?
+                        reject(err)
+                    else
+                        resolve(result)
 
-        try
-            connection._start @, callback, options
-        catch e
-            # It was decided that, if we can, we prefer to invoke the callback
-            # with any errors rather than throw them as normal exceptions.
-            # Thus we catch errors here and invoke the callback instead of
-            # letting the error bubble up.
-            if typeof(callback) is 'function'
-                callback(e)
-            else
-                throw e
+                try
+                    connection._start @, callback, options
+                catch e
+                    callback(e)
 
     toString: -> err.printQuery(@)
 
