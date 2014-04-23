@@ -776,7 +776,7 @@ broadcaster_t::local_listener_registration_t::~local_listener_registration_t() {
          it != broadcaster->dispatchees.end();
          ++it) {
         if (it->first->listener_id == listener_id) {
-            if (it->first->local_listener == NULL) {
+            if (it->first->local_listener != NULL) {
                 any_removed = true;
                 it->first->local_listener = NULL;
             }
