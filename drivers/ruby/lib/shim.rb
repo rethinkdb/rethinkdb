@@ -105,7 +105,7 @@ module RethinkDB
 
   class RQL
     def to_json(*a, &b)
-      @body.to_json
+      @body.to_json(*a, &b)
     end
     def to_pb; @body; end
 
