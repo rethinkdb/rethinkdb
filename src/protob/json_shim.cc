@@ -1,3 +1,5 @@
+#include "rdb_protocol/ql2.pb.h"
+
 #include <inttypes.h>
 #include "protob/json_shim.hpp"
 
@@ -5,7 +7,6 @@
 #include "debug.hpp"
 
 #include "http/json.hpp"
-#include "rdb_protocol/ql2.pb.h"
 
 std::map<std::string, int32_t> resolver;
 
@@ -189,6 +190,8 @@ bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
     } catch (const exc_t &) {
         // This happens if the user provides bad JSON.  TODO: Give the user a
         // more specific error than "malformed query".
+        return false;
+    } catch (const google::protobuf::FatalException &) {
         return false;
     } catch (...) {
         // If we get an unexpected error, we only rethrow in debug mode.  (This
