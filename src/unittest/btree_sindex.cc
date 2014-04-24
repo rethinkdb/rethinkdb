@@ -7,6 +7,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
+#include "containers/uuid.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -186,11 +187,13 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     &dummy_interruptor);
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
+            uuid_u sindex_uuid;
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
                     id,
                     super_block.get(),
-                    &sindex_super_block);
+                    &sindex_super_block,
+                    &sindex_uuid);
             ASSERT_TRUE(sindex_exists);
 
             counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
@@ -200,8 +203,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             store_key_t key("foo");
             rdb_live_deletion_context_t deletion_context;
-            // TODO!
-            rdb_set(key, data, true, store.get_sindex_slice(id),
+            rdb_set(key, data, true, store.get_sindex_slice(sindex_uuid),
                     repli_timestamp_t::invalid,
                     sindex_super_block.get(), &deletion_context, &response,
                     &mod_info, static_cast<profile::trace_t *>(NULL));
@@ -215,6 +217,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> main_sb;
             scoped_ptr_t<real_superblock_t> sindex_super_block;
+            uuid_u sindex_uuid;
 
             store.acquire_superblock_for_read(
                     &token_pair.main_read_token, &txn, &main_sb,
@@ -224,12 +227,12 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             bool sindex_exists = store.acquire_sindex_superblock_for_read(
                     id, main_sb.get(), &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL));
+                    static_cast<std::vector<char>*>(NULL), &sindex_uuid);
             ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;
 
-            rdb_get(key, store.get_sindex_slice(id),
+            rdb_get(key, store.get_sindex_slice(sindex_uuid),
                     sindex_super_block.get(), &response, NULL);
 
             ASSERT_EQ(ql::datum_t(1.0), *response.data);
@@ -248,16 +251,18 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                                            1, write_durability_t::SOFT, &token_pair,
                                            &txn, &super_block, &dummy_interruptor);
 
-        value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
-
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
 
-        rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
-        store.drop_sindex(*it, std::move(sindex_block), &sizer, &live_deletion_context,
-                          &post_construction_deletion_context, &dummy_interruptor);
+        std::shared_ptr<value_sizer_t<void> > sizer(
+                new value_sizer_t<rdb_value_t>(store.cache->get_block_size()));
+        std::shared_ptr<deletion_context_t> live_deletion_context(
+                new rdb_live_deletion_context_t());
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context(
+                new rdb_post_construction_deletion_context_t());
+        store.drop_sindex(*it, std::move(sindex_block), sizer, live_deletion_context,
+                          post_construction_deletion_context, &dummy_interruptor);
     }
 }
 

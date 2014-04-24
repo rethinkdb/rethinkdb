@@ -9,7 +9,7 @@
 #include "protocol_api.hpp"
 
 RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
-                           post_construction_complete, id);
+                           state, id);
 
 void get_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     std::map<std::string, secondary_index_t> *sindexes_out) {

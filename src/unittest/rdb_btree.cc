@@ -9,6 +9,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -129,19 +130,22 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
                                         1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interruptor);
 
-    value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
-
     buf_lock_t sindex_block
         = store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                                 super_block->get_sindex_block_id());
-    rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
+    std::shared_ptr<value_sizer_t<void> > sizer(
+            new value_sizer_t<rdb_value_t>(store->cache->get_block_size()));
+    std::shared_ptr<deletion_context_t> live_deletion_context(
+            new rdb_live_deletion_context_t());
+    std::shared_ptr<deletion_context_t> post_construction_deletion_context(
+            new rdb_post_construction_deletion_context_t());
+    std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_id,
             std::move(sindex_block),
-            &sizer,
-            &live_deletion_context,
-            &post_construction_deletion_context,
+            sizer,
+            live_deletion_context,
+            post_construction_deletion_context,
             &dummy_interruptor);
 }
 
@@ -212,12 +216,14 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        uuid_u sindex_uuid;
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
                 super_block.get(),
                 &sindex_sb,
-                static_cast<std::vector<char>*>(NULL));
+                static_cast<std::vector<char>*>(NULL),
+                &sindex_uuid);
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
@@ -226,8 +232,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
          * which prevents to profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
-            // TODO!
-            store->get_sindex_slice(sindex_id),
+            store->get_sindex_slice(sindex_uuid),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
@@ -282,12 +287,14 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                 &dummy_interruptor, true);
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
+        uuid_u sindex_uuid;
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
                 super_block.get(),
                 &sindex_sb,
-                static_cast<std::vector<char>*>(NULL));
+                static_cast<std::vector<char>*>(NULL),
+                &sindex_uuid);
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
@@ -296,8 +303,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
          * which prevents the profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
-            // TODO!
-            store->get_sindex_slice(sindex_id),
+            store->get_sindex_slice(sindex_uuid),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),

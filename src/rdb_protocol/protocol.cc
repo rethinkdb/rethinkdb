@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <memory>
 
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
@@ -1124,9 +1125,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
 
+            uuid_u sindex_uuid;
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                    rget.sindex->id, superblock, &sindex_sb, &sindex_mapping_data);
+                    rget.sindex->id, superblock, &sindex_sb, &sindex_mapping_data,
+                    &sindex_uuid);
                 if (!found) {
                     res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,
@@ -1154,8 +1157,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee_deserialization(success, "sindex description");
 
             rdb_rget_secondary_slice(
-                // TODO!
-                store->get_sindex_slice(rget.sindex->id),
+                store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
@@ -1219,7 +1221,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (it->second.state == STATE_DELETING) {
+            if (it->second.state == secondary_index_t::STATE_DELETING) {
                 continue;
             }
             if (std_contains(sindex_status.sindexes, it->first) ||
@@ -1228,7 +1230,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     store->get_progress(it->second.id);
                 rdb_protocol_details::single_sindex_status_t *s =
                     &res->statuses[it->first];
-                s->ready = it->second.state == STATE_READY;
+                s->ready = it->second.state == secondary_index_t::STATE_READY;
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
                         s->blocks_processed = 0;
@@ -1441,15 +1443,18 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
-        rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
+        std::shared_ptr<value_sizer_t<void> > sizer(
+                new value_sizer_t<rdb_value_t>(btree->cache()->get_block_size()));
+        std::shared_ptr<deletion_context_t> live_deletion_context(
+                new rdb_live_deletion_context_t());
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context(
+                new rdb_post_construction_deletion_context_t());
 
         res.success = store->drop_sindex(d.id,
                                          std::move(sindex_block),
-                                         &sizer,
-                                         &live_deletion_context,
-                                         &post_construction_deletion_context,
+                                         sizer,
+                                         live_deletion_context,
+                                         post_construction_deletion_context,
                                          &interruptor);
 
         response->response = res;
@@ -1751,9 +1756,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
-        rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
+        std::shared_ptr<value_sizer_t<void> > sizer(
+                new value_sizer_t<rdb_value_t>(txn->cache()->get_block_size()));
+        std::shared_ptr<deletion_context_t> live_deletion_context(
+                new rdb_live_deletion_context_t());
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context(
+                new rdb_post_construction_deletion_context_t());
         std::set<std::string> created_sindexes;
 
         // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
@@ -1772,10 +1780,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
             it->second.id = generate_uuid();
         }
 
-        store->set_sindexes(sindexes, &sindex_block, &sizer,
-                            &live_deletion_context,
-                            &post_construction_deletion_context,
-                            &created_sindexes, interruptor);
+        store->set_sindexes(sindexes, &sindex_block,
+                            sizer,
+                            live_deletion_context,
+                            post_construction_deletion_context,
+                            &created_sindexes);
 
         if (!created_sindexes.empty()) {
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,

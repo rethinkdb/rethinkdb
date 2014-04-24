@@ -3,6 +3,7 @@
 #define BTREE_BTREE_STORE_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -197,14 +198,15 @@ public:
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
+    // TODO (daniel): These shared_ptr<> arguments are not necessary anymore with
+    // the protocol_t dependence removed.
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
-        const deletion_context_t *live_deletion_context,
-        const deletion_context_t *post_construction_deletion_context,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
+        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<deletion_context_t> live_deletion_context,
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
+        std::set<std::string> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
@@ -217,12 +219,14 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
+    // TODO (daniel): These shared_ptr<> arguments are not necessary anymore with
+    // the protocol_t dependence removed.
     bool drop_sindex(
         const std::string &id,
         buf_lock_t &&sindex_block,
-        value_sizer_t<void> *sizer,
-        const deletion_context_t *live_deletion_context,
-        const deletion_context_t *post_construction_deletion_context,
+        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<deletion_context_t> live_deletion_context,
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -230,13 +234,15 @@ public:
             const std::string &id,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out) // Optional, may be NULL
+            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            uuid_u *sindex_uuid_out) // Optional, may be NULL
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out)
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            uuid_u *sindex_uuid_out) // Optional, may be NULL
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
@@ -354,6 +360,17 @@ private:
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    MUST_USE bool mark_secondary_index_deleted(
+            buf_lock_t *sindex_block,
+            const std::string &id);
+
+    void clear_sindex(
+            secondary_index_t sindex,
+            value_sizer_t<void> *sizer,
+            const value_deleter_t *deleter,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
