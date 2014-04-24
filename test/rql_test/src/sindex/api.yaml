@@ -137,7 +137,7 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindex_api`.", [])'
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
@@ -226,7 +226,7 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindex_api`.", [])'
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
