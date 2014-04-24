@@ -1082,7 +1082,7 @@ store_t::store_t(serializer_t *serializer,
 
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!it->second.post_construction_complete) {
+        if (!it->second.post_construction_complete()) {
             sindexes_to_update.insert(it->first);
         }
     }
@@ -1154,6 +1154,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee_deserialization(success, "sindex description");
 
             rdb_rget_secondary_slice(
+                // TODO!
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
@@ -1218,13 +1219,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (it->second.state == STATE_DELETING) {
+                continue;
+            }
             if (std_contains(sindex_status.sindexes, it->first) ||
                 sindex_status.sindexes.empty()) {
                 progress_completion_fraction_t frac =
                     store->get_progress(it->second.id);
                 rdb_protocol_details::single_sindex_status_t *s =
                     &res->statuses[it->first];
-                s->ready = it->second.post_construction_complete;
+                s->ready = it->second.state == STATE_READY;
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
                         s->blocks_processed = 0;
@@ -1442,7 +1446,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
 
         res.success = store->drop_sindex(d.id,
-                                         &sindex_block,
+                                         std::move(sindex_block),
                                          &sizer,
                                          &live_deletion_context,
                                          &post_construction_deletion_context,

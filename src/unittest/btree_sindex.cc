@@ -200,6 +200,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             store_key_t key("foo");
             rdb_live_deletion_context_t deletion_context;
+            // TODO!
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid,
                     sindex_super_block.get(), &deletion_context, &response,
@@ -255,7 +256,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
-        store.drop_sindex(*it, &sindex_block, &sizer, &live_deletion_context,
+        store.drop_sindex(*it, std::move(sindex_block), &sizer, &live_deletion_context,
                           &post_construction_deletion_context, &dummy_interruptor);
     }
 }

@@ -219,7 +219,7 @@ public:
 
     bool drop_sindex(
         const std::string &id,
-        buf_lock_t *sindex_block,
+        buf_lock_t &&sindex_block,
         value_sizer_t<void> *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
@@ -281,7 +281,7 @@ public:
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
-    btree_slice_t *get_sindex_slice(std::string id) {
+    btree_slice_t *get_sindex_slice(const uuid_u &id) {
         return &(secondary_index_slices.at(id));
     }
 
@@ -386,7 +386,7 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
+    boost::ptr_map<const uuid_u, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;

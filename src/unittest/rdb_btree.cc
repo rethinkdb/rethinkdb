@@ -138,7 +138,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
     store->drop_sindex(
             sindex_id,
-            &sindex_block,
+            std::move(sindex_block),
             &sizer,
             &live_deletion_context,
             &post_construction_deletion_context,
@@ -226,6 +226,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
          * which prevents to profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
+            // TODO!
             store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
@@ -295,6 +296,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
          * which prevents the profiling code from crashing. */
         ql::env_t dummy_env(NULL, NULL);
         rdb_rget_slice(
+            // TODO!
             store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),

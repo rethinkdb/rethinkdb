@@ -16,7 +16,7 @@ class buf_lock_t;
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
+        : superblock(NULL_BLOCK_ID), state(STATE_POST_CONSTRUCTION),
           id(generate_uuid())
     { }
 
@@ -33,7 +33,20 @@ struct secondary_index_t {
     typedef std::vector<char> opaque_definition_t;
 
     /* Whether or not the sindex has complete postconstruction. */
-    bool post_construction_complete;
+    // TODO! Update the comment
+    // TODO! sindex queries should fail if this is in STATE_DELETING, just as if it
+    // was in STATE_POST_CONSTRUCTION
+    uint16_t state;
+    static const uint16_t STATE_POST_CONSTRUCTION = 0;
+    static const uint16_t STATE_READY = 1;
+    static const uint16_t STATE_DELETING = 2;
+
+    bool post_construction_complete() const {
+        rassert(state == STATE_POST_CONSTRUCTION
+                || state == STATE_READY
+                || state == STATE_DELETING);
+        return state != STATE_POST_CONSTRUCTION;
+    }
 
     /* An opaque blob that describes the index */
     opaque_definition_t opaque_definition;
