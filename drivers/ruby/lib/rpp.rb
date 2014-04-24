@@ -208,9 +208,9 @@ module RethinkDB
             line
           end
         }.flatten.join("\n")
-      # rescue Exception => e
-      #   raise e.class, "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
-      #     "FALLING BACK TO GENERIC PRINTER.\n#{@term.inspect}"
+       rescue Exception => e
+        "AN ERROR OCCURED DURING PRETTY-PRINTING:\n#{e.inspect}\n" +
+          "FALLING BACK TO GENERIC PRINTER.\n#{term.inspect}"
       end
     end
   end

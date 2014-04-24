@@ -150,18 +150,21 @@ void extract(cJSON *json, Datum *d) {
 
 template<>
 void extract(cJSON *json, Query::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Term::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Datum::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
