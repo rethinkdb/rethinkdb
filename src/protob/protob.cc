@@ -393,8 +393,9 @@ void query_server_t::handle(const http_req_t &req,
             int64_t token;
 
             if (req.body.size() < sizeof(token)) {
-                handler->unparseable_query(0, &response,
-                                           "Client is buggy (request too small).");
+                *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                     "Client is buggy (request too small).");
+                return;
             } else {
                 // Parse the token out from the start of the request
                 const char *data = req.body.c_str();
