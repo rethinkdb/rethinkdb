@@ -182,7 +182,7 @@ private:
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
-            std::sort(to_sort.begin(), to_sort.end(), fn);
+            std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
                 make_counted<const datum_t>(std::move(to_sort)), backtrace());
         }
@@ -219,9 +219,8 @@ private:
                 sampler.new_sample();
             }
         }
-        std::sort(arr.begin(), arr.end(),
-                  std::bind(lt_cmp, env->env,
-                            ph::_1, ph::_2));
+        // This doesn't need to be a stable sort because we eliminate duplicates.
+        std::sort(arr.begin(), arr.end(), std::bind(lt_cmp, env->env, ph::_1, ph::_2));
         std::vector<counted_t<const datum_t> > toret;
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             if (toret.size() == 0 || **it != *toret[toret.size()-1]) {
