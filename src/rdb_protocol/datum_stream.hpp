@@ -356,7 +356,8 @@ private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
-        const std::string &sindex, datum_range_t sindex_range,
+        const std::string &sindex,
+        datum_range_t sindex_range,
         profile_bool_t profile,
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
