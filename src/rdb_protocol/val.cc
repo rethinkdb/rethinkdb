@@ -256,7 +256,8 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
             array.push_back(make_counted<const datum_t>(std::move(status)));
         }
         rcheck(sindexes.empty(), base_exc_t::GENERIC,
-               strprintf("Index `%s` was not found.", sindexes.begin()->c_str()));
+               strprintf("Index `%s` was not found on table `%s`.",
+                         sindexes.begin()->c_str(), name.c_str()));
         return make_counted<const datum_t>(std::move(array));
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail(ql::base_exc_t::GENERIC, "cannot perform read %s", ex.what());
@@ -316,13 +317,13 @@ counted_t<datum_stream_t> table_t::get_all(
         return make_counted<lazy_datum_stream_t>(
             access.get(),
             use_outdated,
-            primary_readgen_t::make(env, datum_range_t(value)),
+            primary_readgen_t::make(env, name, datum_range_t(value)),
             bt);
     } else {
         return make_counted<lazy_datum_stream_t>(
             access.get(),
             use_outdated,
-            sindex_readgen_t::make(env, get_all_sindex_id, datum_range_t(value)),
+            sindex_readgen_t::make(env, name, get_all_sindex_id, datum_range_t(value)),
             bt);
     }
 }
@@ -366,8 +367,8 @@ counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
         access.get(),
         use_outdated,
         (!sindex_id || *sindex_id == get_pkey())
-            ? primary_readgen_t::make(env, bounds, sorting)
-            : sindex_readgen_t::make(env, *sindex_id, bounds, sorting),
+            ? primary_readgen_t::make(env, name, bounds, sorting)
+            : sindex_readgen_t::make(env, name, *sindex_id, bounds, sorting),
         bt);
 }
 

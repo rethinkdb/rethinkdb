@@ -83,7 +83,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 if (!found) {
                     res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found.", rget.sindex->id.c_str()),
+                        strprintf("Index `%s` was not found on table `%s`.",
+                                  rget.sindex->id.c_str(), rget.table_name.c_str()),
                         NULL);
                     return;
                 }
