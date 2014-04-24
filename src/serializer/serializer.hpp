@@ -112,7 +112,7 @@ public:
                  file_account_t *io_account,
                  iocallback_t *cb) = 0;
 
-    /* The size, in bytes, of each serializer block */
+    /* The maximum size (and right now the typical size) that a block can have. */
     virtual max_block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
