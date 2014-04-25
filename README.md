@@ -17,3 +17,8 @@ Get help
 
 Check out www.rethinkdb.com/community
 
+Code contributors
+-----------------
+
+Check out README-src.md
+
