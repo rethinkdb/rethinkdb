@@ -342,7 +342,7 @@ class conn_acq_t {
 public:
     conn_acq_t() : conn(NULL) { }
 
-    bool init(typename http_conn_cache_t::http_conn_t *_conn) {
+    bool init(http_conn_cache_t::http_conn_t *_conn) {
         guarantee(conn == NULL);
         if (_conn->acquire()) {
             conn = _conn;
@@ -357,7 +357,7 @@ public:
         }
     }
 private:
-    typename http_conn_cache_t::http_conn_t *conn;
+    http_conn_cache_t::http_conn_t *conn;
 };
 
 void query_server_t::handle(const http_req_t &req,
