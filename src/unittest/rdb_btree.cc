@@ -263,7 +263,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
             _check_keys_are_present(store, sindex_id);
-        } catch (const sindex_not_post_constructed_exc_t&) { }
+        } catch (const sindex_not_ready_exc_t&) { }
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
@@ -327,7 +327,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
             _check_keys_are_NOT_present(store, sindex_id);
-        } catch (const sindex_not_post_constructed_exc_t&) { }
+        } catch (const sindex_not_ready_exc_t&) { }
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */

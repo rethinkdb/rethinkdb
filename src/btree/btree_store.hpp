@@ -37,11 +37,11 @@ class superblock_t;
 class txn_t;
 class cache_balancer_t;
 
-class sindex_not_post_constructed_exc_t : public std::exception {
+class sindex_not_ready_exc_t : public std::exception {
 public:
-    explicit sindex_not_post_constructed_exc_t(std::string sindex_name);
+    explicit sindex_not_ready_exc_t(std::string sindex_name);
     const char* what() const throw();
-    ~sindex_not_post_constructed_exc_t() throw();
+    ~sindex_not_ready_exc_t() throw();
 private:
     std::string info;
 };
@@ -236,14 +236,14 @@ public:
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out, // Optional, may be NULL
             uuid_u *sindex_uuid_out) // Optional, may be NULL
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             uuid_u *sindex_uuid_out) // Optional, may be NULL
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -263,12 +263,12 @@ public:
             block_id_t sindex_block_id,
             buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     void acquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
@@ -279,13 +279,13 @@ public:
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+    THROWS_ONLY(sindex_not_ready_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+    THROWS_ONLY(sindex_not_ready_exc_t);
 
     btree_slice_t *get_sindex_slice(const uuid_u &id) {
         return &(secondary_index_slices.at(id));
@@ -367,6 +367,7 @@ private:
             buf_lock_t *sindex_block,
             const std::string &id);
 
+public:
     void clear_sindex(
             secondary_index_t sindex,
             value_sizer_t<void> *sizer,
@@ -374,7 +375,6 @@ private:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,

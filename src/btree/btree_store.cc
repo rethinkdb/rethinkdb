@@ -14,17 +14,18 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
-sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
+sindex_not_ready_exc_t::sindex_not_ready_exc_t(
         std::string sindex_name)
-    : info(strprintf("Index `%s` was accessed before its construction was finished.",
+    : info(strprintf("Index `%s` was accessed before its construction was finished "
+                     " or while it was being deleted.",
                 sindex_name.c_str()))
 { }
 
-const char* sindex_not_post_constructed_exc_t::what() const throw() {
+const char* sindex_not_ready_exc_t::what() const throw() {
     return info.c_str();
 }
 
-sindex_not_post_constructed_exc_t::~sindex_not_post_constructed_exc_t() throw() { }
+sindex_not_ready_exc_t::~sindex_not_ready_exc_t() throw() { }
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
@@ -402,7 +403,7 @@ bool btree_store_t<protocol_t>::add_sindex(
         secondary_index_slices.insert(
             sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, id));
 
-        sindex.state = secondary_index_t::STATE_POST_CONSTRUCTION;
+        sindex.post_construction_complete = false;
 
         ::set_secondary_index(sindex_block, id, sindex);
         return true;
@@ -515,7 +516,7 @@ void btree_store_t<protocol_t>::set_sindexes(
             //   create our own ones inside of the delayes_sindex_clearer coro right?
             //   Same for sizer.
             std::shared_ptr<deletion_context_t> actual_deletion_context =
-                    it->second.post_construction_complete()
+                    it->second.post_construction_complete
                     ? live_deletion_context
                     : post_construction_deletion_context;
 
@@ -564,7 +565,7 @@ void btree_store_t<protocol_t>::set_sindexes(
                                                             &perfmon_collection,
                                                             it->first));
 
-            sindex.state = secondary_index_t::STATE_POST_CONSTRUCTION;
+            sindex.post_construction_complete = false;
 
             ::set_secondary_index(sindex_block, it->first, sindex);
 
@@ -581,7 +582,7 @@ bool btree_store_t<protocol_t>::mark_index_up_to_date(const std::string &id,
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
 
     if (found) {
-        sindex.state = secondary_index_t::STATE_READY;
+        sindex.post_construction_complete = true;
 
         ::set_secondary_index(sindex_block, id, sindex);
     }
@@ -597,7 +598,7 @@ bool btree_store_t<protocol_t>::mark_index_up_to_date(uuid_u id,
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
 
     if (found) {
-        sindex.state = secondary_index_t::STATE_READY;
+        sindex.post_construction_complete = true;
 
         ::set_secondary_index(sindex_block, id, sindex);
     }
@@ -624,7 +625,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         // Similar to `btree_store_t::set_sindexes()`, we have to pick a deletion
         // context based on whether the sindex had finished post construction or not.
         std::shared_ptr<deletion_context_t> actual_deletion_context =
-                sindex.post_construction_complete()
+                sindex.post_construction_complete
                 ? live_deletion_context
                 : post_construction_deletion_context;
 
@@ -657,7 +658,7 @@ MUST_USE bool btree_store_t<protocol_t>::mark_secondary_index_deleted(
 
     // Insert the new entry under a different name
     const std::string sindex_del_name = compute_sindex_deletion_id(sindex.id);
-    sindex.state = secondary_index_t::STATE_DELETING;
+    sindex.being_deleted = true;
     set_secondary_index(sindex_block, sindex_del_name, sindex);
     return true;
 }
@@ -669,7 +670,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out,
         uuid_u *sindex_uuid_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
     /* Acquire the sindex block. */
@@ -692,8 +693,8 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         *sindex_uuid_out = sindex.id;
     }
 
-    if (!sindex.post_construction_complete()) {
-        throw sindex_not_post_constructed_exc_t(id);
+    if (!sindex.is_ready()) {
+        throw sindex_not_ready_exc_t(id);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -708,7 +709,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         uuid_u *sindex_uuid_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
@@ -727,8 +728,8 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         *sindex_uuid_out = sindex.id;
     }
 
-    if (!sindex.post_construction_complete()) {
-        throw sindex_not_post_constructed_exc_t(id);
+    if (!sindex.is_ready()) {
+        throw sindex_not_ready_exc_t(id);
     }
 
 
@@ -744,7 +745,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
@@ -757,7 +758,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> >(),
             sindex_block,
@@ -775,7 +776,11 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
     ::get_secondary_indexes(sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (it->second.post_construction_complete()) {
+        /* Note that this can include indexes currently being deleted.
+        In fact it must include those indexes if they had been post constructed
+        before, since there might still be ongoing transactions traversing the
+        index despite it being under deletion.*/
+        if (it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
@@ -790,7 +795,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
     std::map<std::string, secondary_index_t> sindexes;
@@ -822,7 +827,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
     std::map<std::string, secondary_index_t> sindexes;

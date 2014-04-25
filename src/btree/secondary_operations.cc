@@ -8,8 +8,8 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
-                           state, id);
+RDB_IMPL_ME_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
+                           post_construction_complete, being_deleted, id);
 
 void get_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     std::map<std::string, secondary_index_t> *sindexes_out) {

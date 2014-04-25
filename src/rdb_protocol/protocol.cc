@@ -1089,7 +1089,7 @@ store_t::store_t(serializer_t *serializer,
                 // Note that we can safely use a noop deleter here, since the
                 // secondary index cannot be in use at this point and we therefore
                 // don't have to detach anything.
-                noop_deleter_t noop_deleter;
+                noop_value_deleter_t noop_deleter;
                 value_sizer_t<rdb_value_t> sizer(btree_store->cache->get_block_size());
 
                 /* Clear the sindex. */
@@ -1106,13 +1106,13 @@ store_t::store_t(serializer_t *serializer,
 
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (it->second.state == secondary_index_t::STATE_POST_CONSTRUCTION) {
-            // Complete post constructing the index
-            sindexes_to_update.insert(it->first);
-        } else if (it->second.state == secondary_index_t::STATE_DELETING) {
+        if (it->second.being_deleted) {
             // Finish deleting the index
             coro_t::spawn_sometime(std::bind(&sindex_clearer::clear,
                                              this, it->second, drainer.lock()));
+        } else if (!it->second.post_construction_complete) {
+            // Complete post constructing the index
+            sindexes_to_update.insert(it->first);
         }
     }
 
@@ -1165,7 +1165,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         NULL);
                     return;
                 }
-            } catch (const sindex_not_post_constructed_exc_t &e) {
+            } catch (const sindex_not_ready_exc_t &e) {
                 res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC, e.what(), NULL);
                 return;
@@ -1249,7 +1249,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (it->second.state == secondary_index_t::STATE_DELETING) {
+            if (it->second.being_deleted) {
                 continue;
             }
             if (std_contains(sindex_status.sindexes, it->first) ||
@@ -1258,7 +1258,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     store->get_progress(it->second.id);
                 rdb_protocol_details::single_sindex_status_t *s =
                     &res->statuses[it->first];
-                s->ready = it->second.state == secondary_index_t::STATE_READY;
+                s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
                         s->blocks_processed = 0;
