@@ -18,7 +18,7 @@ def gen_value(prefix, num):
         return prefix + value_padding + str(num).zfill(6)
 
 def check_results(res, expected_count):
-    count = len(list(res))
+    count = len(res)
     if count < expected_count:
         raise ValueError("received less results than expected (expected: %d, got: %d)" % (expected_count, count))
     if count > expected_count:
@@ -41,33 +41,27 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
     print "Testing between"
 
     print "Checking simple between requests with open/closed boundaries"
-    res = table.between(gen_key('foo', 0), gen_key('fop', 0)).run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('foo', 0), gen_key('fop', 0)).run(conn))
     check_results(res, foo_count)
 
-    res = table.between(gen_key('foo', 0), gen_key('fop', 0),
-                        left_bound='open', right_bound='closed').run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('foo', 0), gen_key('fop', 0),
+                             left_bound='open', right_bound='closed').run(conn))
     check_results(res, foo_count - 1 + 1)
 
-    res = table.between(gen_key('foo', 0), gen_key('fop', 0),
-                        right_bound='closed').run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('foo', 0), gen_key('fop', 0),
+                             right_bound='closed').run(conn))
     check_results(res, foo_count + 1)
 
-    res = table.between(gen_key('foo', 0), gen_key('fop', 0),
-                        left_bound='open').run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('foo', 0), gen_key('fop', 0),
+                             left_bound='open').run(conn))
     check_results(res, foo_count - 1)
 
     print "Checking that between works when the boundares are not real keys"
-    res = table.between(gen_key('a', 0), gen_key('fop', 0)).run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('a', 0), gen_key('fop', 0)).run(conn))
     check_results(res, foo_count)
 
     print "Checking larger number of results"
-    res = table.between(gen_key('a', 0), gen_key('goo', 0)).run(conn)
-    res = list(res)
+    res = list(table.between(gen_key('a', 0), gen_key('goo', 0)).run(conn))
     check_results(res, foo_count + fop_count)
 
     res = table.between(gen_key('foo', 0), gen_key('fop', 0)).order_by(index='id').run(conn)
@@ -77,8 +71,8 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
         if kv['id'] != expected_key:
             raise ValueError("received wrong key (expected: '%s', got: '%s')" % (expected_key, kv['id']))
         if kv['val'] != expected_value:
-            raise ValueError("received wrong value (expected: '%s', got: '%s')" % (expected_key, kv['val']))
+            raise ValueError("received wrong value (expected: '%s', got: '%s')" % (expected_value, kv['val']))
 
     print "Checking empty results being returned when no keys match"
-    res = table.between(gen_key('a', 0), gen_key('b', 0)).run(conn)
+    res = list(table.between(gen_key('a', 0), gen_key('b', 0)).run(conn))
     check_results(res, 0)
