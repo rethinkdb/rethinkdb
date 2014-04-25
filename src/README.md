@@ -23,7 +23,7 @@ One shot timers with callbacks for each platform.
 
 #### arch/runtime
 Coroutines/fibers, message hub/queue (one per thread with MAX_THREADS queues), etc..
-Every function runs inside coroutines inside threads (uses mbox to store next coros).
+Every function runs inside coroutines inside threads (uses msg hub to store next coros).
 
 ##### arch/runtime/event_queue
 Arch-dependent event queue with a callback on_event().
