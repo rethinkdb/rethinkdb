@@ -141,9 +141,6 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer,
                              release_superblock);
 }
 
-// KSI: Wait, seriously?  Is it actually correct and proper for our
-// partially-completed btree erasure operation to be interrupted?  If the tree is
-// already detached, the worst that would happen is that we leak blocks, yes.
 void erase_all(value_sizer_t<void> *sizer,
                const value_deleter_t *deleter,
                superblock_t *superblock,

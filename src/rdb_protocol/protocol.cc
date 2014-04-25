@@ -1081,10 +1081,38 @@ store_t::store_t(serializer_t *serializer,
     std::map<std::string, secondary_index_t> sindexes;
     get_secondary_indexes(&sindex_block, &sindexes);
 
+    struct sindex_clearer {
+        static void clear(btree_store_t<rdb_protocol_t> *btree_store,
+                          secondary_index_t sindex,
+                          auto_drainer_t::lock_t store_keepalive) {
+            try {
+                // Note that we can safely use a noop deleter here, since the
+                // secondary index cannot be in use at this point and we therefore
+                // don't have to detach anything.
+                noop_deleter_t noop_deleter;
+                value_sizer_t<rdb_value_t> sizer(btree_store->cache->get_block_size());
+
+                /* Clear the sindex. */
+                btree_store->clear_sindex(
+                    sindex,
+                    &sizer,
+                    &noop_deleter,
+                    store_keepalive.get_drain_signal());
+            } catch (const interrupted_exc_t &e) {
+                /* Ignore */
+            }
+        }
+    };
+
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!it->second.post_construction_complete()) {
+        if (it->second.state == secondary_index_t::STATE_POST_CONSTRUCTION) {
+            // Complete post constructing the index
             sindexes_to_update.insert(it->first);
+        } else if (it->second.state == secondary_index_t::STATE_DELETING) {
+            // Finish deleting the index
+            coro_t::spawn_sometime(std::bind(&sindex_clearer::clear,
+                                             this, it->second, drainer.lock()));
         }
     }
 

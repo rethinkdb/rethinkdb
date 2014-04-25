@@ -495,9 +495,6 @@ void btree_store_t<protocol_t>::set_sindexes(
     std::map<std::string, secondary_index_t> existing_sindexes;
     ::get_secondary_indexes(sindex_block, &existing_sindexes);
 
-    // TODO! Call clear_sindex() on startup for all of the deleted sindexes to
-    // complete the deletion.
-
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
             /* Mark the secondary index for deletion to get it out of the way
@@ -636,7 +633,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't
-        want to deadlock because we're still holding locks */
+        want to deadlock because we're still holding locks. */
         // TODO! Spawn a coro. This will dead-lock.
         clear_sindex(sindex, sizer.get(), actual_deletion_context->in_tree_deleter(),
                      interruptor);
