@@ -20,10 +20,11 @@
 // (Really, some of the implementation is also in rdb_protocol/btree.cc.)
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
-        std::string sindex_name)
-    : info(strprintf("Index `%s` was accessed before its construction was finished.",
-                sindex_name.c_str()))
-{ }
+    const std::string &sindex_name, const std::string &table_name)
+    : info(strprintf("Index `%s` on table `%s` "
+                     "was accessed before its construction was finished.",
+                     sindex_name.c_str(),
+                     table_name.c_str())) { }
 
 const char* sindex_not_post_constructed_exc_t::what() const throw() {
     return info.c_str();
@@ -551,6 +552,7 @@ MUST_USE bool store_t::drop_sindex(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
@@ -574,7 +576,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -585,6 +587,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
@@ -603,7 +606,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
 

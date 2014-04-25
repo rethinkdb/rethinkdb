@@ -79,7 +79,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                    rget.sindex->id, superblock, &sindex_sb, &sindex_mapping_data);
+                    rget.sindex->id,
+                    rget.table_name,
+                    superblock,
+                    &sindex_sb,
+                    &sindex_mapping_data);
                 if (!found) {
                     res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,

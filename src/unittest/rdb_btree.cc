@@ -215,6 +215,7 @@ void _check_keys_are_present(store_t *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
+                "",
                 super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));
@@ -284,6 +285,7 @@ void _check_keys_are_NOT_present(store_t *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
+                "",
                 super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));
