@@ -20,5 +20,5 @@ Check out www.rethinkdb.com/community
 Code contributors
 -----------------
 
-Check out README-src.md
+Check out [src/README](src/README.md)
 
