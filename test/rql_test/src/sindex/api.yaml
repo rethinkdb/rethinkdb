@@ -1,8 +1,8 @@
 desc: sindex api (#602)
 tests:
 
-  - cd: r.db('test').table_create('sindex_api')
-    def: tbl = r.table('sindex_api')
+  - cd: r.db('test').table_create('sindexapi')
+    def: tbl = r.table('sindexapi')
 
   - def: rows = [{'id':0, 'a':0, 'b':0, 'c':0, 'm':[1,2,3]},
                  {'id':1, 'a':0, 'b':0, 'c':0, 'm':[4,5,6]},
@@ -137,7 +137,7 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindex_api`.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindexapi`.", [])'
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
@@ -226,7 +226,7 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindex_api`.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindexapi`.", [])'
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
@@ -1213,4 +1213,4 @@ tests:
     ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
 
 
-  - cd: r.db('test').table_drop('sindex_api')
+  - cd: r.db('test').table_drop('sindexapi')
