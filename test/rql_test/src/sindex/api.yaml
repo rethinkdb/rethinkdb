@@ -23,7 +23,7 @@ tests:
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: 'err("RqlRuntimeError", "Index `ai` already exists.", [])'
+    ot: 'err("RqlRuntimeError", "Index `ai` already exists on table `test.sindexapi`.", [])'
   - rb: tbl.index_create('bi') {|row| row[:b]}
     py: tbl.index_create('bi', r.row['b'])
     js: tbl.indexCreate('bi', r.row('b'))
@@ -137,7 +137,8 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindexapi`.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])'
+
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
@@ -226,7 +227,7 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `sindexapi`.", [])'
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])'
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})

@@ -60,13 +60,13 @@ tests:
       ot: ({'created':1})
 
     - cd: db.table_create('foo')
-      ot: err('RqlRuntimeError', 'Table `foo` already exists.', [0])
+      ot: err('RqlRuntimeError', 'Table `test.foo` already exists.', [0])
 
     - cd: db.table_drop('foo')
       ot: ({'dropped':1})
 
     - cd: db.table_drop('foo')
-      ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
+      ot: err('RqlRuntimeError', 'Table `test.foo` does not exist.', [0])
 
     - cd: db.table_create('nonsense', 'foo')
       py: [] # In python, 'foo' becomes the primary key

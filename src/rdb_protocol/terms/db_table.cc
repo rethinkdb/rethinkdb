@@ -197,14 +197,18 @@ private:
         }
 
         uuid_u db_id;
+        std::string db_name;
         name_string_t tbl_name;
         if (num_args() == 1) {
             counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
+            db_name = dbv->as_db()->name;
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(env, 0), this, "Table");
         } else {
-            db_id = arg(env, 0)->as_db()->id;
+            auto db = arg(env, 0)->as_db();
+            db_name = db->name;
+            db_id = db->id;
             tbl_name = get_name(arg(env, 1), this, "Table");
         }
 
@@ -219,7 +223,8 @@ private:
             meta.ns_searcher.find_uniq(pred, &status);
             rcheck(status == METADATA_ERR_NONE,
                    base_exc_t::GENERIC,
-                   strprintf("Table `%s` already exists.", tbl_name.c_str()));
+                   strprintf("Table `%s` already exists.",
+                             (db_name + "." + tbl_name.c_str()).c_str()));
 
             // Create namespace (DB + table pair) and insert into metadata.
             namespace_semilattice_metadata_t ns =
@@ -318,14 +323,18 @@ public:
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
+        std::string db_name;
         name_string_t tbl_name;
         if (num_args() == 1) {
             counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
+            db_name = dbv->as_db()->name;
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(env, 0), this, "Table");
         } else {
-            db_id = arg(env, 0)->as_db()->id;
+            auto db = arg(env, 0)->as_db();
+            db_name = db->name;
+            db_id = db->id;
             tbl_name = get_name(arg(env, 1), this, "Table");
         }
 
@@ -337,7 +346,8 @@ private:
         metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
             ns_metadata = meta.ns_searcher.find_uniq(pred, &status);
         rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
-               strprintf("Table `%s` does not exist.", tbl_name.c_str()));
+               strprintf("Table `%s` does not exist.",
+                         (db_name + "." + tbl_name.c_str()).c_str()));
         guarantee(!ns_metadata->second.is_deleted());
 
         // Delete table and join.
