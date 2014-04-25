@@ -60,10 +60,9 @@ tests:
     - js:
         cd: tbl3.get('Здравствуй')
         ot: ({'id':'Здравствуй','value':'Земля!'})
-      # TODO: this tes tfails
-      #py:
-      #  cd: tbl3.get(u'Здравствуй')
-      #  ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      py:
+        cd: tbl3.get(u'Здравствуй')
+        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
       rb:
         cd: tbl3.get('Здравствуй')
         ot: ({:id=>'Здравствуй',:value=>'Земля!'})
@@ -71,10 +70,9 @@ tests:
     - js:
         cd: tbl3.filter({'value':'Земля!'})
         ot: "[{'id':'Здравствуй','value':'Земля!'}]"
-      # TODO: this test fails
-      #py:
-      #  cd: tbl3.filter({'value':u'Земля!'})
-      #  ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      py:
+        cd: tbl3.filter({'value':u'Земля!'})
+        ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
       rb:
         cd: tbl3.filter({:value=>'Земля!'})
         ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
