@@ -30,8 +30,8 @@ with driver.Metacluster() as metacluster:
     process2.wait_until_started_up()
     http2 = http_admin.ClusterAccess([("localhost", process2.http_port)])
 
-    ns1 = http.memcached_namespace
-    ns2 = http2.memcached_namespaces
+    ns1 = http.tables
+    ns2 = http2.tables
     assert(len(ns1) == 1 and len(ns2) == 1)
     uuid = ns1.keys()[0]
     assert(uuid in ns2)

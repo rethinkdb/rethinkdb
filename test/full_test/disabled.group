@@ -12,3 +12,7 @@ unit.TimerTest
 
 # Issue #2229
 ql.rb-polyglot
+
+# Bitrotted
+interface.stat
+interface.distribution
