@@ -136,15 +136,14 @@ private:
 
         r::reql_t get_all =
             r::expr(right).get_all(
-                r::expr(left_attr)(row, r::optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)))
-            .default_(r::array());
+                r::expr(left_attr)(row, r::optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)));
         get_all.copy_optargs_from_term(*optargs_in);
         return r::expr(left).concat_map(
             r::fun(row,
                    r::branch(
                        r::null() == row,
                        r::array(),
-                       std::move(get_all).map(
+                       std::move(get_all).default_(r::array()).map(
                            r::fun(v, r::object(r::optarg("left", row),
                                                r::optarg("right", v)))))));
 

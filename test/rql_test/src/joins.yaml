@@ -81,6 +81,22 @@ tests:
       cd: ej.count()
       ot: 100
 
+    - def: ej = tbl.eq_join('fake', tbl2).zip()
+      cd: ej.count()
+      ot: 0
+
+    - def: ej = tbl.eq_join(lambda{|x| x['a']}, tbl2).zip()
+      cd: ej.count()
+      ot: 100
+
+    - def: ej = tbl.eq_join(lambda{|x| x['fake']}, tbl2).zip()
+      cd: ej.count()
+      ot: 0
+
+    - def: ej = tbl.eq_join(lambda{|x| nil}, tbl2).zip()
+      cd: ej.count()
+      ot: 0
+
     - py: "tbl.eq_join(lambda x: x['a'], tbl2).count()"
       rb: tbl.eq_join(lambda {|x| x[:a]}, tbl2).count()
       js: tbl.eq_join(function(x) { return x('a'); }, tbl2).count()
