@@ -271,15 +271,19 @@ void run(protob_t<Query> q,
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
-
     } break;
     case Query_QueryType_CONTINUE: {
         try {
             bool b = stream_cache->serve(token, res, interruptor);
-            rcheck_toplevel(b, base_exc_t::GENERIC,
-                            strprintf("Token %" PRIi64 " not in stream cache.", token));
+            if (!b) {
+                auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
+                fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
+            }
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
     } break;

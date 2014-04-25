@@ -81,7 +81,15 @@ private:
             size_t real_n = canonicalize(this, n, arr->size());
             return new_val(arr->get(real_n));
         } else {
-            counted_t<datum_stream_t> s = v->as_seq(env->env);
+            counted_t<table_t> tbl;
+            counted_t<datum_stream_t> s;
+            if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
+                auto pair = v->as_selection(env->env);
+                tbl = pair.first;
+                s = pair.second;
+            } else {
+                s = v->as_seq(env->env);
+            }
             rcheck(n >= -1,
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
@@ -98,9 +106,11 @@ private:
                     if (!d.has()) {
                         rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
                                strprintf("Index out of bounds: %d", n));
-                        return new_val(last_d);
+                        return tbl.has() ? new_val(last_d, tbl) : new_val(last_d);
                     }
-                    if (i == n) return new_val(d);
+                    if (i == n) {
+                        return tbl.has() ? new_val(d, tbl) : new_val(d);
+                    }
                     last_d = d;
                     r_sanity_check(n == -1 || i < n);
                 }
