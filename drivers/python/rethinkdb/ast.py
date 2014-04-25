@@ -317,7 +317,7 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left, right, left_bound=(), right_bound=()):
+    def slice(self, left, right=(), left_bound=(), right_bound=()):
         return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
 
     def skip(self, index):
