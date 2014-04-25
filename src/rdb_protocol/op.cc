@@ -201,15 +201,16 @@ bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> te
     : op_term_t(env, term, argspec,
                 optargspec.with({"left_bound", "right_bound"})) { }
 
-bool bounded_op_term_t::left_open(scope_env_t *env) {
+bool bounded_op_term_t::is_left_open(scope_env_t *env) {
     return open_bool(env, "left_bound", false);
 }
 
-bool bounded_op_term_t::right_open(scope_env_t *env) {
+bool bounded_op_term_t::is_right_open(scope_env_t *env) {
     return open_bool(env, "right_bound", true);
 }
 
-bool bounded_op_term_t::open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/) {
+bool bounded_op_term_t::open_bool(
+    scope_env_t *env, const std::string &key, bool def/*ault*/) {
     counted_t<val_t> v = optarg(env, key);
     if (!v.has()) return def;
     const wire_string_t &s = v->as_str();
