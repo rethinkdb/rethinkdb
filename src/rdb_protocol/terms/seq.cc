@@ -209,17 +209,19 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> tbl = arg(env, 0)->as_table();
+        bool left_open = is_left_open(env);
         counted_t<const datum_t> lb = arg(env, 1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
             lb.reset();
         }
+        bool right_open = is_right_open(env);
         counted_t<const datum_t> rb = arg(env, 2)->as_datum();
         if (rb->get_type() == datum_t::R_NULL) {
             rb.reset();
         }
 
         if (lb.has() && rb.has()) {
-            if (*lb > *rb || ((left_open(env) || right_open(env)) && *lb == *rb)) {
+            if (*lb > *rb || ((left_open || right_open) && *lb == *rb)) {
                 counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
                 counted_t<datum_stream_t> ds(
                     new array_datum_stream_t(arr, backtrace()));
@@ -232,8 +234,8 @@ private:
 
         tbl->add_bounds(
             datum_range_t(
-                lb, left_open(env) ? key_range_t::open : key_range_t::closed,
-                rb, right_open(env) ? key_range_t::open : key_range_t::closed),
+                lb, left_open ? key_range_t::open : key_range_t::closed,
+                rb, right_open ? key_range_t::open : key_range_t::closed),
             sid, this);
         return new_val(tbl);
     }
