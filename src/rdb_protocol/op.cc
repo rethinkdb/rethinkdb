@@ -86,6 +86,60 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 }
 op_term_t::~op_term_t() { r_sanity_check(arg_verifier == NULL); }
 
+class faux_term_t : public term_t {
+public:
+    faux_term_t(protob_t<const Term> src, counted_t<const datum_t> _d)
+        : term(std::move(src)), d(std::move(_d)) { }
+    virtual const char *name() const { return "<EXPANDED FROM r.args>"; }
+    virtual bool is_deterministic() const { return true; }
+    virtual void accumulate_captures(var_captures_t *) const { }
+private:
+    virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) {
+        return new_val(d);
+    }
+    counted_t<const datum_t> d;
+};
+
+args_t::args_t(const std::vector<counted_t<term_t> > _args)
+    : args(_args) { }
+
+args_t::start_eval(protob_t<const Term> src,
+                   scope_env_t *env, eval_flags_t flags) {
+    if (!started_once) {
+        std::vector<counted_t<term_t> > old_args;
+        args.swap(old_args);
+        for (auto it = old_args.begin(); it != old_args.end(); ++it) {
+            if (it->get_src()->get_type() == Term::ARGS) {
+                // RSI: check how this works with LITERAL_OK
+                counted_t<val_t> v = it->eval(env, flags);
+                counted_t<const datum_t> d = v->as_datum();
+                for (size_t i = 0; i < d->size(); ++i) {
+                    args.push_back(counted_t<term_t>(new faux_term_t(src, d->get(i))));
+                }
+            } else {
+                args.push_back(std::move(*it));
+            }
+        }
+    }
+    if (args.size() != 0) {
+        arg0 = get(0)->eval(env, flags);
+    }
+    arg_seen_p = std::vector<bool>(args.size(), false);
+}
+
+args_t::eval_arg(scope_env_t *env, size_t i, eval_flags_t flags) {
+    guarantee(expanded);
+    if (i == 0) {
+        r_sanity_check(arg0.has());
+        counted_t<val_t> v;
+        v.swap(arg0);
+        return std::move(v);
+    } else {
+        return get(i)->eval(env, flags);
+    }
+}
+
+
 // We use this to detect double-evals.  (We've had several problems with those
 // in the past.)
 class arg_verifier_t {
