@@ -537,12 +537,14 @@ void btree_store_t<protocol_t>::set_sindexes(
                             deletion_context->in_tree_deleter(),
                             store_keepalive.get_drain_signal());
                     } catch (const interrupted_exc_t &e) {
-                        /* Ignore */
+                        /* Ignore. The sindex deletion will continue when the store
+                        is next started up. */
                     }
                 }
             };
             coro_t::spawn_sometime(std::bind(&delayed_sindex_clearer::clear,
-                                             this, it->second,
+                                             this,
+                                             it->second,
                                              sizer,
                                              actual_deletion_context,
                                              drainer.lock()));
@@ -612,8 +614,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         buf_lock_t &&sindex_block,
         std::shared_ptr<value_sizer_t<void> > sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
-        signal_t *interruptor)
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context)
         THROWS_ONLY(interrupted_exc_t) {
 
     buf_lock_t local_sindex_block(std::move(sindex_block));
@@ -635,9 +636,31 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 
         /* Clear the sindex later. It starts its own transaction and we don't
         want to deadlock because we're still holding locks. */
-        // TODO! Spawn a coro. This will dead-lock.
-        clear_sindex(sindex, sizer.get(), actual_deletion_context->in_tree_deleter(),
-                     interruptor);
+        struct delayed_sindex_clearer {
+            static void clear(btree_store_t<protocol_t> *btree_store,
+                              secondary_index_t csindex,
+                              std::shared_ptr<value_sizer_t<void> > csizer,
+                              std::shared_ptr<deletion_context_t> deletion_context,
+                              auto_drainer_t::lock_t store_keepalive) {
+                try {
+                    /* Clear the sindex. */
+                    btree_store->clear_sindex(
+                        csindex,
+                        csizer.get(),
+                        deletion_context->in_tree_deleter(),
+                        store_keepalive.get_drain_signal());
+                } catch (const interrupted_exc_t &e) {
+                    /* Ignore. The sindex deletion will continue when the store
+                    is next started up. */
+                }
+            }
+        };
+        coro_t::spawn_sometime(std::bind(&delayed_sindex_clearer::clear,
+                                         this,
+                                         sindex,
+                                         sizer,
+                                         actual_deletion_context,
+                                         drainer.lock()));
     }
     return true;
 }

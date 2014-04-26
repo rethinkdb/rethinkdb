@@ -145,8 +145,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
             std::move(sindex_block),
             sizer,
             live_deletion_context,
-            post_construction_deletion_context,
-            &dummy_interruptor);
+            post_construction_deletion_context);
 }
 
 void bring_sindexes_up_to_date(

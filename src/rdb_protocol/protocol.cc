@@ -1482,8 +1482,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                                          std::move(sindex_block),
                                          sizer,
                                          live_deletion_context,
-                                         post_construction_deletion_context,
-                                         &interruptor);
+                                         post_construction_deletion_context);
 
         response->response = res;
     }

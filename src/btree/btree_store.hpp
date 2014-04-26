@@ -226,8 +226,7 @@ public:
         buf_lock_t &&sindex_block,
         std::shared_ptr<value_sizer_t<void> > sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
-        signal_t *interruptor)
+        std::shared_ptr<deletion_context_t> post_construction_deletion_context)
     THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_read(

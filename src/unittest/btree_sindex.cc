@@ -262,7 +262,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         std::shared_ptr<deletion_context_t> post_construction_deletion_context(
                 new rdb_post_construction_deletion_context_t());
         store.drop_sindex(*it, std::move(sindex_block), sizer, live_deletion_context,
-                          post_construction_deletion_context, &dummy_interruptor);
+                          post_construction_deletion_context);
     }
 }
 
