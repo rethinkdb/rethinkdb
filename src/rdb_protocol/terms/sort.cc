@@ -135,8 +135,11 @@ private:
             seq = v0->as_seq(env->env);
         }
 
+        if (seq.has() && seq->is_exhausted()){
+            /* Do nothing for empty sequence */
+
         /* Add a sorting to the table if we're doing indexed sorting. */
-        if (counted_t<val_t> index = optarg(env, "index")) {
+        }else if (counted_t<val_t> index = optarg(env, "index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
