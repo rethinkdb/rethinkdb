@@ -49,17 +49,7 @@ private:
     std::set<std::string> legal_args;
 };
 
-class args_t {
-public:
-    args_t(const std::vector<counted_t<term_t> > _args);
-    void start_eval(); // Must be called before `eval_arg`.
-    counted_t<val_t> eval_arg(scope_env_t *env, size_t i, eval_flags_t flags);
-private:
-    bool started_once;
-    counted_t<val_t> arg0;
-    std::vector<counted_t<term_t> > args;
-    std::vector<bool> arg_seen_p;
-}
+class args_t;
 
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
@@ -103,7 +93,7 @@ private:
 
     counted_t<term_t> consume(size_t i);
 
-    args_t args;
+    scoped_ptr_t<args_t> args;
 
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<term_t> > optargs;
