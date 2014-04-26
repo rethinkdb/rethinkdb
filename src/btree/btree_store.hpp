@@ -39,10 +39,11 @@ class cache_balancer_t;
 
 class sindex_not_ready_exc_t : public std::exception {
 public:
-    explicit sindex_not_ready_exc_t(std::string sindex_name);
+    explicit sindex_not_ready_exc_t(std::string sindex_name,
+                                    const secondary_index_t &sindex);
     const char* what() const throw();
     ~sindex_not_ready_exc_t() throw();
-private:
+protected:
     std::string info;
 };
 

@@ -15,11 +15,16 @@
 #include "stl_utils.hpp"
 
 sindex_not_ready_exc_t::sindex_not_ready_exc_t(
-        std::string sindex_name)
-    : info(strprintf("Index `%s` was accessed before its construction was finished "
-                     " or while it was being deleted.",
-                sindex_name.c_str()))
-{ }
+        std::string sindex_name, const secondary_index_t &sindex) {
+    if (sindex.being_deleted) {
+        info = strprintf("Index `%s` was accessed while it was being deleted.",
+                         sindex_name.c_str());
+    } else {
+        rassert(!sindex.post_construction_complete);
+        info = strprintf("Index `%s` was accessed before its construction was finished.",
+                         sindex_name.c_str());
+    }
+}
 
 const char* sindex_not_ready_exc_t::what() const throw() {
     return info.c_str();
@@ -449,6 +454,7 @@ void btree_store_t<protocol_t>::clear_sindex(
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
+        // TODO! This does not actually delete the inner nodes does it?
         erase_all(sizer, deleter, &sindex_superblock, interruptor);
     }
 
@@ -476,6 +482,7 @@ void btree_store_t<protocol_t>::clear_sindex(
         /* Now it's safe to completely delete the index */
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
+        sindex_superblock_lock.write_acq_signal()->wait_lazily_unordered();
         sindex_superblock_lock.mark_deleted();
         ::delete_secondary_index(&sindex_block, compute_sindex_deletion_id(sindex.id));
         size_t num_erased = secondary_index_slices.erase(sindex.id);
@@ -717,7 +724,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     }
 
     if (!sindex.is_ready()) {
-        throw sindex_not_ready_exc_t(id);
+        throw sindex_not_ready_exc_t(id, sindex);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -752,7 +759,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     }
 
     if (!sindex.is_ready()) {
-        throw sindex_not_ready_exc_t(id);
+        throw sindex_not_ready_exc_t(id, sindex);
     }
 
 
