@@ -1876,6 +1876,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
     buf_lock_t sindex_block
         = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
+    // TODO! This also doesn't actually delete anything at all if there are no
+    // large values.
     rdb_erase_major_range(&key_tester, subregion.inner,
                           &sindex_block,
                           superblock, this,

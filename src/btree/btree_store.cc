@@ -454,7 +454,8 @@ void btree_store_t<protocol_t>::clear_sindex(
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
-        // TODO! This does not actually delete the inner nodes does it?
+        /* Erase all is going to delete all the nodes in the index tree and
+        set the root node in the superblock to null. */
         erase_all(sizer, deleter, &sindex_superblock, interruptor);
     }
 
@@ -466,7 +467,7 @@ void btree_store_t<protocol_t>::clear_sindex(
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
-            64 /* Not the right value for sure */,
+            2,
             write_durability_t::SOFT,
             &token_pair,
             &txn,
