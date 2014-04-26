@@ -1231,7 +1231,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            res->sindexes.push_back(it->first);
+            if (!it->second.being_deleted) {
+                res->sindexes.push_back(it->first);
+            }
         }
     }
 
@@ -1876,8 +1878,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
     buf_lock_t sindex_block
         = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
-    // TODO! This also doesn't actually delete anything at all if there are no
-    // large values.
+    // TODO (daniel): This doesn't actually delete anything at all except for
+    // large blobs.
     rdb_erase_major_range(&key_tester, subregion.inner,
                           &sindex_block,
                           superblock, this,
