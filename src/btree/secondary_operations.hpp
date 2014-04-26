@@ -37,7 +37,7 @@ struct secondary_index_t {
     bool post_construction_complete;
     bool being_deleted;
     bool is_ready() const {
-        return !post_construction_complete && !being_deleted;
+        return post_construction_complete && !being_deleted;
     }
 
     /* An opaque blob that describes the index */
