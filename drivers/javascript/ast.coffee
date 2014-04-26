@@ -142,7 +142,17 @@ class RDBVal extends TermBase
     setUnion: ar (val) -> new SetUnion {}, @, val
     setIntersection: ar (val) -> new SetIntersection {}, @, val
     setDifference: ar (val) -> new SetDifference {}, @, val
-    slice: aropt (left, right, opts) -> new Slice opts, @, left, right
+    slice: varar(1, 3, (left, right_or_opts, opts) -> 
+        if opts?
+            new Slice opts, @, left, right_or_opts
+        else if typeof right_or_opts isnt 'undefined'
+            if (Object::toString.call(right_or_opts) is '[object Object]') and not (right_or_opts instanceof TermBase)
+                new Slice right_or_opts, @, left
+            else
+                new Slice {}, @, left, right_or_opts
+        else
+            new Slice {}, @, left
+        )
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getField: ar (field) -> new GetField {}, @, field

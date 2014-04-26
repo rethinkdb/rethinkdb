@@ -104,6 +104,9 @@ tests:
     ot: 1
 
 
+  - cd: tbl.index_wait('b').count()
+    ot: 1
+
   - cd: tbl.between(ts, te, :index => 'b').count()
     py: tbl.between(ts, te, index='b').count()
     js: tbl.between(ts, te, {index:'b'}).count()
