@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
@@ -21,34 +21,26 @@
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
-namespace mock { class dummy_protocol_t; }
-class memcached_protocol_t;
-struct rdb_protocol_t;
 
 class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
 
-    cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > dummy_namespaces;
-    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > memcached_namespaces;
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_namespaces;
+    cow_ptr_t<namespaces_semilattice_metadata_t> rdb_namespaces;
 
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_6(dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+    RDB_MAKE_ME_SERIALIZABLE_4(rdb_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_EQUALITY_COMPARABLE_4(cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters, databases);
 
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
@@ -115,8 +107,6 @@ public:
 
     /* Move assignment operator */
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
-        dummy_namespaces = std::move(other.dummy_namespaces);
-        memcached_namespaces = std::move(other.memcached_namespaces);
         rdb_namespaces = std::move(other.rdb_namespaces);
         machine_id = other.machine_id;
         peer_id = other.peer_id;
@@ -135,8 +125,6 @@ public:
     /* Unfortunately having specified the move copy operator requires us to also specify the copy
      * assignment operator explicitly. */
     cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other) {
-        dummy_namespaces = other.dummy_namespaces;
-        memcached_namespaces = other.memcached_namespaces;
         rdb_namespaces = other.rdb_namespaces;
         machine_id = other.machine_id;
         peer_id = other.peer_id;
@@ -152,9 +140,7 @@ public:
         return *this;
     }
 
-    namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
-    namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
-    namespaces_directory_metadata_t<rdb_protocol_t> rdb_namespaces;
+    namespaces_directory_metadata_t rdb_namespaces;
 
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
@@ -173,21 +159,21 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_13(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, cache_size, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_11(rdb_namespaces, machine_id, peer_id, cache_size, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t
-template <typename T>
+template <class T>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(directory_echo_wrapper_t<T> *target) {
     return get_json_subfields(&target->internal);
 }
 
-template <typename T>
+template <class T>
 cJSON *render_as_json(directory_echo_wrapper_t<T> *target) {
     return render_as_json(&target->internal);
 }
 
-template <typename T>
+template <class T>
 void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
     apply_json_to(change, &target->internal);
 }
@@ -297,7 +283,7 @@ public:
 
 class namespace_predicate_t {
 public:
-    bool operator()(const namespace_semilattice_metadata_t<rdb_protocol_t>& ns) const {
+    bool operator()(const namespace_semilattice_metadata_t &ns) const {
         if (name && (ns.name.in_conflict() || ns.name.get() != *name)) {
             return false;
         } else if (db_id && (ns.database.in_conflict() || ns.database.get() != *db_id)) {

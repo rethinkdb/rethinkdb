@@ -347,6 +347,10 @@ void threaded_context_ref_t::rethread_to_current() {
 
 void threaded_context_ref_t::wait() {
     cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
+    if (do_shutdown) {
+        lock.reset();
+        pthread_exit(NULL);
+    }
     if (do_rethread) {
         restore_virtual_thread();
         // Re-lock to a different thread mutex
@@ -392,17 +396,55 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
 }
 
 threaded_stack_t::~threaded_stack_t() {
-    // This is ugly. But our coroutines currently never terminate. Instead
-    // they just end up in an endless loop. Usually we would just destroy
-    // their stack context, but here we have to kill the thread first.
-    // TODO (daniel): If we ever want to use the threaded_stack_t in
-    //  a (semi-)production environment, we should fix this.
-    //  I think the better way of doing this would be to send a non-SIGKILL
-    //  signal and to install an appropriate signal handler on the threads.
-    int result = pthread_kill(thread, SIGKILL);
-    guarantee_xerr(result == 0, result, "Could not kill thread: %i", result);
-    result = pthread_join(thread, NULL);
+    // Our coroutines never terminate. We have to tell the thread to shut down
+    // before joining it.
+
+    scoped_ptr_t<system_mutex_t::lock_t> possible_lock_acq;
+    if (!coro_t::self()) {
+        // If we are not in a coroutine, we have to acquire the lock first.
+        // (coroutines would already hold the lock)
+        possible_lock_acq.init(new system_mutex_t::lock_t(
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+    }
+
+    // Calling this destructor is safe only if we are on the same virtual thread as
+    // the thread that we are destroying. This ensures that it is not currently
+    // active and not holding a lock on the virtual thread mutex.
+    guarantee(!context.do_rethread
+              && context.my_thread_id == linux_thread_pool_t::get_thread_id());
+
+    // Tell the thread to shut down.
+    context.do_shutdown = true;
+    context.cond.signal();
+
+    // We now have to temporarily release our lock to let the thread
+    // terminate.
+    if (coro_t::self()) {
+#ifdef THREADED_COROUTINES
+        threaded_context_ref_t &our_context = static_cast<threaded_context_ref_t &>(
+                coro_t::self()->get_stack()->context);
+        our_context.lock.reset();
+#else
+        crash("Threaded stack destructed from a coroutine without "
+              "THREADED_COROUTINES defined.");
+#endif
+    } else {
+        possible_lock_acq.reset();
+    }
+
+    // Wait for the thread to shut down
+    int result = pthread_join(thread, NULL);
     guarantee_xerr(result == 0, result, "Could not join with thread: %i", result);
+
+    // ... and re-acquire the lock, if we are in a coroutine.
+    if (coro_t::self()) {
+#ifdef THREADED_COROUTINES
+        threaded_context_ref_t &our_context = static_cast<threaded_context_ref_t &>(
+                coro_t::self()->get_stack()->context);
+        our_context.lock.init(new system_mutex_t::lock_t(
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+#endif
+    }
 }
 
 void *threaded_stack_t::internal_run(void *p) {

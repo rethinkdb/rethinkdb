@@ -16,8 +16,10 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/archive/archive.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
@@ -58,90 +60,31 @@ private:
 
 void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
-template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() { }
 
-    vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
+    vclock_t<persistable_blueprint_t> blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
     vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;
-    vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
+    vclock_t<nonoverlapping_regions_t> shards;
     vclock_t<name_string_t> name;
-    vclock_t<int> port;
-    vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
-    vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
+    vclock_t<region_map_t<machine_id_t> > primary_pinnings;
+    vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
 };
 
-template <class protocol_t>
-void debug_print(printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
-    buf->appendf("ns_sl_metadata{blueprint=");
-    debug_print(buf, m.blueprint);
-    buf->appendf(", primary_datacenter=");
-    debug_print(buf, m.primary_datacenter);
-    buf->appendf(", replica_affinities=");
-    debug_print(buf, m.replica_affinities);
-    buf->appendf(", ack_expectations=");
-    debug_print(buf, m.ack_expectations);
-    buf->appendf(", shards=");
-    debug_print(buf, m.shards);
-    buf->appendf(", name=");
-    debug_print(buf, m.name);
-    buf->appendf(", port=");
-    debug_print(buf, m.port);
-    buf->appendf(", primary_pinnings=");
-    debug_print(buf, m.primary_pinnings);
-    buf->appendf(", secondary_pinnings=");
-    debug_print(buf, m.secondary_pinnings);
-    buf->appendf(", primary_key=");
-    debug_print(buf, m.primary_key);
-    buf->appendf(", database=");
-    debug_print(buf, m.database);
-    buf->appendf("}");
-}
-
-template<class protocol_t>
-namespace_semilattice_metadata_t<protocol_t> new_namespace(
+namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
-    const name_string_t &name, const std::string &key, int port) {
+    const name_string_t &name, const std::string &key);
 
-    namespace_semilattice_metadata_t<protocol_t> ns;
-    ns.database           = make_vclock(database, machine);
-    ns.primary_datacenter = make_vclock(datacenter, machine);
-    ns.name               = make_vclock(name, machine);
-    ns.primary_key        = make_vclock(key, machine);
-    ns.port               = make_vclock(port, machine);
+RDB_DECLARE_SEMILATTICE_JOINABLE(namespace_semilattice_metadata_t);
 
-    std::map<uuid_u, ack_expectation_t> ack_expectations;
-    ack_expectations[datacenter] = ack_expectation_t(1, true);
-    ns.ack_expectations = make_vclock(ack_expectations, machine);
-
-    nonoverlapping_regions_t<protocol_t> shards;
-    bool add_region_success = shards.add_region(protocol_t::region_t::universe());
-    guarantee(add_region_success);
-    ns.shards = make_vclock(shards, machine);
-
-    region_map_t<protocol_t, uuid_u> primary_pinnings(
-        protocol_t::region_t::universe(), nil_uuid());
-    ns.primary_pinnings = make_vclock(primary_pinnings, machine);
-
-    region_map_t<protocol_t, std::set<uuid_u> > secondary_pinnings(
-        protocol_t::region_t::universe(), std::set<machine_id_t>());
-    ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
-
-    return ns;
-}
-
-template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
-
-template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_11(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespace_semilattice_metadata_t);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
@@ -149,48 +92,35 @@ cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 
 //json adapter concept for namespace_semilattice_metadata_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-cJSON *with_ctx_render_as_json(namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+cJSON *with_ctx_render_as_json(namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-void with_ctx_apply_json_to(cJSON *change, namespace_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+void with_ctx_apply_json_to(cJSON *change, namespace_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-void with_ctx_on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const vclock_ctx_t &);
+void with_ctx_on_subfield_change(namespace_semilattice_metadata_t *, const vclock_ctx_t &);
 
 /* This is the metadata for all of the namespaces of a specific protocol. */
-template <class protocol_t>
 class namespaces_semilattice_metadata_t {
 public:
-    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
+    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
     namespace_map_t namespaces;
 
     RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
-template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
-
-template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
+RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
 // json adapter concept for namespaces_semilattice_metadata_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-cJSON *with_ctx_render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+cJSON *with_ctx_render_as_json(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+void with_ctx_apply_json_to(cJSON *change, namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
-void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const vclock_ctx_t &ctx);
+void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 
-template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
     namespaces_directory_metadata_t() { }
@@ -209,29 +139,25 @@ public:
         return *this;
     }
 
-    /* This used to say `reactor_business_card_t<protocol_t>` instead of
-    `cow_ptr_t<reactor_business_card_t<protocol_t> >`, but that
+    /* This used to say `reactor_business_card_t` instead of
+    `cow_ptr_t<reactor_business_card_t>`, but that
     was extremely slow because the size of the data structure grew linearly with
     the number of tables and so copying it became a major cost. Using a
     `boost::shared_ptr` instead makes it significantly faster. */
-    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_bcards_map_t;
+    typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
-template <class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t<protocol_t>,
-    reactor_bcards);
+
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
-template <class protocol_t>
-json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target);
+json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target);
 
-template <class protocol_t>
-cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target);
+cJSON *render_as_json(namespaces_directory_metadata_t *target);
 
-template <class protocol_t>
-void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target);
+void apply_json_to(cJSON *change, namespaces_directory_metadata_t *target);
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

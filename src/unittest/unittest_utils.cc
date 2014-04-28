@@ -14,27 +14,25 @@
 namespace unittest {
 
 struct make_sindex_read_t {
-    static rdb_protocol_t::read_t make_sindex_read(
+    static read_t make_sindex_read(
             counted_t<const ql::datum_t> key, const std::string &id) {
         datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
-        return rdb_protocol_t::read_t(
-            rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t::universe(),
+        return read_t(
+            rget_read_t(
+                region_t::universe(),
                 std::map<std::string, ql::wire_func_t>(),
+                "",
                 ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                       counted_t<const ql::datum_t>()),
-                std::vector<rdb_protocol_details::transform_variant_t>(),
-                boost::optional<rdb_protocol_details::terminal_variant_t>(),
-                rdb_protocol_t::sindex_rangespec_t(
-                    id,
-                    rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
-                    rng),
+                std::vector<ql::transform_variant_t>(),
+                boost::optional<ql::terminal_variant_t>(),
+                sindex_rangespec_t(id, region_t(rng.to_sindex_keyrange()), rng),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE);
     }
 };
 
-rdb_protocol_t::read_t make_sindex_read(
+read_t make_sindex_read(
         counted_t<const ql::datum_t> key, const std::string &id) {
     return make_sindex_read_t::make_sindex_read(key, id);
 }

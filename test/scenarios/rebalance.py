@@ -34,8 +34,8 @@ op["num-nodes"] = IntFlag("--num-nodes", 3)
 op["sequence"] = ValueFlag("--sequence", converter = Sequence.from_string, default = Sequence(2, [(1, 1)]))
 opts = op.parse(sys.argv)
 
-letters = "abcdefghijklmnopqrstuvwxyz"
-candidate_shard_boundaries = set(letters).union([x + "g" for x in letters]).union([x + "m" for x in letters]).union([x + "s" for x in letters])
+alphanum = "0123456789abcdefghijklmnopqrstuvwxyz"
+candidate_shard_boundaries = set(alphanum).union([x + "9" for x in alphanum]).union([x + "i" for x in alphanum]).union([x + "r" for x in alphanum])
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -50,7 +50,7 @@ with driver.Metacluster() as metacluster:
     for process in processes:
         process.wait_until_started_up()
 
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     primary_dc = http.add_datacenter()
     secondary_dc = http.add_datacenter()
@@ -58,16 +58,16 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(machines[0], primary_dc)
     http.move_server_to_datacenter(machines[1], primary_dc)
     http.move_server_to_datacenter(machines[2], secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc,
+    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc,
         affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
     shard_boundaries = set(random.sample(candidate_shard_boundaries, opts["sequence"].initial))
     print "Split points are:", list(shard_boundaries)
-    http.change_namespace_shards(ns, adds = list(shard_boundaries))
+    http.change_table_shards(ns, adds = list(shard_boundaries))
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns, processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         for i, (num_adds, num_removes) in enumerate(opts["sequence"].steps):
@@ -76,7 +76,7 @@ with driver.Metacluster() as metacluster:
             adds = set(random.sample(candidate_shard_boundaries - shard_boundaries, num_adds))
             removes = set(random.sample(shard_boundaries, num_removes))
             print "Splitting at", list(adds), "and merging at", list(removes)
-            http.change_namespace_shards(ns, adds = list(adds), removes = list(removes))
+            http.change_table_shards(ns, adds = list(adds), removes = list(removes))
             shard_boundaries = (shard_boundaries - removes) | adds
             http.wait_until_blueprint_satisfied(ns, timeout = 3600)
             cluster.check()

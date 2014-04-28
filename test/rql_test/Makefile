@@ -37,7 +37,7 @@ py_build:
 	MAKEFLAGS= make -C ../../drivers/python
 
 .PHONY: js
-js: js_connect js_cursor js_polyglot
+js: js_connect js_cursor js_polyglot js_promise
 js_connect js_cursor js_polyglot: js_build
 
 js_build:
@@ -106,6 +106,10 @@ cursor:
 .PHONY: js_cursor
 js_cursor:
 	python connections/cursor_test.py $(BUILD_DIR) js
+
+.PHONY: js_promise
+js_promise:
+	python connections/cursor_test.py $(BUILD_DIR) js-promise
 
 .PHONY: py_cursor
 py_cursor:

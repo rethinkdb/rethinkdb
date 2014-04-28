@@ -9,6 +9,7 @@ from vcoptparse import *
 def child(opts, log_path, load, save):
     # This is run in a separate process
     import sys
+    # TODO: this overwrites existing log files
     sys.stdout = sys.stderr = file(log_path, "w")
     if load is None:
         clone, deleted = {}, set()
@@ -16,7 +17,7 @@ def child(opts, log_path, load, save):
         print "Loading from %r..." % load
         with open(load) as f:
             clone, deleted = pickle.load(f)
-    print "Starting test against server at %s:%d..." % opts["address"]
+    print "Starting test against server at %s..." % opts["address"]
     with memcached_workload_common.make_memcache_connection(opts) as mc:
         serial_mix.test(opts, mc, clone, deleted)
     if save is not None:
@@ -74,6 +75,10 @@ try:
         if not process.is_alive() and process.exitcode != 0)
 
     if stuck or failed:
+        for id in stuck + failed:
+            with file(os.path.join(tester_log_dir, str(id) + ".txt")) as f:
+                for line in f:
+                    sys.stdout.write(line)
         if len(stuck) == opts["num_testers"]:
             raise ValueError("All %d processes did not finish in time." % opts["num_testers"])
         elif len(failed) == opts["num_testers"]:

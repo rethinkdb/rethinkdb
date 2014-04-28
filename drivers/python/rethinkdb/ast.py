@@ -22,6 +22,18 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
+    elif isinstance(val, list):
+        val = [expr(v, nesting_depth - 1) for v in val]
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        obj = {}
+        for (k,v) in val.iteritems():
+            obj[k] = expr(v, nesting_depth - 1)
+        return MakeObj(obj)
+    elif isinstance(val, collections.Callable):
+        return Func(val)
     elif isinstance(val, datetime.datetime) or isinstance(val, datetime.date):
         if not hasattr(val, 'tzinfo') or not val.tzinfo:
             raise RqlDriverError("""Cannot convert %s to ReQL time object
@@ -31,59 +43,8 @@ def expr(val, nesting_depth=20):
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
             """ % (type(val).__name__))
         return ISO8601(val.isoformat())
-    elif isinstance(val, list):
-        val = [expr(v, nesting_depth - 1) for v in val]
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        obj = {}
-        for k in val.keys():
-            obj[k] = expr(val[k], nesting_depth - 1)
-        return MakeObj(obj)
-    elif isinstance(val, collections.Callable):
-        return Func(val)
     else:
         return Datum(val)
-
-# Like expr but attempts to serialize as much of the value as JSON
-# as possible.
-def exprJSON(val, nesting_depth=20):
-    if nesting_depth <= 0:
-        raise RqlDriverError("Nesting depth limit exceeded")
-
-    if isinstance(val, RqlQuery):
-        return val
-    elif isJSON(val, nesting_depth):
-        return Json(py_json.dumps(val))
-    elif isinstance(val, dict):
-        copy = val.copy()
-        for k,v in copy.items():
-            copy[k] = exprJSON(v, nesting_depth)
-        return MakeObj(copy)
-    elif isinstance(val, list):
-        copy = []
-        for v in val:
-            copy.append(exprJSON(v, nesting_depth))
-        return MakeArray(*copy)
-    else:
-        # Default to datum serialization
-        return expr(val, nesting_depth - 1)
-
-def isJSON(val, nesting_depth=20):
-    if nesting_depth <= 0:
-        raise RqlDriverError("Nesting depth limit exceeded")
-
-    if isinstance(val, RqlQuery):
-        return False
-    elif isinstance(val, dict):
-        return all([isinstance(k, types.StringTypes) and isJSON(v, nesting_depth - 1) for k,v in val.items()])
-    elif isinstance(val, list):
-        return all([isJSON(v, nesting_depth - 1) for v in val])
-    elif isinstance(val, (int, float, str, unicode, bool)):
-        return True
-    else:
-        return False
 
 class RqlQuery(object):
 
@@ -92,20 +53,20 @@ class RqlQuery(object):
         self.args = [expr(e) for e in args]
 
         self.optargs = {}
-        for k in optargs.keys():
-            if not isinstance(optargs[k], RqlQuery) and optargs[k] == ():
+        for (k,v) in optargs.iteritems():
+            if not isinstance(v, RqlQuery) and v == ():
                 continue
-            self.optargs[k] = expr(optargs[k])
+            self.optargs[k] = expr(v)
 
     # Send this query to the server to be executed
-    def run(self, c=None, **global_opt_args):
+    def run(self, c=None, **global_optargs):
         if not c:
             if repl.default_connection:
                 c = repl.default_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
 
-        return c._start(self, **global_opt_args)
+        return c._start(self, **global_optargs)
 
     def __str__(self):
         qp = QueryPrinter(self)
@@ -114,17 +75,12 @@ class RqlQuery(object):
     def __repr__(self):
         return "<RqlQuery instance: %s >" % str(self)
 
-    # Compile this query to a binary protobuf buffer
-    def build(self, term):
-        term.type = self.tt
-
-        for arg in self.args:
-            arg.build(term.args.add())
-
-        for k in self.optargs.keys():
-            pair = term.optargs.add()
-            pair.key = k
-            self.optargs[k].build(pair.val)
+    # Compile this query to a json-serializable object
+    def build(self):
+        res = [self.tt, [arg.build() for arg in self.args]]
+        if len(self.optargs) > 0:
+            res.append(dict((k, v.build()) for (k,v) in self.optargs.iteritems()))
+        return res
 
     # The following are all operators and methods that operate on
     # Rql queries to build up more complex operations
@@ -361,8 +317,8 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left, right, left_bound=(), right_bound=()):
-        return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
+    def slice(self, *args, **kwargs):
+        return Slice(self, *args, **kwargs)
 
     def skip(self, index):
         return Skip(self, index)
@@ -545,7 +501,7 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for k,v in optargs.items()])
+        args.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -554,7 +510,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([T(k, '=', v) for k,v in optargs.items()])
+        restargs.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
@@ -618,14 +574,44 @@ def recursively_make_hashable(obj):
     if isinstance(obj, list):
         return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.items()])
+        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.iteritems()])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
     if not 'data' in obj:
         raise RqlDriverError('pseudo-type GROUPED_DATA object %s does not have the expected field "data".' % py_json.dumps(obj))
-
     return dict([(recursively_make_hashable(k),v) for (k,v) in obj['data']])
+
+def convert_pseudotype(obj, format_opts):
+    reql_type = obj.get('$reql_type$')
+    if reql_type is not None:
+        if reql_type == 'TIME':
+            time_format = format_opts.get('time_format')
+            if time_format is None or time_format == 'native':
+                # Convert to native python datetime object
+                return reql_type_time_to_datetime(obj)
+            elif time_format != 'raw':
+                raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+        elif reql_type == 'GROUPED_DATA':
+            group_format = format_opts.get('group_format')
+            if group_format is None or group_format == 'native':
+                return reql_type_grouped_data_to_object(obj)
+            elif group_format != 'raw':
+                raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
+        else:
+            raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
+    # If there was no pseudotype, or the time format is raw, return the original object
+    return obj
+
+def recursively_convert_pseudotypes(obj, format_opts):
+    if isinstance(obj, dict):
+        for (key, value) in obj.iteritems():
+            obj[key] = recursively_convert_pseudotypes(value, format_opts)
+        obj = convert_pseudotype(obj, format_opts)
+    elif isinstance(obj, list):
+        for i in xrange(len(obj)):
+            obj[i] = recursively_convert_pseudotypes(obj[i], format_opts)
+    return obj
 
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those
@@ -641,97 +627,11 @@ class Datum(RqlQuery):
     def __init__(self, val):
         self.data = val
 
-    def build(self, term):
-        term.type = p.Term.DATUM
-
-        if self.data == None:
-            term.datum.type = p.Datum.R_NULL
-        elif isinstance(self.data, bool):
-            term.datum.type = p.Datum.R_BOOL
-            term.datum.r_bool = self.data
-        elif isinstance(self.data, numbers.Real):
-            term.datum.type = p.Datum.R_NUM
-            term.datum.r_num = self.data
-        elif isinstance(self.data, types.StringTypes):
-            term.datum.type = p.Datum.R_STR
-            term.datum.r_str = self.data
-        else:
-            raise RqlDriverError("Cannot build a query from a %s" % type(self.data).__name__)
+    def build(self):
+        return self.data
 
     def compose(self, args, optargs):
         return repr(self.data)
-
-    @staticmethod
-    def _convert_pseudotype(obj, format_opts):
-        reql_type = obj.get('$reql_type$')
-        if reql_type is not None:
-            if reql_type == 'TIME':
-                time_format = format_opts.get('time_format')
-                if time_format is None or time_format == 'native':
-                    # Convert to native python datetime object
-                    return reql_type_time_to_datetime(obj)
-                elif time_format != 'raw':
-                    raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
-            elif reql_type == 'GROUPED_DATA':
-                group_format = format_opts.get('group_format')
-                if group_format is None or group_format == 'native':
-                    return reql_type_grouped_data_to_object(obj)
-                elif group_format != 'raw':
-                    raise RqlDriverError("Unknown group_format run option \"%s\"." % group_format)
-            else:
-                raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
-        # If there was no pseudotype, or the time format is raw, return the original object
-        return obj
-
-    @staticmethod
-    def _recursively_convert_pseudotypes(obj, format_opts):
-        if isinstance(obj, dict):
-            for (key, value) in obj.iteritems():
-                obj[key] = Datum._recursively_convert_pseudotypes(value, format_opts)
-            obj = Datum._convert_pseudotype(obj, format_opts)
-        elif isinstance(obj, list):
-            for i in xrange(len(obj)):
-                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], format_opts)
-        return obj
-
-    @staticmethod
-    def deconstruct(datum, format_opts={}):
-        d_type = datum.type
-        if d_type == p.Datum.R_JSON:
-            obj = py_json.loads(datum.r_str)
-            return Datum._recursively_convert_pseudotypes(obj, format_opts)
-        elif d_type == p.Datum.R_OBJECT:
-            obj = { }
-            for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val, format_opts)
-
-            # Thanks to "pseudo-types" we can't yet be quite sure if this object is meant to
-            # be an object or something else. We need a second layer of type switching, this
-            # time on an obfuscated field "$reql_type$" rather than the datum type field we
-            # already switched on.
-            Datum._convert_pseudotype(obj, format_opts)
-            return obj
-        elif d_type == p.Datum.R_ARRAY:
-            array = datum.r_array
-            return [Datum.deconstruct(e, format_opts) for e in array]
-        elif d_type == p.Datum.R_STR:
-            return datum.r_str
-        elif d_type == p.Datum.R_NUM:
-            # Convert to an integer if we think maybe the user might think of this
-            # number as an integer. I have been assured that this is a "temporary"
-            # behavior change until RQL supports native integers.
-            num = datum.r_num
-            if num % 1 == 0:
-                # Then we assume that in the user's data model this floating point
-                # number is meant be an integer and "helpfully" convert types for them.
-                num = int(num)
-            return num
-        elif d_type == p.Datum.R_BOOL:
-            return datum.r_bool
-        elif d_type == p.Datum.R_NULL:
-            return None
-        else:
-            raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
 
 class MakeArray(RqlQuery):
     tt = p.Term.MAKE_ARRAY
@@ -752,13 +652,20 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for k in obj_dict.keys():
+        for (k,v) in obj_dict.iteritems():
             if not isinstance(k, types.StringTypes):
                 raise RqlDriverError("Object keys must be strings.");
-            self.optargs[k] = expr(obj_dict[k])
+            self.optargs[k] = expr(v)
+
+    def build(self):
+        res = { }
+        for (k,v) in self.optargs.iteritems():
+            k = k.build() if isinstance(k, RqlQuery) else k
+            res[k] = v.build() if isinstance(v, RqlQuery) else v
+        return res
 
     def compose(self, args, optargs):
-        return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
+        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in optargs.iteritems()], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = p.Term.VAR
@@ -773,6 +680,10 @@ class JavaScript(RqlTopLevelQuery):
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
+
+class Random(RqlTopLevelQuery):
+    tt = p.Term.RANDOM
+    st = "random"
 
 class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT
@@ -958,7 +869,7 @@ class Table(RqlQuery):
     st = 'table'
 
     def insert(self, records, upsert=(), durability=(), return_vals=()):
-        return Insert(self, exprJSON(records), upsert=upsert,
+        return Insert(self, expr(records), upsert=upsert,
                       durability=durability, return_vals=return_vals)
 
     def get(self, key):
@@ -1320,7 +1231,7 @@ def func_wrap(val):
             return True
         if any([ivar_scan(arg) for arg in node.args]):
             return True
-        if any([ivar_scan(arg) for k,arg in node.optargs.items()]):
+        if any([ivar_scan(arg) for k,arg in node.optargs.iteritems()]):
             return True
         return False
 

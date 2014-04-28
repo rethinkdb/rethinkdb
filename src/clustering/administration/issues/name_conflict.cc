@@ -135,8 +135,6 @@ std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issue
 
     namespace_map_t namespaces(metadata.databases.databases);
     namespaces.file_away(metadata.rdb_namespaces->namespaces);
-    namespaces.file_away(metadata.dummy_namespaces->namespaces);
-    namespaces.file_away(metadata.memcached_namespaces->namespaces);
     namespaces.report("table", &issues);
 
     name_map_t datacenters;

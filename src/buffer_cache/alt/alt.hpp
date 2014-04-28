@@ -25,7 +25,7 @@ class cache_balancer_t;
 
 class alt_txn_throttler_t {
 public:
-    alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
+    explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
@@ -50,7 +50,6 @@ public:
     ~cache_t();
 
     block_size_t max_block_size() const { return page_cache_.max_block_size(); }
-    // KSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
     // These todos come from the mirrored cache.  The real problem is that whole

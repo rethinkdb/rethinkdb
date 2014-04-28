@@ -1,19 +1,8 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'socket'
 require 'thread'
 require 'timeout'
 
-# $f = File.open("fuzz_seed.rb", "w")
-
 module RethinkDB
-  def self.new_query(type, token)
-    q = Query.new
-    q.type = type
-    q.accepts_r_json = true
-    q.token = token
-    return q
-  end
-
   module Faux_Abort
     class Abort
     end
@@ -24,7 +13,7 @@ module RethinkDB
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil, &b)
       # $f.puts "("+RPP::pp(@body)+"),"
-      unbound_if !@body
+      unbound_if(@body == RQL)
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
@@ -84,10 +73,10 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
-        res = @conn.run_internal q
+        q = [Query::QueryType::CONTINUE]
+        res = @conn.run_internal(q, @opts, @token)
         @results = Shim.response_to_native(res, @msg, @opts)
-        if res.type == Response::ResponseType::SUCCESS_SEQUENCE
+        if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
       end
@@ -96,9 +85,9 @@ module RethinkDB
     def close
       if @more
         @more = false
-        q = RethinkDB::new_query(Query::QueryType::STOP, @token)
-        res = @conn.run_internal q
-        if res.type != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
+        q = [Query::QueryType::STOP]
+        res = @conn.run_internal(q, @opts, @token)
+        if res['t'] != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
         return true
@@ -134,48 +123,52 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
-    def run_internal(q, noreply=false)
-      dispatch q
-      noreply ? nil : wait(q.token)
+    def run_internal(q, opts, token)
+      @mutex.synchronize{@opts[token] = opts}
+      noreply = opts[:noreply]
+
+      # PP.pp JSON.parse(q.to_json)
+      # return nil
+
+      dispatch(q, token)
+      noreply ? nil : wait(token)
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
-      q.query = msg
 
+      global_optargs = {}
       all_opts = @default_opts.merge(opts)
       if all_opts.keys.include?(:noreply)
         all_opts[:noreply] = !!all_opts[:noreply]
       end
-      all_opts.each {|k,v|
-        ap = Query::AssocPair.new
-        ap.key = k.to_s
-        if v.class == RQL
-          ap.val = v.to_pb
-        else
-          ap.val = RQL.new.expr(v).to_pb
-        end
-        q.global_optargs << ap
-      }
 
-      res = run_internal(q, all_opts[:noreply])
+      token = (@@token_cnt += 1)
+      q = [Query::QueryType::START,
+           msg,
+           Hash[all_opts.map {|k,v|
+                  [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
+                }]]
+
+      res = run_internal(q, all_opts, token)
       return res if !res
-      if res.type == Response::ResponseType::SUCCESS_PARTIAL
+      if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q.token, true)
-      elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
+                   msg, self, opts, token, true)
+      elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q.token, false)
+                   msg, self, opts, token, false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end
 
-      if res.respond_to? :has_profile? and res.has_profile?
-          real_val = {"profile" => Shim.datum_to_native(res.profile(), opts),
-                      "value" => value}
+      if res['p']
+        real_val = {
+          "profile" => res['p'],
+          "value" => value
+        }
       else
-          real_val = value
+        real_val = value
       end
 
       if b
@@ -193,12 +186,13 @@ module RethinkDB
       @socket.write(packet)
     end
 
-    def dispatch msg
-      # PP.pp msg if $DEBUG
-      payload = msg.serialize_to_string
+    def dispatch(msg, token)
+      # PP.pp msg
+      payload = Shim.dump_json(msg).force_encoding('BINARY')
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
-      send([payload.length].pack('L<') + payload)
-      return msg.token
+      prefix = [token, payload.bytesize].pack('Q<L<')
+      send(prefix + payload)
+      return token
     end
 
     def wait token
@@ -231,7 +225,8 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_2
+    @@magic_number = VersionDummy::Version::V0_3
+    @@wire_protocol = VersionDummy::Protocol::JSON
 
     def debug_socket; @socket; end
 
@@ -249,9 +244,10 @@ module RethinkDB
       self.noreply_wait() if opts[:noreply_wait]
 
       stop_listener
-      @socket.close if @socket
+      @socket.close rescue nil if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
+      @opts = {}
       @data = {}
       @mutex = Mutex.new
       @conn_id += 1
@@ -277,9 +273,9 @@ module RethinkDB
 
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
-      res = run_internal(q)
-      if res.type != Response::ResponseType::WAIT_COMPLETE
+      q = [Query::QueryType::NOREPLY_WAIT]
+      res = run_internal(q, {noreply: false}, @@token_cnt += 1)
+      if res['t'] != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
       nil
@@ -288,6 +284,29 @@ module RethinkDB
     def self.last
       return @@last if @@last
       raise RqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+    end
+
+    def stop_listener
+      if @listener
+        @listener.terminate
+        @listener.join
+        @listener = nil
+      end
+    end
+
+    def note_data(token, data) # Synchronize around this!
+      @data[token] = data
+      @opts.delete(token)
+      @waiters.delete(token).signal if @waiters[token]
+    end
+
+    def note_error(token, e) # Synchronize around this!
+      data = {
+        't' => 16,
+        'r' => [e.inspect],
+        'b' => []
+      }
+      note_data(token, data)
     end
 
     def stop_listener
@@ -316,6 +335,7 @@ module RethinkDB
       @socket.write([@@magic_number].pack('L<'))
 
       @socket.write([@auth_key.size].pack('L<') + @auth_key)
+      @socket.write([@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)
@@ -329,40 +349,33 @@ module RethinkDB
       @listener = Thread.new {
         loop {
           begin
+            token = -1
+            token = @socket.read_exn(8).unpack('q<')[0]
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
-          rescue RqlRuntimeError => e
-            @mutex.synchronize {
-              @listener = nil
-              @waiters.each {|kv| kv[1].signal}
-            }
-            Thread.current.terminate
-            abort("unreachable")
-          end
-          #TODO: Recovery
-          begin
-            protob = Response.parse(response)
-          rescue
-            raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
-          end
-          if protob.token == -1
-            @mutex.synchronize {
-              @waiters.keys.each {|k|
-                @data[k] = protob
-                if @waiters[k]
-                  cond = @waiters.delete k
-                  cond.signal
-                end
+            begin
+              data = Shim.load_json(response, @opts[token])
+              # PP.pp data
+            rescue Exception => e
+              raise RqlRuntimeError, "Bad response, server is buggy.\n" +
+                "#{e.inspect}\n" + response
+            end
+            if token == -1
+              @mutex.synchronize{@waiters.keys.each{|k| note_data(k, data)}}
+            else
+              @mutex.synchronize{note_data(token, data)}
+            end
+          rescue Exception => e
+            if token == -1
+              @mutex.synchronize {
+                @listener = nil
+                @waiters.keys.each{|k| note_error(k, e)}
               }
-            }
-          else
-            @mutex.synchronize {
-              @data[protob.token] = protob
-              if @waiters[protob.token]
-                cond = @waiters.delete protob.token
-                cond.signal
-              end
-            }
+              Thread.current.terminate
+              abort("unreachable")
+            else
+              @mutex.synchronize{note_error(token, e)}
+            end
           end
         }
       }

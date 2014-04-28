@@ -1,7 +1,7 @@
 desc: Test the arity of every function
 tests:
 
-    # TODO: add test for slice (should require two arguments)
+    # TODO: add test for slice (should require one or two arguments)
 
     # Set up some data
     - def: db = r.db('test')

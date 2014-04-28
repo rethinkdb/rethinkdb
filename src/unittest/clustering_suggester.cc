@@ -1,15 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/suggester/suggester.hpp"
+#include "clustering/suggester/suggest_blueprint.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
-#include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace unittest {
-
-using mock::dummy_protocol_t;
-using mock::a_thru_z_region;
-
 
 TEST(ClusteringSuggester, NewNamespace) {
     datacenter_id_t primary_datacenter = generate_uuid(),
@@ -20,10 +16,10 @@ TEST(ClusteringSuggester, NewNamespace) {
         machines.push_back(generate_uuid());
     }
 
-    std::map<machine_id_t, reactor_business_card_t<dummy_protocol_t> > directory;
+    std::map<machine_id_t, reactor_business_card_t> directory;
     for (int i = 0; i < 10; i++) {
-        reactor_business_card_t<dummy_protocol_t> rb;
-        rb.activities[generate_uuid()] = reactor_business_card_t<dummy_protocol_t>::activity_entry_t(a_thru_z_region(), reactor_business_card_t<dummy_protocol_t>::nothing_t());
+        reactor_business_card_t rb;
+        rb.activities[generate_uuid()] = reactor_business_card_t::activity_entry_t(region_t::universe(), reactor_business_card_t::nothing_t());
         directory[machines[i]] = rb;
     }
 
@@ -36,21 +32,23 @@ TEST(ClusteringSuggester, NewNamespace) {
     affinities[primary_datacenter] = 2;
     affinities[secondary_datacenter] = 3;
 
-    nonoverlapping_regions_t<dummy_protocol_t> shards;
-    bool success = shards.add_region(dummy_protocol_t::region_t('a', 'm'));
+    nonoverlapping_regions_t shards;
+    bool success = shards.add_region(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t(""),
+                                                                            key_range_t::open, store_key_t("n"))));
     ASSERT_TRUE(success);
-    success = shards.add_region(dummy_protocol_t::region_t('n', 'z'));
+    success = shards.add_region(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"),
+                                                                       key_range_t::none, store_key_t())));
     ASSERT_TRUE(success);
 
     std::map<machine_id_t, int> usage;
-    persistable_blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
+    persistable_blueprint_t blueprint = suggest_blueprint(
         directory,
         primary_datacenter,
         affinities,
         shards,
         machine_data_centers,
-        region_map_t<dummy_protocol_t, machine_id_t>(dummy_protocol_t::region_t::universe(), nil_uuid()),
-        region_map_t<dummy_protocol_t, std::set<machine_id_t> >(),
+        region_map_t<machine_id_t>(region_t::universe(), nil_uuid()),
+        region_map_t<std::set<machine_id_t> >(),
         &usage,
         true);
 

@@ -1,5 +1,7 @@
 #include "clustering/generic/multi_throttling_client.hpp"
 
+#include <functional>
+
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"
 
@@ -42,13 +44,13 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
     free_tickets(0),
     to_relinquish(0),
     give_tickets_mailbox(mailbox_manager,
-        boost::bind(&multi_throttling_client_t::on_give_tickets, this, _1)),
+        std::bind(&multi_throttling_client_t::on_give_tickets, this, ph::_1)),
     reclaim_tickets_mailbox(mailbox_manager,
-        boost::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1))
+        std::bind(&multi_throttling_client_t::on_reclaim_tickets, this, ph::_1))
 {
     mailbox_t<void(server_business_card_t)> intro_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1));
+        std::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, ph::_1));
 
     {
         const client_business_card_t client_business_card(inner_client_business_card,
@@ -168,20 +170,8 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::r
 
 #include "clustering/immediate_consistency/query/master_access.hpp"
 
-#include "mock/dummy_protocol.hpp"
-template class multi_throttling_client_t<
-    master_business_card_t<mock::dummy_protocol_t>::request_t,
-    master_business_card_t<mock::dummy_protocol_t>::inner_client_business_card_t
-    >;
-
-#include "memcached/protocol.hpp"
-template class multi_throttling_client_t<
-    master_business_card_t<memcached_protocol_t>::request_t,
-    master_business_card_t<memcached_protocol_t>::inner_client_business_card_t
-    >;
-
 #include "rdb_protocol/protocol.hpp"
 template class multi_throttling_client_t<
-    master_business_card_t<rdb_protocol_t>::request_t,
-    master_business_card_t<rdb_protocol_t>::inner_client_business_card_t
+    master_business_card_t::request_t,
+    master_business_card_t::inner_client_business_card_t
     >;

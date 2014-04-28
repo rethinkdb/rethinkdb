@@ -136,7 +136,7 @@ describe('Javascript connection API', function(){
         });
 
         it("authorization key when none needed", function(done){
-            r.connect({port: port, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: incorrect authorization key\"", done));
+            r.connect({port: port, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
         });
 
         it("correct authorization key", function(done){
@@ -158,7 +158,7 @@ describe('Javascript connection API', function(){
                   {stdio: ['ignore', server_out_log, server_err_log]});
 
             setTimeout(function(){
-                r.connect({port: port, authKey: "hunter23"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: incorrect authorization key\"", done));
+                r.connect({port: port, authKey: "hunter23"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
             }, 500);
         });
 

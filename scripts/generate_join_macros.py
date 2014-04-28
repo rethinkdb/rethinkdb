@@ -12,22 +12,28 @@ $ ../scripts/generate_join_macros.py > rpc/semilattice/joins/macros.hpp
 
 """
 
-def generate_make_semilattice_joinable_macro(nfields):
-    print "#define RDB_MAKE_SEMILATTICE_JOINABLE_%d(type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+def help_generate_semilattice_joinable_macro(nfields, impl):
+    print "#define RDB_%s_SEMILATTICE_JOINABLE_%d(type_t%s) \\" % \
+        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
-    print "    inline void semilattice_join(%stype_t *_a_, %sconst type_t &_b_) { \\" % (unused, unused)
+    print "    %svoid semilattice_join(%stype_t *_a_, %sconst type_t &_b_) { \\" % ("" if impl else "inline ", unused, unused)
     for i in xrange(nfields):
         print "        semilattice_join(&_a_->field%d, _b_.field%d); \\" % (i + 1, i + 1)
     print "    } \\"
     # Putting this here makes us require a semicolon after macro invocation.
     print "    extern int semilattice_joinable_force_semicolon_declaration"
 
-def generate_make_equality_comparable_macro(nfields):
-    print "#define RDB_MAKE_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+def generate_make_semilattice_joinable_macro(nfields):
+    help_generate_semilattice_joinable_macro(nfields, False)
+
+def generate_impl_semilattice_joinable_macro(nfields):
+    help_generate_semilattice_joinable_macro(nfields, True)
+
+def help_generate_equality_comparable_macro(nfields, impl):
+    print "#define RDB_%s_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
+        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
-    print "    inline bool operator==(%sconst type_t &_a_, %sconst type_t &_b_) { \\" % (unused, unused)
+    print "    %sbool operator==(%sconst type_t &_a_, %sconst type_t &_b_) { \\" % ("" if impl else "inline ", unused, unused)
     if nfields == 0:
         print "        return true; \\"
     else:
@@ -35,6 +41,12 @@ def generate_make_equality_comparable_macro(nfields):
     print "    } \\"
     # Putting this here makes us require a semicolon after macro invocation.
     print "    extern int equality_force_semicolon_declaration"
+
+def generate_make_equality_comparable_macro(nfields):
+    help_generate_equality_comparable_macro(nfields, False)
+
+def generate_impl_equality_comparable_macro(nfields):
+    help_generate_equality_comparable_macro(nfields, True)
 
 def generate_make_me_equality_comparable_macro(nfields):
     print "#define RDB_MAKE_ME_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
@@ -84,9 +96,17 @@ You can also use this with templated types, but it's pretty hacky:
     """.strip()
     print
 
+    print "#define RDB_DECLARE_SEMILATTICE_JOINABLE(type_t) \\"
+    print "  void semilattice_join(type_t *, const type_t &)"
+    print
+    print "#define RDB_DECLARE_EQUALITY_COMPARABLE(type_t) \\"
+    print "  bool operator==(const type_t &, const type_t &)"
+
     for nfields in xrange(0, 20):
         generate_make_semilattice_joinable_macro(nfields)
+        generate_impl_semilattice_joinable_macro(nfields)
         generate_make_equality_comparable_macro(nfields)
+        generate_impl_equality_comparable_macro(nfields)
         generate_make_me_equality_comparable_macro(nfields)
         print
 

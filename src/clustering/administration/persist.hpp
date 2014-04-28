@@ -15,7 +15,7 @@ class cache_conn_t;
 class cache_t;
 class txn_t;
 
-template <class> class branch_history_manager_t;
+class branch_history_manager_t;
 class io_backender_t;
 
 namespace metadata_persistence {
@@ -82,22 +82,14 @@ public:
     cluster_semilattice_metadata_t read_metadata();
     void update_metadata(const cluster_semilattice_metadata_t &metadata);
 
-    branch_history_manager_t<mock::dummy_protocol_t> *get_dummy_branch_history_manager();
-    branch_history_manager_t<memcached_protocol_t> *get_memcached_branch_history_manager();
-    branch_history_manager_t<rdb_protocol_t> *get_rdb_branch_history_manager();
+    branch_history_manager_t *get_rdb_branch_history_manager();
 
 private:
     void construct_branch_history_managers(bool create);
 
-    template <class protocol_t> class persistent_branch_history_manager_t;
+    class persistent_branch_history_manager_t;
 
-    friend class persistent_branch_history_manager_t<mock::dummy_protocol_t>;
-    friend class persistent_branch_history_manager_t<memcached_protocol_t>;
-    friend class persistent_branch_history_manager_t<rdb_protocol_t>;
-
-    scoped_ptr_t<persistent_branch_history_manager_t<mock::dummy_protocol_t> > dummy_branch_history_manager;
-    scoped_ptr_t<persistent_branch_history_manager_t<memcached_protocol_t> > memcached_branch_history_manager;
-    scoped_ptr_t<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t> rdb_branch_history_manager;
 };
 
 template <class metadata_t>
@@ -122,7 +114,7 @@ private:
 
     persistent_file_t<metadata_t> *persistent_file;
     machine_id_t machine_id;
-    typename boost::shared_ptr<semilattice_read_view_t<metadata_t> > view;
+    boost::shared_ptr<semilattice_read_view_t<metadata_t> > view;
 
     scoped_ptr_t<cond_t> flush_again;
 

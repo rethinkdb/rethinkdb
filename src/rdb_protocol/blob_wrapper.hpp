@@ -4,7 +4,6 @@
 
 #include <string>
 
-#include "btree/btree_store.hpp"
 #include "buffer_cache/alt/blob.hpp"
 
 /* This class wraps a blob_t but hides some of its methods. We do this because

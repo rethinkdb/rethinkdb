@@ -1,5 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/printf_buffer.hpp"
+#include "math.hpp"
 
 printf_buffer_t::printf_buffer_t() : length_(0), ptr_(data_) {
     data_[0] = 0;
@@ -64,7 +65,9 @@ void printf_buffer_t::vappendf(const char *format, va_list ap) {
             length_ += size;
         } else {
             char *new_ptr;
-            alloc_copy_and_format(ptr_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
+            alloc_copy_and_format(ptr_, length_, size,
+                                  int64_round_up_to_power_of_two(length_ + size + 1),
+                                  format, aq, &new_ptr);
 
             // TODO: Have valgrind mark data_ memory undefined.
             ptr_ = new_ptr;
@@ -79,7 +82,7 @@ void printf_buffer_t::vappendf(const char *format, va_list ap) {
         int size = vsnprintf(tmp, sizeof(tmp), format, ap);
         rassert(size >= 0, "vsnprintf failed, bad format string?");
 
-        int64_t alloc_limit = round_up_to_power_of_two(length_ + 1);
+        int64_t alloc_limit = int64_round_up_to_power_of_two(length_ + 1);
         if (length_ + size + 1 <= alloc_limit) {
             DEBUG_VAR int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
             rassert(size == size2);
@@ -87,7 +90,9 @@ void printf_buffer_t::vappendf(const char *format, va_list ap) {
         } else {
 
             char *new_ptr;
-            alloc_copy_and_format(ptr_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
+            alloc_copy_and_format(ptr_, length_, size,
+                                  int64_round_up_to_power_of_two(length_ + size + 1),
+                                  format, aq, &new_ptr);
 
             delete[] ptr_;
             ptr_ = new_ptr;

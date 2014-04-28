@@ -9,7 +9,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "logger.hpp"
-#include "math.hpp"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/datum.hpp"
 
 namespace profile {

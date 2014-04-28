@@ -20,13 +20,13 @@
 class datacenter_semilattice_metadata_t {
 public:
     vclock_t<name_string_t> name;
-    RDB_MAKE_ME_SERIALIZABLE_1(name);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 void debug_print(printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m);
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(datacenter_semilattice_metadata_t, name);
-RDB_MAKE_EQUALITY_COMPARABLE_1(datacenter_semilattice_metadata_t, name);
+RDB_DECLARE_SEMILATTICE_JOINABLE(datacenter_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(datacenter_semilattice_metadata_t);
 
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(datacenter_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 cJSON *with_ctx_render_as_json(datacenter_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
@@ -38,11 +38,11 @@ public:
     typedef std::map<datacenter_id_t, deletable_t<datacenter_semilattice_metadata_t> > datacenter_map_t;
     datacenter_map_t datacenters;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(datacenters);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(datacenters_semilattice_metadata_t, datacenters);
-RDB_MAKE_EQUALITY_COMPARABLE_1(datacenters_semilattice_metadata_t, datacenters);
+RDB_DECLARE_SEMILATTICE_JOINABLE(datacenters_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(datacenters_semilattice_metadata_t);
 
 //json adapter concept for datacenters_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(datacenters_semilattice_metadata_t *target, const vclock_ctx_t &ctx);

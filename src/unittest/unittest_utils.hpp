@@ -34,7 +34,7 @@ std::set<ip_address_t> get_unittest_addresses();
 
 void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 
-rdb_protocol_t::read_t make_sindex_read(
+read_t make_sindex_read(
     counted_t<const ql::datum_t> key, const std::string &id);
 
 }  // namespace unittest

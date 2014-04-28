@@ -64,10 +64,18 @@ PROTOBUFJS_MODULE_DIR := $(SUPPORT_BUILD_DIR)/protobufjs_$(protobufjs_VERSION)/n
 $(PROTOBUFJS_MODULE_DIR): $(SUPPORT_BUILD_DIR)/protobufjs_$(protobufjs_VERSION)/install.witness
 	touch $@
 
-$(JS_PKG_DIR)/node_modules: $(PROTOBUFJS_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP)
+BLUEBIRD_MODULE_DIR := $(SUPPORT_BUILD_DIR)/bluebird_$(bluebird_VERSION)/node_modules/packed-bluebird/node_modules/bluebird
+
+$(BLUEBIRD_MODULE_DIR): $(SUPPORT_BUILD_DIR)/bluebird_$(bluebird_VERSION)/install.witness
+	touch $@
+
+$(JS_PKG_DIR)/node_modules: $(PROTOBUFJS_MODULE_DIR) $(BLUEBIRD_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP)
 	$P CP $@/protobufjs
 	mkdir -p $@/protobufjs
 	cp -a $(PROTOBUFJS_MODULE_DIR)/. $@/protobufjs
+	$P CP $@/bluebird
+	mkdir -p $@/bluebird
+	cp -a $(BLUEBIRD_MODULE_DIR)/. $@/bluebird
 	touch $@
 
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY_BIN_DEP)

@@ -221,7 +221,7 @@ cJSON *merge(cJSON *x, cJSON *y) {
     return res;
 }
 
-std::string cJSON_type_to_string(int type) {
+const char *cJSON_type_to_string(int type) {
     switch (type) {
     case cJSON_False: return "bool"; break;
     case cJSON_True: return "bool"; break;

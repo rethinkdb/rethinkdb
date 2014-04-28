@@ -13,12 +13,12 @@
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
+        namespace_interface_t *internal, env_t *env)
     : internal_(internal), env_(env) { }
 
 void rdb_namespace_interface_t::read(
-        const rdb_protocol_t::read_t &read,
-        rdb_protocol_t::read_response_t *response,
+        const read_t &read,
+        read_response_t *response,
         order_token_t tok,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
@@ -32,8 +32,8 @@ void rdb_namespace_interface_t::read(
 }
 
 void rdb_namespace_interface_t::read_outdated(
-        const rdb_protocol_t::read_t &read,
-        rdb_protocol_t::read_response_t *response,
+        const read_t &read,
+        read_response_t *response,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     profile::starter_t starter("Perform outdated read.", env_->trace);
@@ -47,8 +47,8 @@ void rdb_namespace_interface_t::read_outdated(
 }
 
 void rdb_namespace_interface_t::write(
-        rdb_protocol_t::write_t *write,
-        rdb_protocol_t::write_response_t *response,
+        write_t *write,
+        write_response_t *response,
         order_token_t tok,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
@@ -62,7 +62,7 @@ void rdb_namespace_interface_t::write(
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
-std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
+std::set<region_t> rdb_namespace_interface_t::get_sharding_scheme()
     THROWS_ONLY(cannot_perform_query_exc_t) {
     return internal_->get_sharding_scheme();
 }
@@ -302,10 +302,12 @@ bool reader_t::is_finished() const {
 
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
+    std::string _table_name,
     const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
+      table_name(std::move(_table_name)),
       original_datum_range(_original_datum_range),
       profile(_profile),
       sorting(_sorting) { }
@@ -355,16 +357,23 @@ read_t readgen_t::terminal_read(
 
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
+    std::string table_name,
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, profile, sorting) { }
+    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
-    env_t *env, datum_range_t range, sorting_t sorting) {
+    env_t *env,
+    std::string table_name,
+    datum_range_t range,
+    sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->global_optargs.get_all_optargs(),
-            range, env->profile(), sorting));
+            std::move(table_name),
+            range,
+            env->profile(),
+            sorting));
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
@@ -374,6 +383,7 @@ rget_read_t primary_readgen_t::next_read_impl(
     return rget_read_t(
         region_t(active_range),
         global_optargs,
+        table_name,
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
@@ -403,18 +413,28 @@ std::string primary_readgen_t::sindex_name() const {
 
 sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
+    std::string table_name,
     const std::string &_sindex,
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, profile, sorting), sindex(_sindex) { }
+    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
+      sindex(_sindex) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
-    env_t *env, const std::string &sindex, datum_range_t range, sorting_t sorting) {
+    env_t *env,
+    std::string table_name,
+    const std::string &sindex,
+    datum_range_t range,
+    sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->global_optargs.get_all_optargs(),
-            sindex, range, env->profile(), sorting));
+            std::move(table_name),
+            sindex,
+            range,
+            env->profile(),
+            sorting));
 }
 
 class sindex_compare_t {
@@ -446,6 +466,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
     return rget_read_t(
         region_t::universe(),
         global_optargs,
+        table_name,
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
@@ -480,6 +501,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                     rget_read_t(
                         region_t::universe(),
                         global_optargs,
+                        table_name,
                         batchspec.with_new_batch_type(batch_type_t::SINDEX_CONSTANT),
                         transforms,
                         boost::optional<terminal_variant_t>(),

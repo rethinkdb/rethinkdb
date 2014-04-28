@@ -326,20 +326,28 @@ function bag(list) {
 function err(err_name, err_msg, err_frames) {
     var err_frames = null; // TODO: test for frames
     var fun = function(other) {
-        if (!(function() {
-            if (!(other instanceof Error)) return false;
-            if (err_name && !(other.name === err_name)) return false;
+        if (!(other instanceof Error)) return false;
+        if (err_name && !(other.name === err_name)) return false;
 
-            // Strip out "offending object" from err message
-            other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
-            other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+        // Strip out "offending object" from err message
+        other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
+        other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
 
-            if (err_msg && !(other.msg === err_msg)) return false;
-            if (err_frames && !(eq_test(other.frames, err_frames))) return false;
-            return true;
-        })()) {
-            return false;
-        }
+        if (err_msg && !(other.msg === err_msg)) return false;
+        if (err_frames && !(eq_test(other.frames, err_frames))) return false;
+        return true;
+    }
+    fun.isErr = true;
+    fun.toString = function() {
+        return err_name+"(\""+err_msg+"\")";
+    };
+    return fun;
+}
+
+function builtin_err(err_name, err_msg) {
+    var fun = function(other) {
+        if (!(other.name === err_name)) return false;
+        if (!(other.message === err_msg)) return false;
         return true;
     }
     fun.isErr = true;

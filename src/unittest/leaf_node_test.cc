@@ -230,7 +230,7 @@ public:
 
     // This only prints if we enable printing.
     void Print() {
-        // leaf::print(stdout, &sizer_, node_);
+        // leaf::print(stdout, &sizer_, node());
     }
 
     class verify_receptor_t : public leaf::entry_reception_callback_t {
@@ -293,7 +293,7 @@ public:
         ASSERT_TRUE(receptor.map() == kv_);
     }
 
-public:
+private:
     block_size_t bs_;
     value_sizer_t<short_value_t> sizer_;
     scoped_malloc_t<leaf_node_t> node_;

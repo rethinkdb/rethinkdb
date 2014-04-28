@@ -14,12 +14,11 @@ void check(const std::string &object_type, const uuid_u &object_id,
     }
 }
 
-template<class protocol_t>
 void check_namespaces_for_protocol(
-        const cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces,
+        const cow_ptr_t<namespaces_semilattice_metadata_t> &namespaces,
         std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
+    for (namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it =
             namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
             check("namespace", it->first, "blueprint", it->second.get_ref().blueprint, out);
@@ -28,7 +27,6 @@ void check_namespaces_for_protocol(
             check("namespace", it->first, "ack_expectations", it->second.get_ref().ack_expectations, out);
             check("namespace", it->first, "shards", it->second.get_ref().shards, out);
             check("namespace", it->first, "name", it->second.get_ref().name, out);
-            check("namespace", it->first, "port", it->second.get_ref().port, out);
             check("namespace", it->first, "primary_pinnings", it->second.get_ref().primary_pinnings, out);
             check("namespace", it->first, "secondary_pinnings", it->second.get_ref().secondary_pinnings, out);
             check("namespace", it->first, "database", it->second.get_ref().database, out);
@@ -53,8 +51,6 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > issues;
 
     // Check cluster metadata
-    check_namespaces_for_protocol(cluster_metadata.memcached_namespaces, &issues);
-    check_namespaces_for_protocol(cluster_metadata.dummy_namespaces, &issues);
     check_namespaces_for_protocol(cluster_metadata.rdb_namespaces, &issues);
 
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator it =
