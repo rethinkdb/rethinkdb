@@ -494,7 +494,7 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
         std::vector<counted_t<const datum_t> > args;
-        for (size_t i = 0; i < args.size(); ++i) {
+        for (size_t i = 0; i < num_args(); ++i) {
             counted_t<const datum_t> d = arg(env, i)->as_datum();
             const std::vector<counted_t<const datum_t> > &new_args = d->as_array();
             args.reserve(args.size() + new_args.size());
