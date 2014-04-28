@@ -21,6 +21,7 @@ struct make_sindex_read_t {
             rget_read_t(
                 region_t::universe(),
                 std::map<std::string, ql::wire_func_t>(),
+                "",
                 ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                       counted_t<const ql::datum_t>()),
                 std::vector<ql::transform_variant_t>(),

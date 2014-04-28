@@ -79,6 +79,9 @@ public:
 
     counted_t<const db_t> db;
     const std::string name;
+    std::string display_name() {
+        return db->name + "." + name;
+    }
 
 private:
     friend class distinct_term_t;

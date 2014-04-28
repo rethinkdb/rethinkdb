@@ -2,6 +2,7 @@ err = require('./errors')
 util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
+Promise = require('bluebird')
 
 # Import some names to this namespace for convenience
 ar = util.ar
@@ -35,21 +36,33 @@ class IterableResult
         n()
     )
 
-    toArray: ar (cb) ->
-        unless typeof cb is 'function'
-            throw new err.RqlDriverError "Argument to toArray must be a function."
-
-        arr = []
-        if not @hasNext()
-            cb null, arr
-        @each (err, row) =>
-            if err?
-                cb err
-            else
-                arr.push(row)
-
+    toArray: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            arr = []
             if not @hasNext()
                 cb null, arr
+            @each (err, row) =>
+                if err?
+                    cb err
+                else
+                    arr.push(row)
+
+                if not @hasNext()
+                    cb null, arr
+
+        if typeof cb is 'function'
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) =>
+                cb = (err, result) ->
+                    if err?
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
+            throw new err.RqlDriverError "First argument to `toArray` must be a function or undefined."
 
 class Cursor extends IterableResult
     stackSize: 100
@@ -159,10 +172,24 @@ class Cursor extends IterableResult
 
     hasNext: ar () -> @_responses[0]? && @_responses[0].r.length > 0
 
-    next: ar (cb) ->
-        nextCbCheck(cb)
-        @_cbQueue.push cb
-        @_promptNext()
+    next: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            @_cbQueue.push cb
+            @_promptNext()
+
+        if typeof cb is "function"
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
+            throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
 
     close: ar () ->
         unless @_endFlag
@@ -185,30 +212,56 @@ class ArrayResult extends IterableResult
             @__index = 0
         @__index < @length
 
-    next: ar (cb) ->
-        nextCbCheck(cb)
+    next: varar 0, 1, (cb) ->
+        fn = (cb) =>
 
-        # If people call next
-        if not @__index?
-            @__index = 0
+            # If people call next
+            if not @__index?
+                @__index = 0
 
-        if @hasNext() is true
-            self = @
-            if self.__index%@stackSize is @stackSize-1
-                # Reset the stack
-                setImmediate ->
+            if @hasNext() is true
+                self = @
+                if self.__index%@stackSize is @stackSize-1
+                    # Reset the stack
+                    setImmediate ->
+                        cb(null, self[self.__index++])
+                else
                     cb(null, self[self.__index++])
             else
-                cb(null, self[self.__index++])
-        else
-            cb new err.RqlDriverError "No more rows in the cursor."
+                cb new err.RqlDriverError "No more rows in the cursor."
 
-    toArray: ar (cb) ->
-        # IterableResult.toArray would create a copy
-        if @__index?
-            cb(null, @.slice(@__index, @.length))
+        if typeof cb is "function"
+            fn(cb)
         else
-            cb(null, @)
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+
+
+    toArray: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            # IterableResult.toArray would create a copy
+            if @__index?
+                cb(null, @.slice(@__index, @.length))
+            else
+                cb(null, @)
+
+        if typeof cb is "function"
+            fn(cb)
+        else
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+
 
     close: ->
         return @
@@ -220,10 +273,6 @@ class ArrayResult extends IterableResult
                 response.__proto__[name] = method
         response.__proto__.__proto__ = [].__proto__
         response
-
-nextCbCheck = (cb) ->
-    unless typeof cb is 'function'
-        throw new err.RqlDriverError "Argument to next must be a function."
 
 module.exports.Cursor = Cursor
 module.exports.makeIterable = ArrayResult::makeIterable

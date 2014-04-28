@@ -48,7 +48,7 @@ tests:
 
     # Missing table case
     - cd: r.db('test').table('missing')
-      ot: err("RqlRuntimeError", 'Table `missing` does not exist.', [0])
+      ot: err("RqlRuntimeError", 'Table `test.missing` does not exist.', [0])
 
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})

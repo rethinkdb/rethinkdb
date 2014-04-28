@@ -30,7 +30,7 @@ public:
                             Response *response_out,
                             client_context_t *client_ctx);
 
-    void unparseable_query(const ql::protob_t<Query> &query,
+    void unparseable_query(int64_t token,
                            Response *response_out,
                            const std::string &info);
 public:

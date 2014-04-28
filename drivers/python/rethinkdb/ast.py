@@ -317,8 +317,8 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left, right, left_bound=(), right_bound=()):
-        return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
+    def slice(self, *args, **kwargs):
+        return Slice(self, *args, **kwargs)
 
     def skip(self, index):
         return Skip(self, index)
@@ -680,6 +680,10 @@ class JavaScript(RqlTopLevelQuery):
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
+
+class Random(RqlTopLevelQuery):
+    tt = p.Term.RANDOM
+    st = "random"
 
 class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT

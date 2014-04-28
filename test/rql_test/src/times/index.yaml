@@ -68,6 +68,8 @@ tests:
     ot: 5
   - cd: tbl.index_create('a')
     ot: ({'created':1})
+  - cd: tbl.index_wait('a').count()
+    ot: 1
 
   - cd: tbl.between(ts, te, :index => 'a').count()
     py: tbl.between(ts, te, index='a').count()
@@ -98,6 +100,12 @@ tests:
     py: tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null))
     js: tbl.indexCreate('b', function(row) { return r.branch(row('id').lt(t4), row('a'), null); })
     ot: ({'created':1})
+  - cd: tbl.index_wait('b').count()
+    ot: 1
+
+
+  - cd: tbl.index_wait('b').count()
+    ot: 1
 
   - cd: tbl.between(ts, te, :index => 'b').count()
     py: tbl.between(ts, te, index='b').count()

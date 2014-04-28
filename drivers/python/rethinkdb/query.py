@@ -14,6 +14,9 @@ def js(js_str, timeout=()):
 def error(*msg):
     return UserError(*msg)
 
+def random(*args, **kwargs):
+    return Random(*args, **kwargs)
+
 def do(arg0, *args):
     args = [arg0]+[x for x in args]
     return FunCall(func_wrap(args[-1]), *args[:-1])

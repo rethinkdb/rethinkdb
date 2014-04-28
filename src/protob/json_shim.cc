@@ -1,3 +1,5 @@
+#include "rdb_protocol/ql2.pb.h"
+
 #include <inttypes.h>
 #include "protob/json_shim.hpp"
 
@@ -5,7 +7,6 @@
 #include "debug.hpp"
 
 #include "http/json.hpp"
-#include "rdb_protocol/ql2.pb.h"
 
 std::map<std::string, int32_t> resolver;
 
@@ -150,18 +151,21 @@ void extract(cJSON *json, Datum *d) {
 
 template<>
 void extract(cJSON *json, Query::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Term::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Datum::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
@@ -169,15 +173,15 @@ void extract(cJSON *json, Datum::AssocPair *ap) {
 template<>
 void extract(cJSON *json, Query *q) {
     transfer(cJSON_GetArrayItem(json, 0), q, &Query::set_type);
-    transfer(cJSON_GetArrayItem(json, 1), q, &Query::set_token);
-    transfer(cJSON_GetArrayItem(json, 2), q, &Query::mutable_query);
+    transfer(cJSON_GetArrayItem(json, 1), q, &Query::mutable_query);
     q->set_accepts_r_json(true);
-    transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
+    transfer_arr(cJSON_GetArrayItem(json, 2), q, &Query::add_global_optargs);
 }
 
-bool parse_json_pb(Query *q, const char *str) THROWS_NOTHING {
+bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
     try {
         q->Clear();
+        q->set_token(token);
         scoped_cJSON_t json_holder(cJSON_Parse(str));
         cJSON *json = json_holder.get();
         if (json == NULL) return false;
@@ -186,6 +190,8 @@ bool parse_json_pb(Query *q, const char *str) THROWS_NOTHING {
     } catch (const exc_t &) {
         // This happens if the user provides bad JSON.  TODO: Give the user a
         // more specific error than "malformed query".
+        return false;
+    } catch (const google::protobuf::FatalException &) {
         return false;
     } catch (...) {
         // If we get an unexpected error, we only rethrow in debug mode.  (This

@@ -4,10 +4,9 @@ import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
+import rdb_workload_common
 
 op = OptParser()
-op["workload"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
 op["fast-workload"] = BoolFlag("--fast-workload")
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
@@ -37,19 +36,17 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     http.move_server_to_datacenter(process1.files.machine_name, dc)
     http.move_server_to_datacenter(process2.files.machine_name, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc,
-        affinities = {dc: 1}, ack_expectations = {dc: 2})
-    http.do_query("POST", "/ajax/semilattice/memcached_namespaces/%s/primary_pinnings" % ns.uuid,
+    db = http.add_database()
+    ns = http.add_table(primary = dc,
+                        affinities = {dc: 1}, ack_expectations = {dc: 2}, database=db.name)
+    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
         {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
+    host, port = driver.get_table_host([process1, process2])
 
-    workload_ports = workload_runner.MemcachedPorts(
-        "localhost",
-        process1.http_port,
-        ns.port + process1.port_offset)
-    workload_runner.run("memcached", opts["workload"], workload_ports, opts["timeout"])
+    rdb_workload_common.insert_many(host=host, port=port, database=db.name, table=ns.name, count=10000)
 
     if opts["fast-workload"]:
         print "Stopping release-mode processes."
@@ -67,13 +64,13 @@ with driver.Metacluster() as metacluster:
         print "OK, fast workload logic has done its job."
 
     print "Changing the primary..."
-    http.do_query("POST", "/ajax/semilattice/memcached_namespaces/%s/primary_pinnings" % ns.uuid,
+    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
         {"[\"\",null]": http.find_machine(process2.files.machine_name).uuid})
 
     time.sleep(1)
 
     print "Changing it back..."
-    http.do_query("POST", "/ajax/semilattice/memcached_namespaces/%s/primary_pinnings" % ns.uuid,
+    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
         {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
 
     print "Waiting for it to take effect..."

@@ -82,17 +82,10 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
     return response_needed;
 }
 
-void rdb_query_server_t::unparseable_query(const ql::protob_t<Query> &query,
-                                          Response *response_out,
-                                          const std::string &info) {
-    response_out->set_token((query.has() && query->has_token()) ? query->token() : -1);
+void rdb_query_server_t::unparseable_query(int64_t token,
+                                           Response *response_out,
+                                           const std::string &info) {
+    response_out->set_token(token);
     ql::fill_error(response_out, Response::CLIENT_ERROR, info);
 }
 
-void make_empty_protob_bearer(ql::protob_t<Query> *request) {
-    *request = ql::make_counted_query();
-}
-
-Query *underlying_protob_value(ql::protob_t<Query> *request) {
-    return request->get();
-}

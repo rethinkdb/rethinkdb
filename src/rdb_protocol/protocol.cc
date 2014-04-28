@@ -1050,8 +1050,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_ME_SERIALIZABLE_7(rget_read_t,
-                           region, optargs, batchspec,
+RDB_IMPL_ME_SERIALIZABLE_8(rget_read_t, region, optargs, table_name, batchspec,
                            transforms, terminal, sindex, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(distribution_read_t,

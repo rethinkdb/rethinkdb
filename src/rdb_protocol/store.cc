@@ -79,11 +79,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                    rget.sindex->id, superblock, &sindex_sb, &sindex_mapping_data);
+                    rget.sindex->id,
+                    rget.table_name,
+                    superblock,
+                    &sindex_sb,
+                    &sindex_mapping_data);
                 if (!found) {
                     res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,
-                        strprintf("Index `%s` was not found.", rget.sindex->id.c_str()),
+                        strprintf("Index `%s` was not found on table `%s`.",
+                                  rget.sindex->id.c_str(), rget.table_name.c_str()),
                         NULL);
                     return;
                 }

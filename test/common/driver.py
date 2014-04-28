@@ -47,11 +47,8 @@ def find_rethinkdb_executable(mode = ""):
             mode = 'debug'
     return find_subpath("build/%s/rethinkdb" % mode)
 
-def get_namespace_host(namespace_port, processes):
-    if namespace_port == 0:
-        return ("localhost", random.choice(processes).driver_port)
-    else:
-        return ("localhost", namespace_port + random.choice(processes).port_offset)
+def get_table_host(processes):
+    return ("localhost", random.choice(processes).driver_port)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining

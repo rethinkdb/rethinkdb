@@ -23,7 +23,7 @@ with driver.Metacluster() as metacluster:
     for process in processes:
         process.wait_until_started_up()
 
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc1 = http.add_datacenter()
     dc2 = http.add_datacenter()
@@ -31,14 +31,14 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(processes[1].files.machine_name, dc2)
 
     primary_dc, secondary_dc = dc1, dc2
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
+    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
     http.wait_until_blueprint_satisfied(ns)
 
     for i in xrange(opts["num-changes"]):
         print "Swap %d..." % i
         primary_dc, secondary_dc = secondary_dc, primary_dc
-        http.move_namespace_to_datacenter(ns, primary_dc)
-        http.set_namespace_affinities(ns, {primary_dc: 0, secondary_dc: 1})
+        http.move_table_to_datacenter(ns, primary_dc)
+        http.set_table_affinities(ns, {primary_dc: 0, secondary_dc: 1})
         http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()

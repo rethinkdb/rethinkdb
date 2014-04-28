@@ -32,6 +32,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
     rget_read_t empty_rget_read(
         hash_region_t<key_range_t>::universe(),
         std::map<std::string, ql::wire_func_t>(),
+        "",
         ql::batchspec_t::user(ql::batch_type_t::NORMAL, counted_t<const ql::datum_t>()),
         std::vector<ql::transform_variant_t>(),
         boost::optional<ql::terminal_variant_t>(),

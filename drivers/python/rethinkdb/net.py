@@ -22,7 +22,7 @@ class Query(object):
         self.global_optargs = global_optargs
 
     def serialize(self):
-        res = [self.type, self.token]
+        res = [self.type]
         if self.term is not None:
             res.append(self.term.build())
         if self.global_optargs is not None:
@@ -50,6 +50,7 @@ class Cursor(object):
         self.responses = [ ]
         self.outstanding_requests = 0
         self.end_flag = False
+        self.connection_closed = False
 
     def _extend(self, response):
         self.end_flag = response.type != p.Response.SUCCESS_PARTIAL
@@ -60,6 +61,8 @@ class Cursor(object):
 
     def __iter__(self):
         while True:
+            if len(self.responses) == 0 and self.connection_closed:
+                raise RqlDriverError("Connection closed, cannot read cursor")
             if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
             if len(self.responses) == 1 and not self.end_flag:
@@ -148,6 +151,9 @@ class Connection(object):
                 pass
             self.socket.close()
             self.socket = None
+        for (token, cursor) in self.cursor_cache.iteritems():
+            cursor.end_flag = True
+            cursor.connection_closed = True
         self.cursor_cache = { }
 
     def noreply_wait(self):
@@ -286,7 +292,7 @@ class Connection(object):
 
         # Send json
         query_str = query.serialize().encode('utf-8')
-        query_header = struct.pack("<L", len(query_str))
+        query_header = struct.pack("<QL", query.token, len(query_str))
         self._sock_sendall(query_header + query_str)
 
         if async or ('noreply' in opts and opts['noreply']):
