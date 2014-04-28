@@ -348,25 +348,28 @@ class TextView(object):
 
 # For printing the status to a terminal
 class TermView(TextView):
+    
+    printingQueue	= None
+    
     def __init__(self):
         TextView.__init__(self)
         self.running_list = []
         self.buffer = ''
-        self.read_pipe, self.write_pipe = multiprocessing.Pipe(False)
+        self.printingQueue = multiprocessing.Queue()
         self.thread = threading.Thread(target=self.run, name='TermView')
         self.thread.daemon = True
         self.thread.start()
 
     def tell(self, *args, **kwargs):
-        self.write_pipe.send((args, kwargs))
+        self.printingQueue.put((args, kwargs))
 
     def close(self):
-        self.write_pipe.send(('EXIT',None))
+        self.printingQueue.put(('EXIT',None))
         self.thread.join()
 
     def run(self):
         while True:
-            args, kwargs = self.read_pipe.recv()
+            args, kwargs = self.printingQueue.get()
             if args == 'EXIT':
                 break
             self.thread_tell(*args, **kwargs)
