@@ -23,10 +23,13 @@ class argspec_t {
 public:
     explicit argspec_t(int n);
     argspec_t(int _min, int _max);
+    argspec_t(int _min, int _max, eval_flags_t eval_flags);
     std::string print();
     bool contains(int n) const;
+    eval_flags_t get_eval_flags() const { return eval_flags; }
 private:
     int min, max; // max may be -1 for unbounded
+    eval_flags_t eval_flags;
 };
 
 // Specifies the optional arguments a function can take.

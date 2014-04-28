@@ -6,6 +6,8 @@
 #include "rdb_protocol/op.hpp"
 #include "stl_utils.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 class pend_term_t : public op_term_t {
@@ -492,10 +494,11 @@ class args_term_t : public op_term_t {
 public:
     args_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t eval_flags) {
+        debugf("%d\n", eval_flags);
         std::vector<counted_t<const datum_t> > args;
         for (size_t i = 0; i < num_args(); ++i) {
-            counted_t<const datum_t> d = arg(env, i)->as_datum();
+            counted_t<const datum_t> d = arg(env, i, eval_flags)->as_datum();
             const std::vector<counted_t<const datum_t> > &new_args = d->as_array();
             args.reserve(args.size() + new_args.size());
             args.insert(args.end(), new_args.begin(), new_args.end());

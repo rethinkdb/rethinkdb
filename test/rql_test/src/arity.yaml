@@ -271,6 +271,60 @@ tests:
       py: []
       rb: []
 
+    - cd: tbl.insert((0...10).map{|i| {:id => i}})['inserted']
+      ot: 10
+
+    - cd: tbl.get_all(0, 1, 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([]), 0, 1, 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args(), 0, 1, 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([0]), 1, 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([0, 1]), 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([0], [1]), 2)['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([0, 1, 2]))['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(r.args([0]), 1, r.args([2]))['id']
+      ot: [0, 1, 2]
+
+    - cd: tbl.get_all(0, r.args([1, 2]), r.args())['id']
+      ot: [0, 1, 2]
+
+
+      # Make sure partial-evaluation still works
+
+    - cd: r.branch(true, 1, r.error("a"))
+      ot: 1
+
+    - cd: r.branch(r.args([true, 1]), r.error("a"))
+      ot: 1
+
+    - cd: r.branch(r.args([true, 1, r.error("a")]))
+      ot: err("RqlRuntimeError", "a", [])
+
+    # Make sure our grouped data hack still works
+
+    - cd: tbl.group{|row| row['id'] % 2}.count({'id':0}).ungroup()
+      ot: ([{'group':0, 'reduction':1}])
+
+    - cd: tbl.group{|row| row['id'] % 2}.count(r.args([{'id':0}])).ungroup()
+      ot: ([{'group':0, 'reduction':1}])
+
+    # Make sure `r.literal` still works
+
+    - cd: r({'a':{'b':1}}).merge(r.args([{'a':r.literal({'c':1})}]))
+      ot: ({'a':{'c':1}})
 
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments

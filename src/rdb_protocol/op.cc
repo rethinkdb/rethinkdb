@@ -4,9 +4,14 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
-argspec_t::argspec_t(int n) : min(n), max(n) { }
-argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
+argspec_t::argspec_t(int n) : min(n), max(n), eval_flags(NO_FLAGS) { }
+argspec_t::argspec_t(int _min, int _max)
+    : min(_min), max(_max), eval_flags(NO_FLAGS) { }
+argspec_t::argspec_t(int _min, int _max, eval_flags_t _eval_flags)
+    : min(_min), max(_max), eval_flags(_eval_flags) { }
 std::string argspec_t::print() {
     if (min == max) {
         return strprintf("%d argument(s)", min);
@@ -113,14 +118,28 @@ args_t::args_t(protob_t<const Term> _src,
     : pb_rcheckable_t(get_backtrace(_src)),
       src(std::move(_src)),
       argspec(std::move(_argspec)),
-      original_args(std::move(_original_args)) { }
+      original_args(std::move(_original_args)) {
+    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
+        if ((*it)->get_src()->type() == Term::ARGS) {
+            return;
+        }
+    }
+    // We check this here *and* in `start_eval` because if `r.args` isn't in
+    // play we want to give a compile-time error.
+    rcheck(argspec.contains(original_args.size()),
+           base_exc_t::GENERIC,
+           strprintf("Expected %s but found %zu.",
+                     argspec.print().c_str(), original_args.size()));
+}
 
-void args_t::start_eval(scope_env_t *env, eval_flags_t flags,
+void args_t::start_eval(scope_env_t *env, eval_flags_t _flags,
                         counted_t<val_t> _arg0) {
+    eval_flags_t flags = static_cast<eval_flags_t>(
+        _flags | argspec.get_eval_flags());
     args.clear();
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
-            // RSI: check how this works with LITERAL_OK
+            debugf("%d %d %d\n", _flags, argspec.get_eval_flags(), flags);
             counted_t<val_t> v = (*it)->eval(env, flags);
             counted_t<const datum_t> d = v->as_datum();
             for (size_t i = 0; i < d->size(); ++i) {
