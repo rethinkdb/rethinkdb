@@ -167,6 +167,7 @@ private:
         case Term::MAX:
         case Term::UNION:
         case Term::NTH:
+        case Term::ARGS:
         case Term::LIMIT:
         case Term::SKIP:
         case Term::INNER_JOIN:
@@ -321,6 +322,7 @@ private:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
+        case Term::ARGS:
         case Term::LITERAL:
         case Term::BETWEEN:
         case Term::ORDERBY:
