@@ -189,6 +189,36 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     return id;
 }
 
+void wait_for_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
+                          order_source_t *osource,
+                          const std::string &id) {
+    std::set<std::string> sindexes;
+    sindexes.insert(id);
+    for (int attempts = 0; attempts < 100; ++attempts) {
+        rdb_protocol_t::sindex_status_t d(sindexes);
+        rdb_protocol_t::read_t read(d, profile_bool_t::PROFILE);
+        rdb_protocol_t::read_response_t response;
+
+        cond_t interruptor;
+        nsi->read(read, &response, osource->check_in("unittest::wait_for_sindex(rdb_protocol_t.cc-A"), &interruptor);
+
+        rdb_protocol_t::sindex_status_response_t *res =
+            boost::get<rdb_protocol_t::sindex_status_response_t>(&response.response);
+
+        if (res == NULL) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+
+        auto it = res->statuses.find(id);
+        if (it != res->statuses.end() && it->second.ready) {
+            return;
+        } else {
+            nap(50);
+        }
+    }
+    ADD_FAILURE() << "Waiting for sindex " << id << " timed out.";
+}
+
 bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                  order_source_t *osource,
                  const std::string &id) {
@@ -212,9 +242,7 @@ bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
-
-    // KSI: Ugh, why is sindex creation so slow that we need a nap?
-    nap(100);
+    wait_for_sindex(nsi, osource, id);
 
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
@@ -370,9 +398,7 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
-
-    // KSI: Ugh, why is sindex creation so slow that we need a nap?
-    nap(100);
+    wait_for_sindex(nsi, osource, sindex_id);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
