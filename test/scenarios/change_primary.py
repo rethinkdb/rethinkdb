@@ -26,27 +26,27 @@ with driver.Metacluster() as metacluster:
     process1.wait_until_started_up()
     process2.wait_until_started_up()
 
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
     dc1 = http.add_datacenter()
     http.move_server_to_datacenter(process1.files.machine_name, dc1)
     dc2 = http.add_datacenter()
     http.move_server_to_datacenter(process2.files.machine_name, dc2)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = dc1, affinities = {dc1: 0, dc2: 1})
+    ns = scenario_common.prepare_table_for_workload(http, primary = dc1, affinities = {dc1: 0, dc2: 1})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, [process1, process2])
-    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns, [process1, process2])
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()
         workload.check()
         print "Changing the primary..."
-        http.set_namespace_affinities(ns, {dc1: 1, dc2: 1})
-        http.move_namespace_to_datacenter(ns, dc2)
-        http.set_namespace_affinities(ns, {dc1: 1, dc2: 0})
+        http.set_table_affinities(ns, {dc1: 1, dc2: 1})
+        http.move_table_to_datacenter(ns, dc2)
+        http.set_table_affinities(ns, {dc1: 1, dc2: 0})
         http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
