@@ -38,7 +38,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     get_secondary_indexes(&sindex_block, &sindexes);
 
     struct sindex_clearer {
-        static void clear(btree_store_t<rdb_protocol_t> *btree_store,
+        static void clear(store_t *store,
                           secondary_index_t sindex,
                           auto_drainer_t::lock_t store_keepalive) {
             try {
@@ -46,10 +46,10 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
                 // secondary index cannot be in use at this point and we therefore
                 // don't have to detach anything.
                 noop_value_deleter_t noop_deleter;
-                value_sizer_t<rdb_value_t> sizer(btree_store->cache->get_block_size());
+                value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
 
                 /* Clear the sindex. */
-                btree_store->clear_sindex(
+                store->clear_sindex(
                     sindex,
                     &sizer,
                     &noop_deleter,
@@ -73,8 +73,8 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     }
 
     if (!sindexes_to_update.empty()) {
-        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                        &sindex_block);
+        rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
+                                                &sindex_block);
     }
 }
 
@@ -112,7 +112,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     rget.table_name,
                     superblock,
                     &sindex_sb,
-                    &sindex_mapping_data
+                    &sindex_mapping_data,
                     &sindex_uuid);
                 if (!found) {
                     res->result = ql::exc_t(

@@ -405,8 +405,7 @@ std::string compute_sindex_deletion_id(uuid_u sindex_uuid) {
     return "_DEL_" + uuid_to_str(sindex_uuid) + "\0";
 }
 
-template <class protocol_t>
-void btree_store_t<protocol_t>::clear_sindex(
+void store_t::clear_sindex(
         secondary_index_t sindex,
         value_sizer_t<void> *sizer,
         const value_deleter_t *deleter,
@@ -415,7 +414,7 @@ void btree_store_t<protocol_t>::clear_sindex(
     {
         /* Start a transaction (1). */
         write_token_pair_t token_pair;
-        store_view_t<protocol_t>::new_write_token_pair(&token_pair);
+        store_view_t::new_write_token_pair(&token_pair);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
@@ -446,7 +445,7 @@ void btree_store_t<protocol_t>::clear_sindex(
     {
         /* Start a transaction (2). */
         write_token_pair_t token_pair;
-        store_view_t<protocol_t>::new_write_token_pair(&token_pair);
+        store_view_t::new_write_token_pair(&token_pair);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
@@ -515,14 +514,14 @@ void store_t::set_sindexes(
             release the sindex_block now, rather than having to wait for
             clear_sindex() to finish. */
             struct delayed_sindex_clearer {
-                static void clear(btree_store_t<protocol_t> *btree_store,
+                static void clear(store_t *store,
                                   secondary_index_t sindex,
                                   std::shared_ptr<value_sizer_t<void> > csizer,
                                   std::shared_ptr<deletion_context_t> deletion_context,
                                   auto_drainer_t::lock_t store_keepalive) {
                     try {
                         /* Clear the sindex. */
-                        btree_store->clear_sindex(
+                        store->clear_sindex(
                             sindex,
                             csizer.get(),
                             deletion_context->in_tree_deleter(),
@@ -625,14 +624,14 @@ MUST_USE bool store_t::drop_sindex(
         /* Clear the sindex later. It starts its own transaction and we don't
         want to deadlock because we're still holding locks. */
         struct delayed_sindex_clearer {
-            static void clear(btree_store_t<protocol_t> *btree_store,
+            static void clear(store_t *store,
                               secondary_index_t csindex,
                               std::shared_ptr<value_sizer_t<void> > csizer,
                               std::shared_ptr<deletion_context_t> deletion_context,
                               auto_drainer_t::lock_t store_keepalive) {
                 try {
                     /* Clear the sindex. */
-                    btree_store->clear_sindex(
+                    store->clear_sindex(
                         csindex,
                         csizer.get(),
                         deletion_context->in_tree_deleter(),
@@ -653,8 +652,7 @@ MUST_USE bool store_t::drop_sindex(
     return true;
 }
 
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::mark_secondary_index_deleted(
+MUST_USE bool store_t::mark_secondary_index_deleted(
         buf_lock_t *sindex_block,
         const std::string &id) {
     secondary_index_t sindex;

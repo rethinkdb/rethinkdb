@@ -71,9 +71,9 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
                                  &read_token, &interruptor, &metainfo);
 
     current_timestamp = state_timestamp_t::zero();
-    for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
-                                                                    it != metainfo.end();
-                                                                    it++) {
+    for (typename region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
+                                                        it != metainfo.end();
+                                                        it++) {
         state_timestamp_t region_timestamp
             = binary_blob_t::get<state_timestamp_t>(it->second);
         if (region_timestamp > current_timestamp) {

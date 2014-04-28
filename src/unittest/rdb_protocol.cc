@@ -85,7 +85,7 @@ void run_with_namespace_interface(
         boost::ptr_vector<store_t> underlying_stores;
         for (size_t i = 0; i < store_shards.size(); ++i) {
             underlying_stores.push_back(
-                    new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                    new store_t(serializers[i].get(), &balancer,
                         temp_files[i].name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx,
                         &io_backender, base_path_t(".")));
@@ -352,8 +352,8 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     }
 }
 
-void run_repeated_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi,
-                                      order_source_t *osource) {
+void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
+                                          order_source_t *osource) {
     // Create and drop 3 indexes one after another
     for (int i = 0; i < 3; ++i) {
         run_create_drop_sindex_test(nsi, osource);
