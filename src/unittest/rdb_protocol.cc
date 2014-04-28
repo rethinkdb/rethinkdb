@@ -18,14 +18,16 @@
 #include "unittest/gtest.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "stl_utils.hpp"
+#include "utils.hpp"
 
 namespace unittest {
 namespace {
 
-void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t *)> fun, bool oversharding) {
+void run_with_namespace_interface(
+        boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t *)> fun,
+        bool oversharding,
+        int num_restarts) {
     recreate_temporary_directory(base_path_t("."));
-
-    order_source_t order_source;
 
     /* Pick shards */
     std::vector<rdb_protocol_t::region_t> store_shards;
@@ -59,8 +61,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                                                       &get_global_perfmon_collection()));
     }
 
-    boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
-
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
@@ -79,32 +79,46 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                                   dummy_auth, &read_manager, generate_uuid(),
                                   &get_global_perfmon_collection());
 
-    for (size_t i = 0; i < store_shards.size(); ++i) {
-        underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
-                    temp_files[i].name().permanent_path(), true,
-                    &get_global_perfmon_collection(), &ctx,
-                    &io_backender, base_path_t(".")));
-    }
-
-    boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;
-    for (size_t i = 0; i < nsi_shards.size(); ++i) {
-        if (oversharding) {
-            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[0], nsi_shards[i]));
-        } else {
-            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[i], nsi_shards[i]));
+    for (int rep = 0; rep < num_restarts; ++rep) {
+        const bool do_create = rep == 0;
+        boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
+        for (size_t i = 0; i < store_shards.size(); ++i) {
+            underlying_stores.push_back(
+                    new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
+                        temp_files[i].name().permanent_path(), do_create,
+                        &get_global_perfmon_collection(), &ctx,
+                        &io_backender, base_path_t(".")));
         }
+
+        boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;
+        for (size_t i = 0; i < nsi_shards.size(); ++i) {
+            if (oversharding) {
+                stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[0], nsi_shards[i]));
+            } else {
+                stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[i], nsi_shards[i]));
+            }
+        }
+
+        /* Set up namespace interface */
+        order_source_t order_source;
+        dummy_namespace_interface_t<rdb_protocol_t> nsi(nsi_shards, stores.c_array(),
+                                                        &order_source,
+                                                        &ctx,
+                                                        do_create);
+
+        fun(&nsi, &order_source);
     }
-
-    /* Set up namespace interface */
-    dummy_namespace_interface_t<rdb_protocol_t> nsi(nsi_shards, stores.c_array(), &order_source, &ctx);
-
-    fun(&nsi, &order_source);
 }
 
-void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
+void run_in_thread_pool_with_namespace_interface(
+        boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun,
+        bool oversharded,
+        int num_restarts = 1) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun, oversharded));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface,
+                                           fun,
+                                           oversharded,
+                                           num_restarts));
 }
 
 }   /* anonymous namespace */
@@ -339,8 +353,25 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     }
 }
 
+void run_repeated_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi,
+                                      order_source_t *osource) {
+    // Create and drop 3 indexes one after another
+    for (int i = 0; i < 3; ++i) {
+        run_create_drop_sindex_test(nsi, osource);
+    }
+    // Nap for a random time before we shut down the namespace interface.
+    nap(randint(100));
+}
+
 TEST(RDBProtocol, SindexCreateDrop) {
     run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test, false);
+}
+
+TEST(RDBProtocol, SindexRepeatedCreateDrop) {
+    // Repeat the test 10 times on the same data files.
+    run_in_thread_pool_with_namespace_interface(&run_repeated_create_drop_sindex_test,
+                                                false,
+                                                10);
 }
 
 TEST(RDBProtocol, OvershardedSindexCreateDrop) {

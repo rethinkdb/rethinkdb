@@ -36,7 +36,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     dummy_protocol_t::context_t ctx;
     dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores.c_array(),
             &order_source,
-            &ctx);
+            &ctx,
+            true);
 
     fun(&nsi, &order_source);
 }
