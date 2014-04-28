@@ -70,7 +70,7 @@ tests:
       ot: ({'cd':3})
 
     - cd: r.object('o','d','d')
-      ot: err("RqlCompileError", "OBJECT expects an even number of arguments (but found 3).", [])
+      ot: err("RqlRuntimeError", "OBJECT expects an even number of arguments (but found 3).", [])
 
     - cd: r.object(1, 1)
       ot: err("RqlRuntimeError","Expected type STRING but found NUMBER.",[])

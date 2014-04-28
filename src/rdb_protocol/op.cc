@@ -84,7 +84,7 @@ public:
     size_t size() { return args.size(); }
 
     counted_t<grouped_data_t> maybe_grouped_data(
-        scope_env_t *env, bool is_grouped_seq_op);
+        scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags);
     const std::vector<counted_t<term_t> > &get_original_args() {
         return original_args;
     }
@@ -98,10 +98,12 @@ private:
 };
 
 counted_t<grouped_data_t> args_t::maybe_grouped_data(
-    scope_env_t *env, bool is_grouped_seq_op) {
+    scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags) {
     counted_t<grouped_data_t> gd;
     if (args.size() != 0) {
-        r_sanity_check(arg0.has());
+        if (!arg0.has()) {
+            arg0 = get(0)->eval(env, flags);
+        }
         gd = is_grouped_seq_op
             ? arg0->maybe_as_grouped_data()
             : arg0->maybe_as_promiscuous_grouped_data(env->env);
@@ -132,15 +134,14 @@ args_t::args_t(protob_t<const Term> _src,
                      argspec.print().c_str(), original_args.size()));
 }
 
-void args_t::start_eval(scope_env_t *env, eval_flags_t _flags,
+void args_t::start_eval(scope_env_t *env, eval_flags_t flags,
                         counted_t<val_t> _arg0) {
-    eval_flags_t flags = static_cast<eval_flags_t>(
-        _flags | argspec.get_eval_flags());
+    eval_flags_t new_flags = static_cast<eval_flags_t>(
+        flags | argspec.get_eval_flags());
     args.clear();
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
-            debugf("%d %d %d\n", _flags, argspec.get_eval_flags(), flags);
-            counted_t<val_t> v = (*it)->eval(env, flags);
+            counted_t<val_t> v = (*it)->eval(env, new_flags);
             counted_t<const datum_t> d = v->as_datum();
             for (size_t i = 0; i < d->size(); ++i) {
                 args.push_back(counted_t<term_t>(new faux_term_t(src, d->get(i))));
@@ -153,14 +154,14 @@ void args_t::start_eval(scope_env_t *env, eval_flags_t _flags,
            base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
-    if (args.size() != 0) {
-        arg0 = _arg0.has() ? std::move(_arg0) : get(0)->eval(env, flags);
-    }
+    arg0 = std::move(_arg0);
 }
 
 counted_t<val_t> args_t::eval_arg(scope_env_t *env, size_t i, eval_flags_t flags) {
     if (i == 0) {
-        r_sanity_check(arg0.has());
+        if (!arg0.has()) {
+            arg0 = get(0)->eval(env, flags);
+        }
         counted_t<val_t> v;
         v.swap(arg0);
         return std::move(v);
@@ -219,7 +220,7 @@ counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags)
     counted_t<val_t> ret;
     if (can_be_grouped()) {
         counted_t<grouped_data_t> gd
-            = args->maybe_grouped_data(env, is_grouped_seq_op());
+            = args->maybe_grouped_data(env, is_grouped_seq_op(), eval_flags);
         if (gd.has()) {
             counted_t<grouped_data_t> out(new grouped_data_t());
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
