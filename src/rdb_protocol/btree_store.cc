@@ -3,6 +3,7 @@
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"

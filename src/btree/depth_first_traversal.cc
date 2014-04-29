@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/depth_first_traversal.hpp"
 
+#include "btree/internal_node.hpp"
 #include "btree/operations.hpp"
 #include "rdb_protocol/profile.hpp"
 
