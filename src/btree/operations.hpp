@@ -271,12 +271,10 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace);
 
-enum class expired_t { NO, YES };
-
 void apply_keyvalue_change(
         value_sizer_t *sizer,
         keyvalue_location_t *kv_loc,
-        const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        const btree_key_t *key, repli_timestamp_t tstamp,
         const value_deleter_t *detacher,
         key_modification_callback_t *km_callback);
 
