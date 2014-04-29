@@ -10,10 +10,10 @@
 
 #include "arch/io/network.hpp"
 #include "arch/timing.hpp"
-
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
+#include "config/args.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
@@ -25,7 +25,7 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
-const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
+const std::string connectivity_cluster_t::cluster_version(CLUSTER_VERSION_STRING);
 
 #if defined (__x86_64__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
