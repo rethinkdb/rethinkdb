@@ -126,10 +126,7 @@ module RethinkDB
     def ==(rhs)
       raise ArgumentError,"
       Cannot use inline ==/!= with RQL queries, use .eq() instead if
-      you want a query that does equality comparison.
-
-      If you need to see whether two queries are the same, compare
-      their protobufs like: `query1.to_pb == query2.to_pb`."
+      you want a query that does equality comparison."
     end
 
     def do(*args, &b)

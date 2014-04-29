@@ -2,8 +2,10 @@
 
 PROTOCFLAGS :=
 
-RUBY_PBDIR := ../../build/drivers/ruby
+RUBY_BUILD_DIR := ../../build/drivers/ruby/
+RUBY_PBDIR := $(RUBY_BUILD_DIR)/pb/
 RUBY_PBFILE := $(RUBY_PBDIR)/ql2.pb.rb
+RUBY_PBFILE_STRIPPED := $(RUBY_BUILD_DIR)/ql2.pb.rb
 GEMSPEC := rethinkdb.gemspec
 PROTOFILE := ql2.proto
 
@@ -18,7 +20,10 @@ all: driver-ruby
 $(RUBY_PBDIR):
 	mkdir -p $(RUBY_PBDIR)
 
-driver-ruby: $(RUBY_PBFILE)
+driver-ruby: $(RUBY_PBFILE_STRIPPED)
+
+$(RUBY_PBFILE_STRIPPED): $(RUBY_PBFILE)
+	./strip-pbfile < $< > $@
 
 $(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE) $(RUBY_PBDIR)
 	$(TC_RPROTOC_EXE) $(PROTOCFLAGS) -o $(RUBY_PBDIR) $(PROTOFILE)
