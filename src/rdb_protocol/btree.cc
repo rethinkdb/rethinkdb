@@ -76,19 +76,21 @@ void detach_rdb_value(buf_parent_t parent, const void *value) {
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
              superblock_t *superblock, point_read_response_t *response,
              profile::trace_t *trace) {
-    keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_read(superblock, store_key.btree_key(), &kv_location,
+    keyvalue_location_t kv_location;
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_read(&sizer, superblock,
+                                    store_key.btree_key(), &kv_location,
                                     &slice->stats, trace);
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
-        response->data = get_data(kv_location.value.get(),
+        response->data = get_data(static_cast<rdb_value_t *>(kv_location.value.get()),
                                   buf_parent_t(&kv_location.buf));
     }
 }
 
-void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_delete(keyvalue_location_t *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
                         const deletion_context_t *deletion_context,
@@ -97,15 +99,15 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     guarantee(kv_location->value.has());
 
     // As noted above, we can be sure that buf is valid.
-    const block_size_t block_size = kv_location->buf.cache()->get_block_size();
+    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
 
     if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
 
         mod_info_out->deleted.second.assign(
-                kv_location->value->value_ref(),
-                kv_location->value->value_ref()
-                + kv_location->value->inline_size(block_size));
+                kv_location->value_as<rdb_value_t>()->value_ref(),
+                kv_location->value_as<rdb_value_t>()->value_ref()
+                + kv_location->value_as<rdb_value_t>()->inline_size(block_size));
     }
 
     // Detach/Delete
@@ -113,12 +115,13 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                                                       kv_location->value.get());
 
     kv_location->value.reset();
-    null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
+    rdb_value_sizer_t sizer(block_size);
+    null_key_modification_callback_t null_cb;
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
             expired_t::NO, deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
@@ -127,7 +130,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     memset(new_value.get(), 0, blob::btree_maxreflen);
 
-    const block_size_t block_size = kv_location->buf.cache()->get_block_size();
+    const block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
         serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
@@ -145,20 +148,22 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
         if (mod_info_out != NULL) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
-                    kv_location->value->value_ref(),
-                    kv_location->value->value_ref()
-                    + kv_location->value->inline_size(block_size));
+                    kv_location->value_as<rdb_value_t>()->value_ref(),
+                    kv_location->value_as<rdb_value_t>()->value_ref()
+                    + kv_location->value_as<rdb_value_t>()->inline_size(block_size));
         }
     }
 
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
-    null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+    null_key_modification_callback_t null_cb;
+    rdb_value_sizer_t sizer(block_size);
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
+                          timestamp, expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+void kv_location_set(keyvalue_location_t *kv_location,
                      const store_key_t &key,
                      const std::vector<char> &value_ref,
                      repli_timestamp_t timestamp,
@@ -175,8 +180,10 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
 
-    null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(kv_location, key.btree_key(), timestamp, expired_t::NO,
+    null_key_modification_callback_t null_cb;
+    rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
+    apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
+                          expired_t::NO,
                           deletion_context->balancing_detacher(), &null_cb);
 }
 
@@ -193,8 +200,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
-        keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(info.superblock, info.key->btree_key(),
+        keyvalue_location_t kv_location;
+        rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
+        find_keyvalue_location_for_write(&sizer, info.superblock,
+                                         info.key->btree_key(),
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
                                          &info.btree->slice->stats,
@@ -210,7 +219,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            old_val = get_data(kv_location.value.get(),
+            old_val = get_data(kv_location.value_as<rdb_value_t>(),
                                buf_parent_t(&kv_location.buf));
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
@@ -408,8 +417,9 @@ void rdb_set(const store_key_t &key,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
              promise_t<superblock_t *> *pass_back_superblock) {
-    keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, key.btree_key(),
+    keyvalue_location_t kv_location;
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
                                      deletion_context->balancing_detacher(),
                                      &kv_location, &slice->stats, trace,
                                      pass_back_superblock);
@@ -417,7 +427,7 @@ void rdb_set(const store_key_t &key,
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_info->deleted.first = get_data(kv_location.value.get(),
+        mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
     }
 
@@ -506,7 +516,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
                                superblock, sindex_block, p, interruptor);
 }
@@ -518,14 +528,15 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace) {
-    keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(superblock, key.btree_key(),
+    keyvalue_location_t kv_location;
+    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
             deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
     if (exists) {
-        mod_info->deleted.first = get_data(kv_location.value.get(),
+        mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
     }
@@ -1129,8 +1140,10 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
-                    keyvalue_location_t<rdb_value_t> kv_location;
-                    find_keyvalue_location_for_write(super_block,
+                    keyvalue_location_t kv_location;
+                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    find_keyvalue_location_for_write(&sizer,
+                                                     super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,
@@ -1162,9 +1175,11 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
-                    keyvalue_location_t<rdb_value_t> kv_location;
+                    keyvalue_location_t kv_location;
 
-                    find_keyvalue_location_for_write(super_block,
+                    rdb_value_sizer_t sizer(super_block->cache()->max_block_size());
+                    find_keyvalue_location_for_write(&sizer,
+                                                     super_block,
                                                      it->btree_key(),
                                                      deletion_context->balancing_detacher(),
                                                      &kv_location,

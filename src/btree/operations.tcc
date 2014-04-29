@@ -9,22 +9,6 @@
 #include "concurrency/promise.hpp"
 #include "rdb_protocol/profile.hpp"
 
-struct rdb_value_t;
-class rdb_value_sizer_t;
-class short_value_t;
-class short_value_sizer_t;
-
-template <class> struct sizer_trait_t;
-template <>
-struct sizer_trait_t<rdb_value_t> {
-    typedef rdb_value_sizer_t sizer_type;
-};
-template <>
-struct sizer_trait_t<short_value_t> {
-    typedef short_value_sizer_t sizer_type;
-};
-
-
 // TODO: consider B#/B* trees to improve space efficiency
 
 /* Passing in a pass_back_superblock parameter will cause this function to
@@ -35,16 +19,14 @@ struct sizer_trait_t<short_value_t> {
  * */
 // KSI: It seems like really we should pass the superblock_t via rvalue reference.
 // Is that possible?  (promise_t makes it hard.)
-template <class Value>
-void find_keyvalue_location_for_write(
+inline void find_keyvalue_location_for_write(
+        value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
         const value_deleter_t *detacher,
-        keyvalue_location_t<Value> *keyvalue_location_out,
+        keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
-    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
-
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
@@ -63,7 +45,7 @@ void find_keyvalue_location_for_write(
         // worsen the performance of the program -- sometimes we only end up using
         // this block for read.  So the profiling information is not very good.
         profile::starter_t starter("Acquiring block for write.\n", trace);
-        buf = get_root(&sizer, superblock);
+        buf = get_root(sizer, superblock);
     }
 
     // Walk down the tree to the leaf.
@@ -77,14 +59,14 @@ void find_keyvalue_location_for_write(
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            check_and_handle_split(&sizer, &buf, &last_buf, superblock, key,
-                                   static_cast<Value *>(NULL), detacher);
+            check_and_handle_split(sizer, &buf, &last_buf, superblock, key,
+                                   NULL, detacher);
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
-            check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key,
+            check_and_handle_underfull(sizer, &buf, &last_buf, superblock, key,
                                        detacher);
         }
 
@@ -124,12 +106,12 @@ void find_keyvalue_location_for_write(
     }
 
     {
-        scoped_malloc_t<Value> tmp(sizer.max_possible_size());
+        scoped_malloc_t<void> tmp(sizer->max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
         buf_read_t read(&buf);
         auto node = static_cast<const leaf_node_t *>(read.get_data_read());
-        bool key_found = leaf::lookup(&sizer, node, key, tmp.get());
+        bool key_found = leaf::lookup(sizer, node, key, tmp.get());
 
         if (key_found) {
             keyvalue_location_out->there_originally_was_value = true;
@@ -141,13 +123,12 @@ void find_keyvalue_location_for_write(
     keyvalue_location_out->buf.swap(buf);
 }
 
-template <class Value>
-void find_keyvalue_location_for_read(
+inline void find_keyvalue_location_for_read(
+        value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
-        keyvalue_location_t<Value> *keyvalue_location_out,
+        keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
-    typename sizer_trait_t<Value>::sizer_type sizer(superblock->cache()->max_block_size());
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -169,7 +150,7 @@ void find_keyvalue_location_for_read(
 #ifndef NDEBUG
     {
         buf_read_t read(&buf);
-        node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+        node::validate(sizer, static_cast<const node_t *>(read.get_data_read()));
     }
 #endif  // NDEBUG
 
@@ -197,19 +178,19 @@ void find_keyvalue_location_for_read(
 #ifndef NDEBUG
         {
             buf_read_t read(&buf);
-            node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+            node::validate(sizer, static_cast<const node_t *>(read.get_data_read()));
         }
 #endif  // NDEBUG
     }
 
     // Got down to the leaf, now probe it.
-    scoped_malloc_t<Value> value(sizer.max_possible_size());
+    scoped_malloc_t<void> value(sizer->max_possible_size());
     bool value_found;
     {
         buf_read_t read(&buf);
         const leaf_node_t *leaf
             = static_cast<const leaf_node_t *>(read.get_data_read());
-        value_found = leaf::lookup(&sizer, leaf, key, value.get());
+        value_found = leaf::lookup(sizer, leaf, key, value.get());
     }
     if (value_found) {
         keyvalue_location_out->buf = std::move(buf);
@@ -220,14 +201,12 @@ void find_keyvalue_location_for_read(
 
 enum class expired_t { NO, YES };
 
-template <class Value>
-void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
+inline void apply_keyvalue_change(
+        value_sizer_t *sizer,
+        keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
         const value_deleter_t *detacher,
-        key_modification_callback_t<Value> *km_callback) {
-
-    typename sizer_trait_t<Value>::sizer_type sizer(kv_loc->buf.cache()->get_block_size());
-
+        key_modification_callback_t *km_callback) {
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
 
@@ -242,7 +221,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+        check_and_handle_split(sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key, kv_loc->value.get(),
                                detacher);
 
@@ -250,7 +229,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
 #ifndef NDEBUG
             buf_read_t read(&kv_loc->buf);
             auto leaf_node = static_cast<const leaf_node_t *>(read.get_data_read());
-            rassert(!leaf::is_full(&sizer, leaf_node, key, kv_loc->value.get()));
+            rassert(!leaf::is_full(sizer, leaf_node, key, kv_loc->value.get()));
 #endif
         }
 
@@ -263,7 +242,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         {
             buf_write_t write(&kv_loc->buf);
             auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-            leaf::insert(&sizer,
+            leaf::insert(sizer,
                          leaf_node,
                          key,
                          kv_loc->value.get(),
@@ -280,7 +259,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                 {
                     buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                    leaf::remove(&sizer,
+                    leaf::remove(sizer,
                                  leaf_node,
                                  key,
                                  tstamp,
@@ -294,7 +273,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                 {
                     buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                    leaf::erase_presence(&sizer,
+                    leaf::erase_presence(sizer,
                                          leaf_node,
                                          key,
                                          km_proof);
@@ -309,7 +288,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
-    check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+    check_and_handle_underfull(sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key, detacher);
 
     // Modify the stats block.  The stats block is detached from the rest of the
