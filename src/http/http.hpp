@@ -111,7 +111,8 @@ public:
 
     http_res_t();
     explicit http_res_t(http_status_code_t rescode);
-    http_res_t(http_status_code_t rescode, const std::string&, const std::string&);
+    http_res_t(http_status_code_t rescode, const std::string &content_type,
+               const std::string &content);
     void add_last_modified(int);
 };
 
