@@ -98,8 +98,7 @@ $(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUI
 
 .PHONY: install-tools
 install-tools: $(BUILD_DIR)/assets/rethinkdb.bash
-	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) \
-	                 $(DESTDIR)$(bash_completion_dir)
+	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) $(DESTDIR)$(bash_completion_dir)
 	install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
