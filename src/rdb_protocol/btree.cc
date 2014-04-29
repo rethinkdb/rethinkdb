@@ -21,34 +21,34 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
 
-value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
+rdb_value_sizer_t::rdb_value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
-const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
+const rdb_value_t *rdb_value_sizer_t::as_rdb(const void *p) {
     return reinterpret_cast<const rdb_value_t *>(p);
 }
 
-int value_sizer_t<rdb_value_t>::size(const void *value) const {
+int rdb_value_sizer_t::size(const void *value) const {
     return as_rdb(value)->inline_size(block_size_);
 }
 
-bool value_sizer_t<rdb_value_t>::fits(const void *value, int length_available) const {
+bool rdb_value_sizer_t::fits(const void *value, int length_available) const {
     return btree_value_fits(block_size_, length_available, as_rdb(value));
 }
 
-int value_sizer_t<rdb_value_t>::max_possible_size() const {
+int rdb_value_sizer_t::max_possible_size() const {
     return blob::btree_maxreflen;
 }
 
-block_magic_t value_sizer_t<rdb_value_t>::leaf_magic() {
+block_magic_t rdb_value_sizer_t::leaf_magic() {
     block_magic_t magic = { { 'r', 'd', 'b', 'l' } };
     return magic;
 }
 
-block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
+block_magic_t rdb_value_sizer_t::btree_leaf_magic() const {
     return leaf_magic();
 }
 
-block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
+block_size_t rdb_value_sizer_t::block_size() const { return block_size_; }
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
@@ -506,7 +506,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    value_sizer_t<rdb_value_t> sizer(superblock->cache()->get_block_size());
+    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
                                superblock, sindex_block, p, interruptor);
 }
@@ -535,7 +535,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
 void rdb_value_deleter_t::delete_value(buf_parent_t parent, const void *value) const {
     // To not destroy constness, we operate on a copy of the value
-    value_sizer_t<rdb_value_t> sizer(parent.cache()->get_block_size());
+    rdb_value_sizer_t sizer(parent.cache()->get_block_size());
     scoped_malloc_t<rdb_value_t> value_copy(sizer.max_possible_size());
     memcpy(value_copy.get(), value, sizer.size(value));
     actually_delete_rdb_value(parent, value_copy.get());
@@ -565,13 +565,12 @@ void sindex_erase_range(const key_range_t &key_range,
         signal_t *interruptor, bool release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
-    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
-    value_sizer_t<void> *sizer = &rdb_sizer;
+    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
 
     sindex_key_range_tester_t tester(key_range);
 
     try {
-        btree_erase_range_generic(sizer, &tester,
+        btree_erase_range_generic(&sizer, &tester,
                                   deleter, NULL, NULL,
                                   superblock, interruptor,
                                   release_superblock);
@@ -677,13 +676,12 @@ void rdb_erase_major_range(key_tester_t *tester,
             &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
-    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
-    value_sizer_t<void> *sizer = &rdb_sizer;
+    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
 
     /* Actually delete the values */
     rdb_value_deleter_t deleter;
 
-    btree_erase_range_generic(sizer, tester, &deleter,
+    btree_erase_range_generic(&sizer, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor);
@@ -704,8 +702,7 @@ void rdb_erase_small_range(key_tester_t *tester,
              &left_key_exclusive, &right_key_inclusive);
 
     /* We need these structures to perform the erase range. */
-    value_sizer_t<rdb_value_t> rdb_sizer(superblock->cache()->get_block_size());
-    value_sizer_t<void> *sizer = &rdb_sizer;
+    rdb_value_sizer_t sizer(superblock->cache()->get_block_size());
 
     struct on_erase_cb_t {
         static void on_erase(const store_key_t &key, const char *data,
@@ -730,7 +727,7 @@ void rdb_erase_small_range(key_tester_t *tester,
         }
     };
 
-    btree_erase_range_generic(sizer, tester, deletion_context->in_tree_deleter(),
+    btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor, true /* release_superblock */,

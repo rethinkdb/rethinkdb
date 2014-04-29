@@ -13,13 +13,7 @@
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
 
-template <class Value>
-class value_sizer_t;
-
-
-// Class to hold common use case.
-template <>
-class value_sizer_t<void> {
+class value_sizer_t {
 public:
     value_sizer_t() { }
     virtual ~value_sizer_t() { }
@@ -100,15 +94,15 @@ inline bool is_leaf(const node_t *node) {
     return !is_internal(node);
 }
 
-bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
+bool is_mergable(value_sizer_t *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 
-bool is_underfull(value_sizer_t<void> *sizer, const node_t *node);
+bool is_underfull(value_sizer_t *sizer, const node_t *node);
 
-void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t *median);
+void split(value_sizer_t *sizer, node_t *node, node_t *rnode, btree_key_t *median);
 
-void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
+void merge(value_sizer_t *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
 
-void validate(value_sizer_t<void> *sizer, const node_t *node);
+void validate(value_sizer_t *sizer, const node_t *node);
 
 }  // namespace node
 

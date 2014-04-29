@@ -9,7 +9,7 @@
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
 
-template <class> class value_sizer_t;
+class value_sizer_t;
 struct btree_key_t;
 class repli_timestamp_t;
 
@@ -96,16 +96,16 @@ const int DELETION_RESERVE_FRACTION = 10;
 
 
 
-std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node);
+std::string strprint_leaf(value_sizer_t *sizer, const leaf_node_t *node);
 
-void print(FILE *fp, value_sizer_t<void> *sizer, const leaf_node_t *node);
+void print(FILE *fp, value_sizer_t *sizer, const leaf_node_t *node);
 
 class key_value_fscker_t {
 public:
     key_value_fscker_t() { }
 
     // Returns true if there are no problems.
-    virtual bool fsck(value_sizer_t<void> *sizer, const btree_key_t *key,
+    virtual bool fsck(value_sizer_t *sizer, const btree_key_t *key,
                       const void *value, std::string *msg_out) = 0;
 
 protected:
@@ -114,40 +114,40 @@ protected:
     DISABLE_COPYING(key_value_fscker_t);
 };
 
-bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, const leaf_node_t *node, key_value_fscker_t *fscker, std::string *msg_out);
+bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, const leaf_node_t *node, key_value_fscker_t *fscker, std::string *msg_out);
 
-void validate(value_sizer_t<void> *sizer, const leaf_node_t *node);
+void validate(value_sizer_t *sizer, const leaf_node_t *node);
 
-void init(value_sizer_t<void> *sizer, leaf_node_t *node);
+void init(value_sizer_t *sizer, leaf_node_t *node);
 
 bool is_empty(const leaf_node_t *node);
 
-bool is_full(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key_t *key, const void *value);
+bool is_full(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *key, const void *value);
 
-bool is_underfull(value_sizer_t<void> *sizer, const leaf_node_t *node);
+bool is_underfull(value_sizer_t *sizer, const leaf_node_t *node);
 
-void split(value_sizer_t<void> *sizer, leaf_node_t *node, leaf_node_t *sibling,
+void split(value_sizer_t *sizer, leaf_node_t *node, leaf_node_t *sibling,
            btree_key_t *median_out);
 
-void merge(value_sizer_t<void> *sizer, leaf_node_t *left, leaf_node_t *right);
+void merge(value_sizer_t *sizer, leaf_node_t *left, leaf_node_t *right);
 
 // The pointers in `moved_values_out` point to positions in `node` and
 // will be valid as long as `node` remains unchanged.
-bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, leaf_node_t *node,
+bool level(value_sizer_t *sizer, int nodecmp_node_with_sib, leaf_node_t *node,
            leaf_node_t *sibling, btree_key_t *replacement_key_out,
            std::vector<const void *> *moved_values_out);
 
-bool is_mergable(value_sizer_t<void> *sizer, const leaf_node_t *node, const leaf_node_t *sibling);
+bool is_mergable(value_sizer_t *sizer, const leaf_node_t *node, const leaf_node_t *sibling);
 
 bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out);
 
-bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out);
+bool lookup(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out);
 
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof);
+void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof);
 
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
+void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
 
-void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
+void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
 class entry_reception_callback_t {
 public:
@@ -168,7 +168,7 @@ protected:
     virtual ~entry_reception_callback_t() { }
 };
 
-void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
+void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
 
 class iterator {
 public:

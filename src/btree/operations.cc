@@ -352,7 +352,7 @@ void ensure_stat_block(superblock_t *sb) {
     }
 }
 
-buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
+buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb) {
     const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
@@ -396,7 +396,7 @@ void detach_all_children(const node_t *node, buf_parent_t parent,
 // split internal nodes proactively).
 // `detacher` is used to detach any values that are removed from `buf`, in
 // case `buf` is a leaf.
-void check_and_handle_split(value_sizer_t<void> *sizer,
+void check_and_handle_split(value_sizer_t *sizer,
                             buf_lock_t *buf,
                             buf_lock_t *last_buf,
                             superblock_t *sb,
@@ -498,7 +498,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
 // Merge or level the node if necessary.
 // `detacher` is used to detach any values that are removed from `buf` or its
 // sibling, in case `buf` is a leaf.
-void check_and_handle_underfull(value_sizer_t<void> *sizer,
+void check_and_handle_underfull(value_sizer_t *sizer,
                                 buf_lock_t *buf,
                                 buf_lock_t *last_buf,
                                 superblock_t *sb,

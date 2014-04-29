@@ -144,15 +144,15 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     agnostic_backfill_callback_t *callback_;
     repli_timestamp_t since_when_;
-    value_sizer_t<void> *sizer_;
+    value_sizer_t *sizer_;
     const key_range_t& key_range_;
 
     backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when,
-                                value_sizer_t<void> *sizer, const key_range_t& key_range)
+                                value_sizer_t *sizer, const key_range_t& key_range)
         : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
+void do_agnostic_btree_backfill(value_sizer_t *sizer,
                                 const key_range_t &key_range,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,

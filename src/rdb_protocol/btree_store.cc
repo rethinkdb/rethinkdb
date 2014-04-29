@@ -389,7 +389,7 @@ bool store_t::add_sindex(
 // just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
@@ -416,7 +416,7 @@ void clear_sindex(
 void store_t::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out,
@@ -514,7 +514,7 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 MUST_USE bool store_t::drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         signal_t *interruptor)
