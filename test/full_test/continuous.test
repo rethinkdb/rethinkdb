@@ -1,6 +1,6 @@
 continuous_workloads = {
-    'stress': "$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity",
-    'serial': "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --duration forever",
+    'stress': "$RETHINKDB/test/rdb_workloads/stress --host=$HOST:$PORT -w simple_insert --quiet",
+    'serial': "$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --duration forever",
     }
 
 scenarios = [

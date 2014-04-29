@@ -21,13 +21,13 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", process.http_port)])
     assert access.get_issues() == []
-    print "Creating two namespaces with the same name..."
+    print "Creating two tables with the same name..."
     datacenter = access.add_datacenter()
     database = access.add_database(name="Germany")
     access.move_server_to_datacenter(next(iter(access.machines)), datacenter)
     database = access.add_database("test")
-    namespace1 = access.add_namespace(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
-    namespace2 = access.add_namespace(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt".upper())
+    namespace1 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
+    namespace2 = access.add_table(primary = datacenter, database = database, name = "John_Jacob_Jingleheimer_Schmidt")
     time.sleep(1)
     cluster.check()
     print "Checking that there is an issue about this..."

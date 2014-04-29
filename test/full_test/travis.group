@@ -1,9 +1,0 @@
-# On travis-ci, only run the following tests:
-
-unit-*
-ql-*
-
-# This test fails on travis with "Connection is closed"
-!ql-js-cursor
-
-!disabled

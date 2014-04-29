@@ -78,12 +78,12 @@ public:
 
     http_conn_cache_t() : next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
     ~http_conn_cache_t() {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
+        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
         for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
     }
 
     boost::shared_ptr<http_conn_t> find(int32_t key) {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
+        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
             it = cache.find(key);
         if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
         return it->second;

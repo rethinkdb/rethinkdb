@@ -13,14 +13,14 @@
  * name except that it may add assertions. */
 class rdb_blob_wrapper_t {
 public:
-    rdb_blob_wrapper_t(block_size_t block_size, char *ref, int maxreflen);
+    rdb_blob_wrapper_t(max_block_size_t block_size, char *ref, int maxreflen);
     /* The allows you to write some data to the blob as well. This is because
      * the methods to do this are normally not present due to shared
      * references. */
-    rdb_blob_wrapper_t(block_size_t block_size, char *ref, int maxreflen,
+    rdb_blob_wrapper_t(max_block_size_t block_size, char *ref, int maxreflen,
                        buf_parent_t parent, const std::string &data);
 
-    int refsize(block_size_t block_size) const;
+    int refsize(max_block_size_t block_size) const;
 
     int64_t valuesize() const;
 

@@ -213,6 +213,9 @@ private:
 template <class T>
 class scoped_malloc_t {
 public:
+    template <class U>
+    friend class scoped_malloc_t;
+
     scoped_malloc_t() : ptr_(NULL) { }
     explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
     explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(rmalloc(n))) { }
@@ -223,6 +226,12 @@ public:
         memcpy(ptr_, beg, n);
     }
     scoped_malloc_t(scoped_malloc_t &&movee)
+        : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+
+    template <class U>
+    scoped_malloc_t(scoped_malloc_t<U> &&movee)
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
@@ -243,7 +252,6 @@ public:
 
     T *get() const { return ptr_; }
     T *operator->() const { return ptr_; }
-    T &operator*() const { return *ptr_; }
 
     T *release() {
         T *tmp = ptr_;

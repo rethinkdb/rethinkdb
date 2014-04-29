@@ -16,7 +16,7 @@ void get_secondary_indexes_internal(buf_lock_t *sindex_block,
     const btree_sindex_block_t *data
         = static_cast<const btree_sindex_block_t *>(read.get_data_read());
 
-    blob_t sindex_blob(sindex_block->cache()->get_block_size(),
+    blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        const_cast<char *>(data->sindex_blob),
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
@@ -29,7 +29,7 @@ void set_secondary_indexes_internal(buf_lock_t *sindex_block,
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
 
-    blob_t sindex_blob(sindex_block->cache()->get_block_size(),
+    blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
     serialize_onto_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes);

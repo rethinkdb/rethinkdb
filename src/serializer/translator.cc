@@ -258,7 +258,7 @@ counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_size_t translator_serializer_t::max_block_size() const {
+max_block_size_t translator_serializer_t::max_block_size() const {
     return inner->max_block_size();
 }
 

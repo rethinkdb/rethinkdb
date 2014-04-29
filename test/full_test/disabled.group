@@ -1,8 +1,18 @@
-# These tests are broken
+# These tests are known to fail
 
-# The rdb tests still use the old query language
-static_cluster-rdb-python
-static_cluster-rdb-javascript
+# Issue #2211
+split_workloads.rebalance-2-multi-serial-mix
 
-# This test tries to use the stress client in rdb mode, which was removed
-regression-659
+# Issue 2259
+split_workloads.transfer-multi-serial-mix-2
+split_workloads.rebalance-2-insert-many
+
+# Issue #549
+unit.TimerTest
+
+# Issue #2229
+ql.rb-polyglot
+
+# Bitrotted
+interface.stat
+interface.distribution

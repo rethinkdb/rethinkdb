@@ -3,12 +3,12 @@
 
 #include "buffer_cache/alt/alt.hpp"
 
-rdb_blob_wrapper_t::rdb_blob_wrapper_t(block_size_t block_size, char *ref,
+rdb_blob_wrapper_t::rdb_blob_wrapper_t(max_block_size_t block_size, char *ref,
                                        int maxreflen)
     : internal(block_size, ref, maxreflen) { }
 
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(
-        block_size_t block_size, char *ref, int maxreflen,
+        max_block_size_t block_size, char *ref, int maxreflen,
         buf_parent_t parent, const std::string &data)
     : internal(block_size, ref, maxreflen)
 {
@@ -23,7 +23,7 @@ rdb_blob_wrapper_t::rdb_blob_wrapper_t(
     internal.write_from_string(data, parent, 0);
 }
 
-int rdb_blob_wrapper_t::refsize(block_size_t block_size) const {
+int rdb_blob_wrapper_t::refsize(max_block_size_t block_size) const {
     return internal.refsize(block_size);
 }
 

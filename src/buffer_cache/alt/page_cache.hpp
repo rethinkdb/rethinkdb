@@ -329,7 +329,7 @@ public:
     size_t total_page_memory() const;
     size_t evictable_page_memory() const;
 
-    block_size_t max_block_size() const { return max_block_size_; }
+    max_block_size_t max_block_size() const { return max_block_size_; }
 
     cache_account_t create_cache_account(int priority);
 
@@ -420,7 +420,7 @@ private:
     static void consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                     auto_drainer_t::lock_t lock);
 
-    const block_size_t max_block_size_;
+    const max_block_size_t max_block_size_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
     // flushes.  The rationale behind this is that reads are almost always blocking

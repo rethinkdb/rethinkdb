@@ -9,7 +9,6 @@ def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["wrapper"] = StringFlag("--wrapper", None)
     opt_parser["mode"] = StringFlag("--mode", "")
     opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
-    opt_parser["protocol"] = ChoiceFlag("--protocol", ["rdb", "memcached"], "memcached")
 
 def parse_mode_flags(parsed_opts):
     mode = parsed_opts["mode"]
@@ -33,24 +32,17 @@ def parse_mode_flags(parsed_opts):
 
     return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 
-def prepare_table_for_workload(parsed_opts, http, **kwargs):
+def prepare_table_for_workload(http, **kwargs):
     db = http.add_database(name = "test")
-    return http.add_namespace(protocol = parsed_opts["protocol"], database = db, **kwargs)
+    return http.add_table(database = db, **kwargs)
 
-def get_workload_ports(parsed_opts, namespace, processes):
+def get_workload_ports(table, processes):
     for process in processes:
         assert isinstance(process, (driver.Process, driver.ProxyProcess))
     process = random.choice(processes)
-    assert namespace.protocol == parsed_opts["protocol"]
-    if parsed_opts["protocol"] == "memcached":
-        return workload_runner.MemcachedPorts(
-            host = "localhost",
-            http_port = process.http_port,
-            memcached_port = namespace.port + process.port_offset)
-    else:
-        return workload_runner.RDBPorts(
-            host = "localhost",
-            http_port = process.http_port,
-            rdb_port = 28015 + process.port_offset,
-            table_name = namespace.name,
-            db_name = "test")
+    return workload_runner.RDBPorts(
+        host = "localhost",
+        http_port = process.http_port,
+        rdb_port = process.driver_port,
+        table_name = table.name,
+        db_name = "test")
