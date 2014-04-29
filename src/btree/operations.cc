@@ -132,7 +132,7 @@ bool get_superblock_metainfo(buf_lock_t *superblock,
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
         // The const cast is okay because we access the data with access_t::read.
-        blob_t blob(superblock->cache()->get_block_size(),
+        blob_t blob(superblock->cache()->max_block_size(),
                     const_cast<char *>(data->metainfo_blob),
                     btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
@@ -172,7 +172,7 @@ void get_superblock_metainfo(
 
         // The const cast is okay because we access the data with access_t::read
         // and don't write to the blob.
-        blob_t blob(superblock->cache()->get_block_size(),
+        blob_t blob(superblock->cache()->max_block_size(),
                     const_cast<char *>(data->metainfo_blob),
                     btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
         blob_acq_t acq;
@@ -203,7 +203,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->max_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
@@ -275,7 +275,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
     btree_superblock_t *const data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->max_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
@@ -328,7 +328,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
 void clear_superblock_metainfo(buf_lock_t *superblock) {
     buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
-    blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->max_block_size(),
                 data->metainfo_blob,
                 btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(buf_parent_t(superblock));

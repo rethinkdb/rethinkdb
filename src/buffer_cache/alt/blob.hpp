@@ -99,25 +99,25 @@ struct traverse_helper_t;
 
 // Returns the number of bytes actually used by the blob reference.
 // Returns a value in the range [1, maxreflen].
-int ref_size(block_size_t block_size, const char *ref, int maxreflen);
+int ref_size(max_block_size_t block_size, const char *ref, int maxreflen);
 
 // Returns true if the size of the blob reference is less than or
 // equal to data_length, only reading memory in the range [ref, ref +
 // data_length).
-bool ref_fits(block_size_t block_size, int data_length, const char *ref, int maxreflen);
+bool ref_fits(max_block_size_t block_size, int data_length, const char *ref, int maxreflen);
 
 // Returns what the maxreflen would be, given the desired number of
 // block ids in the blob ref.
 int maxreflen_from_blockid_count(int count);
 
 // The step size of a blob.
-int64_t stepsize(block_size_t block_size, int levels);
+int64_t stepsize(max_block_size_t block_size, int levels);
 
 // The internal node block ids of an internal node.
 const block_id_t *internal_node_block_ids(const void *buf);
 
 // Returns offset and size, clamped to and relative to the index'th subtree.
-void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
+void shrink(max_block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
 
 // The maxreflen value (allegedly) appropriate for use with rdb_protocol btrees.
 // It's 251.  This should be renamed.
@@ -132,7 +132,7 @@ struct ref_info_t {
     // the number of levels in the underlying tree of buffers.
     int levels;
 };
-ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen);
+ref_info_t ref_info(max_block_size_t block_size, const char *ref, int maxreflen);
 
 // Returns the internal block ids of a non-inlined blob ref.
 const block_id_t *block_ids(const char *ref, int maxreflen);
@@ -155,12 +155,12 @@ public:
     // for a large blob would be half the space (or less, thanks to
     // Benford's law), and the size for a small blob is 1 plus the
     // size of the blob, or maybe 2 plus the size of the blob.
-    blob_t(block_size_t block_size, char *ref, int maxreflen);
+    blob_t(max_block_size_t block_size, char *ref, int maxreflen);
 
     // Returns ref_size(block_size, ref, maxreflen), the number of
     // bytes actually used in the blob ref.  A value in the internal
     // [1, maxreflen_].
-    int refsize(block_size_t block_size) const;
+    int refsize(max_block_size_t block_size) const;
 
     // Returns the actual size of the value, some number >= 0 and less
     // than one gazillion.

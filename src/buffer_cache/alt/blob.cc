@@ -102,7 +102,7 @@ block_id_t *block_ids(char *ref, int maxreflen) {
     return reinterpret_cast<block_id_t *>(ref + block_ids_offset(maxreflen));
 }
 
-int64_t leaf_size(block_size_t block_size) {
+int64_t leaf_size(max_block_size_t block_size) {
     return block_size.value() - sizeof(block_magic_t);
 }
 
@@ -116,11 +116,11 @@ const char *leaf_node_data(const void *buf) {
 
 const size_t LEAF_NODE_DATA_OFFSET = sizeof(block_magic_t);
 
-int64_t internal_node_bytesize(block_size_t block_size) {
+int64_t internal_node_bytesize(max_block_size_t block_size) {
     return block_size.value() - sizeof(block_magic_t);
 }
 
-int64_t internal_node_count(block_size_t block_size) {
+int64_t internal_node_count(max_block_size_t block_size) {
     return internal_node_bytesize(block_size) / sizeof(block_id_t);
 }
 
@@ -132,7 +132,7 @@ block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
-ref_info_t big_ref_info(block_size_t block_size, int64_t size,
+ref_info_t big_ref_info(max_block_size_t block_size, int64_t size,
                         int maxreflen, int64_t *blockid_count_out) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
@@ -152,13 +152,13 @@ ref_info_t big_ref_info(block_size_t block_size, int64_t size,
     return info;
 }
 
-ref_info_t big_ref_info(block_size_t block_size, int64_t size,
+ref_info_t big_ref_info(max_block_size_t block_size, int64_t size,
                         int maxreflen) {
     int64_t blockid_count;
     return big_ref_info(block_size, size, maxreflen, &blockid_count);
 }
 
-ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
+ref_info_t ref_info(max_block_size_t block_size, const char *ref, int maxreflen) {
     int smallsize = small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
         ref_info_t info;
@@ -170,11 +170,11 @@ ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
     }
 }
 
-int ref_size(block_size_t block_size, const char *ref, int maxreflen) {
+int ref_size(max_block_size_t block_size, const char *ref, int maxreflen) {
     return ref_info(block_size, ref, maxreflen).refsize;
 }
 
-bool ref_fits(block_size_t block_size, int data_length, const char *ref, int maxreflen) {
+bool ref_fits(max_block_size_t block_size, int data_length, const char *ref, int maxreflen) {
     if (data_length <= 0) {
         return false;
     }
@@ -214,7 +214,7 @@ block_magic_t internal_node_magic = { { 'l', 'a', 'r', 'i' } };
 block_magic_t leaf_node_magic = { { 'l', 'a', 'r', 'l' } };
 
 
-int64_t stepsize(block_size_t block_size, int levels) {
+int64_t stepsize(max_block_size_t block_size, int levels) {
     rassert(levels > 0);
     int64_t step = leaf_size(block_size);
     for (int i = 0; i < levels - 1; ++i) {
@@ -223,7 +223,7 @@ int64_t stepsize(block_size_t block_size, int levels) {
     return step;
 }
 
-int64_t max_end_offset(block_size_t block_size, int levels, int maxreflen) {
+int64_t max_end_offset(max_block_size_t block_size, int levels, int maxreflen) {
     if (levels == 0) {
         return maxreflen - big_size_offset(maxreflen);
     } else {
@@ -237,7 +237,7 @@ int64_t clamp(int64_t x, int64_t lo, int64_t hi) {
 }
 
 
-void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out) {
+void shrink(max_block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out) {
     int64_t step = stepsize(block_size, levels);
 
     int64_t clamp_low = index * step;
@@ -252,14 +252,14 @@ void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, i
 
 // Exists so callers passing a 0 offset don't have to analyze that the suboffset will
 // be 0.
-void shrink(block_size_t block_size, int levels,
+void shrink(max_block_size_t block_size, int levels,
             int64_t size, int index, int64_t *subsize_out) {
     int64_t suboffset;
     shrink(block_size, levels, 0, size, index, &suboffset, subsize_out);
     guarantee(suboffset == 0);
 }
 
-void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t offset, int64_t size, int *lo_out, int *hi_out) {
+void compute_acquisition_offsets(max_block_size_t block_size, int levels, int64_t offset, int64_t size, int *lo_out, int *hi_out) {
     int64_t step = stepsize(block_size, levels);
 
     *lo_out = offset / step;
@@ -268,7 +268,7 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 }  // namespace blob
 
-blob_t::blob_t(block_size_t block_size, char *ref, int maxreflen)
+blob_t::blob_t(max_block_size_t block_size, char *ref, int maxreflen)
     : ref_(ref), maxreflen_(maxreflen) {
     guarantee(maxreflen <= blob::leaf_size(block_size));
     guarantee(maxreflen - blob::block_ids_offset(maxreflen) <= blob::internal_node_bytesize(block_size));
@@ -277,7 +277,7 @@ blob_t::blob_t(block_size_t block_size, char *ref, int maxreflen)
 
 
 
-int blob_t::refsize(block_size_t block_size) const {
+int blob_t::refsize(max_block_size_t block_size) const {
     return blob::ref_size(block_size, ref_, maxreflen_);
 }
 
@@ -470,7 +470,7 @@ void expose_tree_from_block_ids(buf_parent_t parent, access_t mode,
 }  // namespace blob
 
 void blob_t::append_region(buf_parent_t parent, int64_t size) {
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     // Avoid the empty blob effect.
@@ -500,7 +500,7 @@ void blob_t::append_region(buf_parent_t parent, int64_t size) {
 }
 
 void blob_t::unappend_region(buf_parent_t parent, int64_t size) {
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     bool emptying = false;
@@ -558,7 +558,7 @@ void traverse_recursively(buf_parent_t parent, int levels,
 void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
                     int index, int64_t smaller_size, int64_t bigger_size,
                     traverse_helper_t *helper) {
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
     int64_t sub_smaller_size, sub_bigger_size;
     blob::shrink(block_size, levels, smaller_size, index, &sub_smaller_size);
     blob::shrink(block_size, levels, bigger_size, index, &sub_bigger_size);
@@ -595,7 +595,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
                           int64_t smaller_size, int64_t bigger_size,
                           traverse_helper_t *helper) {
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
 
     int old_lo, old_hi, new_lo, new_hi;
     compute_acquisition_offsets(block_size, levels, 0, smaller_size,
@@ -620,7 +620,7 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
                                     int64_t smaller_size, int64_t bigger_size,
                                     blob::traverse_helper_t *helper) {
     rassert(bigger_size >= smaller_size);
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
     if (bigger_size <= blob::max_end_offset(block_size, levels, maxreflen_)) {
         if (levels != 0) {
             blob::traverse_recursively(parent, levels,
@@ -716,7 +716,7 @@ int blob_t::add_level(buf_parent_t parent, int levels) {
 
 
 bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
-    const block_size_t block_size = parent.cache()->max_block_size();
+    const max_block_size_t block_size = parent.cache()->max_block_size();
     int levels = *levels_ref;
     if (levels == 0) {
         return false;

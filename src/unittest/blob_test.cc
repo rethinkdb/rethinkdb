@@ -24,7 +24,7 @@ public:
     }
 
     explicit blob_tracker_t(size_t maxreflen)
-        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
+        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(max_block_size_t::unsafe_make(4096),
                                                             buf_.data(), maxreflen) { }
 
     void check_region(txn_t *txn, int64_t offset, int64_t size) {
@@ -60,7 +60,7 @@ public:
 
     void check_normalization(txn_t *txn) {
         size_t size = expected_.size();
-        uint64_t rs = blob_.refsize(txn->cache()->get_block_size());
+        uint64_t rs = blob_.refsize(txn->cache()->max_block_size());
         size_t sizesize = buf_.size() <= 255 ? 1 : 2;
         if (size <= buf_.size() - sizesize) {
             ASSERT_EQ(sizesize + size, rs);
@@ -130,7 +130,7 @@ public:
         check(txn);
     }
 
-    size_t refsize(block_size_t block_size) const {
+    size_t refsize(max_block_size_t block_size) const {
         return blob_.refsize(block_size);
     }
 
@@ -142,8 +142,6 @@ private:
 
 void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
-    UNUSED block_size_t block_size = cache->get_block_size();
-
     cache_conn_t cache_conn(cache);
     txn_t txn(&cache_conn, write_durability_t::SOFT,
               repli_timestamp_t::distant_past, 0);
@@ -168,7 +166,7 @@ void small_value_test(cache_t *cache) {
 
 void small_value_boundary_test(cache_t *cache) {
     SCOPED_TRACE("small_value_boundary_test");
-    block_size_t block_size = cache->get_block_size();
+    max_block_size_t block_size = cache->max_block_size();
 
     cache_conn_t cache_conn(cache);
     txn_t txn(&cache_conn, write_durability_t::SOFT,
@@ -221,8 +219,6 @@ void small_value_boundary_test(cache_t *cache) {
 }
 
 void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
-    UNUSED block_size_t block_size = cache->get_block_size();
-
     cache_conn_t cache_conn(cache);
     txn_t txn(&cache_conn, write_durability_t::SOFT,
               repli_timestamp_t::distant_past, 0);
@@ -276,9 +272,9 @@ void run_tests(cache_t *cache) {
     EXPECT_EQ(251, blob::btree_maxreflen);
     EXPECT_EQ(4u, sizeof(block_magic_t));
     const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
-    EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
+    EXPECT_EQ(size_sans_magic, blob::stepsize(cache->max_block_size(), 1));
     EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
-              blob::stepsize(cache->get_block_size(), 2));
+              blob::stepsize(cache->max_block_size(), 2));
 
     small_value_test(cache);
     small_value_boundary_test(cache);

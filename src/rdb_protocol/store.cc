@@ -395,7 +395,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        rdb_value_sizer_t sizer(btree->cache()->get_block_size());
+        rdb_value_sizer_t sizer(btree->cache()->max_block_size());
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
 
@@ -703,7 +703,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        rdb_value_sizer_t sizer(txn->cache()->get_block_size());
+        rdb_value_sizer_t sizer(txn->cache()->max_block_size());
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_construction_deletion_context;
         std::set<std::string> created_sindexes;
@@ -784,7 +784,7 @@ void store_t::protocol_reset_data(const region_t &subregion,
                                   superblock_t *superblock,
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    rdb_value_sizer_t sizer(cache->get_block_size());
+    rdb_value_sizer_t sizer(cache->max_block_size());
 
     always_true_key_tester_t key_tester;
     buf_lock_t sindex_block

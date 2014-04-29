@@ -129,7 +129,7 @@ void drop_sindex(store_t *store,
                                         1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interruptor);
 
-    rdb_value_sizer_t sizer(store->cache->get_block_size());
+    rdb_value_sizer_t sizer(store->cache->max_block_size());
 
     buf_lock_t sindex_block
         = store->acquire_sindex_block_for_write(super_block->expose_buf(),

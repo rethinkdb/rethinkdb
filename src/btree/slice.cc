@@ -18,7 +18,7 @@ void btree_slice_t::init_superblock(buf_lock_t *superblock,
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
 
     // Properly zero the superblock, zeroing sb->metainfo_blob, in particular.
-    memset(sb, 0, superblock->cache()->get_block_size().value());
+    memset(sb, 0, superblock->cache()->max_block_size().value());
 
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
