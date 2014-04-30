@@ -74,7 +74,7 @@ STRICT_MAKE_VARIABLE_CHECK ?= 0
 COVERAGE ?= 0
 
 # Strip the executable when installing
-STRIP_ON_INSTALL ?= 1
+STRIP_ON_INSTALL ?= 0
 
 # If not empty, $(PVERSION) is used as the rethinkdb version number
 # for example, PVERSION ?= 1.3.2
