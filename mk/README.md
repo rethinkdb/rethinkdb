@@ -61,6 +61,8 @@ its web UI also requires the web assets.
 
 * `make SYMBOLS=0`: Exclude debugging symbols.
 
+* `make SPLIT_SYMBOLS=1`: Strip the executable and generate a symbols file.
+
 * `make DEBUG=1`: Build in debug mode.
 
 * When building on older distributions or porting to different
