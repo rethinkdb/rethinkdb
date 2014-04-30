@@ -6,6 +6,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/timing.hpp"
+
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -22,12 +23,17 @@ public:
 
 
 namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
+                                   const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
                                    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
                                    rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
+      namespaces_view(semilattice_view),
       namespaces_directory_metadata(_namespaces_directory_metadata),
-      ctx(_ctx)
-{ }
+      ctx(_ctx),
+      namespaces_subscription(boost::bind(&namespace_repo_t::on_namespaces_change, this))
+{
+    namespaces_subscription.reset(namespaces_view);
+}
 
 namespace_repo_t::~namespace_repo_t() { }
 
@@ -123,6 +129,31 @@ void base_namespace_repo_t::access_t::ref_handler_t::reset() {
     }
 }
 
+void namespace_repo_t::on_namespaces_change() {
+        namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
+        const namespaces_semilattice_metadata_t::namespace_map_t &ns = namespaces_view.get()->get().get()->namespaces;
+        for (it = ns.begin(); it != ns.end(); ++it) {
+            if (it->second.is_deleted()) {
+                continue;
+            }
+
+            const persistable_blueprint_t &bp = it->second.get_ref().blueprint.get_ref();
+            persistable_blueprint_t::role_map_t::const_iterator it2;
+            for (it2 = bp.machines_roles.begin(); it2 != bp.machines_roles.end(); ++it2) {
+                const persistable_blueprint_t::region_to_role_map_t &roles = it2->second;
+                persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
+                for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
+                    if (it3->second == blueprint_role_t::blueprint_role_primary) {
+                        if (region_to_machine_map.find(it->first) == region_to_machine_map.end()) {
+                            region_to_machine_map[it->first] = std::map<key_range_t, machine_id_t>();
+                        }
+                        region_to_machine_map[it->first][it3->first.inner] = it2->first;
+                    }
+                }
+            }
+        }
+}
+
 void namespace_repo_t::create_and_destroy_namespace_interface(
             namespace_cache_t *cache,
             const uuid_u &namespace_id,
@@ -143,8 +174,13 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
+    if (region_to_machine_map.find(namespace_id) == region_to_machine_map.end()){
+        region_to_machine_map[namespace_id] = std::map<key_range_t, machine_id_t>();
+    }
+
     cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
+        &(region_to_machine_map[namespace_id]),
         cross_thread_watchable.get_watchable(),
         ctx);
 

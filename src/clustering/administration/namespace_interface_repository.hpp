@@ -7,6 +7,7 @@
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/incremental_lenses.hpp"
+#include "clustering/administration/metadata.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
 `cluster_namespace_interface_t` objects for all of the namespaces in the cluster
@@ -75,6 +76,7 @@ private:
 
 public:
     namespace_repo_t(mailbox_manager_t *,
+                     const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
                      clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > >,
                      rdb_context_t *);
     ~namespace_repo_t();
@@ -85,13 +87,17 @@ private:
             const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
+    void on_namespaces_change();
 
     base_namespace_repo_t::namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id);
 
     mailbox_manager_t *mailbox_manager;
+    boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > namespaces_directory_metadata;
     rdb_context_t *ctx;
+    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 
+    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_machine_map;
     one_per_thread_t<namespace_cache_t> namespace_caches;
 
     DISABLE_COPYING(namespace_repo_t);
