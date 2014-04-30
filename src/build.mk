@@ -334,6 +334,18 @@ ifeq ($(filter -l%, $(TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
 		false)
 endif
 endif
+ifeq (1,$(SPLIT_SYMBOLS))
+ifeq (Darwin,$(OS))
+	$P STRIP $@.dSYM
+	cd $(BUILD_DIR) && dsymutil --out=$(notdir $@.dSYM) $(notdir $@)
+	strip $@
+else
+	$P STRIP $@.debug
+	objcopy --only-keep-debug $@ $@.debug
+	objcopy --strip-debug $@
+	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $@.debug) $(notdir $@)
+endif
+endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
@@ -375,15 +387,3 @@ build-clean:
 .PHONY: check-syntax
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
-
-
-split-debug-symbols: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-ifeq (Darwin,$(OS))
-	$P SPLIT-DEBUG-SYMBOLS $<.dSYM
-	cd $(BUILD_DIR) && dsymutil --out=$(notdir $<.dSYM) $(notdir $<)
-else
-	$P SPLIT-DEBUG-SYMBOLS $<.debug
-	objcopy --only-keep-debug $< $<.debug
-	objcopy --strip-debug $<
-	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $<.debug) $(notdir $<)
-endif
