@@ -35,7 +35,7 @@ VANILLA_PACKAGE_NAME ?= rethinkdb
 SERVER_EXEC_NAME ?= rethinkdb
 
 # Set SYMBOLS to 1 to enable symbols, even in release mode
-SYMBOLS ?= 0
+SYMBOLS ?= 1
 
 # Add numeric indices to json objects in the json adapter
 JSON_SHORTCUTS ?= 0

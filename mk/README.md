@@ -59,7 +59,7 @@ its web UI also requires the web assets.
 * There is a `check-syntax` target that can be used with emacs'
   flymake-mode.
 
-* `make SYMBOLS=1`: Include debugging symbols.
+* `make SYMBOLS=0`: Exclude debugging symbols.
 
 * `make DEBUG=1`: Build in debug mode.
 

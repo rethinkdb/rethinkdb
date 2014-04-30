@@ -165,7 +165,6 @@ endif
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-  SYMBOLS := 1
   RT_CXXFLAGS += -O0
   ifeq ($(KEEP_INLINE),1)
     RT_CXXFLAGS+=-fkeep-inline-functions
@@ -186,10 +185,6 @@ endif
 
 ifeq (${STATIC_LIBGCC},1)
   RT_LDFLAGS += -static-libgcc -static-libstdc++
-endif
-
-ifeq ($(OPROFILE),1)
-  SYMBOLS=1
 endif
 
 ifeq ($(SYMBOLS),1)
@@ -380,3 +375,15 @@ build-clean:
 .PHONY: check-syntax
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
+
+
+split-debug-symbols: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq (Darwin,$(OS))
+	$P SPLIT-DEBUG-SYMBOLS $<.dSYM
+	cd $(BUILD_DIR) && dsymutil --out=$(notdir $<.dSYM) $(notdir $<)
+else
+	$P SPLIT-DEBUG-SYMBOLS $<.debug
+	objcopy --only-keep-debug $< $<.debug
+	objcopy --strip-debug $<
+	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $<.debug) $(notdir $<)
+endif
