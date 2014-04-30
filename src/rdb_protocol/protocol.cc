@@ -105,7 +105,7 @@ key_range_t datum_range_t::to_sindex_keyrange() const {
             : store_key_t::max());
 }
 
-RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
+RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, 0, key, value, recency);
 
 namespace rdb_protocol {
 
@@ -1025,69 +1025,69 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol::single_sindex_status_t,
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol::single_sindex_status_t, 0,
                            blocks_total, blocks_processed, ready);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_read_response_t, data);
-RDB_IMPL_ME_SERIALIZABLE_4(rget_read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_1(point_read_response_t, 0, data);
+RDB_IMPL_ME_SERIALIZABLE_4(rget_read_response_t, 0,
                            result, key_range, truncated, last_key);
-RDB_IMPL_ME_SERIALIZABLE_2(distribution_read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_2(distribution_read_response_t, 0,
                            region, key_counts);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_3(read_response_t,
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_list_response_t, 0, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_3(read_response_t, 0,
                            response, event_log, n_shards);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_status_response_t, statuses);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_status_response_t, 0, statuses);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_3(sindex_rangespec_t,
+RDB_IMPL_ME_SERIALIZABLE_1(point_read_t, 0, key);
+RDB_IMPL_ME_SERIALIZABLE_3(sindex_rangespec_t, 0,
                            id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
-RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
+RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t, 0,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_ME_SERIALIZABLE_8(rget_read_t, region, optargs, table_name, batchspec,
+RDB_IMPL_ME_SERIALIZABLE_8(rget_read_t, 0, region, optargs, table_name, batchspec,
                            transforms, terminal, sindex, sorting);
 
-RDB_IMPL_ME_SERIALIZABLE_3(distribution_read_t,
+RDB_IMPL_ME_SERIALIZABLE_3(distribution_read_t, 0,
                            max_depth, result_limit, region);
-RDB_IMPL_ME_SERIALIZABLE_0(sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_status_t, sindexes, region);
-RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_0(sindex_list_t, 0);
+RDB_IMPL_ME_SERIALIZABLE_2(sindex_status_t, 0, sindexes, region);
+RDB_IMPL_ME_SERIALIZABLE_2(read_t, 0, read, profile);
+RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, 0, result);
 
-RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
+RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, 0, result);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, 0, success);
+RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, 0, success);
+RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t, 0);
 
-RDB_IMPL_ME_SERIALIZABLE_3(write_response_t, response, event_log, n_shards);
+RDB_IMPL_ME_SERIALIZABLE_3(write_response_t, 0, response, event_log, n_shards);
 
-RDB_IMPL_ME_SERIALIZABLE_5(batched_replace_t,
+RDB_IMPL_ME_SERIALIZABLE_5(batched_replace_t, 0,
                            keys, pkey, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
+RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t, 0,
                            inserts, pkey, upsert, return_vals);
 
-RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
-RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, 0, key, data, overwrite);
+RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, 0, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
-RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);
+RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, 0, id, mapping, region, multi);
+RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, 0, id, region);
+RDB_IMPL_ME_SERIALIZABLE_1(sync_t, 0, region);
 
-RDB_IMPL_ME_SERIALIZABLE_3(write_t,
+RDB_IMPL_ME_SERIALIZABLE_3(write_t, 0,
                            write, durability_requirement, profile);
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, 0, key);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, 0, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t,
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::key_value_pairs_t, 0,
                            backfill_atoms);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t::sindexes_t, 0, sindexes);
 
-RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t, val);
+RDB_IMPL_ME_SERIALIZABLE_1(backfill_chunk_t, 0, val);

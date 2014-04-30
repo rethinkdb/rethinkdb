@@ -140,6 +140,9 @@ class grouped_t {
 public:
     virtual ~grouped_t() { } // See grouped_data_t below.
     void rdb_serialize(write_message_t &msg) const { // NOLINT
+        const uint16_t ser_version = 0;
+        msg << ser_version;
+
         serialize_varint_uint64(&msg, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped(&msg, it->first);
@@ -149,7 +152,14 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint64_t sz = m.size();
         guarantee(sz == 0);
-        archive_result_t res = deserialize_varint_uint64(s, &sz);
+        archive_result_t res;
+
+        uint16_t ser_version;
+        res = deserialize(s, &ser_version);
+        if (bad(res)) { return res; }
+        if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
+
+        res = deserialize_varint_uint64(s, &sz);
         if (bad(res)) { return res; }
         if (sz > std::numeric_limits<size_t>::max()) {
             return archive_result_t::RANGE_ERROR;

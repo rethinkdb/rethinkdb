@@ -129,6 +129,8 @@ public:
     }
 
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+        // Not versioned right now, because these are small objects and that would
+        // be overhead.
         uint8_t sz = size();
         msg << sz;
         msg.append(contents(), sz);

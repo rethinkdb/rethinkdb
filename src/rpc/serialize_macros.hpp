@@ -11,12 +11,17 @@ Please modify '../scripts/generate_serialize_macros.py' instead of modifying thi
 unserialize data types that consist of a simple series of fields, each of which
 is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
 want to be able to serialize. To make it serializable automatically, either
-write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.
+write RDB_MAKE_SERIALIZABLE_2(0, point_t, x, y) at the global scope or write
+RDB_MAKE_ME_SERIALIZABLE(0, x, y) within the body of the point_t type.
 The reason for the second form is to make it possible to serialize template
 types. There is at present no non-intrusive way to use these macros to
 serialize template types; this is less-than-ideal, but not worth fixing right
 now.
+The 0 here is the version of the serialization format. It must be castable to
+uint16_t and should be increased whenever the version changes.
+Right now, deserializing an object that was serialized with a different version
+fails, but more flexible deserialization routines can be added later without
+breaking compatibility.
 
 A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
 to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
@@ -36,43 +41,67 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s)
 
-#define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
-    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t, version) \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
     return msg; \
     } \
-    function_attr archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
+    function_attr archive_result_t deserialize(read_stream_t *s, UNUSED type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         return res; \
     } \
     extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_0() \
+#define RDB_MAKE_ME_SERIALIZABLE_0(version) \
     friend class write_message_t; \
-    void rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
     } \
-    archive_result_t rdb_deserialize(UNUSED read_stream_t *s) { \
+    archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         return res; \
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_0(typ) \
-    void typ::rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
+#define RDB_IMPL_ME_SERIALIZABLE_0(typ, version) \
+    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
     } \
-    archive_result_t typ::rdb_deserialize(UNUSED read_stream_t *s) { \
+    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, field1) \
+#define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, version, field1) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
     return msg; \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         return res; \
@@ -81,38 +110,56 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
+#define RDB_MAKE_ME_SERIALIZABLE_1(version, field1) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         return res; \
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_1(typ, field1) \
+#define RDB_IMPL_ME_SERIALIZABLE_1(typ, version, field1) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, field1, field2) \
+#define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, version, field1, field2) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
     return msg; \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -123,14 +170,20 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
+#define RDB_MAKE_ME_SERIALIZABLE_2(version, field1, field2) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -139,13 +192,19 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_2(typ, field1, field2) \
+#define RDB_IMPL_ME_SERIALIZABLE_2(typ, version, field1, field2) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -153,8 +212,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, field1, field2, field3) \
+#define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, version, field1, field2, field3) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -162,6 +223,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -174,15 +239,21 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
+#define RDB_MAKE_ME_SERIALIZABLE_3(version, field1, field2, field3) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -193,14 +264,20 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_3(typ, field1, field2, field3) \
+#define RDB_IMPL_ME_SERIALIZABLE_3(typ, version, field1, field2, field3) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -210,8 +287,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, field1, field2, field3, field4) \
+#define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, version, field1, field2, field3, field4) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -220,6 +299,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -234,9 +317,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
+#define RDB_MAKE_ME_SERIALIZABLE_4(version, field1, field2, field3, field4) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -244,6 +329,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -256,8 +345,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_4(typ, field1, field2, field3, field4) \
+#define RDB_IMPL_ME_SERIALIZABLE_4(typ, version, field1, field2, field3, field4) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -265,6 +356,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -276,8 +371,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, field1, field2, field3, field4, field5) \
+#define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, version, field1, field2, field3, field4, field5) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -287,6 +384,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -303,9 +404,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
+#define RDB_MAKE_ME_SERIALIZABLE_5(version, field1, field2, field3, field4, field5) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -314,6 +417,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -328,8 +435,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_5(typ, field1, field2, field3, field4, field5) \
+#define RDB_IMPL_ME_SERIALIZABLE_5(typ, version, field1, field2, field3, field4, field5) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -338,6 +447,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -351,8 +464,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, field1, field2, field3, field4, field5, field6) \
+#define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, version, field1, field2, field3, field4, field5, field6) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -363,6 +478,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -381,9 +500,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
+#define RDB_MAKE_ME_SERIALIZABLE_6(version, field1, field2, field3, field4, field5, field6) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -393,6 +514,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -409,8 +534,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_6(typ, field1, field2, field3, field4, field5, field6) \
+#define RDB_IMPL_ME_SERIALIZABLE_6(typ, version, field1, field2, field3, field4, field5, field6) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -420,6 +547,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -435,8 +566,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7) \
+#define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -448,6 +581,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -468,9 +605,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
+#define RDB_MAKE_ME_SERIALIZABLE_7(version, field1, field2, field3, field4, field5, field6, field7) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -481,6 +620,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -499,8 +642,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_7(typ, field1, field2, field3, field4, field5, field6, field7) \
+#define RDB_IMPL_ME_SERIALIZABLE_7(typ, version, field1, field2, field3, field4, field5, field6, field7) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -511,6 +656,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -528,8 +677,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
+#define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -542,6 +693,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -564,9 +719,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
+#define RDB_MAKE_ME_SERIALIZABLE_8(version, field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -578,6 +735,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -598,8 +759,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_8(typ, field1, field2, field3, field4, field5, field6, field7, field8) \
+#define RDB_IMPL_ME_SERIALIZABLE_8(typ, version, field1, field2, field3, field4, field5, field6, field7, field8) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -611,6 +774,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -630,8 +797,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+#define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -645,6 +814,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -669,9 +842,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+#define RDB_MAKE_ME_SERIALIZABLE_9(version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -684,6 +859,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -706,8 +885,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_9(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+#define RDB_IMPL_ME_SERIALIZABLE_9(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -720,6 +901,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -741,8 +926,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+#define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -757,6 +944,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -783,9 +974,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+#define RDB_MAKE_ME_SERIALIZABLE_10(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -799,6 +992,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -823,8 +1020,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_10(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+#define RDB_IMPL_ME_SERIALIZABLE_10(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -838,6 +1037,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -861,8 +1064,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+#define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -878,6 +1083,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -906,9 +1115,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+#define RDB_MAKE_ME_SERIALIZABLE_11(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -923,6 +1134,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -949,8 +1164,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_11(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+#define RDB_IMPL_ME_SERIALIZABLE_11(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -965,6 +1182,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -990,8 +1211,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+#define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1008,6 +1231,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1038,9 +1265,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+#define RDB_MAKE_ME_SERIALIZABLE_12(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1056,6 +1285,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1084,8 +1317,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_12(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+#define RDB_IMPL_ME_SERIALIZABLE_12(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1101,6 +1336,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1128,8 +1367,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+#define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1147,6 +1388,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1179,9 +1424,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+#define RDB_MAKE_ME_SERIALIZABLE_13(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1198,6 +1445,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1228,8 +1479,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_13(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+#define RDB_IMPL_ME_SERIALIZABLE_13(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1246,6 +1499,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1275,8 +1532,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+#define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1295,6 +1554,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1329,9 +1592,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+#define RDB_MAKE_ME_SERIALIZABLE_14(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1349,6 +1614,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1381,8 +1650,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_14(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+#define RDB_IMPL_ME_SERIALIZABLE_14(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1400,6 +1671,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1431,8 +1706,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+#define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1452,6 +1729,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1488,9 +1769,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+#define RDB_MAKE_ME_SERIALIZABLE_15(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1509,6 +1792,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1543,8 +1830,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_15(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+#define RDB_IMPL_ME_SERIALIZABLE_15(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1563,6 +1852,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1596,8 +1889,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+#define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1618,6 +1913,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1656,9 +1955,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+#define RDB_MAKE_ME_SERIALIZABLE_16(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1678,6 +1979,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1714,8 +2019,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_16(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+#define RDB_IMPL_ME_SERIALIZABLE_16(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1735,6 +2042,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1770,8 +2081,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+#define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1793,6 +2106,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -1833,9 +2150,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+#define RDB_MAKE_ME_SERIALIZABLE_17(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1856,6 +2175,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1894,8 +2217,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_17(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+#define RDB_IMPL_ME_SERIALIZABLE_17(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1916,6 +2241,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -1953,8 +2282,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+#define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1977,6 +2308,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -2019,9 +2354,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+#define RDB_MAKE_ME_SERIALIZABLE_18(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -2043,6 +2380,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -2083,8 +2424,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_18(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+#define RDB_IMPL_ME_SERIALIZABLE_18(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -2106,6 +2449,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -2145,8 +2492,10 @@ the class scope. */
         return res; \
     }
 
-#define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+#define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -2170,6 +2519,10 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(thing->field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(thing->field2)); \
@@ -2214,9 +2567,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(inline, __VA_ARGS__)
 #define RDB_IMPL_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(, __VA_ARGS__)
 
-#define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+#define RDB_MAKE_ME_SERIALIZABLE_19(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -2239,6 +2594,10 @@ the class scope. */
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \
@@ -2281,8 +2640,10 @@ the class scope. */
     } \
     friend class archive_deserializer_t
 
-#define RDB_IMPL_ME_SERIALIZABLE_19(typ, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+#define RDB_IMPL_ME_SERIALIZABLE_19(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \
+        const uint16_t ser_version = version; \
+        msg << ser_version; \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -2305,6 +2666,10 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
+        uint16_t ser_version; \
+        res = deserialize(s, &ser_version); \
+        if (bad(res)) { return res; } \
+        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \
         res = deserialize(s, deserialize_deref(field1)); \
         if (bad(res)) { return res; } \
         res = deserialize(s, deserialize_deref(field2)); \

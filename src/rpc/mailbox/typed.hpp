@@ -22,7 +22,7 @@ public:
 
     friend class mailbox_t<T>;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(addr);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
 private:

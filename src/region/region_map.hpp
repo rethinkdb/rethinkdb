@@ -117,7 +117,7 @@ public:
 private:
     internal_vec_t regions_and_values;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, regions_and_values);
 };
 
 template <class V>

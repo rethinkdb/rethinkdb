@@ -75,7 +75,7 @@ public:
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
+        RDB_MAKE_ME_SERIALIZABLE_3(0, peer, thread, mailbox_id);
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;

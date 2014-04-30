@@ -76,7 +76,7 @@ public:
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
-    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, min_els, max_els, max_size, \
+    RDB_MAKE_ME_SERIALIZABLE_6(0, batch_type, min_els, max_els, max_size, \
                                first_scaledown_factor, end_time);
 private:
     // I made this private and accessible through a static function because it

@@ -1190,6 +1190,7 @@ write_message_t &operator<<(write_message_t &wm,
 }
 
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    // TODO! Add version?
     datum_serialized_type_t type;
     archive_result_t res = deserialize(s, &type);
     if (bad(res)) {
@@ -1372,6 +1373,9 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    const uint16_t ser_version = 0;
+    msg << ser_version;
+
     /* Should be guaranteed by finalize. */
     r_sanity_check(state == SERIALIZABLE);
     r_sanity_check(map.empty());
@@ -1379,7 +1383,14 @@ void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
 }
 
 archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res = deserialize(s, &map_pb);
+    archive_result_t res;
+
+    uint16_t ser_version;
+    res = deserialize(s, &ser_version);
+    if (bad(res)) { return res; }
+    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
+
+    res = deserialize(s, &map_pb);
     if (bad(res)) return res;
     state = SERIALIZABLE;
     return archive_result_t::SUCCESS;

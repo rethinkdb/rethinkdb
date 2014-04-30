@@ -1012,6 +1012,9 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
+    const uint16_t ser_version = 0;
+    msg << ser_version;
+
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
         msg << HAS_NO_VALUE;
@@ -1031,6 +1034,11 @@ void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NO
 
 archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
+
+    uint16_t ser_version;
+    res = deserialize(s, &ser_version);
+    if (bad(res)) { return res; }
+    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
 
     int8_t has_value;
     res = deserialize(s, &has_value);
@@ -1052,8 +1060,8 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, 0, primary_key, info);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, 0, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,

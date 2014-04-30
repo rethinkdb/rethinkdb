@@ -19,14 +19,14 @@ start_t::start_t() { }
 start_t::start_t(const std::string &description)
     : description_(description), when_(get_ticks()) { }
 
-RDB_IMPL_ME_SERIALIZABLE_2(start_t, description_, when_);
+RDB_IMPL_ME_SERIALIZABLE_2(start_t, 0, description_, when_);
 
 split_t::split_t() { }
 
 split_t::split_t(size_t n_parallel_jobs)
     : n_parallel_jobs_(n_parallel_jobs) { }
 
-RDB_IMPL_ME_SERIALIZABLE_1(split_t, n_parallel_jobs_);
+RDB_IMPL_ME_SERIALIZABLE_1(split_t, 0, n_parallel_jobs_);
 
 sample_t::sample_t() { }
 
@@ -36,12 +36,12 @@ sample_t::sample_t(const std::string &description,
       n_samples_(n_samples)
 { }
 
-RDB_IMPL_ME_SERIALIZABLE_3(sample_t, description_, mean_duration_, n_samples_);
+RDB_IMPL_ME_SERIALIZABLE_3(sample_t, 0, description_, mean_duration_, n_samples_);
 
 stop_t::stop_t()
     : when_(get_ticks()) { }
 
-RDB_IMPL_ME_SERIALIZABLE_1(stop_t, when_);
+RDB_IMPL_ME_SERIALIZABLE_1(stop_t, 0, when_);
 
 counted_t<const ql::datum_t> construct_start(
         ticks_t duration, std::string &&description,

@@ -42,6 +42,9 @@ private:
 
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+        const uint16_t ser_version = 0;
+        msg << ser_version;
+
         // clone pointers own their pointees exclusively, so we don't
         // have to worry about replicating any boost pointer
         // serialization bullshit.
@@ -54,10 +57,17 @@ private:
 
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
+        archive_result_t res;
+
+        uint16_t ser_version;
+        res = deserialize(s, &ser_version);
+        if (bad(res)) { return res; }
+        if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
+
         rassert(!object.has());
         object.reset();
         T *tmp;
-        archive_result_t res = deserialize(s, &tmp);
+        res = deserialize(s, &tmp);
         object.init(tmp);
         return res;
     }

@@ -61,7 +61,7 @@ public:
     inner_region_t inner;
 
 private:
-    RDB_MAKE_ME_SERIALIZABLE_3(beg, end, inner);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, beg, end, inner);
 
     // This is a copyable type.
 };

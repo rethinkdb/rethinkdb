@@ -21,7 +21,7 @@ public:
     explicit sl_int_t(uint64_t initial) : i(initial) { }
     uint64_t i;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(i);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, i);
 };
 
 inline void semilattice_join(sl_int_t *a, sl_int_t b) {
