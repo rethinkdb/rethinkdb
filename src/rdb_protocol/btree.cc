@@ -1069,7 +1069,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond;
-        coro_t::spawn_sometime(
+        coro_t::spawn_now_dangerously(
             [&]() {
                 scoped_ptr_t<new_mutex_in_line_t> acq =
                     store_->get_in_line_for_sindex_queue(sindex_block_);
