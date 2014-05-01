@@ -67,13 +67,12 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
     void maybe_remove_feed(const uuid_u &uuid);
-    void detach_feed(const uuid_u &uuid);
+    scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
     mailbox_manager_t *get_manager() { return manager; }
 private:
     friend class sub_t;
     mailbox_manager_t *manager;
     std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
-    std::map<uuid_u, scoped_ptr_t<feed_t> > detached_feeds;
     rwlock_t feeds_lock;
     auto_drainer_t drainer;
 };

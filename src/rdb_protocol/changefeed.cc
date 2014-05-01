@@ -120,6 +120,8 @@ RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val)
 RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
 RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, timestamp, submsg);
 
+enum class detach_t { NO, YES };
+
 // Uses the home thread of the subscriber, not the client.
 class sub_t : public home_thread_mixin_t {
 public:
@@ -131,7 +133,7 @@ public:
     void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
                 counted_t<const datum_t> d);
     void start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
-    void abort(const std::string &msg);
+    void abort(const std::string &msg, detach_t detach = detach_t::NO);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
     std::exception_ptr exc;
@@ -221,6 +223,7 @@ private:
 };
 
 sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
+    guarantee(feed != NULL);
     feed->add_sub(this);
 }
 
@@ -229,7 +232,12 @@ sub_t::~sub_t() {
     // This error is only sent if we're getting destroyed while blocking.
     abort("Subscription destroyed (shutting down?).");
     debugf("del_sub %p\n", this);
-    feed->del_sub(this);
+    if (feed != NULL) {
+        feed->del_sub(this);
+    } else {
+        // We only get here if we were detached.
+        guarantee(exc);
+    }
     debugf("destroyed %p\n", this);
 }
 
@@ -292,8 +300,11 @@ void sub_t::start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps) {
     guarantee(start_timestamps.size() != 0);
 }
 
-void sub_t::abort(const std::string &msg) {
+void sub_t::abort(const std::string &msg, detach_t detach) {
     assert_thread();
+    if (detach == detach_t::YES) {
+        feed = NULL;
+    }
     exc = std::make_exception_ptr(datum_exc_t(base_exc_t::GENERIC, msg));
     maybe_signal_cond();
 }
@@ -311,14 +322,11 @@ void sub_t::maybe_signal_cond() THROWS_NOTHING {
 void feed_t::add_sub(sub_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
-    auto_drainer_t::lock_t lock(&drainer);
     num_subs += 1;
+    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     subs[sub->home_thread().threadnum].insert(sub);
-    if (detached) {
-        sub->abort("Disconnected from peer.");
-    }
 }
 // Can't throw because it's called in a destructor.
 void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
@@ -431,9 +439,20 @@ feed_t::feed_t(client_t *_client,
             wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
             wait_any.wait_lazily_unordered();
             if (!detached) {
+                scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
                 detached = true;
-                client->detach_feed(uuid);
-                each_sub([](sub_t *sub) { sub->abort("Disconnected from peer."); });
+                if (self.has()) {
+                    each_sub(
+                        [](sub_t *sub) {
+                            // RSI: make sure feed pointer doesn't survive past a lock.
+                            sub->abort("Disconnected from peer.", detach_t::YES);
+                        }
+                    );
+                    num_subs = 0;
+                } else {
+                    // We only get here if we were removed before we were detached.
+                    guarantee(num_subs == 0);
+                }
             }
         }
     );
@@ -502,45 +521,42 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
     }
 }
 
-// This is called when there are no more subs for a feed.  It might not do
-// anything if another sub managed to find the feed before it gets the lock.
 void client_t::maybe_remove_feed(const uuid_u &uuid) {
     debugf("CLIENT: maybe_remove_feed...\n");
     assert_thread();
+    scoped_ptr_t<feed_t> destroy;
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto feed_it = feeds.find(uuid);
-    if (feed_it == feeds.end()) {
-        auto detached_feed_it = detached_feeds.find(uuid);
-        guarantee(detached_feed_it != detached_feeds.end());
-        if (detached_feed_it->second->can_be_removed()) {
-            debugf("CLIENT: removing DETACHED_feed...\n");
-            detached_feeds.erase(detached_feed_it);
-        }
-    } else {
-        if (feed_it->second->can_be_removed()) {
-            debugf("CLIENT: removing feed...\n");
-            feeds.erase(feed_it);
-        }
+    // The feed might have disappeared because it may have been detached while
+    // we held the lock, in which case we don't need to do anything.  The feed
+    // might also have gotten a new subscriber, in which case we don't want to
+    // remove it yet.
+    if (feed_it != feeds.end() && feed_it->second->can_be_removed()) {
+        debugf("CLIENT: removing feed...\n");
+        // We want to destroy the feed after the lock is released, because it
+        // may be expensive.
+        destroy.swap(feed_it->second);
+        feeds.erase(feed_it);
     }
     debugf("CLIENT: maybe remove feed DONE!\n");
 }
 
-// This detaches a feed so that no new subs can find it.  This is used when one
-// of our peers that we're reading changes from disconnects.  We need to keep
-// the feed somewhere until all the subs are done with it, but we don't want to
-// let new subs find it because the user might bring the disconnected peer back
-// up and want to start a new feed before the old feed is destroyed.
-void client_t::detach_feed(const uuid_u &uuid) {
+scoped_ptr_t<feed_t> client_t::detach_feed(const uuid_u &uuid) {
     assert_thread();
+    scoped_ptr_t<feed_t> ret;
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
+    // The feed might have been removed in `maybe_remove_feed`, in which case
+    // there's nothing to detach.
     auto feed_it = feeds.find(uuid);
-    guarantee(feed_it != feeds.end());
-    detached_feeds.insert(std::make_pair(uuid, std::move(feed_it->second)));
-    feeds.erase(feed_it);
+    if (feed_it != feeds.end()) {
+        ret.swap(feed_it->second);
+        feeds.erase(feed_it);
+    }
+    return std::move(ret);
 }
 
 } // namespace changefeed
