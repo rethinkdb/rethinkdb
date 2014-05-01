@@ -133,7 +133,7 @@ public:
     void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
                 counted_t<const datum_t> d);
     void start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
-    void abort(const std::string &msg, detach_t detach = detach_t::NO);
+    void stop(const std::string &msg, detach_t detach = detach_t::NO);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
     std::exception_ptr exc;
@@ -193,7 +193,7 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
-        feed->each_sub([msg](sub_t *sub) { sub->abort(msg); });
+        feed->each_sub([msg](sub_t *sub) { sub->stop(msg); });
     }
 private:
     feed_t *feed;
@@ -230,7 +230,7 @@ sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
 sub_t::~sub_t() {
     debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
-    abort("Subscription destroyed (shutting down?).");
+    stop("Subscription destroyed (shutting down?).");
     debugf("del_sub %p\n", this);
     if (feed != NULL) {
         feed->del_sub(this);
@@ -284,7 +284,7 @@ void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
             els.push_back(d);
             if (els.size() > array_size_limit()) {
                 els.clear();
-                abort("Changefeed buffer over array size limit.  "
+                stop("Changefeed buffer over array size limit.  "
                       "If you're making a lot of changes to your data, "
                       "make sure your client can keep up.");
             } else {
@@ -300,7 +300,7 @@ void sub_t::start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps) {
     guarantee(start_timestamps.size() != 0);
 }
 
-void sub_t::abort(const std::string &msg, detach_t detach) {
+void sub_t::stop(const std::string &msg, detach_t detach) {
     assert_thread();
     if (detach == detach_t::YES) {
         feed = NULL;
@@ -445,7 +445,7 @@ feed_t::feed_t(client_t *_client,
                     each_sub(
                         [](sub_t *sub) {
                             // RSI: make sure feed pointer doesn't survive past a lock.
-                            sub->abort("Disconnected from peer.", detach_t::YES);
+                            sub->stop("Disconnected from peer.", detach_t::YES);
                         }
                     );
                     num_subs = 0;
