@@ -137,6 +137,7 @@ public:
 private:
     void maybe_signal_cond() THROWS_NOTHING;
     std::exception_ptr exc;
+    size_t skipped;
     cond_t *cond; // NULL unless we're waiting.
     std::deque<counted_t<const datum_t> > els;
     feed_t *feed;
@@ -222,7 +223,7 @@ private:
     scoped_ptr_t<sub_t> sub;
 };
 
-sub_t::sub_t(feed_t *_feed) : cond(NULL), feed(_feed) {
+sub_t::sub_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_feed) {
     guarantee(feed != NULL);
     feed->add_sub(this);
 }
@@ -259,14 +260,24 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
         }
         guarantee(cond == NULL);
     }
+
+    std::vector<counted_t<const datum_t> > v;
     if (exc) {
         std::rethrow_exception(exc);
-    }
-    std::vector<counted_t<const datum_t> > v;
-    while (els.size() > 0 && !batcher->should_send_batch()) {
-        batcher->note_el(els.front());
-        v.push_back(std::move(els.front()));
-        els.pop_front();
+    } else if (skipped != 0) {
+        v.push_back(
+            make_counted<const datum_t>(
+                std::map<std::string, counted_t<const datum_t> >{
+                    {"error", make_counted<const datum_t>(
+                            strprintf("Changefeed cache over array size limit, "
+                                      "skipped %zu elements.", skipped))}}));
+        skipped = 0;
+    } else {
+        while (els.size() > 0 && !batcher->should_send_batch()) {
+            batcher->note_el(els.front());
+            v.push_back(std::move(els.front()));
+            els.pop_front();
+        }
     }
     guarantee(v.size() != 0);
     return std::move(v);
@@ -283,13 +294,10 @@ void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
         if (timestamp > it->second) {
             els.push_back(d);
             if (els.size() > array_size_limit()) {
+                skipped += els.size();
                 els.clear();
-                stop("Changefeed buffer over array size limit.  "
-                      "If you're making a lot of changes to your data, "
-                      "make sure your client can keep up.");
-            } else {
-                maybe_signal_cond();
             }
+            maybe_signal_cond();
         }
     }
 }
