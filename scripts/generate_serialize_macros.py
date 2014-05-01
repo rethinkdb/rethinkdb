@@ -20,16 +20,15 @@ def generate_make_serializable_macro(nfields):
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \\"
-    print "        const uint16_t ser_version = version; \\"
-    print "        msg << ser_version; \\"
+    print "        serialize_varint_uint64(&msg, version); \\"
     for i in xrange(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
     print "    } \\"
     print "    function_attr archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint16_t ser_version; \\"
-    print "        res = deserialize(s, &ser_version); \\"
+    print "        uint64_t ser_version; \\"
+    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
     print "        if (bad(res)) { return res; } \\"
     print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
@@ -47,15 +46,14 @@ def generate_make_me_serializable_macro(nfields):
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    friend class write_message_t; \\"
     print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \\"
-    print "        const uint16_t ser_version = version; \\"
-    print "        msg << ser_version; \\"
+    print "        serialize_varint_uint64(&msg, version); \\"
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s) { \\"
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint16_t ser_version; \\"
-    print "        res = deserialize(s, &ser_version); \\"
+    print "        uint64_t ser_version; \\"
+    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
     print "        if (bad(res)) { return res; } \\"
     print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
@@ -70,15 +68,14 @@ def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ, version%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \\"
-    print "        const uint16_t ser_version = version; \\"
-    print "        msg << ser_version; \\"
+    print "        serialize_varint_uint64(&msg, version); \\"
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \\"
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint16_t ser_version; \\"
-    print "        res = deserialize(s, &ser_version); \\"
+    print "        uint64_t ser_version; \\"
+    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
     print "        if (bad(res)) { return res; } \\"
     print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
@@ -99,6 +96,7 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
+    print "#include \"containers/archive/varint.hpp\""
     print
 
     print """
@@ -113,7 +111,7 @@ types. There is at present no non-intrusive way to use these macros to
 serialize template types; this is less-than-ideal, but not worth fixing right
 now.
 The 0 here is the version of the serialization format. It must be castable to
-uint16_t and should be increased whenever the version changes.
+uint64_t and should be increased whenever the version changes.
 Right now, deserializing an object that was serialized with a different version
 fails, but more flexible deserialization routines can be added later without
 breaking compatibility.
