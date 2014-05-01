@@ -2,6 +2,7 @@
 #include "rdb_protocol/var_types.hpp"
 
 #include "containers/archive/stl_types.hpp"
+#include "containers/archive/varint.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
@@ -134,8 +135,8 @@ var_visibility_t var_scope_t::compute_visibility() const {
 }
 
 void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    const uint16_t ser_version = 0;
-    msg << ser_version;
+    const uint64_t ser_version = 0;
+    serialize_varint_uint64(&msg, ser_version);
 
     msg << vars;
     msg << implicit_depth;
@@ -151,8 +152,8 @@ void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
 archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
 
-    uint16_t ser_version;
-    res = deserialize(s, &ser_version);
+    uint64_t ser_version;
+    res = deserialize_varint_uint64(s, &ser_version);
     if (bad(res)) { return res; }
     if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
 

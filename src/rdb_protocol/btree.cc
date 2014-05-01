@@ -15,6 +15,7 @@
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
+#include "containers/archive/varint.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
@@ -1012,8 +1013,8 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    const uint16_t ser_version = 0;
-    msg << ser_version;
+    const uint64_t ser_version = 0;
+    serialize_varint_uint64(&msg, ser_version);
 
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
@@ -1035,8 +1036,8 @@ void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NO
 archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
 
-    uint16_t ser_version;
-    res = deserialize(s, &ser_version);
+    uint64_t ser_version;
+    res = deserialize_varint_uint64(s, &ser_version);
     if (bad(res)) { return res; }
     if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
 

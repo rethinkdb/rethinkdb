@@ -4,6 +4,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/varint.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -81,8 +82,8 @@ private:
 
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
-    const uint16_t ser_version = 0;
-    msg << ser_version;
+    const uint64_t ser_version = 0;
+    serialize_varint_uint64(&msg, ser_version);
 
     if (func_can_be_null()) {
         msg << func.has();
@@ -96,8 +97,8 @@ void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
 
-    uint16_t ser_version;
-    res = deserialize(s, &ser_version);
+    uint64_t ser_version;
+    res = deserialize_varint_uint64(s, &ser_version);
     if (bad(res)) { return res; }
     if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
 
