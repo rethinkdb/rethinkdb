@@ -1190,7 +1190,6 @@ write_message_t &operator<<(write_message_t &wm,
 }
 
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
-    // TODO! Add version?
     datum_serialized_type_t type;
     archive_result_t res = deserialize(s, &type);
     if (bad(res)) {
@@ -1319,81 +1318,6 @@ archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const da
     } else {
         return deserialize(s, pointer);
     }
-}
-
-
-bool wire_datum_map_t::has(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    return map.count(key) > 0;
-}
-
-counted_t<const datum_t> wire_datum_map_t::get(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    r_sanity_check(has(key));
-    return map[key];
-}
-
-void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t> val) {
-    r_sanity_check(state == COMPILED);
-    map[key] = val;
-}
-
-void wire_datum_map_t::compile() {
-    if (state == COMPILED) return;
-    while (!map_pb.empty()) {
-        map[make_counted<datum_t>(&map_pb.back().first)] =
-            make_counted<datum_t>(&map_pb.back().second);
-        map_pb.pop_back();
-    }
-    state = COMPILED;
-}
-void wire_datum_map_t::finalize() {
-    if (state == SERIALIZABLE) return;
-    r_sanity_check(state == COMPILED);
-    while (!map.empty()) {
-        map_pb.push_back(std::make_pair(Datum(), Datum()));
-        map.begin()->first->write_to_protobuf(&map_pb.back().first, use_json_t::NO);
-        map.begin()->second->write_to_protobuf(&map_pb.back().second, use_json_t::NO);
-        map.erase(map.begin());
-    }
-    state = SERIALIZABLE;
-}
-
-counted_t<const datum_t> wire_datum_map_t::to_arr() const {
-    r_sanity_check(state == COMPILED);
-    datum_ptr_t arr(datum_t::R_ARRAY);
-    for (auto it = map.begin(); it != map.end(); ++it) {
-        datum_ptr_t obj(datum_t::R_OBJECT);
-        bool b1 = obj.add("group", it->first);
-        bool b2 = obj.add("reduction", it->second);
-        r_sanity_check(!b1 && !b2);
-        arr.add(obj.to_counted());
-    }
-    return arr.to_counted();
-}
-
-void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    const uint16_t ser_version = 0;
-    msg << ser_version;
-
-    /* Should be guaranteed by finalize. */
-    r_sanity_check(state == SERIALIZABLE);
-    r_sanity_check(map.empty());
-    msg << map_pb;
-}
-
-archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res;
-
-    uint16_t ser_version;
-    res = deserialize(s, &ser_version);
-    if (bad(res)) { return res; }
-    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
-
-    res = deserialize(s, &map_pb);
-    if (bad(res)) return res;
-    state = SERIALIZABLE;
-    return archive_result_t::SUCCESS;
 }
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a
