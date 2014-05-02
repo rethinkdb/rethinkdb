@@ -1,24 +1,24 @@
 two_phase_workloads = [
-    ("$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT --phase w",
-     "$RETHINKDB/test/memcached_workloads/many_keys.py $HOST:$PORT --phase r",
+    ("$RETHINKDB/test/memcached_workloads/many_keys.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --phase w",
+     "$RETHINKDB/test/memcached_workloads/many_keys.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --phase r",
      'many-keys'),
-    ("$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --save values",
-     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --load values",
+    ("$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --save values",
+     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --load values",
      'multi-serial-mix'),
     ]
 
 n_phase_workloads = [
-    ("$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10000q",
+    ("$RETHINKDB/test/rdb_workloads/insert_many.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --count 10000",
      "true",
      "true",
-     'stress'),
-    ("$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --save values",
-     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load values --save values",
-     "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --load values",
+     'insert-many'),
+    ("$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --save values",
+     "$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --load values --save values",
+     "$RETHINKDB/test/memcached_workloads/serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --load values",
      'serial-mix'),
-    ("$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --save values",
-     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --load values --save values",
-     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py $HOST:$PORT --load values",
+    ("$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --save values",
+     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --load values --save values",
+     "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME --load values",
      'multi-serial-mix'),
     ]
 

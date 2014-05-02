@@ -293,43 +293,6 @@ private:
     DISABLE_COPYING(datum_ptr_t);
 };
 
-// This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
-// non-strings as keys, while the data model we pinched from JSON doesn't.  See
-// README.md for more info.
-class wire_datum_map_t {
-public:
-    wire_datum_map_t() : state(COMPILED) { }
-    bool has(counted_t<const datum_t> key);
-    counted_t<const datum_t> get(counted_t<const datum_t> key);
-    void set(counted_t<const datum_t> key, counted_t<const datum_t> val);
-
-    void compile();
-    void finalize();
-
-    counted_t<const datum_t> to_arr() const;
-private:
-    struct datum_value_compare_t {
-        bool operator()(counted_t<const datum_t> a, counted_t<const datum_t> b) const {
-            return *a < *b;
-        }
-    };
-
-    std::map<counted_t<const datum_t>,
-             counted_t<const datum_t>,
-             datum_value_compare_t> map;
-    std::vector<std::pair<Datum, Datum> > map_pb;
-
-public:
-    friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
-    friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s);
-
-private:
-    enum { SERIALIZABLE, COMPILED } state;
-};
-
-
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,

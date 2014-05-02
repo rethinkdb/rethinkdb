@@ -270,6 +270,7 @@ class readgen_t {
 public:
     explicit readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
+        std::string table_name,
         const datum_range_t &original_datum_range,
         profile_bool_t profile,
         sorting_t sorting);
@@ -304,6 +305,7 @@ public:
                       const store_key_t &last_key) const;
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
+    const std::string table_name;
     const datum_range_t original_datum_range;
     const profile_bool_t profile;
     const sorting_t sorting;
@@ -319,11 +321,15 @@ class primary_readgen_t : public readgen_t {
 public:
     static scoped_ptr_t<readgen_t> make(
         env_t *env,
+        std::string table_name,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
-                      datum_range_t range, profile_bool_t profile, sorting_t sorting);
+                      std::string table_name,
+                      datum_range_t range,
+                      profile_bool_t profile,
+                      sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,
@@ -342,14 +348,18 @@ class sindex_readgen_t : public readgen_t {
 public:
     static scoped_ptr_t<readgen_t> make(
         env_t *env,
+        std::string table_name,
         const std::string &sindex,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = sorting_t::UNORDERED);
 private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
-        const std::string &sindex, datum_range_t sindex_range,
-        profile_bool_t profile, sorting_t sorting);
+        std::string table_name,
+        const std::string &sindex,
+        datum_range_t sindex_range,
+        profile_bool_t profile,
+        sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const std::vector<transform_variant_t> &transform,

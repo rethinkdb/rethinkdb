@@ -302,10 +302,12 @@ bool reader_t::is_finished() const {
 
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
+    std::string _table_name,
     const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
+      table_name(std::move(_table_name)),
       original_datum_range(_original_datum_range),
       profile(_profile),
       sorting(_sorting) { }
@@ -355,16 +357,23 @@ read_t readgen_t::terminal_read(
 
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
+    std::string table_name,
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, profile, sorting) { }
+    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
-    env_t *env, datum_range_t range, sorting_t sorting) {
+    env_t *env,
+    std::string table_name,
+    datum_range_t range,
+    sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->global_optargs.get_all_optargs(),
-            range, env->profile(), sorting));
+            std::move(table_name),
+            range,
+            env->profile(),
+            sorting));
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
@@ -374,6 +383,7 @@ rget_read_t primary_readgen_t::next_read_impl(
     return rget_read_t(
         region_t(active_range),
         global_optargs,
+        table_name,
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
@@ -403,18 +413,28 @@ std::string primary_readgen_t::sindex_name() const {
 
 sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
+    std::string table_name,
     const std::string &_sindex,
     datum_range_t range,
     profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, profile, sorting), sindex(_sindex) { }
+    : readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
+      sindex(_sindex) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
-    env_t *env, const std::string &sindex, datum_range_t range, sorting_t sorting) {
+    env_t *env,
+    std::string table_name,
+    const std::string &sindex,
+    datum_range_t range,
+    sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->global_optargs.get_all_optargs(),
-            sindex, range, env->profile(), sorting));
+            std::move(table_name),
+            sindex,
+            range,
+            env->profile(),
+            sorting));
 }
 
 class sindex_compare_t {
@@ -435,7 +455,7 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
         return;
     }
     if (sorting != sorting_t::UNORDERED) {
-        std::sort(vec->begin(), vec->end(), sindex_compare_t(sorting));
+        std::stable_sort(vec->begin(), vec->end(), sindex_compare_t(sorting));
     }
 }
 
@@ -446,6 +466,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
     return rget_read_t(
         region_t::universe(),
         global_optargs,
+        table_name,
         batchspec,
         transforms,
         boost::optional<terminal_variant_t>(),
@@ -480,6 +501,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                     rget_read_t(
                         region_t::universe(),
                         global_optargs,
+                        table_name,
                         batchspec.with_new_batch_type(batch_type_t::SINDEX_CONSTANT),
                         transforms,
                         boost::optional<terminal_variant_t>(),
@@ -752,9 +774,8 @@ indexed_sort_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batch
             if (index >= data.size()) {
                 return ret;
             }
-            std::sort(data.begin(), data.end(),
-                      std::bind(lt_cmp, env, &sampler,
-                                ph::_1, ph::_2));
+            std::stable_sort(data.begin(), data.end(),
+                             std::bind(lt_cmp, env, &sampler, ph::_1, ph::_2));
         }
         for (; index < data.size() && !batcher.should_send_batch(); ++index) {
             batcher.note_el(data[index]);

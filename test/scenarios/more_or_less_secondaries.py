@@ -51,20 +51,20 @@ with driver.Metacluster() as metacluster:
     for replica_process in replica_processes:
         replica_process.wait_until_started_up()
 
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [primary_process] + replica_processes])
     primary_dc = http.add_datacenter()
     http.move_server_to_datacenter(primary_process.files.machine_name, primary_dc)
     replica_dc = http.add_datacenter()
     for replica_process in replica_processes:
         http.move_server_to_datacenter(replica_process.files.machine_name, replica_dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = primary_dc, affinities = {primary_dc: 0, replica_dc: opts["sequence"].initial})
+    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, replica_dc: opts["sequence"].initial})
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, [primary_process] + replica_processes)
-    with workload_runner.SplitOrContinuousWorkload(opts, opts["protocol"], workload_ports) as workload:
+    workload_ports = scenario_common.get_workload_ports(ns, [primary_process] + replica_processes)
+    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
         workload.run_before()
         cluster.check()
         http.check_no_issues()
@@ -75,7 +75,7 @@ with driver.Metacluster() as metacluster:
                 workload.run_between()
             print "Changing the number of secondaries from %d to %d..." % (current, current + s)
             current += s
-            http.set_namespace_affinities(ns, {primary_dc: 0, replica_dc: current})
+            http.set_table_affinities(ns, {primary_dc: 0, replica_dc: current})
             http.wait_until_blueprint_satisfied(ns, timeout = 3600)
             cluster.check()
             http.check_no_issues()

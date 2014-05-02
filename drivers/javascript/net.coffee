@@ -12,6 +12,7 @@ protoQueryType = protodef.Query.QueryType
 protoResponseType = protodef.Response.ResponseType
 
 r = require('./ast')
+Promise = require('bluebird')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -142,39 +143,55 @@ class Connection extends events.EventEmitter
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
+                console.log opts
+                console.log callback
                 throw new err.RqlDriverError "First argument to two-argument `close` must be an object."
             cb = callback
         else if Object::toString.call(optsOrCallback) is '[object Object]'
             opts = optsOrCallback
             cb = null
-        else
+        else if typeof optsOrCallback is 'function'
             opts = {}
             cb = optsOrCallback
+        else
+            opts = optsOrCallback
+            cb = null
 
         for own key of opts
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
-        unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
-
-        wrappedCb = (args...) =>
-            @open = false
-            if cb?
-                cb(args...)
 
         noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
-        if noreplyWait
-            @noreplyWait(wrappedCb)
+
+        if typeof cb is 'function'
+            wrappedCb = (args...) =>
+                @open = false
+                if cb?
+                    cb(args...)
+
+            if noreplyWait
+                @noreplyWait(wrappedCb)
+            else
+                wrappedCb()
         else
-            wrappedCb()
+            new Promise (resolve, reject) =>
+                wrappedCb = (err, result) =>
+                    @open = false
+                    if err?
+                        reject err
+                    else
+                        resolve result
+
+                @noreplyWait(wrappedCb)
     )
 
-    noreplyWait: ar (callback) ->
-        unless typeof callback is 'function'
-            throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
+    noreplyWait: varar 0, 1, (callback) ->
         unless @open
-            callback(new err.RqlDriverError "Connection is closed.")
-            return
+            if typeof callback is 'function'
+                return callback(new err.RqlDriverError "Connection is closed.")
+            else
+                return new Promise (resolve, reject) ->
+                    reject(new err.RqlDriverError "Connection is closed.")
 
         # Assign token
         token = @nextToken++
@@ -185,31 +202,58 @@ class Connection extends events.EventEmitter
         query.token = token
 
         # Save callback
-        @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
-
-        @_sendQuery(query)
+        if typeof callback is 'function'
+            @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+            @_sendQuery(query)
+        else
+            new Promise (resolve, reject) =>
+                callback = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+                @_sendQuery(query)
 
     cancel: ar () ->
         @outstandingCallbacks = {}
 
-    reconnect: (varar 1, 2, (optsOrCallback, callback) ->
+    reconnect: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback
             cb = callback
-        else
+        else if typeof optsOrCallback is "function"
             opts = {}
             cb = optsOrCallback
-
-        unless typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `reconnect` must be a callback function."
-
-        closeCb = (err) =>
-            if err?
-                cb(err)
+        else
+            if optsOrCallback?
+                opts = optsOrCallback
             else
-                constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
-                setTimeout(constructCb, 0)
-        @close(opts, closeCb)
+                opts = {}
+            cb = callback
+
+        if typeof cb is 'function'
+            closeCb = (err) =>
+                if err?
+                    cb(err)
+                else
+                    constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
+                    setTimeout(constructCb, 0)
+            @close(opts, closeCb)
+        else
+            new Promise (resolve, reject) =>
+                closeCb = (err) =>
+                    if err?
+                        reject err
+                    else
+                        constructCb = =>
+                            @constructor.call @, {host:@host, port:@port}, (err, conn) ->
+                                if err?
+                                    reject err
+                                else
+                                    resolve conn
+                        setTimeout(constructCb, 0)
+                @close(opts, closeCb)
     )
 
     use: ar (db) ->
@@ -271,13 +315,14 @@ class Connection extends events.EventEmitter
 
     _sendQuery: (query) ->
         # Serialize query to JSON
-        data = [query.type, query.token]
+        data = [query.type]
         if !(query.query is undefined)
             data.push(query.query)
             if query.global_optargs? and Object.keys(query.global_optargs).length > 0
                 data.push(query.global_optargs)
 
-        @write new Buffer(JSON.stringify(data))
+        @_writeQuery(query.token, JSON.stringify(data))
+
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -355,25 +400,44 @@ class TcpConnection extends Connection
         else if Object::toString.call(optsOrCallback) is '[object Object]'
             opts = optsOrCallback
             cb = null
-        else
+        else if typeof optsOrCallback is "function"
             opts = {}
             cb = optsOrCallback
-        unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
+        else
+            opts = {}
 
-        wrappedCb = (args...) =>
-            @rawSocket.end()
-            if cb?
-                cb(args...)
 
-        # This would simply be super(opts, wrappedCb), if we were not in the varar
-        # anonymous function
-        TcpConnection.__super__.close.call(this, opts, wrappedCb)
+        if typeof cb is 'function'
+            wrappedCb = (args...) =>
+                @rawSocket.end()
+                if cb?
+                    cb(args...)
+
+            # This would simply be super(opts, wrappedCb), if we were not in the varar
+            # anonymous function
+            TcpConnection.__super__.close.call(@, opts, wrappedCb)
+        else
+            new Promise (resolve, reject) =>
+                wrappedCb = (err, result) =>
+                    @rawSocket.end()
+                    if err?
+                        reject err
+                    else
+                        resolve result
+                TcpConnection.__super__.close.call(@, opts, wrappedCb)
+
     )
 
     cancel: () ->
         @rawSocket.destroy()
         super()
+
+    _writeQuery: (token, data) ->
+        tokenBuf = new Buffer(8)
+        tokenBuf.writeUInt32LE(token & 0xFFFFFFFF, 0)
+        tokenBuf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
+        @rawSocket.write tokenBuf
+        @write new Buffer(data)
 
     write: (chunk) ->
         lengthBuffer = new Buffer(4)
@@ -441,6 +505,13 @@ class HttpConnection extends Connection
         HttpConnection.__super__.close.call(this, opts, wrappedCb)
     )
 
+    _writeQuery: (token, data) ->
+        buf = new Buffer(data.length + 8)
+        buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
+        buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
+        buf.write(data, 8)
+        @write buf
+
     write: (chunk) ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}?conn_id=#{@_connId}", true)
@@ -468,21 +539,28 @@ module.exports.isConnection = (connection) ->
     return connection instanceof Connection
 
 # The main function of this module
-module.exports.connect = ar (host, callback) ->
+module.exports.connect = varar 1, 2, (host, callback) ->
     # Host must be a string or an object
     unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'
         throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
                                      "host to `connect` to or an object giving `host` and `port`."
 
-    # Callback must be a function
-    unless typeof(callback) is 'function'
-        throw new err.RqlDriverError "Second argument to `connect` must be a callback to invoke with "+
-                                     "either an error or the successfully established connection."
+    create_connection = (host, callback) =>
+        if TcpConnection.isAvailable()
+            new TcpConnection host, callback
+        else if HttpConnection.isAvailable()
+            new HttpConnection host, callback
+        else
+            throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
 
-    if TcpConnection.isAvailable()
-        new TcpConnection host, callback
-    else if HttpConnection.isAvailable()
-        new HttpConnection host, callback
+
+    if typeof callback is 'function'
+        create_connection(host, callback)
     else
-        throw new err.RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
-    return
+        p = new Promise (resolve, reject) ->
+            callback = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            create_connection(host, callback)

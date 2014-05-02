@@ -38,6 +38,7 @@ TEST(DatumTest, NumericSerialization) {
                       (1ull << 52) - 1,
                       (1ull << 52) - 0.5,
                       (1ull << 52),
+                      (1ull << 53) - 2,
                       (1ull << 53) - 1,
                       (1ull << 53),
                       (1ull << 53) + 2,

@@ -4,6 +4,7 @@
 #include "arch/io/disk.hpp"
 #include "rdb_protocol/store.hpp"
 #include "btree/operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
@@ -190,6 +191,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
                     id,
+                    "",
                     super_block.get(),
                     &sindex_super_block);
             ASSERT_TRUE(sindex_exists);
@@ -223,8 +225,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store_key_t key("foo");
 
             bool sindex_exists = store.acquire_sindex_superblock_for_read(
-                    id, main_sb.get(), &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL));
+                id, "", main_sb.get(), &sindex_super_block,
+                static_cast<std::vector<char>*>(NULL));
             ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;
@@ -248,7 +250,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                                            1, write_durability_t::SOFT, &token_pair,
                                            &txn, &super_block, &dummy_interruptor);
 
-        value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
+        rdb_value_sizer_t sizer(store.cache->max_block_size());
 
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),

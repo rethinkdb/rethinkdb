@@ -129,7 +129,7 @@ void drop_sindex(store_t *store,
                                         1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interruptor);
 
-    value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
+    rdb_value_sizer_t sizer(store->cache->max_block_size());
 
     buf_lock_t sindex_block
         = store->acquire_sindex_block_for_write(super_block->expose_buf(),
@@ -215,6 +215,7 @@ void _check_keys_are_present(store_t *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
+                "",
                 super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));
@@ -284,6 +285,7 @@ void _check_keys_are_NOT_present(store_t *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(
                 sindex_id,
+                "",
                 super_block.get(),
                 &sindex_sb,
                 static_cast<std::vector<char>*>(NULL));

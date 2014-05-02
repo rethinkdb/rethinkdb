@@ -2,6 +2,7 @@ util = require('./util')
 err = require('./errors')
 net = require('./net')
 protoTermType = require('./proto-def').Term.TermType
+Promise = require('bluebird')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -57,18 +58,23 @@ class TermBase
     run: (connection, options, callback) ->
         # Valid syntaxes are
         # connection, callback
+        # connection, options # return a Promise
         # connection, options, callback
         # connection, null, callback
+        # connection, null # return a Promise
         # 
         # Depreciated syntaxes are
         # optionsWithConnection, callback
         
         if net.isConnection(connection) is true
             # Handle run(connection, callback)
-            if typeof options is "function"
-                callback = options
-                options = {}
-            # else we suppose that we have run(connection, options, callback)
+            if typeof options is "function" 
+                if callback is undefined
+                    callback = options
+                    options = {}
+                else
+                    throw new err.RqlDriverError "Second argument to `run` cannot be a function is a third argument is provided."
+            # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
                 process?.stderr.write("RethinkDB warning: This syntax is deprecated. Please use `run(connection[, options], callback)`.")
@@ -79,7 +85,7 @@ class TermBase
             connection = connection.connection
             delete options["connection"]
 
-        options = {} if options is null
+        options = {} if not options?
 
         # Check if the arguments are valid types
         for own key of options
@@ -88,22 +94,28 @@ class TermBase
         if net.isConnection(connection) is false
             throw new err.RqlDriverError "First argument to `run` must be an open connection."
 
-        # We only require a callback if noreply isn't set
-        if not options.noreply and typeof(callback) isnt 'function'
-            throw new err.RqlDriverError "The last argument to `run` must be a callback to invoke "+
-                                         "with either an error or the result of the query."
+        if options.noreply is true or typeof callback is 'function'
+            try
+                connection._start @, callback, options
+            catch e
+                # It was decided that, if we can, we prefer to invoke the callback
+                # with any errors rather than throw them as normal exceptions.
+                # Thus we catch errors here and invoke the callback instead of
+                # letting the error bubble up.
+                if typeof(callback) is 'function'
+                    callback(e)
+        else
+            new Promise (resolve, reject) =>
+                callback = (err, result) ->
+                    if err?
+                        reject(err)
+                    else
+                        resolve(result)
 
-        try
-            connection._start @, callback, options
-        catch e
-            # It was decided that, if we can, we prefer to invoke the callback
-            # with any errors rather than throw them as normal exceptions.
-            # Thus we catch errors here and invoke the callback instead of
-            # letting the error bubble up.
-            if typeof(callback) is 'function'
-                callback(e)
-            else
-                throw e
+                try
+                    connection._start @, callback, options
+                catch e
+                    callback(e)
 
     toString: -> err.printQuery(@)
 
@@ -130,7 +142,17 @@ class RDBVal extends TermBase
     setUnion: ar (val) -> new SetUnion {}, @, val
     setIntersection: ar (val) -> new SetIntersection {}, @, val
     setDifference: ar (val) -> new SetDifference {}, @, val
-    slice: aropt (left, right, opts) -> new Slice opts, @, left, right
+    slice: varar(1, 3, (left, right_or_opts, opts) -> 
+        if opts?
+            new Slice opts, @, left, right_or_opts
+        else if typeof right_or_opts isnt 'undefined'
+            if (Object::toString.call(right_or_opts) is '[object Object]') and not (right_or_opts instanceof TermBase)
+                new Slice right_or_opts, @, left
+            else
+                new Slice {}, @, left, right_or_opts
+        else
+            new Slice {}, @, left
+        )
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getField: ar (field) -> new GetField {}, @, field
@@ -150,7 +172,7 @@ class RDBVal extends TermBase
 
     merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: varar(1, 2, (func) -> new Reduce {}, @, funcWrap(func))
+    reduce: ar (func) -> new Reduce {}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
@@ -445,6 +467,10 @@ class Json extends RDBOp
 class UserError extends RDBOp
     tt: protoTermType.ERROR
     st: 'error'
+
+class Random extends RDBOp
+    tt: protoTermType.RANDOM
+    st: 'random'
 
 class ImplicitVar extends RDBOp
     tt: protoTermType.IMPLICIT_VAR
@@ -991,6 +1017,20 @@ rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
 rethinkdb.json = ar (jsonsrc) -> new Json {}, jsonsrc
 
 rethinkdb.error = varar 0, 1, (args...) -> new UserError {}, args...
+
+rethinkdb.random = (limitsAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        limits = limitsAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = limitsAndOpts[limitsAndOpts.length - 1]
+        if perhapsOptDict and
+                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
+            opts = perhapsOptDict
+            limits = limitsAndOpts[0...(limitsAndOpts.length - 1)]
+
+        new Random opts, limits...
 
 rethinkdb.row = new ImplicitVar {}
 

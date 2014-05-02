@@ -10,7 +10,7 @@ const block_magic_t btree_sindex_block_t::expected_magic = { { 's', 'i', 'n', 'd
 
 namespace node {
 
-bool is_underfull(value_sizer_t<void> *sizer, const node_t *node) {
+bool is_underfull(value_sizer_t *sizer, const node_t *node) {
     if (node->magic == sizer->btree_leaf_magic()) {
         return leaf::is_underfull(sizer, reinterpret_cast<const leaf_node_t *>(node));
     } else {
@@ -19,7 +19,7 @@ bool is_underfull(value_sizer_t<void> *sizer, const node_t *node) {
     }
 }
 
-bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent) {
+bool is_mergable(value_sizer_t *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent) {
     if (sizer->btree_leaf_magic() == node->magic) {
         return leaf::is_mergable(sizer, reinterpret_cast<const leaf_node_t *>(node), reinterpret_cast<const leaf_node_t *>(sibling));
     } else {
@@ -29,7 +29,7 @@ bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *s
 }
 
 
-void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t *median) {
+void split(value_sizer_t *sizer, node_t *node, node_t *rnode, btree_key_t *median) {
     if (is_leaf(node)) {
         leaf::split(sizer, reinterpret_cast<leaf_node_t *>(node),
                     reinterpret_cast<leaf_node_t *>(rnode), median);
@@ -39,7 +39,7 @@ void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t 
     }
 }
 
-void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent) {
+void merge(value_sizer_t *sizer, node_t *node, node_t *rnode, const internal_node_t *parent) {
     if (is_leaf(node)) {
         leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode));
     } else {
@@ -47,7 +47,7 @@ void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const intern
     }
 }
 
-void validate(DEBUG_VAR value_sizer_t<void> *sizer, DEBUG_VAR const node_t *node) {
+void validate(DEBUG_VAR value_sizer_t *sizer, DEBUG_VAR const node_t *node) {
 #ifndef NDEBUG
     if (node->magic == sizer->btree_leaf_magic()) {
         leaf::validate(sizer, reinterpret_cast<const leaf_node_t *>(node));

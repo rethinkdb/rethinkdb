@@ -20,7 +20,7 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
 
-    must_fetch_list='protobufjs'
+    must_fetch_list='protobufjs bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
     required_libs="protobuf v8 re2 z"
@@ -29,7 +29,7 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="npm lessc coffee handlebars browserify proto2js"
+    web_assets_deps="npm lessc coffee handlebars browserify proto2js bluebird"
     required_bin_deps="protoc"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"

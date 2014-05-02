@@ -101,8 +101,8 @@ private:
         counted_t<const datum_t> rb = arg(env, 2)->as_ptype(pseudo::time_string);
         int lcmp = pseudo::time_cmp(*lb, *t);
         int rcmp = pseudo::time_cmp(*t, *rb);
-        return new_val_bool(!(lcmp > 0 || (lcmp == 0 && left_open(env))
-                              || rcmp > 0 || (rcmp == 0 && right_open(env))));
+        return new_val_bool(!(lcmp > 0 || (lcmp == 0 && is_left_open(env))
+                              || rcmp > 0 || (rcmp == 0 && is_right_open(env))));
     }
     virtual const char *name() const { return "during"; }
 };

@@ -9,6 +9,7 @@ process.on('uncaughtException', function(err) {
     } else {
         console.log(err.toString());
     }
+    process.exit(1)
 });
 
 var r = require('../../../build/packages/js/rethinkdb');
@@ -34,6 +35,25 @@ var assertArgError = function(expected, found, callback) {
     }
 };
 
+var assertArgVarError = function(min, max, found, callback) {
+    var errFound = null;
+    try {
+        callback();
+    } catch (err) {
+        errFound = err;
+    }
+
+    if (!errFound) {
+        throw new Error("No error thrown");
+    } else if (
+            (errFound.msg !== "Expected "+min+" or more argument(s) but found "+found+".")
+            && (errFound.msg !== "Expected "+max+" or fewer argument(s) but found "+found+".")
+            && (errFound.msg !== "Expected between "+min+" and "+max+" argument(s) but found "+found+".")) {
+        throw new Error("Wrong error message: "+errFound.msg);
+    }
+};
+
+
 var assert = function(predicate) {
     if (!predicate) {
         throw new Error("Assert failed");
@@ -42,7 +62,7 @@ var assert = function(predicate) {
 
 var port = parseInt(process.argv[2], 10)
 
-assertArgError(2, 0, function() { r.connect(); });
+assertArgVarError(1, 2, 0, function() { r.connect(); });
 
 r.connect({port:port}, function(err, c) {
     assertNoError(err);
@@ -122,9 +142,6 @@ r.connect({port:port}, function(err, c) {
             // These simply test that we appropriately check arg numbers for
             // cursor api methods
             assertArgError(1, 0, function() { cur.each(); });
-            assertArgError(1, 0, function() { cur.toArray(); });
-            assertArgError(1, 0, function() { cur.toArray(); });
-            assertArgError(1, 0, function() { cur.next(); });
             assertArgError(0, 1, function() { cur.hasNext(1); });
             assertArgError(0, 1, function() { cur.close(1); });
             assertArgError(0, 1, function() { cur.toString(1); });

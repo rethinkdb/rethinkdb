@@ -28,7 +28,7 @@ public:
     struct timespec uptime;
     log_level_t level;
     std::string message;
-    RDB_MAKE_ME_SERIALIZABLE_4(timestamp, uptime, level, message);
+    RDB_MAKE_ME_SERIALIZABLE_4(0, timestamp, uptime, level, message);
 };
 
 std::string format_log_level(log_level_t l);

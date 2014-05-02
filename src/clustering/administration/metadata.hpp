@@ -36,7 +36,7 @@ public:
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(rdb_namespaces, machines, datacenters, databases);
+    RDB_MAKE_ME_SERIALIZABLE_4(0, rdb_namespaces, machines, datacenters, databases);
 };
 
 RDB_MAKE_SEMILATTICE_JOINABLE_4(cluster_semilattice_metadata_t, rdb_namespaces, machines, datacenters, databases);
@@ -54,7 +54,7 @@ public:
 
     vclock_t<auth_key_t> auth_key;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(auth_key);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, auth_key);
 };
 
 RDB_MAKE_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
@@ -159,7 +159,10 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(rdb_namespaces, machine_id, peer_id, cache_size, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_11(0, rdb_namespaces, machine_id, peer_id, cache_size, \
+                                ips, get_stats_mailbox_address, \
+                                semilattice_change_mailbox, auth_change_mailbox, \
+                                log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t

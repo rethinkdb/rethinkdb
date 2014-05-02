@@ -6,7 +6,7 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 
-RDB_IMPL_SERIALIZABLE_1(log_server_business_card_t, address);
+RDB_IMPL_SERIALIZABLE_1(log_server_business_card_t, 0, address);
 
 
 log_server_t::log_server_t(mailbox_manager_t *mm, thread_pool_log_writer_t *lw) :
