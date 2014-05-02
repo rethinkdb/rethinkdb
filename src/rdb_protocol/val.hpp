@@ -107,6 +107,7 @@ private:
     datum_range_t bounds;
     sorting_t sorting;
 
+    // The uuid of the table in the metadata.
     uuid_u uuid;
 };
 
