@@ -117,6 +117,7 @@ install-osx: install-binaries install-web
 
 .PHONY: build-osx
 build-osx: DESTDIR = $(OSX_PACKAGE_DIR)/pkg
+build-osx: SPLIT_SYMBOLS = 1
 build-osx: install-osx
 	mkdir -p $(OSX_PACKAGE_DIR)/install
 	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg

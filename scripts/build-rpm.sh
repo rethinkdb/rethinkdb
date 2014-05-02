@@ -24,7 +24,7 @@ EOF
 
     test -n "${NOCONFIGURE:-}" || ./configure --static all --fetch all --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
-    `make command-line` -j 8 install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1
+    `make command-line` -j 8 install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1 SPLIT_SYMBOLS=1
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 
