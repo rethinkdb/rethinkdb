@@ -9,11 +9,11 @@
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        const std::map<key_range_t, machine_id_t> *region_to_machines_,
+        const std::map<key_range_t, machine_id_t> *region_to_primary_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > dv,
         rdb_context_t *_ctx)
     : mailbox_manager(mm),
-      region_to_machines(region_to_machines_),
+      region_to_primary(region_to_primary_),
       directory_view(dv),
       ctx(_ctx),
       start_count(0),
@@ -116,13 +116,16 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                 }
             }
             if (!chosen_relationship) {
-                if (region_to_machines->find(it->first.inner) != region_to_machines->end()) {
-                    std::string errmsg = "Master not available (machine '";
-                    errmsg += uuid_to_str(region_to_machines->find(it->first.inner)->second);
-                    errmsg += "')";
-                    throw cannot_perform_query_exc_t(errmsg);
+                if (region_to_primary->find(it->first.inner) != region_to_primary->end()) {
+                    std::string mid = uuid_to_str(region_to_primary->find(it->first.inner)->second);
+                    throw cannot_perform_query_exc_t("Master for shard " +
+                                                     key_range_to_string(it->first.inner) +
+                                                     " not available (machine " +
+                                                     mid + " is not ready)");
                 } else {
-                    throw cannot_perform_query_exc_t("Master not available (machine unknown)");
+                    throw cannot_perform_query_exc_t("Master for shard " +
+                                                     key_range_to_string(it->first.inner) +
+                                                     " not available");
                 }
             }
             new_op_info->master_access = chosen_relationship->master_access;

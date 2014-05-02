@@ -2,12 +2,12 @@
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
+#include "clustering/administration/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "clustering/administration/metadata.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
 `cluster_namespace_interface_t` objects for all of the namespaces in the cluster
@@ -97,7 +97,7 @@ private:
     rdb_context_t *ctx;
     semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_machine_map;
+    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
     one_per_thread_t<namespace_cache_t> namespace_caches;
 
     DISABLE_COPYING(namespace_repo_t);

@@ -130,6 +130,8 @@ void base_namespace_repo_t::access_t::ref_handler_t::reset() {
 }
 
 void namespace_repo_t::on_namespaces_change() {
+        region_to_primary_maps.clear();
+
         namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
         const namespaces_semilattice_metadata_t::namespace_map_t &ns = namespaces_view.get()->get().get()->namespaces;
         for (it = ns.begin(); it != ns.end(); ++it) {
@@ -144,10 +146,7 @@ void namespace_repo_t::on_namespaces_change() {
                 persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
                 for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
                     if (it3->second == blueprint_role_t::blueprint_role_primary) {
-                        if (region_to_machine_map.find(it->first) == region_to_machine_map.end()) {
-                            region_to_machine_map[it->first] = std::map<key_range_t, machine_id_t>();
-                        }
-                        region_to_machine_map[it->first][it3->first.inner] = it2->first;
+                        region_to_primary_maps[it->first][it3->first.inner] = it2->first;
                     }
                 }
             }
@@ -174,13 +173,9 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
-    if (region_to_machine_map.find(namespace_id) == region_to_machine_map.end()){
-        region_to_machine_map[namespace_id] = std::map<key_range_t, machine_id_t>();
-    }
-
     cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
-        &(region_to_machine_map[namespace_id]),
+        &(region_to_primary_maps[namespace_id]),
         cross_thread_watchable.get_watchable(),
         ctx);
 

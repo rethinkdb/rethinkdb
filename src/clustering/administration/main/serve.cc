@@ -235,7 +235,8 @@ bool do_serve(
                               &get_global_perfmon_collection());
 
         namespace_repo_t rdb_namespace_repo(&mailbox_manager,
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+                           semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->incremental_subview(
                 incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);
