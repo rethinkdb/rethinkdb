@@ -256,7 +256,8 @@ void store_t::protocol_read(const read_t &read,
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
-    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    // This is a tad hacky, this just adds a stop event to signal the end of the
+    // parallel task.
     response->event_log.push_back(profile::stop_t());
 }
 
@@ -520,8 +521,8 @@ void store_t::protocol_write(const write_t &write,
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
-    //This is a tad hacky, this just adds a stop event to signal the end of the
-    //parallal task.
+    // This is a tad hacky, this just adds a stop event to signal the end of the
+    // parallel task.
     response->event_log.push_back(profile::stop_t());
 }
 
