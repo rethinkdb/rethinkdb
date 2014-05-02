@@ -976,7 +976,6 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
         for (size_t i = 0; i < count; ++i) {
             auto res = boost::get<changefeed_subscribe_response_t>(
                 &responses[i].response);
-            out->addrs.reserve(out->addrs.size() + res->addrs.size());
             std::move(res->addrs.begin(), res->addrs.end(),
                       std::back_inserter(out->addrs));
         }
