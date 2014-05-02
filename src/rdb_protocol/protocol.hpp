@@ -449,6 +449,9 @@ struct changefeed_subscribe_response_t {
 };
 struct changefeed_timestamp_response_t {
     changefeed_timestamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // machines and don't synchronize with each other.)
     std::map<uuid_u, repli_timestamp_t> timestamps;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
