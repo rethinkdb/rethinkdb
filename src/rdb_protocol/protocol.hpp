@@ -666,14 +666,14 @@ struct write_t {
      *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
      *  durability. */
     template<class T>
-    write_t(T t,
+    write_t(T &&t,
             durability_requirement_t durability,
             profile_bool_t _profile)
-        : write(std::move(t)),
+        : write(std::forward<T>(t)),
           durability_requirement(durability), profile(_profile) { }
     template<class T>
-    write_t(T t, profile_bool_t _profile)
-        : write(std::move(t)),
+    write_t(T &&t, profile_bool_t _profile)
+        : write(std::forward<T>(t)),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
           profile(_profile) { }
 
