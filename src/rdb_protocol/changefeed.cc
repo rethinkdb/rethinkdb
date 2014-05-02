@@ -17,30 +17,29 @@ namespace changefeed {
 server_t::server_t(mailbox_manager_t *_manager)
     : uuid(generate_uuid()),
       manager(_manager),
-      stop_mailbox(
-          manager,
-          [this](client_t::addr_t addr) {
-              auto_drainer_t::lock_t lock(&drainer);
-              rwlock_in_line_t spot(&clients_lock, access_t::write);
-              spot.read_signal()->wait_lazily_unordered();
-              auto it = clients.find(addr);
-              // The client might have already been removed from e.g. a peer
-              // disconnect or drainer destruction.
-              if (it != clients.end()) {
-                  auto pair = &it->second;
-                  spot.write_signal()->wait_lazily_unordered();
-                  pair->first -= 1;
-                  if (pair->first == 0) {
-                      // This won't get pulsed twice because the clients can't
-                      // send to this mailbox until the original subscribing write
-                      // has completed, which means `add_client` has been called
-                      // with `addr` as many times as it's ever going to be, so
-                      // we'll never hit `0` more than once.
-                      pair->second->pulse();
-                  }
-              }
-          }
-      ) { }
+      stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)) { }
+
+void server_t::stop_mailbox_cb(client_t::addr_t addr) {
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::write);
+    spot.read_signal()->wait_lazily_unordered();
+    auto it = clients.find(addr);
+    // The client might have already been removed from e.g. a peer
+    // disconnect or drainer destruction.
+    if (it != clients.end()) {
+        auto pair = &it->second;
+        spot.write_signal()->wait_lazily_unordered();
+        pair->first -= 1;
+        if (pair->first == 0) {
+            // This won't get pulsed twice because the clients can't
+            // send to this mailbox until the original subscribing write
+            // has completed, which means `add_client` has been called
+            // with `addr` as many times as it's ever going to be, so
+            // we'll never hit `0` more than once.
+            pair->second->pulse();
+        }
+    }
+}
 
 void server_t::add_client(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
@@ -55,24 +54,25 @@ void server_t::add_client(const client_t::addr_t &addr) {
         signal_t *stopped = &*pair->second;
         // We spawn now so the auto drainer lock is acquired immediately.
         coro_t::spawn_now_dangerously(
-            [this, stopped, addr]() {
-                auto_drainer_t::lock_t coro_lock(&drainer);
-                disconnect_watcher_t disconnect(
-                    manager->get_connectivity_service(), addr.get_peer());
-                {
-                    wait_any_t wait_any(
-                        &disconnect, stopped, coro_lock.get_drain_signal());
-                    wait_any.wait_lazily_unordered();
-                }
-                debugf("Stopping...\n");
-                rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
-                coro_spot.write_signal()->wait_lazily_unordered();
-                size_t erased = clients.erase(addr);
-                guarantee(erased == 1);
-                debugf("Stopped!\n");
-            }
-        );
+            std::bind(&server_t::add_client_cb, this, stopped, addr));
     }
+}
+
+void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
+    auto_drainer_t::lock_t coro_lock(&drainer);
+    disconnect_watcher_t disconnect(
+        manager->get_connectivity_service(), addr.get_peer());
+    {
+        wait_any_t wait_any(
+            &disconnect, stopped, coro_lock.get_drain_signal());
+        wait_any.wait_lazily_unordered();
+    }
+    debugf("Stopping...\n");
+    rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
+    coro_spot.write_signal()->wait_lazily_unordered();
+    size_t erased = clients.erase(addr);
+    guarantee(erased == 1);
+    debugf("Stopped!\n");
 }
 
 struct stamped_msg_t {
@@ -133,7 +133,7 @@ public:
     void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
                 counted_t<const datum_t> d);
     void start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
-    void stop(const std::string &msg, detach_t detach = detach_t::NO);
+    void stop(const std::string &msg, detach_t should_detach);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
     std::exception_ptr exc;
@@ -155,9 +155,15 @@ public:
     ~feed_t();
     void add_sub(sub_t *sub) THROWS_NOTHING;
     void del_sub(sub_t *sub) THROWS_NOTHING;
-    template<class T> void each_sub(const T &t) THROWS_NOTHING;
+    void each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING;
     bool can_be_removed();
 private:
+    void each_sub_cb(const std::function<void(sub_t *)> &f,
+                     const std::vector<int> &sub_threads,
+                     int i);
+    void mailbox_cb(stamped_msg_t msg);
+    void constructor_cb();
+
     void check_stamp(uuid_u uuid, repli_timestamp_t timestamp);
     std::map<uuid_u, repli_timestamp_t> last_timestamps;
 
@@ -186,25 +192,17 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_sub(
-            [this, d](sub_t *sub) {
-                sub->add_el(server_uuid, timestamp, d);
-            }
-        );
+        feed->each_sub(std::bind(&sub_t::add_el, ph::_1, server_uuid, timestamp, d));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
-        feed->each_sub([msg](sub_t *sub) { sub->stop(msg); });
+        feed->each_sub(std::bind(&sub_t::stop, ph::_1, msg, detach_t::NO));
     }
 private:
     feed_t *feed;
     uuid_u server_uuid;
     repli_timestamp_t timestamp;
 };
-void handle_msg(feed_t *feed, const stamped_msg_t &msg) {
-    msg_visitor_t visitor(feed, msg.server_uuid, msg.timestamp);
-    boost::apply_visitor(visitor, msg.submsg.op);
-}
 
 class stream_t : public eager_datum_stream_t {
 public:
@@ -231,7 +229,7 @@ sub_t::sub_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_feed) {
 sub_t::~sub_t() {
     debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
-    stop("Subscription destroyed (shutting down?).");
+    stop("Subscription destroyed (shutting down?).", detach_t::NO);
     debugf("del_sub %p\n", this);
     if (feed != NULL) {
         feed->del_sub(this);
@@ -354,8 +352,7 @@ void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
     }
 }
 
-template<class T>
-void feed_t::each_sub(const T &t) THROWS_NOTHING {
+void feed_t::each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::read);
@@ -367,16 +364,21 @@ void feed_t::each_sub(const T &t) THROWS_NOTHING {
             sub_threads.push_back(i);
         }
     }
+    // RSI: Does binding like this avoid making copies of variables that
+    // the binding function takes as references?  (e.g. `sub_threads`)
     pmap(sub_threads.size(),
-         [&t, &sub_threads, this](int i) {
-             auto set = &subs[sub_threads[i]];
-             guarantee(set->size() != 0);
-             on_thread_t th((threadnum_t(sub_threads[i])));
-             for (auto it = set->begin(); it != set->end(); ++it) {
-                 // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
-                 t(*it);
-             }
-         });
+         std::bind(&feed_t::each_sub_cb, this, f, sub_threads, ph::_1));
+}
+void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
+                         const std::vector<int> &sub_threads,
+                         int i) {
+    auto set = &subs[sub_threads[i]];
+    guarantee(set->size() != 0);
+    on_thread_t th((threadnum_t(sub_threads[i])));
+    for (auto it = set->begin(); it != set->end(); ++it) {
+        // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
+        f(*it);
+    }
 }
 
 bool feed_t::can_be_removed() {
@@ -397,6 +399,19 @@ void feed_t::check_stamp(uuid_u server_uuid, repli_timestamp_t timestamp) {
     last_timestamps[server_uuid] = timestamp;
 }
 
+void feed_t::mailbox_cb(stamped_msg_t msg) {
+    // We stop receiving messages when detached (we're only receiving
+    // messages because we haven't managed to get a message to the
+    // stop mailboxes for some of the masters yet).  This also stops
+    // us from trying to handle a message while waiting on the auto
+    // drainer.
+    if (!detached) {
+        check_stamp(msg.server_uuid, msg.timestamp);
+        msg_visitor_t visitor(this, msg.server_uuid, msg.timestamp);
+        boost::apply_visitor(visitor, msg.submsg.op);
+    }
+}
+
 feed_t::feed_t(client_t *_client,
                base_namespace_repo_t *ns_repo,
                uuid_u _uuid,
@@ -404,20 +419,7 @@ feed_t::feed_t(client_t *_client,
     : client(_client),
       uuid(_uuid),
       manager(client->get_manager()),
-      mailbox(
-          manager,
-          [this](stamped_msg_t msg) {
-              // We stop receiving messages when detached (we're only receiving
-              // messages because we haven't managed to get a message to the
-              // stop mailboxes for some of the masters yet).  This also stops
-              // us from trying to handle a message while waiting on the auto
-              // drainer.
-              if (!detached) {
-                  check_stamp(msg.server_uuid, msg.timestamp);
-                  handle_msg(this, msg);
-              }
-          }
-      ),
+      mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
       subs(get_num_threads()),
       num_subs(0),
       detached(false) {
@@ -440,30 +442,28 @@ feed_t::feed_t(client_t *_client,
                 manager->get_connectivity_service(), *it));
         any_disconnect.add(&*disconnect_watchers.back());
     }
-    // We spawn now to make sure `this` is valid when it runs.
-    coro_t::spawn_now_dangerously(
-        [this]() {
-            auto_drainer_t::lock_t lock(&drainer);
-            wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
-            wait_any.wait_lazily_unordered();
-            if (!detached) {
-                scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
-                detached = true;
-                if (self.has()) {
-                    each_sub(
-                        [](sub_t *sub) {
-                            // RSI: make sure feed pointer doesn't survive past a lock.
-                            sub->stop("Disconnected from peer.", detach_t::YES);
-                        }
-                    );
-                    num_subs = 0;
-                } else {
-                    // We only get here if we were removed before we were detached.
-                    guarantee(num_subs == 0);
-                }
-            }
+    // We spawn now so that the auto drainer lock is acquired immediately.
+    coro_t::spawn_now_dangerously(std::bind(&feed_t::constructor_cb, this));
+}
+
+void feed_t::constructor_cb() {
+    auto_drainer_t::lock_t lock(&drainer);
+    wait_any_t wait_any(&any_disconnect, lock.get_drain_signal());
+    wait_any.wait_lazily_unordered();
+    if (!detached) {
+        scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
+        detached = true;
+        if (self.has()) {
+            const char *msg = "Disconnected from peer.";
+            // RSI: make sure feed pointer doesn't survive past a lock.
+            // RSI: What does the above RSI mean?
+            each_sub(std::bind(&sub_t::stop, ph::_1, msg, detach_t::YES));
+            num_subs = 0;
+        } else {
+            // We only get here if we were removed before we were detached.
+            guarantee(num_subs == 0);
         }
-    );
+    }
 }
 
 feed_t::~feed_t() {

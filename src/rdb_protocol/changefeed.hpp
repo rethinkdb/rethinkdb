@@ -86,6 +86,9 @@ public:
     addr_t get_stop_addr();
     uuid_u get_uuid();
 private:
+    void stop_mailbox_cb(client_t::addr_t addr);
+    void add_client_cb(signal_t *stopped, client_t::addr_t addr);
+
     uuid_u uuid;
     mailbox_manager_t *manager;
     std::map<client_t::addr_t, std::pair<int64_t, scoped_ptr_t<cond_t> > > clients;
