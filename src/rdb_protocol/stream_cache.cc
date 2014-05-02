@@ -33,7 +33,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     entry->last_activity = time(0);
 
     std::exception_ptr exc;
-    /*try*/ {
+    try {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
         // a new env_t instead?  Why do we keep env_t's around anymore?)
@@ -54,8 +54,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             entry->env->trace->as_datum()->write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
-    // } catch (const std::exception &e) {
-    //     exc = std::current_exception();
+    } catch (const std::exception &e) {
+        exc = std::current_exception();
     }
     if (exc) {
         // We can't do this in the `catch` statement because erase may trigger
