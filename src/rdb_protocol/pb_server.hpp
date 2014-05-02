@@ -10,7 +10,6 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream_cache.hpp"
-#include "rdb_protocol/changefeed.hpp"
 
 namespace ql { template <class> class protob_t; }
 
