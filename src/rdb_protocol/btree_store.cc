@@ -239,6 +239,8 @@ void store_t::reset_data(
     get_metainfo_internal(superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 
+    // TODO! More importantly, this is the one that should behave differently.
+
     protocol_reset_data(subregion,
                         superblock.get(),
                         interruptor);

@@ -639,6 +639,7 @@ void rdb_erase_range_convert_keys(const key_range_t &key_range,
      * names. */
 }
 
+// TODO! This function should die.
 void rdb_erase_major_range(key_tester_t *tester,
                            const key_range_t &key_range,
                            buf_lock_t *sindex_block,
@@ -705,6 +706,21 @@ void rdb_erase_small_range(key_tester_t *tester,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out) {
+    bool fully_erased = rdb_erase_small_range(tester, key_range, superblock,
+                                              deletion_context, interruptor, 0, NULL,
+                                              mod_reports_out);
+    guarantee(fully_erased);
+}
+
+bool rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &key_range,
+                           superblock_t *superblock,
+                           const deletion_context_t *deletion_context,
+                           signal_t *interruptor,
+                           unsigned int max_entries_erased,
+                           store_key_t *highest_erased_key_out,
+                           std::vector<rdb_modification_report_t> *mod_reports_out) {
+    rassert(max_entries_erased == 0 || highest_erased_key_out != NULL);
     rassert(mod_reports_out != NULL);
     mod_reports_out->clear();
 
@@ -717,8 +733,11 @@ void rdb_erase_small_range(key_tester_t *tester,
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     struct on_erase_cb_t {
-        static void on_erase(const store_key_t &key, const char *data,
+        static bool on_erase(const store_key_t &key, const char *data,
                 const buf_parent_t &parent,
+                unsigned int _max_entries_erased,
+                unsigned int *_num_entries_erased_out,
+                store_key_t *_highest_erased_key_out,
                 std::vector<rdb_modification_report_t> *_mod_reports_out) {
             const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
 
@@ -736,14 +755,30 @@ void rdb_erase_small_range(key_tester_t *tester,
                 value->value_ref() + value->inline_size(block_size));
 
             _mod_reports_out->push_back(mod_report);
+            ++(*_num_entries_erased_out);
+            if (_max_entries_erased != 0
+                && *_num_entries_erased_out >= _max_entries_erased) {
+                // We have hit the limit. Don't erase any more.
+                *_highest_erased_key_out = key;
+                return false;
+            } else {
+                return true;
+            }
         }
     };
 
+    unsigned int num_entries_erased = 0;
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor, true /* release_superblock */,
-        std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
+        std::bind(&on_erase_cb_t::on_erase,
+                  ph::_1, ph::_2, ph::_3,
+                  max_entries_erased, &num_entries_erased, highest_erased_key_out,
+                  mod_reports_out));
+    const bool hit_limit = max_entries_erased != 0
+                           && num_entries_erased >= max_entries_erased;
+    return !hit_limit;
 }
 
 // This is actually a kind of misleading name. This function estimates the size

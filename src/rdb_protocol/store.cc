@@ -790,6 +790,7 @@ void store_t::protocol_reset_data(const region_t &subregion,
     buf_lock_t sindex_block
         = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
+    // TODO! This should work differently. It doesn't have to be atomic anyway.
     rdb_erase_major_range(&key_tester, subregion.inner,
                           &sindex_block,
                           superblock, this,

@@ -170,6 +170,7 @@ void rdb_erase_major_range(key_tester_t *tester,
                            store_t *store,
                            signal_t *interruptor);
 
+// TODO! Update the comment below once rdb_erase_major_range() is gone.
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
  * the btree, and m is the number of documents actually being deleted.
  * It also requires O(m) memory.
@@ -182,6 +183,19 @@ void rdb_erase_small_range(key_tester_t *tester,
                            superblock_t *superblock,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
+                           std::vector<rdb_modification_report_t> *mod_reports_out);
+/* This variant also takes a `max_entries_erased` parameter. Once that many entries
+ * have been erased, it will abort and write the key of the last erased entry into
+ * `highest_erased_key_out`.
+ * Returns `true` if  all data in the range has been erased, or `false` if erasing
+ * was terminated because of hitting the `max_entries_erased` parameter. */
+bool rdb_erase_small_range(key_tester_t *tester,
+                           const key_range_t &keys,
+                           superblock_t *superblock,
+                           const deletion_context_t *deletion_context,
+                           signal_t *interruptor,
+                           unsigned int max_entries_erased,
+                           store_key_t *highest_erased_key_out,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
 
 /* RGETS */
