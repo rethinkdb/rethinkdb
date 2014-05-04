@@ -1136,21 +1136,21 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-void serialize(write_message_t *msg, const counted_t<const datum_t> &datum) {
+void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        serialize(msg, datum_serialized_type_t::R_ARRAY);
+        serialize(wm, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
-        serialize(msg, value);
+        serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
-        serialize(msg, datum_serialized_type_t::R_BOOL);
+        serialize(wm, datum_serialized_type_t::R_BOOL);
         bool value = datum->as_bool();
-        serialize(msg, value);
+        serialize(wm, value);
     } break;
     case datum_t::R_NULL: {
-        serialize(msg, datum_serialized_type_t::R_NULL);
+        serialize(wm, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
         double value = datum->as_num();
@@ -1161,25 +1161,25 @@ void serialize(write_message_t *msg, const counted_t<const datum_t> &datum) {
             // so we can use `signbit` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
             if (signbit(value)) {
-                serialize(msg, datum_serialized_type_t::INT_NEGATIVE);
-                serialize_varint_uint64(msg, -i);
+                serialize(wm, datum_serialized_type_t::INT_NEGATIVE);
+                serialize_varint_uint64(wm, -i);
             } else {
-                serialize(msg, datum_serialized_type_t::INT_POSITIVE);
-                serialize_varint_uint64(msg, i);
+                serialize(wm, datum_serialized_type_t::INT_POSITIVE);
+                serialize_varint_uint64(wm, i);
             }
         } else {
-            serialize(msg, datum_serialized_type_t::DOUBLE);
-            serialize(msg, value);
+            serialize(wm, datum_serialized_type_t::DOUBLE);
+            serialize(wm, value);
         }
     } break;
     case datum_t::R_OBJECT: {
-        serialize(msg, datum_serialized_type_t::R_OBJECT);
-        serialize(msg, datum->as_object());
+        serialize(wm, datum_serialized_type_t::R_OBJECT);
+        serialize(wm, datum->as_object());
     } break;
     case datum_t::R_STR: {
-        serialize(msg, datum_serialized_type_t::R_STR);
+        serialize(wm, datum_serialized_type_t::R_STR);
         const wire_string_t &value = datum->as_str();
-        serialize(msg, value);
+        serialize(wm, value);
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
@@ -1290,13 +1290,13 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return archive_result_t::SUCCESS;
 }
 
-void serialize(write_message_t *msg,
+void serialize(write_message_t *wm,
                const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
-    serialize(msg, has);
+    serialize(wm, has);
     if (has) {
-        serialize(msg, *pointer);
+        serialize(wm, *pointer);
     }
 }
 

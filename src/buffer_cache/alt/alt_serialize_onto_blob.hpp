@@ -7,7 +7,7 @@
 #include "containers/archive/buffer_group_stream.hpp"
 
 void write_onto_blob(buf_parent_t parent, blob_t *blob,
-                     const write_message_t &msg);
+                     const write_message_t &wm);
 
 template <class T>
 void serialize_onto_blob(buf_parent_t parent, blob_t *blob,
@@ -17,9 +17,9 @@ void serialize_onto_blob(buf_parent_t parent, blob_t *blob,
     // efficient to serialize onto an abstract stream type -- you've got a whole
     // bunch of virtual function calls that way.  But we do _deserialize_ off an
     // abstract stream type already, so what's the big deal?)
-    write_message_t msg;
-    serialize(&msg, value);
-    write_onto_blob(parent, blob, msg);
+    write_message_t wm;
+    serialize(&wm, value);
+    write_onto_blob(parent, blob, wm);
 }
 
 template <class T>

@@ -2,20 +2,20 @@
 
 #include "containers/archive/stl_types.hpp"
 
-void serialize(write_message_t *msg, const perfmon_result_t &x) {
+void serialize(write_message_t *wm, const perfmon_result_t &x) {
     perfmon_result_t::perfmon_result_type_t type = x.get_type();
-    serialize(msg, type);
+    serialize(wm, type);
     switch (type) {
     case perfmon_result_t::type_value: {
-        serialize(msg, *x.get_string());
+        serialize(wm, *x.get_string());
     } break;
     case perfmon_result_t::type_map: {
         int64_t size = x.get_map_size();
-        serialize(msg, size);
+        serialize(wm, size);
         for (perfmon_result_t::const_iterator it = x.begin(); it != x.end(); ++it) {
-            serialize(msg, it->first);
+            serialize(wm, it->first);
             rassert(it->second != NULL);
-            serialize(msg, *it->second);
+            serialize(wm, *it->second);
         }
     } break;
     default:

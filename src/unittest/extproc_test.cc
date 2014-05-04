@@ -33,10 +33,10 @@ public:
         iterations(n) { }
 
     uint64_t run() {
-        write_message_t msg;
-        serialize(&msg, iterations);
+        write_message_t wm;
+        serialize(&wm, iterations);
         {
-            int res = send_write_message(extproc_job.write_stream(), &msg);
+            int res = send_write_message(extproc_job.write_stream(), &wm);
             guarantee(res == 0);
         }
 
@@ -55,9 +55,9 @@ private:
         }
 
         uint64_t result = fib(count);
-        write_message_t msg;
-        serialize(&msg, result);
-        int res = send_write_message(stream_out, &msg);
+        write_message_t wm;
+        serialize(&wm, result);
+        int res = send_write_message(stream_out, &wm);
         guarantee(res == 0);
         return true;
     }
@@ -77,9 +77,9 @@ public:
         extproc_job(pool, &worker_fn, interruptor),
         last_value(n) {
         // Kick off the worker with the initial value
-        write_message_t msg;
-        serialize(&msg, last_value);
-        int res = send_write_message(extproc_job.write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, last_value);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
@@ -91,9 +91,9 @@ public:
         }
 
         // Tell the worker to exit
-        write_message_t msg;
-        serialize(&msg, 'q');
-        int res = send_write_message(extproc_job.write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, 'q');
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
@@ -104,9 +104,9 @@ public:
         }
 
         // Send the notification to continue
-        write_message_t msg;
-        serialize(&msg, 'c');
-        int res = send_write_message(extproc_job.write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, 'c');
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
         return last_value;
     }
@@ -124,10 +124,10 @@ private:
             current_value = collatz(current_value);
 
             // Send current value.
-            write_message_t msg;
-            serialize(&msg, current_value);
+            write_message_t wm;
+            serialize(&wm, current_value);
             {
-                int res = send_write_message(stream_out, &msg);
+                int res = send_write_message(stream_out, &wm);
                 guarantee(res == 0);
             }
 
@@ -220,9 +220,9 @@ public:
     }
 
     void write() {
-        write_message_t msg;
-        serialize(&msg, 100);
-        int res = send_write_message(extproc_job.write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, 100);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
             throw std::runtime_error("read failed");
         }
@@ -387,13 +387,13 @@ public:
         extproc_job(pool, &worker_fn, NULL) { }
 
     void corrupt(bool direction) {
-        write_message_t msg;
-        serialize(&msg, direction);
-        int res = send_write_message(extproc_job.write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, direction);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
 
         if (!direction) {
-            res = send_write_message(extproc_job.write_stream(), &msg);
+            res = send_write_message(extproc_job.write_stream(), &wm);
             guarantee(res == 0);
         }
     }
@@ -408,9 +408,9 @@ private:
         }
 
         if (send_data) {
-            write_message_t msg;
-            serialize(&msg, send_data);
-            int res = send_write_message(stream_out, &msg);
+            write_message_t wm;
+            serialize(&wm, send_data);
+            int res = send_write_message(stream_out, &wm);
             guarantee(res == 0);
         }
 

@@ -369,13 +369,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_create_t &c) {
         sindex_create_response_t res;
 
-        write_message_t msg;
-        serialize(&msg, c.mapping);
-        serialize(&msg, c.multi);
+        write_message_t wm;
+        serialize(&wm, c.mapping);
+        serialize(&wm, c.multi);
 
         vector_stream_t stream;
-        stream.reserve(msg.size());
-        int write_res = send_write_message(&stream, &msg);
+        stream.reserve(wm.size());
+        int write_res = send_write_message(&stream, &wm);
         guarantee(write_res == 0);
 
         res.success = store->add_sindex(
@@ -466,9 +466,9 @@ private:
         scoped_ptr_t<new_mutex_in_line_t> acq =
             store->get_in_line_for_sindex_queue(&sindex_block);
 
-        write_message_t msg;
-        serialize(&msg, rdb_sindex_change_t(*mod_report));
-        store->sindex_queue_push(msg, acq.get());
+        write_message_t wm;
+        serialize(&wm, rdb_sindex_change_t(*mod_report));
+        store->sindex_queue_push(wm, acq.get());
 
         store_t::sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,

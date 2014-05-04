@@ -234,8 +234,8 @@ const char *cJSON_type_to_string(int type) {
     }
 }
 
-void serialize(write_message_t *msg, const cJSON &cjson) {
-    serialize(msg, cjson.type);
+void serialize(write_message_t *wm, const cJSON &cjson) {
+    serialize(wm, cjson.type);
 
     switch (cjson.type) {
     case cJSON_False:
@@ -245,24 +245,24 @@ void serialize(write_message_t *msg, const cJSON &cjson) {
     case cJSON_NULL:
         break;
     case cJSON_Number:
-        serialize(msg, cjson.valuedouble);
+        serialize(wm, cjson.valuedouble);
         break;
     case cJSON_String: {
         guarantee(cjson.valuestring);
         std::string s(cjson.valuestring);
-        serialize(msg, s);
+        serialize(wm, s);
     } break;
     case cJSON_Array:
     case cJSON_Object: {
-        serialize(msg, cJSON_GetArraySize(&cjson));
+        serialize(wm, cJSON_GetArraySize(&cjson));
 
         cJSON *hd = cjson.head;
         while (hd) {
             if (cjson.type == cJSON_Object) {
                 guarantee(hd->string);
-                serialize(msg, std::string(hd->string));
+                serialize(wm, std::string(hd->string));
             }
-            serialize(msg, *hd);
+            serialize(wm, *hd);
             hd = hd->next;
         }
     } break;

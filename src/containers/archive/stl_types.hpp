@@ -26,9 +26,9 @@ size_t serialized_size(const std::pair<T, U> &p) {
 
 // Keep in sync with serialized_size.
 template <class T, class U>
-void serialize(write_message_t *msg, const std::pair<T, U> &p) {
-    serialize(msg, p.first);
-    serialize(msg, p.second);
+void serialize(write_message_t *wm, const std::pair<T, U> &p) {
+    serialize(wm, p.first);
+    serialize(wm, p.second);
 }
 
 template <class T, class U>
@@ -51,13 +51,13 @@ size_t serialized_size(const std::map<K, V, C> &m) {
 
 // Keep in sync with serialized_size.
 template <class K, class V, class C>
-void serialize(write_message_t *msg, const std::map<K, V, C> &m) {
+void serialize(write_message_t *wm, const std::map<K, V, C> &m) {
     // Extreme platform paranoia: It could become important that we
     // use something consistent like uint64_t for the size, not some
     // platform-specific size type such as std::map<K, V>::size_type.
-    serialize_varint_uint64(msg, m.size());
+    serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
-        serialize(msg, *it);
+        serialize(wm, *it);
     }
 }
 
@@ -88,10 +88,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
 }
 
 template <class T>
-void serialize(write_message_t *msg, const std::set<T> &s) {
-    serialize_varint_uint64(msg, s.size());
+void serialize(write_message_t *wm, const std::set<T> &s) {
+    serialize_varint_uint64(wm, s.size());
     for (typename std::set<T>::iterator it = s.begin(), e = s.end(); it != e; ++it) {
-        serialize(msg, *it);
+        serialize(wm, *it);
     }
 }
 
@@ -120,7 +120,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
 }
 
 size_t serialized_size(const std::string &s);
-void serialize(write_message_t *msg, const std::string &s);
+void serialize(write_message_t *wm, const std::string &s);
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
 
 // Think twice before using this function on vectors containing a primitive type --
@@ -138,10 +138,10 @@ size_t serialized_size(const std::vector<T> &v) {
 
 // Keep in sync with serialized_size.
 template <class T>
-void serialize(write_message_t *msg, const std::vector<T> &v) {
-    serialize_varint_uint64(msg, v.size());
+void serialize(write_message_t *wm, const std::vector<T> &v) {
+    serialize_varint_uint64(wm, v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
-        serialize(msg, *it);
+        serialize(wm, *it);
     }
 }
 
@@ -168,10 +168,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
 
 // TODO: Stop using std::list! What are you thinking?
 template <class T>
-void serialize(write_message_t *msg, const std::list<T> &v) {
-    serialize_varint_uint64(msg, v.size());
+void serialize(write_message_t *wm, const std::list<T> &v) {
+    serialize_varint_uint64(wm, v.size());
     for (typename std::list<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
-        serialize(msg, *it);
+        serialize(wm, *it);
     }
 }
 

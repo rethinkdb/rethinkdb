@@ -20,7 +20,7 @@ to handle messages it receives. To send messages to the mailbox, call the
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
-    virtual void write(write_message_t *msg) = 0;
+    virtual void write(write_message_t *wm) = 0;
 };
 
 class mailbox_read_callback_t {

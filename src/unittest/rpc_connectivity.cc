@@ -28,9 +28,9 @@ public:
             explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
             void write(write_stream_t *stream) {
-                write_message_t msg;
-                serialize(&msg, data);
-                int res = send_write_message(stream, &msg);
+                write_message_t wm;
+                serialize(&wm, data);
+                int res = send_write_message(stream, &wm);
                 if (res) { throw fake_archive_exc_t(); }
             }
             int32_t data;

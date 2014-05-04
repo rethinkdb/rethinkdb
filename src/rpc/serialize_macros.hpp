@@ -38,13 +38,13 @@ the class scope. */
 
 #define RDB_DECLARE_ME_SERIALIZABLE \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const; \
+    void rdb_serialize(write_message_t *wm) const; \
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s)
 
 #define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t, version) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, UNUSED type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -60,8 +60,8 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_0(version) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -74,8 +74,8 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_0(typ, version) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -87,9 +87,9 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, version, field1) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -107,9 +107,9 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_1(version, field1) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -124,9 +124,9 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_1(typ, version, field1) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -140,10 +140,10 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, version, field1, field2) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -163,10 +163,10 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_2(version, field1, field2) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -183,10 +183,10 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_2(typ, version, field1, field2) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -202,11 +202,11 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, version, field1, field2, field3) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -228,11 +228,11 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_3(version, field1, field2, field3) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -251,11 +251,11 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_3(typ, version, field1, field2, field3) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -273,12 +273,12 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, version, field1, field2, field3, field4) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -302,12 +302,12 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_4(version, field1, field2, field3, field4) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -328,12 +328,12 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_4(typ, version, field1, field2, field3, field4) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -353,13 +353,13 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, version, field1, field2, field3, field4, field5) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -385,13 +385,13 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_5(version, field1, field2, field3, field4, field5) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -414,13 +414,13 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_5(typ, version, field1, field2, field3, field4, field5) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -442,14 +442,14 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, version, field1, field2, field3, field4, field5, field6) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -477,14 +477,14 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_6(version, field1, field2, field3, field4, field5, field6) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -509,14 +509,14 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_6(typ, version, field1, field2, field3, field4, field5, field6) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -540,15 +540,15 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -578,15 +578,15 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_7(version, field1, field2, field3, field4, field5, field6, field7) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -613,15 +613,15 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_7(typ, version, field1, field2, field3, field4, field5, field6, field7) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -647,16 +647,16 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -688,16 +688,16 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_8(version, field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -726,16 +726,16 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_8(typ, version, field1, field2, field3, field4, field5, field6, field7, field8) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -763,17 +763,17 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -807,17 +807,17 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_9(version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -848,17 +848,17 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_9(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -888,18 +888,18 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -935,18 +935,18 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_10(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -979,18 +979,18 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_10(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1022,19 +1022,19 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1072,19 +1072,19 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_11(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1119,19 +1119,19 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_11(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1165,20 +1165,20 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1218,20 +1218,20 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_12(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1268,20 +1268,20 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_12(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1317,21 +1317,21 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1373,21 +1373,21 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_13(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1426,21 +1426,21 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_13(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1478,22 +1478,22 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1537,22 +1537,22 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_14(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1593,22 +1593,22 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_14(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1648,23 +1648,23 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
-        serialize(msg, thing.field15); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
+        serialize(wm, thing.field15); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1710,23 +1710,23 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_15(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1769,23 +1769,23 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_15(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1827,24 +1827,24 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
-        serialize(msg, thing.field15); \
-        serialize(msg, thing.field16); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
+        serialize(wm, thing.field15); \
+        serialize(wm, thing.field16); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1892,24 +1892,24 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_16(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -1954,24 +1954,24 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_16(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2015,25 +2015,25 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
-        serialize(msg, thing.field15); \
-        serialize(msg, thing.field16); \
-        serialize(msg, thing.field17); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
+        serialize(wm, thing.field15); \
+        serialize(wm, thing.field16); \
+        serialize(wm, thing.field17); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2083,25 +2083,25 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_17(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2148,25 +2148,25 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_17(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2212,26 +2212,26 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
-        serialize(msg, thing.field15); \
-        serialize(msg, thing.field16); \
-        serialize(msg, thing.field17); \
-        serialize(msg, thing.field18); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
+        serialize(wm, thing.field15); \
+        serialize(wm, thing.field16); \
+        serialize(wm, thing.field17); \
+        serialize(wm, thing.field18); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2283,26 +2283,26 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_18(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
-        serialize(msg, field18); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
+        serialize(wm, field18); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2351,26 +2351,26 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_18(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
-        serialize(msg, field18); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
+        serialize(wm, field18); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2418,27 +2418,27 @@ the class scope. */
     }
 
 #define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    function_attr void serialize(write_message_t *msg, const type_t &thing) { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, thing.field1); \
-        serialize(msg, thing.field2); \
-        serialize(msg, thing.field3); \
-        serialize(msg, thing.field4); \
-        serialize(msg, thing.field5); \
-        serialize(msg, thing.field6); \
-        serialize(msg, thing.field7); \
-        serialize(msg, thing.field8); \
-        serialize(msg, thing.field9); \
-        serialize(msg, thing.field10); \
-        serialize(msg, thing.field11); \
-        serialize(msg, thing.field12); \
-        serialize(msg, thing.field13); \
-        serialize(msg, thing.field14); \
-        serialize(msg, thing.field15); \
-        serialize(msg, thing.field16); \
-        serialize(msg, thing.field17); \
-        serialize(msg, thing.field18); \
-        serialize(msg, thing.field19); \
+    function_attr void serialize(write_message_t *wm, const type_t &thing) { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, thing.field1); \
+        serialize(wm, thing.field2); \
+        serialize(wm, thing.field3); \
+        serialize(wm, thing.field4); \
+        serialize(wm, thing.field5); \
+        serialize(wm, thing.field6); \
+        serialize(wm, thing.field7); \
+        serialize(wm, thing.field8); \
+        serialize(wm, thing.field9); \
+        serialize(wm, thing.field10); \
+        serialize(wm, thing.field11); \
+        serialize(wm, thing.field12); \
+        serialize(wm, thing.field13); \
+        serialize(wm, thing.field14); \
+        serialize(wm, thing.field15); \
+        serialize(wm, thing.field16); \
+        serialize(wm, thing.field17); \
+        serialize(wm, thing.field18); \
+        serialize(wm, thing.field19); \
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2492,27 +2492,27 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_19(version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
-        serialize(msg, field18); \
-        serialize(msg, field19); \
+    void rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
+        serialize(wm, field18); \
+        serialize(wm, field19); \
     } \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \
@@ -2563,27 +2563,27 @@ the class scope. */
     friend class archive_deserializer_t
 
 #define RDB_IMPL_ME_SERIALIZABLE_19(typ, version, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    void typ::rdb_serialize(write_message_t *msg) const { \
-        serialize_varint_uint64(msg, version); \
-        serialize(msg, field1); \
-        serialize(msg, field2); \
-        serialize(msg, field3); \
-        serialize(msg, field4); \
-        serialize(msg, field5); \
-        serialize(msg, field6); \
-        serialize(msg, field7); \
-        serialize(msg, field8); \
-        serialize(msg, field9); \
-        serialize(msg, field10); \
-        serialize(msg, field11); \
-        serialize(msg, field12); \
-        serialize(msg, field13); \
-        serialize(msg, field14); \
-        serialize(msg, field15); \
-        serialize(msg, field16); \
-        serialize(msg, field17); \
-        serialize(msg, field18); \
-        serialize(msg, field19); \
+    void typ::rdb_serialize(write_message_t *wm) const { \
+        serialize_varint_uint64(wm, version); \
+        serialize(wm, field1); \
+        serialize(wm, field2); \
+        serialize(wm, field3); \
+        serialize(wm, field4); \
+        serialize(wm, field5); \
+        serialize(wm, field6); \
+        serialize(wm, field7); \
+        serialize(wm, field8); \
+        serialize(wm, field9); \
+        serialize(wm, field10); \
+        serialize(wm, field11); \
+        serialize(wm, field12); \
+        serialize(wm, field13); \
+        serialize(wm, field14); \
+        serialize(wm, field15); \
+        serialize(wm, field16); \
+        serialize(wm, field17); \
+        serialize(wm, field18); \
+        serialize(wm, field19); \
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = archive_result_t::SUCCESS; \

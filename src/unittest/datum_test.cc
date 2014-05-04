@@ -9,9 +9,9 @@ namespace unittest {
 
 void test_datum_serialization(const counted_t<const ql::datum_t> datum) {
     string_stream_t write_stream;
-    write_message_t msg;
-    serialize(&msg, datum);
-    int write_res = send_write_message(&write_stream, &msg);
+    write_message_t wm;
+    serialize(&wm, datum);
+    int write_res = send_write_message(&write_stream, &wm);
     ASSERT_EQ(0, write_res);
 
     string_read_stream_t read_stream(std::move(write_stream.str()), 0);
