@@ -107,9 +107,9 @@ public:
     void push(const T &t) {
         // TODO: There's an unnecessary copying of data here (which would require a
         // serialization_size overloaded function to be implemented in order to eliminate).
-        write_message_t wm;
-        wm << t;
-        internal_.push(wm);
+        write_message_t msg;
+        serialize(&msg, t);
+        internal_.push(msg);
     }
 
     void pop(T *out) {

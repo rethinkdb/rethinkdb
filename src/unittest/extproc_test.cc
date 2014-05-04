@@ -33,10 +33,10 @@ public:
         iterations(n) { }
 
     uint64_t run() {
-        write_message_t wm;
-        wm << iterations;
+        write_message_t msg;
+        serialize(&msg, iterations);
         {
-            int res = send_write_message(extproc_job.write_stream(), &wm);
+            int res = send_write_message(extproc_job.write_stream(), &msg);
             guarantee(res == 0);
         }
 
@@ -55,9 +55,9 @@ private:
         }
 
         uint64_t result = fib(count);
-        write_message_t wm;
-        wm << result;
-        int res = send_write_message(stream_out, &wm);
+        write_message_t msg;
+        serialize(&msg, result);
+        int res = send_write_message(stream_out, &msg);
         guarantee(res == 0);
         return true;
     }
@@ -77,9 +77,9 @@ public:
         extproc_job(pool, &worker_fn, interruptor),
         last_value(n) {
         // Kick off the worker with the initial value
-        write_message_t wm;
-        wm << last_value;
-        int res = send_write_message(extproc_job.write_stream(), &wm);
+        write_message_t msg;
+        serialize(&msg, last_value);
+        int res = send_write_message(extproc_job.write_stream(), &msg);
         guarantee(res == 0);
     }
 
@@ -91,9 +91,9 @@ public:
         }
 
         // Tell the worker to exit
-        write_message_t wm;
-        wm << 'q';
-        int res = send_write_message(extproc_job.write_stream(), &wm);
+        write_message_t msg;
+        serialize(&msg, 'q');
+        int res = send_write_message(extproc_job.write_stream(), &msg);
         guarantee(res == 0);
     }
 
@@ -104,9 +104,9 @@ public:
         }
 
         // Send the notification to continue
-        write_message_t wm;
-        wm << 'c';
-        int res = send_write_message(extproc_job.write_stream(), &wm);
+        write_message_t msg;
+        serialize(&msg, 'c');
+        int res = send_write_message(extproc_job.write_stream(), &msg);
         guarantee(res == 0);
         return last_value;
     }
@@ -125,7 +125,7 @@ private:
 
             // Send current value.
             write_message_t msg;
-            msg << current_value;
+            serialize(&msg, current_value);
             {
                 int res = send_write_message(stream_out, &msg);
                 guarantee(res == 0);
@@ -221,7 +221,7 @@ public:
 
     void write() {
         write_message_t msg;
-        msg << 100;
+        serialize(&msg, 100);
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) {
             throw std::runtime_error("read failed");
@@ -388,7 +388,7 @@ public:
 
     void corrupt(bool direction) {
         write_message_t msg;
-        msg << direction;
+        serialize(&msg, direction);
         int res = send_write_message(extproc_job.write_stream(), &msg);
         guarantee(res == 0);
 
@@ -409,7 +409,7 @@ private:
 
         if (send_data) {
             write_message_t msg;
-            msg << send_data;
+            serialize(&msg, send_data);
             int res = send_write_message(stream_out, &msg);
             guarantee(res == 0);
         }

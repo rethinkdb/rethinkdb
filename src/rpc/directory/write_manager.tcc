@@ -87,9 +87,9 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = 'I';
-        msg << code;
-        msg << initial_value;
-        msg << metadata_fifo_state;
+        serialize(&msg, code);
+        serialize(&msg, initial_value);
+        serialize(&msg, metadata_fifo_state);
         int res = send_write_message(stream, &msg);
         if (res) {
             throw fake_archive_exc_t();
@@ -110,9 +110,9 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = 'U';
-        msg << code;
-        msg << new_value;
-        msg << metadata_fifo_token;
+        serialize(&msg, code);
+        serialize(&msg, new_value);
+        serialize(&msg, metadata_fifo_token);
         int res = send_write_message(stream, &msg);
         if (res) {
             throw fake_archive_exc_t();

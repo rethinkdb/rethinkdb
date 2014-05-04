@@ -23,7 +23,7 @@ private:
     public:
         explicit write_impl_t(int _arg) : arg(_arg) { }
         void write(write_message_t *msg) {
-            *msg << arg;
+            serialize(msg, arg);
         }
     private:
         friend class read_impl_t;

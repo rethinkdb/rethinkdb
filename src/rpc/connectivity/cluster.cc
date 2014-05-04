@@ -563,14 +563,14 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t msg;
         msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        msg << static_cast<uint64_t>(cluster_version.length());
+        serialize(&msg, static_cast<uint64_t>(cluster_version.length()));
         msg.append(cluster_version.data(), cluster_version.length());
-        msg << static_cast<uint64_t>(cluster_arch_bitsize.length());
+        serialize(&msg, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         msg.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
-        msg << static_cast<uint64_t>(cluster_build_mode.length());
+        serialize(&msg, static_cast<uint64_t>(cluster_build_mode.length()));
         msg.append(cluster_build_mode.data(), cluster_build_mode.length());
-        msg << parent->me;
-        msg << routing_table[parent->me].hosts();
+        serialize(&msg, parent->me);
+        serialize(&msg, routing_table[parent->me].hosts());
         if (send_write_message(conn, &msg))
             return; // network error.
     }
@@ -720,7 +720,7 @@ void connectivity_cluster_t::run_t::handle(
         knows we're in. */
         {
             write_message_t msg;
-            msg << routing_table_to_send;
+            serialize(&msg, routing_table_to_send);
             if (send_write_message(conn, &msg))
                 return;         // network error
         }
@@ -747,7 +747,7 @@ void connectivity_cluster_t::run_t::handle(
         /* Send our routing table to the leader */
         {
             write_message_t msg;
-            msg << routing_table_to_send;
+            serialize(&msg, routing_table_to_send);
             if (send_write_message(conn, &msg))
                 return;         // network error
         }

@@ -61,8 +61,8 @@ public:
 
     void write(write_stream_t *stream) {
         write_message_t msg;
-        msg << dest_thread;
-        msg << dest_mailbox_id;
+        serialize(&msg, dest_thread);
+        serialize(&msg, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(msg.size());
 
         subwriter->write(&msg);
@@ -71,7 +71,7 @@ public:
         // TODO: It would be more efficient if we could make this part of `msg`.
         //  e.g. with a `prepend()` method on write_message_t.
         write_message_t length_msg;
-        length_msg << (static_cast<uint64_t>(msg.size()) - prefix_length);
+        serialize(&length_msg, static_cast<uint64_t>(msg.size()) - prefix_length);
 
         int res = send_write_message(stream, &length_msg);
         if (res) { throw fake_archive_exc_t(); }

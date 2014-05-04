@@ -99,7 +99,7 @@ js_result_t js_job_t::eval(const std::string &source) {
     js_task_t task = js_task_t::TASK_EVAL;
     write_message_t msg;
     msg.append(&task, sizeof(task));
-    msg << source;
+    serialize(&msg, source);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
@@ -118,8 +118,8 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     js_task_t task = js_task_t::TASK_CALL;
     write_message_t msg;
     msg.append(&task, sizeof(task));
-    msg << id;
-    msg << args;
+    serialize(&msg, id);
+    serialize(&msg, args);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
@@ -138,7 +138,7 @@ void js_job_t::release(js_id_t id) {
     js_task_t task = js_task_t::TASK_RELEASE;
     write_message_t msg;
     msg.append(&task, sizeof(task));
-    msg << id;
+    serialize(&msg, id);
     int res = send_write_message(extproc_job.write_stream(), &msg);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 }
@@ -178,7 +178,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
 
                 js_result_t js_result = js_env.eval(source);
                 write_message_t msg;
-                msg << js_result;
+                serialize(&msg, js_result);
                 int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }
@@ -196,7 +196,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
 
                 js_result_t js_result = js_env.call(id, args);
                 write_message_t msg;
-                msg << js_result;
+                serialize(&msg, js_result);
                 int res = send_write_message(stream_out, &msg);
                 if (res != 0) { return false; }
             }

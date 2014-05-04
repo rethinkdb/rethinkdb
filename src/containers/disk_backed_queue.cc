@@ -69,7 +69,7 @@ void internal_disk_backed_queue_t::push(const scoped_array_t<write_message_t> &w
     }
 }
 
-void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t &wm) {
+void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t &msg) {
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(txn);
     }
@@ -84,7 +84,7 @@ void internal_disk_backed_queue_t::push_single(txn_t *txn, const write_message_t
 
     blob_t blob(cache->max_block_size(), buffer, DBQ_MAX_REF_SIZE);
 
-    write_onto_blob(buf_parent_t(_head.get()), &blob, wm);
+    write_onto_blob(buf_parent_t(_head.get()), &blob, msg);
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.

@@ -121,7 +121,7 @@ public:
 
     template <class T>
     void append_value(const T &x) {
-        x.rdb_serialize(*this);
+        x.rdb_serialize(this);
     }
 
 private:
@@ -133,9 +133,8 @@ private:
 };
 
 template <class T>
-write_message_t &operator<<(write_message_t& msg, const T &x) {
-    msg.append_value(x);
-    return msg;
+void serialize(write_message_t *msg, const T &x) {
+    msg->append_value(x);
 }
 
 // Returns 0 upon success, -1 upon failure.
@@ -197,15 +196,14 @@ template <class T>
 struct serialized_size_t;
 
 // Keep in sync with serialized_size_t defined below.
-#define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
-    inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
-        union {                                                         \
-            typ2 v;                                                     \
-            char buf[sizeof(typ2)];                                     \
-        } u;                                                            \
-        u.v = static_cast<typ2>(x);                                     \
-        msg.append(u.buf, sizeof(typ2));                                \
-        return msg;                                                     \
+#define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)   \
+    inline void serialize(write_message_t *msg, typ1 x) {  \
+        union {                                            \
+            typ2 v;                                        \
+            char buf[sizeof(typ2)];                        \
+        } u;                                               \
+        u.v = static_cast<typ2>(x);                        \
+        msg->append(u.buf, sizeof(typ2));                  \
     }
 
 
@@ -281,16 +279,16 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 template <>
 struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 
-write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
+void serialize(write_message_t *msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
 struct in_addr;
 struct in6_addr;
 
-write_message_t &operator<<(write_message_t &msg, const in_addr &addr);
+void serialize(write_message_t *msg, const in_addr &addr);
 MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
 
-write_message_t &operator<<(write_message_t &msg, const in6_addr &addr);
+void serialize(write_message_t *msg, const in6_addr &addr);
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

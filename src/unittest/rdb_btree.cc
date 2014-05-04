@@ -63,10 +63,10 @@ void insert_rows(int start, int finish, store_t *store) {
             scoped_ptr_t<new_mutex_in_line_t> acq =
                 store->get_in_line_for_sindex_queue(&sindex_block);
 
-            write_message_t wm;
-            wm << rdb_sindex_change_t(mod_report);
+            write_message_t msg;
+            serialize(&msg, rdb_sindex_change_t(mod_report));
 
-            store->sindex_queue_push(wm, acq.get());
+            store->sindex_queue_push(msg, acq.get());
         }
     }
 }
@@ -97,13 +97,13 @@ std::string create_sindex(store_t *store) {
 
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
-    write_message_t wm;
-    wm << m;
-    wm << multi_bool;
+    write_message_t msg;
+    serialize(&msg, m);
+    serialize(&msg, multi_bool);
 
     vector_stream_t stream;
-    stream.reserve(wm.size());
-    int res = send_write_message(&stream, &wm);
+    stream.reserve(msg.size());
+    int res = send_write_message(&stream, &msg);
     guarantee(res == 0);
 
     buf_lock_t sindex_block

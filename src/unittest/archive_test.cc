@@ -22,7 +22,7 @@ TEST(WriteMessageTest, Variant) {
 
     write_message_t msg;
 
-    msg << v;
+    serialize(&msg, v);
 
     std::string s;
     dump_to_string(&msg, &s);

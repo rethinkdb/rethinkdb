@@ -93,9 +93,9 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = message_code_metadata;
-        msg << code;
-        msg << md;
-        msg << mdv;
+        serialize(&msg, code);
+        serialize(&msg, md);
+        serialize(&msg, mdv);
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -113,8 +113,8 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = message_code_sync_from_query;
-        msg << code;
-        msg << query_id;
+        serialize(&msg, code);
+        serialize(&msg, query_id);
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -131,9 +131,9 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = message_code_sync_from_reply;
-        msg << code;
-        msg << query_id;
-        msg << version;
+        serialize(&msg, code);
+        serialize(&msg, query_id);
+        serialize(&msg, version);
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -151,9 +151,9 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = message_code_sync_to_query;
-        msg << code;
-        msg << query_id;
-        msg << version;
+        serialize(&msg, code);
+        serialize(&msg, query_id);
+        serialize(&msg, version);
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
@@ -171,8 +171,8 @@ public:
     void write(write_stream_t *stream) {
         write_message_t msg;
         uint8_t code = message_code_sync_to_reply;
-        msg << code;
-        msg << query_id;
+        serialize(&msg, code);
+        serialize(&msg, query_id);
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }

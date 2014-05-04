@@ -34,7 +34,7 @@ extproc_worker_t::~extproc_worker_t() {
 
         int exit_code = 0;
         write_message_t msg;
-        msg << exit_code;
+        serialize(&msg, exit_code);
         int res = send_write_message(get_write_stream(), &msg);
 
         socket_stream.reset();
@@ -83,7 +83,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
         // Trade magic numbers with worker process to see if it is still coherent
         try {
             write_message_t msg;
-            msg << parent_to_worker_magic;
+            serialize(&msg, parent_to_worker_magic);
             {
                 int res = send_write_message(socket_stream.get(), &msg);
                 if (res != 0) {

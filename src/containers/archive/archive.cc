@@ -98,10 +98,9 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
     return 0;
 }
 
-write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid) {
+void serialize(write_message_t *msg, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
-    msg.append(uuid.data(), uuid_u::static_size());
-    return msg;
+    msg->append(uuid.data(), uuid_u::static_size());
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
@@ -114,9 +113,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return archive_result_t::SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
-    msg.append(&addr.s6_addr, sizeof(addr.s6_addr));
-    return msg;
+void serialize(write_message_t *msg, const in6_addr &addr) {
+    msg->append(&addr.s6_addr, sizeof(addr.s6_addr));
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {

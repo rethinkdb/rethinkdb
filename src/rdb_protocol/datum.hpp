@@ -228,10 +228,10 @@ private:
 
 size_t serialized_size(const counted_t<const datum_t> &datum);
 
-write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
+void serialize(write_message_t *msg, const counted_t<const datum_t> &datum);
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
-write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
+void serialize(write_message_t *msg, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.

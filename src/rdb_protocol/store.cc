@@ -369,13 +369,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_create_t &c) {
         sindex_create_response_t res;
 
-        write_message_t wm;
-        wm << c.mapping;
-        wm << c.multi;
+        write_message_t msg;
+        serialize(&msg, c.mapping);
+        serialize(&msg, c.multi);
 
         vector_stream_t stream;
-        stream.reserve(wm.size());
-        int write_res = send_write_message(&stream, &wm);
+        stream.reserve(msg.size());
+        int write_res = send_write_message(&stream, &msg);
         guarantee(write_res == 0);
 
         res.success = store->add_sindex(
@@ -466,9 +466,9 @@ private:
         scoped_ptr_t<new_mutex_in_line_t> acq =
             store->get_in_line_for_sindex_queue(&sindex_block);
 
-        write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
-        store->sindex_queue_push(wm, acq.get());
+        write_message_t msg;
+        serialize(&msg, rdb_sindex_change_t(*mod_report));
+        store->sindex_queue_push(msg, acq.get());
 
         store_t::sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
@@ -748,7 +748,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
-                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
+                serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }
         }

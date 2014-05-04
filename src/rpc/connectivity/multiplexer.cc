@@ -80,7 +80,7 @@ public:
 
     void write(write_stream_t *os) {
         write_message_t msg;
-        msg << tag;
+        serialize(&msg, tag);
         int res = send_write_message(os, &msg);
         if (res) { throw fake_archive_exc_t(); }
         subwriter->write(os);

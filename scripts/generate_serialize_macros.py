@@ -19,11 +19,10 @@ def generate_make_serializable_macro(nfields):
     print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t, version%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \\"
-    print "        serialize_varint_uint64(&msg, version); \\"
+    print "    function_attr void serialize(write_message_t *msg, const type_t &thing) { \\"
+    print "        serialize_varint_uint64(msg, version); \\"
     for i in xrange(nfields):
-        print "        msg << thing.field%d; \\" % (i + 1)
-    print "    return msg; \\"
+        print "        serialize(msg, thing.field%d); \\" % (i + 1)
     print "    } \\"
     print "    function_attr archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
@@ -45,10 +44,10 @@ def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(version%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \\"
-    print "        serialize_varint_uint64(&msg, version); \\"
+    print "    void rdb_serialize(write_message_t *msg) const { \\"
+    print "        serialize_varint_uint64(msg, version); \\"
     for i in xrange(nfields):
-        print "        msg << field%d; \\" % (i + 1)
+        print "        serialize(msg, field%d); \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s) { \\"
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
@@ -67,10 +66,10 @@ def generate_make_me_serializable_macro(nfields):
 def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ, version%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    void typ::rdb_serialize(write_message_t &msg /* NOLINT */) const { \\"
-    print "        serialize_varint_uint64(&msg, version); \\"
+    print "    void typ::rdb_serialize(write_message_t *msg) const { \\"
+    print "        serialize_varint_uint64(msg, version); \\"
     for i in xrange(nfields):
-        print "        msg << field%d; \\" % (i + 1)
+        print "        serialize(msg, field%d); \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \\"
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
@@ -126,12 +125,12 @@ the class scope. */
     """.strip()
     print
     print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
-    print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
+    print "    void serialize(write_message_t *, const type_t &); \\"
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \\"
+    print "    void rdb_serialize(write_message_t *msg) const; \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"
     print

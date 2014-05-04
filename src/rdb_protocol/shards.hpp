@@ -60,11 +60,11 @@ public:
 };
 static inline void serialize_grouped(
     write_message_t *msg, const optimizer_t &o) { // NOLINT
-    *msg << o.row.has();
+    serialize(msg, o.row.has());
     if (o.row.has()) {
         r_sanity_check(o.val.has());
-        *msg << o.row;
-        *msg << o.val;
+        serialize(msg, o.row);
+        serialize(msg, o.val);
     }
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t *o) {
@@ -83,25 +83,27 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t
 // * Some grouped elements need specialized serialization.
 static inline void serialize_grouped(
     write_message_t *msg, const counted_t<const datum_t> &d) {
-    *msg << d.has();
-    if (d.has()) *msg << d;
+    serialize(msg, d.has());
+    if (d.has()) {
+        serialize(msg, d);
+    }
 }
 static inline void serialize_grouped(write_message_t *msg, uint64_t sz) {
     serialize_varint_uint64(msg, sz);
 }
 static inline void serialize_grouped(write_message_t *msg, double d) {
-    *msg << d;
+    serialize(msg, d);
 }
 static inline void serialize_grouped(write_message_t *msg,
                                      const std::pair<double, uint64_t> &p) {
-    *msg << p.first;
+    serialize(msg, p.first);
     serialize_varint_uint64(msg, p.second);
 }
 static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
-    *msg << sz;
+    serialize(msg, sz);
 }
 static inline void serialize_grouped(write_message_t *msg, const datums_t &ds) {
-    *msg << ds;
+    serialize(msg, ds);
 }
 
 static inline archive_result_t deserialize_grouped(
@@ -140,14 +142,14 @@ template<class T>
 class grouped_t {
 public:
     virtual ~grouped_t() { } // See grouped_data_t below.
-    void rdb_serialize(write_message_t &msg) const { // NOLINT
+    void rdb_serialize(write_message_t *msg) const {
         const uint64_t ser_version = 0;
-        serialize_varint_uint64(&msg, ser_version);
+        serialize_varint_uint64(msg, ser_version);
 
-        serialize_varint_uint64(&msg, m.size());
+        serialize_varint_uint64(msg, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
-            serialize_grouped(&msg, it->first);
-            serialize_grouped(&msg, it->second);
+            serialize_grouped(msg, it->first);
+            serialize_grouped(msg, it->second);
         }
     }
     archive_result_t rdb_deserialize(read_stream_t *s) {

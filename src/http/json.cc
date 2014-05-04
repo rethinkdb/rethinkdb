@@ -234,8 +234,8 @@ const char *cJSON_type_to_string(int type) {
     }
 }
 
-write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
-    msg << cjson.type;
+void serialize(write_message_t *msg, const cJSON &cjson) {
+    serialize(msg, cjson.type);
 
     switch (cjson.type) {
     case cJSON_False:
@@ -245,24 +245,24 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     case cJSON_NULL:
         break;
     case cJSON_Number:
-        msg << cjson.valuedouble;
+        serialize(msg, cjson.valuedouble);
         break;
     case cJSON_String: {
         guarantee(cjson.valuestring);
         std::string s(cjson.valuestring);
-        msg << s;
+        serialize(msg, s);
     } break;
     case cJSON_Array:
     case cJSON_Object: {
-        msg << cJSON_GetArraySize(&cjson);
+        serialize(msg, cJSON_GetArraySize(&cjson));
 
         cJSON *hd = cjson.head;
         while (hd) {
             if (cjson.type == cJSON_Object) {
                 guarantee(hd->string);
-                msg << std::string(hd->string);
+                serialize(msg, std::string(hd->string));
             }
-            msg << *hd;
+            serialize(msg, *hd);
             hd = hd->next;
         }
     } break;
@@ -270,7 +270,6 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
         crash("Unreachable");
         break;
     }
-    return msg;
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {

@@ -42,7 +42,7 @@ template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
     write_message_t msg;
-    msg << value;
+    serialize(&msg, value);
     intrusive_list_t<write_buffer_t> *buffers = msg.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {

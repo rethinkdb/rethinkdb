@@ -133,7 +133,7 @@ class mailbox_t< void(arg0_t) > {
             arg0(_arg0)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
+            serialize(msg, arg0);
         }
     };
 
@@ -194,8 +194,8 @@ class mailbox_t< void(arg0_t, arg1_t) > {
             arg0(_arg0), arg1(_arg1)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
         }
     };
 
@@ -260,9 +260,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
         }
     };
 
@@ -331,10 +331,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
         }
     };
 
@@ -407,11 +407,11 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
         }
     };
 
@@ -488,12 +488,12 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
         }
     };
 
@@ -574,13 +574,13 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
         }
     };
 
@@ -665,14 +665,14 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
         }
     };
 
@@ -761,15 +761,15 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
         }
     };
 
@@ -862,16 +862,16 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
-            *msg << arg9;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
+            serialize(msg, arg9);
         }
     };
 
@@ -968,17 +968,17 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
-            *msg << arg9;
-            *msg << arg10;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
+            serialize(msg, arg9);
+            serialize(msg, arg10);
         }
     };
 
@@ -1079,18 +1079,18 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
-            *msg << arg9;
-            *msg << arg10;
-            *msg << arg11;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
+            serialize(msg, arg9);
+            serialize(msg, arg10);
+            serialize(msg, arg11);
         }
     };
 
@@ -1195,19 +1195,19 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
-            *msg << arg9;
-            *msg << arg10;
-            *msg << arg11;
-            *msg << arg12;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
+            serialize(msg, arg9);
+            serialize(msg, arg10);
+            serialize(msg, arg11);
+            serialize(msg, arg12);
         }
     };
 
@@ -1316,20 +1316,20 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
         { }
         void write(write_message_t *msg) {
-            *msg << arg0;
-            *msg << arg1;
-            *msg << arg2;
-            *msg << arg3;
-            *msg << arg4;
-            *msg << arg5;
-            *msg << arg6;
-            *msg << arg7;
-            *msg << arg8;
-            *msg << arg9;
-            *msg << arg10;
-            *msg << arg11;
-            *msg << arg12;
-            *msg << arg13;
+            serialize(msg, arg0);
+            serialize(msg, arg1);
+            serialize(msg, arg2);
+            serialize(msg, arg3);
+            serialize(msg, arg4);
+            serialize(msg, arg5);
+            serialize(msg, arg6);
+            serialize(msg, arg7);
+            serialize(msg, arg8);
+            serialize(msg, arg9);
+            serialize(msg, arg10);
+            serialize(msg, arg11);
+            serialize(msg, arg12);
+            serialize(msg, arg13);
         }
     };
 

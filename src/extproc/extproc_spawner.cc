@@ -37,7 +37,7 @@ public:
 
         // Send our pid over to the main process (because it didn't fork us directly)
         write_message_t msg;
-        msg << getpid();
+        serialize(&msg, getpid());
         int res = send_write_message(&socket_stream, &msg);
         guarantee(res == 0);
     }
@@ -73,7 +73,7 @@ public:
             }
 
             write_message_t msg;
-            msg << extproc_worker_t::worker_to_parent_magic;
+            serialize(&msg, extproc_worker_t::worker_to_parent_magic);
             int res = send_write_message(&socket_stream, &msg);
             if (res != 0) {
                 break;

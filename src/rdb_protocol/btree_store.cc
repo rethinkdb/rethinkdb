@@ -54,7 +54,7 @@ store_t::store_t(serializer_t *serializer,
         vector_stream_t key;
         write_message_t msg;
         region_t kr = region_t::universe();
-        msg << kr;
+        serialize(&msg, kr);
         key.reserve(msg.size());
         int res = send_write_message(&key, &msg);
         guarantee(!res);
@@ -763,7 +763,7 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
         write_message_t msg;
-        msg << i->first;
+        serialize(&msg, i->first);
         key.reserve(msg.size());
         DEBUG_VAR int res = send_write_message(&key, &msg);
         rassert(!res);

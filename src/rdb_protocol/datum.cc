@@ -1101,8 +1101,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
-// This must be kept in sync with operator<<(write_message_t &, const counted_t<const
-// datum_T> &).
+// This must be kept in sync with serialize(write_message_t *, const counted_t<const
+// datum_t> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
@@ -1136,22 +1136,21 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-write_message_t &operator<<(write_message_t &wm,
-                            const counted_t<const datum_t> &datum) {
+void serialize(write_message_t *msg, const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        wm << datum_serialized_type_t::R_ARRAY;
+        serialize(msg, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
-        wm << value;
+        serialize(msg, value);
     } break;
     case datum_t::R_BOOL: {
-        wm << datum_serialized_type_t::R_BOOL;
+        serialize(msg, datum_serialized_type_t::R_BOOL);
         bool value = datum->as_bool();
-        wm << value;
+        serialize(msg, value);
     } break;
     case datum_t::R_NULL: {
-        wm << datum_serialized_type_t::R_NULL;
+        serialize(msg, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
         double value = datum->as_num();
@@ -1162,31 +1161,30 @@ write_message_t &operator<<(write_message_t &wm,
             // so we can use `signbit` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
             if (signbit(value)) {
-                wm << datum_serialized_type_t::INT_NEGATIVE;
-                serialize_varint_uint64(&wm, -i);
+                serialize(msg, datum_serialized_type_t::INT_NEGATIVE);
+                serialize_varint_uint64(msg, -i);
             } else {
-                wm << datum_serialized_type_t::INT_POSITIVE;
-                serialize_varint_uint64(&wm, i);
+                serialize(msg, datum_serialized_type_t::INT_POSITIVE);
+                serialize_varint_uint64(msg, i);
             }
         } else {
-            wm << datum_serialized_type_t::DOUBLE;
-            wm << value;
+            serialize(msg, datum_serialized_type_t::DOUBLE);
+            serialize(msg, value);
         }
     } break;
     case datum_t::R_OBJECT: {
-        wm << datum_serialized_type_t::R_OBJECT;
-        wm << datum->as_object();
+        serialize(msg, datum_serialized_type_t::R_OBJECT);
+        serialize(msg, datum->as_object());
     } break;
     case datum_t::R_STR: {
-        wm << datum_serialized_type_t::R_STR;
+        serialize(msg, datum_serialized_type_t::R_STR);
         const wire_string_t &value = datum->as_str();
-        wm << value;
+        serialize(msg, value);
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
-    return wm;
 }
 
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
@@ -1292,18 +1290,18 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return archive_result_t::SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &wm,
-                            const empty_ok_t<const counted_t<const datum_t> > &datum) {
+void serialize(write_message_t *msg,
+               const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
-    wm << has;
+    serialize(msg, has);
     if (has) {
-        wm << *pointer;
+        serialize(msg, *pointer);
     }
-    return wm;
 }
 
-archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum) {
+archive_result_t deserialize(read_stream_t *s,
+                             empty_ok_ref_t<counted_t<const datum_t> > datum) {
     bool has;
     archive_result_t res = deserialize(s, &has);
     if (bad(res)) {
