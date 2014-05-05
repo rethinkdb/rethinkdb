@@ -142,131 +142,145 @@ class RqlQuery(object):
         return Mod(other, self)
 
     def __and__(self, other):
-        return All(self, other, infix=True)
+        query = All(self, other)
+        query.set_infix()
+        return query
 
     def __rand__(self, other):
-        return All(other, self, infix=True)
+        query = All(other, self)
+        query.set_infix()
+        return query
 
     def __or__(self, other):
-        return Any(self, other, infix=True)
+        query = Any(self, other)
+        query.set_infix()
+        return query
 
     def __ror__(self, other):
-        return Any(other, self, infix=True)
+        query = Any(other, self)
+        query.set_infix()
+        return query
 
     # Non-operator versions of the above
 
-    def eq(*args):
-        return Eq(*args)
+    def eq(self, *args):
+        return Eq(self, *args)
 
-    def ne(*args):
-        return Ne(*args)
+    def ne(self, *args):
+        return Ne(self, *args)
 
-    def lt(*args):
-        return Lt(*args)
+    def lt(self, *args):
+        return Lt(self, *args)
 
-    def le(*args):
-        return Le(*args)
+    def le(self, *args):
+        return Le(self, *args)
 
-    def gt(*args):
-        return Gt(*args)
+    def gt(self, *args):
+        return Gt(self, *args)
 
-    def ge(*args):
-        return Ge(*args)
+    def ge(self, *args):
+        return Ge(self, *args)
 
-    def add(*args):
-        return Add(*args)
+    def add(self, *args):
+        return Add(self, *args)
 
-    def sub(*args):
-        return Sub(*args)
+    def sub(self, *args):
+        return Sub(self, *args)
 
-    def mul(*args):
-        return Mul(*args)
+    def mul(self, *args):
+        return Mul(self, *args)
 
-    def div(*args):
-        return Div(*args)
+    def div(self, *args):
+        return Div(self, *args)
 
-    def mod(self, other):
-        return Mod(self, other)
+    def mod(self, *args):
+        return Mod(self, *args)
 
-    def and_(*args):
-        return All(*args)
+    def and_(self, *args):
+        return All(self, *args)
 
-    def or_(*args):
-        return Any(*args)
+    def or_(self, *args):
+        return Any(self, *args)
 
-    def not_(self):
-        return Not(self)
+    def not_(self, *args):
+        return Not(self, *args)
 
     # N.B. Cannot use 'in' operator because it must return a boolean
-    def contains(self, *attr):
-        return Contains(self, *map(func_wrap, attr))
+    def contains(self, *args):
+        return Contains(self, *[func_wrap(arg) for arg in args])
 
-    def has_fields(self, *attr):
-        return HasFields(self, *attr)
+    def has_fields(self, *args):
+        return HasFields(self, *args)
 
-    def with_fields(self, *attr):
-        return WithFields(self, *attr)
+    def with_fields(self, *args):
+        return WithFields(self, *args)
 
-    def keys(self):
-        return Keys(self)
+    def keys(self, *args):
+        return Keys(self, *args)
 
     # Polymorphic object/sequence operations
-    def pluck(self, *attrs):
-        return Pluck(self, *attrs)
+    def pluck(self, *args):
+        return Pluck(self, *args)
 
-    def without(self, *attrs):
-        return Without(self, *attrs)
+    def without(self, *args):
+        return Without(self, *args)
 
-    def do(self, func):
-        return FunCall(func_wrap(func), self)
+    def do(self, *args):
+        return FunCall(self, *args)
 
-    def default(self, handler):
-        return Default(self, handler)
+    def default(self, *args):
+        return Default(self, *args)
 
-    def update(self, func, non_atomic=(), durability=(), return_vals=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic,
-                      durability=durability, return_vals=return_vals)
+    def update(self, *args, **kwargs):
+        kwargs.setdefault('non_atomic', ())
+        kwargs.setdefault('durability', ())
+        kwargs.setdefault('return_vals', ())
+        return Update(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def replace(self, func, non_atomic=(), durability=(), return_vals=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic,
-                       durability=durability, return_vals=return_vals)
+    def replace(self, *args, **kwargs):
+        kwargs.setdefault('non_atomic', ())
+        kwargs.setdefault('durability', ())
+        kwargs.setdefault('return_vals', ())
+        return Replace(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def delete(self, durability=(), return_vals=()):
-        return Delete(self, durability=durability, return_vals=return_vals)
+    def delete(self, *args, **kwargs):
+        kwargs.setdefault('durability', ())
+        kwargs.setdefault('return_vals', ())
+        return Delete(self, *args, **kwargs)
 
     # Rql type inspection
-    def coerce_to(self, other_type):
-        return CoerceTo(self, other_type)
+    def coerce_to(self, *args):
+        return CoerceTo(self, *args)
 
-    def ungroup(self):
-        return Ungroup(self)
+    def ungroup(self, *args):
+        return Ungroup(self, *args)
 
-    def type_of(self):
-        return TypeOf(self)
+    def type_of(self, *args):
+        return TypeOf(self, *args)
 
-    def merge(self, *others):
-        return Merge(self, *map(func_wrap, others))
+    def merge(self, *args):
+        return Merge(self, *[func_wrap(arg) for arg in args])
 
-    def append(self, val):
-        return Append(self, val)
+    def append(self, *args):
+        return Append(self, *args)
 
-    def prepend(self, val):
-        return Prepend(self, val)
+    def prepend(self, *args):
+        return Prepend(self, *args)
 
-    def difference(self, val):
-        return Difference(self, val)
+    def difference(self, *args):
+        return Difference(self, *args)
 
-    def set_insert(self, val):
-        return SetInsert(self, val)
+    def set_insert(self, *args):
+        return SetInsert(self, *args)
 
-    def set_union(self, val):
-        return SetUnion(self, val)
+    def set_union(self, *args):
+        return SetUnion(self, *args)
 
-    def set_intersection(self, val):
-        return SetIntersection(self, val)
+    def set_intersection(self, *args):
+        return SetIntersection(self, *args)
 
-    def set_difference(self, val):
-        return SetDifference(self, val)
+    def set_difference(self, *args):
+        return SetDifference(self, *args)
 
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
@@ -290,47 +304,47 @@ class RqlQuery(object):
                 "bracket operator called with an unsupported parameter type: %s.%s" %
                 (index.__class__.__module__, index.__class__.__name__))
 
-    def __iter__(self):
+    def __iter__(*args, **kwargs):
         raise RqlDriverError(
                 "__iter__ called on an RqlQuery object.\n"+
                 "To iterate over the results of a query, call run first.\n"+
                 "To iterate inside a query, use map or for_each.")
 
-    def get_field(self, index):
-        return GetField(self, index)
+    def get_field(self, *args):
+        return GetField(self, *args)
 
-    def nth(self, index):
-        return Nth(self, index)
+    def nth(self, *args):
+        return Nth(self, *args)
 
-    def match(self, pattern):
-        return Match(self, pattern)
+    def match(self, *args):
+        return Match(self, *args)
 
     def split(self, *args):
         return Split(self, *args)
 
-    def upcase(self):
-        return Upcase(self)
+    def upcase(self, *args):
+        return Upcase(self, *args)
 
-    def downcase(self):
-        return Downcase(self)
+    def downcase(self, *args):
+        return Downcase(self, *args)
 
-    def is_empty(self):
-        return IsEmpty(self)
+    def is_empty(self, *args):
+        return IsEmpty(self, *args)
 
-    def indexes_of(self, val):
-        return IndexesOf(self,func_wrap(val))
+    def indexes_of(self, *args):
+        return IndexesOf(self, *[func_wrap(arg) for arg in args])
 
     def slice(self, *args, **kwargs):
         return Slice(self, *args, **kwargs)
 
-    def skip(self, index):
-        return Skip(self, index)
+    def skip(self, *args):
+        return Skip(self, *args)
 
-    def limit(self, index):
-        return Limit(self, index)
+    def limit(self, *args):
+        return Limit(self, *args)
 
-    def reduce(self, func):
-        return Reduce(self, func_wrap(func))
+    def reduce(self, *args):
+        return Reduce(self, *[func_wrap(arg) for arg in args])
 
     def sum(self, *args):
         return Sum(self, *[func_wrap(arg) for arg in args])
@@ -344,119 +358,123 @@ class RqlQuery(object):
     def max(self, *args):
         return Max(self, *[func_wrap(arg) for arg in args])
 
-    def map(self, func):
-        return Map(self, func_wrap(func))
+    def map(self, *args):
+        return Map(self, *[func_wrap(arg) for arg in args])
 
-    def filter(self, func, default=()):
-        return Filter(self, func_wrap(func), default=default)
+    def filter(self, *args, **kwargs):
+        kwargs.setdefault('default', ())
+        return Filter(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def concat_map(self, func):
-        return ConcatMap(self, func_wrap(func))
+    def concat_map(self, *args):
+        return ConcatMap(self, *[func_wrap(arg) for arg in args])
 
-    def order_by(self, *obs, **kwargs):
-        obs = [ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob) for ob in obs]
-        return OrderBy(self, *obs, **kwargs)
+    def order_by(self, *args, **kwargs):
+        args = [arg if isinstance(arg, Asc) or isinstance(arg, Desc) else func_wrap(arg) for arg in args]
+        return OrderBy(self, *args, **kwargs)
 
-    def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
-        return Between(self, left, right, left_bound=left_bound, right_bound=right_bound, index=index)
+    def between(self, *args, **kwargs):
+        kwargs.setdefault('left_bound', ())
+        kwargs.setdefault('right_bound', ())
+        kwargs.setdefault('index', ())
+        return Between(self, *args, **kwargs)
 
-    def distinct(self):
-        return Distinct(self)
+    def distinct(self, *args):
+        return Distinct(self, *args)
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
-    def count(self, filter=()):
-        if filter is ():
-            return Count(self)
-        else:
-            return Count(self, func_wrap(filter))
+    def count(self, *args):
+        return Count(self, *[func_wrap(arg) for arg in args])
 
-    def union(self, *others):
-        return Union(self, *others)
+    def union(self, *args):
+        return Union(self, *args)
 
-    def inner_join(self, other, predicate):
-        return InnerJoin(self, other, predicate)
+    def inner_join(self, *args):
+        return InnerJoin(self, *args)
 
-    def outer_join(self, other, predicate):
-        return OuterJoin(self, other, predicate)
+    def outer_join(self, *args):
+        return OuterJoin(self, *args)
 
-    def eq_join(self, left_attr, other, index=()):
-        return EqJoin(self, func_wrap(left_attr), other, index=index)
+    def eq_join(self, *args, **kwargs):
+        kwargs.setdefault('index', ())
+        return EqJoin(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def zip(self):
-        return Zip(self)
+    def zip(self, *args):
+        return Zip(self, *args)
 
     def group(self, *args, **kwargs):
         return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
-    def for_each(self, mapping):
-        return ForEach(self, func_wrap(mapping))
+    def for_each(self, *args):
+        return ForEach(self, *[func_wrap(arg) for arg in args])
 
-    def info(self):
-        return Info(self)
+    def info(self, *args):
+        return Info(self, *args)
 
     # Array only operations
-    def insert_at(self, index, value):
-        return InsertAt(self, index, value)
+    def insert_at(self, *args):
+        return InsertAt(self, *args)
 
-    def splice_at(self, index, values):
-        return SpliceAt(self, index, values)
+    def splice_at(self, *args):
+        return SpliceAt(self, *args)
 
-    def delete_at(self, *indexes):
-        return DeleteAt(self, *indexes);
+    def delete_at(self, *args):
+        return DeleteAt(self, *args);
 
-    def change_at(self, index, value):
-        return ChangeAt(self, index, value);
+    def change_at(self, *args):
+        return ChangeAt(self, *args);
 
-    def sample(self, count):
-        return Sample(self, count)
+    def sample(self, *args):
+        return Sample(self, *args)
 
     ## Time support
 
-    def to_iso8601(self):
-        return ToISO8601(self)
+    def to_iso8601(self, *args):
+        return ToISO8601(self, *args)
 
-    def to_epoch_time(self):
-        return ToEpochTime(self)
+    def to_epoch_time(self, *args):
+        return ToEpochTime(self, *args)
 
-    def during(self, t2, t3, left_bound=(), right_bound=()):
-        return During(self, t2, t3, left_bound=left_bound, right_bound=right_bound)
+    def during(self, *args, **kwargs):
+        kwargs.setdefault('left_bound', ())
+        kwargs.setdefault('right_bound', ())
+        return During(self, *args, **kwargs)
 
-    def date(self):
-        return Date(self)
+    def date(self, *args):
+        return Date(self, *args)
 
-    def time_of_day(self):
-        return TimeOfDay(self)
+    def time_of_day(self, *args):
+        return TimeOfDay(self, *args)
 
-    def timezone(self):
-        return Timezone(self)
+    def timezone(self, *args):
+        return Timezone(self, *args)
 
-    def year(self):
-        return Year(self)
+    def year(self, *args):
+        return Year(self, *args)
 
-    def month(self):
-        return Month(self)
+    def month(self, *args):
+        return Month(self, *args)
 
-    def day(self):
-        return Day(self)
+    def day(self, *args):
+        return Day(self, *args)
 
-    def day_of_week(self):
-        return DayOfWeek(self)
+    def day_of_week(self, *args):
+        return DayOfWeek(self, *args)
 
-    def day_of_year(self):
-        return DayOfYear(self)
+    def day_of_year(self, *args):
+        return DayOfYear(self, *args)
 
-    def hours(self):
-        return Hours(self)
+    def hours(self, *args):
+        return Hours(self, *args)
 
-    def minutes(self):
-        return Minutes(self)
+    def minutes(self, *args):
+        return Minutes(self, *args)
 
-    def seconds(self):
-        return Seconds(self)
+    def seconds(self, *args):
+        return Seconds(self, *args)
 
-    def in_timezone(self, tzstr):
-        return InTimezone(self, tzstr)
+    def in_timezone(self, *args):
+        return InTimezone(self, *args)
 
 # These classes define how nodes are printed by overloading `compose`
 
@@ -465,13 +483,11 @@ def needs_wrap(arg):
 
 class RqlBoolOperQuery(RqlQuery):
     def __init__(self, *args, **optargs):
-        if 'infix' in optargs:
-            self.infix = optargs['infix']
-            del optargs['infix']
-        else:
-            self.infix = False
-
+        self.infix = False
         RqlQuery.__init__(self, *args, **optargs)
+
+    def set_infix(self):
+        self.infix = True
 
     def compose(self, args, optargs):
         t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
@@ -642,8 +658,8 @@ class MakeArray(RqlQuery):
     def compose(self, args, optargs):
         return T('[', T(*args, intsp=', '),']')
 
-    def do(self, func):
-        return FunCall(func_wrap(func), self)
+    def do(self, *args):
+        return FunCall(self, *args)
 
 class MakeObj(RqlQuery):
     tt = p.Term.MAKE_OBJ
@@ -847,20 +863,30 @@ class DB(RqlTopLevelQuery):
     tt = p.Term.DB
     st = 'db'
 
-    def table_list(self):
-        return TableList(self)
+    def table_list(self, *args):
+        return TableList(self, *args)
 
-    def table_create(self, table_name, primary_key=(), datacenter=(), durability=()):
-        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, durability=durability)
+    def table_create(self, *args, **kwargs):
+        kwargs.setdefault('primary_key', ())
+        kwargs.setdefault('datacenter', ())
+        kwargs.setdefault('durability', ())
+        return TableCreate(self, *args, **kwargs)
 
-    def table_drop(self, table_name):
-        return TableDrop(self, table_name)
+    def table_drop(self, *args):
+        return TableDrop(self, *args)
 
-    def table(self, table_name, use_outdated=()):
-        return Table(self, table_name, use_outdated=use_outdated)
+    def table(self, *args, **kwargs):
+        kwargs.setdefault('use_outdated', ())
+        return Table(self, *args, **kwargs)
 
 class FunCall(RqlQuery):
     tt = p.Term.FUNCALL
+    
+    def __init__(self, *args):
+        if len(args) == 0:
+            raise RqlDriverError("Expected 1 or more argument(s) but found 0.")
+        args = [func_wrap(args[-1])] + list(args[:-1])
+        RqlQuery.__init__(self, *args)
 
     def compose(self, args, optargs):
         if len(args) > 2:
@@ -875,35 +901,38 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=(), durability=(), return_vals=()):
-        return Insert(self, expr(records), upsert=upsert,
-                      durability=durability, return_vals=return_vals)
+    def insert(self, *args, **kwargs):
+        kwargs.setdefault('upsert', ())
+        kwargs.setdefault('durability', ())
+        kwargs.setdefault('return_vals', ())
+        return Insert(self, *[expr(arg) for arg in args], **kwargs)
 
-    def get(self, key):
-        return Get(self, key)
+    def get(self, *args):
+        return Get(self, *args)
 
-    def get_all(self, *keys, **kwargs):
-        return GetAll(self, *keys, **kwargs)
+    def get_all(self, *args, **kwargs):
+        return GetAll(self, *args, **kwargs)
 
-    def index_create(self, name, fundef=(), multi=()):
-        args = [self, name] + ([func_wrap(fundef)] if fundef else [])
-        kwargs = {"multi" : multi} if multi else {}
-        return IndexCreate(*args, **kwargs)
+    def index_create(self, *args, **kwargs):
+        kwargs.setdefault('multi', ())
+        if len(args) > 1:
+            args = [args[0]] + [func_wrap(arg) for arg in args[1:]]
+        return IndexCreate(self, *args, **kwargs)
 
-    def index_drop(self, name):
-        return IndexDrop(self, name)
+    def index_drop(self, *args):
+        return IndexDrop(self, *args)
 
-    def index_list(self):
-        return IndexList(self)
+    def index_list(self, *args):
+        return IndexList(self, *args)
 
-    def index_status(self, *indexes):
-        return IndexStatus(self, *indexes)
+    def index_status(self, *args):
+        return IndexStatus(self, *args)
 
-    def index_wait(self, *indexes):
-        return IndexWait(self, *indexes)
+    def index_wait(self, *args):
+        return IndexWait(self, *args)
 
-    def sync(self):
-        return Sync(self)
+    def sync(self, *args):
+        return Sync(self, *args)
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
@@ -1149,6 +1178,10 @@ class Json(RqlTopLevelQuery):
     tt = p.Term.JSON
     st = 'json'
 
+class Args(RqlTopLevelQuery):
+    tt = p.Term.ARGS
+    st = 'args'
+
 class ToISO8601(RqlMethodQuery):
     tt = p.Term.TO_ISO8601
     st = 'to_iso8601'
@@ -1225,26 +1258,23 @@ class ToEpochTime(RqlMethodQuery):
     tt = p.Term.TO_EPOCH_TIME
     st = 'to_epoch_time'
 
+# Returns True if IMPLICIT_VAR is found in the subquery
+def _ivar_scan(query):
+    if not isinstance(query, RqlQuery):
+        return False
+    if isinstance(query, ImplicitVar):
+        return True
+    if any([_ivar_scan(arg) for arg in query.args]):
+        return True
+    if any([_ivar_scan(arg) for k,arg in query.optargs.iteritems()]):
+        return True
+    return False
+
 # Called on arguments that should be functions
 def func_wrap(val):
     val = expr(val)
-
-    # Scan for IMPLICIT_VAR or JS
-    def ivar_scan(node):
-        if not isinstance(node, RqlQuery):
-            return False
-
-        if isinstance(node, ImplicitVar):
-            return True
-        if any([ivar_scan(arg) for arg in node.args]):
-            return True
-        if any([ivar_scan(arg) for k,arg in node.optargs.iteritems()]):
-            return True
-        return False
-
-    if ivar_scan(val):
+    if _ivar_scan(val):
         return Func(lambda x: val)
-
     return val
 
 class Func(RqlQuery):

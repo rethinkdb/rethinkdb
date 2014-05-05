@@ -23,7 +23,7 @@ tests:
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: 'err("RqlRuntimeError", "Index `ai` already exists on table `test.sindexapi`.", [])'
+    ot: err("RqlRuntimeError", "Index `ai` already exists on table `test.sindexapi`.", [])
   - rb: tbl.index_create('bi') {|row| row[:b]}
     py: tbl.index_create('bi', r.row['b'])
     js: tbl.indexCreate('bi', r.row('b'))
@@ -74,8 +74,8 @@ tests:
   - rb: tbl.get(1, :ai)
     cd: tbl.get(1, 'ai')
     ot:
-      rb: 'err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])'
-      py: err("TypeError", 'get() takes exactly 2 arguments (3 given)')
+      rb: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
+      py: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
       js: err("RqlDriverError", 'Expected 1 argument(s) but found 2.')
 
   - rb: tbl.get_all(true, :index => :id)
@@ -139,12 +139,12 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])'
+    ot: err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])
 
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
-    ot: 'err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])'
+    ot: err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
@@ -229,11 +229,11 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: 'err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])'
+    ot: err("RqlRuntimeError", "Index `fake` was not found on table `test.sindexapi`.", [])
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
-    ot: 'err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])'
+    ot: err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.filter({:id => 1}).eq_join(:id, tbl, :index => :mi)
     py: tbl.filter({'id':1}).eq_join('id', tbl, index='mi')
@@ -246,7 +246,7 @@ tests:
     ot: ([{'left':rows[0],'right':rows[0]}])
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda{|x| x[:id]}, tbl)
-    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl)"
+    py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl)
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl)
     ot: ([{'left':rows[0],'right':rows[0]}])
 
@@ -256,7 +256,7 @@ tests:
     ot: ([{'left':rows[0],'right':rows[0]}])
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :id)
-    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl, index='id')"
+    py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl, index='id')
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'id'})
     ot: ([{'left':rows[0],'right':rows[0]}])
 
@@ -266,7 +266,7 @@ tests:
     ot: ([{'left':rows[0],'right':rows[0]}])
 
   - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :idi)
-    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl, index='idi')"
+    py: tbl.filter({'id':0}).eq_join(lambda x:x['id'], tbl, index='idi')
     js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'idi'})
     ot: ([{'left':rows[0],'right':rows[0]}])
 
@@ -332,9 +332,9 @@ tests:
     py: tbl.get_all(None, index='nil')
     js: tbl.getAll(null, {index:'nil'})
     ot:
-      py: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])'
-      rb: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])'
-      js: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got null of type NULL).", [])'
+      py: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])
+      rb: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])
+      js: err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got null of type NULL).", [])
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})

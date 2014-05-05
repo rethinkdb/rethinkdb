@@ -5,11 +5,15 @@ import datetime
 """
 All top level functions defined here are the starting points for RQL queries
 """
-def json(json_str):
-    return Json(json_str)
+def json(*args):
+    return Json(*args)
 
-def js(js_str, timeout=()):
-    return JavaScript(js_str, timeout=timeout)
+def js(*args, **kwargs):
+    kwargs.setdefault('timeout', ())
+    return JavaScript(*args, **kwargs)
+
+def args(*args):
+    return Args(*args)
 
 def http(url, **kwargs):
     return Http(func_wrap(url), **kwargs)
@@ -20,46 +24,49 @@ def error(*msg):
 def random(*args, **kwargs):
     return Random(*args, **kwargs)
 
-def do(arg0, *args):
-    args = [arg0]+[x for x in args]
-    return FunCall(func_wrap(args[-1]), *args[:-1])
+def do(*args):
+    return FunCall(*args)
 
 row = ImplicitVar()
 
-def table(tbl_name, use_outdated=()):
-    return Table(tbl_name, use_outdated=use_outdated)
+def table(*args, **kwargs):
+    kwargs.setdefault('use_outdated', ())
+    return Table(*args, **kwargs)
 
-def db(db_name):
-    return DB(db_name)
+def db(*args):
+    return DB(*args)
 
-def db_create(db_name):
-    return DbCreate(db_name)
+def db_create(*args):
+    return DbCreate(*args)
 
-def db_drop(db_name):
-    return DbDrop(db_name)
+def db_drop(*args):
+    return DbDrop(*args)
 
-def db_list():
-    return DbList()
+def db_list(*args):
+    return DbList(*args)
 
-def table_create(table_name, primary_key=(), datacenter=(), durability=()):
-    return TableCreateTL(table_name, primary_key=primary_key, datacenter=datacenter, durability=durability)
+def table_create(*args, **kwargs):
+    kwargs.setdefault('primary_key', ())
+    kwargs.setdefault('datacenter', ())
+    kwargs.setdefault('durability', ())
+    return TableCreateTL(*args, **kwargs)
 
-def table_drop(table_name):
-    return TableDropTL(table_name)
+def table_drop(*args):
+    return TableDropTL(*args)
 
-def table_list():
-    return TableListTL()
+def table_list(*args):
+    return TableListTL(*args)
 
-def branch(predicate, true_branch, false_branch):
-    return Branch(predicate, true_branch, false_branch)
+def branch(*args):
+    return Branch(*args)
 
 # orderBy orders
 
-def asc(attr):
-    return Asc(func_wrap(attr))
+def asc(*args):
+    return Asc(*[func_wrap(arg) for arg in args])
 
-def desc(attr):
-    return Desc(func_wrap(attr))
+def desc(*args):
+    return Desc(*[func_wrap(arg) for arg in args])
 
 # math and logic
 
@@ -93,11 +100,11 @@ def mul(*args):
 def div(*args):
     return Div(*args)
 
-def mod(a, b):
-    return Mod(a, b)
+def mod(*args):
+    return Mod(*args)
 
-def not_(a):
-    return Not(a)
+def not_(*args):
+    return Not(*args)
 
 def and_(*args):
     return All(*args)
@@ -111,23 +118,24 @@ def all(*args):
 def any(*args):
     return Any(*args)
 
-def type_of(val):
-    return TypeOf(val)
+def type_of(*args):
+    return TypeOf(*args)
 
-def info(val):
-    return Info(val)
+def info(*args):
+    return Info(*args)
 
 def time(*args):
     return Time(*args)
 
-def iso8601(string, default_timezone=()):
-    return ISO8601(string, default_timezone=default_timezone)
+def iso8601(*args, **kwargs):
+    kwargs.setdefault('default_timezone', ())
+    return ISO8601(*args, **kwargs)
 
-def epoch_time(number):
-    return EpochTime(number)
+def epoch_time(*args):
+    return EpochTime(*args)
 
-def now():
-    return Now()
+def now(*args):
+    return Now(*args)
 
 class RqlTimeName(RqlQuery):
     def compose(self, args, optargs):
@@ -155,15 +163,12 @@ october     = type('', (RqlTimeName,), {'tt': p.Term.OCTOBER, 'st': 'october'})(
 november    = type('', (RqlTimeName,), {'tt': p.Term.NOVEMBER, 'st': 'november'})()
 december    = type('', (RqlTimeName,), {'tt': p.Term.DECEMBER, 'st': 'december'})()
 
-def make_timezone(tzstring):
-    return RqlTzinfo(tzstring)
+def make_timezone(*args):
+    return RqlTzinfo(*args)
 
 # Merge values
-def literal(val=()):
-    if val:
-        return Literal(val)
-    else:
-        return Literal()
+def literal(*args):
+    return Literal(*args)
 
 def object(*args):
     return Object(*args)
