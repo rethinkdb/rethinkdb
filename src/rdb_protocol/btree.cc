@@ -1070,21 +1070,10 @@ void rdb_modification_report_cb_t::on_mod_report(
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond;
         coro_t::spawn_now_dangerously(
-            [&]() {
-                scoped_ptr_t<new_mutex_in_line_t> acq =
-                    store_->get_in_line_for_sindex_queue(sindex_block_);
-
-                write_message_t wm;
-                wm << rdb_sindex_change_t(mod_report);
-                store_->sindex_queue_push(wm, acq.get());
-
-                rdb_live_deletion_context_t deletion_context;
-                rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
-                                    &deletion_context);
-                sindexes_updated_cond.pulse();
-            }
-        );
-
+            std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
+                      this,
+                      mod_report,
+                      &sindexes_updated_cond));
         {
             using namespace ql::changefeed;
             store_->changefeed_server.send_all(
@@ -1093,6 +1082,22 @@ void rdb_modification_report_cb_t::on_mod_report(
 
         sindexes_updated_cond.wait_lazily_unordered();
     }
+}
+
+void rdb_modification_report_cb_t::on_mod_report_sub(
+    const rdb_modification_report_t &mod_report,
+    cond_t *cond) {
+    scoped_ptr_t<new_mutex_in_line_t> acq =
+        store_->get_in_line_for_sindex_queue(sindex_block_);
+
+    write_message_t wm;
+    wm << rdb_sindex_change_t(mod_report);
+    store_->sindex_queue_push(wm, acq.get());
+
+    rdb_live_deletion_context_t deletion_context;
+    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
+                        &deletion_context);
+    cond->pulse();
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,

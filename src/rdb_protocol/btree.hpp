@@ -270,6 +270,8 @@ public:
     ~rdb_modification_report_cb_t();
 
 private:
+    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
+
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
     store_t *store_;
