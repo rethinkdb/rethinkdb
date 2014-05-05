@@ -53,9 +53,11 @@ private:
 public:
     struct address_t {
         bool operator<(const address_t &other) const {
-            return peer < other.peer
-                ? true
-                : (thread < other.thread ? true : mailbox_id < other.mailbox_id);
+            return peer != other.peer
+                ? peer < other.peer
+                : (thread != other.thread
+                   ? thread < other.thread
+                   : mailbox_id < other.mailbox_id);
         }
 
         /* Constructs a nil address */
