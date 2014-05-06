@@ -63,7 +63,7 @@ def generate_async_message_template(nargs):
         print "            arg%d_t arg%d;" % (i, i)
         print "            %sres = deserialize(stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
-    print "            parent->fun(%s);" % csep("arg#")
+    print "            parent->fun(%s);" % csep("std::move(arg#)")
     print "        }"
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     print
     print "    friend class mailbox_t<T>;"
     print
-    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
+    print "    RDB_MAKE_ME_SERIALIZABLE_1(0, addr);"
     print "    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);"
     print
     print "private:"

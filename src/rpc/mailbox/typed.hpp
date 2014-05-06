@@ -144,7 +144,7 @@ class mailbox_t< void(arg0_t) > {
             arg0_t arg0;
             archive_result_t res = deserialize(stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0);
+            parent->fun(std::move(arg0));
         }
     private:
         mailbox_t< void(arg0_t) > *parent;
@@ -209,7 +209,7 @@ class mailbox_t< void(arg0_t, arg1_t) > {
             arg1_t arg1;
             res = deserialize(stream, &arg1);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1);
+            parent->fun(std::move(arg0), std::move(arg1));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t) > *parent;
@@ -279,7 +279,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
             arg2_t arg2;
             res = deserialize(stream, &arg2);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
@@ -354,7 +354,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
             arg3_t arg3;
             res = deserialize(stream, &arg3);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
@@ -434,7 +434,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
             arg4_t arg4;
             res = deserialize(stream, &arg4);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
@@ -519,7 +519,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
             arg5_t arg5;
             res = deserialize(stream, &arg5);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
@@ -609,7 +609,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
             arg6_t arg6;
             res = deserialize(stream, &arg6);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
@@ -704,7 +704,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg7_t arg7;
             res = deserialize(stream, &arg7);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
@@ -804,7 +804,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg8_t arg8;
             res = deserialize(stream, &arg8);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
@@ -909,7 +909,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg9_t arg9;
             res = deserialize(stream, &arg9);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
@@ -1019,7 +1019,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg10_t arg10;
             res = deserialize(stream, &arg10);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
@@ -1134,7 +1134,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg11_t arg11;
             res = deserialize(stream, &arg11);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
@@ -1254,7 +1254,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg12_t arg12;
             res = deserialize(stream, &arg12);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
@@ -1379,7 +1379,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg13_t arg13;
             res = deserialize(stream, &arg13);
             if (bad(res)) { throw fake_archive_exc_t(); }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+            parent->fun(std::move(arg0), std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4), std::move(arg5), std::move(arg6), std::move(arg7), std::move(arg8), std::move(arg9), std::move(arg10), std::move(arg11), std::move(arg12), std::move(arg13));
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;
