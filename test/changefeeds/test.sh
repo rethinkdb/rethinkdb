@@ -97,5 +97,11 @@ done
 log "Initializing servers..."
 ruby ~/rethinkdb/test/changefeeds/setup.rb arclight 1 2>&1 | QUIET=1 log
 
+log "Configuring cluster..."
+~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
+    split shard test.test S2 S4 S6 S8 Sa Sc Se 2>&1 | QUIET=1 log &
+~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
+    set replicas test.test 2 2>&1 | QUIET=1 log &
+
 wait
 log "DONE"

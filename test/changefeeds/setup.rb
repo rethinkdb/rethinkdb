@@ -31,7 +31,7 @@ loop {
       r.table('test').info.run rescue r.table_create('test').run
       p "  Populating..."
       loop {
-        r.table('test').insert((0...1000).map{{}}).run
+        r.table('test').insert((0...10000).map{{}}).run
         p "setup.rb DONE"
         exit 0
       }
