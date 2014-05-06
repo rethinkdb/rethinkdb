@@ -29,12 +29,12 @@ abort() {
 }
 
 # servers="arclight sinister"
-servers="arclight"
+servers="arclight sinister"
 nodes_per=2
 joinline=
 for server in $servers; do
     for n in `seq $nodes_per`; do
-        nodes+=" --join $server:$((29015+n))"
+        joinline+=" --join $server:$((29015+n))"
     done
 done
 echo "Nodes:$joinline"
@@ -70,16 +70,25 @@ done
 wait
 log "Setup DONE"
 
-log "pwd..."
+log "Launching servers..."
 for server in $servers; do
     for n in `seq $nodes_per`; do
-        run $server $n <<EOF 2>&1 | HOSTNAME=$server.$n deeplog 2 &
+        run $server $n <<EOF 2>&1 | HOSTNAME=$server.$n QUIET=1 deeplog 2 &
 pwd
+
 killall -9 rethinkdb
-echo ./rethinkdb -o $n --bind all --join $nodes
-./rethinkdb -o $n --bind all $joinline
+mv rethinkdb_data rethinkdb_data_old
+rm -r rethinkdb_data_old &
+
+sleep .5
+echo ./rethinkdb -o $n --bind all $joinline
+./rethinkdb -d rethinkdb_data -o $n --bind all $joinline
+wait
 EOF
     done
 done
+
+ruby ~/rethinkdb/test/changefeeds/setup.rb arclight 1 2>&1 | log
+
 wait
-log "pwd"
+log "DONE"
