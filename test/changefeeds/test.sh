@@ -2,6 +2,7 @@
 
 set -e
 set -o nounset
+set -o pipefail
 
 HOSTNAME=`hostname`
 tag() {
@@ -70,17 +71,22 @@ done
 wait
 log "Setup DONE"
 
+log "Cleansing servers..."
+for server in $servers; do
+    for n in `seq $nodes_per`; do
+        run $server $n <<EOF 2>&1 | HOSTNAME=$server.$n QUIET=1 deeplog 2 &
+killall -9 rethinkdb
+mv rethinkdb_data rethinkdb_data_old
+rm -r rethinkdb_data_old &
+EOF
+    done
+done
+wait
+
 log "Launching servers..."
 for server in $servers; do
     for n in `seq $nodes_per`; do
         run $server $n <<EOF 2>&1 | HOSTNAME=$server.$n QUIET=1 deeplog 2 &
-pwd
-
-killall -9 rethinkdb
-mv rethinkdb_data rethinkdb_data_old
-rm -r rethinkdb_data_old &
-
-sleep .5
 echo ./rethinkdb -o $n --bind all $joinline
 ./rethinkdb -d rethinkdb_data -o $n --bind all $joinline
 wait
@@ -88,7 +94,8 @@ EOF
     done
 done
 
-ruby ~/rethinkdb/test/changefeeds/setup.rb arclight 1 2>&1 | log
+log "Initializing servers..."
+ruby ~/rethinkdb/test/changefeeds/setup.rb arclight 1 2>&1 | QUIET=1 log
 
 wait
 log "DONE"

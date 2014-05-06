@@ -6,34 +6,38 @@ include RethinkDB::Shortcuts
 
 host = ARGV[0]
 port = 28015 + ARGV[1].to_i
-p "  Connecting to #{host}:#{port}..."
-r.connect(host: host, port: port).repl
+$start = Time.now
+$timeout = 5
 
-
-start = Time.now
-timeout = 5
-
-p "  Creating DB..."
-while Time.now < start + timeout
-  begin
-    r.db('test').info.run rescue r.db_create('test').run
-    p "  Creating table..."
-    while Time.now < start + timeout
-      begin
-        r.table('test').info.run rescue r.table_create('test').run
-        p "  Populating..."
-        r.table('test').insert((0...1000).map{{}}).run
-
-        p "setup.rb DONE"
-        exit 0
-      rescue RethinkDB::RqlError => e
-        PP.pp e
-      end
+def loop
+  while Time.now < $start + $timeout
+    begin
+      yield
+    rescue => e
+      PP.pp e
     end
-  rescue RethinkDB::RqlError => e
-    PP.pp e
+    sleep 0.1
   end
 end
+
+p "  Connecting to #{host}:#{port}..."
+loop {
+  r.connect(host: host, port: port).repl
+  p "  Creating DB..."
+  loop {
+    r.db('test').info.run rescue r.db_create('test').run
+    p "  Creating table..."
+    loop {
+      r.table('test').info.run rescue r.table_create('test').run
+      p "  Populating..."
+      loop {
+        r.table('test').insert((0...1000).map{{}}).run
+        p "setup.rb DONE"
+        exit 0
+      }
+    }
+  }
+}
 
 p "setup.rb TIMED OUT"
 exit 1
