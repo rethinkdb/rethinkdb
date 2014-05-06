@@ -525,6 +525,9 @@ class RqlTopLevelQuery(RqlQuery):
 
 class RqlMethodQuery(RqlQuery):
     def compose(self, args, optargs):
+        if len(args) == 0:
+            return T('r.', self.st, '()')
+
         if needs_wrap(self.args[0]):
             args[0] = T('r.expr(', args[0], ')')
 
@@ -882,6 +885,10 @@ class DB(RqlTopLevelQuery):
 class FunCall(RqlQuery):
     tt = p.Term.FUNCALL
     
+    # This object should be constructed with arguments first, and the function itself as
+    # the last parameter.  This makes it easier for the places where this object is
+    # constructed.  The actual wire format is function first, arguments last, so we flip
+    # them around before passing it down to the base class constructor.
     def __init__(self, *args):
         if len(args) == 0:
             raise RqlDriverError("Expected 1 or more argument(s) but found 0.")
@@ -889,8 +896,8 @@ class FunCall(RqlQuery):
         RqlQuery.__init__(self, *args)
 
     def compose(self, args, optargs):
-        if len(args) > 2:
-            return T('r.do(', T(*(args[1:]), intsp=', '), ', ', args[0], ')')
+        if len(args) != 2:
+            return T('r.do(', T(T(*(args[1:]), intsp=', '), args[0], intsp=', '), ')')
 
         if isinstance(self.args[1], Datum):
             args[1] = T('r.expr(', args[1], ')')
@@ -936,9 +943,9 @@ class Table(RqlQuery):
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
-            return T(args[0], '.table(', args[1], ')')
+            return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
         else:
-            return T('r.table(', args[0], ')')
+            return T('r.table(', T(*(args), intsp=', '), ')')
 
 class Get(RqlMethodQuery):
     tt = p.Term.GET
