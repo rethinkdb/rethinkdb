@@ -1,4 +1,4 @@
-p "setup.rb starting..."
+p "wait_for_table.rb starting..."
 
 $LOAD_PATH.unshift('~/rethinkdb/drivers/ruby/lib')
 load 'rethinkdb.rb'
@@ -23,21 +23,13 @@ end
 p "  Connecting to #{host}:#{port}..."
 loop {
   r.connect(host: host, port: port).repl
-  p "  Creating DB..."
+  p "Counting..."
   loop {
-    r.db('test').info.run rescue r.db_create('test').run
-    p "  Creating table..."
-    loop {
-      r.table('test').info.run rescue r.table_create('test').run
-      p "  Populating..."
-      loop {
-        r.table('test').insert((0...100).map{{}}).run
-        p "setup.rb DONE"
-        exit 0
-      }
-    }
+    r.table('test').count.run
+    p "wait_for_table.rb DONE"
+    exit 0
   }
 }
 
-p "setup.rb TIMED OUT"
+p "wait_for_table.rb TIMED OUT"
 exit 1

@@ -69,7 +69,6 @@ EOF
     done
 done
 wait
-log "Setup DONE"
 
 log "Cleansing servers..."
 for server in $servers; do
@@ -97,11 +96,34 @@ done
 log "Initializing servers..."
 ruby ~/rethinkdb/test/changefeeds/setup.rb arclight 1 2>&1 | QUIET=1 log
 
-log "Configuring cluster..."
-~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
-    split shard test.test S2 S4 S6 S8 Sa Sc Se 2>&1 | QUIET=1 log &
-~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
-    set replicas test.test 2 2>&1 | QUIET=1 log &
+(
+    shards="S2 S4 S6 S8 Sa Sc Se"
+    log "Configuring cluster..."
+    ~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
+        split shard test.test $shards 2>&1 | QUIET=1 log &
+    ~/rethinkdb/build/debug/rethinkdb admin --join arclight:29016 \
+        set replicas test.test 2 2>&1 | QUIET=1 log &
+    wait
+)
 
-wait
+log "Waiting for table..."
+ruby ~/rethinkdb/test/changefeeds/wait_for_table.rb arclight 1 2>&1 | QUIET=1 log
+
+(
+    log "Spawning changefeed sources..."
+    for server in $servers; do
+        for n in `seq $nodes_per`; do
+            ruby ~/rethinkdb/test/changefeeds/cfeed_src.rb $server $n 2>&1 | log &
+        done
+    done
+
+    log "Spawning changefeed sinks..."
+    for server in $servers; do
+        for n in `seq $nodes_per`; do
+            ruby ~/rethinkdb/test/changefeeds/cfeed_sink.rb $server $n 2>&1 | log &
+        done
+    done
+    wait
+)
+
 log "DONE"
