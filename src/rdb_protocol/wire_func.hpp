@@ -38,7 +38,7 @@ public:
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
-    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
+    void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
@@ -107,7 +107,7 @@ public:
     bt_wire_func_t() : bt(make_counted_backtrace()) { }
     explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 
-    void rdb_serialize(write_message_t &msg) const; // NOLINT(runtime/references)
+    void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
 private:

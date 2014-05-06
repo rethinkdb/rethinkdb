@@ -52,45 +52,45 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(wire_func_type_t, int8_t,
 
 class wire_func_serialization_visitor_t : public func_visitor_t {
 public:
-    explicit wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
+    explicit wire_func_serialization_visitor_t(write_message_t *_wm) : wm(_wm) { }
 
     void on_reql_func(const reql_func_t *reql_func) {
-        *msg << wire_func_type_t::REQL;
+        serialize(wm, wire_func_type_t::REQL);
         const var_scope_t &scope = reql_func->captured_scope;
-        *msg << scope;
+        serialize(wm, scope);
         const std::vector<sym_t> &arg_names = reql_func->arg_names;
-        *msg << arg_names;
+        serialize(wm, arg_names);
         const protob_t<const Term> &body = reql_func->body->get_src();
-        *msg << *body;
+        serialize(wm, *body);
         const protob_t<const Backtrace> &backtrace = reql_func->backtrace();
-        *msg << *backtrace;
+        serialize(wm, *backtrace);
     }
 
     void on_js_func(const js_func_t *js_func) {
-        *msg << wire_func_type_t::JS;
+        serialize(wm, wire_func_type_t::JS);
         const std::string &js_source = js_func->js_source;
-        *msg << js_source;
+        serialize(wm, js_source);
         const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
-        *msg << js_timeout_ms;
+        serialize(wm, js_timeout_ms);
         const protob_t<const Backtrace> &backtrace = js_func->backtrace();
-        *msg << *backtrace;
+        serialize(wm, *backtrace);
     }
 
 private:
-    write_message_t *msg;
+    write_message_t *wm;
 };
 
 
-void wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
+void wire_func_t::rdb_serialize(write_message_t *wm) const {
     const uint64_t ser_version = 0;
-    serialize_varint_uint64(&msg, ser_version);
+    serialize_varint_uint64(wm, ser_version);
 
     if (func_can_be_null()) {
-        msg << func.has();
+        serialize(wm, func.has());
         if (!func.has()) return;
     }
     r_sanity_check(func.has());
-    wire_func_serialization_visitor_t v(&msg);
+    wire_func_serialization_visitor_t v(wm);
     func->visit(&v);
 }
 
@@ -203,8 +203,8 @@ map_wire_func_t map_wire_func_t::make_safely(
 
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, 0, filter_func, default_filter_val);
 
-void bt_wire_func_t::rdb_serialize(write_message_t &msg) const { // NOLINT
-    msg << *bt;
+void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
+    serialize(wm, *bt);
 }
 
 archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {

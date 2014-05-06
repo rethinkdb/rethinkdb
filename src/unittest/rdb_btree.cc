@@ -64,7 +64,7 @@ void insert_rows(int start, int finish, store_t *store) {
                 store->get_in_line_for_sindex_queue(&sindex_block);
 
             write_message_t wm;
-            wm << rdb_sindex_change_t(mod_report);
+            serialize(&wm, rdb_sindex_change_t(mod_report));
 
             store->sindex_queue_push(wm, acq.get());
         }
@@ -98,8 +98,8 @@ std::string create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    wm << m;
-    wm << multi_bool;
+    serialize(&wm, m);
+    serialize(&wm, multi_bool);
 
     vector_stream_t stream;
     stream.reserve(wm.size());

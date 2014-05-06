@@ -41,9 +41,9 @@ const block_magic_t expected_magic = { { 'R', 'D', 'm', 'd' } };
 template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
-    write_message_t msg;
-    msg << value;
-    intrusive_list_t<write_buffer_t> *buffers = msg.unsafe_expose_buffers();
+    write_message_t wm;
+    serialize(&wm, value);
+    intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
         slen += p->size;

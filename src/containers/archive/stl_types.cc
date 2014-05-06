@@ -6,10 +6,9 @@ size_t serialized_size(const std::string &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-write_message_t &operator<<(write_message_t &msg, const std::string &s) {
-    serialize_varint_uint64(&msg, s.size());
-    msg.append(s.data(), s.size());
-    return msg;
+void serialize(write_message_t *wm, const std::string &s) {
+    serialize_varint_uint64(wm, s.size());
+    wm->append(s.data(), s.size());
 }
 
 archive_result_t deserialize(read_stream_t *s, std::string *out) {

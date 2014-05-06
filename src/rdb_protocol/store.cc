@@ -370,8 +370,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        wm << c.mapping;
-        wm << c.multi;
+        serialize(&wm, c.mapping);
+        serialize(&wm, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -467,7 +467,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
+        serialize(&wm, rdb_sindex_change_t(*mod_report));
         store->sindex_queue_push(wm, acq.get());
 
         store_t::sindex_access_vector_t sindexes;
@@ -748,7 +748,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
-                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
+                serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }
         }

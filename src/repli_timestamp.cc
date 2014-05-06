@@ -6,8 +6,8 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
-write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
-    return msg << tstamp.longtime;
+void serialize(write_message_t *wm, repli_timestamp_t tstamp) {
+    serialize(wm, tstamp.longtime);
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {

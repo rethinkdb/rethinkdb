@@ -10,7 +10,7 @@
 /* This file is for storing a few extensions to json that are useful for
  * implementing the rdb_protocol. */
 
-write_message_t &operator<<(write_message_t &msg, const std::shared_ptr<const scoped_cJSON_t> &cjson);
+void serialize(write_message_t *wm, const std::shared_ptr<const scoped_cJSON_t> &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const scoped_cJSON_t> *cjson);
 
 namespace query_language {

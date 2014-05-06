@@ -63,7 +63,7 @@ scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &
 
 size_t serialized_size(const wire_string_t &s);
 
-write_message_t &operator<<(write_message_t &msg, const wire_string_t &s);
+void serialize(write_message_t *wm, const wire_string_t &s);
 
 // The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
 // functions, the value of `*out` is left in an unspecified state, should

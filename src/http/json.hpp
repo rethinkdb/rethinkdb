@@ -151,7 +151,7 @@ public:
 };
 
 /* Json serialization */
-write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
+void serialize(write_message_t *wm, const cJSON &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 
 #endif /* HTTP_JSON_HPP_ */
