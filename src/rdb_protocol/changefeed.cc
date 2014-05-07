@@ -24,20 +24,12 @@ void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
-    // The client might have already been removed from e.g. a peer
-    // disconnect or drainer destruction.
+    // The client might have already been removed from e.g. a peer disconnect or
+    // drainer destruction.  (Also, if we have multiple shards per btree this
+    // will be called twice, and the second time it should be a no-op.)
     if (it != clients.end()) {
-        auto pair = &it->second;
         spot.write_signal()->wait_lazily_unordered();
-        pair->first -= 1;
-        if (pair->first == 0) {
-            // This won't get pulsed twice because the clients can't
-            // send to this mailbox until the original subscribing write
-            // has completed, which means `add_client` has been called
-            // with `addr` as many times as it's ever going to be, so
-            // we'll never hit `0` more than once.
-            pair->second->pulse();
-        }
+        it->second.cond->pulse();
     }
 }
 
@@ -45,14 +37,16 @@ void server_t::add_client(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
-    auto pair = &clients[addr];
-    if (pair->second.has()) {
-        pair->first += 1;
-    } else {
-        pair->first = 1;
-        pair->second.init(new cond_t());
-        signal_t *stopped = &*pair->second;
+    auto info = &clients[addr];
+    // The entry might already exist if we have multiple shards per btree, but
+    // that's fine.
+    if (!info->cond.has()) {
+        info->stamp = 0;
+        cond_t *stopped = new cond_t();
+        info->cond.init(stopped);
         // We spawn now so the auto drainer lock is acquired immediately.
+        // Passing the raw pointer `stopped` is safe because `add_client_cb` is
+        // the only function which can remove an entry from the map.
         coro_t::spawn_now_dangerously(
             std::bind(&server_t::add_client_cb, this, stopped, addr));
     }
@@ -71,34 +65,48 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
+    // This is true even if we have multiple shards per btree because
+    // `add_client` only spawns one of us.
     guarantee(erased == 1);
     debugf("Stopped!\n");
 }
 
 struct stamped_msg_t {
     stamped_msg_t() { }
-    stamped_msg_t(uuid_u _server_uuid, repli_timestamp_t _timestamp, msg_t _submsg)
+    stamped_msg_t(uuid_u _server_uuid, uint64_t _stamp, msg_t _submsg)
         : server_uuid(std::move(_server_uuid)),
-          timestamp(std::move(_timestamp)),
+          stamp(std::move(_stamp)),
           submsg(std::move(_submsg)) { }
     uuid_u server_uuid;
-    repli_timestamp_t timestamp;
+    uint64_t stamp;
     msg_t submsg;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-void server_t::send_all(repli_timestamp_t timestamp, msg_t msg) {
+void server_t::send_all(msg_t msg) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
-        send(manager, it->first,
-             stamped_msg_t(uuid, std::move(timestamp), std::move(msg)));
+        send(manager, it->first, stamped_msg_t(uuid, it->second.stamp++, msg));
     }
 }
 
 server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
+}
+
+uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+    auto it = clients.find(addr);
+    if (it == clients.end()) {
+        // The client was removed, so no future messages are coming.
+        return std::numeric_limits<uint64_t>::max();
+    } else {
+        return it->second.stamp;
+    }
 }
 
 uuid_u server_t::get_uuid() {
@@ -118,7 +126,7 @@ msg_t::change_t::~change_t() { }
 RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
 RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
-RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, timestamp, submsg);
+RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 
 enum class detach_t { NO, YES };
 
@@ -130,9 +138,8 @@ public:
     ~sub_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
-    void add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
-                counted_t<const datum_t> d);
-    void start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps);
+    void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d);
+    void start(std::map<uuid_u, uint64_t> &&_start_stamps);
     void stop(const std::string &msg, detach_t should_detach);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
@@ -141,7 +148,7 @@ private:
     cond_t *cond; // NULL unless we're waiting.
     std::deque<counted_t<const datum_t> > els;
     feed_t *feed;
-    std::map<uuid_u, repli_timestamp_t> start_timestamps;
+    std::map<uuid_u, uint64_t> start_stamps;
     auto_drainer_t drainer;
     DISABLE_COPYING(sub_t);
 };
@@ -172,19 +179,35 @@ private:
     mailbox_manager_t *manager;
     mailbox_t<void(stamped_msg_t)> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
+
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
     wait_any_t any_disconnect;
+
+    // RSI: prepop queues.
+    struct queue_t {
+        rwlock_t lock;
+        uint64_t next;
+        std::map<uint64_t, stamped_msg_t> map;
+    };
+    // Maps from a `server_t`'s uuid_u.  We don't need a lock for this because
+    // the set of `uuid_u`s never changes after it's initialized.
+    std::map<uuid_u, queue_t> queues;
+    // RSI: Initialize queues sanely?  Make sure `mailbox_cb` doesn't run before
+    // they're initialized.
+
     std::vector<std::set<sub_t *> > subs;
     rwlock_t subs_lock;
     int64_t num_subs;
+
     bool detached;
+
     auto_drainer_t drainer;
 };
 
 class msg_visitor_t : public boost::static_visitor<void> {
 public:
-    msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, repli_timestamp_t _timestamp)
-        : feed(_feed), server_uuid(_server_uuid), timestamp(_timestamp) { }
+    msg_visitor_t(feed_t *_feed, uuid_u _server_uuid, uint64_t _stamp)
+        : feed(_feed), server_uuid(_server_uuid), stamp(_stamp) { }
     void operator()(const msg_t::change_t &change) const {
         auto null = make_counted<const datum_t>(datum_t::R_NULL);
         std::map<std::string, counted_t<const datum_t> > obj{
@@ -192,7 +215,7 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_sub(std::bind(&sub_t::add_el, ph::_1, server_uuid, timestamp, d));
+        feed->each_sub(std::bind(&sub_t::add_el, ph::_1, server_uuid, stamp, d));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
@@ -201,7 +224,7 @@ public:
 private:
     feed_t *feed;
     uuid_u server_uuid;
-    repli_timestamp_t timestamp;
+    uint64_t stamp;
 };
 
 class stream_t : public eager_datum_stream_t {
@@ -281,15 +304,14 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
-void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
-                   counted_t<const datum_t> d) {
+void sub_t::add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
     assert_thread();
     // If we don't have start timestamps, we haven't started, and if we have
     // exc, we've stopped.
-    if (start_timestamps.size() != 0 && !exc) {
-        auto it = start_timestamps.find(uuid);
-        guarantee(it != start_timestamps.end());
-        if (timestamp > it->second) {
+    if (start_stamps.size() != 0 && !exc) {
+        auto it = start_stamps.find(uuid);
+        guarantee(it != start_stamps.end());
+        if (stamp > it->second) {
             els.push_back(d);
             if (els.size() > array_size_limit()) {
                 skipped += els.size();
@@ -300,10 +322,10 @@ void sub_t::add_el(const uuid_u &uuid, const repli_timestamp_t &timestamp,
     }
 }
 
-void sub_t::start(std::map<uuid_u, repli_timestamp_t> &&_start_timestamps) {
+void sub_t::start(std::map<uuid_u, uint64_t> &&_start_stamps) {
     assert_thread();
-    start_timestamps = std::move(_start_timestamps);
-    guarantee(start_timestamps.size() != 0);
+    start_stamps = std::move(_start_stamps);
+    guarantee(start_stamps.size() != 0);
 }
 
 void sub_t::stop(const std::string &msg, detach_t detach) {
@@ -405,10 +427,31 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
     // stop mailboxes for some of the masters yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer.
-    if (!detached) {
-        check_stamp(msg.server_uuid, msg.timestamp);
-        msg_visitor_t visitor(this, msg.server_uuid, msg.timestamp);
-        boost::apply_visitor(visitor, msg.submsg.op);
+    if (!detached && queues.size() != 0) {
+        auto_drainer_t::lock_t lock(&drainer);
+
+        // We don't need a lock for this because the set of `uuid_u`s never
+        // changes after it's initialized.
+        auto it = queues.find(msg.server_uuid);
+        guarantee(it != queues.end());
+        queue_t *queue = &it->second;
+
+        rwlock_in_line_t spot(&queue->lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+
+        // Add us to the queue.
+        bool inserted =
+            queue->map.insert(std::make_pair(msg.stamp, std::move(msg))).second;
+        guarantee(inserted);
+
+        // Read as much as we can from the queue (this enforces ordering.)
+        while (queue->map.begin()->first == queue->next) {
+            queue->next += 1;
+            stamped_msg_t curmsg(std::move(queue->map.begin()->second));
+            queue->map.erase(queue->map.begin());
+            msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
+            boost::apply_visitor(visitor, curmsg.submsg.op);
+        }
     }
 }
 
@@ -513,13 +556,13 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
         base_namespace_repo_t::access_t access(
             env->cluster_access.ns_repo, uuid, env->interruptor);
         auto nif = access.get_namespace_if();
-        write_t write(changefeed_timestamp_t(), profile_bool_t::DONT_PROFILE);
+        write_t write(changefeed_stamp_t(), profile_bool_t::DONT_PROFILE);
         write_response_t write_resp;
         nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
-        auto resp = boost::get<changefeed_timestamp_response_t>(
+        auto resp = boost::get<changefeed_stamp_response_t>(
             &write_resp.response);
         guarantee(resp);
-        sub->start(std::move(resp->timestamps));
+        sub->start(std::move(resp->stamps));
         return counted_t<datum_stream_t>(
             new stream_t(std::move(sub), tbl->backtrace()));
     } catch (const cannot_perform_query_exc_t &e) {

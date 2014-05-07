@@ -352,7 +352,7 @@ void do_a_replace_from_batched_replace(
 
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    sindex_cb->on_mod_report(info.btree->timestamp, mod_report);
+    sindex_cb->on_mod_report(mod_report);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1062,7 +1062,6 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-    repli_timestamp_t timestamp,
     const rdb_modification_report_t &mod_report) {
     // debugf("%" PRIu64 "\n", timestamp.longtime);
     if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
@@ -1076,8 +1075,7 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond));
         {
             using namespace ql::changefeed;
-            store_->changefeed_server.send_all(
-                timestamp, msg_t(msg_t::change_t(&mod_report)));
+            store_->changefeed_server.send_all(msg_t(msg_t::change_t(&mod_report)));
         }
 
         sindexes_updated_cond.wait_lazily_unordered();

@@ -369,14 +369,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         store->changefeed_server.add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
         boost::get<changefeed_subscribe_response_t>(&response->response)
-            ->addrs.push_back( store->changefeed_server.get_stop_addr());
+            ->addrs.push_back(store->changefeed_server.get_stop_addr());
     }
 
-    void operator()(const changefeed_timestamp_t &) {
+    void operator()(const changefeed_stamp_t &s) {
         debugf("Getting timestamp from %p.\n", store);
-        response->response = changefeed_timestamp_response_t();
-        boost::get<changefeed_timestamp_response_t>(&response->response)
-            ->timestamps[store->changefeed_server.get_uuid()] = timestamp;
+        response->response = changefeed_stamp_response_t();
+        boost::get<changefeed_stamp_response_t>(&response->response)
+            ->stamps[store->changefeed_server.get_uuid()]
+            = store->changefeed_server.get_stamp(s.addr);
     }
 
     void operator()(const sindex_create_t &c) {

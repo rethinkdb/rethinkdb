@@ -82,8 +82,9 @@ public:
     typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
     server_t(mailbox_manager_t *_manager);
     void add_client(const client_t::addr_t &addr);
-    void send_all(repli_timestamp_t timestamp, msg_t msg);
+    void send_all(msg_t msg);
     addr_t get_stop_addr();
+    uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
     void stop_mailbox_cb(client_t::addr_t addr);
@@ -91,8 +92,14 @@ private:
 
     uuid_u uuid;
     mailbox_manager_t *manager;
-    std::map<client_t::addr_t, std::pair<int64_t, scoped_ptr_t<cond_t> > > clients;
+
+    struct client_info_t {
+        scoped_ptr_t<cond_t> cond;
+        uint64_t stamp;
+    };
+    std::map<client_t::addr_t, client_info_t> clients;
     rwlock_t clients_lock;
+
     mailbox_t<void(client_t::addr_t)> stop_mailbox;
     auto_drainer_t drainer;
 };

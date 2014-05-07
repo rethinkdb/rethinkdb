@@ -444,15 +444,16 @@ struct point_delete_response_t {
 
 struct changefeed_subscribe_response_t {
     changefeed_subscribe_response_t() { }
-    std::vector<ql::changefeed::server_t::addr_t> addrs;
+    std::set<uuid_u> server_uuids;
+    std::set<ql::changefeed::server_t::addr_t> addrs;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
-struct changefeed_timestamp_response_t {
-    changefeed_timestamp_response_t() { }
+struct changefeed_stamp_response_t {
+    changefeed_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
     // machines and don't synchronize with each other.)
-    std::map<uuid_u, repli_timestamp_t> timestamps;
+    std::map<uuid_u, uint64_t> stamps;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
@@ -481,7 +482,7 @@ struct write_response_t {
                    point_write_response_t,
                    point_delete_response_t,
                    changefeed_subscribe_response_t,
-                   changefeed_timestamp_response_t,
+                   changefeed_stamp_response_t,
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sync_response_t> response;
@@ -586,9 +587,12 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class changefeed_timestamp_t {
+class changefeed_stamp_t {
 public:
-    changefeed_timestamp_t() : region(region_t::universe()) { }
+    changefeed_stamp_t() : region(region_t::universe()) { }
+    changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
     region_t region;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -639,7 +643,7 @@ struct write_t {
                    point_write_t,
                    point_delete_t,
                    changefeed_subscribe_t,
-                   changefeed_timestamp_t,
+                   changefeed_stamp_t,
                    sindex_create_t,
                    sindex_drop_t,
                    sync_t> write;
