@@ -164,6 +164,7 @@ public:
     void del_sub(sub_t *sub) THROWS_NOTHING;
     void each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING;
     bool can_be_removed();
+    client_t::addr_t get_addr() const;
 private:
     void each_sub_cb(const std::function<void(sub_t *)> &f,
                      const std::vector<int> &sub_threads,
@@ -305,12 +306,14 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
 
 void sub_t::add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
     assert_thread();
+    // debugf("ADD_EL\n");
     // If we don't have start timestamps, we haven't started, and if we have
     // exc, we've stopped.
     if (start_stamps.size() != 0 && !exc) {
         auto it = start_stamps.find(uuid);
         guarantee(it != start_stamps.end());
-        if (stamp > it->second) {
+        // debugf("ADD_EL %" PRIu64 " vs. %" PRIu64 "\n", stamp, it->second);
+        if (stamp >= it->second) {
             els.push_back(d);
             if (els.size() > array_size_limit()) {
                 skipped += els.size();
@@ -375,6 +378,7 @@ void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
 
 void feed_t::each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
+    // debugf("EACH_SUB\n");
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -397,6 +401,7 @@ void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
     guarantee(set->size() != 0);
     on_thread_t th((threadnum_t(sub_threads[i])));
     for (auto it = set->begin(); it != set->end(); ++it) {
+        // debugf("ITER\n");
         // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
         f(*it);
     }
@@ -404,6 +409,10 @@ void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
 
 bool feed_t::can_be_removed() {
     return num_subs == 0;
+}
+
+client_t::addr_t feed_t::get_addr() const {
+    return mailbox.get_address();
 }
 
 void feed_t::check_stamp(uuid_u server_uuid, repli_timestamp_t timestamp) {
@@ -426,13 +435,17 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
     // stop mailboxes for some of the masters yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer.
+    // debugf("mailbox_cb\n");
     if (!detached) {
+        // debugf("!detached\n");
         auto_drainer_t::lock_t lock(&drainer);
 
         // We wait for the write to complete and the queues to be ready.
         wait_any_t wait_any(&queues_ready, lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
+        // debugf("Waited...\n");
         if (!lock.get_drain_signal()->is_pulsed()) {
+            // debugf("Not pulsed.\n");
             // We don't need a lock for this because the set of `uuid_u`s never
             // changes after it's initialized.
             auto it = queues.find(msg.server_uuid);
@@ -449,7 +462,11 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             guarantee(inserted);
 
             // Read as much as we can from the queue (this enforces ordering.)
-            while (queue->map.begin()->first == queue->next) {
+            // debugf("%" PRIu64 " vs. %" PRIu64 "\n",
+            //        queue->map.begin()->first,
+            //        queue->next);
+            while (queue->map.size() != 0
+                   && queue->map.begin()->first == queue->next) {
                 queue->next += 1;
                 stamped_msg_t curmsg(std::move(queue->map.begin()->second));
                 queue->map.erase(queue->map.begin());
@@ -549,6 +566,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
     try {
         uuid_u uuid = tbl->get_uuid();
         scoped_ptr_t<sub_t> sub;
+        addr_t addr;
         {
             threadnum_t old_thread = get_thread_id();
             cross_thread_signal_t interruptor(env->interruptor, home_thread());
@@ -570,12 +588,13 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             // We need to do this while holding `feeds_lock` to make sure the
             // feed isn't destroyed before we subscribe to it.
             on_thread_t th2(old_thread);
+            addr = feed_it->second->get_addr();
             sub.init(new sub_t(feed_it->second.get()));
         }
         base_namespace_repo_t::access_t access(
             env->cluster_access.ns_repo, uuid, env->interruptor);
         auto nif = access.get_namespace_if();
-        write_t write(changefeed_stamp_t(), profile_bool_t::DONT_PROFILE);
+        write_t write(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         write_response_t write_resp;
         nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(
