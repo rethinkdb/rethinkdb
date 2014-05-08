@@ -976,8 +976,13 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
         for (size_t i = 0; i < count; ++i) {
             auto res = boost::get<changefeed_subscribe_response_t>(
                 &responses[i].response);
-            std::move(res->addrs.begin(), res->addrs.end(),
-                      std::back_inserter(out->addrs));
+            for (auto it = res->addrs.begin(); it != res->addrs.end(); ++it) {
+                out->addrs.insert(std::move(*it));
+            }
+            for (auto it = res->server_uuids.begin();
+                 it != res->server_uuids.end(); ++it) {
+                out->server_uuids.insert(std::move(*it));
+            }
         }
     }
 
@@ -1089,7 +1094,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_1(changefeed_subscribe_response_t, addrs);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
 RDB_IMPL_ME_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);

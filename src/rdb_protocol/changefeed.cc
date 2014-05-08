@@ -191,9 +191,8 @@ private:
     };
     // Maps from a `server_t`'s uuid_u.  We don't need a lock for this because
     // the set of `uuid_u`s never changes after it's initialized.
-    std::map<uuid_u, queue_t> queues;
-    // RSI: Initialize queues sanely?  Make sure `mailbox_cb` doesn't run before
-    // they're initialized.
+    std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
+    cond_t queues_ready;
 
     std::vector<std::set<sub_t *> > subs;
     rwlock_t subs_lock;
@@ -427,30 +426,36 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
     // stop mailboxes for some of the masters yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer.
-    if (!detached && queues.size() != 0) {
+    if (!detached) {
         auto_drainer_t::lock_t lock(&drainer);
 
-        // We don't need a lock for this because the set of `uuid_u`s never
-        // changes after it's initialized.
-        auto it = queues.find(msg.server_uuid);
-        guarantee(it != queues.end());
-        queue_t *queue = &it->second;
+        // We wait for the write to complete and the queues to be ready.
+        wait_any_t wait_any(&queues_ready, lock.get_drain_signal());
+        wait_any.wait_lazily_unordered();
+        if (!lock.get_drain_signal()->is_pulsed()) {
+            // We don't need a lock for this because the set of `uuid_u`s never
+            // changes after it's initialized.
+            auto it = queues.find(msg.server_uuid);
+            guarantee(it != queues.end());
+            queue_t *queue = it->second.get();
+            guarantee(queue != NULL);
 
-        rwlock_in_line_t spot(&queue->lock, access_t::write);
-        spot.write_signal()->wait_lazily_unordered();
+            rwlock_in_line_t spot(&queue->lock, access_t::write);
+            spot.write_signal()->wait_lazily_unordered();
 
-        // Add us to the queue.
-        bool inserted =
-            queue->map.insert(std::make_pair(msg.stamp, std::move(msg))).second;
-        guarantee(inserted);
+            // Add us to the queue.
+            bool inserted =
+                queue->map.insert(std::make_pair(msg.stamp, std::move(msg))).second;
+            guarantee(inserted);
 
-        // Read as much as we can from the queue (this enforces ordering.)
-        while (queue->map.begin()->first == queue->next) {
-            queue->next += 1;
-            stamped_msg_t curmsg(std::move(queue->map.begin()->second));
-            queue->map.erase(queue->map.begin());
-            msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
-            boost::apply_visitor(visitor, curmsg.submsg.op);
+            // Read as much as we can from the queue (this enforces ordering.)
+            while (queue->map.begin()->first == queue->next) {
+                queue->next += 1;
+                stamped_msg_t curmsg(std::move(queue->map.begin()->second));
+                queue->map.erase(queue->map.begin());
+                msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
+                boost::apply_visitor(visitor, curmsg.submsg.op);
+            }
         }
     }
 }
@@ -473,8 +478,13 @@ feed_t::feed_t(client_t *_client,
     write_response_t write_resp;
     nif->write(write, &write_resp, order_token_t::ignore, interruptor);
     auto resp = boost::get<changefeed_subscribe_response_t>(&write_resp.response);
+
     guarantee(resp);
-    stop_addrs = std::move(resp->addrs);
+    stop_addrs.reserve(resp->addrs.size());
+    for (auto it = resp->addrs.begin(); it != resp->addrs.end(); ++it) {
+        stop_addrs.push_back(std::move(*it));
+    }
+
     std::set<peer_id_t> peers;
     for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
         peers.insert(it->get_peer());
@@ -485,6 +495,15 @@ feed_t::feed_t(client_t *_client,
                 manager->get_connectivity_service(), *it));
         any_disconnect.add(&*disconnect_watchers.back());
     }
+
+    for (auto it = resp->server_uuids.begin(); it != resp->server_uuids.end(); ++it) {
+        auto res = queues.insert(
+            std::make_pair(std::move(*it), make_scoped<queue_t>()));
+        guarantee(res.second);
+        res.first->second->next = 0;
+    }
+    queues_ready.pulse();
+
     // We spawn now so that the auto drainer lock is acquired immediately.
     coro_t::spawn_now_dangerously(std::bind(&feed_t::constructor_cb, this));
 }
@@ -563,8 +582,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             &write_resp.response);
         guarantee(resp);
         sub->start(std::move(resp->stamps));
-        return counted_t<datum_stream_t>(
-            new stream_t(std::move(sub), tbl->backtrace()));
+        return make_counted<stream_t>(std::move(sub), tbl->backtrace());
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",

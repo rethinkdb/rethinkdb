@@ -368,8 +368,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         debugf("Subscribing to %p.\n", store);
         store->changefeed_server.add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
-        boost::get<changefeed_subscribe_response_t>(&response->response)
-            ->addrs.push_back(store->changefeed_server.get_stop_addr());
+        auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
+        guarantee(res != NULL);
+        res->server_uuids.insert(store->changefeed_server.get_uuid());
+        res->addrs.insert(store->changefeed_server.get_stop_addr());
     }
 
     void operator()(const changefeed_stamp_t &s) {
