@@ -38,7 +38,8 @@ namespace changefeed {
 struct msg_t {
     struct change_t {
         change_t();
-        explicit change_t(const rdb_modification_report_t *report);
+        explicit change_t(counted_t<const datum_t> _old_val,
+                          counted_t<const datum_t> _new_val);
         ~change_t();
         counted_t<const datum_t> old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;

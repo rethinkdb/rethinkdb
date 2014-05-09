@@ -119,8 +119,9 @@ msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
 msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
 
 msg_t::change_t::change_t() { }
-msg_t::change_t::change_t(const rdb_modification_report_t *report)
-  : old_val(report->info.deleted.first), new_val(report->info.added.first) { }
+msg_t::change_t::change_t(counted_t<const datum_t> _old_val,
+                          counted_t<const datum_t> _new_val)
+    : old_val(std::move(_old_val)), new_val(std::move(_new_val)) { }
 msg_t::change_t::~change_t() { }
 
 RDB_IMPL_ME_SERIALIZABLE_1(msg_t, 0, op);
