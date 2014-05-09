@@ -652,7 +652,7 @@ scoped_ptr_t<feed_t> client_t::detach_feed(const uuid_u &uuid) {
         ret.swap(feed_it->second);
         feeds.erase(feed_it);
     }
-    return std::move(ret);
+    return ret;
 }
 
 } // namespace changefeed
