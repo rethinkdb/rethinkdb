@@ -10,7 +10,7 @@ tag() {
 }
 
 QUIET=
->log.t
+rm -f *log.t sink_*.t
 deeplog() {
     tag="$HOSTNAME@`date +%s.%N`"
     space=`printf "%-$1s" ""`
@@ -87,7 +87,7 @@ for server in $servers; do
     for n in `seq $nodes_per`; do
         run $server $n <<EOF 2>&1 | HOSTNAME=$server.$n QUIET=1 deeplog 2 &
 echo ./rethinkdb -o $n --bind all $joinline
-./rethinkdb -d rethinkdb_data -o $n --bind all $joinline
+./rethinkdb -d rethinkdb_data -o $n --bind all $joinline 2>&1 | tee -a server_log.t
 wait
 EOF
     done
@@ -113,14 +113,16 @@ ruby ~/rethinkdb/test/changefeeds/wait_for_table.rb arclight 1 2>&1 | QUIET=1 lo
     log "Spawning changefeed sources..."
     for server in $servers; do
         for n in `seq $nodes_per`; do
-            ruby ~/rethinkdb/test/changefeeds/cfeed_src.rb $server $n 2>&1 | log &
+            ruby ~/rethinkdb/test/changefeeds/cfeed_src.rb $server $n 2>&1 \
+                | tee -a srclog.t | log &
         done
     done
 
     log "Spawning changefeed sinks..."
     for server in $servers; do
         for n in `seq $nodes_per`; do
-            ruby ~/rethinkdb/test/changefeeds/cfeed_sink.rb $server $n 2>&1 | log &
+            ruby ~/rethinkdb/test/changefeeds/cfeed_sink.rb $server $n 2>&1 \
+                | tee -a sinklog.t | log &
         done
     done
     wait

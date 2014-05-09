@@ -5,14 +5,14 @@ include RethinkDB::Shortcuts
 host = ARGV[0]
 port = 28015 + ARGV[1].to_i
 $start = Time.now
-$timeout = 60
+$timeout = 5
 
 def loop
   while Time.now < $start + $timeout
     begin
       yield
     rescue => e
-      PP.pp e
+      PP.pp [e, e.backtrace]
     end
     sleep 0.1
   end
@@ -28,3 +28,4 @@ loop {
     { target: row['target'] + " UPDATED", updated: true }
   }.run
 }
+p "Source at #{$$} DONE."
