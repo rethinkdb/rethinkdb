@@ -490,14 +490,14 @@ feed_t::feed_t(client_t *_client,
       num_subs(0),
       detached(false) {
     base_namespace_repo_t::access_t access(ns_repo, uuid, interruptor);
-    auto nif = access.get_namespace_if();
+    namespace_interface_t *nif = access.get_namespace_if();
     read_t read(changefeed_subscribe_t(mailbox.get_address()),
                 profile_bool_t::DONT_PROFILE);
     read_response_t read_resp;
     nif->read(read, &read_resp, order_token_t::ignore, interruptor);
     auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
-    guarantee(resp);
+    guarantee(resp != NULL);
     stop_addrs.reserve(resp->addrs.size());
     for (auto it = resp->addrs.begin(); it != resp->addrs.end(); ++it) {
         stop_addrs.push_back(std::move(*it));
