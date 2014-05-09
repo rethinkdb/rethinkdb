@@ -6,7 +6,6 @@
 Please modify '../scripts/generate_serialize_macros.py' instead of modifying this file.*/
 
 #include "containers/archive/archive.hpp"
-#include "containers/archive/varint.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each of which

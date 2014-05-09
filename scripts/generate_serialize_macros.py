@@ -82,7 +82,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
-    print "#include \"containers/archive/varint.hpp\""
     print
 
     print """
