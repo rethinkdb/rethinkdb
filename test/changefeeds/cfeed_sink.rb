@@ -20,11 +20,11 @@ end
 
 p "Sink at #{$$}..."
 r.connect(host: host, port: port).repl
-File.open("#{$$}.t", "w") {|f|
+File.open("sink_#{$$}.t", "w") {|f|
   r.table('test').insert({pid: $$}).run
-  r.table('test').changes.run.each{ |change|
-    assert(change['new_val']['pid'] != $$)
-    f.write(change.to_json)
+  r.table('test').changes.run.each {|change|
+    raise `figlet FAILED` if (change['new_val']['pid'] rescue nil) == $$
+    f.write(change.to_json + "\n")
     f.flush
   }
 }

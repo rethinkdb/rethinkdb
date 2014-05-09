@@ -273,9 +273,27 @@ struct sindex_status_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+struct changefeed_subscribe_response_t {
+    changefeed_subscribe_response_t() { }
+    std::set<uuid_u> server_uuids;
+    std::set<ql::changefeed::server_t::addr_t> addrs;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct changefeed_stamp_response_t {
+    changefeed_stamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // machines and don't synchronize with each other.)
+    std::map<uuid_u, uint64_t> stamps;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
+                           changefeed_subscribe_response_t,
+                           changefeed_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
                            sindex_status_response_t> variant_t;
@@ -388,9 +406,31 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+class changefeed_subscribe_t {
+public:
+    changefeed_subscribe_t() { }
+    changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(_addr), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class changefeed_stamp_t {
+public:
+    changefeed_stamp_t() : region(region_t::universe()) { }
+    changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
+                           changefeed_subscribe_t,
+                           changefeed_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
                            sindex_status_t> variant_t;
@@ -409,8 +449,9 @@ struct read_t {
         THROWS_ONLY(interrupted_exc_t);
 
     read_t() { }
-    read_t(const variant_t &r, profile_bool_t _profile)
-        : read(r), profile(_profile) { }
+    template<class T>
+    read_t(T &&_read, profile_bool_t _profile)
+        : read(std::forward<T>(_read)), profile(_profile) { }
 
     // Only use snapshotting if we're doing a range get.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
@@ -442,21 +483,6 @@ struct point_delete_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-struct changefeed_subscribe_response_t {
-    changefeed_subscribe_response_t() { }
-    std::set<uuid_u> server_uuids;
-    std::set<ql::changefeed::server_t::addr_t> addrs;
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-struct changefeed_stamp_response_t {
-    changefeed_stamp_response_t() { }
-    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
-    // different timestamps for each `server_t` because they're on different
-    // machines and don't synchronize with each other.)
-    std::map<uuid_u, uint64_t> stamps;
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
 // TODO we're reusing the enums from row writes and reads to avoid name
 // shadowing. Nothing really wrong with this but maybe they could have a
 // more generic name.
@@ -481,8 +507,6 @@ struct write_response_t {
                    // batched_replace_response_t is also for batched_insert
                    point_write_response_t,
                    point_delete_response_t,
-                   changefeed_subscribe_response_t,
-                   changefeed_stamp_response_t,
                    sindex_create_response_t,
                    sindex_drop_response_t,
                    sync_response_t> response;
@@ -577,26 +601,6 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class changefeed_subscribe_t {
-public:
-    changefeed_subscribe_t() { }
-    changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
-        : addr(_addr), region(region_t::universe()) { }
-    ql::changefeed::client_t::addr_t addr;
-    region_t region;
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
-class changefeed_stamp_t {
-public:
-    changefeed_stamp_t() : region(region_t::universe()) { }
-    changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
-        : addr(std::move(_addr)), region(region_t::universe()) { }
-    ql::changefeed::client_t::addr_t addr;
-    region_t region;
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
 class sindex_create_t {
 public:
     sindex_create_t() { }
@@ -642,8 +646,6 @@ struct write_t {
                    batched_insert_t,
                    point_write_t,
                    point_delete_t,
-                   changefeed_subscribe_t,
-                   changefeed_stamp_t,
                    sindex_create_t,
                    sindex_drop_t,
                    sync_t> write;

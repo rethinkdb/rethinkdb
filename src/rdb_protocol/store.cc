@@ -54,6 +54,24 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
+    void operator()(const changefeed_subscribe_t &s) {
+        debugf("Subscribing to %p.\n", store);
+        store->changefeed_server.add_client(s.addr);
+        response->response = changefeed_subscribe_response_t();
+        auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
+        guarantee(res != NULL);
+        res->server_uuids.insert(store->changefeed_server.get_uuid());
+        res->addrs.insert(store->changefeed_server.get_stop_addr());
+    }
+
+    void operator()(const changefeed_stamp_t &s) {
+        debugf("Getting timestamp from %p.\n", store);
+        response->response = changefeed_stamp_response_t();
+        boost::get<changefeed_stamp_response_t>(&response->response)
+            ->stamps[store->changefeed_server.get_uuid()]
+            = store->changefeed_server.get_stamp(s.addr);
+    }
+
     void operator()(const point_read_t &get) {
         response->response = point_read_response_t();
         point_read_response_t *res =
@@ -362,24 +380,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 res, &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
-    }
-
-    void operator()(const changefeed_subscribe_t &s) {
-        debugf("Subscribing to %p.\n", store);
-        store->changefeed_server.add_client(s.addr);
-        response->response = changefeed_subscribe_response_t();
-        auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
-        guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server.get_uuid());
-        res->addrs.insert(store->changefeed_server.get_stop_addr());
-    }
-
-    void operator()(const changefeed_stamp_t &s) {
-        debugf("Getting timestamp from %p.\n", store);
-        response->response = changefeed_stamp_response_t();
-        boost::get<changefeed_stamp_response_t>(&response->response)
-            ->stamps[store->changefeed_server.get_uuid()]
-            = store->changefeed_server.get_stamp(s.addr);
     }
 
     void operator()(const sindex_create_t &c) {

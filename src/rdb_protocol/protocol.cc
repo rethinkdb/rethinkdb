@@ -495,6 +495,14 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
+    bool operator()(const changefeed_subscribe_t &s) const {
+        return rangey_read(s);
+    }
+
+    bool operator()(const changefeed_stamp_t &t) const {
+        return rangey_read(t);
+    }
+
     bool operator()(const rget_read_t &rg) const {
         bool do_read = rangey_read(rg);
         if (do_read) {
@@ -573,6 +581,8 @@ public:
     void operator()(const distribution_read_t &rg);
     void operator()(const sindex_list_t &rg);
     void operator()(const sindex_status_t &rg);
+    void operator()(const changefeed_subscribe_t &);
+    void operator()(const changefeed_stamp_t &);
 
 private:
     read_response_t *responses; // Cannibalized for efficiency.
@@ -580,6 +590,38 @@ private:
     read_response_t *response_out;
     ql::env_t env;
 };
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
+    response_out->response = changefeed_subscribe_response_t();
+    auto out = boost::get<changefeed_subscribe_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<changefeed_subscribe_response_t>(
+            &responses[i].response);
+        for (auto it = res->addrs.begin(); it != res->addrs.end(); ++it) {
+            out->addrs.insert(std::move(*it));
+        }
+        for (auto it = res->server_uuids.begin();
+             it != res->server_uuids.end(); ++it) {
+            out->server_uuids.insert(std::move(*it));
+        }
+    }
+}
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
+    response_out->response = changefeed_stamp_response_t();
+    auto out = boost::get<changefeed_stamp_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<changefeed_stamp_response_t>(&responses[i].response);
+        for (auto it = res->stamps.begin(); it != res->stamps.end(); ++it) {
+            auto it_out = out->stamps.find(it->first);
+            if (it_out == out->stamps.end()) {
+                out->stamps[it->first] = it->second;
+            } else {
+                it_out->second = std::max(it->second, it_out->second);
+            }
+        }
+    }
+}
 
 void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     guarantee(count == 1);
@@ -908,14 +950,6 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
-    bool operator()(const changefeed_subscribe_t &s) const {
-        return rangey_write(s);
-    }
-
-    bool operator()(const changefeed_stamp_t &t) const {
-        return rangey_write(t);
-    }
-
     bool operator()(const sindex_create_t &c) const {
         return rangey_write(c);
     }
@@ -969,39 +1003,6 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const point_write_t &) const { monokey_response(); }
     void operator()(const point_delete_t &) const { monokey_response(); }
-
-    void operator()(const changefeed_subscribe_t &) const {
-        response_out->response = changefeed_subscribe_response_t();
-        auto out = boost::get<changefeed_subscribe_response_t>(&response_out->response);
-        for (size_t i = 0; i < count; ++i) {
-            auto res = boost::get<changefeed_subscribe_response_t>(
-                &responses[i].response);
-            for (auto it = res->addrs.begin(); it != res->addrs.end(); ++it) {
-                out->addrs.insert(std::move(*it));
-            }
-            for (auto it = res->server_uuids.begin();
-                 it != res->server_uuids.end(); ++it) {
-                out->server_uuids.insert(std::move(*it));
-            }
-        }
-    }
-
-    void operator()(const changefeed_stamp_t &) const {
-        response_out->response = changefeed_stamp_response_t();
-        auto out = boost::get<changefeed_stamp_response_t>(&response_out->response);
-        for (size_t i = 0; i < count; ++i) {
-            auto res = boost::get<changefeed_stamp_response_t>(
-                &responses[i].response);
-            for (auto it = res->stamps.begin(); it != res->stamps.end(); ++it) {
-                auto it_out = out->stamps.find(it->first);
-                if (it_out == out->stamps.end()) {
-                    out->stamps[it->first] = it->second;
-                } else {
-                    it_out->second = std::max(it->second, it_out->second);
-                }
-            }
-        }
-    }
 
     void operator()(const sindex_create_t &) const {
         *response_out = responses[0];

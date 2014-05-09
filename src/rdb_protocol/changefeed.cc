@@ -165,7 +165,7 @@ public:
     void each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING;
     bool can_be_removed();
     client_t::addr_t get_addr() const;
-private:
+    // private: // RSI: uncomment
     void each_sub_cb(const std::function<void(sub_t *)> &f,
                      const std::vector<int> &sub_threads,
                      int i);
@@ -311,6 +311,13 @@ void sub_t::add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> 
     // exc, we've stopped.
     if (start_stamps.size() != 0 && !exc) {
         auto it = start_stamps.find(uuid);
+        if (it == start_stamps.end()) {
+            debugf("ADD_EL start_stamps (%zu):\n", start_stamps.size());
+            for (auto it2 = start_stamps.begin(); it2 != start_stamps.end(); ++it2) {
+                debugf("%s\n", uuid_to_str(it2->first).c_str());
+            }
+            debugf("ADD_EL want: %s\n", uuid_to_str(uuid).c_str());
+        }
         guarantee(it != start_stamps.end());
         // debugf("ADD_EL %" PRIu64 " vs. %" PRIu64 "\n", stamp, it->second);
         if (stamp >= it->second) {
@@ -448,7 +455,15 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             // debugf("Not pulsed.\n");
             // We don't need a lock for this because the set of `uuid_u`s never
             // changes after it's initialized.
+
             auto it = queues.find(msg.server_uuid);
+            if (it == queues.end()) {
+                debugf("Queues (%zu):\n", queues.size());
+                for (auto it2 = queues.begin(); it2 != queues.end(); ++it2) {
+                    debugf("%s\n", uuid_to_str(it2->first).c_str());
+                }
+                debugf("Want: %s\n", uuid_to_str(msg.server_uuid).c_str());
+            }
             guarantee(it != queues.end());
             queue_t *queue = it->second.get();
             guarantee(queue != NULL);
@@ -490,11 +505,11 @@ feed_t::feed_t(client_t *_client,
       detached(false) {
     base_namespace_repo_t::access_t access(ns_repo, uuid, interruptor);
     auto nif = access.get_namespace_if();
-    write_t write(changefeed_subscribe_t(mailbox.get_address()),
-                  profile_bool_t::DONT_PROFILE);
-    write_response_t write_resp;
-    nif->write(write, &write_resp, order_token_t::ignore, interruptor);
-    auto resp = boost::get<changefeed_subscribe_response_t>(&write_resp.response);
+    read_t read(changefeed_subscribe_t(mailbox.get_address()),
+                profile_bool_t::DONT_PROFILE);
+    read_response_t read_resp;
+    nif->read(read, &read_resp, order_token_t::ignore, interruptor);
+    auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
 
     guarantee(resp);
     stop_addrs.reserve(resp->addrs.size());
@@ -588,18 +603,25 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             // We need to do this while holding `feeds_lock` to make sure the
             // feed isn't destroyed before we subscribe to it.
             on_thread_t th2(old_thread);
-            addr = feed_it->second->get_addr();
-            sub.init(new sub_t(feed_it->second.get()));
+            feed_t *feed = feed_it->second.get();
+            for (auto it = feed->queues.begin(); it != feed->queues.end(); ++it) {
+                debugf("FEED %s\n", uuid_to_str(it->first).c_str());
+            }
+            addr = feed->get_addr();
+            sub.init(new sub_t(feed));
         }
         base_namespace_repo_t::access_t access(
             env->cluster_access.ns_repo, uuid, env->interruptor);
         auto nif = access.get_namespace_if();
-        write_t write(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
-        write_response_t write_resp;
-        nif->write(write, &write_resp, order_token_t::ignore, env->interruptor);
+        read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
+        read_response_t read_resp;
+        nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(
-            &write_resp.response);
+            &read_resp.response);
         guarantee(resp);
+        for (auto it = resp->stamps.begin(); it != resp->stamps.end(); ++it) {
+            debugf("STAMP %s\n", uuid_to_str(it->first).c_str());
+        }
         sub->start(std::move(resp->stamps));
         return make_counted<stream_t>(std::move(sub), tbl->backtrace());
     } catch (const cannot_perform_query_exc_t &e) {

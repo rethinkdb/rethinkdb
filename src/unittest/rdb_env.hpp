@@ -68,6 +68,8 @@ private:
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const point_read_t &get);
+        void NORETURN operator()(const changefeed_subscribe_t &);
+        void NORETURN operator()(const changefeed_stamp_t &);
         void NORETURN operator()(UNUSED const rget_read_t &rget);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
         void NORETURN operator()(UNUSED const sindex_list_t &sl);
@@ -84,8 +86,6 @@ private:
         void operator()(const batched_insert_t &br);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
-        void NORETURN operator()(const changefeed_subscribe_t &);
-        void NORETURN operator()(const changefeed_stamp_t &);
         void NORETURN operator()(UNUSED const sindex_create_t &s);
         void NORETURN operator()(UNUSED const sindex_drop_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);

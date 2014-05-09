@@ -72,13 +72,17 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
-    write_t write(std::move(t), durability_requirement, env->profile());
-    write_response_t response;
-    access->get_namespace_if().write(
-        &write, &response, order_token_t::ignore, env->interruptor);
-    auto dp = boost::get<counted_t<const datum_t> >(&response.response);
-    r_sanity_check(dp != NULL);
-    return *dp;
+    try {
+        write_t write(std::move(t), durability_requirement, env->profile());
+        write_response_t response;
+        access->get_namespace_if().write(
+            &write, &response, order_token_t::ignore, env->interruptor);
+        auto dp = boost::get<counted_t<const datum_t> >(&response.response);
+        r_sanity_check(dp != NULL);
+        return *dp;
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail(base_exc_t::GENERIC, "Cannot perform query: %s", e.what());
+    }
 }
 
 counted_t<const datum_t> table_t::batched_replace(
