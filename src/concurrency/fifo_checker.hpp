@@ -21,7 +21,7 @@ struct order_bucket_t {
 
     bool valid() const;
 private:
-    RDB_MAKE_ME_SERIALIZABLE_1(0, uuid_);
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
 
     explicit order_bucket_t(uuid_u uuid) : uuid_(uuid) { }
 };

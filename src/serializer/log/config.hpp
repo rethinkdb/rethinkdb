@@ -31,7 +31,7 @@ struct log_serializer_dynamic_config_t {
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(0, gc_low_ratio, gc_high_ratio, io_batch_factor, \
+    RDB_MAKE_ME_SERIALIZABLE_4(gc_low_ratio, gc_high_ratio, io_batch_factor, \
                                read_ahead);
 };
 
@@ -57,7 +57,7 @@ struct log_serializer_static_config_t : public log_serializer_on_disk_static_con
         block_size_ = DEFAULT_BTREE_BLOCK_SIZE;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, block_size_, extent_size_);
+    RDB_MAKE_ME_SERIALIZABLE_2(block_size_, extent_size_);
 };
 
 #endif /* SERIALIZER_LOG_CONFIG_HPP_ */

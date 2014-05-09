@@ -43,7 +43,7 @@ private:
 
     uuid_u uuid;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(0, uuid);
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
 
 void debug_print(printf_buffer_t *buf, const peer_id_t &peer_id);

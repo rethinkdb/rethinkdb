@@ -46,9 +46,9 @@ def generate_async_message_template(nargs):
     if nargs == 0:
         print "        void write(write_message_t *) {"
     else:
-        print "        void write(write_message_t *msg) {"
+        print "        void write(write_message_t *wm) {"
     for i in xrange(nargs):
-        print "            *msg << arg%d;" % i
+        print "            serialize(wm, arg%d);" % i
     print "        }"
     print "    };"
     print
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     print
     print "    friend class mailbox_t<T>;"
     print
-    print "    RDB_MAKE_ME_SERIALIZABLE_1(0, addr);"
+    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
     print "    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);"
     print
     print "private:"

@@ -1061,8 +1061,8 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, 0, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, 0, range_to_erase);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,

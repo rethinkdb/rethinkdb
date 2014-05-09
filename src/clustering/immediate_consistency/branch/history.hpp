@@ -50,7 +50,7 @@ public:
     branch_id_t branch;
     state_timestamp_t timestamp;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, branch, timestamp);
+    RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
 };
 
 inline void debug_print(printf_buffer_t *buf, const version_t& v) {
@@ -92,7 +92,7 @@ public:
 
     version_t earliest, latest;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, earliest, latest);
+    RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
 
 inline void debug_print(printf_buffer_t *buf, const version_range_t& vr) {
@@ -138,7 +138,7 @@ public:
     constructed. `origin.get_region()` will be the same as `region`. */
     region_map_t<version_range_t> origin;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(0, region, initial_timestamp, origin);
+    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_3(
@@ -165,7 +165,7 @@ class branch_history_t {
 public:
     std::map<branch_id_t, branch_birth_certificate_t> branches;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(0, branches);
+    RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(branch_history_t, branches);

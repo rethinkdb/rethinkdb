@@ -187,9 +187,9 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
     return bt.get_bt();
 }
 
-RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, 0, funcs, append_index, multi, bt);
+RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t, 0);
+RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
 
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,
@@ -201,7 +201,7 @@ map_wire_func_t map_wire_func_t::make_safely(
     return map_wire_func_t(body, make_vector(varname), backtrace);
 }
 
-RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, 0, filter_func, default_filter_val);
+RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
     serialize(wm, *bt);

@@ -127,4 +127,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_SERIALIZABLE_1(in_addr, 0, s_addr);
+RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

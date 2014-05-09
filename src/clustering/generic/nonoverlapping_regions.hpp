@@ -46,7 +46,7 @@ public:
         return regions_ == other.regions_;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(0, regions_);
+    RDB_MAKE_ME_SERIALIZABLE_1(regions_);
 
 private:
     std::set<region_t> regions_;
