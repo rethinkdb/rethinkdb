@@ -112,51 +112,46 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-// Helper function for on_local_message and on_message
-void read_mailbox_header(read_stream_t *stream,
-                         uint64_t *data_length_out,
-                         int32_t *dest_thread_out,
-                         raw_mailbox_t::id_t *dest_mailbox_id_out) {
-    uint64_t data_length = 0;
+// This type merely reduces the amount of pointers we have to pass to read_mailbox_header().
+struct mailbox_header_t {
+    uint64_t data_length;
     int32_t dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
-    {
-        archive_result_t res = deserialize(stream, &data_length);
-        if (res != archive_result_t::SUCCESS
-            || data_length > std::numeric_limits<size_t>::max()
-            || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-            throw fake_archive_exc_t();
-        }
+};
 
-        res = deserialize(stream, &dest_thread);
-        if (bad(res)) { throw fake_archive_exc_t(); }
-        res = deserialize(stream, &dest_mailbox_id);
-        if (bad(res)) { throw fake_archive_exc_t(); }
+// Helper function for on_local_message and on_message
+void read_mailbox_header(read_stream_t *stream,
+                         mailbox_header_t *header_out) {
+    uint64_t data_length;
+    archive_result_t res = deserialize(stream, &data_length);
+    if (res != archive_result_t::SUCCESS
+        || data_length > std::numeric_limits<size_t>::max()
+        || data_length > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+        throw fake_archive_exc_t();
     }
-
-    *dest_mailbox_id_out = dest_mailbox_id;
-    *data_length_out = data_length;
-    *dest_thread_out = dest_thread;
+    header_out->data_length = data_length;
+    res = deserialize(stream, &header_out->dest_thread);
+    if (bad(res)) { throw fake_archive_exc_t(); }
+    res = deserialize(stream, &header_out->dest_mailbox_id);
+    if (bad(res)) { throw fake_archive_exc_t(); }
 }
 
 void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char> &&data) {
     vector_read_stream_t stream(std::move(data));
 
-    uint64_t data_length;
-    int32_t dest_thread;
-    raw_mailbox_t::id_t dest_mailbox_id;
-    read_mailbox_header(&stream, &data_length, &dest_thread, &dest_mailbox_id);
-    if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
+    mailbox_header_t mbox_header;
+    read_mailbox_header(&stream, &mbox_header);
+    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
         // TODO: this will just run the callback on the current thread, maybe do
         // some load balancing, instead
-        dest_thread = get_thread_id().threadnum;
+        mbox_header.dest_thread = get_thread_id().threadnum;
     }
 
     std::vector<char> stream_data;
     int64_t stream_data_offset = 0;
 
     stream.swap(&stream_data, &stream_data_offset);
-    if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
+    if (stream_data.size() - static_cast<uint64_t>(stream_data_offset) != mbox_header.data_length) {
         // Either we got a vector_read_stream_t that contained more data
         // than just ours (which shouldn't happen), or we got a wrong data_length
         // from the network.
@@ -168,26 +163,25 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
                                             this, source_peer,
-                                            threadnum_t(dest_thread), dest_mailbox_id,
+                                            threadnum_t(mbox_header.dest_thread),
+                                            mbox_header.dest_mailbox_id,
                                             &stream_data, stream_data_offset,
                                             FORCE_YIELD));
 }
 
 void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream) {
-    uint64_t data_length;
-    int32_t dest_thread;
-    raw_mailbox_t::id_t dest_mailbox_id;
-    read_mailbox_header(stream, &data_length, &dest_thread, &dest_mailbox_id);
-    if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        dest_thread = get_thread_id().threadnum;
+    mailbox_header_t mbox_header;
+    read_mailbox_header(stream, &mbox_header);
+    if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
+        mbox_header.dest_thread = get_thread_id().threadnum;
     }
 
     // Read the data from the read stream, so it can be deallocated before we continue
     // in a coroutine
     std::vector<char> stream_data;
-    stream_data.resize(data_length);
-    int64_t bytes_read = force_read(stream, stream_data.data(), data_length);
-    if (bytes_read != static_cast<int64_t>(data_length)) {
+    stream_data.resize(mbox_header.data_length);
+    int64_t bytes_read = force_read(stream, stream_data.data(), mbox_header.data_length);
+    if (bytes_read != static_cast<int64_t>(mbox_header.data_length)) {
         throw fake_archive_exc_t();
     }
 
@@ -196,7 +190,8 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
                                             this, source_peer,
-                                            threadnum_t(dest_thread), dest_mailbox_id,
+                                            threadnum_t(mbox_header.dest_thread),
+                                            mbox_header.dest_mailbox_id,
                                             &stream_data, 0, MAYBE_YIELD));
 }
 
