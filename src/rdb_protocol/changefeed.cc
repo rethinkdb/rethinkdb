@@ -172,7 +172,6 @@ public:
     void mailbox_cb(stamped_msg_t msg);
     void constructor_cb();
 
-    void check_stamp(uuid_u uuid, repli_timestamp_t timestamp);
     std::map<uuid_u, repli_timestamp_t> last_timestamps;
 
     client_t *client;
@@ -420,20 +419,6 @@ bool feed_t::can_be_removed() {
 
 client_t::addr_t feed_t::get_addr() const {
     return mailbox.get_address();
-}
-
-void feed_t::check_stamp(uuid_u server_uuid, repli_timestamp_t timestamp) {
-    auto it = last_timestamps.find(server_uuid);
-    if (it != last_timestamps.end()) {
-        if (timestamp < it->second) {
-            debugf("%s: %" PRIu64 " < %" PRIu64 "\n",
-                   uuid_to_str(server_uuid).c_str(),
-                   timestamp.longtime,
-                   it->second.longtime);
-            guarantee(false);
-        }
-    }
-    last_timestamps[server_uuid] = timestamp;
 }
 
 void feed_t::mailbox_cb(stamped_msg_t msg) {
