@@ -154,7 +154,7 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char
 
     std::vector<char> stream_data;
     int64_t stream_data_offset = 0;
-    
+
     stream.swap(&stream_data, &stream_data_offset);
     if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
         // Either we got a vector_read_stream_t that contained more data
