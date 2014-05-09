@@ -266,9 +266,6 @@ message Term {
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
 
-        // Takes a range of numbers and returns a random number within the range
-        RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
-
         // * Data Operators
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
@@ -632,6 +629,9 @@ message Term {
         UNGROUP = 150; // GROUPED_DATA -> ARRAY
 
         CHANGES = 151; // TABLE -> STREAM
+
+        // Takes a range of numbers and returns a random number within the range
+        RANDOM = 152; // NUMBER, NUMBER {float:BOOL} -> DATUM
     }
     optional TermType type = 1;
 

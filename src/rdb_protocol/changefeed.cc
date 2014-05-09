@@ -123,10 +123,10 @@ msg_t::change_t::change_t(const rdb_modification_report_t *report)
   : old_val(report->info.deleted.first), new_val(report->info.added.first) { }
 msg_t::change_t::~change_t() { }
 
-RDB_IMPL_ME_SERIALIZABLE_1(msg_t, op);
-RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, empty_ok(old_val), empty_ok(new_val));
-RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t);
-RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
+RDB_IMPL_ME_SERIALIZABLE_1(msg_t, 0, op);
+RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, 0, empty_ok(old_val), empty_ok(new_val));
+RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t, 0);
+RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, 0, server_uuid, stamp, submsg);
 
 enum class detach_t { NO, YES };
 
