@@ -9,6 +9,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
@@ -216,34 +217,68 @@ void store_t::reset_data(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+    with_priority_t p(CORO_PRIORITY_RESET_DATA);
 
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
+    // 1. Update the metainfo
+    {
+        scoped_ptr_t<txn_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
 
-    // We're passing 2 for the expected_change_count based on the
-    // reasoning that we're probably going to touch a leaf-node-sized
-    // range of keys and that it won't be aligned right on a leaf node
-    // boundary.
-    // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
-    // entire databases.
-    const int expected_change_count = 2;
-    acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                 expected_change_count,
-                                 durability,
-                                 token_pair,
-                                 &txn,
-                                 &superblock,
-                                 interruptor);
+        const int expected_change_count = 1;
+        acquire_superblock_for_write(repli_timestamp_t::invalid,
+                                     expected_change_count,
+                                     durability,
+                                     token_pair,
+                                     &txn,
+                                     &superblock,
+                                     interruptor);
 
-    region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock->get(), &old_metainfo);
-    update_metainfo(old_metainfo, new_metainfo, superblock.get());
+        region_map_t<binary_blob_t> old_metainfo;
+        get_metainfo_internal(superblock->get(), &old_metainfo);
+        update_metainfo(old_metainfo, new_metainfo, superblock.get());
+    }
 
-    // TODO! More importantly, this is the one that should behave differently.
+    // 2. Erase the data in small chunks
+    rdb_value_sizer_t sizer(cache->max_block_size());
+    always_true_key_tester_t key_tester;
 
-    protocol_reset_data(subregion,
-                        superblock.get(),
-                        interruptor);
+    const unsigned int max_erased_per_pass = 100;
+    store_key_t highest_erased_key_so_far = subregion.inner.left;
+    for (bool keep_erasing = true; keep_erasing;) {
+        scoped_ptr_t<txn_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+
+        const int expected_change_count = 2 + max_erased_per_pass;
+        acquire_superblock_for_write(repli_timestamp_t::invalid,
+                                     expected_change_count,
+                                     durability,
+                                     token_pair,
+                                     &txn,
+                                     &superblock,
+                                     interruptor);
+
+        buf_lock_t sindex_block
+            = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                         superblock->get_sindex_block_id());
+
+        key_range_t keyrange_left = subregion.inner;
+        keyrange_left.left = highest_erased_key_so_far;
+
+        rdb_live_deletion_context_t deletion_context;
+        std::vector<rdb_modification_report_t> mod_reports;
+        keep_erasing = rdb_erase_small_range(&key_tester,
+                                             keyrange_left,
+                                             superblock.get(),
+                                             &deletion_context,
+                                             interruptor,
+                                             max_erased_per_pass,
+                                             &highest_erased_key_so_far,
+                                             &mod_reports);
+        superblock.reset();
+        if (!mod_reports.empty()) {
+            update_sindexes(txn.get(), &sindex_block, mod_reports, true);
+        }
+    }
 }
 
 scoped_ptr_t<new_mutex_in_line_t> store_t::get_in_line_for_sindex_queue(
@@ -304,6 +339,34 @@ void store_t::emergency_deregister_sindex_queue(
     acq.acq_signal()->wait_lazily_unordered();
 
     deregister_sindex_queue(disk_backed_queue, &acq);
+}
+
+void store_t::update_sindexes(
+            txn_t *txn,
+            buf_lock_t *sindex_block,
+            const std::vector<rdb_modification_report_t> &mod_reports,
+            bool release_sindex_block) {
+    scoped_ptr_t<new_mutex_in_line_t> acq =
+            get_in_line_for_sindex_queue(sindex_block);
+    scoped_array_t<write_message_t> queue_wms(mod_reports.size());
+    {
+        sindex_access_vector_t sindexes;
+        acquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block, &sindexes);
+        if (release_sindex_block) {
+            sindex_block->reset_buf_lock();
+        }
+
+        rdb_live_deletion_context_t deletion_context;
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            queue_wms[i] << mod_reports[i];
+            rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
+        }
+    }
+
+    // Write mod reports onto the sindex queue. We are in line for the
+    // sindex_queue mutex and can already release all other locks.
+    sindex_queue_push(queue_wms, acq.get());
 }
 
 void store_t::sindex_queue_push(const write_message_t &value,

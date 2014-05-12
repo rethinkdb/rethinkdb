@@ -175,30 +175,6 @@ void bring_sindexes_up_to_date(
                 mod_queue.release()));
 }
 
-/* Helper for `post_construct_and_drain_queue()`. */
-class apply_sindex_change_visitor_t : public boost::static_visitor<> {
-public:
-    apply_sindex_change_visitor_t(const store_t::sindex_access_vector_t *sindexes,
-            txn_t *txn,
-            signal_t *interruptor)
-        : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
-    void operator()(const rdb_modification_report_t &mod_report) const {
-        rdb_post_construction_deletion_context_t deletion_context;
-        rdb_update_sindexes(*sindexes_, &mod_report, txn_, &deletion_context);
-    }
-
-    void operator()(const rdb_erase_major_range_report_t &erase_range_report) const {
-        noop_value_deleter_t no_deleter;
-        rdb_erase_major_range_sindexes(*sindexes_, &erase_range_report,
-                                       interruptor_, &no_deleter);
-    }
-
-private:
-    const store_t::sindex_access_vector_t *sindexes_;
-    txn_t *txn_;
-    signal_t *interruptor_;
-};
-
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro.
@@ -269,14 +245,13 @@ void post_construct_and_drain_queue(
             const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
             while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
-                rdb_sindex_change_t sindex_change;
-                deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
+                rdb_modification_report_t mod_report;
+                deserializing_viewer_t<rdb_modification_report_t>
+                    viewer(&mod_report);
                 mod_queue->pop(&viewer);
-                boost::apply_visitor(apply_sindex_change_visitor_t(
-                                        &sindexes,
-                                        queue_txn.get(),
-                                        lock.get_drain_signal()),
-                                     sindex_change);
+                rdb_post_construction_deletion_context_t deletion_context;
+                rdb_update_sindexes(sindexes, &mod_report, queue_txn.get(),
+                                    &deletion_context);
                 ++current_chunk_size;
             }
 
@@ -337,10 +312,6 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
     return delete_range->beg <= h && h < delete_range->end
         && delete_range->inner.contains_key(key->contents, key->size);
 }
-
-typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_major_range_report_t>
-        sindex_change_t;
 
 void add_status(const single_sindex_status_t &new_status,
     single_sindex_status_t *status_out) {

@@ -463,11 +463,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
+        // TODO! Dedup
         scoped_ptr_t<new_mutex_in_line_t> acq =
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
+        wm << *mod_report;
         store->sindex_queue_push(wm, acq.get());
 
         store_t::sindex_access_vector_t sindexes;
@@ -737,25 +738,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(&sindex_block);
-        scoped_array_t<write_message_t> queue_wms(mod_reports.size());
-        {
-            store_t::sindex_access_vector_t sindexes;
-            store->acquire_post_constructed_sindex_superblocks_for_write(
-                    &sindex_block, &sindexes);
-            sindex_block.reset_buf_lock();
-
-            rdb_live_deletion_context_t deletion_context;
-            for (size_t i = 0; i < mod_reports.size(); ++i) {
-                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
-                rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
-            }
-        }
-
-        // Write mod reports onto the sindex queue. We are in line for the
-        // sindex_queue mutex and can already release all other locks.
-        store->sindex_queue_push(queue_wms, acq.get());
+        store->update_sindexes(txn,
+                               &sindex_block,
+                               mod_reports,
+                               true /* release sindex block */);
     }
 
     store_t *store;
@@ -778,21 +764,4 @@ void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock
                                      std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
-}
-
-void store_t::protocol_reset_data(const region_t &subregion,
-                                  superblock_t *superblock,
-                                  signal_t *interruptor) {
-    with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    rdb_value_sizer_t sizer(cache->max_block_size());
-
-    always_true_key_tester_t key_tester;
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                         superblock->get_sindex_block_id());
-    // TODO! This should work differently. It doesn't have to be atomic anyway.
-    rdb_erase_major_range(&key_tester, subregion.inner,
-                          &sindex_block,
-                          superblock, this,
-                          interruptor);
 }

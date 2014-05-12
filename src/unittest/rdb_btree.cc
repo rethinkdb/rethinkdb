@@ -64,7 +64,7 @@ void insert_rows(int start, int finish, store_t *store) {
                 store->get_in_line_for_sindex_queue(&sindex_block);
 
             write_message_t wm;
-            wm << rdb_sindex_change_t(mod_report);
+            wm << mod_report;
 
             store->sindex_queue_push(wm, acq.get());
         }
@@ -430,6 +430,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
         buf_lock_t sindex_block
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
+        // TODO! Fix
         rdb_erase_major_range(&tester,
                               key_range_t::universe(),
                               &sindex_block,

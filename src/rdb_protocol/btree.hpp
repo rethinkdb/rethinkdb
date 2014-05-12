@@ -161,15 +161,6 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
 
-/* `rdb_erase_major_range` has a complexity of O(n) where n is the size of the
- * btree, if secondary indexes are present. Be careful when to use it. */
-void rdb_erase_major_range(key_tester_t *tester,
-                           const key_range_t &keys,
-                           buf_lock_t *sindex_block,
-                           superblock_t *superblock,
-                           store_t *store,
-                           signal_t *interruptor);
-
 // TODO! Update the comment below once rdb_erase_major_range() is gone.
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
  * the btree, and m is the number of documents actually being deleted.
@@ -255,19 +246,6 @@ struct rdb_modification_report_t {
 };
 
 
-struct rdb_erase_major_range_report_t {
-    rdb_erase_major_range_report_t() { }
-    explicit rdb_erase_major_range_report_t(const key_range_t &_range_to_erase)
-        : range_to_erase(_range_to_erase) { }
-    key_range_t range_to_erase;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
-typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_major_range_report_t>
-        rdb_sindex_change_t;
-
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
 class rdb_modification_report_cb_t {
@@ -296,12 +274,6 @@ void rdb_update_sindexes(
         const rdb_modification_report_t *modification,
         txn_t *txn,
         const deletion_context_t *deletion_context);
-
-
-void rdb_erase_major_range_sindexes(
-        const store_t::sindex_access_vector_t &sindexes,
-        const rdb_erase_major_range_report_t *erase_range,
-        signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
         store_t *store,
