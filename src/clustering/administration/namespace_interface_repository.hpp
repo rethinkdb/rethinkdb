@@ -97,10 +97,12 @@ private:
     rdb_context_t *ctx;
     semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 
-    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
+    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > > region_to_primary_maps;
     one_per_thread_t<namespace_cache_t> namespace_caches;
 
     DISABLE_COPYING(namespace_repo_t);
+
+    auto_drainer_t drainer;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */

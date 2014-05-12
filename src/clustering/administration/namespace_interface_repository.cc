@@ -130,27 +130,41 @@ void base_namespace_repo_t::access_t::ref_handler_t::reset() {
 }
 
 void namespace_repo_t::on_namespaces_change() {
-        region_to_primary_maps.clear();
+    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > new_reg_to_pri_maps;
 
-        namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
-        const namespaces_semilattice_metadata_t::namespace_map_t &ns = namespaces_view.get()->get().get()->namespaces;
-        for (it = ns.begin(); it != ns.end(); ++it) {
-            if (it->second.is_deleted()) {
-                continue;
-            }
+    namespaces_semilattice_metadata_t::namespace_map_t::const_iterator it;
+    const namespaces_semilattice_metadata_t::namespace_map_t &ns = namespaces_view.get()->get().get()->namespaces;
+    for (it = ns.begin(); it != ns.end(); ++it) {
+        if (it->second.is_deleted()) {
+            continue;
+        }
 
-            const persistable_blueprint_t &bp = it->second.get_ref().blueprint.get_ref();
-            persistable_blueprint_t::role_map_t::const_iterator it2;
-            for (it2 = bp.machines_roles.begin(); it2 != bp.machines_roles.end(); ++it2) {
-                const persistable_blueprint_t::region_to_role_map_t &roles = it2->second;
-                persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
-                for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
-                    if (it3->second == blueprint_role_t::blueprint_role_primary) {
-                        region_to_primary_maps[it->first][it3->first.inner] = it2->first;
-                    }
+        const persistable_blueprint_t &bp = it->second.get_ref().blueprint.get_ref();
+        persistable_blueprint_t::role_map_t::const_iterator it2;
+        for (it2 = bp.machines_roles.begin(); it2 != bp.machines_roles.end(); ++it2) {
+            const persistable_blueprint_t::region_to_role_map_t &roles = it2->second;
+            persistable_blueprint_t::region_to_role_map_t::const_iterator it3;
+            for (it3 = roles.begin(); it3 != roles.end(); ++it3) {
+                if (it3->second == blueprint_role_t::blueprint_role_primary) {
+                    new_reg_to_pri_maps[it->first][it3->first.inner] = it2->first;
                 }
             }
         }
+    }
+
+    struct per_thread_copyer_t {
+        static void copy(const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > &from,
+                         one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > > *to,
+                         int thread, UNUSED auto_drainer_t::lock_t keepalive) {
+            on_thread_t th((threadnum_t(thread)));
+            *to->get() = from;
+        }
+    };
+
+    for (int thread = 0; thread < get_num_threads(); ++thread) {
+        coro_t::spawn_ordered(std::bind(&per_thread_copyer_t::copy, new_reg_to_pri_maps,
+                                        &region_to_primary_maps, thread, drainer.lock()));
+    }
 }
 
 void namespace_repo_t::create_and_destroy_namespace_interface(
@@ -175,7 +189,7 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
 
     cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
-        &(region_to_primary_maps[namespace_id]),
+        &((*region_to_primary_maps.get())[namespace_id]),
         cross_thread_watchable.get_watchable(),
         ctx);
 
