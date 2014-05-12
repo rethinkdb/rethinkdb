@@ -414,9 +414,9 @@ static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t siz
     return true;
 }
 
-// Reads an int64_t for size, then the string data
+// Reads a uint64_t for size, then the string data
 static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
-                                          std::string* str_out,
+                                          std::string *str_out,
                                           const char *peer) {
     uint64_t raw_size;
     archive_result_t res = deserialize(conn, &raw_size);
@@ -430,7 +430,7 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
         return false;
     }
 
-    size_t size = static_cast<size_t>(raw_size);
+    size_t size = raw_size;
     scoped_array_t<char> buffer(size);
     if (!read_header_chunk(conn, buffer.data(), size, peer)) {
         return false;
