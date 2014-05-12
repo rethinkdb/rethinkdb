@@ -40,7 +40,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::v1_13);
 
-// Returns the version string ("1.13", "1.55", etc) for a given version number.
+// Returns the version string ("1.13", "1.55", etc) for a given recognized version number.
 std::string cluster_version_string(cluster_version_t version_number) {
     switch (version_number) {
     case cluster_version_t::v1_13:
