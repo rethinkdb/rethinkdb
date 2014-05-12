@@ -39,7 +39,8 @@ private:
     void on_timer();
 
     // This is a stub, we do everything in message_from_peer instead
-    void on_message(UNUSED peer_id_t source_peer, UNUSED read_stream_t *stream) { }
+    void on_message(UNUSED peer_id_t source_peer, UNUSED cluster_version_t version,
+                    UNUSED read_stream_t *stream) { }
     void send_message_wrapper(const peer_id_t source_peer, UNUSED auto_drainer_t::lock_t keepalive);
     void kill_connection_wrapper(const peer_id_t source_peer, UNUSED auto_drainer_t::lock_t keepalive);
 

@@ -11,5 +11,6 @@
 void message_handler_t::on_local_message(peer_id_t source_peer,
                                          std::vector<char> &&data) {
     vector_read_stream_t read_stream(std::move(data));
-    on_message(source_peer, &read_stream);
+    // RSI: This should be LATEST_VERSION?  Make LATEST_VERSION visible and use that.
+    on_message(source_peer, cluster_version_t::v1_13, &read_stream);
 }

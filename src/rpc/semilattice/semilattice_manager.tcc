@@ -224,7 +224,13 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream_t *stream) {
+void semilattice_manager_t<metadata_t>::on_message(
+        peer_id_t sender,
+        cluster_version_t cluster_version,
+        read_stream_t *stream) {
+    // RSI: Surely, we must actually use the cluster_version when deserializing.
+    guarantee(cluster_version == cluster_version_t::v1_13);
+
     uint8_t code;
     {
         archive_result_t res = deserialize(stream, &code);

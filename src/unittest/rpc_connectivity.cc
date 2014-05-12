@@ -58,7 +58,9 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, read_stream_t *stream) {
+    void on_message(peer_id_t peer, cluster_version_t,
+                    read_stream_t *stream) {
+        // RSI: Should tests involve cluster_version?
         int i;
         archive_result_t res = deserialize(stream, &i);
         if (bad(res)) { throw fake_archive_exc_t(); }
@@ -75,7 +77,9 @@ private:
 
 class dummy_message_handler_t : public message_handler_t {
 public:
-    void on_message(peer_id_t, read_stream_t *stream) {
+    void on_message(peer_id_t, cluster_version_t,
+                    read_stream_t *stream) {
+        // RSI: Should tests involve cluster_version?
         char msg;
         if (force_read(stream, &msg, 1) != 1) {
             throw fake_archive_exc_t();
@@ -458,7 +462,8 @@ public:
         } writer;
         service->send_message(peer, &writer);
     }
-    void on_message(peer_id_t, read_stream_t *stream) {
+    void on_message(peer_id_t, cluster_version_t, read_stream_t *stream) {
+        // RSI: Should tests involve cluster_version?
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         int64_t res = force_read(stream, spectrum, CHAR_MAX - CHAR_MIN + 1);
         if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }

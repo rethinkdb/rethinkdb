@@ -35,8 +35,12 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer,
+void directory_read_manager_t<metadata_t>::on_message(
+        peer_id_t source_peer,
+        cluster_version_t cluster_version,
         read_stream_t *s) THROWS_ONLY(fake_archive_exc_t) {
+    // RSI: We must actually use the version value when deserializing here, right?
+    guarantee(cluster_version == cluster_version_t::v1_13);
 
     with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
 

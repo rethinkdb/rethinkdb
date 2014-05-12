@@ -169,7 +169,12 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char
                                             FORCE_YIELD));
 }
 
-void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream) {
+void mailbox_manager_t::on_message(peer_id_t source_peer,
+                                   cluster_version_t cluster_version,
+                                   read_stream_t *stream) {
+    // RSI: Definitely use cluster_version for real.
+    guarantee(cluster_version == cluster_version_t::v1_13);
+
     mailbox_header_t mbox_header;
     read_mailbox_header(stream, &mbox_header);
     if (mbox_header.dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {

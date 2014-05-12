@@ -29,11 +29,6 @@
 // The cluster communication protocol version.
 #define CLUSTER_VERSION_STRING "1.13"
 
-enum class cluster_version_t {
-    v1_13,
-    // See CLUSTER_VERSION, which should always be the latest version.
-};
-
 const cluster_version_t CLUSTER_VERSION = cluster_version_t::v1_13;
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
@@ -899,7 +894,7 @@ void connectivity_cluster_t::run_t::handle(
         try {
             int messages_handled_since_yield = 0;
             while (true) {
-                message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
+                message_handler->on_message(other_id, resolved_version, conn); // might raise fake_archive_exc_t
 
                 ++messages_handled_since_yield;
                 if (messages_handled_since_yield >= MESSAGE_HANDLER_MAX_BATCH_SIZE) {

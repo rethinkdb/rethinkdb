@@ -143,7 +143,8 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t source_peer, read_stream_t *stream);
+    void on_message(peer_id_t source_peer, cluster_version_t version,
+                    read_stream_t *stream);
     void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};

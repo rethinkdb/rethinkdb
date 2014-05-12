@@ -13,6 +13,11 @@ namespace boost {
 template <class> class function;
 }
 
+enum class cluster_version_t {
+    v1_13,
+    // See CLUSTER_VERSION, which should always be the latest version.
+};
+
 /* `message_service_t` is an abstract superclass for things that let you send
 messages to other nodes. `message_handler_t` is an abstract superclass for
 things that handle messages received from other nodes. The general pattern
@@ -64,9 +69,10 @@ protected:
 
 class message_handler_t {
 public:
-    virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
+    virtual void on_message(peer_id_t source_peer, cluster_version_t version,
+                            read_stream_t *) = 0;
 
-    // Default implementation. Overwrite to optimize for the local case.
+    // Default implementation. Override to optimize for the local case.
     virtual void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
 protected:
     virtual ~message_handler_t() { }
