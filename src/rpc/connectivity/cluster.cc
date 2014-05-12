@@ -31,7 +31,10 @@
 
 enum class cluster_version_t {
     v1_13,
+    // See CLUSTER_VERSION, which should always be the latest version.
 };
+
+const cluster_version_t CLUSTER_VERSION = cluster_version_t::v1_13;
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
                                       cluster_version_t::v1_13,
@@ -41,16 +44,18 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
 std::string cluster_version_string(cluster_version_t version_number) {
     switch (version_number) {
     case cluster_version_t::v1_13:
-        return CLUSTER_VERSION_STRING;
+        return "1.13";
     }
 }
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
+// RSI: Probably rename this.
 const std::string connectivity_cluster_t::cluster_version(CLUSTER_VERSION_STRING);
 
 // Returns true and sets *out to the version number, if the version number in
 // version_string is a recognized version the same or earlier than our version.
-bool version_number_recognized_compatible(std::string version_string, cluster_version_t *out) {
+bool version_number_recognized_compatible(const std::string &version_string,
+                                              cluster_version_t *out) {
     if (version_string == "1.13") {
         *out = cluster_version_t::v1_13;
         return true;
@@ -86,6 +91,20 @@ bool version_number_unrecognized_greater(const std::string &version_string) {
     guarantee(success);
     return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
                                         parts.begin(), parts.end());
+}
+
+// Given a remote version string, we figure out whether we can try to talk to it, and
+// if we can, what version we shall talk on.
+bool resolve_protocol_version(const std::string &remote_version_string,
+                              cluster_version_t *out) {
+    if (version_number_recognized_compatible(remote_version_string, out)) {
+        return true;
+    }
+    if (version_number_unrecognized_greater(remote_version_string)) {
+        *out = CLUSTER_VERSION;
+        return true;
+    }
+    return false;
 }
 
 #if defined (__x86_64__)
@@ -651,19 +670,22 @@ void connectivity_cluster_t::run_t::handle(
     }
 
     // Check version number (e.g. 1.9.0-466-gadea67)
+    cluster_version_t resolved_version;
     {
-        std::string remote_version;
+        std::string remote_version_string;
 
-        if (!deserialize_compatible_string(conn, &remote_version, peername)) {
+        if (!deserialize_compatible_string(conn, &remote_version_string, peername)) {
             return;
         }
 
-        if (remote_version != cluster_version) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong version, "
-                   "peer: %s, local version: %s, remote version: %s, connection dropped\n",
-                   peername, cluster_version.c_str(), remote_version.c_str());
+        if (!resolve_protocol_version(remote_version_string, &resolved_version)) {
+            logWRN("Connection attempt from %s with unresolvable protocol version: %s",
+                   peername, sanitize_for_logger(remote_version_string).c_str());
             return;
         }
+
+        // In the future we'll need to support multiple cluster versions.
+        guarantee(resolved_version == cluster_version_t::v1_13);
     }
 
     // Check bitsize (e.g. 32bit or 64bit)
