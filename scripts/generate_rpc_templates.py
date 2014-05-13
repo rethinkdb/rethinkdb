@@ -44,11 +44,13 @@ def generate_async_message_template(nargs):
         print "            %s" % csep("arg#(_arg#)")
         print "        { }"
     if nargs == 0:
-        print "        void write(write_message_t *) {"
+        print "        void write(cluster_version_t cluster_version, write_message_t *) {"
+# RSI: Make a value like cluster_version_t::ONLY_VERSION that we can compare against, so that the code breaks when we add a second version.
+        print "            rassert(cluster_version == cluster_version_t::v1_13);"
     else:
-        print "        void write(write_message_t *wm) {"
+        print "        void write(cluster_version_t cluster_version, write_message_t *wm) {"
     for i in xrange(nargs):
-        print "            serialize(wm, arg%d);" % i
+        print "            serialize_for_version(cluster_version, wm, arg%d);" % i
     print "        }"
     print "    };"
     print
@@ -56,12 +58,14 @@ def generate_async_message_template(nargs):
     print "    public:"
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
-        print "        void read(UNUSED read_stream_t *stream) {"
+        print "        void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {"
+# RSI: Make a value like cluster_version_t::ONLY_VERSION that we can compare against, so that the code breaks when we add a second version.
+        print "            rassert(cluster_version == cluster_version_t::v1_13);"
     else:
-        print "        void read(read_stream_t *stream) {"
+        print "        void read(cluster_version_t cluster_version, read_stream_t *stream) {"
     for i in xrange(nargs):
         print "            arg%d_t arg%d;" % (i, i)
-        print "            %sres = deserialize(stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
+        print "            %sres = deserialize_for_version(cluster_version, stream, &arg%d);" % ("archive_result_t " if i == 0 else "", i)
         print "            if (bad(res)) { throw fake_archive_exc_t(); }"
     print "            parent->fun(%s);" % csep("std::move(arg#)")
     print "        }"
