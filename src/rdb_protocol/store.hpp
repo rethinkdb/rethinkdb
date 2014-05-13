@@ -206,7 +206,7 @@ public:
     // the protocol_t dependence removed.
     bool drop_sindex(
         const std::string &id,
-        buf_lock_t &&sindex_block,
+        buf_lock_t sindex_block,
         std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context)

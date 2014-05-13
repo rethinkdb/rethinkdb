@@ -599,16 +599,14 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 
 MUST_USE bool store_t::drop_sindex(
         const std::string &id,
-        buf_lock_t &&sindex_block,
+        buf_lock_t sindex_block,
         std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context)
         THROWS_ONLY(interrupted_exc_t) {
-
-    buf_lock_t local_sindex_block(std::move(sindex_block));
     /* Remove reference in the super block */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&local_sindex_block, id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
         return false;
     } else {
         // Similar to `store_t::set_sindexes()`, we have to pick a deletion
@@ -619,7 +617,7 @@ MUST_USE bool store_t::drop_sindex(
                 : post_construction_deletion_context;
 
         /* Mark the secondary index as deleted */
-        bool success = mark_secondary_index_deleted(&local_sindex_block, id);
+        bool success = mark_secondary_index_deleted(&sindex_block, id);
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't
