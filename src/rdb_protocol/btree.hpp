@@ -161,14 +161,13 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
 
-// TODO! Update the comment below once rdb_erase_major_range() is gone.
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
  * the btree, and m is the number of documents actually being deleted.
  * It also requires O(m) memory.
- * In contrast to `rdb_erase_major_range()`, it doesn't update secondary indexes
- * itself, but returns a number of modification reports that should be applied
- * to secondary indexes separately. Furthermore, it detaches blobs rather than
- * deleting them. */
+ * It returns a number of modification reports that should be applied
+ * to secondary indexes separately. Blobs are detached, and should be deleted later
+ * if required (passing the modification reports to store_t::update_sindexes()
+ * takes care of that). */
 void rdb_erase_small_range(key_tester_t *tester,
                            const key_range_t &keys,
                            superblock_t *superblock,

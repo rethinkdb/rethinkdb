@@ -350,7 +350,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
                 &deletion_context, res, &mod_report.info, ql_env.trace.get_or_null());
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_report);
     }
 
     void operator()(const point_delete_t &d) {
@@ -363,7 +363,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
                 res, &mod_report.info, ql_env.trace.get_or_null());
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -462,20 +462,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    void update_sindexes(const rdb_modification_report_t *mod_report) {
-        // TODO! Dedup
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(&sindex_block);
-
-        write_message_t wm;
-        serialize(&wm, *mod_report);
-        store->sindex_queue_push(wm, acq.get());
-
-        store_t::sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
-                                                                     &sindexes);
-        rdb_live_deletion_context_t deletion_context;
-        rdb_update_sindexes(sindexes, mod_report, txn, &deletion_context);
+    void update_sindexes(const rdb_modification_report_t &mod_report) {
+        std::vector<rdb_modification_report_t> mod_reports;
+        // This copying of the mod_report is inefficient, but it seems this
+        // function is only used for unit tests at the moment anyway.
+        mod_reports.push_back(mod_report);
+        store->update_sindexes(txn, &sindex_block, mod_reports,
+                               true /* release_sindex_block */);
     }
 
     btree_slice_t *btree;
