@@ -79,7 +79,7 @@ class mailbox_t< void() > {
     public:
         write_impl_t() { }
         void write(cluster_version_t cluster_version, write_message_t *) {
-            rassert(cluster_version == cluster_version_t::v1_13);
+            rassert(cluster_version == cluster_version_t::ONLY_VERSION);
         }
     };
 
@@ -87,7 +87,7 @@ class mailbox_t< void() > {
     public:
         explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
         void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {
-            rassert(cluster_version == cluster_version_t::v1_13);
+            rassert(cluster_version == cluster_version_t::ONLY_VERSION);
             parent->fun();
         }
     private:

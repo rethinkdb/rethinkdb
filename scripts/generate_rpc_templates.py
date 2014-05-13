@@ -45,8 +45,7 @@ def generate_async_message_template(nargs):
         print "        { }"
     if nargs == 0:
         print "        void write(cluster_version_t cluster_version, write_message_t *) {"
-# RSI: Make a value like cluster_version_t::ONLY_VERSION that we can compare against, so that the code breaks when we add a second version.
-        print "            rassert(cluster_version == cluster_version_t::v1_13);"
+        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
     else:
         print "        void write(cluster_version_t cluster_version, write_message_t *wm) {"
     for i in xrange(nargs):
@@ -59,8 +58,7 @@ def generate_async_message_template(nargs):
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
         print "        void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {"
-# RSI: Make a value like cluster_version_t::ONLY_VERSION that we can compare against, so that the code breaks when we add a second version.
-        print "            rassert(cluster_version == cluster_version_t::v1_13);"
+        print "            rassert(cluster_version == cluster_version_t::ONLY_VERSION);"
     else:
         print "        void read(cluster_version_t cluster_version, read_stream_t *stream) {"
     for i in xrange(nargs):
