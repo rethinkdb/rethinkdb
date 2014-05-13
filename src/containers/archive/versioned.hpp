@@ -3,9 +3,8 @@
 
 #include "containers/archive/archive.hpp"
 
-// RSI: Rename to archive_version_t?  An enumeration of the current and previous
-// recognized versions.  Every serialization / deserialization happens relative to
-// one of these versions.
+// An enumeration of the current and previous recognized versions.  Every
+// serialization / deserialization happens relative to one of these versions.
 enum class cluster_version_t {
     v1_13,
     // See CLUSTER_VERSION, which should always be the latest version.
