@@ -682,6 +682,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
+    rassert(sindex_uuid_out != NULL);
 
     /* Acquire the sindex block. */
     buf_lock_t sindex_block
@@ -698,10 +699,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     if (opaque_definition_out != NULL) {
         *opaque_definition_out = sindex.opaque_definition;
     }
-
-    if (sindex_uuid_out != NULL) {
-        *sindex_uuid_out = sindex.id;
-    }
+    *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {
         throw sindex_not_ready_exc_t(id, sindex, table_name);
@@ -721,6 +719,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         uuid_u *sindex_uuid_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
+    rassert(sindex_uuid_out != NULL);
 
     /* Get the sindex block. */
     buf_lock_t sindex_block
@@ -733,10 +732,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     if (!::get_secondary_index(&sindex_block, id, &sindex)) {
         return false;
     }
-
-    if (sindex_uuid_out != NULL) {
-        *sindex_uuid_out = sindex.id;
-    }
+    *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {
         throw sindex_not_ready_exc_t(id, sindex, table_name);

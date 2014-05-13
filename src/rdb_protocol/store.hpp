@@ -218,7 +218,7 @@ public:
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out, // Optional, may be NULL
-            uuid_u *sindex_uuid_out) // Optional, may be NULL
+            uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
@@ -226,7 +226,7 @@ public:
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            uuid_u *sindex_uuid_out) // Optional, may be NULL
+            uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     struct sindex_access_t {
