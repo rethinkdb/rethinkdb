@@ -343,6 +343,7 @@ translateBackOptargs = (optargs) ->
             when 'left_bound' then 'leftBound'
             when 'right_bound' then 'rightBound'
             when 'default_timezone' then 'defaultTimezone'
+            when 'result_format' then 'resultFormat'
             else key
 
         result[key] = val
@@ -360,6 +361,7 @@ translateOptargs = (optargs) ->
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
             when 'defaultTimezone' then 'default_timezone'
+            when 'resultFormat' then 'result_format'
             else key
 
         if key is undefined or val is undefined then continue
@@ -459,6 +461,10 @@ class Var extends RDBOp
 class JavaScript extends RDBOp
     tt: protoTermType.JAVASCRIPT
     st: 'js'
+
+class Http extends RDBOp
+    tt: protoTermType.HTTP
+    st: 'http'
 
 class Json extends RDBOp
     tt: protoTermType.JSON
@@ -1013,6 +1019,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         new DatumTerm val
 
 rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
+
+rethinkdb.http = aropt (url, opts) -> new Http opts, url
 
 rethinkdb.json = ar (jsonsrc) -> new Json {}, jsonsrc
 

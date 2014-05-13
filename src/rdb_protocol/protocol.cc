@@ -357,7 +357,8 @@ rdb_context_t::rdb_context_t()
     directory_read_manager(NULL),
     signals(get_num_threads()),
     ql_stats_membership(&get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
-    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
+    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+    reql_http_proxy()
 { }
 
 rdb_context_t::rdb_context_t(
@@ -370,7 +371,8 @@ rdb_context_t::rdb_context_t(
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
     machine_id_t _machine_id,
-    perfmon_collection_t *global_stats)
+    perfmon_collection_t *global_stats,
+    const std::string &_reql_http_proxy)
     : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
@@ -380,7 +382,8 @@ rdb_context_t::rdb_context_t(
       signals(get_num_threads()),
       machine_id(_machine_id),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
-      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      reql_http_proxy(_reql_http_proxy)
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(

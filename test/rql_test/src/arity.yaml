@@ -271,6 +271,12 @@ tests:
       py: []
       rb: []
 
+    - cd: r.http("httpbin.org/get","bad_param")
+      ot:
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
+
 
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments
