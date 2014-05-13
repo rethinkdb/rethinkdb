@@ -814,9 +814,6 @@ void store_t::delayed_clear_sindex(
          * points to might have been deleted in the meantime
          * (the deletion would be on the sindex queue, but might
          * not have found its way into the index tree yet). */
-        // TODO! This is what we will do now. Except that we also
-        // pick the actual deletion context here.
-        // sindex.post_construction_complete
         rdb_live_deletion_context_t live_deletion_context;
         rdb_post_construction_deletion_context_t post_con_deletion_context;
         deletion_context_t *actual_deletion_context =

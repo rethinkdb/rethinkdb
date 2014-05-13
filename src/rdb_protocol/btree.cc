@@ -1173,7 +1173,12 @@ void rdb_update_single_sindex(
         }
     }
 
-    if (modification->info.added.first) {
+    // If the secondary index is being deleted, we don't add any new values to
+    // the sindex tree.
+    // This is so we don't race against any sindex erase about who is faster
+    // (we with inserting new entries, or the erase with removing them).
+    const bool sindex_is_being_deleted = sindex->sindex.being_deleted;
+    if (!sindex_is_being_deleted && modification->info.added.first) {
         try {
             counted_t<const ql::datum_t> added = modification->info.added.first;
 

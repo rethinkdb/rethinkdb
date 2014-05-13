@@ -445,14 +445,12 @@ void store_t::clear_sindex(
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
         /* Erase all is going to delete all the nodes in the index tree and
         set the root node in the superblock to null. */
-        // TODO! This is very bad. It should be done in batches.
-        // Incoming writes should also avoid adding new data into the index tree,
-        // so we don't need multiple passes over the same key range here.
-        // (this can be done by making all modification reports deletions at that
-        // point)
+        // TODO! This is very bad. It should be done in batches so we don't
+        //   hold a lock on the sindex and block writes for so long.
         // TODO! Also erase_all in its current form should die.
-        // We will instead use proper deletes. They ideally would be batched,
-        // but for now we might get away with deleting one key at a time...
+        //   We will instead use proper deletes. They ideally would be batched,
+        //   but for now we might get away with deleting one key at a time
+        //   (just as with r.table().delete() )
         erase_all(sizer, deleter, &sindex_superblock, interruptor);
     }
 
