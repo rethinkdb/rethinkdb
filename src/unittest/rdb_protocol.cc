@@ -359,8 +359,8 @@ void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
         run_create_drop_sindex_test(nsi, osource);
     }
     // Nap for a random time before we shut down the namespace interface
-    // (in 1 out of 4 cases).
-    if (randint(4) == 0) {
+    // (in 3 out of 4 cases).
+    if (randint(4) != 0) {
         nap(randint(100));
     }
 }
