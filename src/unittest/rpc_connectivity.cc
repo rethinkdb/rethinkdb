@@ -688,9 +688,9 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     // Send the expected version but bad arch bitsize
     std::string bad_arch_str("96bit");
     write_message_t bad_arch_msg;
-    serialize(&bad_arch_msg, connectivity_cluster_t::cluster_version.length());
-    bad_arch_msg.append(connectivity_cluster_t::cluster_version.data(),
-                        connectivity_cluster_t::cluster_version.length());
+    serialize(&bad_arch_msg, connectivity_cluster_t::cluster_version_string.length());
+    bad_arch_msg.append(connectivity_cluster_t::cluster_version_string.data(),
+                        connectivity_cluster_t::cluster_version_string.length());
     serialize(&bad_arch_msg, bad_arch_str.length());
     bad_arch_msg.append(bad_arch_str.data(), bad_arch_str.length());
     serialize(&bad_arch_msg, connectivity_cluster_t::cluster_build_mode.length());
@@ -733,9 +733,9 @@ TPTEST(RPCConnectivityTest, DifferentBuildMode) {
     // Send the expected version but bad arch bitsize
     std::string bad_build_mode_str("build mode activated");
     write_message_t bad_build_mode_msg;
-    serialize(&bad_build_mode_msg, connectivity_cluster_t::cluster_version.length());
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version.data(),
-                              connectivity_cluster_t::cluster_version.length());
+    serialize(&bad_build_mode_msg, connectivity_cluster_t::cluster_version_string.length());
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version_string.data(),
+                              connectivity_cluster_t::cluster_version_string.length());
     serialize(&bad_build_mode_msg, connectivity_cluster_t::cluster_arch_bitsize.length());
     bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                               connectivity_cluster_t::cluster_arch_bitsize.length());

@@ -44,13 +44,12 @@ std::string cluster_version_string(cluster_version_t version_number) {
 }
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
-// RSI: Probably rename this.
-const std::string connectivity_cluster_t::cluster_version(CLUSTER_VERSION_STRING);
+const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
 
 // Returns true and sets *out to the version number, if the version number in
 // version_string is a recognized version the same or earlier than our version.
 bool version_number_recognized_compatible(const std::string &version_string,
-                                              cluster_version_t *out) {
+                                          cluster_version_t *out) {
     if (version_string == "1.13") {
         *out = cluster_version_t::v1_13;
         return true;
@@ -72,9 +71,9 @@ bool split_version_string(const std::string &version_string, std::vector<int64_t
 }
 
 // Returns true if the version string is recognized as a _greater_ version string
-// (than our software's connectivity_cluster_t::cluster_version).  Returns false for
-// unparseable version strings (see split_version_string) or lesser or equal version
-// strings.
+// (than our software's connectivity_cluster_t::cluster_version_string).  Returns
+// false for unparseable version strings (see split_version_string) or lesser or
+// equal version strings.
 bool version_number_unrecognized_greater(const std::string &version_string) {
     std::vector<int64_t> parts;
     if (!split_version_string(version_string, &parts)) {
@@ -82,7 +81,9 @@ bool version_number_unrecognized_greater(const std::string &version_string) {
     }
 
     std::vector<int64_t> our_parts;
-    const bool success = split_version_string(connectivity_cluster_t::cluster_version, &our_parts);
+    const bool success = split_version_string(
+            connectivity_cluster_t::cluster_version_string,
+            &our_parts);
     guarantee(success);
     return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
                                         parts.begin(), parts.end());
@@ -634,8 +635,8 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t wm;
         wm.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_version.length()));
-        wm.append(cluster_version.data(), cluster_version.length());
+        serialize(&wm, static_cast<uint64_t>(cluster_version_string.length()));
+        wm.append(cluster_version_string.data(), cluster_version_string.length());
         serialize(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
@@ -968,8 +969,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    // RSI: Rename field cluster_version, make this variable be named cluster_version.
-    const cluster_version_t message_version = cluster_version_t::ONLY_VERSION;
+    const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
@@ -980,7 +980,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
-        callback->write(message_version, &buffer);
+        callback->write(cluster_version, &buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -1029,7 +1029,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        current_run->message_handler->on_local_message(me, message_version,
+        current_run->message_handler->on_local_message(me, cluster_version,
                                                        std::move(buffer_data));
     } else {
         guarantee(dest != me);
