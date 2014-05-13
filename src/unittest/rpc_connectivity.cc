@@ -27,7 +27,8 @@ public:
         public:
             explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
-            void write(write_stream_t *stream) {
+            void write(UNUSED cluster_version_t cluster_version, write_stream_t *stream) {
+                // RSI: Use cluster_version in test?
                 write_message_t wm;
                 serialize(&wm, data);
                 int res = send_write_message(stream, &wm);
@@ -453,9 +454,12 @@ public:
         class dump_spectrum_writer_t : public send_message_write_callback_t {
         public:
             virtual ~dump_spectrum_writer_t() { }
-            void write(write_stream_t *stream) {
+            void write(cluster_version_t, write_stream_t *stream) {
+                // RSI: Should tests involve cluster_version?
                 char spectrum[CHAR_MAX - CHAR_MIN + 1];
-                for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
+                for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
+                    spectrum[i - CHAR_MIN] = i;
+                }
                 int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
                 if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
             }

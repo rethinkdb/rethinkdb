@@ -59,13 +59,13 @@ public:
         dest_thread(_dest_thread), dest_mailbox_id(_dest_mailbox_id), subwriter(_subwriter) { }
     virtual ~raw_mailbox_writer_t() { }
 
-    void write(write_stream_t *stream) {
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
         write_message_t wm;
         serialize(&wm, dest_thread);
         serialize(&wm, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(cluster_version_t::v1_13, &wm);  // RSI: Hard-coded cluster version here.
+        subwriter->write(cluster_version, &wm);
 
         // Prepend the message length
         // TODO: It would be more efficient if we could make this part of `msg`.

@@ -54,7 +54,7 @@ destructor is called. */
 class send_message_write_callback_t {
 public:
     virtual ~send_message_write_callback_t() { }
-    virtual void write(write_stream_t *stream) = 0;
+    virtual void write(cluster_version_t cluster_version, write_stream_t *stream) = 0;
 };
 
 class message_service_t  {

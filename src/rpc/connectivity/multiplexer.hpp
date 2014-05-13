@@ -34,7 +34,7 @@
 
 class message_multiplexer_t {
 public:
-    typedef unsigned char tag_t;
+    typedef uint8_t tag_t;
     static const int max_tag = 256;
     class run_t : public message_handler_t {
     public:

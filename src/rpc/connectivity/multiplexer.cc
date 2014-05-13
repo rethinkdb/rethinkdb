@@ -80,12 +80,13 @@ public:
         tag(_tag), subwriter(_subwriter) { }
     virtual ~tagged_message_writer_t() { }
 
-    void write(write_stream_t *os) {
+    void write(DEBUG_VAR cluster_version_t cluster_version, write_stream_t *os) {
+        // All cluster versions use a uint8_t tag here.
         write_message_t wm;
         serialize(&wm, tag);
         int res = send_write_message(os, &wm);
         if (res) { throw fake_archive_exc_t(); }
-        subwriter->write(os);
+        subwriter->write(cluster_version, os);
     }
 
 private:

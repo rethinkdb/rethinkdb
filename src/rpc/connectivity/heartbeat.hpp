@@ -46,7 +46,7 @@ private:
 
     class heartbeat_writer_t : public send_message_write_callback_t {
     public:
-        void write(UNUSED write_stream_t *stream) { }
+        void write(cluster_version_t, UNUSED write_stream_t *stream) { }
     };
 
     struct per_thread_data_t {

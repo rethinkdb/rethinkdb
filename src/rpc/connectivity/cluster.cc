@@ -680,7 +680,7 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         // In the future we'll need to support multiple cluster versions.
-        guarantee(resolved_version == cluster_version_t::v1_13);
+        guarantee(resolved_version == cluster_version_t::ONLY_VERSION);
     }
 
     // Check bitsize (e.g. 32bit or 64bit)
@@ -968,6 +968,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
+    // RSI: Rename field cluster_version, make this variable be named cluster_version.
+    const cluster_version_t message_version = cluster_version_t::ONLY_VERSION;
+
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
@@ -977,8 +980,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
-        // RSI: Probably this call should take a version?  Or is it a std::bind that already has a version?
-        callback->write(&buffer);
+        callback->write(message_version, &buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -1027,8 +1029,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        // RSI: We assume that the callback->write() call above will use the LATEST_VERSION.
-        current_run->message_handler->on_local_message(me, cluster_version_t::LATEST_VERSION,
+        current_run->message_handler->on_local_message(me, message_version,
                                                        std::move(buffer_data));
     } else {
         guarantee(dest != me);
