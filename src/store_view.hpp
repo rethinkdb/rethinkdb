@@ -111,7 +111,6 @@ public:
     virtual void reset_data(
             const region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -258,7 +257,6 @@ public:
     void reset_data(
             const region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
@@ -266,7 +264,7 @@ public:
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, token_pair, durability, interruptor);
+        store_view->reset_data(subregion, new_metainfo, durability, interruptor);
     }
 
 private:

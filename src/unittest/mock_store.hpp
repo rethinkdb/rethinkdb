@@ -74,7 +74,6 @@ public:
     void reset_data(
             const region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);

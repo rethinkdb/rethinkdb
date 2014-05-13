@@ -127,10 +127,13 @@ void reactor_t::be_nothing(region_t region,
         {
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
             on_thread_t th(svs->home_thread());
-            write_token_pair_t token_pair;
-            svs->new_write_token_pair(&token_pair);
 
-            svs->reset_data(region, region_map_t<binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, write_durability_t::HARD, &ct_interruptor);
+            svs->reset_data(region,
+                            region_map_t<binary_blob_t>(
+                                region,
+                                binary_blob_t(version_range_t(version_t::zero()))),
+                                write_durability_t::HARD,
+                                &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

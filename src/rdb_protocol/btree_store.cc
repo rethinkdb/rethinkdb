@@ -212,7 +212,6 @@ void store_t::receive_backfill(
 void store_t::reset_data(
         const region_t &subregion,
         const metainfo_t &new_metainfo,
-        write_token_pair_t *token_pair,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -225,10 +224,12 @@ void store_t::reset_data(
         scoped_ptr_t<real_superblock_t> superblock;
 
         const int expected_change_count = 1;
+        write_token_pair_t token_pair;
+        new_write_token_pair(&token_pair);
         acquire_superblock_for_write(repli_timestamp_t::invalid,
                                      expected_change_count,
                                      durability,
-                                     token_pair,
+                                     &token_pair,
                                      &txn,
                                      &superblock,
                                      interruptor);
@@ -249,10 +250,12 @@ void store_t::reset_data(
         scoped_ptr_t<real_superblock_t> superblock;
 
         const int expected_change_count = 2 + max_erased_per_pass;
+        write_token_pair_t token_pair;
+        new_write_token_pair(&token_pair);
         acquire_superblock_for_write(repli_timestamp_t::invalid,
                                      expected_change_count,
                                      durability,
-                                     token_pair,
+                                     &token_pair,
                                      &txn,
                                      &superblock,
                                      interruptor);

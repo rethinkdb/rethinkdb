@@ -302,15 +302,18 @@ void mock_store_t::receive_backfill(
 void mock_store_t::reset_data(
         const region_t &subregion,
         const metainfo_t &new_metainfo,
-        write_token_pair_t *token,
         UNUSED write_durability_t durability,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token->main_write_token);
+    write_token_pair_t token_pair;
+    new_write_token_pair(&token_pair);
 
-    wait_interruptible(token->main_write_token.get(), interruptor);
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+        destroyer(&token_pair.main_write_token);
+
+    wait_interruptible(token_pair.main_write_token.get(), interruptor);
 
     rassert(region_is_superset(get_region(), subregion));
 
