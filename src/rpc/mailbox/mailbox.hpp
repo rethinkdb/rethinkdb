@@ -20,8 +20,6 @@ to handle messages it receives. To send messages to the mailbox, call the
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
-    // RSI: Is it not possible for mailbox _writing_ to get the version from the
-    // peer?  Or is that what's happening?
     virtual void write(cluster_version_t cluster_version,
                        write_message_t *wm) = 0;
 };
