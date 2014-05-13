@@ -11,6 +11,7 @@
 void message_handler_t::on_local_message(peer_id_t source_peer,
                                          std::vector<char> &&data) {
     vector_read_stream_t read_stream(std::move(data));
-    // RSI: This should be LATEST_VERSION?  Make LATEST_VERSION visible and use that.
-    on_message(source_peer, cluster_version_t::v1_13, &read_stream);
+    // RSI: Just pass the cluster version as an argument (through from the
+    // serializer), that should be more robust?
+    on_message(source_peer, cluster_version_t::LATEST_VERSION, &read_stream);
 }

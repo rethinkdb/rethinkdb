@@ -8,6 +8,11 @@
 enum class cluster_version_t {
     v1_13,
     // See CLUSTER_VERSION, which should always be the latest version.
+    LATEST_VERSION = v1_13,
+    // ONLY_VERSION should only exist as long as there's only one version.  A few
+    // assertions check it -- maybe that code should be fixed to handle multiple
+    // versions, once that's possible.
+    ONLY_VERSION = v1_13,
 };
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
