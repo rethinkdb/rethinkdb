@@ -86,7 +86,8 @@ public:
 
     void write(cluster_version_t cluster_version, write_stream_t *stream) {
         write_message_t wm;
-        uint8_t code = 'I';
+        // All cluster versions use a uint8_t code.
+        const uint8_t code = 'I';
         serialize(&wm, code);
         serialize_for_version(cluster_version, &wm, initial_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_state);
@@ -108,9 +109,9 @@ public:
     ~update_writer_t() { }
 
     void write(cluster_version_t cluster_version, write_stream_t *stream) {
-        // All cluster versions use 'U' here.
         write_message_t wm;
-        uint8_t code = 'U';
+        // All cluster versions use a uint8_t code.
+        const uint8_t code = 'U';
         serialize(&wm, code);
         serialize_for_version(cluster_version, &wm, new_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_token);
