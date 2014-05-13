@@ -28,6 +28,11 @@ sindex_not_ready_exc_t::sindex_not_ready_exc_t(
         const secondary_index_t &sindex,
         const std::string &table_name) {
     if (sindex.being_deleted) {
+        rassert(false, "A query tried to access index `%s` on table `%s` which is "
+                       "currently being deleted. Queries should not be able to "
+                       "access such indexes in the first place, so this is a bug.",
+                sindex_name.c_str(),
+                table_name.c_str());
         info = strprintf("Index `%s` on table `%s` "
                          "was accessed while it was being deleted.",
                          sindex_name.c_str(),
