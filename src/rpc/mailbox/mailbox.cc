@@ -65,7 +65,7 @@ public:
         serialize(&wm, dest_mailbox_id);
         uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(&wm);
+        subwriter->write(cluster_version_t::v1_13, &wm);  // RSI: Hard-coded cluster version here.
 
         // Prepend the message length
         // TODO: It would be more efficient if we could make this part of `msg`.

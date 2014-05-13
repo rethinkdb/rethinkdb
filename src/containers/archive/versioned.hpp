@@ -30,7 +30,7 @@ archive_result_t deserialize_for_version(cluster_version_t version,
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
     rassert(version == cluster_version_t::v1_13);
-    deserialize(s, thing);
+    return deserialize(s, thing);
 }
 
 
