@@ -20,7 +20,7 @@ to handle messages it receives. To send messages to the mailbox, call the
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
-    virtual void write(write_message_t *msg) = 0;
+    virtual void write(write_message_t *wm) = 0;
 };
 
 class mailbox_read_callback_t {
@@ -75,7 +75,7 @@ public:
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
+        RDB_MAKE_ME_SERIALIZABLE_3(0, peer, thread, mailbox_id);
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;

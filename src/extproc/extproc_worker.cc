@@ -33,9 +33,9 @@ extproc_worker_t::~extproc_worker_t() {
         run_job(&worker_exit_fn);
 
         int exit_code = 0;
-        write_message_t msg;
-        msg << exit_code;
-        int res = send_write_message(get_write_stream(), &msg);
+        write_message_t wm;
+        serialize(&wm, exit_code);
+        int res = send_write_message(get_write_stream(), &wm);
 
         socket_stream.reset();
 
@@ -82,10 +82,10 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 
         // Trade magic numbers with worker process to see if it is still coherent
         try {
-            write_message_t msg;
-            msg << parent_to_worker_magic;
+            write_message_t wm;
+            serialize(&wm, parent_to_worker_magic);
             {
-                int res = send_write_message(socket_stream.get(), &msg);
+                int res = send_write_message(socket_stream.get(), &wm);
                 if (res != 0) {
                     throw std::runtime_error("failed to send magic number");
                 }
@@ -126,9 +126,9 @@ void extproc_worker_t::kill_process() {
 }
 
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {
-    write_message_t msg;
-    msg.append(&fn, sizeof(fn));
-    int res = send_write_message(get_write_stream(), &msg);
+    write_message_t wm;
+    wm.append(&fn, sizeof(fn));
+    int res = send_write_message(get_write_stream(), &wm);
     if (res != 0) { throw std::runtime_error("failed to send job function to worker"); }
 }
 

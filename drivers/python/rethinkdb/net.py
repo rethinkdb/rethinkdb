@@ -218,8 +218,10 @@ class Connection(object):
         self._handle_cursor_response(self._read_response(cursor.query.token))
 
     def _async_continue_cursor(self, cursor):
-        self.cursor_cache[cursor.query.token].outstanding_requests += 1
+        if cursor.outstanding_requests != 0:
+            return
 
+        cursor.outstanding_requests = 1
         query = Query(p.Query.CONTINUE, cursor.query.token, None, None)
         self._send_query(query, cursor.opts, async=True)
 

@@ -820,7 +820,7 @@ build_try_lib_paths () {
 check_lib () {
     local info=$2
     local path
-    if contains "$please_fetch_list" $(pkg_name "$1"); then
+    if contains "$please_fetch_list $FETCH_LIST" $(pkg_name "$1"); then
         ${info}_dep $1
         fetch_lib $1
         return

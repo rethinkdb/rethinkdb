@@ -10,6 +10,7 @@
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "containers/archive/varint.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/profile.hpp"
@@ -58,21 +59,24 @@ public:
     counted_t<const datum_t> row, val;
 };
 static inline void serialize_grouped(
-    write_message_t *msg, const optimizer_t &o) { // NOLINT
-    *msg << o.row.has();
+    write_message_t *wm, const optimizer_t &o) { // NOLINT
+    serialize(wm, o.row.has());
     if (o.row.has()) {
         r_sanity_check(o.val.has());
-        *msg << o.row;
-        *msg << o.val;
+        serialize(wm, o.row);
+        serialize(wm, o.val);
     }
 }
 static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t *o) {
     archive_result_t res;
     bool has;
-    if (bad(res = deserialize(s, &has))) return res;
+    res = deserialize(s, &has);
+    if (bad(res)) { return res; }
     if (has) {
-        if (bad(res = deserialize(s, &o->row))) return res;
-        if (bad(res = deserialize(s, &o->val))) return res;
+        res = deserialize(s, &o->row);
+        if (bad(res)) { return res; }
+        res = deserialize(s, &o->val);
+        if (bad(res)) { return res; }
     }
     return archive_result_t::SUCCESS;
 }
@@ -81,26 +85,28 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t
 // * It stops people from inadvertently using a new `grouped_t<T>` without thinking.
 // * Some grouped elements need specialized serialization.
 static inline void serialize_grouped(
-    write_message_t *msg, const counted_t<const datum_t> &d) {
-    *msg << d.has();
-    if (d.has()) *msg << d;
+    write_message_t *wm, const counted_t<const datum_t> &d) {
+    serialize(wm, d.has());
+    if (d.has()) {
+        serialize(wm, d);
+    }
 }
-static inline void serialize_grouped(write_message_t *msg, uint64_t sz) {
-    serialize_varint_uint64(msg, sz);
+static inline void serialize_grouped(write_message_t *wm, uint64_t sz) {
+    serialize_varint_uint64(wm, sz);
 }
-static inline void serialize_grouped(write_message_t *msg, double d) {
-    *msg << d;
+static inline void serialize_grouped(write_message_t *wm, double d) {
+    serialize(wm, d);
 }
-static inline void serialize_grouped(write_message_t *msg,
+static inline void serialize_grouped(write_message_t *wm,
                                      const std::pair<double, uint64_t> &p) {
-    *msg << p.first;
-    serialize_varint_uint64(msg, p.second);
+    serialize(wm, p.first);
+    serialize_varint_uint64(wm, p.second);
 }
-static inline void serialize_grouped(write_message_t *msg, const stream_t &sz) {
-    *msg << sz;
+static inline void serialize_grouped(write_message_t *wm, const stream_t &sz) {
+    serialize(wm, sz);
 }
-static inline void serialize_grouped(write_message_t *msg, const datums_t &ds) {
-    *msg << ds;
+static inline void serialize_grouped(write_message_t *wm, const datums_t &ds) {
+    serialize(wm, ds);
 }
 
 static inline archive_result_t deserialize_grouped(
@@ -139,17 +145,27 @@ template<class T>
 class grouped_t {
 public:
     virtual ~grouped_t() { } // See grouped_data_t below.
-    void rdb_serialize(write_message_t &msg) const { // NOLINT
-        serialize_varint_uint64(&msg, m.size());
+    void rdb_serialize(write_message_t *wm) const {
+        const uint64_t ser_version = 0;
+        serialize_varint_uint64(wm, ser_version);
+
+        serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
-            serialize_grouped(&msg, it->first);
-            serialize_grouped(&msg, it->second);
+            serialize_grouped(wm, it->first);
+            serialize_grouped(wm, it->second);
         }
     }
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint64_t sz = m.size();
         guarantee(sz == 0);
-        archive_result_t res = deserialize_varint_uint64(s, &sz);
+        archive_result_t res;
+
+        uint64_t ser_version;
+        res = deserialize_varint_uint64(s, &ser_version);
+        if (bad(res)) { return res; }
+        if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
+
+        res = deserialize_varint_uint64(s, &sz);
         if (bad(res)) { return res; }
         if (sz > std::numeric_limits<size_t>::max()) {
             return archive_result_t::RANGE_ERROR;

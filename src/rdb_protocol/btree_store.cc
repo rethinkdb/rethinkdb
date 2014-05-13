@@ -6,6 +6,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
@@ -65,11 +66,11 @@ store_t::store_t(serializer_t *serializer,
 
     if (create) {
         vector_stream_t key;
-        write_message_t msg;
+        write_message_t wm;
         region_t kr = region_t::universe();
-        msg << kr;
-        key.reserve(msg.size());
-        int res = send_write_message(&key, &msg);
+        serialize(&wm, kr);
+        key.reserve(wm.size());
+        int res = send_write_message(&key, &wm);
         guarantee(!res);
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
@@ -407,7 +408,7 @@ std::string compute_sindex_deletion_id(uuid_u sindex_uuid) {
 
 void store_t::clear_sindex(
         secondary_index_t sindex,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const value_deleter_t *deleter,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -477,7 +478,7 @@ void store_t::clear_sindex(
 void store_t::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out)
@@ -516,7 +517,7 @@ void store_t::set_sindexes(
             struct delayed_sindex_clearer {
                 static void clear(store_t *store,
                                   secondary_index_t sindex,
-                                  std::shared_ptr<value_sizer_t<void> > csizer,
+                                  std::shared_ptr<value_sizer_t> csizer,
                                   std::shared_ptr<deletion_context_t> deletion_context,
                                   auto_drainer_t::lock_t store_keepalive) {
                     try {
@@ -599,7 +600,7 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 MUST_USE bool store_t::drop_sindex(
         const std::string &id,
         buf_lock_t &&sindex_block,
-        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context)
         THROWS_ONLY(interrupted_exc_t) {
@@ -626,7 +627,7 @@ MUST_USE bool store_t::drop_sindex(
         struct delayed_sindex_clearer {
             static void clear(store_t *store,
                               secondary_index_t csindex,
-                              std::shared_ptr<value_sizer_t<void> > csizer,
+                              std::shared_ptr<value_sizer_t> csizer,
                               std::shared_ptr<deletion_context_t> deletion_context,
                               auto_drainer_t::lock_t store_keepalive) {
                 try {
@@ -897,10 +898,10 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
-        write_message_t msg;
-        msg << i->first;
-        key.reserve(msg.size());
-        DEBUG_VAR int res = send_write_message(&key, &msg);
+        write_message_t wm;
+        serialize(&wm, i->first);
+        key.reserve(wm.size());
+        DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>(i->second.data()),

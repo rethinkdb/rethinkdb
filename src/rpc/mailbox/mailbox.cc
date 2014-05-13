@@ -60,22 +60,22 @@ public:
     virtual ~raw_mailbox_writer_t() { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
-        msg << dest_thread;
-        msg << dest_mailbox_id;
-        uint64_t prefix_length = static_cast<uint64_t>(msg.size());
+        write_message_t wm;
+        serialize(&wm, dest_thread);
+        serialize(&wm, dest_mailbox_id);
+        uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(&msg);
+        subwriter->write(&wm);
 
         // Prepend the message length
         // TODO: It would be more efficient if we could make this part of `msg`.
         //  e.g. with a `prepend()` method on write_message_t.
         write_message_t length_msg;
-        length_msg << (static_cast<uint64_t>(msg.size()) - prefix_length);
+        serialize(&length_msg, static_cast<uint64_t>(wm.size()) - prefix_length);
 
         int res = send_write_message(stream, &length_msg);
         if (res) { throw fake_archive_exc_t(); }
-        res = send_write_message(stream, &msg);
+        res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:

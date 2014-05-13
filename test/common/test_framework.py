@@ -1,6 +1,7 @@
 # This test framework is responsible for running the test suite
 
 import multiprocessing
+import Queue
 import threading
 import signal
 from argparse import ArgumentParser
@@ -14,6 +15,7 @@ import time
 import traceback
 import shutil
 import fnmatch
+import math
 from utils import guess_is_text_file
 import test_report
 
@@ -150,10 +152,15 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
         return
     view = TextView()
     for name, test in tests:
-        passed = test.passed()
+        if not test.passed():
+            status = 'FAILED'
+        elif test.killed():
+            status = 'KILLED'
+        else:
+            status = 'SUCCESS'
         if verbose:
             test.dump_log()
-        view.tell('SUCCESS' if passed else 'FAILED', name)
+        view.tell(status, name)
         if tree:
             for name in test.list_files():
                 if tree:
@@ -175,10 +182,11 @@ def redirect_fd_to_file(fd, file, tee=False):
 
 # The main logic for running the tests
 class TestRunner(object):
-    SUCCESS = 'SUCCESS'
-    FAILED = 'FAILED'
+    SUCCESS   = 'SUCCESS'
+    FAILED    = 'FAILED'
     TIMED_OUT = 'TIMED_OUT'
-    STARTED = 'STARTED'
+    STARTED   = 'STARTED'
+    KILLED    = 'KILLED'
 
     def __init__(self, tests, conf, tasks=1, timeout=600, output_dir=None, verbose=False, repeat=1, kontinue=False, abort_fast = False, run_dir=None):
         self.tests = tests
@@ -217,11 +225,15 @@ class TestRunner(object):
 
 
         self.running = Locked({})
-        self.view = TermView() if sys.stdout.isatty() and not verbose else TextView()
+        if sys.stdout.isatty() and not verbose:
+            self.view = TermView(total = len(self.tests) * self.repeat)
+        else:
+            self.view = TextView()
 
     def run(self):
         tests_count = len(self.tests)
         tests_launched = set()
+        tests_killed = set()
         try:
             print "Running %d tests (output_dir: %s)" % (tests_count, self.dir)
 
@@ -250,24 +262,30 @@ class TestRunner(object):
 
             self.wait_for_running_tests()
 
+        except KeyboardInterrupt:
+            self.aborting = True
         except:
             self.aborting = True
             (exc_type, exc_value, exc_trace) = sys.exc_info()
-            if not exc_type == KeyboardInterrupt:
-                print
-                print '\n'.join(traceback.format_exception(exc_type, exc_value, exc_trace))
+            print
+            print '\n'.join(traceback.format_exception(exc_type, exc_value, exc_trace))
             print >>sys.stderr, "\nWaiting for tests to finish..."
-            try:
-                self.wait_for_running_tests()
-            except:
-                print "Killing remaining tasks..."
-                with self.running as running:
-                    for id, process in running.iteritems():
-                        process.terminate()
+            self.wait_for_running_tests()
+        running = self.running.copy()
+        if running:
+            print "\nKilling remaining tasks..."
+            for id, process in running.iteritems():
+                tests_killed.add(id)
+                process.terminate(gracefull_kill=True)
+            for id, process in running.iteritems():
+                process.join()
+
         self.view.close()
-        if len(tests_launched) != tests_count:
+        if len(tests_launched) != tests_count or tests_killed:
             if len(self.failed_set):
                 print "%d tests failed" % (len(self.failed_set),)
+            if tests_killed:
+                print "%d tests killed" % (len(tests_killed),)
             print "%d tests skipped" % (tests_count - len(tests_launched),)
         elif len(self.failed_set):
             print "%d of %d tests failed" % (len(self.failed_set), tests_count)
@@ -304,7 +322,8 @@ class TestRunner(object):
         if status != 'STARTED':
             with self.running as running:
                 del(running[id])
-            if status != 'SUCCESS':
+            if status not in ['SUCCESS', 'KILLED']:
+                self.view.tell('CANCEL', self.repeat - id[1] - 1)
                 self.failed_set.add(name)
             self.semaphore.release()
         self.view.tell(status, name, **args)
@@ -315,24 +334,26 @@ class TestRunner(object):
 
 # For printing the status of TestRunner to stdout
 class TextView(object):
-    green = "\033[32;1m"
-    red = "\033[31;1m"
+    red     = "\033[31;1m"
+    green   = "\033[32;1m"
+    yellow  = "\033[33;1m"
     nocolor = "\033[0m"
 
     def __init__(self):
         self.use_color = sys.stdout.isatty()
 
     def tell(self, event, name, **args):
-        if event != 'STARTED':
+        if event not in ['STARTED', 'CANCEL']:
             print self.format_event(event, name, **args)
 
     def format_event(self, str, name, error=None):
         if str == 'LOG':
             return name
         short = dict(
-            FAILED = (self.red, "FAIL"),
-            SUCCESS = (self.green, "OK  "),
-            TIMED_OUT = (self.red, "TIME")
+            FAILED    = (self.red    , "FAIL"),
+            SUCCESS   = (self.green  , "OK  "),
+            TIMED_OUT = (self.red    , "TIME"),
+            KILLED    = (self.yellow , "KILL")
         )[str]
         buf = ''
         if self.use_color:
@@ -348,14 +369,18 @@ class TextView(object):
 
 # For printing the status to a terminal
 class TermView(TextView):
-    
-    printingQueue	= None
-    
-    def __init__(self):
+
+    printingQueue = None
+
+    def __init__(self, total):
         TextView.__init__(self)
         self.running_list = []
         self.buffer = ''
-        self.printingQueue = multiprocessing.Queue()
+        self.passed = 0
+        self.failed = 0
+        self.total = total
+        self.start_time = time.time()
+        self.printingQueue = Queue.Queue()
         self.thread = threading.Thread(target=self.run, name='TermView')
         self.thread.daemon = True
         self.thread.start()
@@ -369,21 +394,29 @@ class TermView(TextView):
 
     def run(self):
         while True:
-            args, kwargs = self.printingQueue.get()
-            if args == 'EXIT':
-                break
-            self.thread_tell(*args, **kwargs)
+            try:
+                args, kwargs = self.printingQueue.get(timeout=1)
+            except Queue.Empty:
+                self.update_status()
+                self.flush()
+            else:
+                if args == 'EXIT':
+                    break
+                self.thread_tell(*args, **kwargs)
 
     def thread_tell(self, event, name, **kwargs):
-        if event == 'STARTED':
+        if event == 'CANCEL':
+            print 'CANCELLING', name
+            self.total -= name
+        elif event == 'STARTED':
             self.running_list += [name]
             self.update_status()
         else:
-            self.running_list.remove(name)
             if event == 'SUCCESS':
-                color = self.green
+                self.passed += 1
             else:
-                color = self.red
+                self.failed += 1
+            self.running_list.remove(name)
             self.show(self.format_event(event, name, **kwargs))
         self.flush()
 
@@ -396,7 +429,31 @@ class TermView(TextView):
 
     def show_status(self):
         if self.running_list:
-            self.buffer += '[%d tests running: %s]' % (len(self.running_list), self.format_running())
+            running = len(self.running_list)
+            names = self.format_running()
+            passed = self.passed
+            failed = self.failed
+            remaining = self.total - passed - failed - running
+            if self.use_color:
+                if passed:
+                    passed = self.green + str(passed) + self.nocolor
+                if failed:
+                    failed = self.red + str(failed) + self.nocolor
+            duration = self.format_duration(time.time() - self.start_time)
+            self.buffer += '[%s/%s/%d/%d %s %s]' % (passed, failed, running, remaining, duration, names)
+
+    def format_duration(self, elapsed):
+        elapsed = math.floor(elapsed)
+        seconds = elapsed % 60
+        elapsed = math.floor(elapsed / 60)
+        minutes = elapsed % 60
+        hours = math.floor(elapsed / 60)
+        ret = "%ds" % (seconds,)
+        if minutes or hours:
+            ret = "%dm%s" % (minutes, ret)
+        if hours:
+            ret = "%dh%s" % (hours, ret)
+        return ret
 
     def format_running(self):
         ret = self.running_list[0]
@@ -427,6 +484,10 @@ class Locked(object):
     def __exit__(self, e, x, c):
         self.lock.release()
 
+    def copy(self):
+        with self as value:
+            return value.copy()
+
 # Run a single test in a separate process
 class TestProcess(object):
     def __init__(self, runner, id, test, dir, run_dir):
@@ -439,6 +500,8 @@ class TestProcess(object):
         self.process = None
         self.dir = abspath(dir)
         self.run_dir = abspath(run_dir) if run_dir else None
+        self.gracefull_kill = False
+        self.terminate_thread = None
 
     def start(self):
         try:
@@ -457,10 +520,12 @@ class TestProcess(object):
             raise
 
     def run(self, write_pipe):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         sys.stdin.close()
         redirect_fd_to_file(1, join(self.dir, "stdout"), tee=self.runner.verbose)
         redirect_fd_to_file(2, join(self.dir, "stderr"), tee=self.runner.verbose)
         os.chdir(self.run_dir or self.dir)
+        os.setpgrp()
         with Timeout(self.timeout):
             try:
                 self.test.run()
@@ -498,8 +563,15 @@ class TestProcess(object):
                                                name="subprocess:"+self.name)
         self.process.start()
         self.process.join(self.timeout + 5)
-        if self.process.is_alive():
-            self.process.terminate()
+        if self.terminate_thread:
+            self.terminate_thread.join()
+        if self.gracefull_kill:
+            with open(join(self.dir, "killed"), "a") as file:
+                file.write("Test killed")
+            self.runner.tell(TestRunner.KILLED, self.id, self)
+        elif self.process.is_alive():
+            self.terminate()
+            self.terminate_thread.join()
             self.write_fail_message("Test failed to exit after timeout of %d seconds"
                                         % (self.timeout,))
             self.runner.tell(TestRunner.FAILED, self.id, self)
@@ -522,11 +594,33 @@ class TestProcess(object):
             self.runner.tell(status, self.id, self)
 
     def join(self):
-        self.supervisor.join()
+        while self.supervisor.is_alive():
+            self.supervisor.join(1)
 
-    def terminate(self):
-        if self.process:
-            self.process.terminate()
+    def terminate_thorough(self):
+        if not self.process:
+            return
+        pid = self.process.pid
+        self.process.terminate()
+        self.process.join(5)
+        for sig in [signal.SIGTERM, signal.SIGABRT, signal.SIGKILL]:
+            try:
+                os.killpg(pid, sig)
+            except OSError:
+                break
+            time.sleep(2)
+
+    def terminate(self, gracefull_kill=False):
+        if gracefull_kill:
+            self.gracefull_kill = True
+        if self.terminate_thread:
+            return
+        self.terminate_thread = threading.Thread(target=self.terminate_thorough,
+                                  name='terminate:'+self.name)
+        self.terminate_thread.start()
+
+    def pid(self):
+        return self.process.pid
 
 class TimeoutException(Exception):
     pass
@@ -807,6 +901,9 @@ class OldTest(Test):
 
     def passed(self):
         return not os.path.exists(join(self.dir, "fail_message"))
+
+    def killed(self):
+        return os.path.exists(join(self.dir, "killed"))
 
     def dump_file(self, name):
         with file(join(self.dir, name)) as f:

@@ -10,10 +10,10 @@
 
 #include "arch/io/network.hpp"
 #include "arch/timing.hpp"
-
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
+#include "config/args.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
@@ -25,7 +25,7 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
-const std::string connectivity_cluster_t::cluster_version(RETHINKDB_CODE_VERSION);
+const std::string connectivity_cluster_t::cluster_version(CLUSTER_VERSION_STRING);
 
 #if defined (__x86_64__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
@@ -392,6 +392,10 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
         logERR("could not deserialize data received from %s, closing connection", peer);
         return true;
 
+    case archive_result_t::VERSION_ERROR:
+        logERR("version mismatch with %s, closing connection", peer);
+        return true;
+
     default:
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
@@ -557,17 +561,17 @@ void connectivity_cluster_t::run_t::handle(
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
     {
-        write_message_t msg;
-        msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        msg << static_cast<uint64_t>(cluster_version.length());
-        msg.append(cluster_version.data(), cluster_version.length());
-        msg << static_cast<uint64_t>(cluster_arch_bitsize.length());
-        msg.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
-        msg << static_cast<uint64_t>(cluster_build_mode.length());
-        msg.append(cluster_build_mode.data(), cluster_build_mode.length());
-        msg << parent->me;
-        msg << routing_table[parent->me].hosts();
-        if (send_write_message(conn, &msg))
+        write_message_t wm;
+        wm.append(cluster_proto_header.c_str(), cluster_proto_header.length());
+        serialize(&wm, static_cast<uint64_t>(cluster_version.length()));
+        wm.append(cluster_version.data(), cluster_version.length());
+        serialize(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
+        wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
+        serialize(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
+        wm.append(cluster_build_mode.data(), cluster_build_mode.length());
+        serialize(&wm, parent->me);
+        serialize(&wm, routing_table[parent->me].hosts());
+        if (send_write_message(conn, &wm))
             return; // network error.
     }
 
@@ -715,9 +719,9 @@ void connectivity_cluster_t::run_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         {
-            write_message_t msg;
-            msg << routing_table_to_send;
-            if (send_write_message(conn, &msg))
+            write_message_t wm;
+            serialize(&wm, routing_table_to_send);
+            if (send_write_message(conn, &wm))
                 return;         // network error
         }
 
@@ -742,9 +746,9 @@ void connectivity_cluster_t::run_t::handle(
 
         /* Send our routing table to the leader */
         {
-            write_message_t msg;
-            msg << routing_table_to_send;
-            if (send_write_message(conn, &msg))
+            write_message_t wm;
+            serialize(&wm, routing_table_to_send);
+            if (send_write_message(conn, &wm))
                 return;         // network error
         }
     }

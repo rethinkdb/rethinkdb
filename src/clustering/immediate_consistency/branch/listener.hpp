@@ -5,6 +5,7 @@
 #include <map>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
@@ -120,6 +121,29 @@ public:
         return registration_done_cond_.wait();
     }
 
+    /* Interface for performing local reads without going through a mailbox */
+    read_response_t local_read(const read_t &read,
+            state_timestamp_t expected_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_read_token_t fifo_token,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    write_response_t local_writeread(const write_t &write,
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token,
+            write_durability_t durability,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void local_write(const write_t &write,
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
 
 private:
     class write_queue_entry_t {
@@ -133,7 +157,7 @@ private:
         fifo_enforcer_write_token_t fifo_token;
 
         // This is serializable because this gets written to a disk backed queue.
-        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
+        RDB_MAKE_ME_SERIALIZABLE_4(0, write, order_token, transition_timestamp, fifo_token);
     };
 
     // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
@@ -236,6 +260,11 @@ private:
     listener_business_card_t::writeread_mailbox_t writeread_mailbox_;
     listener_business_card_t::read_mailbox_t read_mailbox_;
 
+    /* The local listener registration is released after the registrant_'s destructor
+    has unregistered with the broadcaster. That's why we must make sure that
+    registrant_ is destructed before local_listener_registration_ is, or we would
+    dead-lock on destruction. */
+    auto_drainer_t local_listener_registration_;
     scoped_ptr_t<registrant_t<listener_business_card_t> > registrant_;
 
     DISABLE_COPYING(listener_t);

@@ -44,7 +44,7 @@ bool name_string_t::assign_value(const wire_string_t &s) {
     return true;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1(name_string_t, str_);
+RDB_IMPL_ME_SERIALIZABLE_1(name_string_t, 0, str_);
 
 
 json_adapter_if_t::json_adapter_map_t get_json_subfields(UNUSED name_string_t *target) {

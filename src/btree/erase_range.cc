@@ -14,7 +14,7 @@ void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
 
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
-    erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
+    erase_range_helper_t(value_sizer_t *sizer, key_tester_t *tester,
             const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
             const btree_key_t *right_inclusive_or_null,
             const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
@@ -117,7 +117,7 @@ public:
     }
 
 private:
-    value_sizer_t<void> *sizer_;
+    value_sizer_t *sizer_;
     key_tester_t *tester_;
     const value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
@@ -128,7 +128,7 @@ private:
     DISABLE_COPYING(erase_range_helper_t);
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer,
+void btree_erase_range_generic(value_sizer_t *sizer,
         key_tester_t *tester, const value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
@@ -183,7 +183,7 @@ public:
     access_t btree_node_mode() { return access_t::write; }
 };
 
-void erase_all(value_sizer_t<void> *sizer,
+void erase_all(value_sizer_t *sizer,
                const value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,

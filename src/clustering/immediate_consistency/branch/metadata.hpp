@@ -67,7 +67,7 @@ public:
     intro_mailbox_t::address_t intro_mailbox;
     write_mailbox_t::address_t write_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_2(0, intro_mailbox, write_mailbox);
 };
 
 
@@ -76,18 +76,21 @@ public:
     state_timestamp_t broadcaster_begin_timestamp;
     listener_business_card_t::upgrade_mailbox_t::address_t upgrade_mailbox;
     listener_business_card_t::downgrade_mailbox_t::address_t downgrade_mailbox;
+    uuid_u listener_id;
 
     listener_intro_t() { }
     listener_intro_t(state_timestamp_t _broadcaster_begin_timestamp,
                      listener_business_card_t::upgrade_mailbox_t::address_t _upgrade_mailbox,
-                     listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox)
+                     listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox,
+                     uuid_u _listener_id)
         : broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
-          upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox) { }
+          upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox),
+          listener_id(_listener_id) { }
 
 
 
-    RDB_MAKE_ME_SERIALIZABLE_3(broadcaster_begin_timestamp,
-                               upgrade_mailbox, downgrade_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_4(1, broadcaster_begin_timestamp,
+                               upgrade_mailbox, downgrade_mailbox, listener_id);
 };
 
 
@@ -127,7 +130,7 @@ struct backfiller_business_card_t {
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
     request_progress_mailbox_t::address_t request_progress_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_3(backfiller_business_card_t, backfill_mailbox,
@@ -150,7 +153,7 @@ struct broadcaster_business_card_t {
 
     registrar_business_card_t<listener_business_card_t> registrar;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, branch_id_associated_branch_history, registrar);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, branch_id, branch_id_associated_branch_history, registrar);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_3(broadcaster_business_card_t, branch_id,
@@ -172,7 +175,7 @@ struct replier_business_card_t {
         : synchronize_mailbox(_synchronize_mailbox), backfiller_bcard(_backfiller_bcard)
     { }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(synchronize_mailbox, backfiller_bcard);
+    RDB_MAKE_ME_SERIALIZABLE_2(0, synchronize_mailbox, backfiller_bcard);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_2(replier_business_card_t,

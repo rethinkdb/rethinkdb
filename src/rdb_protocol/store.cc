@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
+#include "btree/slice.hpp"
 #include "btree/superblock.hpp"
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
@@ -46,7 +47,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
                 // secondary index cannot be in use at this point and we therefore
                 // don't have to detach anything.
                 noop_value_deleter_t noop_deleter;
-                value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
+                rdb_value_sizer_t sizer(store->cache->max_block_size());
 
                 /* Clear the sindex. */
                 store->clear_sindex(
@@ -404,8 +405,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        wm << c.mapping;
-        wm << c.multi;
+        serialize(&wm, c.mapping);
+        serialize(&wm, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -429,8 +430,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        std::shared_ptr<value_sizer_t<void> > sizer(
-                new value_sizer_t<rdb_value_t>(btree->cache()->get_block_size()));
+        std::shared_ptr<value_sizer_t> sizer(
+                new rdb_value_sizer_t(btree->cache()->max_block_size()));
         std::shared_ptr<deletion_context_t> live_deletion_context(
                 new rdb_live_deletion_context_t());
         std::shared_ptr<deletion_context_t> post_construction_deletion_context(
@@ -503,7 +504,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
-        wm << rdb_sindex_change_t(*mod_report);
+        serialize(&wm, rdb_sindex_change_t(*mod_report));
         store->sindex_queue_push(wm, acq.get());
 
         store_t::sindex_access_vector_t sindexes;
@@ -739,8 +740,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        std::shared_ptr<value_sizer_t<void> > sizer(
-                new value_sizer_t<rdb_value_t>(txn->cache()->get_block_size()));
+        std::shared_ptr<value_sizer_t> sizer(
+                new rdb_value_sizer_t(txn->cache()->max_block_size()));
         std::shared_ptr<deletion_context_t> live_deletion_context(
                 new rdb_live_deletion_context_t());
         std::shared_ptr<deletion_context_t> post_construction_deletion_context(
@@ -788,7 +789,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
-                queue_wms[i] << rdb_sindex_change_t(mod_reports[i]);
+                serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }
         }
@@ -824,7 +825,7 @@ void store_t::protocol_reset_data(const region_t &subregion,
                                   superblock_t *superblock,
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    value_sizer_t<rdb_value_t> sizer(cache->get_block_size());
+    rdb_value_sizer_t sizer(cache->max_block_size());
 
     always_true_key_tester_t key_tester;
     buf_lock_t sindex_block

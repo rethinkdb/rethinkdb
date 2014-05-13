@@ -228,10 +228,10 @@ private:
 
 size_t serialized_size(const counted_t<const datum_t> &datum);
 
-write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
+void serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
-write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
+void serialize(write_message_t *wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
@@ -292,43 +292,6 @@ private:
     scoped_ptr_t<datum_t> ptr_;
     DISABLE_COPYING(datum_ptr_t);
 };
-
-// This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
-// non-strings as keys, while the data model we pinched from JSON doesn't.  See
-// README.md for more info.
-class wire_datum_map_t {
-public:
-    wire_datum_map_t() : state(COMPILED) { }
-    bool has(counted_t<const datum_t> key);
-    counted_t<const datum_t> get(counted_t<const datum_t> key);
-    void set(counted_t<const datum_t> key, counted_t<const datum_t> val);
-
-    void compile();
-    void finalize();
-
-    counted_t<const datum_t> to_arr() const;
-private:
-    struct datum_value_compare_t {
-        bool operator()(counted_t<const datum_t> a, counted_t<const datum_t> b) const {
-            return *a < *b;
-        }
-    };
-
-    std::map<counted_t<const datum_t>,
-             counted_t<const datum_t>,
-             datum_value_compare_t> map;
-    std::vector<std::pair<Datum, Datum> > map_pb;
-
-public:
-    friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
-    friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s);
-
-private:
-    enum { SERIALIZABLE, COMPILED } state;
-};
-
 
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.

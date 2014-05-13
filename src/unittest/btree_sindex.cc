@@ -3,6 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
@@ -260,8 +261,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             = store.acquire_sindex_block_for_write(super_block->expose_buf(),
                                                    super_block->get_sindex_block_id());
 
-        std::shared_ptr<value_sizer_t<void> > sizer(
-                new value_sizer_t<rdb_value_t>(store.cache->get_block_size()));
+        std::shared_ptr<value_sizer_t> sizer(
+                new rdb_value_sizer_t(store.cache->max_block_size()));
         std::shared_ptr<deletion_context_t> live_deletion_context(
                 new rdb_live_deletion_context_t());
         std::shared_ptr<deletion_context_t> post_construction_deletion_context(

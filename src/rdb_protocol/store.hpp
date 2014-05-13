@@ -186,7 +186,7 @@ public:
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out)
@@ -207,7 +207,7 @@ public:
     bool drop_sindex(
         const std::string &id,
         buf_lock_t &&sindex_block,
-        std::shared_ptr<value_sizer_t<void> > sizer,
+        std::shared_ptr<value_sizer_t> sizer,
         std::shared_ptr<deletion_context_t> live_deletion_context,
         std::shared_ptr<deletion_context_t> post_construction_deletion_context)
     THROWS_ONLY(interrupted_exc_t);
@@ -351,7 +351,7 @@ private:
 public:
     void clear_sindex(
             secondary_index_t sindex,
-            value_sizer_t<void> *sizer,
+            value_sizer_t *sizer,
             const value_deleter_t *deleter,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);

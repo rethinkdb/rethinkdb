@@ -16,6 +16,10 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
+namespace profile {
+class trace_t;
+}
+
 class btree_slice_t;
 class value_deleter_t;
 
@@ -74,10 +78,6 @@ private:
 
 class btree_stats_t;
 
-template <class Value>
-class key_modification_callback_t;
-
-template <class Value>
 class keyvalue_location_t {
 public:
     keyvalue_location_t()
@@ -104,20 +104,13 @@ public:
     bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
     // value, otherwise NULL.
-    scoped_malloc_t<Value> value;
+    scoped_malloc_t<void> value;
 
-    void swap(keyvalue_location_t &other) {
-        std::swap(superblock, other.superblock);
-        std::swap(stat_block, other.stat_block);
-        last_buf.swap(other.last_buf);
-        buf.swap(other.buf);
-        std::swap(there_originally_was_value, other.there_originally_was_value);
-        std::swap(stats, other.stats);
-        value.swap(other.value);
-    }
+    template <class T>
+    T *value_as() { return static_cast<T *>(value.get()); }
 
-
-    //Stat block when modifications are made using this class the statblock is update
+    // Stat block when modifications are made using this class the statblock is
+    // update.
     block_id_t stat_block;
 
     btree_stats_t *stats;
@@ -129,14 +122,13 @@ private:
 
 // KSI: This type is stupid because the only subclass is
 // null_key_modification_callback_t?
-template <class Value>
 class key_modification_callback_t {
 public:
     // Perhaps this modifies the kv_loc in place, swapping in its own
     // scoped_malloc_t.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
-    virtual key_modification_proof_t value_modification(keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+    virtual key_modification_proof_t value_modification(keyvalue_location_t *kv_loc, const btree_key_t *key) = 0;
 
     key_modification_callback_t() { }
 protected:
@@ -148,10 +140,9 @@ private:
 
 
 
-template <class Value>
-class null_key_modification_callback_t : public key_modification_callback_t<Value> {
+class null_key_modification_callback_t : public key_modification_callback_t {
     key_modification_proof_t
-    value_modification(UNUSED keyvalue_location_t<Value> *kv_loc,
+    value_modification(UNUSED keyvalue_location_t *kv_loc,
                        UNUSED const btree_key_t *key) {
         // do nothing
         return key_modification_proof_t::real_proof();
@@ -205,16 +196,16 @@ private:
     char *value_ptr;
 };
 
-buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb);
+buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb);
 
-void check_and_handle_split(value_sizer_t<void> *sizer,
+void check_and_handle_split(value_sizer_t *sizer,
                             buf_lock_t *buf,
                             buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value,
                             const value_deleter_t *detacher);
 
-void check_and_handle_underfull(value_sizer_t<void> *sizer,
+void check_and_handle_underfull(value_sizer_t *sizer,
                                 buf_lock_t *buf,
                                 buf_lock_t *last_buf,
                                 superblock_t *sb,
@@ -265,6 +256,26 @@ void get_btree_superblock_and_txn_for_reading(cache_conn_t *cache_conn,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<txn_t> *txn_out);
 
-#include "btree/operations.tcc"
+void find_keyvalue_location_for_write(
+        value_sizer_t *sizer,
+        superblock_t *superblock, const btree_key_t *key,
+        const value_deleter_t *detacher,
+        keyvalue_location_t *keyvalue_location_out,
+        btree_stats_t *stats,
+        profile::trace_t *trace,
+        promise_t<superblock_t *> *pass_back_superblock = NULL);
+
+void find_keyvalue_location_for_read(
+        value_sizer_t *sizer,
+        superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t *keyvalue_location_out,
+        btree_stats_t *stats, profile::trace_t *trace);
+
+void apply_keyvalue_change(
+        value_sizer_t *sizer,
+        keyvalue_location_t *kv_loc,
+        const btree_key_t *key, repli_timestamp_t tstamp,
+        const value_deleter_t *detacher,
+        key_modification_callback_t *km_callback);
 
 #endif  // BTREE_OPERATIONS_HPP_

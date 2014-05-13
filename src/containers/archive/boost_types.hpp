@@ -12,12 +12,14 @@
 #include "containers/archive/varint.hpp"
 
 inline
-write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const boost::detail::variant::void_ &v) {
-    unreachable("You cannot do operator<<(write_message_t &, boost::detail::variant::void_ &).");
+NORETURN void serialize(UNUSED write_message_t *wm,
+                        UNUSED const boost::detail::variant::void_ &v) {
+    unreachable("You cannot do serialize(write_message_t *, boost::detail::variant::void_ &).");
 }
 
 inline
-MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED boost::detail::variant::void_ *v) {
+MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s,
+                                      UNUSED boost::detail::variant::void_ *v) {
     unreachable("You cannot do deserialize(read_stream_t *, boost::detail::variant::void_ *).");
 }
 
@@ -25,8 +27,8 @@ MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED boost::det
 #define ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i)     \
     void operator()(const T##i &x /* NOLINT */) {       \
         uint8_t n = i;                                  \
-        *(this->msg) << n;                              \
-        *(this->msg) << x;                              \
+        serialize(this->wm, n);                         \
+        serialize(this->wm, x);                         \
     }
 
 #define ARCHIVE_VARIANT_SERIALIZE_USING_DECL(i) \
@@ -35,8 +37,8 @@ MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED boost::det
 namespace archive_nonsense {
 
 template <class T20> struct v_20_t : public boost::static_visitor<void> {
-    v_20_t() : msg(NULL) { }
-    write_message_t *msg;
+    v_20_t() : wm(NULL) { }
+    write_message_t *wm;
 
     ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(20);
 private:
@@ -112,15 +114,13 @@ ARCHIVE_CLASS_DECL(1, 2);
 }  // namespace archive_nonsense
 
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> &x) {
+void serialize(write_message_t *wm, const boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> &x) {
     archive_nonsense::v_1_t<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> visitor;
     rassert(sizeof(visitor) == sizeof(write_message_t *));
 
-    visitor.msg = &msg;
+    visitor.wm = wm;
 
     boost::apply_visitor(visitor, x);
-
-    return msg;
 }
 
 template <class T> struct archive_variant_deserialize_standin_t {
@@ -182,14 +182,13 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<T1, T2, T
 
 
 template <class T>
-write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
+void serialize(write_message_t *wm, const boost::optional<T> &x) {
     const T *ptr = x.get_ptr();
     bool exists = ptr;
-    msg << exists;
+    serialize(wm, exists);
     if (exists) {
-        msg << *ptr;
+        serialize(wm, *ptr);
     }
-    return msg;
 }
 
 
@@ -211,13 +210,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
 
 
 template <class K, class V>
-write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x) {
-    serialize_varint_uint64(&msg, x.size());
+void serialize(write_message_t *wm, const boost::ptr_map<K, V> &x) {
+    serialize_varint_uint64(&wm, x.size());
     for (typename boost::ptr_map<K, V>::const_iterator it = x.begin(); it != x.end(); ++it) {
-        msg << it->first;
-        msg << *it->second;
+        serialize(wm, it->first);
+        serialize(wm, *it->second);
     }
-    return msg;
 }
 
 template <class K, class V>

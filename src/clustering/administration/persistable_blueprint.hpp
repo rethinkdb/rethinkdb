@@ -32,7 +32,7 @@ public:
         return machines_roles == other.machines_roles;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_1(machines_roles);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, machines_roles);
 };
 
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t &x);

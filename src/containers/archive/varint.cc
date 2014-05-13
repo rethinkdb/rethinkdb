@@ -15,7 +15,7 @@ size_t varint_uint64_serialized_size(uint64_t value) {
     return count;
 }
 
-void serialize_varint_uint64(write_message_t *msg, const uint64_t value) {
+void serialize_varint_uint64(write_message_t *wm, const uint64_t value) {
     // buf needs to be 10 or more -- ceil(64/7) is 10.
     uint8_t buf[16];
     size_t size = 0;
@@ -32,7 +32,7 @@ void serialize_varint_uint64(write_message_t *msg, const uint64_t value) {
         buf[size] = n;
         ++size;
     }
-    msg->append(buf, size);
+    wm->append(buf, size);
 }
 
 archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out) {
