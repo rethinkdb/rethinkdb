@@ -358,8 +358,11 @@ void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
     for (int i = 0; i < 3; ++i) {
         run_create_drop_sindex_test(nsi, osource);
     }
-    // Nap for a random time before we shut down the namespace interface.
-    nap(randint(100));
+    // Nap for a random time before we shut down the namespace interface
+    // (in 1 out of 4 cases).
+    if (randint(4) == 0) {
+        nap(randint(100));
+    }
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {

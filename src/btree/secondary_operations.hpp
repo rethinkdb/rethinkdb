@@ -16,7 +16,7 @@ class buf_lock_t;
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(true),
+        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
           being_deleted(false), id(generate_uuid())
     { }
 
