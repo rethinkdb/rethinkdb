@@ -4,6 +4,10 @@
 
 #include <vector>
 
+// For cluster_version_t.  Once we drop old gcc's, we can just declare "enum class
+// cluster_version_t;" in this header.
+#include "containers/archive/versioned.hpp"
+
 class connectivity_service_t;
 class peer_id_t;
 class read_stream_t;
@@ -12,11 +16,6 @@ class write_stream_t;
 namespace boost {
 template <class> class function;
 }
-
-enum class cluster_version_t {
-    v1_13,
-    // See CLUSTER_VERSION, which should always be the latest version.
-};
 
 /* `message_service_t` is an abstract superclass for things that let you send
 messages to other nodes. `message_handler_t` is an abstract superclass for
