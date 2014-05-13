@@ -19,10 +19,6 @@
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
 
-// Enough precision to reconstruct doubles from their decimal representations.
-// Unlike the late DBLPRI, this lacks a percent sign.
-#define PR_RECONSTRUCTABLE_DOUBLE ".20g"
-
 namespace ql {
 
 const size_t tag_size = 8;

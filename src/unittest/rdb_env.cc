@@ -318,6 +318,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     rdb_ns_repo()
 {
     env.init(new ql::env_t(&extproc_pool,
+                           std::string(),
                            &rdb_ns_repo,
                            namespaces_metadata,
                            databases_metadata,

@@ -86,6 +86,7 @@ public:
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -102,6 +103,7 @@ public:
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -150,6 +152,9 @@ public:
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
     extproc_pool_t *extproc_pool;
+
+    // HTTP proxy to use when running `r.http(...)` queries
+    const std::string reql_http_proxy;
 
     // Access to the cluster, for talking over the cluster or about the cluster.
     cluster_access_t cluster_access;

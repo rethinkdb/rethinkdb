@@ -27,6 +27,8 @@
 #include <functional>
 #include <limits>
 
+#include <re2/re2.h>
+
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
@@ -308,23 +310,6 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
     std::string source;
     return get_single_option(opts, name, &source);
 }
-
-class serve_info_t {
-public:
-    serve_info_t(const std::vector<host_and_port_t> &_joins,
-                 service_address_ports_t _ports,
-                 std::string _web_assets,
-                 boost::optional<std::string> _config_file):
-        joins(&_joins),
-        ports(_ports),
-        web_assets(_web_assets),
-        config_file(_config_file) { }
-
-    const std::vector<host_and_port_t> *joins;
-    service_address_ports_t ports;
-    std::string web_assets;
-    boost::optional<std::string> config_file;
-};
 
 // Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
 // option exists.
@@ -693,20 +678,6 @@ void run_rethinkdb_create(const base_path_t &base_path,
     }
 }
 
-peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
-    peer_address_set_t peers;
-    for (size_t i = 0; i < names.size(); ++i) {
-        peer_address_t peer(std::set<host_and_port_t>(&names[i], &names[i+1]));
-        if (peers.find(peer) != peers.end()) {
-            logWRN("Duplicate peer in --join parameters, ignoring: '%s:%d'",
-                   names[i].host().c_str(), names[i].port().value());
-        } else {
-            peers.insert(peer);
-        }
-    }
-    return peers;
-}
-
 void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins,
                          const peer_address_t &canonical_addresses,
                          int client_port,
@@ -762,7 +733,7 @@ std::string uname_msr() {
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,
-                         const serve_info_t &serve_info,
+                         serve_info_t *serve_info,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
                          const uint64_t total_cache_size,
@@ -833,16 +804,14 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         //  otherwise delete an uninitialized directory
         data_directory_lock->directory_initialized();
 
+        serve_info->look_up_peers();
         *result_out = serve(&io_backender,
                             base_path,
                             cluster_metadata_file.get(),
                             auth_metadata_file.get(),
                             total_cache_size,
-                            look_up_peers_addresses(*serve_info.joins),
-                            serve_info.ports,
-                            serve_info.web_assets,
-                            &sigint_cond,
-                            serve_info.config_file);
+                            *serve_info,
+                            &sigint_cond);
 
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
         logINF("Directory '%s' is in use by another rethinkdb process.\n", base_path.path().c_str());
@@ -859,7 +828,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const int max_concurrent_io_requests,
                              const uint64_t total_cache_size,
                              const bool new_directory,
-                             const serve_info_t &serve_info,
+                             serve_info_t *serve_info,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
@@ -879,7 +848,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
         cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
 
-        if (serve_info.joins->empty()) {
+        if (serve_info->joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
                    base_path.path().c_str());
@@ -903,16 +872,14 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     }
 }
 
-void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out) {
+void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
     os_signal_cond_t sigint_cond;
-    guarantee(!serve_info.joins->empty());
+    guarantee(!serve_info->joins.empty());
 
     try {
-        *result_out = serve_proxy(look_up_peers_addresses(*serve_info.joins),
-                                  serve_info.ports,
-                                  serve_info.web_assets,
-                                  &sigint_cond,
-                                  serve_info.config_file);
+        serve_info->look_up_peers();
+        *result_out = serve_proxy(*serve_info,
+                                  &sigint_cond);
     } catch (const host_lookup_exc_t &ex) {
         logERR("%s\n", ex.what());
         *result_out = false;
@@ -978,6 +945,57 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
     return joins;
 }
 
+std::string get_reql_http_proxy_option(const std::map<std::string, options::values_t> &opts) {
+    std::string source;
+    boost::optional<std::string> proxy = get_optional_option(opts, "--reql-http-proxy", &source);
+    if (!proxy.is_initialized()) {
+        return std::string();
+    }
+
+    // We verify the correct format here, as we won't be configuring libcurl until later,
+    // in the extprocs.  At the moment, we do not support specifying IPv6 addresses.
+    //
+    // protocol = proxy protocol recognized by libcurl: (http, socks4, socks4a, socks5, socks5h)
+    // host = hostname or ip address
+    // port = integer in range [0-65535]
+    // [protocol://]host[:port]
+    //
+    // The chunks in the regex used to parse and verify the format are:
+    //   protocol - (?:([A-z][A-z0-9+-.]*)(?:://))? - captures the protocol, adhering to
+    //     RFC 3986, discarding the '://' from the end
+    //   host - ([A-z0-9.-]+) - captures the hostname or ip address, consisting of letters,
+    //     numbers, dashes, and dots
+    //   port - (?::(\d+))? - captures the numeric port, discarding the preceding ':'
+    RE2 re2_parser("(?:([A-z][A-z0-9+-.]*)(?:://))?([A-z0-9_.-]+)(?::(\\d+))?");
+    std::string protocol, host, port_str;
+    if (!RE2::FullMatch(proxy.get(), re2_parser, &protocol, &host, &port_str)) {
+        throw std::runtime_error(strprintf("--reql-http-proxy format unrecognized, "
+                                           "expected [protocol://]host[:port]: %s",
+                                           proxy.get().c_str()));
+    }
+
+    if (!protocol.empty() &&
+        protocol != "http" &&
+        protocol != "socks4" &&
+        protocol != "socks4a" &&
+        protocol != "socks5" &&
+        protocol != "socks5h") {
+        throw std::runtime_error(strprintf("--reql-http-proxy protocol unrecognized (%s), "
+                                           "must be one of http, socks4, socks4a, socks5, "
+                                           "and socks5h", protocol.c_str()));
+    }
+
+    if (!port_str.empty()) {
+        int port = atoi(port_str.c_str());
+        if (port_str.length() > 5 || port <= 0 || port > MAX_PORT) {
+            throw std::runtime_error(strprintf("--reql-http-proxy port (%s) is not in "
+                                               "the valid range (0-65535)",
+                                               port_str.c_str()));
+        }
+    }
+    return proxy.get();
+}
+
 options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Web options");
     options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
@@ -1024,6 +1042,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
                                              join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--reql-http-proxy"),
+                                             options::OPTIONAL));
+    help.add("--reql-http-proxy [protocol://]host[:port]", "HTTP proxy to use for performing `r.http(...)` queries, default port is 1080");
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
@@ -1358,11 +1380,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
+        std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        const std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts, argv);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {
@@ -1401,14 +1423,18 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(joins, address_ports, web_path,
+        serve_info_t serve_info(std::move(joins),
+                                get_reql_http_proxy_option(opts),
+                                std::move(web_path),
+                                address_ports,
                                 get_optional_option(opts, "--config-file"));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_serve, base_path,
-                                     serve_info,
+        run_in_thread_pool(std::bind(&run_rethinkdb_serve,
+                                     base_path,
+                                     &serve_info,
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
@@ -1444,8 +1470,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins =
-            parse_join_options(opts, port_defaults::peer_port);
+        std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
@@ -1485,7 +1510,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
+        std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -1501,7 +1526,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         base_path_t base_path(".");
         initialize_logfile(opts, base_path);
 
-        const std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
@@ -1519,11 +1544,14 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(joins, address_ports, web_path,
+        serve_info_t serve_info(std::move(joins),
+                                get_reql_http_proxy_option(opts),
+                                std::move(web_path),
+                                address_ports,
                                 get_optional_option(opts, "--config-file"));
 
         bool result;
-        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, serve_info, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, &serve_info, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1617,11 +1645,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
+        std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        const std::string web_path = get_web_path(opts, argv);
+        std::string web_path = get_web_path(opts, argv);
 
         int num_workers;
         if (!parse_cores_option(opts, &num_workers)) {
@@ -1664,7 +1692,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(joins, address_ports, web_path,
+        serve_info_t serve_info(std::move(joins),
+                                get_reql_http_proxy_option(opts),
+                                std::move(web_path),
+                                address_ports,
                                 get_optional_option(opts, "--config-file"));
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -1677,7 +1708,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      max_concurrent_io_requests,
                                      total_cache_size,
                                      is_new_directory,
-                                     serve_info,
+                                     &serve_info,
                                      &data_directory_lock,
                                      &result),
                            num_workers);
