@@ -5,10 +5,9 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
-write_message_t &operator<<(write_message_t &msg, const std::shared_ptr<const scoped_cJSON_t> &cjson) {
+void serialize(write_message_t *wm, const std::shared_ptr<const scoped_cJSON_t> &cjson) {
     rassert(NULL != cjson.get() && NULL != cjson->get());
-    msg << *cjson->get();
-    return msg;
+    serialize(wm, *cjson->get());
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const scoped_cJSON_t> *cjson) {

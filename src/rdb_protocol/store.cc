@@ -370,8 +370,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        wm << c.mapping;
-        wm << c.multi;
+        serialize(&wm, c.mapping);
+        serialize(&wm, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -468,7 +468,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
-        wm << *mod_report;
+        serialize(&wm, *mod_report);
         store->sindex_queue_push(wm, acq.get());
 
         store_t::sindex_access_vector_t sindexes;

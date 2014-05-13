@@ -91,12 +91,12 @@ public:
         md(_md), mdv(_mdv) { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = message_code_metadata;
-        msg << code;
-        msg << md;
-        msg << mdv;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, md);
+        serialize(&wm, mdv);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -111,11 +111,11 @@ public:
         query_id(_query_id) { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = message_code_sync_from_query;
-        msg << code;
-        msg << query_id;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, query_id);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -129,12 +129,12 @@ public:
         query_id(_query_id), version(_version) { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = message_code_sync_from_reply;
-        msg << code;
-        msg << query_id;
-        msg << version;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, query_id);
+        serialize(&wm, version);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -149,12 +149,12 @@ public:
         query_id(_query_id), version(_version) { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = message_code_sync_to_query;
-        msg << code;
-        msg << query_id;
-        msg << version;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, query_id);
+        serialize(&wm, version);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -169,11 +169,11 @@ public:
         query_id(_query_id) { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = message_code_sync_to_reply;
-        msg << code;
-        msg << query_id;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, query_id);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:

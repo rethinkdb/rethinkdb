@@ -53,11 +53,11 @@ store_t::store_t(serializer_t *serializer,
 
     if (create) {
         vector_stream_t key;
-        write_message_t msg;
+        write_message_t wm;
         region_t kr = region_t::universe();
-        msg << kr;
-        key.reserve(msg.size());
-        int res = send_write_message(&key, &msg);
+        serialize(&wm, kr);
+        key.reserve(wm.size());
+        int res = send_write_message(&key, &wm);
         guarantee(!res);
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
@@ -359,7 +359,7 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
-            queue_wms[i] << mod_reports[i];
+            serialize(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
@@ -827,10 +827,10 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
-        write_message_t msg;
-        msg << i->first;
-        key.reserve(msg.size());
-        DEBUG_VAR int res = send_write_message(&key, &msg);
+        write_message_t wm;
+        serialize(&wm, i->first);
+        key.reserve(wm.size());
+        DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>(i->second.data()),

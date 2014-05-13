@@ -79,9 +79,9 @@ public:
     virtual ~tagged_message_writer_t() { }
 
     void write(write_stream_t *os) {
-        write_message_t msg;
-        msg << tag;
-        int res = send_write_message(os, &msg);
+        write_message_t wm;
+        serialize(&wm, tag);
+        int res = send_write_message(os, &wm);
         if (res) { throw fake_archive_exc_t(); }
         subwriter->write(os);
     }

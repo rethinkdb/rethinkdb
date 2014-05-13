@@ -134,17 +134,17 @@ var_visibility_t var_scope_t::compute_visibility() const {
     return ret;
 }
 
-void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
+void var_scope_t::rdb_serialize(write_message_t *wm) const {
     const uint64_t ser_version = 0;
-    serialize_varint_uint64(&msg, ser_version);
+    serialize_varint_uint64(wm, ser_version);
 
-    msg << vars;
-    msg << implicit_depth;
+    serialize(wm, vars);
+    serialize(wm, implicit_depth);
     if (implicit_depth == 1) {
         const bool has = maybe_implicit.has();
-        msg << has;
+        serialize(wm, has);
         if (has) {
-            msg << maybe_implicit;
+            serialize(wm, maybe_implicit);
         }
     }
 }

@@ -104,10 +104,9 @@ size_t serialized_size(const wire_string_t &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-write_message_t &operator<<(write_message_t &msg, const wire_string_t &s) {
-    serialize_varint_uint64(&msg, static_cast<uint64_t>(s.size()));
-    msg.append(s.data(), s.size());
-    return msg;
+void serialize(write_message_t *wm, const wire_string_t &s) {
+    serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
+    wm->append(s.data(), s.size());
 }
 
 archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) {

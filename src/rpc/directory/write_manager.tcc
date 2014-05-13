@@ -85,12 +85,12 @@ public:
     ~initialization_writer_t() { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = 'I';
-        msg << code;
-        msg << initial_value;
-        msg << metadata_fifo_state;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, initial_value);
+        serialize(&wm, metadata_fifo_state);
+        int res = send_write_message(stream, &wm);
         if (res) {
             throw fake_archive_exc_t();
         }
@@ -108,12 +108,12 @@ public:
     ~update_writer_t() { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
+        write_message_t wm;
         uint8_t code = 'U';
-        msg << code;
-        msg << new_value;
-        msg << metadata_fifo_token;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize(&wm, new_value);
+        serialize(&wm, metadata_fifo_token);
+        int res = send_write_message(stream, &wm);
         if (res) {
             throw fake_archive_exc_t();
         }

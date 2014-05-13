@@ -70,7 +70,7 @@ public:
 
     var_visibility_t compute_visibility() const;
 
-    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
+    void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:

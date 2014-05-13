@@ -42,17 +42,17 @@ private:
     void truth_value_method_for_use_in_boolean_conversions();
 
     friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    void rdb_serialize(write_message_t *wm) const {
         const uint64_t ser_version = 0;
-        serialize_varint_uint64(&msg, ser_version);
+        serialize_varint_uint64(wm, ser_version);
 
         // clone pointers own their pointees exclusively, so we don't
         // have to worry about replicating any boost pointer
         // serialization bullshit.
         bool exists = object;
-        msg << exists;
+        serialize(wm, exists);
         if (exists) {
-            msg << *object;
+            serialize(wm, *object);
         }
     }
 

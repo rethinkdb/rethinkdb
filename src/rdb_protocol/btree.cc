@@ -986,24 +986,24 @@ void rdb_distribution_get(int max_depth,
 static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
-void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
+void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
     const uint64_t ser_version = 0;
-    serialize_varint_uint64(&msg, ser_version);
+    serialize_varint_uint64(wm, ser_version);
 
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
-        msg << HAS_NO_VALUE;
+        serialize(wm, HAS_NO_VALUE);
     } else {
-        msg << HAS_VALUE;
-        msg << deleted;
+        serialize(wm, HAS_VALUE);
+        serialize(wm, deleted);
     }
 
     if (!added.first.get()) {
         guarantee(added.second.empty());
-        msg << HAS_NO_VALUE;
+        serialize(wm, HAS_NO_VALUE);
     } else {
-        msg << HAS_VALUE;
-        msg << added;
+        serialize(wm, HAS_VALUE);
+        serialize(wm, added);
     }
 }
 
@@ -1055,7 +1055,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
     write_message_t wm;
-    wm << mod_report;
+    serialize(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
