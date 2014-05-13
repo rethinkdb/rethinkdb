@@ -183,6 +183,7 @@ public:
     access_t btree_node_mode() { return access_t::write; }
 };
 
+// TODO! We will not need this function anymore, will we?
 void erase_all(value_sizer_t *sizer,
                const value_deleter_t *deleter,
                superblock_t *superblock,

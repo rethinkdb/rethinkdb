@@ -3,7 +3,6 @@
 #define RDB_PROTOCOL_STORE_HPP_
 
 #include <map>
-#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -181,14 +180,9 @@ public:
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
-    // TODO (daniel): These shared_ptr<> arguments are not necessary anymore with
-    // the protocol_t dependence removed.
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::shared_ptr<value_sizer_t> sizer,
-        std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -202,14 +196,9 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    // TODO (daniel): These shared_ptr<> arguments are not necessary anymore with
-    // the protocol_t dependence removed.
     bool drop_sindex(
         const std::string &id,
-        buf_lock_t sindex_block,
-        std::shared_ptr<value_sizer_t> sizer,
-        std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context)
+        buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
@@ -332,6 +321,20 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
+    // Helper function to clear out a secondary index that has been
+    // marked as deleted. To be run in a coroutine.
+    void delayed_clear_sindex(
+            secondary_index_t sindex,
+            auto_drainer_t::lock_t store_keepalive)
+            THROWS_NOTHING;
+    // Internally called by `delayed_clear_sindex()`
+    void clear_sindex(
+            secondary_index_t sindex,
+            value_sizer_t *sizer,
+            const value_deleter_t *deleter,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
     void help_construct_bring_sindexes_up_to_date();
 
     void acquire_superblock_for_write(
@@ -349,13 +352,6 @@ private:
             const std::string &id);
 
 public:
-    void clear_sindex(
-            secondary_index_t sindex,
-            value_sizer_t *sizer,
-            const value_deleter_t *deleter,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
         const metainfo_t &new_metainfo,

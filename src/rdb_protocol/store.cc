@@ -430,18 +430,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        std::shared_ptr<value_sizer_t> sizer(
-                new rdb_value_sizer_t(btree->cache()->max_block_size()));
-        std::shared_ptr<deletion_context_t> live_deletion_context(
-                new rdb_live_deletion_context_t());
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context(
-                new rdb_post_construction_deletion_context_t());
-
-        res.success = store->drop_sindex(d.id,
-                                         std::move(sindex_block),
-                                         sizer,
-                                         live_deletion_context,
-                                         post_construction_deletion_context);
+        res.success = store->drop_sindex(d.id, std::move(sindex_block));
 
         response->response = res;
     }
@@ -740,14 +729,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        std::shared_ptr<value_sizer_t> sizer(
-                new rdb_value_sizer_t(txn->cache()->max_block_size()));
-        std::shared_ptr<deletion_context_t> live_deletion_context(
-                new rdb_live_deletion_context_t());
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context(
-                new rdb_post_construction_deletion_context_t());
-        std::set<std::string> created_sindexes;
-
         // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
         // secondary indexes. This can cause problems if indexes are deleted
         // and recreated very quickly. The very reason for why we have UUIDs
@@ -764,11 +745,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
             it->second.id = generate_uuid();
         }
 
-        store->set_sindexes(sindexes, &sindex_block,
-                            sizer,
-                            live_deletion_context,
-                            post_construction_deletion_context,
-                            &created_sindexes);
+        std::set<std::string> created_sindexes;
+        store->set_sindexes(sindexes, &sindex_block, &created_sindexes);
 
         if (!created_sindexes.empty()) {
             rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
@@ -819,6 +797,42 @@ void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock
                                      std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
+}
+
+void store_t::delayed_clear_sindex(
+        secondary_index_t sindex,
+        auto_drainer_t::lock_t store_keepalive)
+        THROWS_NOTHING
+{
+    try {
+        rdb_value_sizer_t sizer(cache->max_block_size());
+        /* If the index had been completely constructed, we must
+         * detach its values since snapshots might be accessing it.
+         * If on the other hand the index had not finished post
+         * construction, it would be incorrect to do so.
+         * The reason being that some of the values that the sindex
+         * points to might have been deleted in the meantime
+         * (the deletion would be on the sindex queue, but might
+         * not have found its way into the index tree yet). */
+        // TODO! This is what we will do now. Except that we also
+        // pick the actual deletion context here.
+        // sindex.post_construction_complete
+        rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_con_deletion_context;
+        deletion_context_t *actual_deletion_context =
+            sindex.post_construction_complete
+            ? static_cast<deletion_context_t *>(&live_deletion_context)
+            : static_cast<deletion_context_t *>(&post_con_deletion_context);
+
+        /* Clear the sindex. */
+        clear_sindex(sindex,
+                     &sizer,
+                     actual_deletion_context->in_tree_deleter(),
+                     store_keepalive.get_drain_signal());
+    } catch (const interrupted_exc_t &e) {
+        /* Ignore. The sindex deletion will continue when the store
+        is next started up. */
+    }
 }
 
 void store_t::protocol_reset_data(const region_t &subregion,

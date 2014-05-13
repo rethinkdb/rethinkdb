@@ -445,6 +445,14 @@ void store_t::clear_sindex(
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
         /* Erase all is going to delete all the nodes in the index tree and
         set the root node in the superblock to null. */
+        // TODO! This is very bad. It should be done in batches.
+        // Incoming writes should also avoid adding new data into the index tree,
+        // so we don't need multiple passes over the same key range here.
+        // (this can be done by making all modification reports deletions at that
+        // point)
+        // TODO! Also erase_all in its current form should die.
+        // We will instead use proper deletes. They ideally would be batched,
+        // but for now we might get away with deleting one key at a time...
         erase_all(sizer, deleter, &sindex_superblock, interruptor);
     }
 
@@ -473,6 +481,7 @@ void store_t::clear_sindex(
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_superblock_lock.write_acq_signal()->wait_lazily_unordered();
+        // TODO! Guarantee that the root node has been deleted at this point.
         sindex_superblock_lock.mark_deleted();
         ::delete_secondary_index(&sindex_block, compute_sindex_deletion_id(sindex.id));
         size_t num_erased = secondary_index_slices.erase(sindex.id);
@@ -483,9 +492,6 @@ void store_t::clear_sindex(
 void store_t::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::shared_ptr<value_sizer_t> sizer,
-        std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t) {
 
@@ -500,49 +506,12 @@ void store_t::set_sindexes(
             bool success = mark_secondary_index_deleted(sindex_block, it->first);
             guarantee(success);
 
-            /* If the index had been completely constructed, we must detach
-             * its values since snapshots might be accessing it.  If on the other
-             * hand the index has not finished post construction, it would be
-             * incorrect to do so. The reason being that some of the values that
-             * the sindex points to might have been deleted in the meantime
-             * (the deletion would be on the sindex queue, but might not have
-             * found its way into the index tree yet). */
-            // TODO (daniel): Now that we don't have multi-protocol support anymore,
-            //   we could get rid of the shared_ptr's for the deletion context and just
-            //   create our own ones inside of the delayes_sindex_clearer coro right?
-            //   Same for sizer.
-            std::shared_ptr<deletion_context_t> actual_deletion_context =
-                    it->second.post_construction_complete
-                    ? live_deletion_context
-                    : post_construction_deletion_context;
-
             /* Delay actually clearing the secondary index, so we can
             release the sindex_block now, rather than having to wait for
             clear_sindex() to finish. */
-            struct delayed_sindex_clearer {
-                static void clear(store_t *store,
-                                  secondary_index_t sindex,
-                                  std::shared_ptr<value_sizer_t> csizer,
-                                  std::shared_ptr<deletion_context_t> deletion_context,
-                                  auto_drainer_t::lock_t store_keepalive) {
-                    try {
-                        /* Clear the sindex. */
-                        store->clear_sindex(
-                            sindex,
-                            csizer.get(),
-                            deletion_context->in_tree_deleter(),
-                            store_keepalive.get_drain_signal());
-                    } catch (const interrupted_exc_t &e) {
-                        /* Ignore. The sindex deletion will continue when the store
-                        is next started up. */
-                    }
-                }
-            };
-            coro_t::spawn_sometime(std::bind(&delayed_sindex_clearer::clear,
+            coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
                                              this,
                                              it->second,
-                                             sizer,
-                                             actual_deletion_context,
                                              drainer.lock()));
         }
     }
@@ -604,53 +573,22 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 
 MUST_USE bool store_t::drop_sindex(
         const std::string &id,
-        buf_lock_t sindex_block,
-        std::shared_ptr<value_sizer_t> sizer,
-        std::shared_ptr<deletion_context_t> live_deletion_context,
-        std::shared_ptr<deletion_context_t> post_construction_deletion_context)
+        buf_lock_t sindex_block)
         THROWS_ONLY(interrupted_exc_t) {
     /* Remove reference in the super block */
     secondary_index_t sindex;
     if (!::get_secondary_index(&sindex_block, id, &sindex)) {
         return false;
     } else {
-        // Similar to `store_t::set_sindexes()`, we have to pick a deletion
-        // context based on whether the sindex had finished post construction or not.
-        std::shared_ptr<deletion_context_t> actual_deletion_context =
-                sindex.post_construction_complete
-                ? live_deletion_context
-                : post_construction_deletion_context;
-
         /* Mark the secondary index as deleted */
         bool success = mark_secondary_index_deleted(&sindex_block, id);
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't
         want to deadlock because we're still holding locks. */
-        struct delayed_sindex_clearer {
-            static void clear(store_t *store,
-                              secondary_index_t csindex,
-                              std::shared_ptr<value_sizer_t> csizer,
-                              std::shared_ptr<deletion_context_t> deletion_context,
-                              auto_drainer_t::lock_t store_keepalive) {
-                try {
-                    /* Clear the sindex. */
-                    store->clear_sindex(
-                        csindex,
-                        csizer.get(),
-                        deletion_context->in_tree_deleter(),
-                        store_keepalive.get_drain_signal());
-                } catch (const interrupted_exc_t &e) {
-                    /* Ignore. The sindex deletion will continue when the store
-                    is next started up. */
-                }
-            }
-        };
-        coro_t::spawn_sometime(std::bind(&delayed_sindex_clearer::clear,
+        coro_t::spawn_sometime(std::bind(&store_t::delayed_clear_sindex,
                                          this,
                                          sindex,
-                                         sizer,
-                                         actual_deletion_context,
                                          drainer.lock()));
     }
     return true;

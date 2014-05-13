@@ -133,19 +133,10 @@ void drop_sindex(store_t *store,
     buf_lock_t sindex_block
         = store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                                 super_block->get_sindex_block_id());
-    std::shared_ptr<value_sizer_t> sizer(
-            new rdb_value_sizer_t(store->cache->max_block_size()));
-    std::shared_ptr<deletion_context_t> live_deletion_context(
-            new rdb_live_deletion_context_t());
-    std::shared_ptr<deletion_context_t> post_construction_deletion_context(
-            new rdb_post_construction_deletion_context_t());
     std::set<std::string> created_sindexes;
     store->drop_sindex(
             sindex_id,
-            std::move(sindex_block),
-            sizer,
-            live_deletion_context,
-            post_construction_deletion_context);
+            std::move(sindex_block));
 }
 
 void bring_sindexes_up_to_date(
