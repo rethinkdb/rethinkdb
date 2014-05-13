@@ -423,7 +423,7 @@ http_result_t perform_http(http_opts_t *opts) {
     }
 
     CURLcode curl_res = CURLE_OK;
-    long response_code; // NOLINT(runtime/int)
+    long response_code = 0; // NOLINT(runtime/int)
     for (uint64_t attempts = 0; attempts < opts->attempts; ++attempts) {
         // Do the HTTP operation, then check for errors
         curl_res = curl_easy_perform(curl_handle.get());
@@ -453,7 +453,15 @@ http_result_t perform_http(http_opts_t *opts) {
         }
     }
 
-    if (curl_res != CURLE_OK) {
+    if (opts->attempts == 0) {
+        return std::string("could not perform, no attempts allowed");
+    } else if (curl_res == CURLE_SEND_ERROR) {
+        return std::string("error when sending data");
+    } else if (curl_res == CURLE_RECV_ERROR) {
+        return std::string("error when receiving data");
+    } else if (curl_res == CURLE_COULDNT_CONNECT) {
+        return std::string("could not connect to server");
+    } else if (curl_res != CURLE_OK) {
         return strprintf("reading response code, '%s'", curl_easy_strerror(curl_res));
     } else if (response_code < 200 || response_code >= 300) {
         return strprintf("status code %ld", response_code);
