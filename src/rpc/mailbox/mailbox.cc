@@ -136,7 +136,12 @@ void read_mailbox_header(read_stream_t *stream,
     if (bad(res)) { throw fake_archive_exc_t(); }
 }
 
-void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char> &&data) {
+void mailbox_manager_t::on_local_message(peer_id_t source_peer,
+                                         cluster_version_t cluster_version,
+                                         std::vector<char> &&data) {
+    // This is only sensible:
+    rassert(cluster_version == cluster_version_t::LATEST_VERSION);
+
     vector_read_stream_t stream(std::move(data));
 
     mailbox_header_t mbox_header;
@@ -163,7 +168,7 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
                                             this, source_peer,
-                                            cluster_version_t::v1_13,  // RSI: This is right, right?  Why do we have source_peer?
+                                            cluster_version,
                                             threadnum_t(mbox_header.dest_thread),
                                             mbox_header.dest_mailbox_id,
                                             &stream_data, stream_data_offset,

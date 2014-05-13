@@ -151,7 +151,8 @@ private:
 
     void on_message(peer_id_t source_peer, cluster_version_t version,
                     read_stream_t *stream);
-    void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
+    void on_local_message(peer_id_t source_peer, cluster_version_t version,
+                          std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
     void mailbox_read_coroutine(peer_id_t source_peer,

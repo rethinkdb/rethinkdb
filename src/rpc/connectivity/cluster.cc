@@ -977,6 +977,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
+        // RSI: Probably this call should take a version?  Or is it a std::bind that already has a version?
         callback->write(&buffer);
     }
 
@@ -1026,7 +1027,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        current_run->message_handler->on_local_message(me, std::move(buffer_data));
+        // RSI: We assume that the callback->write() call above will use the LATEST_VERSION.
+        current_run->message_handler->on_local_message(me, cluster_version_t::LATEST_VERSION,
+                                                       std::move(buffer_data));
     } else {
         guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());

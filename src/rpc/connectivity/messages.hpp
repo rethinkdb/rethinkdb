@@ -72,7 +72,8 @@ public:
                             read_stream_t *) = 0;
 
     // Default implementation. Override to optimize for the local case.
-    virtual void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
+    virtual void on_local_message(peer_id_t source_peer, cluster_version_t version,
+                                  std::vector<char> &&data);
 protected:
     virtual ~message_handler_t() { }
 };
