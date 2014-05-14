@@ -80,7 +80,7 @@ public:
     scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
 private:
     friend class sub_t;
-    mailbox_manager_t *manager;
+    mailbox_manager_t *const manager;
     std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be
     // read whenever `new_feed` is called, and needs to be written to whenever
@@ -109,8 +109,8 @@ private:
     // The UUID of the server, used so that `feed_t`s can order changefeed
     // messages on a per-server basis (and drop changefeed messages from before
     // their own creation timestamp on a per-server basis).
-    uuid_u uuid;
-    mailbox_manager_t *manager;
+    const uuid_u uuid;
+    mailbox_manager_t *const manager;
 
     struct client_info_t {
         scoped_ptr_t<cond_t> cond;
