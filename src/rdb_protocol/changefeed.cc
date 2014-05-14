@@ -603,9 +603,8 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
         read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;
         nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(
-            &read_resp.response);
-        guarantee(resp);
+        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != NULL);
         for (auto it = resp->stamps.begin(); it != resp->stamps.end(); ++it) {
             debugf("STAMP %s\n", uuid_to_str(it->first).c_str());
         }
