@@ -599,7 +599,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
         }
         base_namespace_repo_t::access_t access(
             env->cluster_access.ns_repo, uuid, env->interruptor);
-        auto nif = access.get_namespace_if();
+        namespace_interface_t *nif = access.get_namespace_if();
         read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;
         nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
