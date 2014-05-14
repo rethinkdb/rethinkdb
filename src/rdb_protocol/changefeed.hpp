@@ -82,6 +82,10 @@ private:
     friend class sub_t;
     mailbox_manager_t *manager;
     std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
+    // This lock manages access to the `feeds` map.  The `feeds` map needs to be
+    // read whenever `new_feed` is called, and needs to be written to whenever
+    // `new_feed` is called with a table not already in the `feeds` map, or
+    // whenever `maybe_remove_feed` or `detach_feed` is called.
     rwlock_t feeds_lock;
     auto_drainer_t drainer;
 };
