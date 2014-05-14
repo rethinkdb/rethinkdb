@@ -60,6 +60,15 @@ struct msg_t {
 
 class feed_t;
 struct stamped_msg_t;
+
+// The `client_t` exists on the machine handling the changefeed query, in the
+// `rdb_context_t`.  When a query subscribes to the changes on a table, it
+// should call `new_feed`.  The `client_t` will give it back a stream of rows.
+// The `client_t` does this by maintaining an internal map from table UUIDs to
+// `feed_t`s.  (It does this so that there is at most one `feed_t` per <table,
+// client> pair, to prevent redundant cluster messages.)  The actual logic for
+// subscribing to a changefeed server and distributing writes to streams can be
+// found in the `feed_t` class.
 class client_t : public home_thread_mixin_t {
 public:
     typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
