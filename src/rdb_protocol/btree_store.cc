@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "arch/runtime/coroutines.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
@@ -411,12 +412,37 @@ std::string compute_sindex_deletion_id(uuid_u sindex_uuid) {
     return "_DEL_" + uuid_to_str(sindex_uuid) + "\0";
 }
 
+class clear_sindex_traversal_cb_t
+        : public depth_first_traversal_callback_t {
+public:
+    clear_sindex_traversal_cb_t() {
+        collected_keys.reserve(CHUNK_SIZE);
+    }
+    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+        collected_keys.push_back(store_key_t(keyvalue.key()));
+        if (collected_keys.size() >= CHUNK_SIZE) {
+            return done_traversing_t::YES;
+        } else {
+            return done_traversing_t::NO;
+        }
+    }
+    const std::vector<store_key_t> &get_keys() const {
+        return collected_keys;
+    }
+private:
+    static const size_t CHUNK_SIZE = 32;
+    std::vector<store_key_t> collected_keys;
+};
+
 void store_t::clear_sindex(
         secondary_index_t sindex,
         value_sizer_t *sizer,
-        const value_deleter_t *deleter,
+        const deletion_context_t *deletion_context,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+
+    /* Delete one piece of the secondary index at a time */
+    for (bool reached_end = false; !reached_end;)
     {
         /* Start a transaction (1). */
         write_token_pair_t token_pair;
@@ -438,20 +464,46 @@ void store_t::clear_sindex(
                 superblock->get_sindex_block_id());
         superblock->release();
 
-        /* Clear out the index data */
+        /* Clear part of the index data */
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_block.reset_buf_lock();
-        real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
-        /* Erase all is going to delete all the nodes in the index tree and
-        set the root node in the superblock to null. */
-        // TODO! This is very bad. It should be done in batches so we don't
-        //   hold a lock on the sindex and block writes for so long.
-        // TODO! Also erase_all in its current form should die.
-        //   We will instead use proper deletes. They ideally would be batched,
-        //   but for now we might get away with deleting one key at a time
-        //   (just as with r.table().delete() )
-        erase_all(sizer, deleter, &sindex_superblock, interruptor);
+        scoped_ptr_t<superblock_t> sindex_superblock;
+        sindex_superblock.init(
+            new real_superblock_t(std::move(sindex_superblock_lock)));
+
+        /* 1. Collect a bunch of keys to delete */
+        clear_sindex_traversal_cb_t traversal_cb;
+        reached_end = btree_depth_first_traversal(sindex_superblock.get(),
+                                 key_range_t::universe(),
+                                 &traversal_cb,
+                                 direction_t::FORWARD,
+                                 release_superblock_t::KEEP);
+
+        /* 2. Actually delete them */
+        const std::vector<store_key_t> &keys = traversal_cb.get_keys();
+        for (size_t i = 0; i < keys.size(); ++i) {
+            keyvalue_location_t kv_location;
+            promise_t<superblock_t *> superblock_promise;
+            find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
+                                             keys[i].btree_key(),
+                                             deletion_context->balancing_detacher(),
+                                             &kv_location,
+                                             NULL /* stats */,
+                                             NULL /* trace */,
+                                             &superblock_promise);
+
+            deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location.buf),
+                                                  kv_location.value.get());
+            kv_location.value.reset();
+            null_key_modification_callback_t null_cb;
+            apply_keyvalue_change(sizer, &kv_location, keys[i].btree_key(),
+                    repli_timestamp_t::distant_past,
+                    deletion_context->balancing_detacher(), &null_cb);
+
+            // Reclaim the sindex superblock for the next deletion
+            sindex_superblock.init(superblock_promise.wait());
+        }
     }
 
     {
@@ -475,11 +527,17 @@ void store_t::clear_sindex(
                 superblock->get_sindex_block_id());
         superblock->release();
 
+        /* The root node should have been deleted at this point. Guarantee that. */
+        {
+            buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
+                                              sindex.superblock, access_t::read);
+            real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
+            guarantee(sindex_superblock.get_root_block_id() == NULL_BLOCK_ID);
+        }
         /* Now it's safe to completely delete the index */
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
                                           sindex.superblock, access_t::write);
         sindex_superblock_lock.write_acq_signal()->wait_lazily_unordered();
-        // TODO! Guarantee that the root node has been deleted at this point.
         sindex_superblock_lock.mark_deleted();
         ::delete_secondary_index(&sindex_block, compute_sindex_deletion_id(sindex.id));
         size_t num_erased = secondary_index_slices.erase(sindex.id);

@@ -7,10 +7,8 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "concurrency/cond_var.hpp"
+#include "btree/types.hpp"
 #include "concurrency/fifo_checker.hpp"
-
-void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
 
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
@@ -132,7 +130,8 @@ void btree_erase_range_generic(value_sizer_t *sizer,
         key_tester_t *tester, const value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
-        superblock_t *superblock, signal_t *interruptor, bool release_superblock,
+        superblock_t *superblock, signal_t *interruptor,
+        release_superblock_t release_superblock,
         const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
             &on_erase_cb) {
     erase_range_helper_t helper(sizer, tester, deleter,
@@ -140,80 +139,4 @@ void btree_erase_range_generic(value_sizer_t *sizer,
                                 on_erase_cb);
     btree_parallel_traversal(superblock, &helper, interruptor,
                              release_superblock);
-}
-
-/* Just goes ahead and deletes every node in the tree. It doesn't detach
-values or anything like that, so use it with caution.
-It also must not be interrupted, or you will end up with a tree
-where you don't know which blocks have been deleted and which are still around. */
-class delete_blocks_helper_t : public btree_traversal_helper_t {
-public:
-    delete_blocks_helper_t() { }
-    ~delete_blocks_helper_t() { }
-
-    void process_a_leaf(buf_lock_t *leaf_node_buf,
-                        const btree_key_t *,
-                        const btree_key_t *,
-                        signal_t *,
-                        int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        // Delete the leaf node
-        leaf_node_buf->write_acq_signal()->wait_lazily_unordered();
-        leaf_node_buf->mark_deleted();
-
-        *population_change_out = 0;
-    }
-
-    void postprocess_internal_node(buf_lock_t *internal_node_buf) {
-        // Delete the internal node
-        internal_node_buf->write_acq_signal()->wait_lazily_unordered();
-        internal_node_buf->mark_deleted();
-    }
-
-    void filter_interesting_children(buf_parent_t,
-                                     ranged_block_ids_t *ids_source,
-                                     interesting_children_callback_t *cb) {
-        for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
-            cb->receive_interesting_child(i);
-        }
-
-        cb->no_more_interesting_children();
-    }
-
-    access_t btree_superblock_mode() { return access_t::write; }
-    access_t btree_node_mode() { return access_t::write; }
-};
-
-// TODO! We will not need this function anymore, will we?
-void erase_all(value_sizer_t *sizer,
-               const value_deleter_t *deleter,
-               superblock_t *superblock,
-               signal_t *interruptor,
-               bool release_superblock) {
-    struct always_true_tester_t : public key_tester_t {
-        bool key_should_be_erased(const btree_key_t *) { return true; }
-    } always_true_tester;
-
-    /* This is done in two steps.
-    First we use the regular btree_erase_range_generic
-    to apply `deleter` to all the values in the tree. It is safe to be interrupted
-    while doing that (which is good, because loading all the values can take a long
-    time). */
-    btree_erase_range_generic(sizer, &always_true_tester,
-                              deleter, NULL, NULL,
-                              superblock,
-                              interruptor,
-                              false /* don't release the superblock yet */);
-    /* In a second step we actually delete all the internal and leaf nodes of the
-    tree. This must *not* be interrupted, or the tree will be left in an undefined
-    and corrupted state from which it's impossible to recover. */
-    delete_blocks_helper_t delete_helper;
-    cond_t never_interruptor;
-    btree_parallel_traversal(superblock, &delete_helper, &never_interruptor,
-                             false /* still can't delete the superblock */);
-    guarantee(!never_interruptor.is_pulsed());
-    /* Now set the root id in the superblock to the NULL_BLOCK_ID */
-    superblock->set_root_block_id(NULL_BLOCK_ID);
-    if (release_superblock) {
-        superblock->release();
-    }
 }

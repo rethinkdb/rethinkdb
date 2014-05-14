@@ -46,14 +46,14 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
                 // Note that we can safely use a noop deleter here, since the
                 // secondary index cannot be in use at this point and we therefore
                 // don't have to detach anything.
-                noop_value_deleter_t noop_deleter;
+                rdb_noop_deletion_context_t noop_deletion_context;
                 rdb_value_sizer_t sizer(store->cache->max_block_size());
 
                 /* Clear the sindex. */
                 store->clear_sindex(
                     sindex,
                     &sizer,
-                    &noop_deleter,
+                    &noop_deletion_context,
                     store_keepalive.get_drain_signal());
             } catch (const interrupted_exc_t &e) {
                 /* Ignore */
@@ -824,7 +824,7 @@ void store_t::delayed_clear_sindex(
         /* Clear the sindex. */
         clear_sindex(sindex,
                      &sizer,
-                     actual_deletion_context->in_tree_deleter(),
+                     actual_deletion_context,
                      store_keepalive.get_drain_signal());
     } catch (const interrupted_exc_t &e) {
         /* Ignore. The sindex deletion will continue when the store

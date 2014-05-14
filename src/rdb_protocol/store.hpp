@@ -331,7 +331,7 @@ private:
     void clear_sindex(
             secondary_index_t sindex,
             value_sizer_t *sizer,
-            const value_deleter_t *deleter,
+            const deletion_context_t *deletion_context,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 

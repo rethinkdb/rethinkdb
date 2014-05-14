@@ -7,6 +7,7 @@
 
 #include "concurrency/access.hpp"
 #include "backfill_progress.hpp"
+#include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
@@ -147,7 +148,7 @@ void btree_parallel_traversal(
         superblock_t *superblock,
         btree_traversal_helper_t *helper,
         signal_t *interruptor,
-        bool release_superblock = true)
+        release_superblock_t release_superblock = RELEASE)
         THROWS_ONLY(interrupted_exc_t);
 
 

@@ -574,7 +574,7 @@ private:
 
 void sindex_erase_range(const key_range_t &key_range,
         superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, bool release_superblock,
+        signal_t *interruptor, release_superblock_t release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
@@ -597,7 +597,7 @@ void spawn_sindex_erase_ranges(
         const key_range_t &key_range,
         auto_drainer_t *drainer,
         auto_drainer_t::lock_t,
-        bool release_superblock,
+        release_superblock_t release_superblock,
         signal_t *interruptor,
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
@@ -666,7 +666,7 @@ void rdb_erase_major_range(key_tester_t *tester,
         auto_drainer_t sindex_erase_drainer;
         spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
                 &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true /* release the superblock */, interruptor, &detacher);
+                release_superblock_t::RELEASE, interruptor, &detacher);
 
         /* Notice, when we exit this block we destruct the sindex_erase_drainer
          * which means we'll wait until all of the sindex_erase_ranges finish
@@ -742,7 +742,7 @@ void rdb_erase_small_range(key_tester_t *tester,
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor, true /* release_superblock */,
+        superblock, interruptor, release_superblock_t::RELEASE,
         std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
 }
 
@@ -1243,7 +1243,7 @@ void rdb_erase_major_range_sindexes(const store_t::sindex_access_vector_t &sinde
 
     spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
                               &drainer, auto_drainer_t::lock_t(&drainer),
-                              false /* don't release the superblock */, interruptor,
+                              release_superblock_t::KEEP, interruptor,
                               deleter);
 }
 

@@ -325,15 +325,16 @@ private:
 /* Used for operations on secondary indexes that aren't yet post-constructed.
  * Since we don't have any guarantees that referenced blob blocks still exist
  * during that stage, we use noop deleters for everything. */
-class rdb_post_construction_deletion_context_t : public deletion_context_t {
+class rdb_noop_deletion_context_t : public deletion_context_t {
 public:
-    rdb_post_construction_deletion_context_t() { }
+    rdb_noop_deletion_context_t() { }
     const value_deleter_t *balancing_detacher() const { return &no_deleter; }
     const value_deleter_t *in_tree_deleter() const { return &no_deleter; }
     const value_deleter_t *post_deleter() const { return &no_deleter; }
 private:
     noop_value_deleter_t no_deleter;
 };
+typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

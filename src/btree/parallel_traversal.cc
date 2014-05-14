@@ -343,7 +343,7 @@ struct internal_node_releaser_t : public parent_releaser_t {
 void btree_parallel_traversal(superblock_t *superblock,
                               btree_traversal_helper_t *helper,
                               signal_t *interruptor,
-                              bool release_superblock)
+                              release_superblock_t release_superblock)
     THROWS_ONLY(interrupted_exc_t) {
     traversal_state_t state(superblock->cache()->max_block_size(),
                             helper, interruptor);
@@ -386,7 +386,7 @@ void btree_parallel_traversal(superblock_t *superblock,
         }
     } superblock_releaser;
     superblock_releaser.superblock = superblock;
-    superblock_releaser.release_superblock = release_superblock;
+    superblock_releaser.release_superblock = release_superblock == RELEASE;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();
