@@ -210,6 +210,7 @@ public:
     scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
     uuid_u machine_id;
 
+    mailbox_manager_t *manager;
     ql::changefeed::client_t changefeed_client;
 
     perfmon_collection_t ql_stats_collection;

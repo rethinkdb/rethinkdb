@@ -156,6 +156,7 @@ private:
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
 public:
     feed_t(client_t *client,
+           mailbox_manager_t *manager,
            base_namespace_repo_t *ns_repo,
            uuid_u uuid,
            signal_t *interruptor);
@@ -478,12 +479,13 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
 }
 
 feed_t::feed_t(client_t *_client,
+               mailbox_manager_t *_manager,
                base_namespace_repo_t *ns_repo,
                uuid_u _uuid,
                signal_t *interruptor)
     : client(_client),
       uuid(_uuid),
-      manager(client->get_manager()),
+      manager(_manager),
       mailbox(manager, std::bind(&feed_t::mailbox_cb, this, ph::_1)),
       subs(get_num_threads()),
       num_subs(0),
@@ -581,7 +583,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
                 debugf("CLIENT: making feed...\n");
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
-                    this, env->cluster_access.ns_repo, uuid, &interruptor);
+                    this, manager, env->cluster_access.ns_repo, uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 

@@ -46,7 +46,7 @@ store_t::store_t(serializer_t *serializer,
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
       ctx(_ctx),
-      changefeed_server(ctx->changefeed_client.get_manager())
+      changefeed_server(ctx->manager)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));

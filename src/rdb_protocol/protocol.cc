@@ -361,6 +361,7 @@ rdb_context_t::rdb_context_t()
       cross_thread_database_watchables(get_num_threads()),
       directory_read_manager(NULL),
       signals(get_num_threads()),
+      manager(NULL),
       changefeed_client(NULL),
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
@@ -387,6 +388,7 @@ rdb_context_t::rdb_context_t(
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id),
+      manager(mailbox_manager),
       changefeed_client(mailbox_manager),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
