@@ -109,10 +109,9 @@ private:
                                  const char *key_name,
                                  pb_rcheckable_t *val);
 
-    void get_auth_item(const counted_t<const datum_t> &datum,
-                       const std::string &name,
-                       std::string *str_out,
-                       pb_rcheckable_t *auth);
+    std::string get_auth_item(const counted_t<const datum_t> &datum,
+                              const std::string &name,
+                              pb_rcheckable_t *auth);
 };
 
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
@@ -262,10 +261,9 @@ void http_term_t::get_method(scope_env_t *env,
     }
 }
 
-void http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
-                                const std::string &name,
-                                std::string *str_out,
-                                pb_rcheckable_t *auth) {
+std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
+                                       const std::string &name,
+                                       pb_rcheckable_t *auth) {
     counted_t<const datum_t> item = datum->get(name, NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,
@@ -275,11 +273,11 @@ void http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
                      "Expected `auth.%s` to be a STRING, but found %s.",
                      name.c_str(), item->get_type_name().c_str());
     }
-    str_out->assign(item->as_str().to_std());
+    return item->as_str().to_std();
 }
 
 // The `auth` optarg takes an object consisting of the following fields:
-//  type - STRING, the type of authentication to perform 'basic' or 'digest'
+//  type - STRING, the type of authentication to perform 'basic' or 'digest', defaults to 'basic'
 //  user - STRING, the username to use
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
@@ -293,10 +291,25 @@ void http_term_t::get_auth(scope_env_t *env,
                          datum_auth->get_type_name().c_str());
         }
 
-        std::string user, pass, type;
-        get_auth_item(datum_auth, "type", &type, auth.get());
-        get_auth_item(datum_auth, "user", &user, auth.get());
-        get_auth_item(datum_auth, "pass", &pass, auth.get());
+        // Default to 'basic' if no type is specified
+        std::string type;
+        {
+            counted_t<const datum_t> type_datum = datum_auth->get("type", NOTHROW);
+
+            if (type_datum.has()) {
+                if (type_datum->get_type() != datum_t::R_STR) {
+                    rfail_target(auth.get(), base_exc_t::GENERIC,
+                                 "Expected `auth.type` to be a STRING, but found %s.",
+                                 datum_auth->get_type_name().c_str());
+                }
+                type.assign(type_datum->as_str().to_std());
+            } else {
+                type.assign("basic");
+            }
+        }
+
+        std::string user = get_auth_item(datum_auth, "user", auth.get());
+        std::string pass = get_auth_item(datum_auth, "pass", auth.get());
 
         if (type == "basic") {
             auth_out->make_basic_auth(std::move(user), std::move(pass));
