@@ -429,8 +429,8 @@ public:
     const std::vector<store_key_t> &get_keys() const {
         return collected_keys;
     }
-private:
     static const size_t CHUNK_SIZE = 32;
+private:
     std::vector<store_key_t> collected_keys;
 };
 
@@ -451,7 +451,9 @@ void store_t::clear_sindex(
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
-            64 /* Not the right value for sure */,
+            clear_sindex_traversal_cb_t::CHUNK_SIZE /* Not really the right value,
+                                                     * since many keys will share a
+                                                     * leaf node */,
             write_durability_t::SOFT,
             &token_pair,
             &txn,
