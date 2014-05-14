@@ -106,6 +106,9 @@ private:
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 
+    // The UUID of the server, used so that `feed_t`s can order changefeed
+    // messages on a per-server basis (and drop changefeed messages from before
+    // their own creation timestamp on a per-server basis).
     uuid_u uuid;
     mailbox_manager_t *manager;
 
