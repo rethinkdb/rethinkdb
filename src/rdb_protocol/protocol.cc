@@ -7,7 +7,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
