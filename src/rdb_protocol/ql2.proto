@@ -628,10 +628,10 @@ message Term {
 
         UNGROUP = 150; // GROUPED_DATA -> ARRAY
 
-        CHANGES = 151; // TABLE -> STREAM
-
         // Takes a range of numbers and returns a random number within the range
-        RANDOM = 152; // NUMBER, NUMBER {float:BOOL} -> DATUM
+        RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
+
+        CHANGES = 152; // TABLE -> STREAM
     }
     optional TermType type = 1;
 
