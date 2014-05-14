@@ -90,6 +90,9 @@ private:
     auto_drainer_t drainer;
 };
 
+// There is one `server_t` per `store_t`, and it is used to send changes that
+// occur on that `store_t` to any subscribed `feed_t`s contained in a
+// `client_t`.
 class server_t {
 public:
     typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
