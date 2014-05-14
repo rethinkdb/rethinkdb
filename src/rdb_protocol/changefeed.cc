@@ -80,7 +80,7 @@ struct stamped_msg_t {
     uuid_u server_uuid;
     uint64_t stamp;
     msg_t submsg;
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_MAKE_ME_SERIALIZABLE_3(0, server_uuid, stamp, submsg);
 };
 
 void server_t::send_all(msg_t msg) {
@@ -126,7 +126,6 @@ msg_t::change_t::~change_t() { }
 RDB_IMPL_ME_SERIALIZABLE_1(msg_t, 0, op);
 RDB_IMPL_ME_SERIALIZABLE_2(msg_t::change_t, 0, empty_ok(old_val), empty_ok(new_val));
 RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t, 0);
-RDB_IMPL_ME_SERIALIZABLE_3(stamped_msg_t, 0, server_uuid, stamp, submsg);
 
 enum class detach_t { NO, YES };
 
