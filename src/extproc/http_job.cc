@@ -397,7 +397,7 @@ void set_default_opts(CURL *curl_handle,
     exc_setopt(curl_handle, CURLOPT_PROTOCOLS,
                CURLPROTO_HTTP | CURLPROTO_HTTPS, "PROTOCOLS");
 
-    exc_setopt(curl_handle, CURLOPT_ACCEPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
 
     // Use the proxy set when launched
     if (!proxy.empty()) {
