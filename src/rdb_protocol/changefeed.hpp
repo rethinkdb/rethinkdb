@@ -48,7 +48,7 @@ struct msg_t {
 
     msg_t() { }
     msg_t(msg_t &&msg);
-    msg_t(const msg_t &msg);
+    msg_t(const msg_t &msg) = default;
     explicit msg_t(stop_t &&op);
     explicit msg_t(change_t &&op);
 

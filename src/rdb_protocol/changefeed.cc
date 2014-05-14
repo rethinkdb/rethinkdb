@@ -114,7 +114,6 @@ uuid_u server_t::get_uuid() {
 }
 
 msg_t::msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
-msg_t::msg_t(const msg_t &msg) : op(msg.op) { }
 msg_t::msg_t(stop_t &&_op) : op(std::move(_op)) { }
 msg_t::msg_t(change_t &&_op) : op(std::move(_op)) { }
 
