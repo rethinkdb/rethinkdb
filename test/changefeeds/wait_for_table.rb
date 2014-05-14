@@ -7,7 +7,7 @@ include RethinkDB::Shortcuts
 host = ARGV[0]
 port = 28015 + ARGV[1].to_i
 $start = Time.now
-$timeout = 5
+$timeout = 10
 
 def loop
   while Time.now < $start + $timeout
