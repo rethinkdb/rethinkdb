@@ -34,6 +34,7 @@ def test_get():
     res = r.http(url).run(conn)
     expect_eq(res['args'], {})
     expect_eq(res['headers']['Accept-Encoding'], 'deflate=1;gzip=0.5')
+    expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
 
 def test_params():
     url = 'httpbin.org/get'
@@ -160,6 +161,10 @@ def test_basic_auth():
 
     # Correct credentials
     res = r.http(url, auth={'type':'basic','user':'azure','pass':'hunter2'}).run(conn)
+    expect_eq(res, {'authenticated': True, 'user': 'azure'})
+
+    # Default auth type should be basic
+    res = r.http(url, auth={'user':'azure','pass':'hunter2'}).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
 # This test requires us to set a cookie (any cookie) due to a bug in httpbin.org
