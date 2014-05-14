@@ -93,7 +93,7 @@ private:
         int64_t res;
         bool success = number_as_integer(bound, &res);
         rcheck(success, base_exc_t::GENERIC,
-               strprintf("%s bound (%.20g) could not be safely converted to an integer.",
+               strprintf("%s bound (%" PR_RECONSTRUCTABLE_DOUBLE ") could not be safely converted to an integer.",
                          type == bound_type_t::LOWER ? "Lower" : "Upper", bound));
         return res;
     }

@@ -78,7 +78,7 @@ void run_with_namespace_interface(
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
                       dummy_auth, &read_manager, generate_uuid(),
-                      &get_global_perfmon_collection());
+                      &get_global_perfmon_collection(), std::string());
 
     for (int rep = 0; rep < num_restarts; ++rep) {
         const bool do_create = rep == 0;

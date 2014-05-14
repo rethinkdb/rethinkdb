@@ -62,6 +62,10 @@
 ## Default: 0
 # port-offset=0
 
+## r.http(...) queries will use the given server as a web proxy
+## Default: no proxy
+# reql-http-proxy=socks5://example.com:1080
+
 ### Web options
 
 ## Port for the http admin console
