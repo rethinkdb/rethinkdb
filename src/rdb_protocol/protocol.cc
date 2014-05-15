@@ -269,6 +269,7 @@ void post_construct_and_drain_queue(
             int current_chunk_size = 0;
             while (current_chunk_size < MAX_CHUNK_SIZE && mod_queue->size() > 0) {
                 rdb_sindex_change_t sindex_change;
+                // This involves a disk backed queue so there are no versioning issues.
                 deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
                 mod_queue->pop(&viewer);
                 boost::apply_visitor(apply_sindex_change_visitor_t(
