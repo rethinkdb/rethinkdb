@@ -208,7 +208,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
                           const std::string &id) {
     std::set<std::string> sindexes;
     sindexes.insert(id);
-    for (int attempts = 0; attempts < 50; ++attempts) {
+    for (int attempts = 0; attempts < 25; ++attempts) {
         sindex_status_t d(sindexes);
         read_t read(d, profile_bool_t::PROFILE);
         read_response_t response;
@@ -227,7 +227,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
         if (it != res->statuses.end() && it->second.ready) {
             return;
         } else {
-            nap((attempts+1) * 25);
+            nap((attempts+1) * 50);
         }
     }
     ADD_FAILURE() << "Waiting for sindex " << id << " timed out.";
@@ -397,18 +397,17 @@ void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
 
 void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
                                           order_source_t *osource) {
-    // Create and drop 3 indexes one after another, inserting more data each time
-    for (int i = 0; i < 3; ++i) {
-        // Just a single document the first time, to test the case where
-        // the root of the secondary index is a leaf node.
-        int num_docs = 1 + (i*256);
-        run_create_drop_sindex_with_data_test(nsi, osource, num_docs);
+    // Create and drop index with a couple of documents in it
+    run_create_drop_sindex_with_data_test(nsi, osource, 128);
+    // ... and just for fun sometimes do it a second time immediately after.
+    if (randint(4) == 0) {
+        run_create_drop_sindex_with_data_test(nsi, osource, 128);
     }
 
     // Nap for a random time before we shut down the namespace interface
     // (in 3 out of 4 cases).
     if (randint(4) != 0) {
-        nap(randint(500));
+        nap(randint(200));
     }
 }
 
