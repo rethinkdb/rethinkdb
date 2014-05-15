@@ -35,6 +35,7 @@ def test_get()
     res = r.http(url).run()
     expect_eq(res['args'], {})
     expect_eq(res['headers']['Accept-Encoding'], 'deflate=1;gzip=0.5')
+    expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
 end
 
 def test_params()
@@ -179,6 +180,10 @@ def test_basic_auth()
 
     # Correct credentials
     res = r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'hunter2'}}).run()
+    expect_eq(res, {'authenticated' => true, 'user' => 'azure'})
+
+    # Default auth type should be basic
+    res = r.http(url, {:auth => {:user => 'azure', :pass => 'hunter2'}}).run()
     expect_eq(res, {'authenticated' => true, 'user' => 'azure'})
 end
 

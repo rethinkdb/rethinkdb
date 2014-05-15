@@ -116,6 +116,10 @@ PACKAGE_BUILD_NUMBER ?= 0
 # Implement coroutines on top of (POSIX) threads
 THREADED_COROUTINES ?= 0
 
+# Require MacOS package to be signed with a developer certificate
+REQUIRE_SIGNED ?= 0
+SIGNATURE_NAME ?= Developer ID Installer: Hexagram 49, Inc. (99WDWQ7WDJ)
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
