@@ -655,6 +655,8 @@ void rdb_erase_major_range(key_tester_t *tester,
             store->get_in_line_for_sindex_queue(sindex_block);
         sindex_block->reset_buf_lock();
 
+
+        // RSI: serialization versioning.
         write_message_t wm;
         serialize(&wm, rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range)));
         store->sindex_queue_push(wm, acq.get());
@@ -1070,6 +1072,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
+    // RSI: serialization versioning.
     write_message_t wm;
     serialize(&wm, rdb_sindex_change_t(mod_report));
     store_->sindex_queue_push(wm, acq.get());
@@ -1111,6 +1114,7 @@ void rdb_update_single_sindex(
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
+    // RSI: serialization versioning
     archive_result_t success = deserialize(&read_stream, &mapping);
     guarantee_deserialization(success, "sindex deserialize");
     success = deserialize(&read_stream, &multi);

@@ -28,6 +28,7 @@ message_multiplexer_t::run_t::~run_t() {
 void message_multiplexer_t::run_t::on_message(peer_id_t source,
                                               cluster_version_t version,
                                               read_stream_t *stream) {
+    // All cluster versions currently use the same kinds of tags.
     tag_t tag;
     archive_result_t res = deserialize(stream, &tag);
     if (bad(res)) { throw fake_archive_exc_t(); }

@@ -107,8 +107,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::map_wire_func_t sindex_mapping;
             sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
             inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
+            // RSI: serialization versioning
             archive_result_t success = deserialize(&read_stream, &sindex_mapping);
             guarantee_deserialization(success, "sindex description");
+            // RSI: serialization versioning?
             success = deserialize(&read_stream, &multi_bool);
             guarantee_deserialization(success, "sindex description");
 
@@ -371,7 +373,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
+        // RSI: serialization versioning
         serialize(&wm, c.mapping);
+        // RSI: serialization versioning?
         serialize(&wm, c.multi);
 
         vector_stream_t stream;
@@ -469,6 +473,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
+        // RSI: serialization versioning
         serialize(&wm, rdb_sindex_change_t(*mod_report));
         store->sindex_queue_push(wm, acq.get());
 
@@ -750,6 +755,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
+                // RSI: serialization versioning
                 serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }

@@ -6,6 +6,8 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 
+// RSI: Check callers of these for versioning needs.
+
 void write_onto_blob(buf_parent_t parent, blob_t *blob,
                      const write_message_t &wm);
 

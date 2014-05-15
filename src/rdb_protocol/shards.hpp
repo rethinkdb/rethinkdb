@@ -57,8 +57,8 @@ public:
     counted_t<const datum_t> unpack(const char *name);
     counted_t<const datum_t> row, val;
 };
-static inline void serialize_grouped(
-    write_message_t *wm, const optimizer_t &o) { // NOLINT
+// RSI: Check who calls these serialize_grouped calls.
+static inline void serialize_grouped(write_message_t *wm, const optimizer_t &o) {
     serialize(wm, o.row.has());
     if (o.row.has()) {
         r_sanity_check(o.val.has());
