@@ -156,6 +156,7 @@ void http_job_t::worker_error() {
 }
 
 bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
+    static bool curl_initialized(false);
     http_opts_t opts;
     {
         archive_result_t res = deserialize(stream_in, &opts);
@@ -164,12 +165,23 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
 
     http_result_t result;
 
-    try {
-        result = perform_http(&opts);
-    } catch (const std::exception &ex) {
-        result = std::string(ex.what());
-    } catch (...) {
-        result = std::string("unknown error");
+    CURLcode curl_res = CURLE_OK;
+    if (!curl_initialized) {
+        curl_res = curl_global_init(CURL_GLOBAL_SSL);
+        curl_initialized = true;
+    }
+
+    if (curl_res == CURLE_OK) {
+        try {
+            result = perform_http(&opts);
+        } catch (const std::exception &ex) {
+            result = std::string(ex.what());
+        } catch (...) {
+            result = std::string("unknown error");
+        }
+    } else {
+        result = std::string("global initialization");
+        curl_initialized = false;
     }
 
     write_message_t msg;
@@ -402,6 +414,8 @@ void set_default_opts(CURL *curl_handle,
     exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
     exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+
+    exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 
     // Use the proxy set when launched
     if (!proxy.empty()) {
