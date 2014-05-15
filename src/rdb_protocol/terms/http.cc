@@ -128,8 +128,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
     } catch (const http_worker_exc_t &ex) {
         http_result = std::string("crash in a worker process");
     } catch (const interrupted_exc_t &ex) {
-        http_result = strprintf("timed out after %" PRIu64 ".%03" PRIu64 " seconds",
-                                opts->timeout_ms / 1000, opts->timeout_ms % 1000);
+        http_result = std::string("interrupted");
     } catch (const std::exception &ex) {
         http_result = std::string("encounted an exception - ") + ex.what();
     } catch (...) {
