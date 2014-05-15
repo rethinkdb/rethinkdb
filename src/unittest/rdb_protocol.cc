@@ -208,7 +208,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
                           const std::string &id) {
     std::set<std::string> sindexes;
     sindexes.insert(id);
-    for (int attempts = 0; attempts < 100; ++attempts) {
+    for (int attempts = 0; attempts < 50; ++attempts) {
         sindex_status_t d(sindexes);
         read_t read(d, profile_bool_t::PROFILE);
         read_response_t response;
@@ -227,7 +227,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
         if (it != res->statuses.end() && it->second.ready) {
             return;
         } else {
-            nap(50);
+            nap((attempts+1) * 25);
         }
     }
     ADD_FAILURE() << "Waiting for sindex " << id << " timed out.";
@@ -352,16 +352,63 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     }
 }
 
+void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
+                                           order_source_t *osource,
+                                           int num_docs) {
+    /* Create a secondary index. */
+    std::string id = create_sindex(nsi, osource);
+    wait_for_sindex(nsi, osource, id);
+
+    for (int i = 0; i < num_docs; ++i) {
+        std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i+1);
+        std::shared_ptr<const scoped_cJSON_t> data(
+            new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
+        counted_t<const ql::datum_t> d(
+            new ql::datum_t(cJSON_GetObjectItem(data->get(), "id")));
+        store_key_t pk = store_key_t(d->print_primary());
+
+        /* Insert a piece of data (it will be indexed using the secondary
+         * index). */
+        write_t write(
+            point_write_t(pk, make_counted<ql::datum_t>(*data)),
+            DURABILITY_REQUIREMENT_SOFT,
+            profile_bool_t::PROFILE);
+        write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write,
+                   &response,
+                   osource->check_in(
+                       "unittest::run_create_drop_sindex_with_data_test(rdb_protocol.cc-A"),
+                   &interruptor);
+
+        /* The result can be either STORED or DUPLICATE (in case this
+         * test has been run before on the same store). Either is fine.*/
+        if (!boost::get<point_write_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
+}
+
 void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
                                           order_source_t *osource) {
-    // Create and drop 3 indexes one after another
+    // Create and drop 3 indexes one after another, inserting more data each time
     for (int i = 0; i < 3; ++i) {
-        run_create_drop_sindex_test(nsi, osource);
+        // Just a single document the first time, to test the case where
+        // the root of the secondary index is a leaf node.
+        int num_docs = 1 + (i*256);
+        run_create_drop_sindex_with_data_test(nsi, osource, num_docs);
     }
+
     // Nap for a random time before we shut down the namespace interface
     // (in 3 out of 4 cases).
     if (randint(4) != 0) {
-        nap(randint(100));
+        nap(randint(500));
     }
 }
 
@@ -536,7 +583,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         nsi->write(write,
                    &response,
                    osource->check_in(
-                       "unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+                       "unittest::run_sindex_missing_attr_test(rdb_protocol.cc-A"),
                    &interruptor);
 
         if (!boost::get<point_write_response_t>(&response.response)) {

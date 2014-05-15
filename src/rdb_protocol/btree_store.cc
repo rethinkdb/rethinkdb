@@ -17,6 +17,7 @@
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
+#include "btree/internal_node.hpp"
 
 // Some of this implementation is in store.cc and some in btree_store.cc for no
 // particularly good reason.  Historically it turned out that way, and for now
@@ -485,25 +486,35 @@ void store_t::clear_sindex(
         /* 2. Actually delete them */
         const std::vector<store_key_t> &keys = traversal_cb.get_keys();
         for (size_t i = 0; i < keys.size(); ++i) {
-            keyvalue_location_t kv_location;
             promise_t<superblock_t *> superblock_promise;
-            find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
-                                             keys[i].btree_key(),
-                                             deletion_context->balancing_detacher(),
-                                             &kv_location,
-                                             NULL /* stats */,
-                                             NULL /* trace */,
-                                             &superblock_promise);
+            {
+                keyvalue_location_t kv_location;
+                find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
+                        keys[i].btree_key(), deletion_context->balancing_detacher(),
+                        &kv_location, NULL /* stats */, NULL /* trace */,
+                        &superblock_promise);
 
-            deletion_context->in_tree_deleter()->delete_value(buf_parent_t(&kv_location.buf),
-                                                  kv_location.value.get());
-            kv_location.value.reset();
-            null_key_modification_callback_t null_cb;
-            apply_keyvalue_change(sizer, &kv_location, keys[i].btree_key(),
-                    repli_timestamp_t::distant_past,
-                    deletion_context->balancing_detacher(), &null_cb);
+                deletion_context->in_tree_deleter()->delete_value(
+                    buf_parent_t(&kv_location.buf), kv_location.value.get());
+                kv_location.value.reset();
+                if (kv_location.there_originally_was_value) {
+                    buf_write_t write(&kv_location.buf);
+                    auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
+                    leaf::remove(sizer,
+                                 leaf_node,
+                                 keys[i].btree_key(),
+                                 repli_timestamp_t::distant_past,
+                                 key_modification_proof_t::real_proof());
+                }
+                check_and_handle_underfull(sizer, &kv_location.buf,
+                        &kv_location.last_buf, kv_location.superblock,
+                        keys[i].btree_key(),
+                        deletion_context->balancing_detacher());
 
-            // Reclaim the sindex superblock for the next deletion
+                /* Here kv_location is destructed, which returns the superblock */
+            }
+
+            /* Reclaim the sindex superblock for the next deletion */
             sindex_superblock.init(superblock_promise.wait());
         }
     }
@@ -529,12 +540,54 @@ void store_t::clear_sindex(
                 superblock->get_sindex_block_id());
         superblock->release();
 
-        /* The root node should have been deleted at this point. Guarantee that. */
+        /* The root node should have been emptied at this point. Delete it */
         {
             buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
-                                              sindex.superblock, access_t::read);
+                                              sindex.superblock, access_t::write);
             real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
-            guarantee(sindex_superblock.get_root_block_id() == NULL_BLOCK_ID);
+            if (sindex_superblock.get_root_block_id() != NULL_BLOCK_ID) {
+                buf_lock_t root_node(sindex_superblock.expose_buf(),
+                                     sindex_superblock.get_root_block_id(),
+                                     access_t::write);
+                {
+                    // TODO (daniel): This assumption fails if erase_range has been
+                    // used on the sindex. One more reason for why erase_range
+                    // should die.
+                    /* Guarantee that the root is actually empty. */
+                    buf_read_t rread(&root_node);
+                    const node_t *node = static_cast<const node_t *>(
+                            rread.get_data_read());
+                    if (node::is_internal(node)) {
+                        const internal_node_t *root_int_node
+                            = static_cast<const internal_node_t *>(
+                                rread.get_data_read());
+                        guarantee(root_int_node->npairs == 0);
+                    }
+                    /* If the root is a leaf we are good */
+                }
+                /* Delete the root */
+                root_node.write_acq_signal()->wait_lazily_unordered();
+                root_node.mark_deleted();
+            }
+            // TODO (daniel): There currently appears to be a stat block for
+            // secondary indexes which is stupid. It makes them slower, since it
+            // is being updated everytime a secondary index is being written to.
+            // That should be changed. For now we just delete it here:
+            if (sindex_superblock.get_stat_block_id() != NULL_BLOCK_ID) {
+                buf_lock_t stat_block(sindex_superblock.expose_buf(),
+                                      sindex_superblock.get_stat_block_id(),
+                                      access_t::write);
+                stat_block.write_acq_signal()->wait_lazily_unordered();
+                stat_block.mark_deleted();
+            }
+            // TODO (daniel): ... and even an sindex block.
+            if (sindex_superblock.get_sindex_block_id() != NULL_BLOCK_ID) {
+                buf_lock_t sind_block(sindex_superblock.expose_buf(),
+                                      sindex_superblock.get_sindex_block_id(),
+                                      access_t::write);
+                sind_block.write_acq_signal()->wait_lazily_unordered();
+                sind_block.mark_deleted();
+            }
         }
         /* Now it's safe to completely delete the index */
         buf_lock_t sindex_superblock_lock(buf_parent_t(&sindex_block),
