@@ -36,12 +36,7 @@ http_opts_t::http_opts_t() :
     attempts(5),
     max_redirects(0),
     depaginate(false),
-    verify(true)
-{
-    header.push_back(strprintf("User-Agent: %s/%s",
-                               SOFTWARE_NAME_STRING,
-                               RETHINKDB_VERSION));
-}
+    verify(true) { }
 
 http_opts_t::http_auth_t::http_auth_t() :
     type(http_auth_type_t::NONE),

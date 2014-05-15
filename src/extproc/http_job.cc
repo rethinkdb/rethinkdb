@@ -10,6 +10,8 @@
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
 
+#define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
+
 http_result_t http_to_datum(const std::string &json, http_method_t method);
 http_result_t perform_http(http_opts_t *opts);
 
@@ -396,6 +398,8 @@ void set_default_opts(CURL *curl_handle,
     // Only allow http protocol
     exc_setopt(curl_handle, CURLOPT_PROTOCOLS,
                CURLPROTO_HTTP | CURLPROTO_HTTPS, "PROTOCOLS");
+
+    exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
     exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
 
