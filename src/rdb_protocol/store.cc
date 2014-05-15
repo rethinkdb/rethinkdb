@@ -473,7 +473,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
-        // RSI: serialization versioning
+        // This is for a disk backed queue so there's no versioning issues.
         serialize(&wm, rdb_sindex_change_t(*mod_report));
         store->sindex_queue_push(wm, acq.get());
 
@@ -755,7 +755,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
-                // RSI: serialization versioning
+                // This is for a disk backed queue so there's no versioning issues.
                 serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }

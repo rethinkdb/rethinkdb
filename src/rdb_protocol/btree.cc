@@ -655,8 +655,7 @@ void rdb_erase_major_range(key_tester_t *tester,
             store->get_in_line_for_sindex_queue(sindex_block);
         sindex_block->reset_buf_lock();
 
-
-        // RSI: serialization versioning.
+        // This is for a disk backed queue so there are no versioning issues.
         write_message_t wm;
         serialize(&wm, rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range)));
         store->sindex_queue_push(wm, acq.get());
@@ -1072,7 +1071,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
-    // RSI: serialization versioning.
+    // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
     serialize(&wm, rdb_sindex_change_t(mod_report));
     store_->sindex_queue_push(wm, acq.get());
