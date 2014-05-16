@@ -6,7 +6,7 @@
 // An enumeration of the current and previous recognized versions.  Every
 // serialization / deserialization happens relative to one of these versions.
 enum class cluster_version_t {
-    v1_13,
+    v1_13 = 0,
     // See CLUSTER_VERSION, which should always be the latest version.
     LATEST_VERSION = v1_13,
     // ONLY_VERSION should only exist as long as there's only one version.  A few
