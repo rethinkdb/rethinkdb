@@ -250,7 +250,7 @@ describe('Javascript connection API', function(){
                         c.use('db2');
                         r.table('t2').run(c, noError(function(){
                             c.use('test');
-                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `t2` does not exist.",
+                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist.",
                                                             done));
                         }));}));}));}));}));
 
