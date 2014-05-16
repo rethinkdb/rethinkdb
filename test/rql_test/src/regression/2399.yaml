@@ -1,0 +1,16 @@
+desc: 2399 table corruption after certain updates
+tests:
+
+    - rb: r.db('test').table_create('t2399')
+      ot: ({'created':1})
+      def: t = r.db('test').table('t2399')
+
+    - rb: t.insert({})
+
+    - rb: t.update({:a => {:b => r.literal({})}})
+
+    - rb: t.coerce_to("ARRAY").count()
+      ot: (1)
+
+    - rb: r.db('test').table_drop('t2399')
+      ot: ({'dropped':1})
