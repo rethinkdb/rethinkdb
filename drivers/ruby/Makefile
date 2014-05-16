@@ -22,4 +22,4 @@ publish: $(GEMSPEC) driver-ruby
 	gem push rethinkdb-*.gem
 
 clean:
-	rm -f $(RUBY_PBFILE)
+	rm -f $(RUBY_PBFILE_STRIPPED)
