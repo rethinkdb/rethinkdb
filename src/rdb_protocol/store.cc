@@ -106,21 +106,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  between sindex_start_value and sindex_end_value.
             inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
 
-            // (See the sindex_create_t implementation for the corresponding
-            // serialization code.)
-            cluster_version_t cluster_version;
-            archive_result_t success = deserialize(&read_stream, &cluster_version);
-            guarantee_deserialization(success, "sindex description");
-
             ql::map_wire_func_t sindex_mapping;
-            // RSI: Figure out why this is initialized.
-            sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
-
-            success = deserialize_for_version(cluster_version, &read_stream, &sindex_mapping);
-            guarantee_deserialization(success, "sindex description");
-
-            success = deserialize_for_version(cluster_version, &read_stream, &multi_bool);
-            guarantee_deserialization(success, "sindex description");
+            sindex_multi_bool_t multi_bool;
+            deserialize_sindex_info(&read_stream, &sindex_mapping, &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
@@ -381,10 +369,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        // Versioned serialization.
-        serialize(&wm, cluster_version_t::LATEST_VERSION);
-        serialize_for_version(cluster_version_t::LATEST_VERSION, &wm, c.mapping);
-        serialize_for_version(cluster_version_t::LATEST_VERSION, &wm, c.multi);
+        serialize_sindex_info(&wm, c.mapping, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());

@@ -1098,6 +1098,27 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     }
 }
 
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi) {
+    serialize(wm, cluster_version_t::LATEST_VERSION);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+}
+
+void deserialize_sindex_info(read_stream_t *read_stream,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi) {
+    cluster_version_t cluster_version;
+    archive_result_t success = deserialize(read_stream, &cluster_version);
+    guarantee_deserialization(success, "sindex deserialize");
+    success = deserialize_for_version(cluster_version, read_stream, mapping);
+    guarantee_deserialization(success, "sindex deserialize");
+    success = deserialize_for_version(cluster_version, read_stream, multi);
+    guarantee_deserialization(success, "sindex deserialize");
+    // RSI: Take an inplace_vector_read_stream_t and assert that it is depleted?
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
@@ -1110,19 +1131,10 @@ void rdb_update_single_sindex(
     // function.
     guarantee(modification->primary_key.size() != 0);
 
-    // RSI: This is duplicate code with some other deserialization code.
     ql::map_wire_func_t mapping;
-    // RSI: Figure out why this is initialized.
-    sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
+    sindex_multi_bool_t multi;
     inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-
-    cluster_version_t cluster_version;
-    archive_result_t success = deserialize(&read_stream, &cluster_version);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize_for_version(cluster_version, &read_stream, &mapping);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize_for_version(cluster_version, &read_stream, &multi);
-    guarantee_deserialization(success, "sindex deserialize");
+    deserialize_sindex_info(&read_stream, &mapping, &multi);
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other
