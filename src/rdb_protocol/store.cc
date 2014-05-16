@@ -104,14 +104,21 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  keys may have been truncated, we can't go by keys alone.  Therefore,
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
+            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
+
+            // (See the sindex_create_t implementation for the corresponding
+            // serialization code.)
+            cluster_version_t version;
+            archive_result_t success = deserialize(&read_stream, &version);
+            guarantee_deserialization(success, "sindex description");
+
             ql::map_wire_func_t sindex_mapping;
             sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
-            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
-            // RSI: serialization versioning
-            archive_result_t success = deserialize(&read_stream, &sindex_mapping);
+
+            success = deserialize_for_version(cluster_version, &read_stream, &sindex_mapping);
             guarantee_deserialization(success, "sindex description");
-            // RSI: serialization versioning?
-            success = deserialize(&read_stream, &multi_bool);
+
+            success = deserialize_for_version(&read_stream, &multi_bool);
             guarantee_deserialization(success, "sindex description");
 
             rdb_rget_secondary_slice(
@@ -373,10 +380,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        // RSI: serialization versioning
-        serialize(&wm, c.mapping);
-        // RSI: serialization versioning?
-        serialize(&wm, c.multi);
+        // Versioned serialization.
+        serialize(&wm, cluster_version_t::LATEST_VERSION);
+        serialize_for_version(cluster_version_t::LATEST_VERSION, &wm, c.mapping);
+        serialize_for_version(cluster_version_t::LATEST_VERSION, &wm, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
