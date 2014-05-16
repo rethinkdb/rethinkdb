@@ -4,7 +4,7 @@
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
+#include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
 RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
@@ -32,6 +32,7 @@ void set_secondary_indexes_internal(buf_lock_t *sindex_block,
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
+    // RSI: Versioning?
     serialize_onto_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
