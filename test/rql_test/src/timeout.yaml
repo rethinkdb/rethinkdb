@@ -1,4 +1,4 @@
-desc: Tests timeouts.  Slow, so the file starts with `_`.  Use `make SKIP_SLOW=1` to skip slow tests.
+desc: Tests timeouts.
 tests:
     # js timeout tests
     # Should timeout after the default of 5 seconds
