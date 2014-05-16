@@ -1097,9 +1097,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
-// RSI: Make sure that... we use serialized_size everywhere, properly, in conjunction
-// with any versioned serialization calls.
-
 // This must be kept in sync with serialize(write_message_t *, const counted_t<const
 // datum_t> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
