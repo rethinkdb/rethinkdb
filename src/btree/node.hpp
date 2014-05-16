@@ -11,6 +11,7 @@
 
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
+#include "cluster_version.hpp"
 #include "config/args.hpp"
 
 class value_sizer_t {
@@ -60,8 +61,14 @@ struct btree_sindex_block_t {
     block_magic_t magic;
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 
+    // Right now there's only one version.
     static const block_magic_t expected_magic;
 } __attribute__ ((__packed__));
+
+inline cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
+    guarantee(data->magic == btree_sindex_block_t::expected_magic);
+    return cluster_version_t::ONLY_VERSION;
+}
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
