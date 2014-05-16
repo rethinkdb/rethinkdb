@@ -1106,17 +1106,20 @@ void serialize_sindex_info(write_message_t *wm,
     serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
 }
 
-void deserialize_sindex_info(read_stream_t *read_stream,
+void deserialize_sindex_info(const std::vector<char> &data,
                              ql::map_wire_func_t *mapping,
                              sindex_multi_bool_t *multi) {
+    inplace_vector_read_stream_t read_stream(&data);
     cluster_version_t cluster_version;
-    archive_result_t success = deserialize(read_stream, &cluster_version);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize_for_version(cluster_version, read_stream, mapping);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize_for_version(cluster_version, read_stream, multi);
-    guarantee_deserialization(success, "sindex deserialize");
-    // RSI: Take an inplace_vector_read_stream_t and assert that it is depleted?
+    archive_result_t success = deserialize(&read_stream, &cluster_version);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, multi);
+    guarantee_deserialization(success, "sindex description");
+
+    guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
+              "An sindex description was incompletely deserialized.");
 }
 
 /* Used below by rdb_update_sindexes. */
@@ -1133,8 +1136,7 @@ void rdb_update_single_sindex(
 
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi;
-    inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    deserialize_sindex_info(&read_stream, &mapping, &multi);
+    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other

@@ -104,11 +104,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  keys may have been truncated, we can't go by keys alone.  Therefore,
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
-            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
-
             ql::map_wire_func_t sindex_mapping;
             sindex_multi_bool_t multi_bool;
-            deserialize_sindex_info(&read_stream, &sindex_mapping, &multi_bool);
+            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),

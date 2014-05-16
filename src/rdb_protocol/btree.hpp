@@ -253,7 +253,7 @@ struct rdb_erase_major_range_report_t {
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi);
-void deserialize_sindex_info(read_stream_t *read_stream,
+void deserialize_sindex_info(const std::vector<char> &data,
                              ql::map_wire_func_t *mapping,
                              sindex_multi_bool_t *multi);
 
