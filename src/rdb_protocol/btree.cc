@@ -1110,13 +1110,18 @@ void rdb_update_single_sindex(
     // function.
     guarantee(modification->primary_key.size() != 0);
 
+    // RSI: This is duplicate code with some other deserialization code.
     ql::map_wire_func_t mapping;
+    // RSI: Figure out why this is initialized.
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    // RSI: serialization versioning
-    archive_result_t success = deserialize(&read_stream, &mapping);
+
+    cluster_version_t cluster_version;
+    archive_result_t success = deserialize(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize(&read_stream, &multi);
+    success = deserialize_for_version(cluster_version, &read_stream, &mapping);
+    guarantee_deserialization(success, "sindex deserialize");
+    success = deserialize_for_version(cluster_version, &read_stream, &multi);
     guarantee_deserialization(success, "sindex deserialize");
 
     // TODO we just use a NULL environment here. People should not be able

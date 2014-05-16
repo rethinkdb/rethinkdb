@@ -108,17 +108,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             // (See the sindex_create_t implementation for the corresponding
             // serialization code.)
-            cluster_version_t version;
-            archive_result_t success = deserialize(&read_stream, &version);
+            cluster_version_t cluster_version;
+            archive_result_t success = deserialize(&read_stream, &cluster_version);
             guarantee_deserialization(success, "sindex description");
 
             ql::map_wire_func_t sindex_mapping;
+            // RSI: Figure out why this is initialized.
             sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
 
             success = deserialize_for_version(cluster_version, &read_stream, &sindex_mapping);
             guarantee_deserialization(success, "sindex description");
 
-            success = deserialize_for_version(&read_stream, &multi_bool);
+            success = deserialize_for_version(cluster_version, &read_stream, &multi_bool);
             guarantee_deserialization(success, "sindex description");
 
             rdb_rget_secondary_slice(
