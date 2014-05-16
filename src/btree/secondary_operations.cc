@@ -19,7 +19,7 @@ void get_secondary_indexes_internal(buf_lock_t *sindex_block,
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        const_cast<char *>(data->sindex_blob),
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-
+    // RSI: Get the version from the sindex block magic?
     deserialize_from_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes_out);
 }
 
@@ -32,7 +32,7 @@ void set_secondary_indexes_internal(buf_lock_t *sindex_block,
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-    // RSI: Versioning?
+    // RSI: Get the version from the sindex block magic?
     serialize_onto_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
