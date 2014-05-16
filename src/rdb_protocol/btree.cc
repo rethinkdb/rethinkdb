@@ -540,8 +540,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
         mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
+        guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     }
-    guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
