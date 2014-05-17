@@ -389,6 +389,34 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
     }
 }
 
+void datum_t::recursively_rcheck_ptypes(const std::set<std::string> &allowed_pts) const {
+    if (is_ptype()) {
+        if (get_reql_type() == pseudo::time_string) {
+            pseudo::rcheck_time_valid(this);
+            return;
+        }
+        if (get_reql_type() == pseudo::literal_string) {
+            rcheck(std_contains(allowed_pts, pseudo::literal_string),
+                   base_exc_t::GENERIC,
+                   "Stray literal keyword found in replacement value.");
+            pseudo::rcheck_literal_valid(this);
+            return;
+        }
+        rfail(base_exc_t::GENERIC,
+              "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+    } else if (get_type() == R_OBJECT) {
+        const std::map<std::string, counted_t<const datum_t> > &as_obj = as_object();
+        for (auto it = as_obj.begin(); it != as_obj.end(); ++it) {
+            it->second->recursively_rcheck_ptypes(allowed_pts);
+        }
+    } else if (get_type() == R_ARRAY) {
+        const std::vector<counted_t<const datum_t> > &as_arr = as_array();
+        for (auto it = as_arr.begin(); it != as_arr.end(); ++it) {
+            (*it)->recursively_rcheck_ptypes();
+        }
+    }
+}
+
 void datum_t::rcheck_is_ptype(const std::string s) const {
     rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
@@ -398,6 +426,47 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
+counted_t<const datum_t> datum_t::drop_literals(counted_t<const datum_t> from) const {
+    if (from->get_type() == R_OBJECT) {
+        datum_ptr_t d(R_OBJECT);
+        const std::map<std::string, counted_t<const datum_t> > &from_obj
+            = from->as_object();
+        for (auto it = from_obj.begin(); it != from_obj.end(); ++it) {
+            bool is_literal = it->second->is_ptype(pseudo::literal_string);
+
+            if (it->second->get_type() == R_OBJECT && !is_literal) {
+                // We don't have to handle nested literal terms, since those are
+                // not allowed in the first place.
+                // TODO (daniel): Make sure that this is actually enforced everywhere
+                bool conflict = d.add(it->first, it->second);
+                r_sanity_check(!conflict);
+            } else {
+                if (is_literal) {
+                    counted_t<const datum_t> val = it->second->get(pseudo::value_key,
+                                                                   NOTHROW);
+                    if (val) {
+                        bool conflict = d.add(it->first, val);
+                        r_sanity_check(!conflict);
+                    }
+                } else {
+                    bool conflict = d.add(it->first, drop_literals(it->second));
+                    r_sanity_check(!conflict);
+                }
+            }
+        }
+        return d.to_counted();
+    } else if (from->get_type() == R_ARRAY) {
+        datum_ptr_t d(R_ARRAY);
+        const std::vector<counted_t<const datum_t> > &from_arr = from->as_array();
+        for (auto it = from_arr.begin(); it != from_arr.end(); ++it) {
+            d.add(drop_literals(*it));
+        }
+        return d.to_counted();;
+    } else {
+        return from;
+    }
+}
+
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
                                    counted_t<const datum_t> orig_key,
                                    const std::string &pkey) const {
@@ -405,6 +474,8 @@ void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.c_str(), print().c_str()));
+    // Make sure we don't write illegal pseudo types to disk
+    recursively_rcheck_ptypes();
     if (old_val.has()) {
         counted_t<const datum_t> old_pk = orig_key;
         if (old_val->get_type() != R_NULL) {
@@ -850,7 +921,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
                     UNUSED bool b = d.delete_field(it->first);
                 }
             } else {
-                UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+                UNUSED bool b = d.add(it->first, drop_literals(it->second), CLOBBER);
             }
         }
     }

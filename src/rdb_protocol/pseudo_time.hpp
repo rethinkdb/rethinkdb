@@ -25,6 +25,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
 
 int time_cmp(const datum_t &x, const datum_t &y);
 void sanitize_time(datum_t *time);
+void rcheck_time_valid(const datum_t *time);
 counted_t<const datum_t> make_time(double epoch_time, std::string tz);
 counted_t<const datum_t> make_time(
     int year, int month, int day, int hours, int minutes, double seconds,

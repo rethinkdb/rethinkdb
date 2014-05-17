@@ -1,4 +1,4 @@
-desc: 2399 table corruption after certain updates
+desc: 2399 literal terms not removed under certain circumstances
 tests:
 
     - rb: r.db('test').table_create('t2399')
@@ -8,6 +8,11 @@ tests:
     - rb: t.insert({})
 
     - rb: t.update({:a => {:b => r.literal({})}})
+
+    - rb: t.coerce_to("ARRAY").count()
+      ot: (1)
+
+    - rb: t.update({:a => [{:b => r.literal({})}]})
 
     - rb: t.coerce_to("ARRAY").count()
       ot: (1)
