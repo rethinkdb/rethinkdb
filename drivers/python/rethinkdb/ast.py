@@ -20,7 +20,7 @@ def expr(val, nesting_depth=20):
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
-    if isinstance(nesting_depth, int) == False:
+    if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number or undefined.")
 
     if isinstance(val, RqlQuery):
