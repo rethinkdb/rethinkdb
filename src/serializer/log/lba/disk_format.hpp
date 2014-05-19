@@ -91,7 +91,7 @@ struct lba_entry_t {
         return entry;
     }
 
-    static bool is_padding(const lba_entry_t* entry) {
+    static bool is_padding(const lba_entry_t *entry) {
         return entry->block_id == PADDING_BLOCK_ID  && entry->offset.is_padding();
     }
 
