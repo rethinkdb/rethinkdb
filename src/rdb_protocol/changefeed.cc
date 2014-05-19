@@ -182,7 +182,6 @@ private:
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
     wait_any_t any_disconnect;
 
-    // RSI: prepop queues.
     struct queue_t {
         rwlock_t lock;
         uint64_t next;
@@ -213,7 +212,12 @@ public:
             {"old_val", change.old_val.has() ? change.old_val : null}
         };
         auto d = make_counted<const datum_t>(std::move(obj));
-        feed->each_sub(std::bind(&sub_t::add_el, ph::_1, server_uuid, stamp, d));
+        feed->each_sub(
+            std::bind(&sub_t::add_el,
+                      ph::_1,
+                      std::cref(server_uuid),
+                      stamp,
+                      d));
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
@@ -394,10 +398,12 @@ void feed_t::each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING {
             sub_threads.push_back(i);
         }
     }
-    // RSI: Does binding like this avoid making copies of variables that
-    // the binding function takes as references?  (e.g. `sub_threads`)
     pmap(sub_threads.size(),
-         std::bind(&feed_t::each_sub_cb, this, f, sub_threads, ph::_1));
+         std::bind(&feed_t::each_sub_cb,
+                   this,
+                   std::cref(f),
+                   std::cref(sub_threads),
+                   ph::_1));
 }
 void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
                          const std::vector<int> &sub_threads,
@@ -439,7 +445,6 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             // debugf("Not pulsed.\n");
             // We don't need a lock for this because the set of `uuid_u`s never
             // changes after it's initialized.
-
             auto it = queues.find(msg.server_uuid);
             if (it == queues.end()) {
                 debugf("Queues (%zu):\n", queues.size());
@@ -534,8 +539,6 @@ void feed_t::constructor_cb() {
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
-            // RSI: make sure feed pointer doesn't survive past a lock.
-            // RSI: What does the above RSI mean?
             each_sub(std::bind(&sub_t::stop, ph::_1, msg, detach_t::YES));
             num_subs = 0;
         } else {
@@ -549,8 +552,6 @@ feed_t::~feed_t() {
     debugf("~feed_t()\n");
     guarantee(num_subs == 0);
     detached = true;
-    // RSI: Are these sends expensive enough that we should avoid holding up
-    // destruction for them?  Also, can they throw?
     for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
         send(manager, *it, mailbox.get_address());
     }
