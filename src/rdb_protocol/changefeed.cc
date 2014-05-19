@@ -425,7 +425,7 @@ void feed_t::each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING {
 void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
                          const std::vector<int> &sub_threads,
                          int i) {
-    auto set = &subs[sub_threads[i]];
+    std::set<sub_t *> *set = &subs[sub_threads[i]];
     guarantee(set->size() != 0);
     on_thread_t th((threadnum_t(sub_threads[i])));
     for (auto it = set->begin(); it != set->end(); ++it) {
