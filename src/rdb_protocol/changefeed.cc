@@ -278,6 +278,12 @@ public:
     virtual bool is_exhausted() const { return false; }
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, const batchspec_t &bs) {
+        rcheck(bs.get_batch_type() == batch_type_t::NORMAL
+               || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
+               base_exc_t::GENERIC,
+               "Cannot call a terminal (`reduce`, `count`, etc.) on an "
+               "infinite stream (such as a changefeed).");
+        debugf("BATCH_TYPE %d\n", bs.get_batch_type());
         batcher_t batcher = bs.to_batcher();
         return sub->get_els(&batcher, env->interruptor);
     }
