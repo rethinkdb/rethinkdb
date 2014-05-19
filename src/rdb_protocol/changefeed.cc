@@ -1,5 +1,7 @@
 #include "rdb_protocol/changefeed.hpp"
 
+#include <queue>
+
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -75,7 +77,7 @@ struct stamped_msg_t {
     stamped_msg_t() { }
     stamped_msg_t(uuid_u _server_uuid, uint64_t _stamp, msg_t _submsg)
         : server_uuid(std::move(_server_uuid)),
-          stamp(std::move(_stamp)),
+          stamp(_stamp),
           submsg(std::move(_submsg)) { }
     uuid_u server_uuid;
     uint64_t stamp;
@@ -185,7 +187,22 @@ private:
     struct queue_t {
         rwlock_t lock;
         uint64_t next;
-        std::map<uint64_t, stamped_msg_t> map;
+        struct entry_t {
+            entry_t(uint64_t _key, stamped_msg_t &&_msg) : key(_key), msg(_msg) { }
+            entry_t(entry_t &&other) : key(other.key), msg(std::move(other.msg)) { }
+            entry_t &operator=(entry_t &&other) {
+                key = other.key;
+                msg = std::move(other.msg);
+                return *this;
+            }
+            bool operator<(const entry_t &other) const {
+                guarantee(key != other.key);
+                return key > other.key; // We want the smallest key on top.
+            }
+            uint64_t key;
+            stamped_msg_t msg;
+        };
+        std::priority_queue<entry_t> map;
     };
     // Maps from a `server_t`'s uuid_u.  We don't need a lock for this because
     // the set of `uuid_u`s never changes after it's initialized.
@@ -461,21 +478,18 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             spot.write_signal()->wait_lazily_unordered();
 
             // Add us to the queue.
-            bool inserted =
-                queue->map.insert(std::make_pair(msg.stamp, std::move(msg))).second;
-            guarantee(inserted);
+            queue->map.push(queue_t::entry_t(msg.stamp, std::move(msg)));
 
             // Read as much as we can from the queue (this enforces ordering.)
             // debugf("%" PRIu64 " vs. %" PRIu64 "\n",
             //        queue->map.begin()->first,
             //        queue->next);
-            while (queue->map.size() != 0
-                   && queue->map.begin()->first == queue->next) {
+            while (queue->map.size() != 0 && queue->map.top().key == queue->next) {
+                const stamped_msg_t *curmsg = &queue->map.top().msg;
+                msg_visitor_t visitor(this, curmsg->server_uuid, curmsg->stamp);
+                boost::apply_visitor(visitor, curmsg->submsg.op);
+                queue->map.pop();
                 queue->next += 1;
-                stamped_msg_t curmsg(std::move(queue->map.begin()->second));
-                queue->map.erase(queue->map.begin());
-                msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
-                boost::apply_visitor(visitor, curmsg.submsg.op);
             }
         }
     }

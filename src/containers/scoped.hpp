@@ -13,6 +13,10 @@
 template <class T>
 class scoped_ptr_t {
 public:
+    bool operator<(const scoped_ptr_t &other) const {
+        return *ptr_ < *other;
+    }
+
     template <class U>
     friend class scoped_ptr_t;
 
