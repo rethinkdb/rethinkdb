@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_ALT_ALT_SERIALIZE_ONTO_BLOB_HPP_
-#define BUFFER_CACHE_ALT_ALT_SERIALIZE_ONTO_BLOB_HPP_
+#ifndef BUFFER_CACHE_ALT_SERIALIZE_ONTO_BLOB_HPP_
+#define BUFFER_CACHE_ALT_SERIALIZE_ONTO_BLOB_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
@@ -59,4 +59,4 @@ void deserialize_for_version_from_blob(cluster_version_t cluster_version,
 
 
 
-#endif  // BUFFER_CACHE_ALT_ALT_SERIALIZE_ONTO_BLOB_HPP_
+#endif  // BUFFER_CACHE_ALT_SERIALIZE_ONTO_BLOB_HPP_
