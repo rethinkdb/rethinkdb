@@ -211,7 +211,7 @@ public:
     uuid_u machine_id;
 
     mailbox_manager_t *manager;
-    ql::changefeed::client_t changefeed_client;
+    scoped_ptr_t<ql::changefeed::client_t> changefeed_client;
 
     perfmon_collection_t ql_stats_collection;
     perfmon_membership_t ql_stats_membership;

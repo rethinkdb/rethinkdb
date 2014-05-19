@@ -230,7 +230,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               &ctx->changefeed_client,
+               ctx->changefeed_client.get(),
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
@@ -458,7 +458,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               &ctx->changefeed_client,
+               ctx->changefeed_client.get(),
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),

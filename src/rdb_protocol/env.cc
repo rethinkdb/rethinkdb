@@ -163,7 +163,7 @@ js_runner_t *env_t::get_js_runner() {
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
-      changefeed_client(ctx ? &ctx->changefeed_client : NULL),
+      changefeed_client(ctx ? ctx->changefeed_client.get() : NULL),
       cluster_access(
           ctx ? ctx->ns_repo : NULL,
           ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()

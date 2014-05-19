@@ -389,7 +389,9 @@ rdb_context_t::rdb_context_t(
       signals(get_num_threads()),
       machine_id(_machine_id),
       manager(mailbox_manager),
-      changefeed_client(mailbox_manager),
+      changefeed_client(manager
+                        ? make_scoped<ql::changefeed::client_t>(manager)
+                        : scoped_ptr_t<ql::changefeed::client_t>()),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {

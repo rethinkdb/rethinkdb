@@ -558,7 +558,10 @@ feed_t::~feed_t() {
     debugf("~feed_t() DONE\n");
 }
 
-client_t::client_t(mailbox_manager_t *_manager) : manager(_manager) { }
+client_t::client_t(mailbox_manager_t *_manager)
+  : manager(_manager) {
+    guarantee(manager != NULL);
+}
 client_t::~client_t() { }
 
 counted_t<datum_stream_t>
