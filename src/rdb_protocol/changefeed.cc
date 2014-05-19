@@ -88,7 +88,8 @@ void server_t::send_all(msg_t msg) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
-        send(manager, it->first, stamped_msg_t(uuid, it->second.stamp++, msg));
+        send(manager, it->first, stamped_msg_t(uuid, it->second.stamp, msg));
+        it->second.stamp += 1;
     }
 }
 
