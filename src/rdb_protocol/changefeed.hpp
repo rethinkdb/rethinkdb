@@ -88,7 +88,7 @@ public:
     void maybe_remove_feed(const uuid_u &uuid);
     scoped_ptr_t<feed_t> detach_feed(const uuid_u &uuid);
 private:
-    friend class sub_t;
+    friend class subscription_t;
     mailbox_manager_t *const manager;
     std::map<uuid_u, scoped_ptr_t<feed_t> > feeds;
     // This lock manages access to the `feeds` map.  The `feeds` map needs to be

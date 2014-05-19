@@ -133,11 +133,11 @@ RDB_IMPL_ME_SERIALIZABLE_0(msg_t::stop_t, 0);
 enum class detach_t { NO, YES };
 
 // Uses the home thread of the subscriber, not the client.
-class sub_t : public home_thread_mixin_t {
+class subscription_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    sub_t(feed_t *_feed);
-    ~sub_t();
+    subscription_t(feed_t *_feed);
+    ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
     void add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d);
@@ -152,7 +152,7 @@ private:
     feed_t *feed;
     std::map<uuid_u, uint64_t> start_stamps;
     auto_drainer_t drainer;
-    DISABLE_COPYING(sub_t);
+    DISABLE_COPYING(subscription_t);
 };
 
 class feed_t : public home_thread_mixin_t, public slow_atomic_countable_t<feed_t> {
@@ -163,14 +163,14 @@ public:
            uuid_u uuid,
            signal_t *interruptor);
     ~feed_t();
-    void add_sub(sub_t *sub) THROWS_NOTHING;
-    void del_sub(sub_t *sub) THROWS_NOTHING;
-    void each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING;
+    void add_sub(subscription_t *sub) THROWS_NOTHING;
+    void del_sub(subscription_t *sub) THROWS_NOTHING;
+    void each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     bool can_be_removed();
     client_t::addr_t get_addr() const;
 private:
-    void each_sub_cb(const std::function<void(sub_t *)> &f,
-                     const std::vector<int> &sub_threads,
+    void each_subscription_cb(const std::function<void(subscription_t *)> &f,
+                     const std::vector<int> &subscription_threads,
                      int i);
     void mailbox_cb(stamped_msg_t msg);
     void constructor_cb();
@@ -199,7 +199,7 @@ private:
     std::map<uuid_u, scoped_ptr_t<queue_t> > queues;
     cond_t queues_ready;
 
-    std::vector<std::set<sub_t *> > subs;
+    std::vector<std::set<subscription_t *> > subs;
     rwlock_t subs_lock;
     int64_t num_subs;
 
@@ -220,7 +220,7 @@ public:
         };
         auto d = make_counted<const datum_t>(std::move(obj));
         feed->each_sub(
-            std::bind(&sub_t::add_el,
+            std::bind(&subscription_t::add_el,
                       ph::_1,
                       std::cref(server_uuid),
                       stamp,
@@ -228,7 +228,7 @@ public:
     }
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table dropped).";
-        feed->each_sub(std::bind(&sub_t::stop, ph::_1, msg, detach_t::NO));
+        feed->each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::NO));
     }
 private:
     feed_t *feed;
@@ -239,7 +239,7 @@ private:
 class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    stream_t(scoped_ptr_t<sub_t> &&_sub, Args... args)
+    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
         : eager_datum_stream_t(std::forward<Args...>(args...)),
           sub(std::move(_sub)) { }
     virtual bool is_array() { return false; }
@@ -250,15 +250,15 @@ public:
         return sub->get_els(&batcher, env->interruptor);
     }
 private:
-    scoped_ptr_t<sub_t> sub;
+    scoped_ptr_t<subscription_t> sub;
 };
 
-sub_t::sub_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_feed) {
+subscription_t::subscription_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_feed) {
     guarantee(feed != NULL);
     feed->add_sub(this);
 }
 
-sub_t::~sub_t() {
+subscription_t::~subscription_t() {
     debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
     stop("Subscription destroyed (shutting down?).", detach_t::NO);
@@ -273,7 +273,7 @@ sub_t::~sub_t() {
 }
 
 std::vector<counted_t<const datum_t> >
-sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
+subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
@@ -313,7 +313,8 @@ sub_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     return std::move(v);
 }
 
-void sub_t::add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
+void subscription_t::add_el(
+    const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
     assert_thread();
     // debugf("ADD_EL\n");
     // If we don't have start timestamps, we haven't started, and if we have
@@ -340,13 +341,13 @@ void sub_t::add_el(const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> 
     }
 }
 
-void sub_t::start(std::map<uuid_u, uint64_t> &&_start_stamps) {
+void subscription_t::start(std::map<uuid_u, uint64_t> &&_start_stamps) {
     assert_thread();
     start_stamps = std::move(_start_stamps);
     guarantee(start_stamps.size() != 0);
 }
 
-void sub_t::stop(const std::string &msg, detach_t detach) {
+void subscription_t::stop(const std::string &msg, detach_t detach) {
     assert_thread();
     if (detach == detach_t::YES) {
         feed = NULL;
@@ -355,7 +356,7 @@ void sub_t::stop(const std::string &msg, detach_t detach) {
     maybe_signal_cond();
 }
 
-void sub_t::maybe_signal_cond() THROWS_NOTHING {
+void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
     if (cond != NULL) {
         ASSERT_NO_CORO_WAITING;
@@ -365,7 +366,7 @@ void sub_t::maybe_signal_cond() THROWS_NOTHING {
 }
 
 // If this throws we might leak the increment to `num_subs`.
-void feed_t::add_sub(sub_t *sub) THROWS_NOTHING {
+void feed_t::add_sub(subscription_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
     guarantee(!detached);
     num_subs += 1;
@@ -375,7 +376,7 @@ void feed_t::add_sub(sub_t *sub) THROWS_NOTHING {
     subs[sub->home_thread().threadnum].insert(sub);
 }
 // Can't throw because it's called in a destructor.
-void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
+void feed_t::del_sub(subscription_t *sub) THROWS_NOTHING {
     on_thread_t th(home_thread());
     {
         auto_drainer_t::lock_t lock(&drainer);
@@ -392,32 +393,32 @@ void feed_t::del_sub(sub_t *sub) THROWS_NOTHING {
     }
 }
 
-void feed_t::each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING {
+void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
     // debugf("EACH_SUB\n");
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
 
-    std::vector<int> sub_threads;
+    std::vector<int> subscription_threads;
     for (int i = 0; i < get_num_threads(); ++i) {
         if (subs[i].size() != 0) {
-            sub_threads.push_back(i);
+            subscription_threads.push_back(i);
         }
     }
-    pmap(sub_threads.size(),
-         std::bind(&feed_t::each_sub_cb,
+    pmap(subscription_threads.size(),
+         std::bind(&feed_t::each_subscription_cb,
                    this,
                    std::cref(f),
-                   std::cref(sub_threads),
+                   std::cref(subscription_threads),
                    ph::_1));
 }
-void feed_t::each_sub_cb(const std::function<void(sub_t *)> &f,
-                         const std::vector<int> &sub_threads,
+void feed_t::each_subscription_cb(const std::function<void(subscription_t *)> &f,
+                         const std::vector<int> &subscription_threads,
                          int i) {
-    std::set<sub_t *> *set = &subs[sub_threads[i]];
+    std::set<subscription_t *> *set = &subs[subscription_threads[i]];
     guarantee(set->size() != 0);
-    on_thread_t th((threadnum_t(sub_threads[i])));
+    on_thread_t th((threadnum_t(subscription_threads[i])));
     for (auto it = set->begin(); it != set->end(); ++it) {
         // debugf("ITER\n");
         // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
@@ -569,7 +570,7 @@ void feed_t::constructor_cb() {
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
-            each_sub(std::bind(&sub_t::stop, ph::_1, msg, detach_t::YES));
+            each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::YES));
             num_subs = 0;
         } else {
             // We only get here if we were removed before we were detached.
@@ -599,7 +600,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
     debugf("CLIENT: calling `new_feed`...\n");
     try {
         uuid_u uuid = tbl->get_uuid();
-        scoped_ptr_t<sub_t> sub;
+        scoped_ptr_t<subscription_t> sub;
         addr_t addr;
         {
             threadnum_t old_thread = get_thread_id();
@@ -624,7 +625,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             on_thread_t th2(old_thread);
             feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub.init(new sub_t(feed));
+            sub.init(new subscription_t(feed));
         }
         base_namespace_repo_t::access_t access(
             env->cluster_access.ns_repo, uuid, env->interruptor);
