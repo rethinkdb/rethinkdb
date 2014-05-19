@@ -408,6 +408,8 @@ counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) c
         if (val) {
             bool encountered_literal;
             val = val->drop_literals(&encountered_literal);
+            // Nested literals should have been caught on the higher QL levels.
+            r_sanity_check(!encountered_literal);
         }
         *encountered_literal_out = true;
         return val;
@@ -934,9 +936,10 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
                 : it->second;
             if (val) {
                 // Since nested literal keywords are forbidden, this should be a no-op
-                // if `is_literal == true`. For safety, we call drop_literals() anyway.
+                // if `is_literal == true`.
                 bool encountered_literal;
                 val = val->drop_literals(&encountered_literal);
+                r_sanity_check(!encountered_literal || !is_literal);
             }
             if (val) {
                 UNUSED bool b = d.add(it->first, val, CLOBBER);
