@@ -27,15 +27,14 @@ server_t::~server_t() {
 
 void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::write);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
     // The client might have already been removed from e.g. a peer disconnect or
     // drainer destruction.  (Also, if we have multiple shards per btree this
     // will be called twice, and the second time it should be a no-op.)
     if (it != clients.end()) {
-        spot.write_signal()->wait_lazily_unordered();
-        it->second.cond->pulse();
+        it->second.cond->pulse_if_not_already_pulsed();
     }
 }
 
@@ -106,6 +105,15 @@ void server_t::send_all_with_lock(const auto_drainer_t::lock_t &, msg_t msg) {
 void server_t::send_all(msg_t msg) {
     auto_drainer_t::lock_t lock(&drainer);
     send_all_with_lock(lock, std::move(msg));
+}
+
+void server_t::stop_all() {
+    auto_drainer_t::lock_t lock(&drainer);
+    rwlock_in_line_t spot(&clients_lock, access_t::read);
+    spot.read_signal()->wait_lazily_unordered();
+    for (auto it = clients.begin(); it != clients.end(); ++it) {
+        it->second.cond->pulse_if_not_already_pulsed();
+    }
 }
 
 server_t::addr_t server_t::get_stop_addr() {

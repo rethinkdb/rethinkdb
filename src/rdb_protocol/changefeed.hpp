@@ -116,6 +116,7 @@ public:
     ~server_t();
     void add_client(const client_t::addr_t &addr);
     void send_all(msg_t msg);
+    void stop_all();
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
@@ -137,9 +138,10 @@ private:
     std::map<client_t::addr_t, client_info_t> clients;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
-    // * `get_tamp` is called
+    // * `get_stamp` is called
     // And needs to write to clients when:
     // * `add_client` is called
+    // * `clear` is called
     // * A message is received at `stop_mailbox` unsubscribing a client
     // A lock is needed because e.g. `send_all` calls `send`, which can block,
     // while looping over `clients`, and we need to make sure the map doesn't

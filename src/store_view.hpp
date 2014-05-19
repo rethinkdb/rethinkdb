@@ -19,6 +19,8 @@ public:
         return region;
     }
 
+    virtual void note_reshard() = 0;
+
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
 
@@ -162,12 +164,21 @@ private:
     be able to fake it by using a key as a "lock".
 */
 
+#include "debug.hpp"
+
 class store_subview_t : public store_view_t
 {
 public:
     store_subview_t(store_view_t *_store_view, region_t region)
         : store_view_t(region), store_view(_store_view) {
         rassert(region_is_superset(_store_view->get_region(), region));
+    }
+
+    ~store_subview_t() {
+        store_view->note_reshard();
+    }
+    void note_reshard() {
+        store_view->note_reshard();
     }
 
     using store_view_t::get_region;

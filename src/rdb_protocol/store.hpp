@@ -80,6 +80,8 @@ public:
             const base_path_t &base_path);
     ~store_t();
 
+    void note_reshard();
+
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);

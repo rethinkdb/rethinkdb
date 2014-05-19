@@ -16,6 +16,10 @@
 
 #include "debug.hpp"
 
+void store_t::note_reshard() {
+    changefeed_server.stop_all();
+}
+
 void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
