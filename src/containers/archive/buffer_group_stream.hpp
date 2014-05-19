@@ -2,7 +2,7 @@
 #ifndef CONTAINERS_ARCHIVE_BUFFER_GROUP_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_BUFFER_GROUP_STREAM_HPP_
 
-#include "cluster_version.hpp"
+#include "version.hpp"
 #include "containers/archive/archive.hpp"
 #include "utils.hpp"
 
