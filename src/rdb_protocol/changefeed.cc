@@ -166,14 +166,12 @@ public:
     void each_sub(const std::function<void(sub_t *)> &f) THROWS_NOTHING;
     bool can_be_removed();
     client_t::addr_t get_addr() const;
-    // private: // RSI: uncomment
+private:
     void each_sub_cb(const std::function<void(sub_t *)> &f,
                      const std::vector<int> &sub_threads,
                      int i);
     void mailbox_cb(stamped_msg_t msg);
     void constructor_cb();
-
-    std::map<uuid_u, repli_timestamp_t> last_timestamps;
 
     client_t *client;
     uuid_u uuid;
@@ -594,9 +592,6 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             // feed isn't destroyed before we subscribe to it.
             on_thread_t th2(old_thread);
             feed_t *feed = feed_it->second.get();
-            for (auto it = feed->queues.begin(); it != feed->queues.end(); ++it) {
-                debugf("FEED %s\n", uuid_to_str(it->first).c_str());
-            }
             addr = feed->get_addr();
             sub.init(new sub_t(feed));
         }
