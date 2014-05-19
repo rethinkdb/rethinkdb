@@ -66,7 +66,7 @@ struct lba_entry_t {
 
     // Put the zero-padding at the beginning of the LBA entry.  We could use this, or
     // the first 16 bits, perhaps, as a version flag.
-    uint32_t zero2;
+    uint32_t zero_reserved;
 
     // This could be a uint16_t if you wanted it to be, as long as block sizes are
     // all less than or equal to 4K (which is less than 64K).
@@ -83,7 +83,7 @@ struct lba_entry_t {
                             flagged_off64_t offset, uint32_t ser_block_size) {
         guarantee(ser_block_size != 0 || !offset.has_value());
         lba_entry_t entry;
-        entry.zero2 = 0;
+        entry.zero_reserved = 0;
         entry.ser_block_size = ser_block_size;
         entry.block_id = block_id;
         entry.recency = recency;
