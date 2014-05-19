@@ -14,7 +14,7 @@ DRIVER_COMPILED_COFFEE := $(patsubst $(JS_SRC_DIR)/%.coffee,$(DRIVER_COFFEE_BUIL
 JS_PKG_DIR := $(PACKAGES_DIR)/js
 
 $(PROTO_MODULE): $(PROTO_FILE)
-    ./proto-to-js < $(PROTO_FILE) > $@
+	$(JS_SRC_DIR)/proto-to-js < $(PROTO_FILE) > $@
 
 # Must be synced with the list in package.json
 JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_MODULE) $(JS_SRC_DIR)/package.json
