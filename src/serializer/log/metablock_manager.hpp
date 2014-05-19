@@ -48,11 +48,18 @@ public:
     // This is stored directly to disk.  Changing it will change the disk format.
     struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
+        // The version that differs only when the software is upgraded to a newer
+        // version.  This field might allow for in-place upgrading of the cluster.
+        uint32_t disk_format_version;
+        // The CRC checksum of [disk_format_version]+[version]+[metablock].
         uint32_t _crc;
+        // The version that increments every time a metablock is written.
         metablock_version_t version;
+        // The value in the metablock (pointing at LBA superblocks, etc).
         metablock_t metablock;
     public:
-        void prepare(metablock_t *mb, metablock_version_t vers) {
+        void prepare(uint32_t _disk_format_version, metablock_t *mb, metablock_version_t vers) {
+            disk_format_version = _disk_format_version;
             metablock = *mb;
             memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
             version = vers;
@@ -64,6 +71,7 @@ public:
     private:
         uint32_t compute_own_crc() {
             boost::crc_32_type crc_computer;
+            crc_computer.process_bytes(&disk_format_version, sizeof(disk_format_version));
             crc_computer.process_bytes(&version, sizeof(version));
             crc_computer.process_bytes(&metablock, sizeof(metablock));
             return crc_computer.checksum();
@@ -135,12 +143,6 @@ private:
     crc_metablock_t *const mb_buffer;
     // true: we're using the buffer, no one else can
     bool mb_buffer_in_use;
-
-    // Just some compartmentalization to make this mildly cleaner.
-    struct startup {
-        /* these are only used in the beginning when we want to find the metablock */
-        metablock_version_t version;
-    } startup_values;
 
     extent_manager_t *const extent_manager;
 
