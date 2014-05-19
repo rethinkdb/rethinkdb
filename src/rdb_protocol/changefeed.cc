@@ -145,11 +145,22 @@ public:
     void stop(const std::string &msg, detach_t should_detach);
 private:
     void maybe_signal_cond() THROWS_NOTHING;
+    // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
     std::exception_ptr exc;
+    // If we exceed the array size limit, elements are evicted from `els` and
+    // `skipped` is incremented appropriately.  If `skipped` is non-0, we send
+    // an error object to the user with the number of skipped elements before
+    // continuing.
     size_t skipped;
-    cond_t *cond; // NULL unless we're waiting.
+    // Used to block on more changes.  NULL unless we're witing.
+    cond_t *cond;
+    // The queue of changes we've accumulated since the last time we were read from.
     std::deque<counted_t<const datum_t> > els;
+    // The feed we're subscribed to.
     feed_t *feed;
+    // The stamp (see `stamped_msg_t`) associated with our `changefeed_stamp_t`
+    // read.  We use these to make sure we don't see changes from writes before
+    // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     auto_drainer_t drainer;
     DISABLE_COPYING(subscription_t);
