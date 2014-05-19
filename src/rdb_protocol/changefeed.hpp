@@ -95,6 +95,13 @@ private:
     // read whenever `new_feed` is called, and needs to be written to whenever
     // `new_feed` is called with a table not already in the `feeds` map, or
     // whenever `maybe_remove_feed` or `detach_feed` is called.
+    //
+    // This lock is held for a long time when `new_feed` is called with a table
+    // not already in the `feeds` map (in fact, it's held long enough to do a
+    // cluster read).  This should only be a problem if the number of tables
+    // (*not* the number of feeds) is large relative to read throughput, because
+    // otherwise most of the calls to `new_feed` that block will see the table
+    // as soon as they're woken up and won't have to do a second read.
     rwlock_t feeds_lock;
     auto_drainer_t drainer;
 };
