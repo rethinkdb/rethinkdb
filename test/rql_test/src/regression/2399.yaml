@@ -12,6 +12,11 @@ tests:
     - rb: t.coerce_to("ARRAY").count()
       ot: (1)
 
+    - rb: t.update({:a => {:b => {:c => {:d => r.literal({})}}}})
+
+    - rb: t.coerce_to("ARRAY").count()
+      ot: (1)
+
     - rb: t.update({:a => {:b => [[[{:c => r.literal({})}]]]}})
 
     - rb: t.coerce_to("ARRAY").count()

@@ -213,8 +213,9 @@ private:
             const std::set<std::string> &allowed_pts = _allowed_pts) const;
 
     // Helper function for `merge()`:
-    // Returns a version of `from` where all `literal` pseudotypes have been omitted
-    counted_t<const datum_t> drop_literals(counted_t<const datum_t> from) const;
+    // Returns a version of this where all `literal` pseudotypes have been omitted.
+    // Might return null, if this is a literal without a value.
+    counted_t<const datum_t> drop_literals() const;
 
     type_t type;
     union {

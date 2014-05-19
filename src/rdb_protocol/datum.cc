@@ -393,18 +393,19 @@ void datum_t::recursively_rcheck_ptypes(const std::set<std::string> &allowed_pts
     if (is_ptype()) {
         if (get_reql_type() == pseudo::time_string) {
             pseudo::rcheck_time_valid(this);
-            return;
-        }
-        if (get_reql_type() == pseudo::literal_string) {
+        } else if (get_reql_type() == pseudo::literal_string) {
             rcheck(std_contains(allowed_pts, pseudo::literal_string),
                    base_exc_t::GENERIC,
-                   "Stray literal keyword found in replacement value.");
+                   "Literal keyword found, but is not allowed in this context.");
             pseudo::rcheck_literal_valid(this);
-            return;
+        } else {
+            rfail(base_exc_t::GENERIC,
+                  "Unknown $reql_type$ `%s`.", get_type_name().c_str());
         }
-        rfail(base_exc_t::GENERIC,
-              "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-    } else if (get_type() == R_OBJECT) {
+    }
+    // Note that if this is a ptype, we still recurse into its fields and check
+    // them as well
+    if (get_type() == R_OBJECT) {
         const std::map<std::string, counted_t<const datum_t> > &as_obj = as_object();
         for (auto it = as_obj.begin(); it != as_obj.end(); ++it) {
             it->second->recursively_rcheck_ptypes(allowed_pts);
@@ -426,44 +427,43 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-counted_t<const datum_t> datum_t::drop_literals(counted_t<const datum_t> from) const {
-    if (from->get_type() == R_OBJECT) {
-        datum_ptr_t d(R_OBJECT);
-        const std::map<std::string, counted_t<const datum_t> > &from_obj
-            = from->as_object();
-        for (auto it = from_obj.begin(); it != from_obj.end(); ++it) {
-            bool is_literal = it->second->is_ptype(pseudo::literal_string);
+counted_t<const datum_t> datum_t::drop_literals() const {
+    const bool is_literal = is_ptype(pseudo::literal_string);
+    if (is_literal) {
+        counted_t<const datum_t> val = get(pseudo::value_key, NOTHROW);
+        if (val) {
+            val = val->drop_literals();
+        }
+        return val;
+    }
 
-            if (it->second->get_type() == R_OBJECT && !is_literal) {
-                // We don't have to handle nested literal terms, since those are
-                // not allowed in the first place.
-                // TODO (daniel): Make sure that this is actually enforced everywhere
-                bool conflict = d.add(it->first, it->second);
+    if (get_type() == R_OBJECT) {
+        datum_ptr_t d(R_OBJECT);
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            counted_t<const datum_t> val = it->second->drop_literals();
+            if (val) {
+                bool conflict = d.add(it->first, val);
                 r_sanity_check(!conflict);
             } else {
-                if (is_literal) {
-                    counted_t<const datum_t> val = it->second->get(pseudo::value_key,
-                                                                   NOTHROW);
-                    if (val) {
-                        bool conflict = d.add(it->first, val);
-                        r_sanity_check(!conflict);
-                    }
-                } else {
-                    bool conflict = d.add(it->first, drop_literals(it->second));
-                    r_sanity_check(!conflict);
-                }
+                // If `it->second` was a literal without a value, ignore it
             }
         }
         return d.to_counted();
-    } else if (from->get_type() == R_ARRAY) {
+    } else if (get_type() == R_ARRAY) {
         datum_ptr_t d(R_ARRAY);
-        const std::vector<counted_t<const datum_t> > &from_arr = from->as_array();
-        for (auto it = from_arr.begin(); it != from_arr.end(); ++it) {
-            d.add(drop_literals(*it));
+        const std::vector<counted_t<const datum_t> > &arr = as_array();
+        for (auto it = arr.begin(); it != arr.end(); ++it) {
+            counted_t<const datum_t> val = (*it)->drop_literals();
+            if (val) {
+                d.add(val);
+            } else {
+                // If `*it` was a literal without a value, ignore it
+            }
         }
         return d.to_counted();;
     } else {
-        return from;
+        return counted_from_this();
     }
 }
 
@@ -913,15 +913,20 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
         if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
             UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
         } else {
-            if (is_literal) {
-                counted_t<const datum_t> val = it->second->get(pseudo::value_key, NOTHROW);
-                if (val) {
-                    UNUSED bool b = d.add(it->first, val, CLOBBER);
-                } else {
-                    UNUSED bool b = d.delete_field(it->first);
-                }
+            counted_t<const datum_t> val =
+                is_literal
+                ? it->second->get(pseudo::value_key, NOTHROW)
+                : it->second;
+            if (val) {
+                // Since nested literal keywords are forbidden, this should be a no-op
+                // if `is_literal == true`. For safety, we call drop_literals() anyway.
+                val = val->drop_literals();
+            }
+            if (val) {
+                UNUSED bool b = d.add(it->first, val, CLOBBER);
             } else {
-                UNUSED bool b = d.add(it->first, drop_literals(it->second), CLOBBER);
+                r_sanity_check(is_literal);
+                UNUSED bool b = d.delete_field(it->first);
             }
         }
     }
