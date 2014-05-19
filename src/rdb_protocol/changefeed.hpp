@@ -113,12 +113,14 @@ class server_t {
 public:
     typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
     server_t(mailbox_manager_t *_manager);
+    ~server_t();
     void add_client(const client_t::addr_t &addr);
     void send_all(msg_t msg);
     addr_t get_stop_addr();
     uint64_t get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
 private:
+    void send_all_with_lock(const auto_drainer_t::lock_t &lock, msg_t msg);
     void stop_mailbox_cb(client_t::addr_t addr);
     void add_client_cb(signal_t *stopped, client_t::addr_t addr);
 

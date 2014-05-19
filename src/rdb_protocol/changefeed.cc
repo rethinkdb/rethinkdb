@@ -21,6 +21,10 @@ server_t::server_t(mailbox_manager_t *_manager)
       manager(_manager),
       stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)) { }
 
+server_t::~server_t() {
+    debugf("~server_t\n");
+}
+
 void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
@@ -64,6 +68,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
         wait_any.wait_lazily_unordered();
     }
     debugf("Stopping...\n");
+    send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()));
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -85,14 +90,22 @@ struct stamped_msg_t {
     RDB_MAKE_ME_SERIALIZABLE_3(0, server_uuid, stamp, submsg);
 };
 
-void server_t::send_all(msg_t msg) {
-    auto_drainer_t::lock_t lock(&drainer);
+// This function takes a `lock_t` to make sure you have one.  (We can't just
+// always ackquire a drainer lock before sending because we sometimes send a
+// `stop_t` during destruction, and you can't acquire a drain lock on a draining
+// `auto_drainer_t`.)
+void server_t::send_all_with_lock(const auto_drainer_t::lock_t &, msg_t msg) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
         send(manager, it->first, stamped_msg_t(uuid, it->second.stamp, msg));
         it->second.stamp += 1;
     }
+}
+
+void server_t::send_all(msg_t msg) {
+    auto_drainer_t::lock_t lock(&drainer);
+    send_all_with_lock(lock, std::move(msg));
 }
 
 server_t::addr_t server_t::get_stop_addr() {
@@ -238,7 +251,7 @@ public:
                       d));
     }
     void operator()(const msg_t::stop_t &) const {
-        const char *msg = "Changefeed aborted (table dropped).";
+        const char *msg = "Changefeed aborted (table unavailable).";
         feed->each_sub(std::bind(&subscription_t::stop, ph::_1, msg, detach_t::NO));
     }
 private:
@@ -604,7 +617,9 @@ client_t::client_t(mailbox_manager_t *_manager)
   : manager(_manager) {
     guarantee(manager != NULL);
 }
-client_t::~client_t() { }
+client_t::~client_t() {
+    debugf("~client_t");
+}
 
 counted_t<datum_stream_t>
 client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
