@@ -48,9 +48,18 @@ struct msg_t {
 
     msg_t() { }
     msg_t(msg_t &&msg);
-    msg_t(const msg_t &msg) = default;
     explicit msg_t(stop_t &&op);
     explicit msg_t(change_t &&op);
+
+    // We need to define the copy constructor.  GCC 4.4 doesn't let use use `=
+    // default`, and SRH is uncomfortable violating the rule of 3, so we define
+    // the destructor and assignment operator as well.
+    msg_t(const msg_t &msg) : op(msg.op) { }
+    ~msg_t() { }
+    const msg_t &operator=(const msg_t &msg) {
+        op = msg.op;
+        return *this;
+    }
 
     // Starts with STOP to avoid doing work for default initialization.
     boost::variant<stop_t, change_t> op;
