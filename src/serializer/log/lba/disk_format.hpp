@@ -60,16 +60,22 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
 static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
+    // Right now there's code that assumes sizeof(lba_entry_t) is a power of two.
+    // (It probably assumes that sizeof(lba_entry_t) evenly divides
+    // DEVICE_BLOCK_SIZE).
+
     // Put the zero-padding at the beginning of the LBA entry.  We could use this, or
-    // the first 16 bits in the entry, as a version flag.
+    // the first 16 bits, perhaps, as a version flag.
     uint32_t zero2;
 
-    // This could be a uint16_t if you wanted it to be.
+    // This could be a uint16_t if you wanted it to be, as long as block sizes are
+    // all less than or equal to 4K (which is less than 64K).
     uint32_t ser_block_size;
 
     block_id_t block_id;
 
     repli_timestamp_t recency;
+
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
