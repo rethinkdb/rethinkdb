@@ -11,8 +11,8 @@
 
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
-#include "cluster_version.hpp"
 #include "config/args.hpp"
+#include "version.hpp"
 
 class value_sizer_t {
 public:

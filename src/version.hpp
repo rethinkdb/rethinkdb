@@ -1,5 +1,5 @@
-#ifndef CLUSTER_VERSION_HPP_
-#define CLUSTER_VERSION_HPP_
+#ifndef VERSION_HPP_
+#define VERSION_HPP_
 
 // An enumeration of the current and previous recognized versions.  Every
 // serialization / deserialization happens relative to one of these versions.
@@ -17,4 +17,4 @@ enum class cluster_version_t {
     ONLY_VERSION = v1_13,
 };
 
-#endif  // CLUSTER_VERSION_HPP_
+#endif  // VERSION_HPP_

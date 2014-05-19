@@ -1,7 +1,7 @@
 #ifndef CONTAINERS_ARCHIVE_VERSIONED_HPP_
 #define CONTAINERS_ARCHIVE_VERSIONED_HPP_
 
-#include "cluster_version.hpp"
+#include "version.hpp"
 #include "containers/archive/archive.hpp"
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
