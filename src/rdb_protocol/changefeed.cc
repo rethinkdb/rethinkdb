@@ -187,22 +187,12 @@ private:
     struct queue_t {
         rwlock_t lock;
         uint64_t next;
-        struct entry_t {
-            entry_t(uint64_t _key, stamped_msg_t &&_msg) : key(_key), msg(_msg) { }
-            entry_t(entry_t &&other) : key(other.key), msg(std::move(other.msg)) { }
-            entry_t &operator=(entry_t &&other) {
-                key = other.key;
-                msg = std::move(other.msg);
-                return *this;
+        struct lt_t {
+            bool operator()(const stamped_msg_t &left, const stamped_msg_t &right) {
+                return left.stamp < right.stamp;
             }
-            bool operator<(const entry_t &other) const {
-                guarantee(key != other.key);
-                return key > other.key; // We want the smallest key on top.
-            }
-            uint64_t key;
-            stamped_msg_t msg;
         };
-        std::priority_queue<entry_t> map;
+        std::priority_queue<stamped_msg_t, std::vector<stamped_msg_t>, lt_t> map;
     };
     // Maps from a `server_t`'s uuid_u.  We don't need a lock for this because
     // the set of `uuid_u`s never changes after it's initialized.
@@ -483,7 +473,8 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             //        queue,
             //        msg.stamp,
             //        queue->next);
-            queue->map.push(queue_t::entry_t(msg.stamp, std::move(msg)));
+            guarantee(msg.stamp >= queue->next);
+            queue->map.push(std::move(msg));
 
             // Read as much as we can from the queue (this enforces ordering.)
 
@@ -491,10 +482,10 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             //        queue->map.begin()->first,
             //        queue->next);
             // size_t pre = queue->map.size();
-            while (queue->map.size() != 0 && queue->map.top().key == queue->next) {
-                const stamped_msg_t *curmsg = &queue->map.top().msg;
-                msg_visitor_t visitor(this, curmsg->server_uuid, curmsg->stamp);
-                boost::apply_visitor(visitor, curmsg->submsg.op);
+            while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
+                const stamped_msg_t &curmsg = queue->map.top();
+                msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
+                boost::apply_visitor(visitor, curmsg.submsg.op);
                 queue->map.pop();
                 queue->next += 1;
             }
@@ -546,7 +537,7 @@ feed_t::feed_t(client_t *_client,
 
     for (auto it = resp->server_uuids.begin(); it != resp->server_uuids.end(); ++it) {
         auto res = queues.insert(
-            std::make_pair(std::move(*it), make_scoped<queue_t>()));
+            std::make_pair(*it, make_scoped<queue_t>()));
         guarantee(res.second);
         res.first->second->next = 0;
 
@@ -556,9 +547,10 @@ feed_t::feed_t(client_t *_client,
 #ifndef NDEBUG
         for (size_t i = 0; i < queues.size()-1; ++i) {
             res.first->second->map.push(
-                queue_t::entry_t(
+                stamped_msg_t(
+                    *it,
                     std::numeric_limits<uint64_t>::max() - i,
-                    stamped_msg_t()));
+                    msg_t()));
         }
 #endif
     }
