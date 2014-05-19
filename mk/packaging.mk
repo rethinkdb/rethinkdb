@@ -36,7 +36,7 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DIST_SUPPORT_PACKAGES := re2 gtest protobufjs handlebars v8
+DIST_SUPPORT_PACKAGES := re2 gtest handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
   DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind

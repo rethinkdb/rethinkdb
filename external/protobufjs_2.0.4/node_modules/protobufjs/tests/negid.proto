@@ -1,9 +1,0 @@
-message Test {
-    required LobbyType type = 1 [default=INVALID];
-    
-    enum LobbyType {
-        INVALID = -1;
-        MATCH = 0;
-        PRACTICE = 1;
-    }
-}
