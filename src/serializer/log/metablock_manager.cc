@@ -10,10 +10,9 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
-#include "cluster_version.hpp"
 #include "concurrency/cond_var.hpp"
-
 #include "serializer/log/log_serializer.hpp"
+#include "version.hpp"
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
     std::vector<int64_t> offsets;
