@@ -152,7 +152,7 @@ private:
     // an error object to the user with the number of skipped elements before
     // continuing.
     size_t skipped;
-    // Used to block on more changes.  NULL unless we're witing.
+    // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     // The queue of changes we've accumulated since the last time we were read from.
     std::deque<counted_t<const datum_t> > els;
