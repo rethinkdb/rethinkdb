@@ -478,12 +478,19 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             spot.write_signal()->wait_lazily_unordered();
 
             // Add us to the queue.
+
+            // debugf("QUEUE %p: %" PRIu64 " onto %" PRIu64 "\n",
+            //        queue,
+            //        msg.stamp,
+            //        queue->next);
             queue->map.push(queue_t::entry_t(msg.stamp, std::move(msg)));
 
             // Read as much as we can from the queue (this enforces ordering.)
+
             // debugf("%" PRIu64 " vs. %" PRIu64 "\n",
             //        queue->map.begin()->first,
             //        queue->next);
+            // size_t pre = queue->map.size();
             while (queue->map.size() != 0 && queue->map.top().key == queue->next) {
                 const stamped_msg_t *curmsg = &queue->map.top().msg;
                 msg_visitor_t visitor(this, curmsg->server_uuid, curmsg->stamp);
@@ -491,6 +498,11 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
                 queue->map.pop();
                 queue->next += 1;
             }
+            // debugf("QUEUE %p: CHANGE %zu -> %zu (%zu)\n",
+            //        queue,
+            //        pre,
+            //        queue->map.size(),
+            //        pre - queue->map.size());
         }
     }
 }
@@ -537,6 +549,18 @@ feed_t::feed_t(client_t *_client,
             std::make_pair(std::move(*it), make_scoped<queue_t>()));
         guarantee(res.second);
         res.first->second->next = 0;
+
+        // In debug mode we put some junk messages in the queues to make sure
+        // the queue logic actually does something (since mailboxes are
+        // generally ordered right now).
+#ifndef NDEBUG
+        for (size_t i = 0; i < queues.size()-1; ++i) {
+            res.first->second->map.push(
+                queue_t::entry_t(
+                    std::numeric_limits<uint64_t>::max() - i,
+                    stamped_msg_t()));
+        }
+#endif
     }
     queues_ready.pulse();
 
