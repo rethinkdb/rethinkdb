@@ -6,26 +6,46 @@ tests:
       def: t = r.db('test').table('t2399')
 
     - rb: t.insert({})
-
     - rb: t.update({:a => {:b => r.literal({})}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => {}}}])
+    - rb: t.delete()
 
-    - rb: t.coerce_to("ARRAY").count()
-      ot: (1)
+    - rb: t.insert({})
+    - rb: t.update({:a => {:b => r.literal()}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {}}])
+    - rb: t.delete()
 
+    - rb: t.insert({})
     - rb: t.update({:a => {:b => {:c => {:d => r.literal({})}}}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => {:c => {:d => {}}}}}])
+    - rb: t.delete()
 
-    - rb: t.coerce_to("ARRAY").count()
-      ot: (1)
-
+    - rb: t.insert({})
     - rb: t.update({:a => {:b => [[[{:c => r.literal({})}]]]}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => [[[{:c => {}}]]]}}])
+    - rb: t.delete()
 
-    - rb: t.coerce_to("ARRAY").count()
-      ot: (1)
+    - rb: t.insert({})
+    - rb: t.update({:a => {:b => [r.literal()]}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => []}}])
+    - rb: t.delete()
 
-    - rb: t.update({:a => [{:b => r.literal({})}]})
+    - rb: t.insert({})
+    - rb: t.update({:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => r.literal(), :d => 'D'}}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :d => 'D'}}}])
+    - rb: t.delete()
 
-    - rb: t.coerce_to("ARRAY").count()
-      ot: (1)
+    - rb: t.insert({})
+    - rb: t.update({:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => r.literal('CC'), :d => 'D'}}})
+    - rb: t.without('id').coerce_to("ARRAY")
+      ot: ([{:a => {:b => {:a => 'A', :b => 'B', :c => 'C', :cc => 'CC', :d => 'D'}}}])
+    - rb: t.delete()
 
     - rb: r.db('test').table_drop('t2399')
       ot: ({'dropped':1})
