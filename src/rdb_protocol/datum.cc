@@ -12,6 +12,7 @@
 #include <boost/detail/endian.hpp>
 
 #include "containers/archive/stl_types.hpp"
+#include "containers/scoped.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
@@ -398,42 +399,87 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-counted_t<const datum_t> datum_t::drop_literals() const {
+counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) const {
+    rassert(encountered_literal_out != NULL);
+
     const bool is_literal = is_ptype(pseudo::literal_string);
     if (is_literal) {
         counted_t<const datum_t> val = get(pseudo::value_key, NOTHROW);
         if (val) {
-            val = val->drop_literals();
+            bool encountered_literal;
+            val = val->drop_literals(&encountered_literal);
         }
+        *encountered_literal_out = true;
         return val;
     }
 
+    // The result is either
+    // - this->counted_from_this()
+    // - or if `need_to_copy` is true, `copied_result`
+    bool need_to_copy = false;
+    scoped_ptr_t<datum_ptr_t> copied_result;
+
     if (get_type() == R_OBJECT) {
-        datum_ptr_t d(R_OBJECT);
         const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            counted_t<const datum_t> val = it->second->drop_literals();
-            if (val) {
-                bool conflict = d.add(it->first, val);
-                r_sanity_check(!conflict);
-            } else {
-                // If `it->second` was a literal without a value, ignore it
+            bool encountered_literal;
+            counted_t<const datum_t> val =
+                it->second->drop_literals(&encountered_literal);
+
+            if (encountered_literal && !need_to_copy) {
+                // We have encountered the first field with a literal.
+                // This means we have to create a copy in `result_copy`.
+                need_to_copy = true;
+                // Copy everything up to now into the result
+                copied_result.init(new datum_ptr_t(R_OBJECT));
+                for (auto copy_it = obj.begin(); copy_it != it; ++copy_it) {
+                    bool conflict = copied_result->add(copy_it->first, copy_it->second);
+                    r_sanity_check(!conflict);
+                }
+            }
+
+            if (need_to_copy) {
+                if (val) {
+                    bool conflict = copied_result->add(it->first, val);
+                    r_sanity_check(!conflict);
+                } else {
+                    // If `it->second` was a literal without a value, ignore it
+                }
             }
         }
-        return d.to_counted();
     } else if (get_type() == R_ARRAY) {
-        datum_ptr_t d(R_ARRAY);
         const std::vector<counted_t<const datum_t> > &arr = as_array();
         for (auto it = arr.begin(); it != arr.end(); ++it) {
-            counted_t<const datum_t> val = (*it)->drop_literals();
-            if (val) {
-                d.add(val);
-            } else {
-                // If `*it` was a literal without a value, ignore it
+            bool encountered_literal;
+            counted_t<const datum_t> val = (*it)->drop_literals(&encountered_literal);
+
+            if (encountered_literal && !need_to_copy) {
+                // We have encountered the first element with a literal.
+                // This means we have to create a copy in `result_copy`.
+                need_to_copy = true;
+                // Copy everything up to now into the result
+                copied_result.init(new datum_ptr_t(R_ARRAY));
+                for (auto copy_it = arr.begin(); copy_it != it; ++copy_it) {
+                    copied_result->add(*copy_it);
+                }
+            }
+
+            if (need_to_copy) {
+                if (val) {
+                    copied_result->add(val);
+                } else {
+                    // If `*it` was a literal without a value, ignore it
+                }
             }
         }
-        return d.to_counted();;
+    }
+
+    if (need_to_copy) {
+        *encountered_literal_out = true;
+        rassert(copied_result.has());
+        return copied_result->to_counted();
     } else {
+        *encountered_literal_out = false;
         return counted_from_this();
     }
 }
@@ -889,7 +935,8 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
             if (val) {
                 // Since nested literal keywords are forbidden, this should be a no-op
                 // if `is_literal == true`. For safety, we call drop_literals() anyway.
-                val = val->drop_literals();
+                bool encountered_literal;
+                val = val->drop_literals(&encountered_literal);
             }
             if (val) {
                 UNUSED bool b = d.add(it->first, val, CLOBBER);

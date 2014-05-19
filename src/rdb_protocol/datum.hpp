@@ -213,7 +213,7 @@ private:
     // Helper function for `merge()`:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
     // Might return null, if this is a literal without a value.
-    counted_t<const datum_t> drop_literals() const;
+    counted_t<const datum_t> drop_literals(bool *encountered_literal_out) const;
 
     type_t type;
     union {
