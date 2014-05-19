@@ -189,7 +189,7 @@ private:
         uint64_t next;
         struct lt_t {
             bool operator()(const stamped_msg_t &left, const stamped_msg_t &right) {
-                return left.stamp < right.stamp;
+                return left.stamp > right.stamp; // We want the min val to be on top.
             }
         };
         std::priority_queue<stamped_msg_t, std::vector<stamped_msg_t>, lt_t> map;
