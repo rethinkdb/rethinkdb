@@ -35,8 +35,6 @@
 
 /* TODO support multiple concurrent writes */
 static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
-static const char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
-static const char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size);
 
@@ -50,17 +48,13 @@ public:
     // This is stored directly to disk.  Changing it will change the disk format.
     struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
-        char crc_marker[sizeof(MB_MARKER_CRC)];
         uint32_t _crc;
-        char version_marker[sizeof(MB_MARKER_VERSION)];
         metablock_version_t version;
         metablock_t metablock;
     public:
         void prepare(metablock_t *mb, metablock_version_t vers) {
             metablock = *mb;
             memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-            memcpy(crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
-            memcpy(version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
             version = vers;
             _crc = compute_own_crc();
         }
