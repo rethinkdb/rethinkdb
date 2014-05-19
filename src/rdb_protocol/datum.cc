@@ -389,35 +389,6 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
     }
 }
 
-void datum_t::recursively_rcheck_ptypes(const std::set<std::string> &allowed_pts) const {
-    if (is_ptype()) {
-        if (get_reql_type() == pseudo::time_string) {
-            pseudo::rcheck_time_valid(this);
-        } else if (get_reql_type() == pseudo::literal_string) {
-            rcheck(std_contains(allowed_pts, pseudo::literal_string),
-                   base_exc_t::GENERIC,
-                   "Literal keyword found, but is not allowed in this context.");
-            pseudo::rcheck_literal_valid(this);
-        } else {
-            rfail(base_exc_t::GENERIC,
-                  "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-        }
-    }
-    // Note that if this is a ptype, we still recurse into its fields and check
-    // them as well
-    if (get_type() == R_OBJECT) {
-        const std::map<std::string, counted_t<const datum_t> > &as_obj = as_object();
-        for (auto it = as_obj.begin(); it != as_obj.end(); ++it) {
-            it->second->recursively_rcheck_ptypes(allowed_pts);
-        }
-    } else if (get_type() == R_ARRAY) {
-        const std::vector<counted_t<const datum_t> > &as_arr = as_array();
-        for (auto it = as_arr.begin(); it != as_arr.end(); ++it) {
-            (*it)->recursively_rcheck_ptypes();
-        }
-    }
-}
-
 void datum_t::rcheck_is_ptype(const std::string s) const {
     rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
@@ -474,8 +445,6 @@ void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.c_str(), print().c_str()));
-    // Make sure we don't write illegal pseudo types to disk
-    recursively_rcheck_ptypes();
     if (old_val.has()) {
         counted_t<const datum_t> old_pk = orig_key;
         if (old_val->get_type() != R_NULL) {

@@ -457,54 +457,6 @@ double sanitize_epoch_sec(double d) {
 }
 
 void sanitize_time(datum_t *time) {
-    rcheck_time_valid(time);
-
-    for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
-        if (it->first == epoch_time_key) {
-            if (it->second->get_type() == datum_t::R_NUM) {
-                double d = it->second->as_num();
-                double d2 = sanitize_epoch_sec(d);
-                if (d2 != d) {
-                    bool b = time->add(epoch_time_key,
-                                       make_counted<const datum_t>(d2),
-                                       CLOBBER);
-                    r_sanity_check(b);
-                }
-            } else {
-                // Should have been caught by `rcheck_time_valid()`
-                r_sanity_check(false);
-            }
-        } else if (it->first == timezone_key) {
-            if (it->second->get_type() == datum_t::R_STR) {
-                const std::string raw_tz = it->second->as_str().to_std();
-                std::string tz;
-                if (tz_valid(raw_tz, &tz)) {
-                    tz = (tz == "Z") ? "+00:00" : tz;
-                    if (tz != raw_tz) {
-                        bool b = time->add(timezone_key,
-                                           make_counted<const datum_t>(std::move(tz)),
-                                           CLOBBER);
-                        r_sanity_check(b);
-                    }
-                    continue;
-                } else {
-                    // Should have been caught by `rcheck_time_valid()`
-                    r_sanity_check(false);
-                }
-            } else {
-                // Should have been caught by `rcheck_time_valid()`
-                r_sanity_check(false);
-            }
-        } else if (it->first == datum_t::reql_type_string) {
-            continue;
-        } else {
-            // Should have been caught by `rcheck_time_valid()`
-            r_sanity_check(false);
-        }
-    }
-}
-
-void rcheck_time_valid(const datum_t *time) {
     r_sanity_check(time != NULL);
     r_sanity_check(time->is_ptype(time_string));
     std::string msg;
@@ -514,6 +466,14 @@ void rcheck_time_valid(const datum_t *time) {
         if (it->first == epoch_time_key) {
             if (it->second->get_type() == datum_t::R_NUM) {
                 has_epoch_time = true;
+                double d = it->second->as_num();
+                double d2 = sanitize_epoch_sec(d);
+                if (d2 != d) {
+                    bool b = time->add(epoch_time_key,
+                                       make_counted<const datum_t>(d2),
+                                       CLOBBER);
+                    r_sanity_check(b);
+                }
             } else {
                 msg = strprintf("field `%s` must be a number (got `%s` of type %s)",
                                 epoch_time_key, it->second->trunc_print().c_str(),
@@ -526,6 +486,13 @@ void rcheck_time_valid(const datum_t *time) {
                 std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
+                    tz = (tz == "Z") ? "+00:00" : tz;
+                    if (tz != raw_tz) {
+                        bool b = time->add(timezone_key,
+                                           make_counted<const datum_t>(std::move(tz)),
+                                           CLOBBER);
+                        r_sanity_check(b);
+                    }
                     continue;
                 } else {
                     msg = strprintf("invalid timezone string `%s`",

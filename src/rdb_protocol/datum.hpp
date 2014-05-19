@@ -209,8 +209,6 @@ private:
     int pseudo_cmp(const datum_t &rhs) const;
     static const std::set<std::string> _allowed_pts;
     void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
-    void recursively_rcheck_ptypes(
-            const std::set<std::string> &allowed_pts = _allowed_pts) const;
 
     // Helper function for `merge()`:
     // Returns a version of this where all `literal` pseudotypes have been omitted.
