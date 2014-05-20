@@ -630,7 +630,7 @@ message Term {
         SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
 
         UNGROUP = 150; // GROUPED_DATA -> ARRAY
-        ARGS = 153; // ARRAY -> SPECIAL (used to splice arguments)
+        ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
     }
     optional TermType type = 1;
 
