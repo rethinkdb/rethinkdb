@@ -11,7 +11,7 @@
 // This is only correct as long as cluster_version_t values form a contiguous range.
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, uint8_t,
                                       cluster_version_t::v1_13,
-                                      cluster_version_t::v1_13);
+                                      cluster_version_t::ONLY_VERSION);
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
