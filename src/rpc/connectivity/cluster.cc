@@ -37,6 +37,7 @@ std::string cluster_version_string(cluster_version_t version_number) {
     case cluster_version_t::v1_13:
         return "1.13";
     }
+    unreachable();
 }
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
