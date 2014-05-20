@@ -23,6 +23,7 @@ tests:
         cd: "r({'a' => 1, 'b' => 'two', 'c' => true})"
         ot: "{'a' => 1, 'b' => 'two', 'c' => true}"
 
+
     # Nested expressions
     - cd: r.expr({'a':r.expr(1)})
       ot: ({'a':1})
@@ -58,6 +59,13 @@ tests:
 
     - js: r({'a':{'b':undefined}})
       ot: err("RqlDriverError", "Object field 'b' may not be undefined")
+
+    - js: r({}, "foo")
+      py: r({}, "foo")
+      ot: err("RqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
+
+    - js: r({}, NaN)
+      ot: err("RqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
 
     # r.object
     - cd: r.object()
