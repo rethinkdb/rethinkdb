@@ -11,8 +11,8 @@
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
-
 #include "serializer/log/log_serializer.hpp"
+#include "version.hpp"
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
     std::vector<int64_t> offsets;
@@ -121,7 +121,9 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     callback.wait();
 
     /* Write the first metablock */
-    buffer->prepare(initial, MB_START_VERSION);
+    // We use cluster_version_t::ONLY_VERSION.  Maybe we'd want to decouple cluster
+    // versions from disk format versions?  We can do that later if we want.
+    buffer->prepare(static_cast<uint32_t>(cluster_version_t::ONLY_VERSION), initial, MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
@@ -135,7 +137,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     rassert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
 
-    startup_values.version = MB_BAD_VERSION;
+    metablock_version_t latest_version = MB_BAD_VERSION;
 
     dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE);
 
@@ -144,8 +146,8 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     state = state_reading;
     struct load_buffer_manager_t {
         explicit load_buffer_manager_t(size_t nmetablocks) {
-            buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(METABLOCK_SIZE * nmetablocks,
-                                                                       DEVICE_BLOCK_SIZE));
+            buffer = static_cast<crc_metablock_t *>(malloc_aligned(METABLOCK_SIZE * nmetablocks,
+                                                                   DEVICE_BLOCK_SIZE));
         }
         ~load_buffer_manager_t() {
             free(buffer);
@@ -181,9 +183,10 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
-            if (mb_temp->version > startup_values.version) {
+            guarantee(mb_temp->disk_format_version == static_cast<uint32_t>(cluster_version_t::ONLY_VERSION));
+            if (mb_temp->version > latest_version) {
                 /* this metablock is good, maybe there are more? */
-                startup_values.version = mb_temp->version;
+                latest_version = mb_temp->version;
                 head.push();
                 ++head;
                 last_good_mb = mb_temp;
@@ -196,7 +199,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     }
 
     // Cool, hopefully got our metablock. Wrap it up.
-    if (startup_values.version == MB_BAD_VERSION) {
+    if (latest_version == MB_BAD_VERSION) {
 
         /* no metablock found anywhere -- the DB is toast */
 
@@ -210,8 +213,8 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
 
     } else {
         /* we found a metablock, set everything up */
-        next_version_number = startup_values.version + 1;
-        startup_values.version = MB_BAD_VERSION; /* version is now useless */
+        next_version_number = latest_version + 1;
+        latest_version = MB_BAD_VERSION; /* version is now useless */
         head.pop();
         *mb_found = true;
         memcpy(mb_buffer, last_good_mb, METABLOCK_SIZE);
@@ -240,7 +243,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
 
-    mb_buffer->prepare(mb, next_version_number++);
+    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::ONLY_VERSION), mb, next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;
