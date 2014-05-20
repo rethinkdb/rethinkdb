@@ -316,7 +316,6 @@ describe('Javascript connection API', function(){
         }));
 
         it("missing arguments cause exception", withConnection(function(done,c){
-            assert.throws(function(){ r.connect(); });
             assert.throws(function(){ c.use(); });
             done();
         }));
