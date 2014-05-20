@@ -15,7 +15,9 @@ public:
     erase_range_helper_t(value_sizer_t *sizer, key_tester_t *tester,
             const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
             const btree_key_t *right_inclusive_or_null,
-            const std::function<bool(const store_key_t &, const char *, const buf_parent_t &)>
+            const std::function<done_traversing_t(const store_key_t &,
+                                                  const char *,
+                                                  const buf_parent_t &)>
                 &on_erase_cb)
         : sizer_(sizer), tester_(tester), deleter_(deleter),
           left_exclusive_or_null_(left_exclusive_or_null),
@@ -60,8 +62,9 @@ public:
             guarantee(found);
 
             if (on_erase_cb_) {
-                stop_erasing_ = !on_erase_cb_(keys_to_delete[i], value.get(),
-                                              buf_parent_t(leaf_node_buf));
+                stop_erasing_ = on_erase_cb_(keys_to_delete[i], value.get(),
+                                             buf_parent_t(leaf_node_buf))
+                                == done_traversing_t::YES;
             }
 
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
@@ -126,7 +129,9 @@ private:
     const value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
-    std::function<bool(const store_key_t &, const char *, const buf_parent_t &)>
+    std::function<done_traversing_t(const store_key_t &,
+                                    const char *,
+                                    const buf_parent_t &)>
         on_erase_cb_;
     bool stop_erasing_;
 
@@ -138,7 +143,9 @@ void btree_erase_range_generic(value_sizer_t *sizer,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
         superblock_t *superblock, signal_t *interruptor, bool release_superblock,
-        const std::function<bool(const store_key_t &, const char *, const buf_parent_t &)>
+        const std::function<done_traversing_t(const store_key_t &,
+                                              const char *,
+                                              const buf_parent_t &)>
             &on_erase_cb) {
     erase_range_helper_t helper(sizer, tester, deleter,
                                 left_exclusive_or_null, right_inclusive_or_null,

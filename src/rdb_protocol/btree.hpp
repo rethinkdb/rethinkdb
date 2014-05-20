@@ -174,19 +174,22 @@ void rdb_erase_small_range(key_tester_t *tester,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
+
 /* This variant also takes a `max_entries_erased` parameter. Once that many entries
  * have been erased, it will abort and write the key of the last erased entry into
  * `highest_erased_key_out`.
  * Returns `true` if  all data in the range has been erased, or `false` if erasing
  * was terminated because of hitting the `max_entries_erased` parameter. */
-bool rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &keys,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           unsigned int max_entries_erased,
-                           store_key_t *highest_erased_key_out,
-                           std::vector<rdb_modification_report_t> *mod_reports_out);
+enum done_erasing_t { DONE, REACHED_MAX };
+done_erasing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &keys,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        unsigned int max_entries_erased,
+        store_key_t *highest_erased_key_out,
+        std::vector<rdb_modification_report_t> *mod_reports_out);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);

@@ -645,20 +645,21 @@ void rdb_erase_small_range(key_tester_t *tester,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out) {
-    bool fully_erased = rdb_erase_small_range(tester, key_range, superblock,
-                                              deletion_context, interruptor, 0, NULL,
-                                              mod_reports_out);
-    guarantee(fully_erased);
+    done_erasing_t fully_erased = rdb_erase_small_range(tester, key_range, superblock,
+                                                        deletion_context, interruptor,
+                                                        0, NULL, mod_reports_out);
+    guarantee(fully_erased == done_erasing_t::DONE);
 }
 
-bool rdb_erase_small_range(key_tester_t *tester,
-                           const key_range_t &key_range,
-                           superblock_t *superblock,
-                           const deletion_context_t *deletion_context,
-                           signal_t *interruptor,
-                           unsigned int max_entries_erased,
-                           store_key_t *highest_erased_key_out,
-                           std::vector<rdb_modification_report_t> *mod_reports_out) {
+done_erasing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &key_range,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        unsigned int max_entries_erased,
+        store_key_t *highest_erased_key_out,
+        std::vector<rdb_modification_report_t> *mod_reports_out) {
     rassert(max_entries_erased == 0 || highest_erased_key_out != NULL);
     rassert(mod_reports_out != NULL);
     mod_reports_out->clear();
@@ -672,7 +673,9 @@ bool rdb_erase_small_range(key_tester_t *tester,
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     struct on_erase_cb_t {
-        static bool on_erase(const store_key_t &key, const char *data,
+        static done_traversing_t on_erase(
+                const store_key_t &key,
+                const char *data,
                 const buf_parent_t &parent,
                 unsigned int _max_entries_erased,
                 unsigned int *_num_entries_erased_out,
@@ -699,9 +702,9 @@ bool rdb_erase_small_range(key_tester_t *tester,
                 && *_num_entries_erased_out >= _max_entries_erased) {
                 // We have hit the limit. Don't erase any more.
                 *_highest_erased_key_out = key;
-                return false;
+                return done_traversing_t::YES;
             } else {
-                return true;
+                return done_traversing_t::NO;
             }
         }
     };
@@ -717,7 +720,7 @@ bool rdb_erase_small_range(key_tester_t *tester,
                   mod_reports_out));
     const bool hit_limit = max_entries_erased != 0
                            && num_entries_erased >= max_entries_erased;
-    return !hit_limit;
+    return hit_limit ? done_erasing_t::REACHED_MAX : done_erasing_t::DONE;
 }
 
 // This is actually a kind of misleading name. This function estimates the size
