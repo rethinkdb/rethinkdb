@@ -14,7 +14,7 @@ void serialize_for_version(cluster_version_t version, write_message_t *wm,
                            const T &value) {
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
-    rassert(version == cluster_version_t::v1_13);
+    rassert(version == cluster_version_t::ONLY_VERSION);
     serialize(wm, value);
 }
 
@@ -26,7 +26,7 @@ archive_result_t deserialize_for_version(cluster_version_t version,
                                          T *thing) {
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
-    rassert(version == cluster_version_t::v1_13);
+    rassert(version == cluster_version_t::ONLY_VERSION);
     return deserialize(s, thing);
 }
 
