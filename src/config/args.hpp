@@ -17,7 +17,7 @@
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
 #define SERIALIZER_VERSION_STRING "1.13"
-#define CLUSTER_VERSION_STRING "1.13"
+// See also CLUSTER_VERSION_STRING and cluster_version_t in cluster.cc.
 
 /**
  * Basic configuration parameters.
