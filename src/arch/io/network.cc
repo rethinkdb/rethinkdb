@@ -154,6 +154,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
+void linux_tcp_conn_t::enable_keepalive() {
+    int optval = 1;
+    int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+    guarantee(res != -1, "Could not set SO_KEEPALIVE option.");
+}
+
 linux_tcp_conn_t::write_buffer_t * linux_tcp_conn_t::get_write_buffer() {
     write_buffer_t *buffer;
 
