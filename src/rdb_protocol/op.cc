@@ -256,7 +256,6 @@ counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const 
     return counted_t<func_term_t>();
 }
 
-// RSI: WTF does this do?
 void op_term_t::accumulate_captures(var_captures_t *captures) const {
     const std::vector<counted_t<term_t> > &original_args
         = args->get_original_args();
