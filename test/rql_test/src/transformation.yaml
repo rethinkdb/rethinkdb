@@ -35,6 +35,8 @@ tests:
     - py: "tbl.index_create('error_prone', lambda x: 1/x['a'])"
       ot: ({'created':1})
 
+    - cd: tbl.index_wait()
+    
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
       js: |
         tbl2.insert(function(){

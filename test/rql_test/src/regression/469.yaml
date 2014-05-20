@@ -7,6 +7,8 @@ tests:
     ot: ({'created':1})
   - cd: r.db('d469').table('t469').index_create('x')
     ot: ({'created':1})
+  - cd: r.db('d469').table('t469').index_wait('x')
+    ot: ([{'ready':True, 'index':'x'}])
 
   - rb: r(nil).info
     py: r.expr(None).info()
