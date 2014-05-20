@@ -335,25 +335,23 @@ module RethinkDB
       @listener = Thread.new {
         while true
           begin
-            token = -VersionDummy::SpecialTokens::NO_TOKEN
+            token = -1
             token = @socket.read_exn(8).unpack('q<')[0]
-            if token != -VersionDummy::SpecialTokens::PING
-              response_length = @socket.read_exn(4).unpack('L<')[0]
-              response = @socket.read_exn(response_length)
-              begin
-                data = Shim.load_json(response, @opts[token])
-              rescue Exception => e
-                raise RqlRuntimeError, "Bad response, server is buggy.\n" +
-                  "#{e.inspect}\n" + response
-              end
-              if token == -VersionDummy::SpecialTokens::NO_TOKEN
-                @mutex.synchronize{@waiters.keys.each{|k| note_data(k, data)}}
-              else
-                @mutex.synchronize{note_data(token, data)}
-              end
+            response_length = @socket.read_exn(4).unpack('L<')[0]
+            response = @socket.read_exn(response_length)
+            begin
+              data = Shim.load_json(response, @opts[token])
+            rescue Exception => e
+              raise RqlRuntimeError, "Bad response, server is buggy.\n" +
+                "#{e.inspect}\n" + response
+            end
+            if token == -1
+              @mutex.synchronize{@waiters.keys.each{|k| note_data(k, data)}}
+            else
+              @mutex.synchronize{note_data(token, data)}
             end
           rescue Exception => e
-            if token == -VersionDummy::SpecialTokens::NO_TOKEN
+            if token == -1
               @mutex.synchronize {
                 @listener = nil
                 @waiters.keys.each{|k| note_error(k, e)}

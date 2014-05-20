@@ -50,23 +50,20 @@ public:
 
         if (size > MAX_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(
-                token, &error_response,
-                strprintf(
-                    "Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
-                    size, MAX_QUERY_SIZE));
+            handler->unparseable_query(token, &error_response,
+                                       strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                                                 size, MAX_QUERY_SIZE));
             send_response(error_response, handler, conn, interruptor);
             throw tcp_conn_read_closed_exc_t();
         } else {
             scoped_array_t<char> data(size + 1);
             conn->read(data.data(), size, interruptor);
-            data[size] = 0; // Null terminate the string, which the json parser requires.
+            data[size] = 0; // Null terminate the string, which the json parser requires
 
             if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
                 Response error_response;
-                handler->unparseable_query(
-                    token, &error_response,
-                    "Client is buggy (failed to deserialize query).");
+                handler->unparseable_query(token, &error_response,
+                                           "Client is buggy (failed to deserialize query).");
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -156,17 +153,16 @@ public:
     }
 };
 
-query_server_t::query_server_t(
-    const std::set<ip_address_t> &local_addresses,
-    int port,
-    query_handler_t *_handler,
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-    _auth_metadata)
-        : handler(_handler),
-          auth_metadata(_auth_metadata),
-          shutting_down_conds(get_num_threads()),
-          pulse_sdc_on_shutdown(&main_shutting_down_cond),
-          next_thread(0) {
+query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
+                               int port,
+                               query_handler_t *_handler,
+                               boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata) :
+        handler(_handler),
+        auth_metadata(_auth_metadata),
+        shutting_down_conds(get_num_threads()),
+        pulse_sdc_on_shutdown(&main_shutting_down_cond),
+        next_thread(0)
+{
     for (int i = 0; i < get_num_threads(); ++i) {
         cross_thread_signal_t *s =
             new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
@@ -179,8 +175,7 @@ query_server_t::query_server_t(
             boost::bind(&query_server_t::handle_conn,
                         this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        throw address_in_use_exc_t(
-            strprintf("Could not bind to RDB protocol port: %s", ex.what()));
+        throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
 }
 
@@ -254,7 +249,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
         conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
 
-        // With version 0_2 and up, the client driver specifies the authorization key.
+        // With version 0_2 and up, the client drivers specifies the authorization key
         if (client_magic_number == VersionDummy::V0_1) {
             if (!auth_vclock.get().str().empty()) {
                 throw protob_server_exc_t(
@@ -269,31 +264,23 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             const char *success_msg = "SUCCESS";
             conn->write(success_msg, strlen(success_msg) + 1, &interruptor);
         } else {
-            throw protob_server_exc_t(
-                "This is the rdb protocol port (bad magic number).");
+            throw protob_server_exc_t("This is the rdb protocol port (bad magic number).");
         }
 
-        // With version 0_3, the client driver specifies which protocol to use.
+        // With version 0_3, the client driver specifies which protocol to use
+        int32_t wire_protocol = VersionDummy::PROTOBUF;
         if (client_magic_number == VersionDummy::V0_3) {
-            int32_t wire_protocol = -1;
             conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
-            auto_drainer_t drainer;
-            // We spawn immediately to acquire a drainer lock.
-            coro_t::spawn_now_dangerously(
-                std::bind(&query_server_t::heartbeat, this,
-                          conn.get(), &interruptor, &drainer));
-            if (wire_protocol == VersionDummy::JSON) {
-                connection_loop<json_protocol_t>(conn.get(), &client_ctx);
-            } else if (wire_protocol == VersionDummy::PROTOBUF) {
-                connection_loop<protobuf_protocol_t>(conn.get(), &client_ctx);
-            } else {
-                throw protob_server_exc_t(
-                    strprintf("Unrecognized protocol specified: '%d'", wire_protocol));
-            }
-        } else {
-            connection_loop<protobuf_protocol_t>(conn.get(), &client_ctx);
         }
 
+        if (wire_protocol == VersionDummy::JSON) {
+            connection_loop<json_protocol_t>(conn.get(), &client_ctx);
+        } else if (wire_protocol == VersionDummy::PROTOBUF) {
+            connection_loop<protobuf_protocol_t>(conn.get(), &client_ctx);
+        } else {
+            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
+                                                wire_protocol));
+        }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());
@@ -324,24 +311,10 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
         if (protocol_t::parse_query(conn, client_ctx->interruptor, handler, &query)) {
             Response response;
             if (handler->run_query(query, &response, client_ctx)) {
-                protocol_t::send_response(
-                    response, handler, conn, client_ctx->interruptor);
+                protocol_t::send_response(response, handler, conn, client_ctx->interruptor);
             }
         }
     }
-}
-
-void query_server_t::heartbeat(
-    tcp_conn_t *conn, signal_t *interruptor, auto_drainer_t *drainer) {
-    auto_drainer_t::lock_t lock = drainer->lock();
-    wait_any_t wait_any(interruptor, lock.get_drain_signal());
-    try {
-        for (;;) {
-            nap(5000, &wait_any);
-            int64_t token = -VersionDummy::PING;
-            conn->write(&token, sizeof(token), &wait_any);
-        }
-    } catch (const interrupted_exc_t &) { }
 }
 
 // Used in protob_server_t::handle(...) below to combine the interruptor from the
