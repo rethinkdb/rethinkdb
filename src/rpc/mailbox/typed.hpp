@@ -78,7 +78,7 @@ class mailbox_t< void() > {
     class write_impl_t : public mailbox_write_callback_t {
     public:
         write_impl_t() { }
-        void write(cluster_version_t cluster_version, write_message_t *) {
+        void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *) {
             rassert(cluster_version == cluster_version_t::ONLY_VERSION);
         }
     };

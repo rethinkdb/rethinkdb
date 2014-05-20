@@ -12,7 +12,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
-void serialize_for_version(cluster_version_t version, write_message_t *wm,
+void serialize_for_version(DEBUG_VAR cluster_version_t version, write_message_t *wm,
                            const T &value) {
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
@@ -23,7 +23,7 @@ void serialize_for_version(cluster_version_t version, write_message_t *wm,
 // Deserializes a value, assuming it's serialized for a given version.  (This doesn't
 // deserialize any version numbers.)
 template <class T>
-archive_result_t deserialize_for_version(cluster_version_t version,
+archive_result_t deserialize_for_version(DEBUG_VAR cluster_version_t version,
                                          read_stream_t *s,
                                          T *thing) {
     // Right now, since there's only one version number, we can just call the normal
