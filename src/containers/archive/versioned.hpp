@@ -4,7 +4,8 @@
 #include "version.hpp"
 #include "containers/archive/archive.hpp"
 
-// This is only correct as long as cluster_version_t values form a contiguous range.
+// This defines how to serialize cluster_version_t (which conveniently has a
+// contiguous set of valid representation, from v1_13 to v1_13).
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::ONLY_VERSION);
