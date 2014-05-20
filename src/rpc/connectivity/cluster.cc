@@ -44,7 +44,7 @@ const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluste
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
 
 // Returns true and sets *out to the version number, if the version number in
-// version_string is a recognized version the same or earlier than our version.
+// version_string is a recognized version and the same or earlier than our version.
 bool version_number_recognized_compatible(const std::string &version_string,
                                           cluster_version_t *out) {
     if (version_string == "1.13") {
