@@ -26,7 +26,7 @@ public:
         create_mailbox(cm), delete_mailbox(dm)
         { }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, create_mailbox, delete_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
 };
 
 template <class business_card_t>

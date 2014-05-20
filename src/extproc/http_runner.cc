@@ -5,8 +5,8 @@
 #include "containers/archive/stl_types.hpp"
 #include "arch/timing.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_3(http_opts_t::http_auth_t, 0, type, username, password);
-RDB_IMPL_ME_SERIALIZABLE_14(http_opts_t, 0, auth, method, result_format, url,
+RDB_IMPL_ME_SERIALIZABLE_3(http_opts_t::http_auth_t, type, username, password);
+RDB_IMPL_ME_SERIALIZABLE_14(http_opts_t, auth, method, result_format, url,
                             proxy, url_params, header, data, form_data, timeout_ms,
                             attempts, max_redirects, depaginate, verify);
 

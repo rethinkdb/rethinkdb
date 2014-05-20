@@ -62,7 +62,7 @@ class connectivity_cluster_t :
 {
 public:
     static const std::string cluster_proto_header;
-    static const std::string cluster_version;
+    static const std::string cluster_version_string;
     static const std::string cluster_arch_bitsize;
     static const std::string cluster_build_mode;
 

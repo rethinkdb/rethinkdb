@@ -55,7 +55,9 @@ TEST(DiskFormatTest, LbaMetablockMixinT) {
 }
 
 TEST(DiskFormatTest, LbaEntryT) {
-    EXPECT_EQ(0u, offsetof(lba_entry_t, block_id));
+    EXPECT_EQ(0u, offsetof(lba_entry_t, zero_reserved));
+    EXPECT_EQ(4u, offsetof(lba_entry_t, ser_block_size));
+    EXPECT_EQ(8u, offsetof(lba_entry_t, block_id));
     EXPECT_EQ(16u, offsetof(lba_entry_t, recency));
     EXPECT_EQ(24u, offsetof(lba_entry_t, offset));
     EXPECT_EQ(32u, sizeof(lba_entry_t));

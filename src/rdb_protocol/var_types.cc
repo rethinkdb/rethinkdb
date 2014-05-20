@@ -1,8 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/var_types.hpp"
 
 #include "containers/archive/stl_types.hpp"
-#include "containers/archive/varint.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
@@ -135,9 +134,6 @@ var_visibility_t var_scope_t::compute_visibility() const {
 }
 
 void var_scope_t::rdb_serialize(write_message_t *wm) const {
-    const uint64_t ser_version = 0;
-    serialize_varint_uint64(wm, ser_version);
-
     serialize(wm, vars);
     serialize(wm, implicit_depth);
     if (implicit_depth == 1) {
@@ -150,15 +146,8 @@ void var_scope_t::rdb_serialize(write_message_t *wm) const {
 }
 
 archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res;
-
-    uint64_t ser_version;
-    res = deserialize_varint_uint64(s, &ser_version);
-    if (bad(res)) { return res; }
-    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
-
     std::map<sym_t, counted_t<const datum_t> > local_vars;
-    res = deserialize(s, &local_vars);
+    archive_result_t res = deserialize(s, &local_vars);
     if (bad(res)) { return res; }
 
     uint32_t local_implicit_depth;

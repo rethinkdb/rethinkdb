@@ -23,9 +23,6 @@ const char *archive_result_as_str(archive_result_t archive_result) {
     case archive_result_t::RANGE_ERROR:
         return "archive_result_t::RANGE_ERROR";
         break;
-    case archive_result_t::VERSION_ERROR:
-        return "archive_result_t::VERSION_ERROR";
-        break;
     default:
         unreachable();
     }
@@ -127,4 +124,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_SERIALIZABLE_1(in_addr, 0, s_addr);
+RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

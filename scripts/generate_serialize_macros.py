@@ -16,20 +16,15 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 
 def generate_make_serializable_macro(nfields):
-    print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t, version%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+    print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
+        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr void serialize(write_message_t *msg, const type_t &thing) { \\"
-    print "        serialize_varint_uint64(msg, version); \\"
+    print "    function_attr void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
-        print "        serialize(msg, thing.field%d); \\" % (i + 1)
+        print "        serialize(wm, thing.field%d); \\" % (i + 1)
     print "    } \\"
     print "    function_attr archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint64_t ser_version; \\"
-    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
-    print "        if (bad(res)) { return res; } \\"
-    print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
@@ -41,20 +36,16 @@ def generate_make_serializable_macro(nfields):
     print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(, __VA_ARGS__)" % (nfields, nfields)
 
 def generate_make_me_serializable_macro(nfields):
-    print "#define RDB_MAKE_ME_SERIALIZABLE_%d(version%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+    print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
+        (nfields, ", ".join("field%d" % (i + 1) for i in xrange(nfields)))
+    zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(write_message_t *msg) const { \\"
-    print "        serialize_varint_uint64(msg, version); \\"
+    print "    void rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        serialize(msg, field%d); \\" % (i + 1)
+        print "        serialize(wm, field%d); \\" % (i + 1)
     print "    } \\"
-    print "    archive_result_t rdb_deserialize(read_stream_t *s) { \\"
+    print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint64_t ser_version; \\"
-    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
-    print "        if (bad(res)) { return res; } \\"
-    print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
@@ -64,19 +55,15 @@ def generate_make_me_serializable_macro(nfields):
 
 
 def generate_impl_me_serializable_macro(nfields):
-    print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ, version%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    void typ::rdb_serialize(write_message_t *msg) const { \\"
-    print "        serialize_varint_uint64(msg, version); \\"
+    print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
+        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
+    zeroarg = ("UNUSED " if nfields == 0 else "")
+    print "    void typ::rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        serialize(msg, field%d); \\" % (i + 1)
+        print "        serialize(wm, field%d); \\" % (i + 1)
     print "    } \\"
-    print "    archive_result_t typ::rdb_deserialize(read_stream_t *s) { \\"
+    print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
-    print "        uint64_t ser_version; \\"
-    print "        res = deserialize_varint_uint64(s, &ser_version); \\"
-    print "        if (bad(res)) { return res; } \\"
-    print "        if (ser_version != version) { return archive_result_t::VERSION_ERROR; } \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
@@ -95,7 +82,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
-    print "#include \"containers/archive/varint.hpp\""
     print
 
     print """
@@ -103,17 +89,9 @@ if __name__ == "__main__":
 unserialize data types that consist of a simple series of fields, each of which
 is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
 want to be able to serialize. To make it serializable automatically, either
-write RDB_MAKE_SERIALIZABLE_2(0, point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(0, x, y) within the body of the point_t type.
-The reason for the second form is to make it possible to serialize template
-types. There is at present no non-intrusive way to use these macros to
-serialize template types; this is less-than-ideal, but not worth fixing right
-now.
-The 0 here is the version of the serialization format. It must be castable to
-uint64_t and should be increased whenever the version changes.
-Right now, deserializing an object that was serialized with a different version
-fails, but more flexible deserialization routines can be added later without
-breaking compatibility.
+write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.  The second
+form can be more performant for types whose fields are private.
 
 A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
 to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
@@ -130,7 +108,7 @@ the class scope. */
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(write_message_t *msg) const; \\"
+    print "    void rdb_serialize(write_message_t *wm) const; \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"
     print

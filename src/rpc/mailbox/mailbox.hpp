@@ -20,14 +20,18 @@ to handle messages it receives. To send messages to the mailbox, call the
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
-    virtual void write(write_message_t *wm) = 0;
+    virtual void write(cluster_version_t cluster_version,
+                       write_message_t *wm) = 0;
 };
 
 class mailbox_read_callback_t {
 public:
     virtual ~mailbox_read_callback_t() { }
 
-    virtual void read(read_stream_t *stream) = 0;
+    // cluster_version tells the read callback what format to read bytes off the
+    // stream in, for its mailbox message parsing.
+    virtual void read(cluster_version_t cluster_version,
+                      read_stream_t *stream) = 0;
 };
 
 struct raw_mailbox_t : public home_thread_mixin_t {
@@ -75,7 +79,7 @@ public:
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(0, peer, thread, mailbox_id);
+        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;
@@ -143,11 +147,15 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t source_peer, read_stream_t *stream);
-    void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
+    void on_message(peer_id_t source_peer, cluster_version_t version,
+                    read_stream_t *stream);
+    void on_local_message(peer_id_t source_peer, cluster_version_t version,
+                          std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(peer_id_t source_peer, threadnum_t dest_thread,
+    void mailbox_read_coroutine(peer_id_t source_peer,
+                                cluster_version_t cluster_version,
+                                threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset,
