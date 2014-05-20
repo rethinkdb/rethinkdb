@@ -13,14 +13,14 @@ indentLevel = 1
 lastIndentLevel = 0
 ARGF.each do |line|
 	if (line =~ /^\s*message (\w+) {/ || line =~ /^\s+enum (\w+) {/)
-		print (indentLevel == lastIndentLevel ? ",\n" : "\n") + "\t" * indentLevel + "#{$1} {"
+		print (indentLevel == lastIndentLevel ? ",\n" : "\n") + "\t" * indentLevel + "#{$1}: {"
 		lastIndentLevel = indentLevel
 		indentLevel += 1
 	elsif line =~ /^\s+(\w+)\s+=\s+(\w+);/
 		key = $1
 		value = $2
 		value = value.to_i(base=16) if value =~ /^0x/
-		print (indentLevel == lastIndentLevel ? ",\n" : "\n") + "\t" * indentLevel + "#{key} = #{value}"
+		print (indentLevel == lastIndentLevel ? ",\n" : "\n") + "\t" * indentLevel + "#{key}: #{value}"
 		lastIndentLevel = indentLevel
 	elsif line =~ /^\s*}/
 		print (indentLevel == lastIndentLevel ? "\n" + "\t" * (indentLevel - 1) + "}" : "}")
