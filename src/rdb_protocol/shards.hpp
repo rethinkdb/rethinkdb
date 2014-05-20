@@ -10,6 +10,7 @@
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "containers/archive/varint.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/profile.hpp"
