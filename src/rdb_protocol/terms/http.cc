@@ -4,6 +4,7 @@
 #include <string>
 #include "debug.hpp"
 
+#include "math.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -112,6 +113,9 @@ private:
     std::string get_auth_item(const counted_t<const datum_t> &datum,
                               const std::string &name,
                               pb_rcheckable_t *auth);
+
+    // Have a maximum timeout of 30 days
+    static const uint64_t MAX_TIMEOUT_MS = 2592000000;
 };
 
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
@@ -166,11 +170,14 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
                                  uint64_t *timeout_ms_out) {
     counted_t<val_t> timeout = optarg(env, "timeout");
     if (timeout.has()) {
-        *timeout_ms_out = timeout->as_int<uint64_t>();
-        if (*timeout_ms_out > std::numeric_limits<uint64_t>::max() / 1000) {
-            *timeout_ms_out = std::numeric_limits<uint64_t>::max();
+        double tmp = timeout->as_num();
+        tmp *= 1000;
+
+        if (tmp < 0) {
+            rfail_target(timeout.get(), base_exc_t::GENERIC,
+                         "`timeout` may not be negative.");
         } else {
-            *timeout_ms_out *= 1000;
+            *timeout_ms_out = clamp<uint64_t>(tmp, 0, MAX_TIMEOUT_MS);
         }
     }
 }

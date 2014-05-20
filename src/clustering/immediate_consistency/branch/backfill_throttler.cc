@@ -35,7 +35,7 @@ backfill_throttler_t::lock_t::lock_t(backfill_throttler_t *p,
             wait_interruptible(peer_acq->acquisition_signal(), &ct_interruptor);
             global_acq.init(new new_semaphore_acq_t(&parent->global_sem, 1));
             wait_interruptible(global_acq->acquisition_signal(), &ct_interruptor);
-        } catch (interrupted_exc_t &e) {
+        } catch (const interrupted_exc_t &e) {
             // Destroy the acquisitions on the right thread.
             // If we throw from the constructor, the ~lock_t() destructor is never
             // called. So the acquisitions would be default destructed - possibly on

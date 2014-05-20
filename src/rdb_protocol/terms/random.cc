@@ -77,7 +77,7 @@ public:
 class random_term_t : public op_term_t {
 public:
     random_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(0,2), optargspec_t({"float"})) {
+        op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) {
     }
 private:
     virtual bool is_deterministic() const {

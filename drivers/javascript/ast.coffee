@@ -997,6 +997,9 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     if nestingDepth <= 0
         throw new err.RqlDriverError "Nesting depth limit exceeded"
 
+    if typeof nestingDepth isnt "number" or isNaN(nestingDepth)
+        throw new err.RqlDriverError "Second argument to `r.expr` must be a number or undefined."
+
     else if val instanceof TermBase
         val
     else if val instanceof Function
