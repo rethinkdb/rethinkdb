@@ -134,10 +134,12 @@ public:
 
 class query_server_t : public http_app_t {
 public:
-    query_server_t(const std::set<ip_address_t> &local_addresses,
-                   int port,
-                   query_handler_t *_handler,
-                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata);
+    query_server_t(
+        const std::set<ip_address_t> &local_addresses,
+        int port,
+        query_handler_t *_handler,
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        _auth_metadata);
     ~query_server_t();
 
     int get_port() const;
@@ -151,6 +153,7 @@ private:
     // For the client driver socket
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                      auto_drainer_t::lock_t);
+    void heartbeat(tcp_conn_t *conn, signal_t *interruptor, auto_drainer_t *drainer);
 
     // This is templatized based on the wire protocol requested by the client
     template<class protocol_t>

@@ -54,6 +54,19 @@ message VersionDummy { // We need to wrap it like this for some
         PROTOBUF  = 0x271ffc41;
         JSON      = 0x7e6970c7;
     }
+
+    // These are special tokens you may receive.  NO_TOKEN is used as the token
+    // when an error occurs before the token can be parsed from your response.
+    // PING is used as the token for messages that keep the connection alive
+    // (after reading the token PING, you client should do nothing and wait for
+    // another token).
+    // The special tokens are actually negative, but they're stored as positive
+    // values here because some third-party protobuf libraries refuse to parse
+    // negative values in enums.
+    enum SpecialTokens {
+        NO_TOKEN = 1; // Actually -1
+        PING = 2; // Actually -2
+    }
 }
 
 // You send one of:
