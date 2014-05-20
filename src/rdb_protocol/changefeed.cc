@@ -21,9 +21,7 @@ server_t::server_t(mailbox_manager_t *_manager)
       manager(_manager),
       stop_mailbox(manager, std::bind(&server_t::stop_mailbox_cb, this, ph::_1)) { }
 
-server_t::~server_t() {
-    debugf("~server_t\n");
-}
+server_t::~server_t() { }
 
 void server_t::stop_mailbox_cb(client_t::addr_t addr) {
     auto_drainer_t::lock_t lock(&drainer);
@@ -66,7 +64,6 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
             &disconnect, stopped, coro_lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
-    debugf("Stopping...\n");
     send_all_with_lock(coro_lock, msg_t(msg_t::stop_t()));
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
     coro_spot.write_signal()->wait_lazily_unordered();
@@ -74,7 +71,6 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     // This is true even if we have multiple shards per btree because
     // `add_client` only spawns one of us.
     guarantee(erased == 1);
-    debugf("Stopped!\n");
 }
 
 struct stamped_msg_t {
@@ -283,7 +279,6 @@ public:
                base_exc_t::GENERIC,
                "Cannot call a terminal (`reduce`, `count`, etc.) on an "
                "infinite stream (such as a changefeed).");
-        debugf("BATCH_TYPE %d\n", bs.get_batch_type());
         batcher_t batcher = bs.to_batcher();
         return sub->get_els(&batcher, env->interruptor);
     }
@@ -297,17 +292,14 @@ subscription_t::subscription_t(feed_t *_feed) : skipped(0), cond(NULL), feed(_fe
 }
 
 subscription_t::~subscription_t() {
-    debugf("destroy %p\n", this);
     // This error is only sent if we're getting destroyed while blocking.
     stop("Subscription destroyed (shutting down?).", detach_t::NO);
-    debugf("del_sub %p\n", this);
     if (feed != NULL) {
         feed->del_sub(this);
     } else {
         // We only get here if we were detached.
         guarantee(exc);
     }
-    debugf("destroyed %p\n", this);
 }
 
 std::vector<counted_t<const datum_t> >
@@ -354,20 +346,11 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
 void subscription_t::add_el(
     const uuid_u &uuid, uint64_t stamp, counted_t<const datum_t> d) {
     assert_thread();
-    // debugf("ADD_EL\n");
     // If we don't have start timestamps, we haven't started, and if we have
     // exc, we've stopped.
     if (start_stamps.size() != 0 && !exc) {
         auto it = start_stamps.find(uuid);
-        if (it == start_stamps.end()) {
-            debugf("ADD_EL start_stamps (%zu):\n", start_stamps.size());
-            for (auto it2 = start_stamps.begin(); it2 != start_stamps.end(); ++it2) {
-                debugf("%s\n", uuid_to_str(it2->first).c_str());
-            }
-            debugf("ADD_EL want: %s\n", uuid_to_str(uuid).c_str());
-        }
         guarantee(it != start_stamps.end());
-        // debugf("ADD_EL %" PRIu64 " vs. %" PRIu64 "\n", stamp, it->second);
         if (stamp >= it->second) {
             els.push_back(d);
             if (els.size() > array_size_limit()) {
@@ -433,7 +416,6 @@ void feed_t::del_sub(subscription_t *sub) THROWS_NOTHING {
 
 void feed_t::each_sub(const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     assert_thread();
-    // debugf("EACH_SUB\n");
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&subs_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
@@ -458,8 +440,6 @@ void feed_t::each_subscription_cb(const std::function<void(subscription_t *)> &f
     guarantee(set->size() != 0);
     on_thread_t th((threadnum_t(subscription_threads[i])));
     for (auto it = set->begin(); it != set->end(); ++it) {
-        // debugf("ITER\n");
-        // debugf("%p: %d\n", (*it), (*it)->home_thread().threadnum);
         f(*it);
     }
 }
@@ -478,27 +458,16 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
     // stop mailboxes for some of the masters yet).  This also stops
     // us from trying to handle a message while waiting on the auto
     // drainer.
-    // debugf("mailbox_cb\n");
     if (!detached) {
-        // debugf("!detached\n");
         auto_drainer_t::lock_t lock(&drainer);
 
         // We wait for the write to complete and the queues to be ready.
         wait_any_t wait_any(&queues_ready, lock.get_drain_signal());
         wait_any.wait_lazily_unordered();
-        // debugf("Waited...\n");
         if (!lock.get_drain_signal()->is_pulsed()) {
-            // debugf("Not pulsed.\n");
             // We don't need a lock for this because the set of `uuid_u`s never
             // changes after it's initialized.
             auto it = queues.find(msg.server_uuid);
-            if (it == queues.end()) {
-                debugf("Queues (%zu):\n", queues.size());
-                for (auto it2 = queues.begin(); it2 != queues.end(); ++it2) {
-                    debugf("%s\n", uuid_to_str(it2->first).c_str());
-                }
-                debugf("Want: %s\n", uuid_to_str(msg.server_uuid).c_str());
-            }
             guarantee(it != queues.end());
             queue_t *queue = it->second.get();
             guarantee(queue != NULL);
@@ -507,20 +476,10 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
             spot.write_signal()->wait_lazily_unordered();
 
             // Add us to the queue.
-
-            // debugf("QUEUE %p: %" PRIu64 " onto %" PRIu64 "\n",
-            //        queue,
-            //        msg.stamp,
-            //        queue->next);
             guarantee(msg.stamp >= queue->next);
             queue->map.push(std::move(msg));
 
             // Read as much as we can from the queue (this enforces ordering.)
-
-            // debugf("%" PRIu64 " vs. %" PRIu64 "\n",
-            //        queue->map.begin()->first,
-            //        queue->next);
-            // size_t pre = queue->map.size();
             while (queue->map.size() != 0 && queue->map.top().stamp == queue->next) {
                 const stamped_msg_t &curmsg = queue->map.top();
                 msg_visitor_t visitor(this, curmsg.server_uuid, curmsg.stamp);
@@ -528,11 +487,6 @@ void feed_t::mailbox_cb(stamped_msg_t msg) {
                 queue->map.pop();
                 queue->next += 1;
             }
-            // debugf("QUEUE %p: CHANGE %zu -> %zu (%zu)\n",
-            //        queue,
-            //        pre,
-            //        queue->map.size(),
-            //        pre - queue->map.size());
         }
     }
 }
@@ -618,26 +572,21 @@ void feed_t::constructor_cb() {
 }
 
 feed_t::~feed_t() {
-    debugf("~feed_t()\n");
     guarantee(num_subs == 0);
     detached = true;
     for (auto it = stop_addrs.begin(); it != stop_addrs.end(); ++it) {
         send(manager, *it, mailbox.get_address());
     }
-    debugf("~feed_t() DONE\n");
 }
 
 client_t::client_t(mailbox_manager_t *_manager)
   : manager(_manager) {
     guarantee(manager != NULL);
 }
-client_t::~client_t() {
-    debugf("~client_t");
-}
+client_t::~client_t() { }
 
 counted_t<datum_stream_t>
 client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
-    debugf("CLIENT: calling `new_feed`...\n");
     try {
         uuid_u uuid = tbl->get_uuid();
         scoped_ptr_t<subscription_t> sub;
@@ -646,14 +595,11 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             threadnum_t old_thread = get_thread_id();
             cross_thread_signal_t interruptor(env->interruptor, home_thread());
             on_thread_t th(home_thread());
-            debugf("CLIENT: On home thread...\n");
             auto_drainer_t::lock_t lock(&drainer);
             rwlock_in_line_t spot(&feeds_lock, access_t::write);
             spot.read_signal()->wait_lazily_unordered();
-            debugf("CLIENT: getting feed...\n");
             auto feed_it = feeds.find(uuid);
             if (feed_it == feeds.end()) {
-                debugf("CLIENT: making feed...\n");
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
                     this, manager, env->cluster_access.ns_repo, uuid, &interruptor);
@@ -675,9 +621,6 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
         nif->read(read, &read_resp, order_token_t::ignore, env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
-        for (auto it = resp->stamps.begin(); it != resp->stamps.end(); ++it) {
-            debugf("STAMP %s\n", uuid_to_str(it->first).c_str());
-        }
         sub->start(std::move(resp->stamps));
         return make_counted<stream_t>(std::move(sub), tbl->backtrace());
     } catch (const cannot_perform_query_exc_t &e) {
@@ -688,7 +631,6 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
 }
 
 void client_t::maybe_remove_feed(const uuid_u &uuid) {
-    debugf("CLIENT: maybe_remove_feed...\n");
     assert_thread();
     scoped_ptr_t<feed_t> destroy;
     auto_drainer_t::lock_t lock(&drainer);
@@ -700,13 +642,11 @@ void client_t::maybe_remove_feed(const uuid_u &uuid) {
     // might also have gotten a new subscriber, in which case we don't want to
     // remove it yet.
     if (feed_it != feeds.end() && feed_it->second->can_be_removed()) {
-        debugf("CLIENT: removing feed...\n");
         // We want to destroy the feed after the lock is released, because it
         // may be expensive.
         destroy.swap(feed_it->second);
         feeds.erase(feed_it);
     }
-    debugf("CLIENT: maybe remove feed DONE!\n");
 }
 
 scoped_ptr_t<feed_t> client_t::detach_feed(const uuid_u &uuid) {
