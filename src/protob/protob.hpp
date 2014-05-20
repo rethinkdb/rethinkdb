@@ -28,7 +28,7 @@ template <class> class semilattice_readwrite_view_t;
 
 class client_context_t {
 public:
-    client_context_t(signal_t *_interruptor) : interruptor(_interruptor) { }
+    explicit client_context_t(signal_t *_interruptor) : interruptor(_interruptor) { }
     ql::stream_cache_t stream_cache;
     signal_t *interruptor;
 };
