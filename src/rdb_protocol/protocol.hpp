@@ -413,7 +413,7 @@ public:
 class changefeed_subscribe_t {
 public:
     changefeed_subscribe_t() { }
-    changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
+    explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
         : addr(_addr), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;
@@ -423,7 +423,7 @@ public:
 class changefeed_stamp_t {
 public:
     changefeed_stamp_t() : region(region_t::universe()) { }
-    changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
         : addr(std::move(_addr)), region(region_t::universe()) { }
     ql::changefeed::client_t::addr_t addr;
     region_t region;

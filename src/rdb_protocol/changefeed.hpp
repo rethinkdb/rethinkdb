@@ -44,7 +44,9 @@ struct msg_t {
         counted_t<const datum_t> old_val, new_val;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    struct stop_t { RDB_DECLARE_ME_SERIALIZABLE; };
+    struct stop_t {
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
 
     msg_t() { }
     msg_t(msg_t &&msg);
@@ -81,7 +83,7 @@ struct stamped_msg_t;
 class client_t : public home_thread_mixin_t {
 public:
     typedef mailbox_addr_t<void(stamped_msg_t)> addr_t;
-    client_t(mailbox_manager_t *_manager);
+    explicit client_t(mailbox_manager_t *_manager);
     ~client_t();
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_feed(const counted_t<table_t> &tbl, env_t *env);
@@ -112,7 +114,7 @@ private:
 class server_t {
 public:
     typedef mailbox_addr_t<void(client_t::addr_t)> addr_t;
-    server_t(mailbox_manager_t *_manager);
+    explicit server_t(mailbox_manager_t *_manager);
     ~server_t();
     void add_client(const client_t::addr_t &addr);
     void send_all(msg_t msg);

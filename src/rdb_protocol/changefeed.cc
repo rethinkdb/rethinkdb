@@ -153,7 +153,7 @@ enum class detach_t { NO, YES };
 class subscription_t : public home_thread_mixin_t {
 public:
     // Throws QL exceptions.
-    subscription_t(feed_t *_feed);
+    explicit subscription_t(feed_t *_feed);
     ~subscription_t();
     std::vector<counted_t<const datum_t> >
     get_els(batcher_t *batcher, const signal_t *interruptor);
