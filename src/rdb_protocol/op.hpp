@@ -18,7 +18,8 @@ namespace ql {
 
 class func_term_t;
 
-// Specifies the range of normal arguments a function can take.
+// Specifies the range of normal arguments a function can take (arguments
+// provided by `r.args` count toward the total).
 class argspec_t {
 public:
     explicit argspec_t(int n);
