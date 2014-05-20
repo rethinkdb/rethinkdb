@@ -77,7 +77,7 @@ private:
 
     RDB_DECLARE_ME_SERIALIZABLE;
 #else
-    RDB_MAKE_ME_SERIALIZABLE_0(0);
+    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
