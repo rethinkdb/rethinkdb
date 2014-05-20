@@ -1,8 +1,0 @@
-package My;
-import public "dep1.proto";
-import public "dep2.proto";
-
-message main {
-    optional dep1 test1 = 0;
-    optional dep2 test2 = 0;
-}

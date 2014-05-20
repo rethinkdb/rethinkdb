@@ -1,5 +1,0 @@
-import "import_common.proto";
-
-message A {
-    optional Common common = 1;
-}

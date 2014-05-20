@@ -584,17 +584,17 @@ def main():
     # -- set ENV settings for child processes
     
     if 'RUBYLIB' in os.environ:
-        os.environ['RUBYLIB'] = ':'.join(os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby'), os.environ['RUBYLIB'])
+        os.environ['RUBYLIB'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby'), os.environ['RUBYLIB']])
     else:
         os.environ['RUBYLIB'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby')
     
     if 'PYTHONPATH' in os.environ:
-        os.environ['PYTHONPATH'] = ':'.join(os.path.join(utils.project_root_dir(), 'drivers', 'python'), os.environ['PYTHONPATH'])
+        os.environ['PYTHONPATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'drivers', 'python'), os.environ['PYTHONPATH']])
     else:
         os.environ['PYTHONPATH'] = os.path.join(utils.project_root_dir(), 'drivers', 'python')
     
     if 'NODE_PATH' in os.environ:
-        os.environ['NODE_PATH'] = ':'.join(os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript'), os.environ['NODE_PATH'])
+        os.environ['NODE_PATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript'), os.environ['NODE_PATH']])
     else:
         os.environ['NODE_PATH'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript')
     

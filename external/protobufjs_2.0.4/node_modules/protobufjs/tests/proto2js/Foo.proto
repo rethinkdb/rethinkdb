@@ -1,4 +1,0 @@
-// Foo.proto
-message Foo {
-    required string fizz = 1;
-}

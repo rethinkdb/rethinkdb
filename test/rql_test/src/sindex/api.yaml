@@ -49,6 +49,8 @@ tests:
     js: tbl.indexCreate('brokeni', r.row('broken'))
     ot: ({'created':1})
 
+  - cd: tbl.index_wait()
+
   - cd: tbl.get(true)
     py: tbl.get(True)
     # No error
@@ -324,6 +326,8 @@ tests:
     py: tbl.index_create('nil', lambda x:None)
     js: tbl.indexCreate('nil', function(x) { return null; })
     ot: ({'created':1})
+  - cd: tbl.index_wait()
+
   - rb: tbl.get_all(nil, :index => :nil)
     py: tbl.get_all(None, index='nil')
     js: tbl.getAll(null, {index:'nil'})
@@ -787,6 +791,7 @@ tests:
     py: tbl.index_create('cb', lambda row:[row['c'], row['b']])
     js: tbl.indexCreate('cb', function(row) { return [row('c'), row('b')]; })
     ot: ({'created':1})
+  - cd: tbl.index_wait()
 
   - rb: tbl.between(nil, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
     py: tbl.between(None, [0, 0], index='bc').order_by('id').map(lambda x:x['id'])

@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
