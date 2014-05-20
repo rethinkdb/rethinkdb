@@ -8,11 +8,13 @@ tests:
     py: tbl.index_create("578", lambda rec:1)
     rb: tbl.index_create("578") {|rec| 1}
     ot: ({'created':1})
+  - cd: tbl.index_wait("578")
+    ot: ([{'ready':True, 'index':'578'}])
 
   - js: tbl.index_create("578", function(rec){return 1})
     py: tbl.index_create("578", lambda rec:1)
     rb: tbl.index_create("578") {|rec| 1}
-    ot: 'err("RqlRuntimeError", "Index `578` already exists.", [])'
+    ot: 'err("RqlRuntimeError", "Index `578` already exists on table `test.578`.", [])'
 
   - js: tbl.index_drop("578")
     py: tbl.index_drop("578")
@@ -22,6 +24,6 @@ tests:
   - js: tbl.index_drop("578")
     py: tbl.index_drop("578")
     rb: tbl.index_drop("578")
-    ot: 'err("RqlRuntimeError", "Index `578` does not exist.", [])'
+    ot: 'err("RqlRuntimeError", "Index `578` does not exist on table `test.578`.", [])'
 
   - cd: r.db('test').table_drop('578')

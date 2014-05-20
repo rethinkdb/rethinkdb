@@ -76,18 +76,21 @@ public:
     state_timestamp_t broadcaster_begin_timestamp;
     listener_business_card_t::upgrade_mailbox_t::address_t upgrade_mailbox;
     listener_business_card_t::downgrade_mailbox_t::address_t downgrade_mailbox;
+    uuid_u listener_id;
 
     listener_intro_t() { }
     listener_intro_t(state_timestamp_t _broadcaster_begin_timestamp,
                      listener_business_card_t::upgrade_mailbox_t::address_t _upgrade_mailbox,
-                     listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox)
+                     listener_business_card_t::downgrade_mailbox_t::address_t _downgrade_mailbox,
+                     uuid_u _listener_id)
         : broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
-          upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox) { }
+          upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox),
+          listener_id(_listener_id) { }
 
 
 
-    RDB_MAKE_ME_SERIALIZABLE_3(broadcaster_begin_timestamp,
-                               upgrade_mailbox, downgrade_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster_begin_timestamp,
+                               upgrade_mailbox, downgrade_mailbox, listener_id);
 };
 
 

@@ -118,8 +118,8 @@ public:
     virtual ~bounded_op_term_t() { }
 
 protected:
-    bool left_open(scope_env_t *env);
-    bool right_open(scope_env_t *env);
+    bool is_left_open(scope_env_t *env);
+    bool is_right_open(scope_env_t *env);
 
 private:
     bool open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/);

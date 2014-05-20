@@ -1,19 +1,32 @@
 #!/usr/bin/env python
 
 import yaml
-import json
-from os import walk
-from sys import argv, stdout, exit
+
+import atexit, collections, distutils.spawn, operator, optparse, shutil, signal, stat, subprocess, tempfile, time, traceback
+import sys
 import types
 import re
 import os
-from subprocess import call
-from test_util import RethinkDBTestServers
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
+import test_exceptions, utils
+sys.path.insert(0, os.path.dirname(__file__))
+import test_util
+
+# -- settings
+
+testGroupSeperator = '/'
+testExtensions = ['test', 'yaml']
+
+# --
 
 # A test script src language
 # This class attempts to abstract some of the details that
 # separate our source languages.
 class SrcLang:
+    
+    interpreter_path = None
+    
     # Returns the approriate line comment string
     def comment(self):
         return "#"
@@ -48,16 +61,20 @@ class SrcLang:
 
 
 class PyLang(SrcLang):
+    interpreter_path = os.getenv('PYTHON') or distutils.spawn.find_executable('python') or 'python'
+    
     def langrepr(self, val):
         if not isinstance(val, types.UnicodeType):
             return repr(str(val))
         else:
             return repr(unicode(val))
-
+    
     def nulltranslate(self, strng):
         return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
 
 class JsLang(SrcLang):
+    interpreter_path = os.getenv('NODE') or distutils.spawn.find_executable('node') or 'node'
+    
     def comment(self):
         return "//"
 
@@ -79,6 +96,8 @@ class JsLang(SrcLang):
             return re.sub('__', '_', name)
 
 class RbLang(SrcLang):
+    interpreter_path = os.getenv('RUBY') or distutils.spawn.find_executable('ruby') or 'ruby'
+    
     def rb_str_repr(self, string):
         return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
 
@@ -131,46 +150,111 @@ class Langs:
     def translate_expected_for(lang, src):
         return Langs.langs[lang].translate_expected(src)
 
-
-
 # Abstracts a set of tests given in a single file
 class TestGroup:
-    def __init__(self, path, group, shard):
-        self.path = path
-        self.group = group
-        self.shard = shard
 
-    def write_group(self, out, lang):
-
-        # First, write header
-        out.write(Langs.comment_for(lang)+' '+('/'.join(self.path))+' '+self.group['desc']+'\n\n')
-
-        i = 0
-        for test in self.group['tests']:
-            i = i + 1
-            self.write_test(out, test, lang, str(i))
-
-        out.write('\n')
-
-    def write_test(self, out, test, lang, index):
-
-        test_name = '-'.join(self.path) + '-' + str(index)
-        if not re.match(test_filter, test_name):
-            return
-
+    @classmethod
+    def buildYamlTest(myClass, testName, sourceFile, language, outputPath, interpreter=None, shards=0):
+    
+        # -- input validation
+        
+        # testName
+        
+        if testName is None:
+            raise ValueError('buildYamlTest requires a testName, got None')
+        testName = str(testName)
+        
+        # sourceFile
+        
+        if sourceFile is None:
+            raise ValueError('buildYamlTest requires a sourceFile, got None')
+        if not os.path.isfile(sourceFile):
+            raise ValueError('buildYamlTest requires a sourceFile, got: %s' % str(sourceFile))
+        
+        # language
+        
+        if language is None:
+            raise ValueError('buildYamlTest requires a language, got None')
+        language = str(language).lower()
+        if not language in Langs.langs:
+            raise ValueError('buildYamlTest requires a language from %s, got %s' % (str(Langs.langs).keys(), language))
+        
+        # outputPath
+        
+        if outputPath is None:
+            raise ValueError('buildYamlTest requires an outputPath, got None')
+        if not os.path.isdir(os.path.dirname(outputPath)):
+            if not os.path.exists(os.path.dirname(outputPath)):
+                os.makedirs(os.path.dirname(outputPath))
+            else:
+                raise ValueError('buildYamlTest got an outputPath with a directory that was already a non-file: %s' % outputPath)
+        if os.path.exists(outputPath) and not os.path.isfile(outputPath):
+            raise ValueError('buildYamlTest got an outputPath that was already a non-file: %s' % outputPath)
+        
+        # interpreter
+        
+        if interpreter is None:
+            interpreter = Langs.langs[language].interpreter_path
+        
+        # -- create the file
+        
+        parsed_data = None
+        try:
+            parsed_data = yaml.load(open(sourceFile))
+        except Exception, e:
+            raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
+        
+        with open(outputPath, 'w') as outputFile:
+            
+            # - write the shebang line
+            
+            outputFile.write('#!%s\n\n' % interpreter) # TODO: add a comment block showing the start of the header/driver
+            
+            # - insert a marker telling what test this is
+            
+            outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (Langs.comment_for(language), testName, language, parsed_data['desc'], sourceFile))
+            
+            # - add the header/driver
+            
+            with open(os.path.join(os.path.dirname(__file__), 'drivers', 'driver.%s' % language)) as headerFile:
+                for chunk in iter((lambda:headerFile.read(1024)),''):
+                    outputFile.write(chunk)
+            
+            outputFile.write('\n\n')  # TODO: add a comment block showing the end of the header/driver
+            
+            # - add the body of the tests
+            
+            for testNumber, test in enumerate(parsed_data['tests'], start=0):
+                myClass.write_test(testName, outputFile, test, language, str(testNumber), shard=shards)
+            
+            outputFile.write('\n\n')
+            
+            # - add the footer
+            
+            outputFile.write('the_end()\n')
+            
+        # - make sure the file is executable
+        
+        os.chmod(outputPath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+    
+    @classmethod
+    def write_test(myClass, testName, out, test, lang, index, shard=0):
+        
+        testName = os.path.join(testName, str(index))
+        
         # Does this test define a variable?
         if 'def' in test:
-            self.write_def(out, test['def'], lang, index)
+            myClass.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
-        (code, runopts) = self.get_code(test, lang, index)
+        (code, runopts) = myClass.get_code(test, lang, index)
         for test_case in code:
             out.write("test("+test_case)
-            expected = self.get_expected(test, lang)
+            expected = myClass.get_expected(test, lang)
             if not expected:
                 expected = '""'
             out.write(', '+expected)
-            out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
+            out.write(', "' + testName + '"')
 
             if runopts:
                 runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
@@ -180,22 +264,23 @@ class TestGroup:
 
             # We want to auto-shard tables that we create. There is stil no
             # way to do this from rql so we have to hack the admin cli.
-
-            if self.shard > 0:
+            
+            if shard > 0:
                 pattern = 'table_create\\(\'(\\w+)\'\\)'
                 mo = re.search(pattern, test_case)
                 if mo:
                     table_name = mo.group(1)
                     out.write('shard("'+table_name+'")\n')
-
-    def write_def(self, out, defobj, lang, index):
-        (code, runopts) = self.get_code(defobj, lang, index + '-def')
+    
+    @classmethod
+    def write_def(myClass, out, defobj, lang, index):
+        (code, runopts) = myClass.get_code(defobj, lang, index + '-def')
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
-    # Tests may specify generic test strings valid for
-    # all languages or language specific versions
-    def get_code(self, obj, lang, index):
+    # Tests may specify generic test strings valid for all languages or language specific versions
+    @classmethod
+    def get_code(myClass, obj, lang, index):
 
         runopts = None
         if isinstance(obj, dict):
@@ -237,7 +322,8 @@ class TestGroup:
 
     # Get the expected result from the test object. Either a generic result or
     # a language specific result.
-    def get_expected(self, obj, lang):
+    @classmethod
+    def get_expected(myClass, obj, lang):
         if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
             return Langs.repr_expected_for(lang, obj[lang]['ot'])
         elif 'ot' in obj:
@@ -251,95 +337,8 @@ class TestGroup:
 
         return None
 
-
-# Build test scripts by walking a tree of yaml files
-class TestBuilder:
-    def __init__(self, root, shard):
-        self.root = root
-        self.shard = shard
-        self.tests = self.get_test_structure()
-        self.build_test_scripts()
-
-    # Walk the test tree and get an object representing all
-    # the test data from the yaml files. Each yaml file defines
-    # a test group. The test groups themselves are nested by
-    # their directory structure.
-    def get_test_structure(self):
-
-        tests = []
-        for root, dirs, files in walk(self.root):
-
-            # Find the nested group location from the root
-            path = root.split('/')[1:]
-
-            # Parse and insert the yaml structures
-            for name in filter(lambda name: name.endswith('.yaml'), files):
-                test_group = yaml.load(open(root+'/'+name))
-                leaf = name.partition('.')[0]
-                tests.append(TestGroup(path+[leaf], test_group, self.shard))
-
-        return tests
-
-    def build_test_scripts(self):
-        self.build_script('py')
-        self.build_script('js')
-        self.build_script('rb')
-
-    def build_script(self, lang):
-        with open('build/test.'+lang, 'w+') as script:
-            with open('drivers/driver.'+lang) as driver:
-
-                # The driver is the head of the file
-                script.write(driver.read())
-
-                for group in self.tests:
-                    group.write_group(script, lang)
-
-                script.write('the_end()')
-
-def run_tests(lang, servers):
-    if lang is 'py':
-        interpreter = os.getenv('PYTHON') or 'python'
-    elif lang is 'js':
-        interpreter = os.getenv('NODE') or 'node'
-    elif lang is 'rb':
-        interpreter = os.getenv('RUBY') or 'ruby'
-    elif lang is 'rb_server':
-        interpreter = os.getenv('RUBY') or 'ruby'
-        res = call([interpreter, 'server_test.rb', str(servers.driver_port())])
-        return
-    else:
-        exit("Unkown language: " + lang)
-
-    print "Running "+lang+" tests"
-    os.system(interpreter + " --version")
-    print ''
-    stdout.flush()
-    res = call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
-    if res != 0:
-        exit("Failed %s tests" % lang)
-    print "Successfully Passed "+lang+" polyglot tests\n"
-    stdout.flush()
-
-# Run all language tests
-def run(build, lang=None):
-    with RethinkDBTestServers(1, server_build_dir=build) as servers:
-        if lang:
-            run_tests(lang, servers)
-        else:
-            # Run all
-            run_tests('py', servers)
-            servers.restart()
-            run_tests('js', servers)
-            servers.restart()
-            run_tests('rb', servers)
-
-def attach(driver_port, cluster_port, rethinkdb_executable, lang='js'):
-    server =  RethinkDBRunningServer(driver_port, cluster_port, rethinkdb_executable)
-    run_tests(lang, server)
-
 class RethinkDBRunningServer:
-    def __init__(self, driver_port, cluster_port, rethinkdb_executable):
+    def __init__(self, driver_port, cluster_port):
         self.driver_port_ = driver_port
         self.cluster_port_ = cluster_port
         self.rethinkdb_executable_ = rethinkdb_executable
@@ -351,13 +350,384 @@ class RethinkDBRunningServer:
         return self.cluster_port_
 
     def executable(self):
-        return self.rethinkdb_executable_
+        return 'NOT_AVALIBLE_FOR_RUNNING_SERVERS'
 
-def build_test_scripts(shard):
-    TestBuilder('src', shard)
+# ==== Main
 
-test_filter = os.getenv("RQL_TEST") or ".*"
+def check_language(option, opt_str, value, parser):
+    if value not in option.choices:
+       raise optparse.OptionValueError('Invalid language: %s' % value) 
+    
+    if not hasattr(parser.values, option.dest):
+        setattr(parser.values, option.dest, [])
+    selectedValues = getattr(parser.values, option.dest)
+    if selectedValues == None:
+        selectedValues = []
+    
+    if value == 'all':
+        for thisValue in [x for x in option.choices if x != 'all']:
+            if thisValue not in selectedValues:
+                selectedValues.append(thisValue)
+    elif value not in selectedValues:
+        selectedValues.append(value)
+    
+    setattr(parser.values, option.dest, selectedValues)
 
-# Call 0-arg function given by shell (e.g. "./test-runner run")
+TestListing = collections.namedtuple('TestListing', ['name', 'path', 'language', 'type'])
+def getTestList(rootPath, testFilters=None, languages=None):
+    '''Get a list of TestListing objects for tests found in the given folder'''
+    
+    global testExtensions
+    
+    # -- input validation
+    
+    # rootPath
+    
+    if rootPath is None:
+        raise ValueError('getTestList got None for rootPath')
+    if not os.path.isdir(str(rootPath)):
+        raise ValueError('getTestList got a non-directory as rootpath: %s' % str(rootPath))
+    rootPath = os.path.realpath(rootPath)
+    
+    # testFilters
+    
+    if testFilters is not None:
+        if not hasattr(testFilters, '__iter__'):
+            testFilters = [testFilters]
+        for testFilter in testFilters:
+            if not hasattr(testFilter, 'match'):
+                raise ValueError('getTestList got a non-regex value as a fiter: %s' % str(testFilter))
+    
+    # languages
+    
+    if languages is not None:
+        if not hasattr(languages, '__iter__'):
+            languages = [x.strip().lower() for x in str(languages).split(',') if x.strip() != '']
+        newLanguages = []
+        for language in languages[0:]:
+            if language.strip().lower() not in Langs.langs:
+                raise ValueError('getTestList got a language that it does not know how to process: %s' % language)
+            newLanguages.append(language.strip().lower())
+        languages = newLanguages
+    
+    # -- find items in the directory
+    
+    foundTests = []
+    
+    for root, dirs, files in os.walk(rootPath):
+        
+        groupName = os.path.relpath(root, rootPath)
+        if groupName in ('.', './'):
+            groupName = ''
+        if groupName == 'src' or groupName.startswith('src/'):
+            groupName = 'polygot' + groupName.lstrip('src')
+        
+        for fileName in [x for x in files if x.count('.') > 0]:
+            
+            testLanguages = Langs.langs.keys()
+            testName, extension = None, None
+            if fileName.count('.') == 1:
+                testName, extension = os.path.splitext(fileName)
+                extension = extension.lstrip('.')
+            else:
+                testName = '.'.join(fileName.split('.')[0:-2])
+                testLanguages, extension = fileName.split('.')[-2:]
+                testLanguages = [testLanguages.lower()]
+            extension = extension.lower()
+            testName = os.path.join(groupName, testName)
+            
+            if extension not in testExtensions:
+                continue
+            
+            for testLanguage in testLanguages:
+                if testLanguage not in languages:
+                    continue
+                
+                subTestName = '%s.%s' % (testName, testLanguage)
+
+                if testFilters is not None and len(testFilters) > 0:
+                    foundMatch = False
+                    for testFilter in testFilters:
+                        if testFilter.match(subTestName) is not None:
+                            foundMatch = True
+                            break
+                    if foundMatch is False:
+                        continue
+                
+                foundTests.append(TestListing(name=subTestName, path=os.path.join(root, fileName), language=testLanguage, type=extension))
+    
+    # --
+    
+    foundTests.sort(key=lambda x: (x.name, x.type))
+    return foundTests
+
+runningProcessGroupsIds = []
+def cleanup(*args):
+    '''fired by atexit or a signal handler, this should make sure we don't leave processes running'''
+    global runningProcessGroups
+    
+    for processGroupId in runningProcessGroupsIds:
+        try:
+            os.killpg(processGroupId, signal.SIGKILL) # TODO: police this
+        except: pass
+    sys.exit()
+atexit.register(cleanup)
+signal.signal(signal.SIGINT, cleanup) # TODO: cover all relevent signals
+
+def main():
+    global runningProcessGroups
+    
+    testFilters = []
+    testList = []
+    build_directory = None
+    
+    servers = None
+    
+    # -- parse command line options
+    
+    parser = optparse.OptionParser(usage='usage: %prog [options] [patterns]')
+    
+    parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
+    
+    parser.add_option('-b', '--build-dir', dest='build_directory', default=None,  help='path to a specific build, usually starting with release_ or debug_')
+    parser.add_option('--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
+    
+    parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=Langs.langs.keys() + ['all'], type='choice', default=None, help='the language to test')
+    parser.add_option('-s', '--shards', dest='shards', type='int', default=1, help='number of shards to run (default 1)')
+    
+    parser.add_option('-j', '--javascript', dest='javascript_executable', default=None, help='use a specific node executbale')
+    parser.add_option('-p', '--python', dest='python_executable', default=None, help='use a specific python executbale')
+    parser.add_option('-r', '--ruby', dest='ruby_executable', default=None, help='use a specific ruby executbale')
+    
+    parser.add_option('-c', '--cluster-port', dest='cluster_port', default=None, type='int', help='cluster port of an already-running rethinkdb instance')
+    parser.add_option('-d', '--driver-port', dest='driver_port', default=None, type='int', help='driver port of an already-running rethinkdb instance')
+    
+    parser.add_option('-v', '--verbse', dest='verbose', default=False, action='store_true', help='show in-progress messages from tests')
+    
+    options, args = parser.parse_args()
+    
+    # - options validation
+    
+    # cluster_port/driver_port
+    
+    if (options.cluster_port is not None or options.driver_port is not None) and None in (options.cluster_port, options.driver_port):
+        parser.error('If either of the following options are used, both must be specifed: -c/--cluster-port, -d/--driver-port')
+    if options.driver_port is not None:
+        build_directory = options.executable_path
+        servers = RethinkDBRunningServer(options.driver_port, options.cluster_port)
+        # TODO: validate that this is actually a running server
+        
+        if options.shards != 1:
+            parser.error('The -c/--cluster-port and -d/--driver-port options can not be used with -s/--shards')
+    
+    # - add filters
+    
+    for newFilter in args:
+        try:
+            testFilters.append(re.compile(newFilter))
+        except Exception, e:
+            parser.error('Invalid filter (regex) entry: %s' % newFilter)
+    
+    # - pull in environmental variables
+    
+    if len(testFilters) == 0:
+        if os.getenv('RQL_TEST'):
+            try:
+                testFilters.append(re.compile(os.getenv('RQL_TEST')))
+            except:
+                parser.error("'Invalid filter from ENV: %s" % os.getenv('RQL_TEST'))
+        if os.getenv('TEST'):
+            try:
+                testFilters.append(re.compile(os.getenv('TEST')))
+            except:
+                parser.error("'Invalid filter from ENV: %s" % os.getenv('TEST'))
+    
+    # - default options
+    
+    if options.languages is None:
+        options.languages = Langs.langs.keys()
+    
+    # -- get the list of tests
+    
+    testList = getTestList(os.path.realpath(os.path.dirname(__file__)), testFilters=testFilters, languages=options.languages)
+    
+    # -- clean run dir if requested
+    
+    if options.clean_run_directory is True:
+        runDirPath = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'run')
+        if os.path.exists(runDirPath) and not os.path.islink(runDirPath):
+            if os.path.isdir(runDirPath):
+                shutil.rmtree(runDirPath)
+            else:
+                os.unlink(runDirPath)
+    
+    # -- print list if requested
+    
+    if options.list_mode is True:
+        for test in testList:
+            print(test.name)
+        return 0
+    
+    # -- check the build_directory
+    
+    if options.build_directory is None:
+        try:
+            build_directory = utils.latest_build_dir()
+        except test_exceptions.TestingFrameworkException, e:
+            sys.exit(str(e))
+    else:
+        build_directory = options.build_directory
+    
+    if not os.path.isfile(os.path.join(build_directory, 'rethinkdb')):
+        sys.exit('Error: the slected build directory does not look valid: %s' % build_directory)
+    
+    # -- set ENV settings for child processes
+    
+    if 'RUBYLIB' in os.environ:
+        os.environ['RUBYLIB'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby'), os.environ['RUBYLIB']])
+    else:
+        os.environ['RUBYLIB'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'ruby')
+    
+    if 'PYTHONPATH' in os.environ:
+        os.environ['PYTHONPATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'drivers', 'python'), os.environ['PYTHONPATH']])
+    else:
+        os.environ['PYTHONPATH'] = os.path.join(utils.project_root_dir(), 'drivers', 'python')
+    
+    if 'NODE_PATH' in os.environ:
+        os.environ['NODE_PATH'] = ':'.join([os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript'), os.environ['NODE_PATH']])
+    else:
+        os.environ['NODE_PATH'] = os.path.join(utils.project_root_dir(), 'build', 'drivers', 'javascript')
+    
+    os.environ['BUILD_DIR'] = build_directory
+    
+    # -- make sure the drivers are built
+    
+    for language in options.languages:
+        driverDir = None
+        if language == 'rb':
+            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'ruby')
+        elif language == 'js':
+            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'javascript')
+        elif language == 'py':
+            driverDir = os.path.join(utils.project_root_dir(), 'drivers', 'python')
+        else:
+            raise NotImplementedError('This tool does not know how to work with: %s' % language)
+        
+        outputFile = tempfile.NamedTemporaryFile()
+        notificationDeadline = time.time() + 2
+        makeProcess = subprocess.Popen(['make', '-C', driverDir], stdout=outputFile, stderr=subprocess.STDOUT)
+        while makeProcess.poll() is None and time.time() < notificationDeadline:
+            time.sleep(.1)
+        if time.time() > notificationDeadline:
+            print('Building the %s drivers. This make take a few moments.' % language)
+        if makeProcess.wait() != 0:
+            sys.stderr.write('Error making %s driver. Make output follows:\n\n' % os.path.basename(__file__))
+            outputFile.seek(0)
+            print(outputFile.read())
+            sys.exit(1)
+    
+    # -- run the testing
+    
+    if len(testList) == 0:
+        sys.exit()
+    
+    print('Using rethinkdb binary from %s' % build_directory)
+    startTime = time.time()
+    
+    failedTests = []
+    
+    srcPath = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'src')
+    buildPath = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'build')
+    
+    for test in testList:
+        
+        executablePath = test.path
+        additionalArguments = []
+        
+        # - make type-specific setups
+        
+        if test.type == 'yaml':
+            
+            # - build the runable test
+            
+            if not os.path.isdir(srcPath):
+                os.makedirs(srcPath)
+            executablePath = os.path.join(buildPath, test.name.replace('/', '.'))
+            
+            try:
+                TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards-1)
+            except Exception, e:
+                failedTests.append(test.name)
+                sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s" % (test.name, str(e)))
+            
+            # - start the server
+            
+            if servers is None:
+                if options.cluster_port is not None:
+                    sys.exit('Internal failure: we somehow lost track of the already running server!')
+                servers = test_util.RethinkDBTestServers(num_servers=1, server_build_dir=build_directory)
+                servers.start() # TODO: handle server fallovers
+            
+            # --
+            
+            additionalArguments = ['UNUSED', str(servers.driver_port()), str(servers.cluster_port()), servers.executable()]
+        
+        if test.type == 'test':
+            additionalArguments = [utils.latest_build_dir()]
+        
+        # - run the test
+        
+        outputChannel = None
+        if options.verbose is False:
+            outputChannel = tempfile.NamedTemporaryFile()
+        
+        testProcessGroupId = None
+        print("\n== Running %s test" % test.name)
+        try:
+            testProcess = subprocess.Popen([executablePath] + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp)
+            try:
+                testProcessGroupId = os.getpgid(testProcess.pid)
+                runningProcessGroupsIds.append(testProcessGroupId)
+            except: pass
+            
+            if testProcess.wait() != 0:
+                if servers is not None:
+                    try:
+                        servers.stop()
+                    except Exception, e:
+                        sys.stderr.write('RethinkDB server failed: %s' % str(e))
+                    servers = None
+                
+                failedTests.append(test.name)
+                errorOutput = ''
+                if outputChannel is not None and os.path.getsize(outputChannel.name) > 0:
+                    outputChannel.seek(0)
+                    errorOutput = ' Output:\n' + outputChannel.read()
+                sys.stderr.write("== Failed %s test with result code %s (%s)%s\n" % (test.name, str(testProcess.returncode), test.path, errorOutput))
+            else:
+                print("== Successfully passed %s test" % test.name)
+        finally:
+            outputChannel = None
+            if testProcessGroupId is not None:
+                try:
+                    os.killpg(testProcessGroupId, signal.CTRL_C_EVENT) # TODO: police this
+                except: pass
+            if testProcessGroupId in runningProcessGroupsIds:
+                runningProcessGroupsIds.remove(testProcessGroupId)
+            testProcessGroupId = None
+            
+    
+    if len(failedTests) == 0:
+        plural = ''
+        if len(testList) > 1:
+            plural = 's'
+        print('== Sucessfully passed all %s test%s in %.2f seconds!' % (len(testList), plural, time.time() - startTime))
+    else:
+        plural = ''
+        if len(failedTests) > 1:
+            plural = 's'
+        sys.stderr.write('== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTests)))
+    return len(failedTests) == 0
+        
 if __name__ == '__main__':
-    eval(argv[1]+'(%s)' % ', '.join(argv[2:]))
+    sys.exit(main())

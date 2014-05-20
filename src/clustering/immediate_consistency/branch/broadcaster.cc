@@ -6,7 +6,7 @@
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
-#include "concurrency/coro_fifo.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/death_runner.hpp"
@@ -18,6 +18,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+#include "logger.hpp"
 #include "store_view.hpp"
 
 broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
@@ -82,7 +83,7 @@ broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     initial_svs->new_write_token(&write_token);
     initial_svs->set_metainfo(region_map_t<binary_blob_t>(initial_svs->get_region(),
-                                                                          binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
+                                                          binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
                               order_source->check_in("broadcaster_t(write)"),
                               &write_token,
                               interruptor);
@@ -186,6 +187,7 @@ class broadcaster_t::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t d) THROWS_NOTHING :
         write_mailbox(d.write_mailbox), is_readable(false),
+        local_listener(NULL), listener_id(generate_uuid()),
         queue_count(),
         queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
@@ -219,7 +221,10 @@ public:
                 it != controller->incomplete_writes.end(); it++) {
 
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
+                                               this, auto_drainer_t::lock_t(&drainer),
+                                               incomplete_write_ref_t(*it),
+                                               order_source.check_in("dispatchee_t"),
+                                               fifo_source.enter_write()));
         }
     }
 
@@ -245,8 +250,9 @@ private:
 
         send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
              listener_intro_t(intro_timestamp,
-                                          upgrade_mailbox.get_address(),
-                                          downgrade_mailbox.get_address()));
+                              upgrade_mailbox.get_address(),
+                              downgrade_mailbox.get_address(),
+                              listener_id));
     }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
@@ -282,10 +288,17 @@ public:
     listener_business_card_t::writeread_mailbox_t::address_t writeread_mailbox;
     listener_business_card_t::read_mailbox_t::address_t read_mailbox;
 
+    /* `local_listener` can be non-NULL if the dispatchee is local on this node
+    (and on the same thread). */
+    listener_t *local_listener;
+    auto_drainer_t::lock_t local_listener_keepalive;
+
     /* This is used to enforce that operations are performed on the
        destination machine in the same order that we send them, even if the
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
+
+    uuid_u listener_id;
 
     // Accompanies the fifo_source.  It is questionable that we have a
     // separate order source just for the background writes.  What
@@ -310,27 +323,45 @@ private:
     DISABLE_COPYING(dispatchee_t);
 };
 
+void broadcaster_t::register_local_listener(
+        const uuid_u &listener_id,
+        listener_t *listener,
+        auto_drainer_t::lock_t listener_keepalive) {
+    for (auto it = dispatchees.begin(); it != dispatchees.end(); ++it) {
+        if (it->first->listener_id == listener_id) {
+            it->first->local_listener = listener;
+            it->first->local_listener_keepalive = listener_keepalive;
+            return;
+        }
+    }
+    logERR("Non-critical error: Could not install local listener. "
+           "You may experience reduced query performance.");
+}
+
 /* Functions to send a read or write to a mirror and wait for a response.
 Important: These functions must send the message before responding to
 `interruptor` being pulsed. */
 
-void listener_write(
-        mailbox_manager_t *mailbox_manager,
-        const listener_business_card_t::write_mailbox_t::address_t &write_mailbox,
+void broadcaster_t::listener_write(
+        broadcaster_t::dispatchee_t *mirror,
         const write_t &w, transition_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    cond_t ack_cond;
-    mailbox_t<void()> ack_mailbox(
-        mailbox_manager,
-        std::bind(&cond_t::pulse, &ack_cond));
+    if (mirror->local_listener != NULL) {
+        mirror->local_listener->local_write(w, ts, order_token, token, interruptor);
+    } else {
+        cond_t ack_cond;
+        mailbox_t<void()> ack_mailbox(
+            mailbox_manager,
+            std::bind(&cond_t::pulse, &ack_cond));
 
-    send(mailbox_manager, write_mailbox,
-         w, ts, order_token, token, ack_mailbox.get_address());
+        send(mailbox_manager, mirror->write_mailbox,
+             w, ts, order_token, token, ack_mailbox.get_address());
 
-    wait_interruptible(&ack_cond, interruptor);
+        wait_interruptible(&ack_cond, interruptor);
+    }
 }
 
 template <class response_t>
@@ -339,26 +370,34 @@ void store_listener_response(response_t *result_out, const response_t &result_in
     done->pulse();
 }
 
-void listener_read(
-        mailbox_manager_t *mailbox_manager,
-        const listener_business_card_t::read_mailbox_t::address_t &read_mailbox,
+void broadcaster_t::listener_read(
+        broadcaster_t::dispatchee_t *mirror,
         const read_t &r, read_response_t *response, state_timestamp_t ts,
         order_token_t order_token, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    cond_t resp_cond;
-    mailbox_t<void(read_response_t)> resp_mailbox(
-        mailbox_manager,
-        std::bind(&store_listener_response<read_response_t>, response, ph::_1, &resp_cond));
+    if (mirror->local_listener != NULL) {
+        *response = mirror->local_listener->local_read(r, ts, order_token, token,
+                                                       interruptor);
+    } else {
+        cond_t resp_cond;
+        mailbox_t<void(read_response_t)> resp_mailbox(
+            mailbox_manager,
+            std::bind(&store_listener_response<read_response_t>, response, ph::_1, &resp_cond));
 
-    send(mailbox_manager, read_mailbox,
-         r, ts, order_token, token, resp_mailbox.get_address());
+        send(mailbox_manager, mirror->read_mailbox,
+             r, ts, order_token, token, resp_mailbox.get_address());
 
-    wait_interruptible(&resp_cond, interruptor);
+        wait_interruptible(&resp_cond, interruptor);
+    }
 }
 
-void broadcaster_t::read(const read_t &read, read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+void broadcaster_t::read(
+        const read_t &read, read_response_t *response,
+        fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
+        signal_t *interruptor)
+        THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     if (read.all_read()) {
         all_read(read, response, lock, order_token, interruptor);
     } else {
@@ -442,7 +481,10 @@ void broadcaster_t::spawn_write(const write_t &write,
     }
 }
 
-void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
+void broadcaster_t::pick_a_readable_dispatchee(
+        dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof,
+        auto_drainer_t::lock_t *lock_out)
+        THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
 
@@ -474,7 +516,8 @@ void broadcaster_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mu
 
 void broadcaster_t::get_all_readable_dispatchees(
         std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
-        std::vector<auto_drainer_t::lock_t> *locks_out) THROWS_ONLY(cannot_perform_query_exc_t) {
+        std::vector<auto_drainer_t::lock_t> *locks_out)
+        THROWS_ONLY(cannot_perform_query_exc_t) {
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
     if (readable_dispatchees.empty()) {
@@ -491,27 +534,43 @@ void broadcaster_t::get_all_readable_dispatchees(
     }
 }
 
-void broadcaster_t::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+void broadcaster_t::background_write(
+        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
+        fifo_enforcer_write_token_t token)
+        THROWS_NOTHING {
     try {
-        listener_write(mailbox_manager, mirror->write_mailbox,
-                       write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
-                       mirror_lock.get_drain_signal());
+        listener_write(mirror, write_ref.get()->write, write_ref.get()->timestamp,
+                       order_token, token, mirror_lock.get_drain_signal());
     } catch (const interrupted_exc_t &) {
         return;
     }
 }
 
-void broadcaster_t::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
+void broadcaster_t::background_writeread(
+        dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
+        fifo_enforcer_write_token_t token, const write_durability_t durability)
+        THROWS_NOTHING {
     try {
-        cond_t response_cond;
         write_response_t response;
-        mailbox_t<void(write_response_t)> response_mailbox(
-            mailbox_manager,
-            boost::bind(&store_listener_response<write_response_t>, &response, _1, &response_cond));
+        if (mirror->local_listener != NULL) {
+            response = mirror->local_listener->local_writeread(
+                    write_ref.get()->write, write_ref.get()->timestamp, order_token,
+                    token, durability, mirror_lock.get_drain_signal());
+        } else {
+            cond_t response_cond;
+            mailbox_t<void(write_response_t)> response_mailbox(
+                mailbox_manager,
+                boost::bind(&store_listener_response<write_response_t>, &response, _1,
+                            &response_cond));
 
-        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), durability);
+            send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write,
+                 write_ref.get()->timestamp, order_token, token,
+                 response_mailbox.get_address(), durability);
 
-        wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
+            wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
+        }
 
         // TODO: Require that everybody provide a callback.
         if (write_ref.get()->callback) {
@@ -584,8 +643,7 @@ void broadcaster_t::single_read(
 
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
-        listener_read(mailbox_manager, reader->read_mailbox,
-                      read, response, timestamp, order_token, enforcer_token,
+        listener_read(reader, read, response, timestamp, order_token, enforcer_token,
                       &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
@@ -637,9 +695,8 @@ void broadcaster_t::all_read(
         std::vector<read_response_t> responses;
         responses.resize(readers.size());
         for (size_t i = 0; i < readers.size(); ++i) {
-            listener_read(
-                mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
-                timestamp, order_token, enforcer_tokens[i], &interruptor2);
+            listener_read(readers[i], read, &responses[i], timestamp, order_token,
+                          enforcer_tokens[i], &interruptor2);
         }
 
         /* Note this is a bit of a hack. We're passing a NULL
@@ -685,4 +742,3 @@ broadcaster_t::write_callback_t::~write_callback_t() {
         write->callback = NULL;
     }
 }
-

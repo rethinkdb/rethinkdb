@@ -5,6 +5,7 @@ rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path
 sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
 import http_admin, driver
 from vcoptparse import *
+import rdb_workload_common
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -25,27 +26,27 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc, name = "stress", database = db)
+    ns = http.add_table(primary = dc, name = "stress", database = db)
     time.sleep(3)
-    host, port = driver.get_namespace_host(ns.port, processes)
+    host, port = driver.get_table_host(processes)
     cluster.check()
 
     print "Increasing replication factor..."
-    http.set_namespace_affinities(ns, {dc: 1})
+    http.set_table_affinities(ns, {dc: 1})
     time.sleep(3)
     cluster.check()
 
     print "Inserting some data..."
-    subprocess.check_call(["%s/bench/stress-client/stress" % rethinkdb_root, "-w", "0/0/1/0", "-d", "20000q", "-s", "%s:%d" % (host, port)])
+    rdb_workload_common.insert_many(host=host, port=port, database="test", table="stress", count=20000)
     cluster.check()
 
     print "Decreasing replication factor..."
-    http.set_namespace_affinities(ns, {dc: 0})
+    http.set_table_affinities(ns, {dc: 0})
     time.sleep(3)
     cluster.check()
 
     print "Increasing replication factor again..."
-    http.set_namespace_affinities(ns, {dc: 1})
+    http.set_table_affinities(ns, {dc: 1})
 
     print "Confirming that the progress meter indicates a backfill happening..."
     for i in xrange(100):

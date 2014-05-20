@@ -45,7 +45,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     /* Protect the end of the stack so that we crash when we get a stack
     overflow instead of corrupting memory. */
+#ifndef THREADED_COROUTINES
     mprotect(stack, getpagesize(), PROT_NONE);
+#else
+    /* Instruments hangs when running with mprotect and having object identification enabled.
+    We don't need it for THREADED_COROUTINES anyway, so don't use it then. */
+#endif
 
     /* Register our stack with Valgrind so that it understands what's going on
     and doesn't create spurious errors */
@@ -136,7 +141,9 @@ artificial_stack_t::~artificial_stack_t() {
 #endif
 
     /* Undo protections changes */
+#ifndef THREADED_COROUTINES
     mprotect(stack, getpagesize(), PROT_READ | PROT_WRITE);
+#endif
 
     /* Release the stack we allocated */
     free(stack);

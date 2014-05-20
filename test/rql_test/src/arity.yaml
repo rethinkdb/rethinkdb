@@ -1,7 +1,7 @@
 desc: Test the arity of every function
 tests:
 
-    # TODO: add test for slice (should require two arguments)
+    # TODO: add test for slice (should require one or two arguments)
 
     # Set up some data
     - def: db = r.db('test')
@@ -191,7 +191,7 @@ tests:
 
     - cd: tbl.reduce()
       ot: 
-        js: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.", [])
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
         rb: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(1 given\)", [])
 
@@ -270,6 +270,12 @@ tests:
       js: r.expr({})(1,2)
       py: []
       rb: []
+
+    - cd: r.http("httpbin.org/get","bad_param")
+      ot:
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
 
 
     # TODO: Math and logic

@@ -9,7 +9,12 @@
 
 
 void message_handler_t::on_local_message(peer_id_t source_peer,
+                                         cluster_version_t cluster_version,
                                          std::vector<char> &&data) {
+    // This is only sensible.  We pass the cluster_version all the way from the local
+    // serialization code just to play nice.
+    rassert(cluster_version == cluster_version_t::LATEST_VERSION);
+
     vector_read_stream_t read_stream(std::move(data));
-    on_message(source_peer, &read_stream);
+    on_message(source_peer, cluster_version, &read_stream);
 }

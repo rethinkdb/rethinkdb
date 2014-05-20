@@ -4,6 +4,7 @@
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "btree/keys.hpp"
+#include "stl_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
@@ -120,6 +121,16 @@ TPTEST(UtilsTest, IPAddress) {
         EXPECT_EQ(static_cast<size_t>(2), ips.size());
         EXPECT_TRUE(ip_strings.find("203.0.113.59") != ip_strings.end());
     }
+}
+
+TEST(StlUtilsTest, SplitString) {
+    EXPECT_EQ(make_vector<std::string>(""), split_string("", '.'));
+    EXPECT_EQ(make_vector<std::string>("", ""), split_string(".", '.'));
+    EXPECT_EQ(make_vector<std::string>("1", "", "3"), split_string("1..3", '.'));
+    EXPECT_EQ(make_vector<std::string>("1", "3"), split_string("1.3", '.'));
+    EXPECT_EQ(make_vector<std::string>("13"), split_string("13", '.'));
+    EXPECT_EQ(make_vector<std::string>("1", " 2", " 3"), split_string("1, 2, 3", ','));
+    EXPECT_EQ(make_vector<std::string>("1", " 2 3"), split_string("1, 2 3", ','));
 }
 
 }  // namespace unittest

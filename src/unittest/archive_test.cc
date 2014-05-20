@@ -8,8 +8,8 @@
 
 namespace unittest {
 
-void dump_to_string(write_message_t *msg, std::string *out) {
-    intrusive_list_t<write_buffer_t> *buffers = msg->unsafe_expose_buffers();
+void dump_to_string(write_message_t *wm, std::string *out) {
+    intrusive_list_t<write_buffer_t> *buffers = wm->unsafe_expose_buffers();
 
     out->clear();
     for (write_buffer_t *p = buffers->head(); p; p = buffers->next(p)) {
@@ -20,12 +20,12 @@ void dump_to_string(write_message_t *msg, std::string *out) {
 TEST(WriteMessageTest, Variant) {
     boost::variant<int32_t, std::string, int8_t> v("Hello, world!");
 
-    write_message_t msg;
+    write_message_t wm;
 
-    msg << v;
+    serialize(&wm, v);
 
     std::string s;
-    dump_to_string(&msg, &s);
+    dump_to_string(&wm, &s);
 
     ASSERT_EQ(2, s[0]);
     ASSERT_EQ(13, s[1]);  // The varint-encoded string length.

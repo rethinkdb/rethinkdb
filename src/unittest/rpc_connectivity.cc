@@ -27,10 +27,10 @@ public:
         public:
             explicit writer_t(int _data) : data(_data) { }
             virtual ~writer_t() { }
-            void write(write_stream_t *stream) {
-                write_message_t msg;
-                msg << data;
-                int res = send_write_message(stream, &msg);
+            void write(cluster_version_t, write_stream_t *stream) {
+                write_message_t wm;
+                serialize(&wm, data);
+                int res = send_write_message(stream, &wm);
                 if (res) { throw fake_archive_exc_t(); }
             }
             int32_t data;
@@ -58,7 +58,8 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, read_stream_t *stream) {
+    void on_message(peer_id_t peer, cluster_version_t,
+                    read_stream_t *stream) {
         int i;
         archive_result_t res = deserialize(stream, &i);
         if (bad(res)) { throw fake_archive_exc_t(); }
@@ -75,7 +76,8 @@ private:
 
 class dummy_message_handler_t : public message_handler_t {
 public:
-    void on_message(peer_id_t, read_stream_t *stream) {
+    void on_message(peer_id_t, cluster_version_t,
+                    read_stream_t *stream) {
         char msg;
         if (force_read(stream, &msg, 1) != 1) {
             throw fake_archive_exc_t();
@@ -449,16 +451,18 @@ public:
         class dump_spectrum_writer_t : public send_message_write_callback_t {
         public:
             virtual ~dump_spectrum_writer_t() { }
-            void write(write_stream_t *stream) {
+            void write(cluster_version_t, write_stream_t *stream) {
                 char spectrum[CHAR_MAX - CHAR_MIN + 1];
-                for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
+                for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
+                    spectrum[i - CHAR_MIN] = i;
+                }
                 int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
                 if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
             }
         } writer;
         service->send_message(peer, &writer);
     }
-    void on_message(peer_id_t, read_stream_t *stream) {
+    void on_message(peer_id_t, cluster_version_t, read_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         int64_t res = force_read(stream, spectrum, CHAR_MAX - CHAR_MIN + 1);
         if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
@@ -634,12 +638,12 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
     // Send bad version
     std::string bad_version_str("0.1.1b");
     write_message_t bad_version_msg;
-    bad_version_msg << bad_version_str.length();
+    serialize(&bad_version_msg, bad_version_str.length());
     bad_version_msg.append(bad_version_str.data(), bad_version_str.length());
-    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    serialize(&bad_version_msg, connectivity_cluster_t::cluster_arch_bitsize.length());
     bad_version_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                            connectivity_cluster_t::cluster_arch_bitsize.length());
-    bad_version_msg << connectivity_cluster_t::cluster_build_mode.length();
+    serialize(&bad_version_msg, connectivity_cluster_t::cluster_build_mode.length());
     bad_version_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
                            connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_version_msg));
@@ -679,12 +683,12 @@ TPTEST(RPCConnectivityTest, DifferentArch) {
     // Send the expected version but bad arch bitsize
     std::string bad_arch_str("96bit");
     write_message_t bad_arch_msg;
-    bad_arch_msg << connectivity_cluster_t::cluster_version.length();
-    bad_arch_msg.append(connectivity_cluster_t::cluster_version.data(),
-                        connectivity_cluster_t::cluster_version.length());
-    bad_arch_msg << bad_arch_str.length();
+    serialize(&bad_arch_msg, connectivity_cluster_t::cluster_version_string.length());
+    bad_arch_msg.append(connectivity_cluster_t::cluster_version_string.data(),
+                        connectivity_cluster_t::cluster_version_string.length());
+    serialize(&bad_arch_msg, bad_arch_str.length());
     bad_arch_msg.append(bad_arch_str.data(), bad_arch_str.length());
-    bad_arch_msg << connectivity_cluster_t::cluster_build_mode.length();
+    serialize(&bad_arch_msg, connectivity_cluster_t::cluster_build_mode.length());
     bad_arch_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
                         connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_arch_msg));
@@ -724,13 +728,13 @@ TPTEST(RPCConnectivityTest, DifferentBuildMode) {
     // Send the expected version but bad arch bitsize
     std::string bad_build_mode_str("build mode activated");
     write_message_t bad_build_mode_msg;
-    bad_build_mode_msg << connectivity_cluster_t::cluster_version.length();
-    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version.data(),
-                              connectivity_cluster_t::cluster_version.length());
-    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    serialize(&bad_build_mode_msg, connectivity_cluster_t::cluster_version_string.length());
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version_string.data(),
+                              connectivity_cluster_t::cluster_version_string.length());
+    serialize(&bad_build_mode_msg, connectivity_cluster_t::cluster_arch_bitsize.length());
     bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                               connectivity_cluster_t::cluster_arch_bitsize.length());
-    bad_build_mode_msg << bad_build_mode_str.length();
+    serialize(&bad_build_mode_msg, bad_build_mode_str.length());
     bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
     let_stuff_happen();

@@ -1,52 +1,36 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 import sys, socket, random, time, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import memcached_workload_common
+import rdb_workload_common
 from vcoptparse import *
 
-# A hacky function that reads a response from a socket of an expected size.
-def read_response_of_expected_size(s, n):
-    data = ""
-    while (len(data) < n):
-        data += s.recv(n - len(data))
-        # Stop if we get a shorter than expected response.
-        if (data.count("\r\n") >= 3):
-            return data
-    return data
-
-op = memcached_workload_common.option_parser_for_socket()
+op = rdb_workload_common.option_parser_for_connect()
 op["n_appends"] = IntFlag("--num-appends", 20000)
 opts = op.parse(sys.argv)
 
-with memcached_workload_common.make_socket_connection(opts) as s:
-
-    def send(x):
-        # print str
-        s.sendall(x)
+with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
 
     key = 'fizz'
     val_chunks = ['buzzBUZZZ', 'baazBAAZ', 'bozoBOZO']
 
-    send("set %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunks[0]), val_chunks[0]))
+    table.insert({'id': key, 'val': val_chunks[0]}).run(conn)
 
     # All commands have noreply except the last.
     for i in xrange(1, opts["n_appends"]):
         time.sleep(.001)
-        send("append %s 0 0 %d%s\r\n%s\r\n" % (key, len(val_chunks[i % 3]), "" if i == opts["n_appends"] - 1 else " noreply", val_chunks[i % 3]))
+        noreply = not (i == opts["n_appends"] - 1)
+        response = table.get(key).update(lambda row: { 'val': row['val'].add(val_chunks[i%3]) }).run(conn, noreply=noreply)
 
     # Read the reply from the last command.
-    expected_stored = "STORED\r\n"
-    stored_reply = read_response_of_expected_size(s, len(expected_stored))
-    if (expected_stored != stored_reply):
-        raise ValueError("Expecting STORED reply.")
+    if (response['replaced'] != 1):
+        raise ValueError("Expecting { replaced: 1 } in reply.")
 
-    val = ''.join([val_chunks[i % 3] for i in xrange(opts["n_appends"])])
+    expected_val = ''.join([val_chunks[i % 3] for i in xrange(opts["n_appends"])])
 
-    send("get %s\r\n" % key)
-    expected_res = "VALUE %s 0 %d\r\n%s\r\nEND\r\n" % (key, len(val), val)
-    actual_val = read_response_of_expected_size(s, len(expected_res))
-    if (expected_res != actual_val):
-        print "Expected val: %s" % expected_res
+    actual_val = table.get(key)['val'].run(conn)
+    
+    if (expected_val != actual_val):
+        print "Expected val: %s" % expected_val
         print "Incorrect val (len=%d): %s" % (len(actual_val), actual_val)
         raise ValueError("Incorrect value.")

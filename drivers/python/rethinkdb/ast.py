@@ -20,6 +20,9 @@ def expr(val, nesting_depth=20):
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
+    if not isinstance(nesting_depth, int):
+        raise RqlDriverError("Second argument to `r.expr` must be a number.")
+
     if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, list):
@@ -317,8 +320,8 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left, right, left_bound=(), right_bound=()):
-        return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
+    def slice(self, *args, **kwargs):
+        return Slice(self, *args, **kwargs)
 
     def skip(self, index):
         return Skip(self, index)
@@ -677,9 +680,17 @@ class JavaScript(RqlTopLevelQuery):
     tt = p.Term.JAVASCRIPT
     st = "js"
 
+class Http(RqlTopLevelQuery):
+    tt = p.Term.HTTP
+    st = "http"
+
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
+
+class Random(RqlTopLevelQuery):
+    tt = p.Term.RANDOM
+    st = "random"
 
 class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT

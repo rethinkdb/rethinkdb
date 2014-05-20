@@ -25,16 +25,16 @@ with driver.Metacluster() as metacluster:
     for process in processes:
         process.wait_until_started_up()
 
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", proxy_process.http_port)])
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = scenario_common.prepare_table_for_workload(opts, http, primary = dc)
+    ns = scenario_common.prepare_table_for_workload(http, primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    workload_ports = scenario_common.get_workload_ports(opts, ns, [proxy_process])
-    workload_runner.run(opts["protocol"], opts["workload"], workload_ports, opts["timeout"])
+    workload_ports = scenario_common.get_workload_ports(ns, [proxy_process])
+    workload_runner.run(opts["workload"], workload_ports, opts["timeout"])
 
     cluster.check_and_stop()
 

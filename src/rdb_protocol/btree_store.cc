@@ -8,9 +8,9 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
@@ -21,12 +21,13 @@
 // (Really, some of the implementation is also in rdb_protocol/btree.cc.)
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
-        std::string sindex_name)
-    : info(strprintf("Index `%s` was accessed before its construction was finished.",
-                sindex_name.c_str()))
-{ }
+    const std::string &sindex_name, const std::string &table_name)
+    : info(strprintf("Index `%s` on table `%s` "
+                     "was accessed before its construction was finished.",
+                     sindex_name.c_str(),
+                     table_name.c_str())) { }
 
-const char* sindex_not_post_constructed_exc_t::what() const throw() {
+const char *sindex_not_post_constructed_exc_t::what() const throw() {
     return info.c_str();
 }
 
@@ -51,11 +52,15 @@ store_t::store_t(serializer_t *serializer,
 
     if (create) {
         vector_stream_t key;
-        write_message_t msg;
+        // The version used when deserializing this data depends on the block magic.
+        // The block magic set by init_superblock corresponds to the latest version
+        // and so this serialization does too.
+        // VSI: Do this better.
+        write_message_t wm;
         region_t kr = region_t::universe();
-        msg << kr;
-        key.reserve(msg.size());
-        int res = send_write_message(&key, &msg);
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, kr);
+        key.reserve(wm.size());
+        int res = send_write_message(&key, &wm);
         guarantee(!res);
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
@@ -552,6 +557,7 @@ MUST_USE bool store_t::drop_sindex(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
@@ -575,7 +581,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -586,6 +592,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
@@ -604,7 +611,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
 
@@ -759,10 +766,13 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
-        write_message_t msg;
-        msg << i->first;
-        key.reserve(msg.size());
-        DEBUG_VAR int res = send_write_message(&key, &msg);
+        write_message_t wm;
+        // Versioning of this serialization will depend on the block magic.  But
+        // right now there's just one version.
+        // VSI: Make this code better.
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, i->first);
+        key.reserve(wm.size());
+        DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>(i->second.data()),
@@ -803,7 +813,9 @@ get_metainfo_internal(buf_lock_t *sb_buf,
         region_t region;
         {
             inplace_vector_read_stream_t key(&i->first);
-            archive_result_t res = deserialize(&key, &region);
+            // Versioning of this deserialization will depend on the block magic.
+            // VSI: Make this code better.
+            archive_result_t res = deserialize_for_version(cluster_version_t::ONLY_VERSION, &key, &region);
             guarantee_deserialization(res, "region");
         }
 

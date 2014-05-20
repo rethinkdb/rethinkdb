@@ -36,6 +36,20 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 
+peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
+    peer_address_set_t peers;
+    for (size_t i = 0; i < names.size(); ++i) {
+        peer_address_t peer(std::set<host_and_port_t>(&names[i], &names[i+1]));
+        if (peers.find(peer) != peers.end()) {
+            logWRN("Duplicate peer in --join parameters, ignoring: '%s:%d'",
+                   names[i].host().c_str(), names[i].port().value());
+        } else {
+            peers.insert(peer);
+        }
+    }
+    return peers;
+}
+
 std::string service_address_ports_t::get_addresses_string() const {
     std::set<ip_address_t> actual_addresses = local_addresses;
     bool first = true;
@@ -59,19 +73,15 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
-bool do_serve(
-    io_backender_t *io_backender,
-    bool i_am_a_server,
-    // NB. filepath & persistent_file are used iff i_am_a_server is true.
-    const base_path_t &base_path,
-    metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
-    metadata_persistence::auth_persistent_file_t *auth_metadata_file,
-    uint64_t total_cache_size,
-    const peer_address_set_t &joins,
-    service_address_ports_t address_ports,
-    std::string web_assets,
-    os_signal_cond_t *stop_cond,
-    const boost::optional<std::string> &config_file) {
+bool do_serve(io_backender_t *io_backender,
+              bool i_am_a_server,
+              // NB. filepath & persistent_file are used only if i_am_a_server is true.
+              const base_path_t &base_path,
+              metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
+              metadata_persistence::auth_persistent_file_t *auth_metadata_file,
+              uint64_t total_cache_size,
+              const serve_info_t &serve_info,
+              os_signal_cond_t *stop_cond) {
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
@@ -152,11 +162,11 @@ bool do_serve(
         try {
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
-                address_ports.local_addresses,
-                address_ports.canonical_addresses,
-                address_ports.port,
+                serve_info.ports.local_addresses,
+                serve_info.ports.canonical_addresses,
+                serve_info.ports.port,
                 &message_multiplexer_run,
-                address_ports.client_port,
+                serve_info.ports.client_port,
                 &heartbeat_manager));
 
             // Update the directory with the ip addresses that we are passing to peers
@@ -172,8 +182,8 @@ bool do_serve(
         }
 
         // If (0 == port), then we asked the OS to give us a port number.
-        if (address_ports.port != 0) {
-            guarantee(address_ports.port == connectivity_cluster_run->get_port());
+        if (serve_info.ports.port != 0) {
+            guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
         logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
 
@@ -212,10 +222,10 @@ bool do_serve(
         }
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
-        if (!joins.empty()) {
+        if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
                                                      connectivity_cluster_run.get(),
-                                                     joins));
+                                                     serve_info.peers));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -232,9 +242,12 @@ bool do_serve(
                               auth_manager_cluster.get_root_view(),
                               &directory_read_manager,
                               machine_id,
-                              &get_global_perfmon_collection());
+                              &get_global_perfmon_collection(),
+                              serve_info.reql_http_proxy);
 
         namespace_repo_t rdb_namespace_repo(&mailbox_manager,
+            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
+                           semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->incremental_subview(
                 incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);
@@ -286,8 +299,8 @@ bool do_serve(
             }
 
             {
-                rdb_query_server_t rdb_query_server(address_ports.local_addresses,
-                                                    address_ports.reql_port, &rdb_ctx);
+                rdb_query_server_t rdb_query_server(serve_info.ports.local_addresses,
+                                                    serve_info.ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
 
@@ -307,15 +320,15 @@ bool do_serve(
 
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
-                    if (address_ports.http_admin_is_disabled) {
+                    if (serve_info.ports.http_admin_is_disabled) {
                         logINF("Administrative HTTP connections are disabled.\n");
                     } else {
                         // TODO: Pardon me what, but is this how we fail here?
-                        guarantee(address_ports.http_port < 65536);
+                        guarantee(serve_info.ports.http_port < 65536);
                         admin_server_ptr.init(
                             new administrative_http_server_manager_t(
-                                address_ports.local_addresses,
-                                address_ports.http_port,
+                                serve_info.ports.local_addresses,
+                                serve_info.ports.http_port,
                                 &mailbox_manager,
                                 &metadata_change_handler,
                                 &auth_change_handler,
@@ -325,17 +338,19 @@ bool do_serve(
                                 &admin_tracker,
                                 rdb_query_server.get_http_app(),
                                 machine_id,
-                                web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n", admin_server_ptr->get_port());
+                                serve_info.web_assets));
+                        logINF("Listening for administrative HTTP connections on port %d\n",
+                               admin_server_ptr->get_port());
                     }
 
-                    const std::string addresses_string = address_ports.get_addresses_string();
+                    const std::string addresses_string = serve_info.ports.get_addresses_string();
                     logINF("Listening on addresses: %s\n", addresses_string.c_str());
 
-                    if (!address_ports.is_bind_all()) {
+                    if (!serve_info.ports.is_bind_all()) {
                         logINF("To fully expose RethinkDB on the network, bind to all addresses");
-                        if(config_file) {
-                            logINF("by adding `bind=all' to the config file (%s).", (*config_file).c_str());
+                        if(serve_info.config_file) {
+                            logINF("by adding `bind=all' to the config file (%s).",
+                                   (*serve_info.config_file).c_str());
                         } else {
                             logINF("by running rethinkdb with the `--bind all` command line option.");
                         }
@@ -391,29 +406,20 @@ bool serve(io_backender_t *io_backender,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
            uint64_t total_cache_size,
-           const peer_address_set_t &joins,
-           service_address_ports_t address_ports,
-           std::string web_assets,
-           os_signal_cond_t *stop_cond,
-           const boost::optional<std::string>& config_file) {
+           const serve_info_t &serve_info,
+           os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
                     true,
                     base_path,
                     cluster_persistent_file,
                     auth_persistent_file,
                     total_cache_size,
-                    joins,
-                    address_ports,
-                    web_assets,
-                    stop_cond,
-                    config_file);
+                    serve_info,
+                    stop_cond);
 }
 
-bool serve_proxy(const peer_address_set_t &joins,
-                 service_address_ports_t address_ports,
-                 std::string web_assets,
-                 os_signal_cond_t *stop_cond,
-                 const boost::optional<std::string>& config_file) {
+bool serve_proxy(const serve_info_t &serve_info,
+                 os_signal_cond_t *stop_cond) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
     return do_serve(NULL,
@@ -422,9 +428,6 @@ bool serve_proxy(const peer_address_set_t &joins,
                     NULL,
                     NULL,
                     0,
-                    joins,
-                    address_ports,
-                    web_assets,
-                    stop_cond,
-                    config_file);
+                    serve_info,
+                    stop_cond);
 }

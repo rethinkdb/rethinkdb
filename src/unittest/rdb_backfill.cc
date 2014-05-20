@@ -62,7 +62,7 @@ void run_with_broadcaster(
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
                       dummy_auth, &read_manager, generate_uuid(),
-                      &get_global_perfmon_collection());
+                      &get_global_perfmon_collection(), std::string());
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store(&io_backender, &order_source, &ctx);

@@ -118,8 +118,10 @@ private:
         case Term::MAKE_OBJ:
         case Term::VAR:
         case Term::JAVASCRIPT:
+        case Term::HTTP:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
+        case Term::RANDOM:
         case Term::DB:
         case Term::TABLE:
         case Term::GET:
@@ -287,8 +289,10 @@ private:
         case Term::MAKE_OBJ:
         case Term::VAR:
         case Term::JAVASCRIPT:
+        case Term::HTTP:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
+        case Term::RANDOM:
         case Term::DB:
         case Term::TABLE:
         case Term::GET:

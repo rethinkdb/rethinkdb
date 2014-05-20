@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/val.hpp"
 
-#include "math.hpp"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/meta_utils.hpp"
@@ -34,7 +34,7 @@ table_t::table_t(env_t *env,
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
                               strprintf("Table `%s` does not exist.",
-                                        table_name.c_str()), this);
+                                        display_name().c_str()), this);
 
     access.init(new rdb_namespace_access_t(id, env));
 
@@ -43,7 +43,7 @@ table_t::table_t(env_t *env,
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     rcheck(status == METADATA_SUCCESS,
            base_exc_t::GENERIC,
-           strprintf("Table `%s` does not exist.", table_name.c_str()));
+           strprintf("Table `%s` does not exist.", display_name().c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
     pkey = ns_metadata_it->second.get_ref().primary_key.get();
@@ -256,7 +256,9 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
             array.push_back(make_counted<const datum_t>(std::move(status)));
         }
         rcheck(sindexes.empty(), base_exc_t::GENERIC,
-               strprintf("Index `%s` was not found.", sindexes.begin()->c_str()));
+               strprintf("Index `%s` was not found on table `%s`.",
+                         sindexes.begin()->c_str(),
+                         display_name().c_str()));
         return make_counted<const datum_t>(std::move(array));
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail(ql::base_exc_t::GENERIC, "cannot perform read %s", ex.what());
@@ -316,13 +318,14 @@ counted_t<datum_stream_t> table_t::get_all(
         return make_counted<lazy_datum_stream_t>(
             access.get(),
             use_outdated,
-            primary_readgen_t::make(env, datum_range_t(value)),
+            primary_readgen_t::make(env, display_name(), datum_range_t(value)),
             bt);
     } else {
         return make_counted<lazy_datum_stream_t>(
             access.get(),
             use_outdated,
-            sindex_readgen_t::make(env, get_all_sindex_id, datum_range_t(value)),
+            sindex_readgen_t::make(
+                env, display_name(), get_all_sindex_id, datum_range_t(value)),
             bt);
     }
 }
@@ -366,8 +369,8 @@ counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
         access.get(),
         use_outdated,
         (!sindex_id || *sindex_id == get_pkey())
-            ? primary_readgen_t::make(env, bounds, sorting)
-            : sindex_readgen_t::make(env, *sindex_id, bounds, sorting),
+            ? primary_readgen_t::make(env, display_name(), bounds, sorting)
+            : sindex_readgen_t::make(env, display_name(), *sindex_id, bounds, sorting),
         bt);
 }
 

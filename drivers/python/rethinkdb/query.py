@@ -11,8 +11,14 @@ def json(json_str):
 def js(js_str, timeout=()):
     return JavaScript(js_str, timeout=timeout)
 
+def http(url, **kwargs):
+    return Http(func_wrap(url), **kwargs)
+
 def error(*msg):
     return UserError(*msg)
+
+def random(*args, **kwargs):
+    return Random(*args, **kwargs)
 
 def do(arg0, *args):
     args = [arg0]+[x for x in args]

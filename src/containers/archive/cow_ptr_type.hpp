@@ -6,9 +6,8 @@
 #include "containers/cow_ptr.hpp"
 
 template <class T>
-write_message_t &operator<<(write_message_t &msg, const cow_ptr_t<T> &x) {
-    msg << *x;
-    return msg;
+void serialize(write_message_t *wm, const cow_ptr_t<T> &x) {
+    serialize(wm, *x);
 }
 
 template <class T>

@@ -2,7 +2,6 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
-#include "rdb_protocol/store.hpp"
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
@@ -191,6 +190,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
                     id,
+                    "",
                     super_block.get(),
                     &sindex_super_block);
             ASSERT_TRUE(sindex_exists);
@@ -224,8 +224,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store_key_t key("foo");
 
             bool sindex_exists = store.acquire_sindex_superblock_for_read(
-                    id, main_sb.get(), &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL));
+                id, "", main_sb.get(), &sindex_super_block,
+                static_cast<std::vector<char>*>(NULL));
             ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;

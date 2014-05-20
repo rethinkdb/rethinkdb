@@ -17,14 +17,13 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 def generate_make_serializable_macro(nfields):
     print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, %sconst type_t &thing) { \\" % zeroarg
+    print "    function_attr void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
-        print "        msg << thing.field%d; \\" % (i + 1)
-    print "    return msg; \\"
+        print "        serialize(wm, thing.field%d); \\" % (i + 1)
     print "    } \\"
-    print "    function_attr archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
+    print "    function_attr archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
@@ -38,12 +37,12 @@ def generate_make_serializable_macro(nfields):
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
-        (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
+        (nfields, ", ".join("field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(%swrite_message_t &msg /* NOLINT */) const { \\" % zeroarg
+    print "    void rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        msg << field%d; \\" % (i + 1)
+        print "        serialize(wm, field%d); \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
@@ -57,11 +56,11 @@ def generate_make_me_serializable_macro(nfields):
 
 def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    void typ::rdb_serialize(%swrite_message_t &msg /* NOLINT */) const { \\" % zeroarg
+    print "    void typ::rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        msg << field%d; \\" % (i + 1)
+        print "        serialize(wm, field%d); \\" % (i + 1)
     print "    } \\"
     print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
@@ -91,11 +90,8 @@ unserialize data types that consist of a simple series of fields, each of which
 is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
 want to be able to serialize. To make it serializable automatically, either
 write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.
-The reason for the second form is to make it possible to serialize template
-types. There is at present no non-intrusive way to use these macros to
-serialize template types; this is less-than-ideal, but not worth fixing right
-now.
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.  The second
+form can be more performant for types whose fields are private.
 
 A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
 to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
@@ -107,12 +103,12 @@ the class scope. */
     """.strip()
     print
     print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
-    print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
+    print "    void serialize(write_message_t *, const type_t &); \\"
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \\"
+    print "    void rdb_serialize(write_message_t *wm) const; \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"
     print

@@ -9,8 +9,6 @@
 // Cannot include utils.hpp, we are included by utils.hpp.
 #include "errors.hpp"
 
-int64_t round_up_to_power_of_two(int64_t x);
-
 // A static buffer for printing format strings, but it has a failsafe
 // in case the buffer grows too large.
 class printf_buffer_t {

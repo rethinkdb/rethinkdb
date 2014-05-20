@@ -20,6 +20,7 @@ class listener_t;
 template <class> class semilattice_readwrite_view_t;
 class multistore_ptr_t;
 class mailbox_manager_t;
+class uuid_u;
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`
@@ -89,6 +90,10 @@ public:
 
     MUST_USE store_view_t *release_bootstrap_svs_for_listener();
 
+    void register_local_listener(const uuid_u &listener_id,
+                                 listener_t *listener,
+                                 auto_drainer_t::lock_t listener_keepalive);
+
 private:
     class incomplete_write_ref_t;
 
@@ -131,6 +136,20 @@ private:
         fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok,
         signal_t *interruptor)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+
+    void listener_read(
+        broadcaster_t::dispatchee_t *mirror,
+        const read_t &r, read_response_t *response, state_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_read_token_t token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void listener_write(
+        broadcaster_t::dispatchee_t *mirror,
+        const write_t &w, transition_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_write_token_t token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,

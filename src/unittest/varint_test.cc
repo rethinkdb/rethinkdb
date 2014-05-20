@@ -11,11 +11,11 @@ namespace unittest {
 archive_result_t run_serialization(uint64_t value,
                                    uint64_t *output_value_out,
                                    size_t *serialized_size_out) {
-    write_message_t msg;
-    serialize_varint_uint64(&msg, value);
+    write_message_t wm;
+    serialize_varint_uint64(&wm, value);
 
     string_stream_t write_stream;
-    int send_res = send_write_message(&write_stream, &msg);
+    int send_res = send_write_message(&write_stream, &wm);
     EXPECT_EQ(0, send_res);
 
     std::string serialized_value = write_stream.str();

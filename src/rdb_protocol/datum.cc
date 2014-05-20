@@ -12,16 +12,13 @@
 #include <boost/detail/endian.hpp>
 
 #include "containers/archive/stl_types.hpp"
+#include "containers/scoped.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "stl_utils.hpp"
-
-// Enough precision to reconstruct doubles from their decimal representations.
-// Unlike the late DBLPRI, this lacks a percent sign.
-#define PR_RECONSTRUCTABLE_DOUBLE ".20g"
 
 namespace ql {
 
@@ -400,6 +397,93 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
             : strprintf("Not a %s pseudotype: `%s`.",
                         s.c_str(),
                         trunc_print().c_str())));
+}
+
+counted_t<const datum_t> datum_t::drop_literals(bool *encountered_literal_out) const {
+    rassert(encountered_literal_out != NULL);
+
+    const bool is_literal = is_ptype(pseudo::literal_string);
+    if (is_literal) {
+        counted_t<const datum_t> val = get(pseudo::value_key, NOTHROW);
+        if (val) {
+            bool encountered_literal;
+            val = val->drop_literals(&encountered_literal);
+            // Nested literals should have been caught on the higher QL levels.
+            r_sanity_check(!encountered_literal);
+        }
+        *encountered_literal_out = true;
+        return val;
+    }
+
+    // The result is either
+    // - this->counted_from_this()
+    // - or if `need_to_copy` is true, `copied_result`
+    bool need_to_copy = false;
+    scoped_ptr_t<datum_ptr_t> copied_result;
+
+    if (get_type() == R_OBJECT) {
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            bool encountered_literal;
+            counted_t<const datum_t> val =
+                it->second->drop_literals(&encountered_literal);
+
+            if (encountered_literal && !need_to_copy) {
+                // We have encountered the first field with a literal.
+                // This means we have to create a copy in `result_copy`.
+                need_to_copy = true;
+                // Copy everything up to now into the result
+                copied_result.init(new datum_ptr_t(R_OBJECT));
+                for (auto copy_it = obj.begin(); copy_it != it; ++copy_it) {
+                    bool conflict = copied_result->add(copy_it->first, copy_it->second);
+                    r_sanity_check(!conflict);
+                }
+            }
+
+            if (need_to_copy) {
+                if (val) {
+                    bool conflict = copied_result->add(it->first, val);
+                    r_sanity_check(!conflict);
+                } else {
+                    // If `it->second` was a literal without a value, ignore it
+                }
+            }
+        }
+    } else if (get_type() == R_ARRAY) {
+        const std::vector<counted_t<const datum_t> > &arr = as_array();
+        for (auto it = arr.begin(); it != arr.end(); ++it) {
+            bool encountered_literal;
+            counted_t<const datum_t> val = (*it)->drop_literals(&encountered_literal);
+
+            if (encountered_literal && !need_to_copy) {
+                // We have encountered the first element with a literal.
+                // This means we have to create a copy in `result_copy`.
+                need_to_copy = true;
+                // Copy everything up to now into the result
+                copied_result.init(new datum_ptr_t(R_ARRAY));
+                for (auto copy_it = arr.begin(); copy_it != it; ++copy_it) {
+                    copied_result->add(*copy_it);
+                }
+            }
+
+            if (need_to_copy) {
+                if (val) {
+                    copied_result->add(val);
+                } else {
+                    // If `*it` was a literal without a value, ignore it
+                }
+            }
+        }
+    }
+
+    if (need_to_copy) {
+        *encountered_literal_out = true;
+        rassert(copied_result.has());
+        return copied_result->to_counted();
+    } else {
+        *encountered_literal_out = false;
+        return counted_from_this();
+    }
 }
 
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
@@ -846,15 +930,22 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
         if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
             UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
         } else {
-            if (is_literal) {
-                counted_t<const datum_t> val = it->second->get(pseudo::value_key, NOTHROW);
-                if (val) {
-                    UNUSED bool b = d.add(it->first, val, CLOBBER);
-                } else {
-                    UNUSED bool b = d.delete_field(it->first);
-                }
+            counted_t<const datum_t> val =
+                is_literal
+                ? it->second->get(pseudo::value_key, NOTHROW)
+                : it->second;
+            if (val) {
+                // Since nested literal keywords are forbidden, this should be a no-op
+                // if `is_literal == true`.
+                bool encountered_literal;
+                val = val->drop_literals(&encountered_literal);
+                r_sanity_check(!encountered_literal || !is_literal);
+            }
+            if (val) {
+                UNUSED bool b = d.add(it->first, val, CLOBBER);
             } else {
-                UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+                r_sanity_check(is_literal);
+                UNUSED bool b = d.delete_field(it->first);
             }
         }
     }
@@ -1101,8 +1192,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
-// This must be kept in sync with operator<<(write_message_t &, const counted_t<const
-// datum_T> &).
+// This must be kept in sync with serialize(write_message_t *, const counted_t<const
+// datum_t> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
@@ -1136,22 +1227,21 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
-write_message_t &operator<<(write_message_t &wm,
-                            const counted_t<const datum_t> &datum) {
+void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        wm << datum_serialized_type_t::R_ARRAY;
+        serialize(wm, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
-        wm << value;
+        serialize(wm, value);
     } break;
     case datum_t::R_BOOL: {
-        wm << datum_serialized_type_t::R_BOOL;
+        serialize(wm, datum_serialized_type_t::R_BOOL);
         bool value = datum->as_bool();
-        wm << value;
+        serialize(wm, value);
     } break;
     case datum_t::R_NULL: {
-        wm << datum_serialized_type_t::R_NULL;
+        serialize(wm, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
         double value = datum->as_num();
@@ -1162,31 +1252,30 @@ write_message_t &operator<<(write_message_t &wm,
             // so we can use `signbit` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
             if (signbit(value)) {
-                wm << datum_serialized_type_t::INT_NEGATIVE;
-                serialize_varint_uint64(&wm, -i);
+                serialize(wm, datum_serialized_type_t::INT_NEGATIVE);
+                serialize_varint_uint64(wm, -i);
             } else {
-                wm << datum_serialized_type_t::INT_POSITIVE;
-                serialize_varint_uint64(&wm, i);
+                serialize(wm, datum_serialized_type_t::INT_POSITIVE);
+                serialize_varint_uint64(wm, i);
             }
         } else {
-            wm << datum_serialized_type_t::DOUBLE;
-            wm << value;
+            serialize(wm, datum_serialized_type_t::DOUBLE);
+            serialize(wm, value);
         }
     } break;
     case datum_t::R_OBJECT: {
-        wm << datum_serialized_type_t::R_OBJECT;
-        wm << datum->as_object();
+        serialize(wm, datum_serialized_type_t::R_OBJECT);
+        serialize(wm, datum->as_object());
     } break;
     case datum_t::R_STR: {
-        wm << datum_serialized_type_t::R_STR;
+        serialize(wm, datum_serialized_type_t::R_STR);
         const wire_string_t &value = datum->as_str();
-        wm << value;
+        serialize(wm, value);
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
-    return wm;
 }
 
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
@@ -1292,18 +1381,18 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return archive_result_t::SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &wm,
-                            const empty_ok_t<const counted_t<const datum_t> > &datum) {
+void serialize(write_message_t *wm,
+               const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
-    wm << has;
+    serialize(wm, has);
     if (has) {
-        wm << *pointer;
+        serialize(wm, *pointer);
     }
-    return wm;
 }
 
-archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum) {
+archive_result_t deserialize(read_stream_t *s,
+                             empty_ok_ref_t<counted_t<const datum_t> > datum) {
     bool has;
     archive_result_t res = deserialize(s, &has);
     if (bad(res)) {
@@ -1318,71 +1407,6 @@ archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const da
     } else {
         return deserialize(s, pointer);
     }
-}
-
-
-bool wire_datum_map_t::has(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    return map.count(key) > 0;
-}
-
-counted_t<const datum_t> wire_datum_map_t::get(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    r_sanity_check(has(key));
-    return map[key];
-}
-
-void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t> val) {
-    r_sanity_check(state == COMPILED);
-    map[key] = val;
-}
-
-void wire_datum_map_t::compile() {
-    if (state == COMPILED) return;
-    while (!map_pb.empty()) {
-        map[make_counted<datum_t>(&map_pb.back().first)] =
-            make_counted<datum_t>(&map_pb.back().second);
-        map_pb.pop_back();
-    }
-    state = COMPILED;
-}
-void wire_datum_map_t::finalize() {
-    if (state == SERIALIZABLE) return;
-    r_sanity_check(state == COMPILED);
-    while (!map.empty()) {
-        map_pb.push_back(std::make_pair(Datum(), Datum()));
-        map.begin()->first->write_to_protobuf(&map_pb.back().first, use_json_t::NO);
-        map.begin()->second->write_to_protobuf(&map_pb.back().second, use_json_t::NO);
-        map.erase(map.begin());
-    }
-    state = SERIALIZABLE;
-}
-
-counted_t<const datum_t> wire_datum_map_t::to_arr() const {
-    r_sanity_check(state == COMPILED);
-    datum_ptr_t arr(datum_t::R_ARRAY);
-    for (auto it = map.begin(); it != map.end(); ++it) {
-        datum_ptr_t obj(datum_t::R_OBJECT);
-        bool b1 = obj.add("group", it->first);
-        bool b2 = obj.add("reduction", it->second);
-        r_sanity_check(!b1 && !b2);
-        arr.add(obj.to_counted());
-    }
-    return arr.to_counted();
-}
-
-void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    /* Should be guaranteed by finalize. */
-    r_sanity_check(state == SERIALIZABLE);
-    r_sanity_check(map.empty());
-    msg << map_pb;
-}
-
-archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res = deserialize(s, &map_pb);
-    if (bad(res)) return res;
-    state = SERIALIZABLE;
-    return archive_result_t::SUCCESS;
 }
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a

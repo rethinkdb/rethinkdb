@@ -18,11 +18,11 @@ with driver.Metacluster() as metacluster:
     process = driver.Process(cluster, files,
         executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process.wait_until_started_up()
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", process.http_port)])
     dc = http.add_datacenter()
     http.move_server_to_datacenter(http.machines.keys()[0], dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = http.add_table(primary = dc)
     print "Restarting server..."
     process.check_and_stop()
 
@@ -30,8 +30,8 @@ with driver.Metacluster() as metacluster:
     process2.wait_until_started_up()
     http2 = http_admin.ClusterAccess([("localhost", process2.http_port)])
 
-    ns1 = http.memcached_namespaces
-    ns2 = http2.memcached_namespaces
+    ns1 = http.tables
+    ns2 = http2.tables
     assert(len(ns1) == 1 and len(ns2) == 1)
     uuid = ns1.keys()[0]
     assert(uuid in ns2)

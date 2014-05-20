@@ -45,13 +45,13 @@ public:
     // This is a bit ugly in that things could use the wrong method:
     // things could call value() instead of ser_value() or vice versa.
 
-    // The "block size" used by things above the serializer.
+    // The "block size" (in bytes) used by things above the serializer.
     uint32_t value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_ - sizeof(ls_buf_data_t);
     }
 
-    // The "block size" used by things in the serializer.
+    // The "block size" (in bytes) used by things in the serializer.
     uint32_t ser_value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_;

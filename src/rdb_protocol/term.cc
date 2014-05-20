@@ -23,8 +23,10 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
+    case Term::HTTP:               return make_http_term(env, t);
     case Term::ERROR:              return make_error_term(env, t);
     case Term::IMPLICIT_VAR:       return make_implicit_var_term(env, t);
+    case Term::RANDOM:             return make_random_term(env, t);
     case Term::DB:                 return make_db_term(env, t);
     case Term::TABLE:              return make_table_term(env, t);
     case Term::GET:                return make_get_term(env, t);
@@ -191,7 +193,7 @@ void run(protob_t<Query> q,
         threadnum_t th = get_thread_id();
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
-                ctx->extproc_pool, ctx->ns_repo,
+                ctx->extproc_pool, ctx->reql_http_proxy, ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
@@ -270,15 +272,19 @@ void run(protob_t<Query> q,
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
-
     } break;
     case Query_QueryType_CONTINUE: {
         try {
             bool b = stream_cache->serve(token, res, interruptor);
-            rcheck_toplevel(b, base_exc_t::GENERIC,
-                            strprintf("Token %" PRIi64 " not in stream cache.", token));
+            if (!b) {
+                auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
+                fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
+            }
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
     } break;
