@@ -4,6 +4,7 @@
 
 #include "rpc/directory/write_manager.hpp"
 
+#include <map>
 #include <set>
 
 #include "arch/runtime/coroutines.hpp"

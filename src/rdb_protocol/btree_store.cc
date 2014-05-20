@@ -10,7 +10,6 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
