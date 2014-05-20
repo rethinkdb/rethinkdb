@@ -8,6 +8,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
@@ -52,12 +53,13 @@ store_t::store_t(serializer_t *serializer,
 
     if (create) {
         vector_stream_t key;
-        // Versioning of this serialization depends on the block magic (which is the
-        // latest version).
+        // The version used when deserializing this data depends on the block magic.
+        // The block magic set by init_superblock corresponds to the latest version
+        // and so this serialization does too.
         // VSI: Do this better.
         write_message_t wm;
         region_t kr = region_t::universe();
-        serialize(&wm, kr);
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, kr);
         key.reserve(wm.size());
         int res = send_write_message(&key, &wm);
         guarantee(!res);
@@ -766,9 +768,10 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
         write_message_t wm;
-        // Versioning of this serialization will depend on the block magic.
+        // Versioning of this serialization will depend on the block magic.  But
+        // right now there's just one version.
         // VSI: Make this code better.
-        serialize(&wm, i->first);
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, i->first);
         key.reserve(wm.size());
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
@@ -813,7 +816,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
             inplace_vector_read_stream_t key(&i->first);
             // Versioning of this deserialization will depend on the block magic.
             // VSI: Make this code better.
-            archive_result_t res = deserialize(&key, &region);
+            archive_result_t res = deserialize_for_version(cluster_version_t::ONLY_VERSION, &key, &region);
             guarantee_deserialization(res, "region");
         }
 
