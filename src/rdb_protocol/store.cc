@@ -38,7 +38,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     std::map<std::string, secondary_index_t> sindexes;
     get_secondary_indexes(&sindex_block, &sindexes);
 
-    struct sindex_clearer {
+    struct sindex_clearer_t {
         static void clear(store_t *store,
                           secondary_index_t sindex,
                           auto_drainer_t::lock_t store_keepalive) {
@@ -65,7 +65,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (it->second.being_deleted) {
             // Finish deleting the index
-            coro_t::spawn_sometime(std::bind(&sindex_clearer::clear,
+            coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
                                              this, it->second, drainer.lock()));
         } else if (!it->second.post_construction_complete) {
             // Complete post constructing the index
