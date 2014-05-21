@@ -43,11 +43,10 @@ private:
 
 class cluster_access_t {
 public:
-    typedef namespaces_semilattice_metadata_t ns_metadata_t;
     cluster_access_t(
         base_namespace_repo_t *_ns_repo,
 
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
             _namespaces_semilattice_metadata,
 
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
@@ -59,7 +58,7 @@ public:
 
     base_namespace_repo_t *ns_repo;
 
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > >
         namespaces_semilattice_metadata;
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
         databases_semilattice_metadata;
@@ -82,14 +81,12 @@ public:
 // The env_t.
 class env_t : public home_thread_mixin_t {
 public:
-    typedef namespaces_semilattice_metadata_t ns_metadata_t;
-
     env_t(
         extproc_pool_t *_extproc_pool,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
             _namespaces_semilattice_metadata,
 
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
@@ -106,7 +103,7 @@ public:
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
             _namespaces_semilattice_metadata,
 
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >

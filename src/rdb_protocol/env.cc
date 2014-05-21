@@ -106,7 +106,7 @@ profile_bool_t env_t::profile() {
 cluster_access_t::cluster_access_t(
         base_namespace_repo_t *_ns_repo,
 
-        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
             _namespaces_semilattice_metadata,
 
         clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
@@ -133,11 +133,10 @@ void cluster_access_t::join_and_wait_to_propagate(
         sl_metadata = semilattice_metadata->get();
     }
 
-    boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p = boost::bind(
-        &is_joined<cow_ptr_t<ns_metadata_t > >,
-        _1,
-        sl_metadata.rdb_namespaces
-    );
+    boost::function<bool (const cow_ptr_t<namespaces_semilattice_metadata_t> s)> p
+        = std::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
+                    ph::_1,
+                    sl_metadata.rdb_namespaces);
 
     {
         on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
@@ -168,7 +167,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
           ctx ? ctx->ns_repo : NULL,
           ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
-              : clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+              : clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
           ctx ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
               : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
@@ -196,7 +195,7 @@ env_t::env_t(
     extproc_pool_t *_extproc_pool,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
         _namespaces_semilattice_metadata,
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
         _databases_semilattice_metadata,
@@ -227,7 +226,7 @@ env_t::env_t(
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
 
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
         _namespaces_semilattice_metadata,
 
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
