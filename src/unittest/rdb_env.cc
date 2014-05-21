@@ -21,7 +21,7 @@ ql::env_t *mock_namespace_repo_t::get_env() {
     return env;
 }
 
-mock_namespace_interface_t* mock_namespace_repo_t::get_ns_if(const namespace_id_t &ns_id) {
+mock_namespace_interface_t *mock_namespace_repo_t::get_ns_if(const namespace_id_t &ns_id) {
     get_cache_entry(ns_id); // This will create it if it doesn't already exist
     if (cache.find(ns_id) != cache.end()) {
         return &cache[ns_id]->mock_ns_if;
@@ -54,15 +54,15 @@ mock_namespace_interface_t::~mock_namespace_interface_t() {
     }
 }
 
-void mock_namespace_interface_t::read(const rdb_protocol_t::read_t &query,
-                                      rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read(const read_t &query,
+                                      read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     read_outdated(query, response, interruptor);
 }
 
-void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &query,
-                                               rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read_outdated(const read_t &query,
+                                               read_response_t *response,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
@@ -71,8 +71,8 @@ void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &que
     boost::apply_visitor(v, query.read);
 }
 
-void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
-                                       rdb_protocol_t::write_response_t *response,
+void mock_namespace_interface_t::write(const write_t &query,
+                                       write_response_t *response,
                                        UNUSED order_token_t tok,
                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
@@ -82,13 +82,20 @@ void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
     boost::apply_visitor(v, query.write);
 }
 
-std::map<store_key_t, scoped_cJSON_t*>* mock_namespace_interface_t::get_data() {
+std::map<store_key_t, scoped_cJSON_t *> *mock_namespace_interface_t::get_data() {
     return &data;
 }
 
-void mock_namespace_interface_t::read_visitor_t::operator()(const rdb_protocol_t::point_read_t &get) {
-    response->response = rdb_protocol_t::point_read_response_t();
-    rdb_protocol_t::point_read_response_t &res = boost::get<rdb_protocol_t::point_read_response_t>(response->response);
+std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
+    std::set<region_t> s;
+    s.insert(region_t::universe());
+    return s;
+}
+
+void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
+    response->response = point_read_response_t();
+    point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
     if (data->find(get.key) != data->end()) {
         res.data = make_counted<ql::datum_t>(scoped_cJSON_t(data->at(get.key)->DeepCopy()));
@@ -97,30 +104,30 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const rdb_protocol_t
     }
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::rget_read_t &rget) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const distribution_read_t &dg) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_list_t &sinner) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_list_t &sinner) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
-                                                           rdb_protocol_t::read_response_t *_response) :
+                                                           read_response_t *_response) :
     data(_data), response(_response) {
     // Do nothing
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
-    const rdb_protocol_t::batched_replace_t &r) {
+    const batched_replace_t &r) {
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
         ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
@@ -164,7 +171,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
-    const rdb_protocol_t::batched_insert_t &bi) {
+    const batched_insert_t &bi) {
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
         store_key_t key((*it)->get(bi.pkey)->print_primary());
@@ -207,33 +214,33 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
     response->response = stats;
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_write_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_delete_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_delete_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::changefeed_update_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const changefeed_update_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_create_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_drop_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sync_t &) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sync_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
 mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
                                                              ql::env_t *_env,
-                                                             rdb_protocol_t::write_response_t *_response) :
+                                                             write_response_t *_response) :
     data(_data), env(_env), response(_response) {
     // Do nothing
 }
@@ -261,16 +268,15 @@ namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
                                          const std::string &primary_key,
                                          const std::set<std::map<std::string, std::string> > &initial_data) {
     name_string_t table_name_string;
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata.rdb_namespaces);
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
     namespace_id_t namespace_id = generate_uuid();
     *change.get()->namespaces[namespace_id].get_mutable() =
-        new_namespace<rdb_protocol_t>(machine_id,
-                                      db_id,
-                                      nil_uuid(),
-                                      table_name_string,
-                                      primary_key,
-                                      port_defaults::reql_port);
+        new_namespace(machine_id,
+                      db_id,
+                      nil_uuid(),
+                      table_name_string,
+                      primary_key);
 
     // Set up initial data
     std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();
@@ -309,7 +315,7 @@ void test_rdb_env_t::make_env(scoped_ptr_t<instance_t> *instance_out) {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     dummy_semilattice_controller(test_env->metadata),
-    namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
+    namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
     databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
     extproc_pool(2),
     test_cluster(0),

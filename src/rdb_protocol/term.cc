@@ -170,7 +170,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
 }
 
 void run(protob_t<Query> q,
-         rdb_protocol_t::context_t *ctx,
+         rdb_context_t *ctx,
          signal_t *interruptor,
          Response *res,
          stream_cache_t *stream_cache) {

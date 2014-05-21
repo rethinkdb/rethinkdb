@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
@@ -66,9 +66,7 @@ const char *list_stats_usage = "[<MACHINE>...] [<TABLE>...]";
 const char *list_issues_usage = "";
 const char *list_machines_usage = "[--long]";
 const char *list_directory_usage = "[--long]";
-// TODO: fix this once multiple protocols are supported again
 const char *list_tables_usage = "[--long]";
-// const char *list_tables_usage = "[--protocol <PROTOCOL>] [--long]";
 const char *list_datacenters_usage = "[--long]";
 const char *list_databases_usage = "[--long]";
 const char *list_auth_usage = "";
@@ -88,9 +86,7 @@ const char *unset_datacenter_usage = "<MACHINE>";
 const char *set_database_usage = "<TABLE> <DATABASE>";
 const char *set_auth_usage = "<KEY>";
 const char *unset_auth_usage = "";
-// TODO: fix this once multiple protocols are supported again
 const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>] [--primary-key <KEY>]";
-// const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
 const char *create_datacenter_usage = "<NAME>";
 const char *create_database_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
@@ -100,8 +96,6 @@ const char *list_id_option = "[<ID>]";
 const char *list_long_option = "[--long]";
 const char *list_stats_machine_option = "[<MACHINE>...]";
 const char *list_stats_table_option = "[<TABLE>...]";
-// TODO: fix this once multiple protocols are supported again
-// const char *list_tables_protocol_option = "[--protocol <PROTOCOL>]";
 const char *resolve_id_option = "<ID>";
 const char *resolve_field_option = "<FIELD>";
 const char *pin_shard_table_option = "<TABLE>";
@@ -133,9 +127,6 @@ const char *set_database_table_option = "<TABLE>";
 const char *set_database_database_option = "<DATABASE>";
 const char *set_auth_key_option = "<KEY>";
 const char *create_table_name_option = "<NAME>";
-// TODO: fix this once multiple protocols are supported again
-// const char *create_table_port_option = "--port <PORT>";
-// const char *create_table_protocol_option = "--protocol <PROTOCOL>";
 const char *create_table_primary_option = "--primary <DATACENTER>";
 const char *create_table_primary_key_option = "--primary-key <KEY>";
 const char *create_table_database_option = "--database <DATABASE>";
@@ -147,12 +138,8 @@ const char *list_id_option_desc = "Print out a detailed description of a single 
 const char *list_long_option_desc = "print out full uuids (and extra information when listing machines, tables, datacenters, or databases)";
 const char *list_stats_machine_option_desc = "Limit stat collection to the set of machines specified, may be <UUID> or <MACHINE_NAME>.";
 const char *list_stats_table_option_desc = "Limit stat collection to the set of tables specified, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
-// TODO: fix this once multiple protocols are supported again
-// const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
-// TODO: fix this once multiple protocols are supported again
 const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', 'primary_pinnings', or 'secondary_pinnings', if no object is specified, this may be 'auth'";
-// const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "The table to change the shard pinnings of, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
 const char *pin_shard_master_option_desc = "the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the table";
@@ -182,9 +169,6 @@ const char *set_database_table_option_desc = "The table to move to the specified
 const char *set_database_database_option_desc = "the database to move to";
 const char *set_auth_key_option_desc = "the key that clients must provide when connecting, maximum length is 2048 characters";
 const char *create_table_name_option_desc = "the name of the new table";
-// TODO: fix this once multiple protocols are supported again
-// const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
-// const char *create_table_protocol_option_desc = "the protocol for the table to use, either 'rdb' or 'memcached'";
 const char *create_table_primary_option_desc = "the primary datacenter of the new table, this datacenter will host the master replicas of each shard";
 const char *create_table_primary_key_option_desc = "the field to use as the primary key in the new table";
 const char *create_table_database_option_desc = "the database that the table will exist in, client requests must be directed to this database";
@@ -197,9 +181,7 @@ const char *list_stats_description = "Print a list of statistics gathered by the
 const char *list_issues_description = "Print a list of issues currently detected by the cluster.";
 const char *list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
 const char *list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
-// TODO: fix this once multiple protocols are supported again
 const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table.";
-// const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table. The list may be filtered by a table protocol type.";
 const char *list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
 const char *list_databases_description = "Print a list of databases in the cluster along with some relevant data about each database.";
 const char *list_auth_description = "Print the key used for authorizing client connections.";
@@ -220,9 +202,7 @@ const char *unset_datacenter_description = "Clear the datacenter of a machine.";
 const char *set_database_description = "Set the database that a table belongs to.";
 const char *set_auth_description = "Set a key for client access control for the cluster.";
 const char *unset_auth_description = "Remove access control from the cluster.";
-// TODO: fix this once multiple protocols are supported again
 const char *create_table_description = "Create a new table in the given database and primary datacenter.";
-// const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *create_database_description = "Create a new database with the given name.  Tables may be assigned to the database.";
 const char *remove_description = "Remove one or more objects from the cluster.";
@@ -691,9 +671,6 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(list_tables_command, list_tables_command, list_tables_usage, &admin_cluster_link_t::do_admin_list_tables, &commands);
-    // TODO: fix this once multiple protocols are supported again
-    info->add_flag("protocol", 1, false, true); // hidden option
-    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached");
     info->add_flag("long", 0, false);
 
     info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
@@ -706,11 +683,6 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(create_table_command, create_table_command, create_table_usage, &admin_cluster_link_t::do_admin_create_table, &commands);
     info->add_positional("name", 1, true);
-    // TODO: fix this once multiple protocols are supported again
-    info->add_flag("protocol", 1, false, true); // hidden option
-    info->add_flag("port", 1, false, true); // hidden option
-    // info->add_flag("protocol", 1, false)->add_options("rdb", "memcached");
-    // info->add_flag("port", 1, true);
     info->add_flag("primary", 1, false)->add_option("!datacenter");
     info->add_flag("primary-key", 1, false);
     info->add_flag("database", 1, true)->add_option("!database");
@@ -1241,8 +1213,6 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
                 options.push_back(std::make_pair(list_stats_machine_option, list_stats_machine_option_desc));
                 options.push_back(std::make_pair(list_stats_table_option, list_stats_table_option_desc));
-                // TODO: fix this once multiple protocols are supported again
-                // options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
                 do_usage_internal(helps, options, "ls - display information from the cluster, run 'help ls <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "stats") {
                 helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
@@ -1263,8 +1233,6 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
             } else if (subcommand == "tables") {
                 helps.push_back(admin_help_info_t(list_tables_command, list_tables_usage, list_tables_description));
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
-                // TODO: fix this once multiple protocols are supported again
-                // options.push_back(std::make_pair(list_tables_protocol_option, list_tables_protocol_option_desc));
                 do_usage_internal(helps, options, "ls tables - display a list of tables in the cluster", console_mode);
             } else if (subcommand == "datacenters") {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
@@ -1363,9 +1331,6 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
             } else if (subcommand == "table") {
                 helps.push_back(admin_help_info_t(create_table_command, create_table_usage, create_table_description));
                 options.push_back(std::make_pair(create_table_name_option, create_table_name_option_desc));
-                // TODO: fix this once multiple protocols are supported again
-                // options.push_back(std::make_pair(create_table_port_option, create_table_port_option_desc));
-                // options.push_back(std::make_pair(create_table_protocol_option, create_table_protocol_option_desc));
                 options.push_back(std::make_pair(create_table_database_option, create_table_database_option_desc));
                 options.push_back(std::make_pair(create_table_primary_option, create_table_primary_option_desc));
                 options.push_back(std::make_pair(create_table_primary_key_option, create_table_primary_key_option_desc));

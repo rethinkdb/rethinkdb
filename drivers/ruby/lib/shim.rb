@@ -1,225 +1,139 @@
-require 'json'
-require 'time'
+class TIME
+  def self.__rdb_new_json_create(o)
+    t = Time.at(o['epoch_time'])
+    tz = o['timezone']
+    (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+  end
+  if !methods.include?(:json_create)
+    singleton_class.send(:alias_method, :json_create, :__rdb_new_json_create)
+  end
+end
+
+class GROUPED_DATA
+  def self.__rdb_new_json_create(o)
+    Hash[o['data']]
+  end
+  if !methods.include?(:json_create)
+    singleton_class.send(:alias_method, :json_create, :__rdb_new_json_create)
+  end
+end
+
+class Time
+  def __rdb_new_to_json(*a, &b)
+    epoch_time = self.to_f
+    offset = self.utc_offset
+    raw_offset = offset.abs
+    raw_hours = raw_offset / 3600
+    raw_minutes = (raw_offset / 60) - (raw_hours * 60)
+    timezone = (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
+    { '$reql_type$' => 'TIME',
+      'epoch_time'  => epoch_time,
+      'timezone'    => timezone }.to_json(*a, &b)
+  end
+end
 
 module RethinkDB
+  require 'json'
+  require 'time'
   module Shim
-    def self.is_reql_time(obj)
-      obj.is_a? Hash and obj["$reql_type$"] == "TIME"
-    end
-
-    def self.convert_time(obj)
-      t = Time.at(obj['epoch_time'])
-      tz = obj['timezone']
-      (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
-    end
-
-    def self.is_grouped_data(obj)
-      obj.is_a? Hash and obj["$reql_type$"] == "GROUPED_DATA"
-    end
-
-    def self.convert_grouped_data(obj, opts)
-      convert_reql_types!(obj['data'], opts)
-      Hash[obj["data"]]
-    end
-
-    def self.maybe_convert_type(obj, opts)
-      if opts[:time_format] != 'raw' && is_reql_time(obj)
-        convert_time(obj)
-      elsif opts[:group_format] != 'raw' && is_grouped_data(obj)
-        convert_grouped_data(obj, opts)
-      else
-        nil
+    def self.load_json(target, opts=nil)
+      old_create_id = JSON.create_id
+      begin
+        ::TIME.singleton_class.send(:alias_method,
+                                    :__rdb_old_json_create, :json_create)
+        ::TIME.singleton_class.send(:alias_method,
+                                    :json_create, :__rdb_new_json_create)
+        if opts && opts[:time_format] == 'raw'
+          ::TIME.singleton_class.send(:remove_method, :json_create)
+        end
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :__rdb_old_json_create, :json_create)
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :json_create, :__rdb_new_json_create)
+        if opts && opts[:group_format] == 'raw'
+          ::GROUPED_DATA.singleton_class.send(:remove_method, :json_create)
+        end
+        JSON.create_id = '$reql_type$'
+        JSON.load(target)
+      ensure
+        JSON.create_id = old_create_id
+        ::TIME.singleton_class.send(:alias_method,
+                                    :json_create, :__rdb_old_json_create)
+        ::GROUPED_DATA.singleton_class.send(:alias_method,
+                                            :json_create, :__rdb_old_json_create)
       end
     end
 
-    def self.convert_reql_types!(result, opts)
-      case result
-      when Hash
-        result.each {|k,v|
-          if (new_res = maybe_convert_type(v, opts))
-            result[k] = new_res
+    def self.dump_json(*a, &b)
+      begin
+        ::Time.class_eval {
+          alias_method :__rdb_old_to_json, :to_json if methods.include?(:to_json)
+          alias_method :to_json, :__rdb_new_to_json
+        }
+        JSON.dump(*a, &b)
+      ensure
+        ::Time.class_eval {
+          if methods.include?(:__rdb_old_to_json)
+            alias_method :to_json, :__rdb_old_to_json
           else
-            convert_reql_types!(v, opts)
+            remove_method :to_json
           end
         }
-      when Array
-        result.each_index {|i|
-          if (new_res = maybe_convert_type(result[i], opts))
-            result[i] = new_res;
-          else
-            convert_reql_types!(result[i], opts)
-          end
-        }
-      end
-      nil
-    end
-
-    def self.postprocess!(result, opts)
-      maybe_convert_type(result, opts) \
-      || (convert_reql_types!(result, opts); result)
-    end
-
-    def self.datum_to_native(d, opts)
-      raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
-      dt = Datum::DatumType
-      case d.type
-      when dt::R_NUM then d.r_num == d.r_num.to_i ? d.r_num.to_i : d.r_num
-      when dt::R_STR then d.r_str
-      when dt::R_BOOL then d.r_bool
-      when dt::R_NULL then nil
-      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
-      when dt::R_OBJECT then
-        obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
-        postprocess!(obj, opts)
-      when dt::R_JSON then
-        postprocess!(JSON.parse("[" + d.r_str + "]")[0], opts)
-      else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
 
     def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
-      if r.backtrace
-        bt = r.backtrace.frames.map {|x|
-          x.type == Frame::FrameType::POS ? x.pos : x.opt
-        }
-      else
-        bt = []
-      end
-
       begin
-        case r.type
-        when rt::SUCCESS_ATOM then datum_to_native(r.response[0], opts)
-        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d, opts)}
-        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d, opts)}
+        case r['t']
+        when rt::SUCCESS_ATOM then r['r'][0]
+        when rt::SUCCESS_PARTIAL then r['r']
+        when rt::SUCCESS_SEQUENCE then r['r']
         when rt::RUNTIME_ERROR then
-          raise RqlRuntimeError, "#{r.response[0].r_str}"
+          raise RqlRuntimeError, r['r'][0]
         when rt::COMPILE_ERROR then # TODO: remove?
-          raise RqlCompileError, "#{r.response[0].r_str}"
+          raise RqlCompileError, r['r'][0]
         when rt::CLIENT_ERROR then
-          raise RqlDriverError, "#{r.response[0].r_str}"
+          raise RqlDriverError, r['r'][0]
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        term = orig_term.deep_dup
-        term.bt_tag(bt)
-        raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
+        raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(orig_term, r['b'])}"
       end
-    end
-
-    def self.native_to_datum_term x
-      dt = Datum::DatumType
-      d = Datum.new
-      case x
-      when Fixnum     then d.type = dt::R_NUM;  d.r_num = x
-      when Float      then d.type = dt::R_NUM;  d.r_num = x
-      when Bignum     then d.type = dt::R_NUM;  d.r_num = x
-      when String     then d.type = dt::R_STR;  d.r_str = x
-      when Symbol     then d.type = dt::R_STR;  d.r_str = x.to_s
-      when TrueClass  then d.type = dt::R_BOOL; d.r_bool = x
-      when FalseClass then d.type = dt::R_BOOL; d.r_bool = x
-      when NilClass   then d.type = dt::R_NULL
-      else raise RqlRuntimeError, "UNREACHABLE"
-      end
-      t = Term.new
-      t.type = Term::TermType::DATUM
-      t.datum = d
-      return t
     end
   end
 
   class RQL
+    def to_json(*a, &b)
+      @body.to_json
+    end
     def to_pb; @body; end
 
-    @@datum_types = [Fixnum, Float, Bignum, String, Symbol,
-                     TrueClass, FalseClass, NilClass]
-
-    def any_to_pb(x)
-      return x.to_pb if x.class == RQL
-      t = Term.new
-      t.type = Term::TermType::JSON
-      t.args = [Shim.native_to_datum_term(x.to_json(:max_nesting => 500))]
-      return t
-    end
-
-    def timezone_from_offset(offset)
-      raw_offset = offset.abs
-      raw_hours = raw_offset / 3600
-      raw_minutes = (raw_offset / 60) - (raw_hours * 60)
-      return (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
-    end
-
-    def fast_expr(x, allow_json)
-      return x if x.class == RQL
-      if @@datum_types.include?(x.class)
-        return x if allow_json
-        return RQL.new(Shim.native_to_datum_term(x), nil)
-      end
-
+    def self.safe_to_s(x)
       case x
-      when Array
-        args = x.map{|y| fast_expr(y, allow_json)}
-        return x if allow_json && args.all?{|y| y.class != RQL}
-        t = Term.new
-        t.type = Term::TermType::MAKE_ARRAY
-        t.args = args.map{|y| any_to_pb(y)}
-        return RQL.new(t, nil)
-      when Hash
-        kvs = x.map{|k,v| [k, fast_expr(v, allow_json)]}
-        return x if allow_json && kvs.all? {|k,v|
-          (k.class == String || k.class == Symbol) && v.class != RQL
-        }
-        t = Term.new
-        t.type = Term::TermType::MAKE_OBJ
-        t.optargs = kvs.map{|k,v|
-          ap = Term::AssocPair.new;
-          if k.class == Symbol || k.class == String
-            ap.key = k.to_s
-          else
-            raise RqlDriverError, "Object keys must be strings or symbols." +
-              "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
-          end
-          ap.val = any_to_pb(v)
-          ap
-        }
-        return RQL.new(t, nil)
-      when Proc
-        t = RQL.new(nil, nil).new_func(&x).to_pb
-        return RQL.new(t, nil)
-      else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
+      when String then x
+      when Symbol then x.to_s
+      else raise RqlDriverError, 'Object keys must be strings or symbols.  '+
+          "(Got object `#{x.inspect}` of class `#{x.class}`.)"
       end
     end
 
-    def check_depth depth
-      raise RqlRuntimeError, "Maximum expression depth of 20 exceeded." if depth > 20
-    end
-
-    def reql_typify(tree, depth=0)
-      check_depth(depth)
-      case tree
-      when Array
-        return tree.map{|x| reql_typify(x, depth+1)}
-      when Hash
-        return Hash[tree.map{|k,v| [k, reql_typify(v, depth+1)]}]
-      when Time
-        return {
-          '$reql_type$' => 'TIME',
-          'epoch_time'  => tree.to_f,
-          'timezone'    => timezone_from_offset(tree.utc_offset)
-        }
-      else
-        return tree
+    def self.fast_expr(x, depth=0)
+      raise RqlDriverError, "Maximum expression depth of 20 exceeded." if depth > 20
+      case x
+      when RQL then x
+      when Array then RQL.new([Term::TermType::MAKE_ARRAY,
+                               x.map{|y| fast_expr(y, depth+1)}])
+      when Hash then RQL.new(Hash[x.map{|k,v| [safe_to_s(k), fast_expr(v, depth+1)]}])
+      when Proc then RQL.new.new_func(&x)
+      else RQL.new(x)
       end
     end
 
-    def expr(x, opts={})
-      allow_json = opts[:allow_json]
-      unbound_if @body
-      res = fast_expr(reql_typify(x), allow_json)
-      return res if res.class == RQL
-      return RQL.new(any_to_pb(res), nil)
+    def expr(x)
+      unbound_if(@body != RQL)
+      RQL.fast_expr(x)
     end
-
     def coerce(other)
       [RQL.new.expr(other), self]
     end

@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "clustering/administration/admin_tracker.hpp"
+
 #include <map>
 #include <list>
 
-#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -30,12 +31,6 @@ admin_tracker_t::admin_tracker_t(
 
     vector_clock_conflict_issue_tracker(cluster_view, auth_view),
     vector_clock_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker),
-
-    mc_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, cluster_view)),
-    mc_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &mc_pinnings_shards_mismatch_issue_tracker),
-
-    dummy_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, cluster_view)),
-    dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker),
 
     unsatisfiable_goals_issue_tracker(cluster_view),
     unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),

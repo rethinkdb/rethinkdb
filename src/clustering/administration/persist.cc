@@ -32,8 +32,6 @@ struct cluster_metadata_superblock_t {
     char metadata_blob[METADATA_BLOB_MAXREFLEN];
 
     static const int BRANCH_HISTORY_BLOB_MAXREFLEN = 500;
-    char dummy_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
-    char memcached_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
     char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 };
 
@@ -244,17 +242,9 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
                initial_metadata);
     write_blob(buf_parent_t(&superblock),
-               sb->dummy_branch_history_blob,
-               cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-               branch_history_t<mock::dummy_protocol_t>());
-    write_blob(buf_parent_t(&superblock),
-               sb->memcached_branch_history_blob,
-               cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-               branch_history_t<memcached_protocol_t>());
-    write_blob(buf_parent_t(&superblock),
                sb->rdb_branch_history_blob,
                cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-               branch_history_t<rdb_protocol_t>());
+               branch_history_t());
 
     construct_branch_history_managers(true);
 }
@@ -301,8 +291,7 @@ machine_id_t cluster_persistent_file_t::read_machine_id() {
     return sb->machine_id;
 }
 
-template <class protocol_t>
-class cluster_persistent_file_t::persistent_branch_history_manager_t : public branch_history_manager_t<protocol_t> {
+class cluster_persistent_file_t::persistent_branch_history_manager_t : public branch_history_manager_t {
 public:
     persistent_branch_history_manager_t(cluster_persistent_file_t *p,
                                         char (cluster_metadata_superblock_t::*fn)[cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN],
@@ -325,9 +314,9 @@ public:
         }
     }
 
-    branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING {
+    branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING {
         home_thread_mixin_t::assert_thread();
-        typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = bh.branches.find(branch);
+        std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = bh.branches.find(branch);
         guarantee(it != bh.branches.end(), "no such branch");
         return it->second;
     }
@@ -335,9 +324,9 @@ public:
     std::set<branch_id_t> known_branches() THROWS_NOTHING {
         std::set<branch_id_t> res;
 
-        for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator it  = bh.branches.begin();
-                                                                                               it != bh.branches.end();
-                                                                                               ++it) {
+        for (std::map<branch_id_t, branch_birth_certificate_t>::iterator it = bh.branches.begin();
+             it != bh.branches.end();
+             ++it) {
             res.insert(it->first);
         }
 
@@ -345,17 +334,17 @@ public:
     }
 
     void create_branch(branch_id_t branch_id,
-                       const branch_birth_certificate_t<protocol_t> &bc,
+                       const branch_birth_certificate_t &bc,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+        std::pair<std::map<branch_id_t, branch_birth_certificate_t>::iterator, bool>
             insert_res = bh.branches.insert(std::make_pair(branch_id, bc));
         guarantee(insert_res.second);
         flush(interruptor);
     }
 
     void export_branch_history(branch_id_t branch,
-                               branch_history_t<protocol_t> *out) THROWS_NOTHING {
+                               branch_history_t *out) THROWS_NOTHING {
         home_thread_mixin_t::assert_thread();
         std::set<branch_id_t> to_process;
         if (out->branches.count(branch) == 0) {
@@ -364,11 +353,11 @@ public:
         while (!to_process.empty()) {
             branch_id_t next = *to_process.begin();
             to_process.erase(next);
-            branch_birth_certificate_t<protocol_t> bc = get_branch(next);
-            std::pair<typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::iterator, bool>
+            branch_birth_certificate_t bc = get_branch(next);
+            std::pair<std::map<branch_id_t, branch_birth_certificate_t>::iterator, bool>
                 insert_res = out->branches.insert(std::make_pair(next, bc));
             guarantee(insert_res.second);
-            for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
+            for (region_map_t<version_range_t>::const_iterator it = bc.origin.begin(); it != bc.origin.end(); it++) {
                 if (!it->second.latest.branch.is_nil() && out->branches.count(it->second.latest.branch) == 0) {
                     to_process.insert(it->second.latest.branch);
                 }
@@ -376,10 +365,10 @@ public:
         }
     }
 
-    void import_branch_history(const branch_history_t<protocol_t> &new_records,
+    void import_branch_history(const branch_history_t &new_records,
                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        for (typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
+        for (std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = new_records.branches.begin(); it != new_records.branches.end(); it++) {
             bh.branches.insert(std::make_pair(it->first, it->second));
         }
         flush(interruptor);
@@ -400,7 +389,7 @@ private:
 
     cluster_persistent_file_t *parent;
     char (cluster_metadata_superblock_t::*field_name)[cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN];
-    branch_history_t<protocol_t> bh;
+    branch_history_t bh;
 };
 
 /* These must be defined when the definition of
@@ -408,24 +397,12 @@ private:
 that `persistent_branch_history_manager_t *` can be implicitly cast to
 `branch_history_manager_t *`. */
 
-branch_history_manager_t<mock::dummy_protocol_t> *cluster_persistent_file_t::get_dummy_branch_history_manager() {
-    return dummy_branch_history_manager.get();
-}
-
-branch_history_manager_t<memcached_protocol_t> *cluster_persistent_file_t::get_memcached_branch_history_manager() {
-    return memcached_branch_history_manager.get();
-}
-
-branch_history_manager_t<rdb_protocol_t> *cluster_persistent_file_t::get_rdb_branch_history_manager() {
+branch_history_manager_t *cluster_persistent_file_t::get_rdb_branch_history_manager() {
     return rdb_branch_history_manager.get();
 }
 
 void cluster_persistent_file_t::construct_branch_history_managers(bool create) {
-    dummy_branch_history_manager.init(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
-        this, &cluster_metadata_superblock_t::dummy_branch_history_blob, create));
-    memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
-        this, &cluster_metadata_superblock_t::memcached_branch_history_blob, create));
-    rdb_branch_history_manager.init(new persistent_branch_history_manager_t<rdb_protocol_t>(
+    rdb_branch_history_manager.init(new persistent_branch_history_manager_t(
         this, &cluster_metadata_superblock_t::rdb_branch_history_blob, create));
 }
 

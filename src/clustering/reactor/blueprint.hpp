@@ -4,6 +4,7 @@
 
 #include <map>
 
+#include "region/region.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -12,19 +13,18 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_p
 
 // Explain what a blueprint_t is here please.
 
-template <class protocol_t>
 class blueprint_t {
 public:
     //TODO if we swap the region_t and peer_id_t's positions in these maps we
     //can get better data structure integrity. It might get a bit tricky
     //though.
 
-    typedef std::map<typename protocol_t::region_t, blueprint_role_t> region_to_role_map_t;
-    typedef std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> > role_map_t;
+    typedef std::map<region_t, blueprint_role_t> region_to_role_map_t;
+    typedef std::map<peer_id_t, std::map<region_t, blueprint_role_t> > role_map_t;
 
     void guarantee_valid() const THROWS_NOTHING;
     void add_peer(const peer_id_t &id);
-    void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role);
+    void add_role(const peer_id_t &id, const region_t &region, blueprint_role_t role);
 
     role_map_t peers_roles;
 
@@ -32,8 +32,7 @@ public:
     bool operator!=(const blueprint_t &o) const { return !(*this == o); }
 };
 
-template <class protocol_t>
-void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint);
+void debug_print(printf_buffer_t *buf, const blueprint_t &blueprint);
 
 #endif /* CLUSTERING_REACTOR_BLUEPRINT_HPP_ */
 

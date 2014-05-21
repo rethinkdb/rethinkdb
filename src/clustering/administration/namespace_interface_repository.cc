@@ -10,56 +10,51 @@
 #include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
-template <class protocol_t>
-struct namespace_repo_t<protocol_t>::namespace_cache_t {
+struct namespace_repo_t::namespace_cache_t {
 public:
-    boost::ptr_map<namespace_id_t, typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t> entries;
+    boost::ptr_map<namespace_id_t, base_namespace_repo_t::namespace_cache_entry_t> entries;
     auto_drainer_t drainer;
 };
 
 
-template <class protocol_t>
-namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
-                                               typename protocol_t::context_t *_ctx)
+namespace_repo_t::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
+                                   clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > _namespaces_directory_metadata,
+                                   rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata),
       ctx(_ctx)
 { }
 
-template <class protocol_t>
-namespace_repo_t<protocol_t>::~namespace_repo_t() { }
+namespace_repo_t::~namespace_repo_t() { }
 
-template <class protocol_t>
-std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
-        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
-    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.get_inner().begin();
-                                                                                                    it != ns_directory_metadata.get_inner().end();
-                                                                                                    it++) {
-        typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
+std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > get_reactor_business_cards(
+        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> &ns_directory_metadata, const namespace_id_t &n_id) {
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > res;
+    for (std::map<peer_id_t, namespaces_directory_metadata_t>::const_iterator it  = ns_directory_metadata.get_inner().begin();
+         it != ns_directory_metadata.get_inner().end();
+         ++it) {
+        namespaces_directory_metadata_t::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);
         if (jt != it->second.reactor_bcards.end()) {
             res[it->first] = jt->second.internal;
         } else {
-            res[it->first] = cow_ptr_t<reactor_business_card_t<protocol_t> >();
+            res[it->first] = cow_ptr_t<reactor_business_card_t>();
         }
     }
 
     return res;
 }
 
-template <class protocol_t>
-base_namespace_repo_t<protocol_t>::access_t::access_t() :
+base_namespace_repo_t::access_t::access_t() :
     cache_entry(NULL),
     thread(INVALID_THREAD)
     { }
 
-template<class protocol_t>
-base_namespace_repo_t<protocol_t>::access_t::access_t(base_namespace_repo_t *parent, const uuid_u &namespace_id, signal_t *interruptor) :
+base_namespace_repo_t::access_t::access_t(base_namespace_repo_t *parent, const uuid_u &namespace_id, signal_t *interruptor) :
     thread(get_thread_id())
 {
     {
@@ -70,8 +65,7 @@ base_namespace_repo_t<protocol_t>::access_t::access_t(base_namespace_repo_t *par
     wait_interruptible(cache_entry->namespace_if.get_ready_signal(), interruptor);
 }
 
-template <class protocol_t>
-base_namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
+base_namespace_repo_t::access_t::access_t(const access_t& access) :
     cache_entry(access.cache_entry),
     thread(access.thread)
 {
@@ -81,8 +75,7 @@ base_namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
     }
 }
 
-template <class protocol_t>
-typename base_namespace_repo_t<protocol_t>::access_t &base_namespace_repo_t<protocol_t>::access_t::operator=(const access_t &access) {
+base_namespace_repo_t::access_t &base_namespace_repo_t::access_t::operator=(const access_t &access) {
     if (this != &access) {
         cache_entry = access.cache_entry;
         ref_handler.reset();
@@ -94,23 +87,19 @@ typename base_namespace_repo_t<protocol_t>::access_t &base_namespace_repo_t<prot
     return *this;
 }
 
-template <class protocol_t>
-namespace_interface_t<protocol_t> *base_namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
+namespace_interface_t *base_namespace_repo_t::access_t::get_namespace_if() {
     rassert(thread == get_thread_id());
     return cache_entry->namespace_if.wait();
 }
 
-template <class protocol_t>
-base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::ref_handler_t() :
+base_namespace_repo_t::access_t::ref_handler_t::ref_handler_t() :
     ref_target(NULL) { }
 
-template <class protocol_t>
-base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
+base_namespace_repo_t::access_t::ref_handler_t::~ref_handler_t() {
     reset();
 }
 
-template <class protocol_t>
-void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
+void base_namespace_repo_t::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
     ASSERT_NO_CORO_WAITING;
     guarantee(ref_target == NULL);
     ref_target = _ref_target;
@@ -122,8 +111,7 @@ void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_
     }
 }
 
-template <class protocol_t>
-void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
+void base_namespace_repo_t::access_t::ref_handler_t::reset() {
     ASSERT_NO_CORO_WAITING;
     if (ref_target != NULL) {
         ref_target->ref_count--;
@@ -135,8 +123,7 @@ void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
     }
 }
 
-template <class protocol_t>
-void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
+void namespace_repo_t::create_and_destroy_namespace_interface(
             namespace_cache_t *cache,
             const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
@@ -144,19 +131,19 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     keepalive.assert_is_holding(&cache->drainer);
     threadnum_t thread = get_thread_id();
 
-    typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
+    base_namespace_repo_t::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
 
     /* We need to switch to `home_thread()` to construct
     `cross_thread_watchable`, then switch back. In destruction we need to do the
     reverse. Fortunately RAII works really nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > subview =
-        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
-    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > cross_thread_watchable(subview, thread);
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > subview =
+        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards, _1, namespace_id));
+    cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
-    cluster_namespace_interface_t<protocol_t> namespace_interface(
+    cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
         cross_thread_watchable.get_watchable(),
         ctx);
@@ -204,12 +191,11 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     cache->entries.erase(namespace_id);
 }
 
-template <class protocol_t>
-typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_repo_t<protocol_t>::get_cache_entry(const uuid_u &ns_id) {
-    typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry;
+base_namespace_repo_t::namespace_cache_entry_t *namespace_repo_t::get_cache_entry(const uuid_u &ns_id) {
+    base_namespace_repo_t::namespace_cache_entry_t *cache_entry;
     namespace_cache_t *cache = namespace_caches.get();
     if (cache->entries.find(ns_id) == cache->entries.end()) {
-        cache_entry = new typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t;
+        cache_entry = new base_namespace_repo_t::namespace_cache_entry_t;
         cache_entry->ref_count = 0;
         cache_entry->pulse_when_ref_count_becomes_zero = NULL;
         cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
@@ -218,7 +204,7 @@ typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_r
         cache->entries.insert(id, cache_entry);
 
         coro_t::spawn_sometime(boost::bind(
-            &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, this,
+            &namespace_repo_t::create_and_destroy_namespace_interface, this,
             cache, ns_id,
             auto_drainer_t::lock_t(&cache->drainer)));
     } else {
@@ -227,14 +213,3 @@ typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_r
 
     return cache_entry;
 }
-
-#include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
-#include "rdb_protocol/protocol.hpp"
-
-template class base_namespace_repo_t<mock::dummy_protocol_t>;
-template class base_namespace_repo_t<memcached_protocol_t>;
-template class base_namespace_repo_t<rdb_protocol_t>;
-template class namespace_repo_t<mock::dummy_protocol_t>;
-template class namespace_repo_t<memcached_protocol_t>;
-template class namespace_repo_t<rdb_protocol_t>;

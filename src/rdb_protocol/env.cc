@@ -104,7 +104,7 @@ profile_bool_t env_t::profile() {
 }
 
 cluster_access_t::cluster_access_t(
-        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
             _namespaces_semilattice_metadata,
@@ -160,7 +160,7 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
-env_t::env_t(rdb_protocol_t::context_t *ctx, signal_t *_interruptor)
+env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
       changefeed_manager(ctx ? ctx->changefeed_manager.get() : NULL),
@@ -183,7 +183,7 @@ env_t::env_t(rdb_protocol_t::context_t *ctx, signal_t *_interruptor)
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed_manager_t *_changefeed_manager,
-    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    base_namespace_repo_t *_ns_repo,
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
         _namespaces_semilattice_metadata,
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
@@ -219,7 +219,7 @@ env_t::env_t(
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed_manager_t *_changefeed_manager,
-    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    base_namespace_repo_t *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
         _namespaces_semilattice_metadata,

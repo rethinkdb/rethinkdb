@@ -4,16 +4,11 @@ import signal
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import sys, os, datetime, time, copy, json, traceback, csv, string
+import sys, os, datetime, time, json, traceback, csv
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
-
-try:
-    import rethinkdb as r
-except ImportError:
-    print "The RethinkDB python driver is required to use this command."
-    print "Please install the driver via `pip install rethinkdb`."
-    exit(1)
+from ._backup import *
+import rethinkdb as r
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
@@ -78,12 +73,7 @@ def parse_options():
     res = { }
 
     # Verify valid host:port --connect option
-    host_port = options.host.split(":")
-    if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
-    if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
-    (res["host"], res["port"]) = host_port
+    (res["host"], res["port"]) = parse_connect_option(options.host)
 
     # Verify valid --format option
     if options.format not in ["csv", "json"]:
@@ -104,24 +94,14 @@ def parse_options():
         raise RuntimeError("Error: Partial output directory already exists: %s" % res["directory_partial"])
 
     # Verify valid --export options
-    res["tables"] = []
-    for item in options.tables:
-        if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
-        db_table = item.split(".")
-        if len(db_table) == 1:
-            res["tables"].append(db_table)
-        elif len(db_table) == 2:
-            res["tables"].append(tuple(db_table))
-        else:
-            raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
+    res["db_tables"] = parse_db_table_options(options.tables)
 
     # Parse fields
     if options.fields is None:
         if options.format == "csv":
             raise RuntimeError("Error: Cannot write a CSV with no fields selected.  The '--fields' option must be specified.")
         res["fields"] = None
-    elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
+    elif len(res["db_tables"]) != 1 or res["db_tables"][0][1] is None:
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
@@ -135,23 +115,21 @@ def parse_options():
     res["debug"] = options.debug
     return res
 
-def get_tables(host, port, auth_key, tables):
-    try:
-        conn = r.connect(host, port, auth_key=auth_key)
-    except (r.RqlError, r.RqlDriverError) as ex:
-        raise RuntimeError(ex.message)
-
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  Don't bother setting progress, because this is a
+# fairly small operation.
+def get_tables(progress, conn, tables):
     dbs = r.db_list().run(conn)
     res = []
 
     if len(tables) == 0:
-        tables = [[db] for db in dbs]
+        tables = [(db, None) for db in dbs]
 
     for db_table in tables:
         if db_table[0] not in dbs:
             raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
-        if len(db_table) == 1: # This is just a db name
+        if db_table[1] is None: # This is just a db name
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
         else: # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
@@ -160,12 +138,6 @@ def get_tables(host, port, auth_key, tables):
 
     # Remove duplicates by making results a set
     return set(res)
-
-def os_call_wrapper(fn, filename, error_str):
-    try:
-        fn(filename)
-    except OSError as ex:
-        raise RuntimeError(error_str % (filename, ex.strerror))
 
 # Make sure the output directory doesn't exist and create the temporary directory structure
 def prepare_directories(base_path, base_path_partial, db_table_set):
@@ -181,24 +153,41 @@ def finalize_directory(base_path, base_path_partial):
     os_call_wrapper(lambda x: os.rename(base_path_partial, x), base_path,
                     "Failed to move temporary directory to output directory (%s): %s")
 
-def write_table_metadata(conn, db, table, base_path):
-    out = open(base_path + "/%s/%s.info" % (db, table), "w")
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  Don't bother setting progress, because we either
+# succeed or fail, there is no partial success.
+def write_table_metadata(progress, conn, db, table, base_path):
     table_info = r.db(db).table(table).info().run(conn)
+    out = open(base_path + "/%s/%s.info" % (db, table), "w")
     out.write(json.dumps(table_info) + "\n")
     out.close()
+    return table_info
 
-def read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event):
+# This is called through rdb_call_wrapper and may be called multiple times if
+# connection errors occur.  In order to facilitate this, we do an order_by by the
+# primary key so that we only ever get a given row once.
+def read_table_into_queue(progress, conn, db, table, pkey, task_queue, progress_info, exit_event):
     read_rows = 0
-    for row in r.db(db).table(table).run(conn, time_format="raw"):
-        if exit_event.is_set():
-            break
-        task_queue.put([row])
+    if progress[0] is None:
+        cursor = r.db(db).table(table).order_by(index=pkey).run(conn, time_format="raw")
+    else:
+        cursor = r.db(db).table(table).between(progress[0], None, left_bound="open").order_by(index=pkey).run(conn, time_format="raw")
 
-        # Update the progress every 20 rows - to reduce locking overhead
-        read_rows += 1
-        if read_rows % 20 == 0:
-            progress_info[0].value += 20
-    progress_info[0].value += read_rows % 20
+    try:
+        for row in cursor:
+            if exit_event.is_set():
+                break
+            task_queue.put([row])
+
+            # Set progress so we can continue from this point if a connection error occurs
+            progress[0] = row[pkey]
+
+            # Update the progress every 20 rows - to reduce locking overhead
+            read_rows += 1
+            if read_rows % 20 == 0:
+                progress_info[0].value += 20
+    finally:
+        progress_info[0].value += read_rows % 20
 
 def json_writer(filename, fields, task_queue, error_queue):
     try:
@@ -264,23 +253,28 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
     else:
         raise RuntimeError("unknown format type: %s" % format)
 
+def get_table_size(progress, conn, db, table, progress_info):
+    table_size = r.db(db).table(table).count().run(conn)
+    progress_info[1].value = table_size
+    progress_info[0].value = 0
+
 def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
     writer = None
 
     try:
-        conn = r.connect(host, port, auth_key=auth_key)
-
-        table_size = r.db(db).table(table).count().run(conn)
-        progress_info[1].value = table_size
-        progress_info[0].value = 0
-        write_table_metadata(conn, db, table, directory)
+        # This will open at least one connection for each rdb_call_wrapper, which is
+        # a little wasteful, but shouldn't be a big performance hit
+        conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
+        rdb_call_wrapper(conn_fn, "count", get_table_size, db, table, progress_info)
+        table_info = rdb_call_wrapper(conn_fn, "info", write_table_metadata, db, table, directory)
 
         with stream_semaphore:
             task_queue = multiprocessing.queues.SimpleQueue()
             writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
             writer.start()
 
-            read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
+            rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
+                             table_info["primary_key"], task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -297,13 +291,6 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
 def abort_export(signum, frame, exit_event, interrupt_event):
     interrupt_event.set()
     exit_event.set()
-
-def print_progress(ratio):
-    total_width = 40
-    done_width = int(ratio * total_width)
-    undone_width = total_width - done_width
-    print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
-    sys.stdout.flush()
 
 # We sum up the row count from all tables for total percentage completion
 #  This is because table exports can be staggered when there are not enough clients
@@ -399,8 +386,9 @@ def main():
         return 1
 
     try:
-        db_table_set = get_tables(options["host"], options["port"], options["auth_key"], options["tables"])
-        del options["tables"] # This is not needed anymore, db_table_set is more useful
+        conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+        db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
+        del options["db_tables"] # This is not needed anymore, db_table_set is more useful
 
         # Determine the actual number of client processes we'll have
         options["clients"] = min(options["clients"], len(db_table_set))

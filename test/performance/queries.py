@@ -63,11 +63,11 @@ table_queries = [
         "tag": "filter_string_5"
     },
     {
-        "query": "r.db('test').table(table['name']).limit(100).inner_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
+        "query": "r.db('test').table(table['name']).limit(10).inner_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
         "tag": "inner_join"
     },
     {
-        "query": "r.db('test').table(table['name']).limit(100).outer_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
+        "query": "r.db('test').table(table['name']).limit(10).outer_join(r.db('test').table(table['name']), lambda left, right: left['id'] == right['id'])",
         "tag": "outer_join"
     },
     {

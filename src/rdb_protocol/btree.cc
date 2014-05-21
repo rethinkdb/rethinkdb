@@ -460,7 +460,7 @@ public:
                   const std::vector<const void *> &vals,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-        std::vector<rdb_protocol_details::backfill_atom_t> chunk_atoms;
+        std::vector<backfill_atom_t> chunk_atoms;
         chunk_atoms.reserve(keys.size());
         size_t current_chunk_size = 0;
 
@@ -468,7 +468,7 @@ public:
             rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
             const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
 
-            rdb_protocol_details::backfill_atom_t atom;
+            backfill_atom_t atom;
             atom.key.assign(keys[i]->size, keys[i]->contents);
             atom.value = get_data(value, leaf_node);
             atom.recency = recencies[i];
@@ -483,7 +483,7 @@ public:
                 // with the remaining values.
                 slice_->stats.pm_keys_read.record(chunk_atoms.size());
                 cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-                chunk_atoms = std::vector<rdb_protocol_details::backfill_atom_t>();
+                chunk_atoms = std::vector<backfill_atom_t>();
                 chunk_atoms.reserve(keys.size() - (i+1));
                 current_chunk_size = 0;
             }
@@ -565,9 +565,6 @@ private:
     key_range_t key_range_;
 };
 
-typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
-typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
-
 void sindex_erase_range(const key_range_t &key_range,
         superblock_t *superblock, auto_drainer_t::lock_t,
         signal_t *interruptor, bool release_superblock,
@@ -590,7 +587,7 @@ void sindex_erase_range(const key_range_t &key_range,
 
 /* Spawns a coro to carry out the erase range for each sindex. */
 void spawn_sindex_erase_ranges(
-        const sindex_access_vector_t *sindex_access,
+        const store_t::sindex_access_vector_t *sindex_access,
         const key_range_t &key_range,
         auto_drainer_t *drainer,
         auto_drainer_t::lock_t,
@@ -640,11 +637,11 @@ void rdb_erase_major_range(key_tester_t *tester,
                            const key_range_t &key_range,
                            buf_lock_t *sindex_block,
                            superblock_t *superblock,
-                           btree_store_t<rdb_protocol_t> *store,
+                           store_t *store,
                            signal_t *interruptor) {
 
     /* Dispatch the erase range to the sindexes. */
-    sindex_access_vector_t sindex_superblocks;
+    store_t::sindex_access_vector_t sindex_superblocks;
     {
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block, &sindex_superblocks);
@@ -753,8 +750,8 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
 }
 
 
-typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+typedef ql::transform_variant_t transform_variant_t;
+typedef ql::terminal_variant_t terminal_variant_t;
 
 class sindex_data_t {
 public:
@@ -960,7 +957,7 @@ void rdb_rget_slice(
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const datum_range_t &sindex_range,
-    const rdb_protocol_t::region_t &sindex_region,
+    const region_t &sindex_region,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -1056,7 +1053,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
-        btree_store_t<rdb_protocol_t> *store,
+        store_t *store,
         buf_lock_t *sindex_block,
         auto_drainer_t::lock_t lock)
     : lock_(lock), store_(store),
@@ -1105,8 +1102,6 @@ void rdb_modification_report_cb_t::on_mod_report(
     }
 }
 
-typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
-
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
                   ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
                   std::vector<store_key_t> *keys_out) {
@@ -1126,7 +1121,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
-        const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
+        const store_t::sindex_access_t *sindex,
         const deletion_context_t *deletion_context,
         const rdb_modification_report_t *modification,
         auto_drainer_t::lock_t) {
@@ -1223,15 +1218,13 @@ void rdb_update_single_sindex(
     }
 }
 
-void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
+void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
                          txn_t *txn, const deletion_context_t *deletion_context) {
     {
         auto_drainer_t drainer;
 
-        for (sindex_access_vector_t::const_iterator it = sindexes.begin();
-                                                    it != sindexes.end();
-                                                    ++it) {
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             coro_t::spawn_sometime(std::bind(
                         &rdb_update_single_sindex, &*it, deletion_context,
                         modification, auto_drainer_t::lock_t(&drainer)));
@@ -1246,9 +1239,9 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     }
 }
 
-void rdb_erase_major_range_sindexes(const sindex_access_vector_t &sindexes,
-                              const rdb_erase_major_range_report_t *erase_range,
-                              signal_t *interruptor, const value_deleter_t *deleter) {
+void rdb_erase_major_range_sindexes(const store_t::sindex_access_vector_t &sindexes,
+                                    const rdb_erase_major_range_report_t *erase_range,
+                                    signal_t *interruptor, const value_deleter_t *deleter) {
     auto_drainer_t drainer;
 
     spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
@@ -1260,7 +1253,7 @@ void rdb_erase_major_range_sindexes(const sindex_access_vector_t &sindexes,
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
-            btree_store_t<rdb_protocol_t> *store,
+            store_t *store,
             const std::set<uuid_u> &sindexes_to_post_construct,
             cond_t *interrupt_myself,
             signal_t *interruptor
@@ -1276,7 +1269,7 @@ public:
 
         // KSI: FML
         scoped_ptr_t<txn_t> wtxn;
-        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+        store_t::sindex_access_vector_t sindexes;
 
         buf_read_t leaf_read(leaf_node_buf);
         const leaf_node_t *leaf_node
@@ -1383,14 +1376,14 @@ public:
     access_t btree_superblock_mode() { return access_t::read; }
     access_t btree_node_mode() { return access_t::read; }
 
-    btree_store_t<rdb_protocol_t> *store_;
+    store_t *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
     signal_t *interruptor_;  
 };
 
 void post_construct_secondary_indexes(
-        btree_store_t<rdb_protocol_t> *store,
+        store_t *store,
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {

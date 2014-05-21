@@ -15,7 +15,7 @@
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "region/region_json_adapter.hpp"
 #include "stl_utils.hpp"
 
 static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
@@ -36,51 +36,50 @@ public:
 
 
 /* Some typedefs to ostensibly make life suck less. */
-typedef std::multimap<rdb_protocol_t::region_t, request_record_t *> region_to_request_record_t;
+typedef std::multimap<region_t, request_record_t *> region_to_request_record_t;
 typedef std::map<reactor_activity_id_t, region_to_request_record_t> activity_id_map_t;
 typedef std::map<namespace_id_t, activity_id_map_t> namespace_id_map_t;
 typedef std::map<machine_id_t, namespace_id_map_t> machine_id_map_t;
 
 /* A visitor that finds the backfiller business card (if it exists) in a
  * reactor activity. */
-template <class protocol_t>
-class get_backfiller_business_card_t : public boost::static_visitor<boost::optional<backfiller_business_card_t<protocol_t> > > {
+class get_backfiller_business_card_t : public boost::static_visitor<boost::optional<backfiller_business_card_t> > {
 public:
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::primary_t &primary) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::primary_t &primary) const {
         if (primary.replier) {
             return primary.replier->backfiller_bcard;
         } else {
-            return boost::optional<backfiller_business_card_t<protocol_t> >();
+            return boost::optional<backfiller_business_card_t>();
         }
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::primary_when_safe_t &) const {
-        return boost::optional<backfiller_business_card_t<protocol_t> >();
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::primary_when_safe_t &) const {
+        return boost::optional<backfiller_business_card_t>();
     }
 
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t &secondary_up_to_date) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_up_to_date_t &secondary_up_to_date) const {
         return secondary_up_to_date.replier.backfiller_bcard;
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_without_primary_t &secondary_without_primary) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_without_primary_t &secondary_without_primary) const {
         return secondary_without_primary.backfiller;
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_backfilling_t &) const {
-        return boost::optional<backfiller_business_card_t<protocol_t> >();
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::secondary_backfilling_t &) const {
+        return boost::optional<backfiller_business_card_t>();
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_when_safe_t &nothing_when_safe) const {
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_when_safe_t &nothing_when_safe) const {
         return nothing_when_safe.backfiller;
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_t &) const {
-        return boost::optional<backfiller_business_card_t<protocol_t> >();
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_t &) const {
+        return boost::optional<backfiller_business_card_t>();
     }
 
-    boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_when_done_erasing_t &) const {
-        return boost::optional<backfiller_business_card_t<protocol_t> >();
+    boost::optional<backfiller_business_card_t> operator()(const reactor_business_card_t::nothing_when_done_erasing_t &) const {
+        return boost::optional<backfiller_business_card_t>();
     }
 };
 
@@ -91,7 +90,7 @@ public:
                              namespace_id_t _n_id,
                              machine_id_t _m_id,
                              reactor_activity_id_t _a_id,
-                             rdb_protocol_t::region_t _region,
+                             region_t _region,
                              mailbox_manager_t *_mbox_manager,
                              machine_id_map_t *_promise_map,
                              boost::ptr_vector<request_record_t> *_things_to_destroy)
@@ -116,7 +115,7 @@ private:
     namespace_id_t n_id;
     machine_id_t m_id;
     reactor_activity_id_t a_id;
-    rdb_protocol_t::region_t region;
+    region_t region;
     mailbox_manager_t *mbox_manager;
     machine_id_map_t *promise_map;
     boost::ptr_vector<request_record_t> *things_to_destroy;
@@ -128,7 +127,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         return;
     }
 
-    namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
+    namespaces_directory_metadata_t namespaces_directory_metadata =
         directory_it->second.rdb_namespaces;
 
     if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
@@ -144,10 +143,10 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         return;
     }
 
-    reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
+    reactor_business_card_t::activity_entry_t region_activity_entry =
         namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(loc.activity_id)->second;
 
-    boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
+    boost::optional<backfiller_business_card_t> backfiller = boost::apply_visitor(get_backfiller_business_card_t(), region_activity_entry.activity);
     if (backfiller) {
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
@@ -168,16 +167,16 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
 }
 
 template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t &primary_when_safe) const {
-    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
-                                                                                         b_it != primary_when_safe.backfills_waited_on.end();
-                                                                                         ++b_it) {
+void send_backfill_requests_t::operator()<reactor_business_card_t::primary_when_safe_t>(const reactor_business_card_t::primary_when_safe_t &primary_when_safe) const {
+    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it = primary_when_safe.backfills_waited_on.begin();
+         b_it != primary_when_safe.backfills_waited_on.end();
+         ++b_it) {
         handle_request_internal(*b_it);
     }
 }
 
 template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
+void send_backfill_requests_t::operator()<reactor_business_card_t::secondary_backfilling_t>(const reactor_business_card_t::secondary_backfilling_t &secondary_backfilling) const {
     handle_request_internal(secondary_backfilling.backfill);
 }
 
@@ -206,7 +205,7 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
      * machine_id_t ->
      *   namespace_id_t ->
      *     reactor_activity_id_t ->
-     *       rdb_protocol_t::region_t ->
+     *       region_t ->
      *         request_record_t
      *
      * A request record holds on to the mailbox needed to receive a value
@@ -266,11 +265,11 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
          * didn't specify a specific machine but want all the machines). */
         if (!requested_machine_id || requested_machine_id == p_it->second.machine_id) {
 
-            typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcard_map_t;
+            typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcard_map_t;
             const reactor_bcard_map_t &bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
 
             /* Iterate through the machine's reactor's business_cards to see which ones are doing backfills. */
-            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::const_iterator n_it = bcard_map.begin();
+            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > >::const_iterator n_it = bcard_map.begin();
                  n_it != bcard_map.end();
                  ++n_it) {
                 /* Check to see if this matches the requested namespace (or
@@ -279,7 +278,7 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
 
                     /* Iterate through the reactors activities to see if
                      * any of them are currently backfilling. */
-                    for (reactor_business_card_t<rdb_protocol_t>::activity_map_t::const_iterator a_it = n_it->second.internal->activities.begin();
+                    for (reactor_business_card_t::activity_map_t::const_iterator a_it = n_it->second.internal->activities.begin();
                          a_it != n_it->second.internal->activities.end();
                          ++a_it) {
                         /* XXX we don't have a way to filter by activity
@@ -339,12 +338,12 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
                 cJSON *activity_info = cJSON_CreateObject();
                 cJSON_AddItemToObject(namespace_info, uuid_to_str(a_it->first).c_str(), activity_info);
 
-                std::map<rdb_protocol_t::region_t, cJSON*> backfills_for_region; //Since it's a multimap we need to keep track of the different cJSON objects for the different regions.
+                std::map<region_t, cJSON*> backfills_for_region; //Since it's a multimap we need to keep track of the different cJSON objects for the different regions.
                 for (region_to_request_record_t::iterator r_it  = a_it->second.begin();
                                                           r_it != a_it->second.end();
                                                           ++r_it) {
                     //Sigh get around json adapters const aversion
-                    rdb_protocol_t::region_t r = r_it->first;
+                    region_t r = r_it->first;
 
                     cJSON *region_info;
                     if (!std_contains(backfills_for_region, r)) {

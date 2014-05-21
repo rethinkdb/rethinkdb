@@ -2,6 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -11,6 +12,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -25,13 +27,13 @@ namespace unittest {
 void run_with_broadcaster(
     boost::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-        branch_history_manager_t<rdb_protocol_t> *,
+        branch_history_manager_t *,
         clone_ptr_t< watchable_t< boost::optional< boost::optional<
-            broadcaster_business_card_t<rdb_protocol_t> > > > >,
-        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-        test_store_t<rdb_protocol_t> *,
-        scoped_ptr_t<listener_t<rdb_protocol_t> > *,
-        rdb_protocol_t::context_t *ctx,
+            broadcaster_business_card_t> > > >,
+        scoped_ptr_t<broadcaster_t> *,
+        test_store_t *,
+        scoped_ptr_t<listener_t> *,
+        rdb_context_t *ctx,
         order_source_t *)> fun) {
     order_source_t order_source;
 
@@ -39,12 +41,12 @@ void run_with_broadcaster(
     simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
-    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t branch_history_manager;
 
     // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
-    /* Create some structures for the rdb_protocol_t::context_t, warning some
+    /* Create some structures for the rdb_context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
     extproc_pool_t extproc_pool(2);
@@ -58,21 +60,21 @@ void run_with_broadcaster(
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
-    rdb_protocol_t::context_t ctx(&extproc_pool,
-                                  cluster.get_mailbox_manager(),
-                                  NULL,
-                                  slm.get_root_view(),
-                                  dummy_auth,
-                                  &read_manager,
-                                  generate_uuid(),
-                                  &get_global_perfmon_collection());
+    rdb_context_t ctx(&extproc_pool,
+                      cluster.get_mailbox_manager(),
+                      NULL,
+                      slm.get_root_view(),
+                      dummy_auth,
+                      &read_manager,
+                      generate_uuid(),
+                      &get_global_perfmon_collection());
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
+    test_store_t initial_store(&io_backender, &order_source, &ctx);
     cond_t interruptor;
 
-    scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
-        new broadcaster_t<rdb_protocol_t>(
+    scoped_ptr_t<broadcaster_t> broadcaster(
+        new broadcaster_t(
             cluster.get_mailbox_manager(),
             &branch_history_manager,
             &initial_store.store,
@@ -80,10 +82,10 @@ void run_with_broadcaster(
             &order_source,
             &interruptor));
 
-    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster->get_business_card())));
+    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t> >(boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card())));
 
-    scoped_ptr_t<listener_t<rdb_protocol_t> > initial_listener(
-        new listener_t<rdb_protocol_t>(base_path_t("."), //TODO is it bad that this isn't configurable?
+    scoped_ptr_t<listener_t> initial_listener(
+        new listener_t(base_path_t("."), //TODO is it bad that this isn't configurable?
                                        &io_backender,
                                        cluster.get_mailbox_manager(),
                                        broadcaster_business_card_watchable_variable.get_watchable(),
@@ -105,12 +107,12 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                              branch_history_manager_t<rdb_protocol_t> *,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
-                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              test_store_t<rdb_protocol_t> *,
-                              scoped_ptr_t<listener_t<rdb_protocol_t> > *,
-                              rdb_protocol_t::context_t *,
+                              branch_history_manager_t *,
+                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > >,
+                              scoped_ptr_t<broadcaster_t> *,
+                              test_store_t *,
+                              scoped_ptr_t<listener_t> *,
+                              rdb_context_t *,
                               order_source_t *)> fun)
 {
     extproc_spawner_t extproc_spawner;
@@ -129,13 +131,13 @@ counted_t<const ql::datum_t> generate_document(size_t value_padding_length, cons
 }
 
 void write_to_broadcaster(size_t value_padding_length,
-                          broadcaster_t<rdb_protocol_t> *broadcaster,
+                          broadcaster_t *broadcaster,
                           const std::string &key,
                           const std::string &value,
                           order_token_t otok,
                           signal_t *) {
-    rdb_protocol_t::write_t write(
-            rdb_protocol_t::point_write_t(
+    write_t write(
+            point_write_t(
                 store_key_t(key),
                 generate_document(value_padding_length, value),
                 true),
@@ -144,9 +146,9 @@ void write_to_broadcaster(size_t value_padding_length,
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
+    class : public broadcaster_t::write_callback_t, public cond_t {
     public:
-        void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
+        void on_response(peer_id_t, const write_response_t &) {
             /* ignore */
         }
         void on_done() {
@@ -161,12 +163,12 @@ void write_to_broadcaster(size_t value_padding_length,
 
 void run_backfill_test(size_t value_padding_length,
                        std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
-                       branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
-                       scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                       test_store_t<rdb_protocol_t> *,
-                       scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
-                       rdb_protocol_t::context_t *ctx,
+                       branch_history_manager_t *branch_history_manager,
+                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
+                       scoped_ptr_t<broadcaster_t> *broadcaster,
+                       test_store_t *,
+                       scoped_ptr_t<listener_t> *initial_listener,
+                       rdb_context_t *ctx,
                        order_source_t *order_source) {
     io_backender_t *const io_backender = io_backender_and_cluster.first;
     simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
@@ -174,10 +176,10 @@ void run_backfill_test(size_t value_padding_length,
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
+    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
+        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
@@ -191,13 +193,16 @@ void run_backfill_test(size_t value_padding_length,
         &inserter_state);
     nap(10000);
 
+    backfill_throttler_t backfill_throttler;
+
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t store2(io_backender, order_source, ctx);
     cond_t interruptor;
-    listener_t<rdb_protocol_t> listener2(
+    listener_t listener2(
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,
@@ -220,14 +225,13 @@ void run_backfill_test(size_t value_padding_length,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)),
-                profile_bool_t::PROFILE);
+        read_t read(point_read_t(store_key_t(it->first)), profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
-        rdb_protocol_t::read_response_t response;
+        read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
+        point_read_response_t get_result = boost::get<point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.get() != NULL);
         EXPECT_EQ(*generate_document(value_padding_length,
                                      it->second),
@@ -248,23 +252,24 @@ TEST(RDBProtocolBackfill, BackfillLargeValues) {
 }
 
 void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
-                              branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
-                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                              test_store_t<rdb_protocol_t> *,
-                              scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
-                              rdb_protocol_t::context_t *ctx,
+                              branch_history_manager_t *branch_history_manager,
+                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
+                              scoped_ptr_t<broadcaster_t> *broadcaster,
+                              test_store_t *,
+                              scoped_ptr_t<listener_t> *initial_listener,
+                              rdb_context_t *ctx,
                               order_source_t *order_source) {
     io_backender_t *const io_backender = io_backender_and_cluster.first;
+    backfill_throttler_t backfill_throttler;
     simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
 
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
 
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
+    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
+        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
 
     std::string id("sid");
     {
@@ -273,16 +278,15 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
         ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-        rdb_protocol_t::write_t write(
-            rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
-            profile_bool_t::PROFILE);
+        write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+                      profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(
             &enforce.sink, enforce.source.enter_write());
-        class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
+        class : public broadcaster_t::write_callback_t, public cond_t {
         public:
-            void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
+            void on_response(peer_id_t, const write_response_t &) {
                 /* ignore */
             }
             void on_done() {
@@ -309,12 +313,13 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t store2(io_backender, order_source, ctx);
     cond_t interruptor;
-    listener_t<rdb_protocol_t> listener2(
+    listener_t listener2(
         base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
+        &backfill_throttler,
         broadcaster_metadata_view,
         branch_history_manager,
         &store2.store,
@@ -342,13 +347,13 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
-        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
+        read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
-        rdb_protocol_t::read_response_t response;
+        read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
+        rget_read_response_t get_result = boost::get<rget_read_response_t>(response.response);
         auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&get_result.result);
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());

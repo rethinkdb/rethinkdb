@@ -2,13 +2,14 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
-#include "btree/btree_store.hpp"
+#include "rdb_protocol/store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 
@@ -118,7 +119,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    rdb_protocol_t::store_t store(
+    store_t store(
             &serializer,
             &balancer,
             "unit_test_store",
@@ -195,7 +196,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
 
             counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
 
-            rdb_protocol_t::point_write_response_t response;
+            point_write_response_t response;
             rdb_modification_info_t mod_info;
 
             store_key_t key("foo");

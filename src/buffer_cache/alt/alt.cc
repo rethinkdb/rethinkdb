@@ -29,8 +29,7 @@ const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 
 
 // The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
-// given block id, in order by version.  (See
-// cache_t::snapshot_nodes_by_block_id_.)
+// given block id, in order by version. (See cache_t::snapshot_nodes_by_block_id_.)
 class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
     explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
@@ -91,7 +90,9 @@ cache_t::cache_t(serializer_t *serializer,
       throttler_(MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT),
       page_cache_(serializer, balancer, &throttler_) { }
 
-cache_t::~cache_t() { }
+cache_t::~cache_t() {
+    guarantee(snapshot_nodes_by_block_id_.empty());
+}
 
 cache_account_t cache_t::create_cache_account(int priority) {
     return page_cache_.create_cache_account(priority);
@@ -101,8 +102,11 @@ alt_snapshot_node_t *
 cache_t::matching_snapshot_node_or_null(block_id_t block_id,
                                         block_version_t block_version) {
     ASSERT_NO_CORO_WAITING;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &snapshot_nodes_by_block_id_[block_id];
+    auto list_it = snapshot_nodes_by_block_id_.find(block_id);
+    if (list_it == snapshot_nodes_by_block_id_.end()) {
+        return NULL;
+    }
+    intrusive_list_t<alt_snapshot_node_t> *list = list_it->second;
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         if (p->current_page_acq_->block_version() == block_version) {
             return p;
@@ -132,7 +136,12 @@ void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *nod
         stack.pop();
         // Step 1. Remove the node to be deleted from its list in
         // snapshot_nodes_by_block_id_.
-        snapshot_nodes_by_block_id_[pair.first].remove(pair.second);
+        auto list_it = snapshot_nodes_by_block_id_.find(pair.first);
+        rassert(list_it != snapshot_nodes_by_block_id_.end());
+        list_it->second->remove(pair.second);
+        if (list_it->second->empty()) {
+            snapshot_nodes_by_block_id_.erase(list_it);
+        }
 
         const std::map<block_id_t, alt_snapshot_node_t *> children
             = std::move(pair.second->children_);
@@ -300,12 +309,12 @@ buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
         // write transaction has not yet acquired [1].  So we create a child using
         // the current version of the block.
         //
-        // [1] assuming the cache is used proprely, with the child always acquired
+        // [1] assuming the cache is used properly, with the child always acquired
         // via the parent, or detached, before modification
         alt_snapshot_node_t *child = help_make_child(cache, child_id);
 
-        child->ref_count_++;
-        parent->children_.insert(std::make_pair(child_id, child));
+        // We don't attach the snapshot node to its parent, because this is a read
+        // transaction.
         return child;
     } else {
         return it->second;
@@ -333,9 +342,13 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
     // We create at most one child snapshot node.
 
     alt_snapshot_node_t *child = NULL;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &cache->snapshot_nodes_by_block_id_[parent_id];
-    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+    auto list_it = cache->snapshot_nodes_by_block_id_.find(parent_id);
+    if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
+        return;
+    }
+    for (alt_snapshot_node_t *p = list_it->second->tail();
+         p != NULL;
+         p = list_it->second->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.
@@ -350,6 +363,7 @@ void buf_lock_t::create_child_snapshot_attachments(cache_t *cache,
             child = help_make_child(cache, child_id);
         }
 
+        // Attach the child to its parent.
         child->ref_count_++;
         p->children_.insert(std::make_pair(child_id, child));
     }
@@ -361,10 +375,14 @@ void buf_lock_t::create_empty_child_snapshot_attachments(cache_t *cache,
                                                          block_id_t parent_id,
                                                          block_id_t child_id) {
     ASSERT_NO_CORO_WAITING;
-    intrusive_list_t<alt_snapshot_node_t> *list
-        = &cache->snapshot_nodes_by_block_id_[parent_id];
 
-    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+    auto list_it = cache->snapshot_nodes_by_block_id_.find(parent_id);
+    if (list_it == cache->snapshot_nodes_by_block_id_.end()) {
+        return;
+    }
+    for (alt_snapshot_node_t *p = list_it->second->tail();
+         p != NULL;
+         p = list_it->second->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
             // Already has a child, continue.
@@ -385,6 +403,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     buf_lock_t::wait_for_parent(parent, access);
     ASSERT_FINITE_CORO_WAITING;
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
+        rassert(access == access_t::read);
         buf_lock_t *parent_lock = parent.lock_or_null_;
         rassert(!parent_lock->current_page_acq_.has());
         snapshot_node_

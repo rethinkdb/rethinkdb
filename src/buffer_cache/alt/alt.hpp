@@ -6,6 +6,10 @@
 #include <vector>
 #include <utility>
 
+#include "errors.hpp"
+
+#include <boost/ptr_container/ptr_map.hpp>
+
 #include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
@@ -21,7 +25,7 @@ class cache_balancer_t;
 
 class alt_txn_throttler_t {
 public:
-    alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
+    explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
@@ -74,7 +78,8 @@ private:
     alt_txn_throttler_t throttler_;
     alt::page_cache_t page_cache_;
 
-    two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
+    boost::ptr_map<block_id_t, intrusive_list_t<alt_snapshot_node_t> >
+        snapshot_nodes_by_block_id_;
 
     DISABLE_COPYING(cache_t);
 };

@@ -18,7 +18,7 @@ Response on_unparsable_query(ql::protob_t<Query> q, std::string msg) {
 
 query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
                                  int port,
-                                 rdb_protocol_t::context_t *_ctx) :
+                                 rdb_context_t *_ctx) :
     server(local_addresses,
            port,
            boost::bind(&query_server_t::handle, this, _1, _2, _3),
@@ -39,7 +39,7 @@ int query_server_t::get_port() const {
 namespace ql {
     // Predeclaration for run, only used here
     void run(protob_t<Query> q,
-             rdb_protocol_t::context_t *ctx,
+             rdb_context_t *ctx,
              signal_t *interruptor,
              Response *res,
              stream_cache_t *stream_cache);

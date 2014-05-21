@@ -42,7 +42,6 @@
 #include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
-#include "mock/dummy_protocol.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -697,9 +696,13 @@ void run_rethinkdb_create(const base_path_t &base_path,
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
-        std::set<host_and_port_t> peer_host;
-        peer_host.insert(names[i]);
-        peers.insert(peer_address_t(peer_host));
+        peer_address_t peer(std::set<host_and_port_t>(&names[i], &names[i+1]));
+        if (peers.find(peer) != peers.end()) {
+            logWRN("Duplicate peer in --join parameters, ignoring: '%s:%d'",
+                   names[i].host().c_str(), names[i].port().value());
+        } else {
+            peers.insert(peer);
+        }
     }
     return peers;
 }

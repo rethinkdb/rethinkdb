@@ -20,11 +20,11 @@
 class database_semilattice_metadata_t {
 public:
     vclock_t<name_string_t> name;
-    RDB_MAKE_ME_SERIALIZABLE_1(name);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
-RDB_MAKE_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
+RDB_DECLARE_SEMILATTICE_JOINABLE(database_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(database_semilattice_metadata_t);
 
 void debug_print(printf_buffer_t *buf, const database_semilattice_metadata_t &x);
 
@@ -40,11 +40,11 @@ public:
     typedef std::map<database_id_t, deletable_t<database_semilattice_metadata_t> > database_map_t;
     database_map_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(databases);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
+RDB_DECLARE_SEMILATTICE_JOINABLE(databases_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(databases_semilattice_metadata_t);
 
 //json adapter concept for databases_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(databases_semilattice_metadata_t *target, const vclock_ctx_t &ctx);

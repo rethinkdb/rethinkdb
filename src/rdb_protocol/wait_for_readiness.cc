@@ -13,7 +13,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 
-void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
+void wait_for_rdb_table_readiness(base_namespace_repo_t *ns_repo,
                                   uuid_u namespace_id,
                                   signal_t *interruptor,
                                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
@@ -29,15 +29,15 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     const int poll_ms = 20;
     const int deleted_check_ms = 4000;
     const int deleted_check_interval = std::max(deleted_check_ms / poll_ms, 1);
-    rdb_protocol_t::rget_read_t empty_rget_read(
+    rget_read_t empty_rget_read(
         hash_region_t<key_range_t>::universe(),
         std::map<std::string, ql::wire_func_t>(),
         ql::batchspec_t::user(ql::batch_type_t::NORMAL, counted_t<const ql::datum_t>()),
-        std::vector<rdb_protocol_details::transform_variant_t>(),
-        boost::optional<rdb_protocol_details::terminal_variant_t>(),
-        boost::optional<rdb_protocol_t::sindex_rangespec_t>(),
+        std::vector<ql::transform_variant_t>(),
+        boost::optional<ql::terminal_variant_t>(),
+        boost::optional<sindex_rangespec_t>(),
         sorting_t::UNORDERED);
-    rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
+    read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (int num_attempts = 0; true; ++num_attempts) {
         nap(poll_ms, interruptor);
         try {
@@ -50,19 +50,19 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
                 // pressed for time here...
                 on_thread_t rethread(semilattice_metadata->home_thread());
                 cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
-                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+                cow_ptr_t<namespaces_semilattice_metadata_t>::change_t
                     change(&metadata.rdb_namespaces);
                 std::map<namespace_id_t,
-                         deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                         deletable_t<namespace_semilattice_metadata_t>
                          >::iterator
                     nsi = change.get()->namespaces.find(namespace_id);
                 rassert(nsi != change.get()->namespaces.end());
                 if (nsi->second.is_deleted()) throw interrupted_exc_t();
             }
 
-            base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(
+            base_namespace_repo_t::access_t ns_access(
                 ns_repo, namespace_id, interruptor);
-            rdb_protocol_t::read_response_t read_res;
+            read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
             ns_access.get_namespace_if()->read(
                 empty_read, &read_res, order_token_t::ignore, interruptor);

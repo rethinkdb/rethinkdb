@@ -9,9 +9,8 @@
    master and a number of multi_throttling_client_t instances on the client nodes. */
 const int MAX_OUTSTANDING_MASTER_REQUESTS = 2000;
 
-template <class protocol_t>
-master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
-                               typename protocol_t::region_t r, broadcaster_t<protocol_t> *b) THROWS_ONLY(interrupted_exc_t)
+master_t::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
+                   region_t r, broadcaster_t *b) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       ack_checker(ac),
       broadcaster(b),
@@ -20,32 +19,29 @@ master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
     guarantee(ack_checker);
 }
 
-template <class protocol_t>
-master_t<protocol_t>::~master_t() {
+master_t::~master_t() {
     shutdown_cond.pulse();
 }
 
-template <class protocol_t>
-master_business_card_t<protocol_t> master_t<protocol_t>::get_business_card() {
-    return master_business_card_t<protocol_t>(region,
-                                              multi_throttling_server.get_business_card());
+master_business_card_t master_t::get_business_card() {
+    return master_business_card_t(region,
+                                  multi_throttling_server.get_business_card());
 }
 
-template <class protocol_t>
-void master_t<protocol_t>::client_t::perform_request(
-        const typename master_business_card_t<protocol_t>::request_t &request,
+void master_t::client_t::perform_request(
+        const master_business_card_t::request_t &request,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    if (const typename master_business_card_t<protocol_t>::read_request_t *read =
-            boost::get<typename master_business_card_t<protocol_t>::read_request_t>(&request)) {
+    if (const master_business_card_t::read_request_t *read =
+            boost::get<master_business_card_t::read_request_t>(&request)) {
 
         read->order_token.assert_read_mode();
 
-        boost::variant<typename protocol_t::read_response_t, std::string> reply;
+        boost::variant<read_response_t, std::string> reply;
         try {
-            reply = typename protocol_t::read_response_t();
-            typename protocol_t::read_response_t &resp = boost::get<typename protocol_t::read_response_t>(reply);
+            reply = read_response_t();
+            read_response_t &resp = boost::get<read_response_t>(reply);
 
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
             parent->broadcaster->read(read->read, &resp, &exiter, read->order_token, interruptor);
@@ -54,16 +50,16 @@ void master_t<protocol_t>::client_t::perform_request(
         }
         send(parent->mailbox_manager, read->cont_addr, reply);
 
-    } else if (const typename master_business_card_t<protocol_t>::write_request_t *write =
-            boost::get<typename master_business_card_t<protocol_t>::write_request_t>(&request)) {
+    } else if (const master_business_card_t::write_request_t *write =
+            boost::get<master_business_card_t::write_request_t>(&request)) {
 
         write->order_token.assert_write_mode();
 
         // TODO: avoid extra response_t copies here
-        class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
+        class write_callback_t : public broadcaster_t::write_callback_t {
         public:
             explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
-            void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
+            void on_response(peer_id_t peer, const write_response_t &response) {
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
                     ASSERT_NO_CORO_WAITING;
                     ack_set.insert(peer);
@@ -79,7 +75,7 @@ void master_t<protocol_t>::client_t::perform_request(
             }
             ack_checker_t *ack_checker;
             std::set<peer_id_t> ack_set;
-            promise_t<typename protocol_t::write_response_t> response_promise;
+            promise_t<write_response_t> response_promise;
             cond_t done_cond;
         } write_callback(parent->ack_checker);
 
@@ -107,14 +103,14 @@ void master_t<protocol_t>::client_t::perform_request(
         */
         wait_interruptible(&waiter, &parent->shutdown_cond);
 
-        typename protocol_t::write_response_t write_response;
+        write_response_t write_response;
         if (write_callback.response_promise.try_get_value(&write_response)) {
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<typename protocol_t::write_response_t, std::string>(write_response));
+                 boost::variant<write_response_t, std::string>(write_response));
         } else {
             guarantee(write_callback.done_cond.is_pulsed());
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded"));
+                 boost::variant<write_response_t, std::string>("not enough replicas responded"));
         }
 
         /* When we return, our multi-throttler ticket will be returned to the
@@ -126,13 +122,3 @@ void master_t<protocol_t>::client_t::perform_request(
         unreachable();
     }
 }
-
-
-#include "memcached/protocol.hpp"
-template class master_t<memcached_protocol_t>;
-
-#include "mock/dummy_protocol.hpp"
-template class master_t<mock::dummy_protocol_t>;
-
-#include "rdb_protocol/protocol.hpp"
-template class master_t<rdb_protocol_t>;

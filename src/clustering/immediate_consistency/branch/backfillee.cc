@@ -9,47 +9,45 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "store_view.hpp"
 
 // Must be <= than MAX_CHUNKS_OUT in backfiller.cc
 #define ALLOCATION_CHUNK 8
 
-template <class protocol_t>
 struct backfill_queue_entry_t {
     // TODO: The fact that fifo_enforcer_queue_t requires a default
     // constructor (and assignment operator, presumably) is completely asinine.
     backfill_queue_entry_t() { }
     backfill_queue_entry_t(bool _is_not_last_backfill_chunk,
-                           const typename protocol_t::backfill_chunk_t &_chunk,
+                           const backfill_chunk_t &_chunk,
                            fifo_enforcer_write_token_t _write_token)
         : is_not_last_backfill_chunk(_is_not_last_backfill_chunk),
           chunk(_chunk),
           write_token(_write_token) { }
 
     bool is_not_last_backfill_chunk;
-    typename protocol_t::backfill_chunk_t chunk;
+    backfill_chunk_t chunk;
     fifo_enforcer_write_token_t write_token;
 };
 
-template <class protocol_t>
-void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *queue,
-                         typename protocol_t::backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
-    queue->push(token, backfill_queue_entry_t<protocol_t>(true, chunk, token));
+void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue,
+                         backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
+    queue->push(token, backfill_queue_entry_t(true, chunk, token));
 }
 
-template <class protocol_t>
-void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *queue, fifo_enforcer_write_token_t token) {
-    queue->push(token, backfill_queue_entry_t<protocol_t>(false, typename protocol_t::backfill_chunk_t(), token));
+void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue, fifo_enforcer_write_token_t token) {
+    queue->push(token, backfill_queue_entry_t(false, backfill_chunk_t(), token));
 }
 
 
 /* Now that the metadata indicates that the backfill is happening, it's
    time to start actually performing backfill chunks */
-template <class protocol_t>
-class chunk_callback_t : public coro_pool_callback_t<backfill_queue_entry_t<protocol_t> >,
+class chunk_callback_t : public coro_pool_callback_t<backfill_queue_entry_t>,
                          public home_thread_mixin_debug_only_t {
 public:
-    chunk_callback_t(store_view_t<protocol_t> *_svs,
-                     fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
+    chunk_callback_t(store_view_t *_svs,
+                     fifo_enforcer_queue_t<backfill_queue_entry_t> *_chunk_queue, mailbox_manager_t *_mbox_manager,
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
@@ -57,7 +55,7 @@ public:
         chunk_processing_semaphore(1)
     { }
 
-    void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+    void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&chunk_processing_semaphore, 1);
         sem_acq.acquisition_signal()->wait_lazily_unordered();
 
@@ -69,7 +67,7 @@ public:
         svs->receive_backfill(chunk, &token_pair, interruptor);
     }
 
-    void coro_pool_callback(backfill_queue_entry_t<protocol_t> chunk, signal_t *interruptor) {
+    void coro_pool_callback(backfill_queue_entry_t chunk, signal_t *interruptor) {
         assert_thread();
         try {
             if (chunk.is_not_last_backfill_chunk) {
@@ -130,8 +128,8 @@ public:
     cond_t done_cond;
 
 private:
-    store_view_t<protocol_t> *svs;
-    fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *chunk_queue;
+    store_view_t *svs;
+    fifo_enforcer_queue_t<backfill_queue_entry_t> *chunk_queue;
     mailbox_manager_t *mbox_manager;
     mailbox_addr_t<void(int)> allocation_mailbox;
     int unacked_chunks;
@@ -143,26 +141,24 @@ private:
     DISABLE_COPYING(chunk_callback_t);
 };
 
-template <class protocol_t>
-void receive_end_point_message(promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > *promise,
-        const region_map_t<protocol_t, version_range_t> &end_point,
-        const branch_history_t<protocol_t> &associated_branch_history) {
+void receive_end_point_message(promise_t<std::pair<region_map_t<version_range_t>, branch_history_t> > *promise,
+        const region_map_t<version_range_t> &end_point,
+        const branch_history_t &associated_branch_history) {
     promise->pulse(std::make_pair(end_point, associated_branch_history));
 }
 
-template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
-        branch_history_manager_t<protocol_t> *branch_history_manager,
-        store_view_t<protocol_t> *svs,
-        typename protocol_t::region_t region,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
+        branch_history_manager_t *branch_history_manager,
+        store_view_t *svs,
+        region_t region,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t> > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
     rassert(region_is_superset(svs->get_region(), region));
-    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
+    resource_access_t<backfiller_business_card_t> backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -171,13 +167,13 @@ void backfillee(
     // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
     order_source_t order_source;
 
-    region_map_t<protocol_t, binary_blob_t> start_point_blob;
+    region_map_t<binary_blob_t> start_point_blob;
     svs->do_get_metainfo(order_source.check_in("backfillee(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
-    region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
+    region_map_t<version_range_t> start_point = to_version_range_map(start_point_blob);
 
     start_point = start_point.mask(region);
 
-    branch_history_t<protocol_t> start_point_associated_history;
+    branch_history_t start_point_associated_history;
     {
         on_thread_t th(branch_history_manager->home_thread());
         branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
@@ -186,30 +182,30 @@ void backfillee(
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
     the backfill is over. */
-    promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > end_point_cond;
-    mailbox_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_mailbox(
+    promise_t<std::pair<region_map_t<version_range_t>, branch_history_t> > end_point_cond;
+    mailbox_t<void(region_map_t<version_range_t>, branch_history_t)> end_point_mailbox(
         mailbox_manager,
-        boost::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2));
+        boost::bind(&receive_end_point_message, &end_point_cond, _1, _2));
 
     {
-        typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
+        typedef backfill_chunk_t backfill_chunk_t;
 
         /* A queue of the requests the backfill chunk mailbox receives, a coro
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
-        fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > chunk_queue;
+        fifo_enforcer_queue_t<backfill_queue_entry_t> chunk_queue;
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over
         and the version described in `end_point_mailbox` has been achieved. */
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
-            boost::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1));
+            boost::bind(&push_finish_on_queue, &chunk_queue, _1));
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
+            mailbox_manager, boost::bind(&push_chunk_on_queue, &chunk_queue, _1, _2));
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
@@ -238,7 +234,7 @@ void backfillee(
             overload to use. */
             void (*send_cast_to_correct_type)(
                 mailbox_manager_t *,
-                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
+                backfiller_business_card_t::cancel_backfill_mailbox_t::address_t,
                 const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(
                 send_cast_to_correct_type, mailbox_manager,
@@ -275,7 +271,7 @@ void backfillee(
         history, and that would lead to crashes. */
         {
             cross_thread_signal_t ct_interruptor(interruptor, branch_history_manager->home_thread());
-            branch_history_t<protocol_t> branch_history = end_point_cond.wait().second;
+            branch_history_t branch_history = end_point_cond.wait().second;
             on_thread_t th(branch_history_manager->home_thread());
             branch_history_manager->import_branch_history(branch_history, &ct_interruptor);
         }
@@ -285,19 +281,19 @@ void backfillee(
         backfill end state, since we don't know whether the backfill has reached
         that region yet. */
 
-        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+        typedef region_map_t<version_range_t> version_map_t;
 
         version_map_t end_point = end_point_cond.wait().first;
 
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
+        std::vector<std::pair<region_t, version_range_t> > span_parts;
 
         {
 #ifndef NDEBUG
             on_thread_t th(branch_history_manager->home_thread());
 #endif
-            for (typename version_map_t::const_iterator it = start_point.begin(); it != start_point.end(); ++it) {
-                for (typename version_map_t::const_iterator jt = end_point.begin(); jt != end_point.end(); ++jt) {
-                    typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
+            for (version_map_t::const_iterator it = start_point.begin(); it != start_point.end(); ++it) {
+                for (version_map_t::const_iterator jt = end_point.begin(); jt != end_point.end(); ++jt) {
+                    region_t ixn = region_intersection(it->first, jt->first);
                     if (!region_is_empty(ixn)) {
                         rassert(version_is_ancestor(branch_history_manager,
                                                              it->second.earliest,
@@ -305,8 +301,7 @@ void backfillee(
                                                              ixn),
                                          "We're on a different timeline than the backfiller, "
                                          "but it somehow failed to notice.");
-                        span_parts.push_back(std::make_pair(
-                                                            ixn,
+                        span_parts.push_back(std::make_pair(ixn,
                                                             version_range_t(it->second.earliest, jt->second.latest)));
                     }
                 }
@@ -318,16 +313,16 @@ void backfillee(
         svs->new_write_token(&write_token);
 
         svs->set_metainfo(
-            region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-                region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
+            region_map_transform<version_range_t, binary_blob_t>(
+                region_map_t<version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>),
             order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor);
 
-        chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
+        chunk_callback_t chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
-        coro_pool_t<backfill_queue_entry_t<protocol_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
+        coro_pool_t<backfill_queue_entry_t> backfill_workers(10, &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
         {
@@ -349,44 +344,23 @@ void backfillee(
     svs->new_write_token(&write_token);
 
     svs->set_metainfo(
-        region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.wait().first,
-                                                                         &binary_blob_t::make<version_range_t>),
+        region_map_transform<version_range_t, binary_blob_t>(end_point_cond.wait().first,
+                                                             &binary_blob_t::make<version_range_t>),
         order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);
 }
 
+peer_id_t extract_backfiller_peer_id(
+        const boost::optional<boost::optional<backfiller_business_card_t> >
+        &backfiller_metadata) {
+    peer_id_t peer;
+    if (backfiller_metadata) {
+        auto option2 = backfiller_metadata.get();
+        if (option2 && !option2->backfill_mailbox.is_nil()) {
+            peer = option2->backfill_mailbox.get_peer();
+        }
+    }
+    return peer;
+}
 
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "rdb_protocol/protocol.hpp"
-
-template void backfillee<mock::dummy_protocol_t>(
-        mailbox_manager_t *mailbox_manager,
-        branch_history_manager_t<mock::dummy_protocol_t> *branch_history_manager,
-        store_view_t<mock::dummy_protocol_t> *svs,
-        mock::dummy_protocol_t::region_t region,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
-        backfill_session_id_t backfill_session_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
-
-template void backfillee<memcached_protocol_t>(
-        mailbox_manager_t *mailbox_manager,
-        branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
-        store_view_t<memcached_protocol_t> *svs,
-        memcached_protocol_t::region_t region,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
-        backfill_session_id_t backfill_session_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
-
-template void backfillee<rdb_protocol_t>(
-        mailbox_manager_t *mailbox_manager,
-        branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-        store_view_t<rdb_protocol_t> *svs,
-        rdb_protocol_t::region_t region,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
-        backfill_session_id_t backfill_session_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);

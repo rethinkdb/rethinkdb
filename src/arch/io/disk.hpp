@@ -141,8 +141,8 @@ int perform_datasync(fd_t fd);
 // Calls fsync() on the parent directory of the given path.
 // Returns the errno value in case of an error and 0 otherwise.
 MUST_USE int fsync_parent_directory(const char *path);
-// Like fsync_parent_directory but crashes on an error
-void guarantee_fsync_parent_directory(const char *path);
+// Like fsync_parent_directory but warns the user on an error
+void warn_fsync_parent_directory(const char *path);
 
 #endif // ARCH_IO_DISK_HPP_
 

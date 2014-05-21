@@ -5,13 +5,16 @@
 #include <map>
 #include <set>
 
+#include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
-#include "protocol_api.hpp"
+#include "region/region_map.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
+
+class binary_blob_t;
 
 /* The type `version_t` uniquely identifies the state of some region of a
 RethinkDB table at some point in time. Every read operation that passes through
@@ -100,8 +103,7 @@ inline void debug_print(printf_buffer_t *buf, const version_range_t& vr) {
     buf->appendf("}");
 }
 
-template <class protocol_t>
-region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_t<protocol_t, binary_blob_t> &blob_map);
+region_map_t<version_range_t> to_version_range_map(const region_map_t<binary_blob_t> &blob_map);
 
 /* The state of the database at the time that the `broadcaster_t` was created
 and the sequence of writes that pass through a `broadcaster_t` are collectively
@@ -118,13 +120,12 @@ branches.
 When a `broadcaster_t` is created, it publishes a `branch_birth_certificate_t`
 that describes its newly-created branch. */
 
-template<class protocol_t>
 class branch_birth_certificate_t {
 public:
     /* The region that the branch applies to. This is the same as the region of
     the `broadcaster_t` that created the branch. Every write to the branch must
     affect only some (non-proper) subset of this region. */
-    typename protocol_t::region_t region;
+    region_t region;
 
     /* The timestamp of the first state on the branch. `version_t(branch_id,
     initial_timestamp)` refers to the state that the B-tree was in when it was
@@ -135,18 +136,17 @@ public:
 
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
     constructed. `origin.get_region()` will be the same as `region`. */
-    region_map_t<protocol_t, version_range_t> origin;
+    region_map_t<version_range_t> origin;
 
     RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
 };
 
-template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_3(
-    branch_birth_certificate_t<protocol_t>, region, initial_timestamp, origin);
+    branch_birth_certificate_t, region, initial_timestamp, origin);
 
 /* `branch_history_manager_t` is a repository of the all the branches' birth
 certificates. It's basically a map from `branch_id_t`s to
-`branch_birth_certificate_t<protocol_t>`s, but with the added responsibility of
+`branch_birth_certificate_t`s, but with the added responsibility of
 persisting the data to disk.
 
 The `branch_history_manager_t` does not automatically synchronize the branch
@@ -161,25 +161,22 @@ on to send the appropriate branch history information along with any
 along with the `branch_id_t`, then calling `import_branch_history()` at the
 destination before trying to use the `branch_id_t` for anything. */
 
-template<class protocol_t>
 class branch_history_t {
 public:
-    std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > branches;
+    std::map<branch_id_t, branch_birth_certificate_t> branches;
 
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
 
-template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_1(branch_history_t<protocol_t>, branches);
+RDB_MAKE_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 
-template <class protocol_t>
 class branch_history_manager_t : public home_thread_mixin_t {
 public:
     virtual ~branch_history_manager_t() { }
 
     /* Returns information about one specific branch. Crashes if we don't have a
     record for this branch. */
-    virtual branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING = 0;
+    virtual branch_birth_certificate_t get_branch(branch_id_t branch) THROWS_NOTHING = 0;
 
     /* Rrturns which branchs this branch history manager knows about. This can
      * be used with get branch to prevent failures. */
@@ -189,18 +186,18 @@ public:
     Blocks to avoid a race condition where we write the branch ID to a B-tree's
     metainfo, crash before flushing the `branch_birth_certificate_t` to disk,
     and then cannot find the `branch_birth_certificate_t` upon restarting. */
-    virtual void create_branch(branch_id_t branch_id, const branch_birth_certificate_t<protocol_t> &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void create_branch(branch_id_t branch_id, const branch_birth_certificate_t &bc, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Copies records related to the given branch and all its ancestors into
     `out`. The reason this mutates `out` instead of returning a
     `branch_history_t` is so that you can call it several times with different
     branches that share history; they will re-use records that they share. */
-    virtual void export_branch_history(branch_id_t branch, branch_history_t<protocol_t> *out) THROWS_NOTHING = 0;
+    virtual void export_branch_history(branch_id_t branch, branch_history_t *out) THROWS_NOTHING = 0;
 
     /* Convenience function that finds all records related to the given version
     map and copies them into `out` */
-    void export_branch_history(const region_map_t<protocol_t, version_range_t> &region_map, branch_history_t<protocol_t> *out) THROWS_NOTHING {
-        for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = region_map.begin();
+    void export_branch_history(const region_map_t<version_range_t> &region_map, branch_history_t *out) THROWS_NOTHING {
+        for (region_map_t<version_range_t>::const_iterator it = region_map.begin();
                                                                                 it != region_map.end();
                                                                                 ++it) {
             if (!it->second.latest.branch.is_nil()) {
@@ -213,30 +210,28 @@ public:
     disk. Blocking is important because if we record the `branch_id_t` in a
     B-tree's metainfo and then crash, we had better be able to find the
     `branch_birth_certificate_t` when we start back up. */
-    virtual void import_branch_history(const branch_history_t<protocol_t> &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void import_branch_history(const branch_history_t &new_records, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 };
 
 /* `version_is_ancestor()` returns `true` if every key in `relevant_region` of
 the table passed through `ancestor` version on the way to `descendent` version.
 Also returns true if `ancestor` and `descendent` are the same version. */
 
-template <class protocol_t>
 bool version_is_ancestor(
-        branch_history_manager_t<protocol_t> *branch_history_manager,
+        branch_history_manager_t *branch_history_manager,
         version_t ancestor,
         version_t descendent,
-        typename protocol_t::region_t relevant_region);
+        region_t relevant_region);
 
 /* `version_is_divergent()` returns true if neither `v1` nor `v2` is an ancestor
 of the other. Because the reactor doesn't allow new `broadcaster_t`s to be
 created unless we can access every living machine, this should never happen, but
 the ICL still checks for it and correctly handles this case. */
 
-template <class protocol_t>
 bool version_is_divergent(
-        branch_history_manager_t<protocol_t> *branch_history_manager,
+        branch_history_manager_t *branch_history_manager,
         version_t v1,
         version_t v2,
-        const typename protocol_t::region_t &relevant_region);
+        const region_t &relevant_region);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP_ */

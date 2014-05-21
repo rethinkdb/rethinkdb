@@ -4,17 +4,13 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_json_adapter.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/test_cluster_group.hpp"
-
-using mock::dummy_protocol_t;
 
 namespace unittest {
 
 TPTEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
 
@@ -24,7 +20,7 @@ TPTEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
 }
 
 TPTEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(3);
+    test_cluster_group_t cluster_group(3);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
 
@@ -34,7 +30,7 @@ TPTEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
 }
 
 TPTEST(ClusteringReactor, TwoShardsTwoNodes) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("ps,sp"));
 
@@ -44,7 +40,7 @@ TPTEST(ClusteringReactor, TwoShardsTwoNodes) {
 }
 
 TPTEST(ClusteringReactor, RoleSwitchingTest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");
@@ -58,7 +54,7 @@ TPTEST(ClusteringReactor, RoleSwitchingTest) {
 }
 
 TPTEST(ClusteringReactor, OtherRoleSwitchingTest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
@@ -71,7 +67,7 @@ TPTEST(ClusteringReactor, OtherRoleSwitchingTest) {
 }
 
 TPTEST(ClusteringReactor, AddSecondaryTest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(3);
+    test_cluster_group_t cluster_group(3);
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,s,n");
     cluster_group.run_queries();
@@ -82,7 +78,7 @@ TPTEST(ClusteringReactor, AddSecondaryTest) {
 }
 
 TPTEST(ClusteringReactor, ReshardingTest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");
@@ -98,7 +94,7 @@ TPTEST(ClusteringReactor, ReshardingTest) {
 }
 
 TPTEST(ClusteringReactor, LessGracefulReshardingTest) {
-    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     cluster_group.wait_until_blueprint_is_satisfied("p,n");

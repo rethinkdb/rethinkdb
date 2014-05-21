@@ -16,8 +16,6 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
-namespace ql {
-
 enum class sorting_t {
     UNORDERED,
     ASCENDING,
@@ -25,6 +23,8 @@ enum class sorting_t {
 };
 // UNORDERED sortings aren't reversed
 bool reversed(sorting_t sorting);
+
+namespace ql {
 
 // This stuff previously resided in the protocol, but has been broken out since
 // we want to use this logic in multiple places.

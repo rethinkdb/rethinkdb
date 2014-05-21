@@ -53,10 +53,8 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
-    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
-        ns_change;
-    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-        ns_searcher;
+    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change;
+    metadata_searcher_t<namespace_semilattice_metadata_t> ns_searcher;
     metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
     metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
 };
@@ -70,7 +68,7 @@ struct const_rethreading_metadata_accessor_t : public on_thread_t {
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
-    const_metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+    const_metadata_searcher_t<namespace_semilattice_metadata_t>
         ns_searcher;
     const_metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
     const_metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
@@ -223,13 +221,11 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
-            // Create namespace (DB + table pair) and insert into metadata.  The
-            // port here is a legacy from the day when memcached ran on a
-            // different port.
-            namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-                new_namespace<rdb_protocol_t>(
+            // Create namespace (DB + table pair) and insert into metadata.
+            namespace_semilattice_metadata_t ns =
+                new_namespace(
                     env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                    primary_key, port_defaults::reql_port);
+                    primary_key);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =
@@ -338,7 +334,7 @@ private:
         // Get table metadata.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
-        metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
+        metadata_searcher_t<namespace_semilattice_metadata_t>::iterator
             ns_metadata = meta.ns_searcher.find_uniq(pred, &status);
         rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
                strprintf("Table `%s` does not exist.", tbl_name.c_str()));

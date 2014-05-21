@@ -43,9 +43,9 @@ private:
 
 class cluster_access_t {
 public:
-    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    typedef namespaces_semilattice_metadata_t ns_metadata_t;
     cluster_access_t(
-        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
             _namespaces_semilattice_metadata,
@@ -57,7 +57,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine);
 
-    base_namespace_repo_t<rdb_protocol_t> *ns_repo;
+    base_namespace_repo_t *ns_repo;
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
         namespaces_semilattice_metadata;
@@ -83,12 +83,12 @@ public:
 class changefeed_manager_t;
 class env_t : public home_thread_mixin_t {
 public:
-    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    typedef namespaces_semilattice_metadata_t ns_metadata_t;
 
     env_t(
         extproc_pool_t *_extproc_pool,
         changefeed_manager_t *_changefeed_manager,
-        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
             _namespaces_semilattice_metadata,
@@ -105,7 +105,7 @@ public:
     env_t(
         extproc_pool_t *_extproc_pool,
         changefeed_manager_t *_changefeed_manager,
-        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
             _namespaces_semilattice_metadata,
@@ -119,7 +119,7 @@ public:
         uuid_u _this_machine,
         profile_bool_t _profile);
 
-    env_t(rdb_protocol_t::context_t *ctx, signal_t *interruptor);
+    env_t(rdb_context_t *ctx, signal_t *interruptor);
 
     ~env_t();
     void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {

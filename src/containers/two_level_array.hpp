@@ -96,49 +96,4 @@ public:
     }
 };
 
-
-template <class value_t>
-class two_level_nevershrink_array_t {
-private:
-    static const size_t CHUNK_SIZE = 1 << 16;
-
-    struct chunk_t {
-        chunk_t()
-            : values()   // default-initialize each value in values
-            { }
-        value_t values[CHUNK_SIZE];
-    };
-    std::vector<chunk_t *> chunks;
-
-    static size_t chunk_for_key(size_t key) {
-        size_t chunk_id = key / CHUNK_SIZE;
-        return chunk_id;
-    }
-    static size_t index_for_key(size_t key) {
-        return key % CHUNK_SIZE;
-    }
-
-public:
-    two_level_nevershrink_array_t() { }
-    ~two_level_nevershrink_array_t() {
-        for (auto it = chunks.begin(); it != chunks.end(); ++it) {
-            delete *it;
-        }
-    }
-
-    value_t &operator[](size_t key) {
-        const size_t chunk_id = chunk_for_key(key);
-        if (chunk_id >= chunks.size()) {
-            chunks.resize(chunk_id + 1, NULL);
-        }
-
-        if (chunks[chunk_id] == NULL) {
-            chunks[chunk_id] = new chunk_t;
-        }
-
-        return chunks[chunk_id]->values[index_for_key(key)];
-    }
-};
-
-
 #endif // CONTAINERS_TWO_LEVEL_ARRAY_HPP_

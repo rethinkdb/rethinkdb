@@ -7,34 +7,34 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "config/args.hpp"
+#include "store_view.hpp"
 
-template <class protocol_t>
-bool reactor_t<protocol_t>::find_broadcaster_in_directory(
-        const typename protocol_t::region_t &region,
-        const blueprint_t<protocol_t> &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out) {
+bool reactor_t::find_broadcaster_in_directory(
+        const region_t &region,
+        const blueprint_t &bp,
+        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
 
-    typedef reactor_business_card_t<protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
-        typename reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
+    for (blueprint_t::role_map_t::const_iterator it  = bp.peers_roles.begin();
+         it != bp.peers_roles.end();
+         ++it) {
+        reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
         if (p_it != _reactor_directory.get_inner().end()) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
-                                                               a_it != p_it->second->activities.end();
-                                                               a_it++) {
+            for (rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
+                 a_it != p_it->second->activities.end();
+                 ++a_it) {
                 if (a_it->second.region == region) {
-                    if (boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
+                    if (boost::get<rb_t::primary_t>(&a_it->second.activity)) {
                         if (!found_broadcaster) {
                             //This is the first viable broadcaster we've found
                             //so we set the output variable.
-                            *broadcaster_out = get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
-                                subview(&reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary);
+                            *broadcaster_out = get_directory_entry_view<rb_t::primary_t>(it->first, a_it->first)->
+                                subview(&reactor_t::extract_broadcaster_from_reactor_business_card_primary);
 
                             found_broadcaster = true;
                         } else {
@@ -52,74 +52,71 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
     return found_broadcaster;
 }
 
-template<class protocol_t>
-boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_replier_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
+boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_primary(
+        const boost::optional<boost::optional<reactor_business_card_t::primary_t> > &bcard) {
     if (!bcard) {
-        return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >();
+        return boost::optional<boost::optional<replier_business_card_t> >();
     }
     if (!bcard.get()) {
-        return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >(
-            boost::optional<replier_business_card_t<protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
     if (!bcard.get().get().replier) {
-        return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >(
-            boost::optional<replier_business_card_t<protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
-    return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >(
-        boost::optional<replier_business_card_t<protocol_t> >(bcard.get().get().replier.get()));
+    return boost::optional<boost::optional<replier_business_card_t> >(
+        boost::optional<replier_business_card_t>(bcard.get().get().replier.get()));
 }
 
-template<class protocol_t>
-boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_replier_from_reactor_business_card_secondary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t> > &bcard) {
+boost::optional<boost::optional<replier_business_card_t> > extract_replier_from_reactor_business_card_secondary(
+        const boost::optional<boost::optional<reactor_business_card_t::secondary_up_to_date_t> > &bcard) {
     if (!bcard) {
-        return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >();
+        return boost::optional<boost::optional<replier_business_card_t> >();
     }
     if (!bcard.get()) {
-        return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >(
-            boost::optional<replier_business_card_t<protocol_t> >());
+        return boost::optional<boost::optional<replier_business_card_t> >(
+            boost::optional<replier_business_card_t>());
     }
-    return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >(
-        boost::optional<replier_business_card_t<protocol_t> >(bcard.get().get().replier));
+    return boost::optional<boost::optional<replier_business_card_t> >(
+        boost::optional<replier_business_card_t>(bcard.get().get().replier));
 }
 
-template <class protocol_t>
-bool reactor_t<protocol_t>::find_replier_in_directory(
-        const typename protocol_t::region_t &region,
+bool reactor_t::find_replier_in_directory(
+        const region_t &region,
         const branch_id_t &b_id,
-        const blueprint_t<protocol_t> &bp,
-        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out,
+        const blueprint_t &bp,
+        const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t> > &_reactor_directory,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > *replier_out,
         peer_id_t *peer_id_out,
         reactor_activity_id_t *activity_id_out) {
-    std::vector<clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > > backfill_candidates;
+    std::vector<clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > > backfill_candidates;
     std::vector<peer_id_t> peer_ids;
     std::vector<reactor_activity_id_t> activity_ids;
 
-    typedef reactor_business_card_t<protocol_t> rb_t;
+    typedef reactor_business_card_t rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it = bp.peers_roles.begin();
+    for (blueprint_t::role_map_t::const_iterator it = bp.peers_roles.begin();
          it != bp.peers_roles.end();
          ++it) {
-        typename reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
+        reactor_directory_t::const_iterator p_it = _reactor_directory.get_inner().find(it->first);
         if (p_it != _reactor_directory.get_inner().end()) {
-            for (typename rb_t::activity_map_t::const_iterator a_it = p_it->second->activities.begin();
+            for (rb_t::activity_map_t::const_iterator a_it = p_it->second->activities.begin();
                  a_it != p_it->second->activities.end();
                  ++a_it) {
                 if (a_it->second.region == region) {
-                    if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
+                    if (const rb_t::primary_t *primary = boost::get<rb_t::primary_t>(&a_it->second.activity)) {
                         if (primary->replier && primary->broadcaster.branch_id == b_id) {
-                            backfill_candidates.push_back(get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
-                                subview(&extract_replier_from_reactor_business_card_primary<protocol_t>));
+                            backfill_candidates.push_back(get_directory_entry_view<rb_t::primary_t>(it->first, a_it->first)->
+                                subview(&extract_replier_from_reactor_business_card_primary));
                             peer_ids.push_back(it->first);
                             activity_ids.push_back(a_it->first);
                         }
-                    } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.activity)) {
+                    } else if (const rb_t::secondary_up_to_date_t *secondary = boost::get<rb_t::secondary_up_to_date_t>(&a_it->second.activity)) {
                         if (secondary->branch_id == b_id) {
-                            backfill_candidates.push_back(get_directory_entry_view<typename rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
-                                subview(&extract_replier_from_reactor_business_card_secondary<protocol_t>));
+                            backfill_candidates.push_back(get_directory_entry_view<rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
+                                subview(&extract_replier_from_reactor_business_card_secondary));
                                 peer_ids.push_back(it->first);
                                 activity_ids.push_back(a_it->first);
                         }
@@ -143,8 +140,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(
     }
 }
 
-template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t::be_secondary(region_t region, store_view_t *svs, const clone_ptr_t<watchable_t<blueprint_t> > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
@@ -152,8 +148,8 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
          * date. */
         directory_entry_t directory_entry(this, region);
         while (true) {
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster;
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > location_to_backfill_from;
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster;
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > location_to_backfill_from;
             branch_id_t branch_id;
             peer_id_t peer_id;
             reactor_activity_id_t activity_id;
@@ -169,23 +165,23 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                  * Also this is potentially a performance boost because it
                  * allows other secondaries to preemptively backfill before the
                  * primary is up. */
-                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
+                backfiller_t backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
                 svs->new_read_token(&read_token);
 
-                region_map_t<protocol_t, binary_blob_t> metainfo_blob;
+                region_map_t<binary_blob_t> metainfo_blob;
                 svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
-                direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+                direct_reader_t direct_reader(mailbox_manager, svs);
 
                 on_thread_t th2(this->home_thread());
 
-                branch_history_t<protocol_t> branch_history;
+                branch_history_t branch_history;
                 branch_history_manager->export_branch_history(to_version_range_map(metainfo_blob), &branch_history);
 
-                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
+                reactor_business_card_t::secondary_without_primary_t
                     activity(to_version_range_map(metainfo_blob), backfiller.get_business_card(), direct_reader.get_business_card(), branch_history);
 
                 directory_entry.set(activity);
@@ -194,13 +190,13 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 run_until_satisfied_2(
                     directory_echo_mirror.get_internal(),
                     blueprint,
-                    boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
+                    boost::bind(&reactor_t::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
                     interruptor,
                     REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
                 /* We need to save this to a local variable because there may be a
                  * race condition should the broadcaster go down. */
-                boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > broadcaster_business_card = broadcaster->get();
+                boost::optional<boost::optional<broadcaster_business_card_t> > broadcaster_business_card = broadcaster->get();
                 if (!broadcaster_business_card || !*broadcaster_business_card) {
                     /* Either the peer went down immediately after we found it
                      * or the peer is still connected but the broadcaster on
@@ -213,7 +209,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 run_until_satisfied_2(
                     directory_echo_mirror.get_internal(),
                     blueprint,
-                    boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, _2, _1, &location_to_backfill_from, &peer_id, &activity_id),
+                    boost::bind(&reactor_t::find_replier_in_directory, this, region, branch_id, _2, _1, &location_to_backfill_from, &peer_id, &activity_id),
                     interruptor,
                     REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
@@ -233,11 +229,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
+                directory_entry.set(reactor_business_card_t::secondary_backfilling_t(backfill_location));
 
                 cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
-                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster(broadcaster, svs->home_thread());
-                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > ct_broadcaster(broadcaster, svs->home_thread());
+                cross_thread_watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > > ct_location_to_backfill_from(location_to_backfill_from, svs->home_thread());
                 on_thread_t th(svs->home_thread());
 
                 // TODO: Don't use local stack variable for name.
@@ -246,29 +242,34 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(base_path, io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
+                listener_t listener(base_path, io_backender, mailbox_manager,
+                                    backfill_throttler, ct_broadcaster.get_watchable(),
+                                    branch_history_manager, svs,
+                                    ct_location_to_backfill_from.get_watchable(),
+                                    backfill_session_id, &regions_perfmon_collection,
+                                    &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
                  * us for backfills. */
-                replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
+                replier_t replier(&listener, mailbox_manager, branch_history_manager);
 
-                direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+                direct_reader_t direct_reader(mailbox_manager, svs);
 
                 cross_thread_signal_t ct_broadcaster_lost_signal(listener.get_broadcaster_lost_signal(), this->home_thread());
                 on_thread_t th2(this->home_thread());
 
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
+                directory_entry.set(reactor_business_card_t::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
                 wait_interruptible(&ct_broadcaster_lost_signal, interruptor);
-            } catch (const typename listener_t<protocol_t>::backfiller_lost_exc_t &) {
+            } catch (const listener_t::backfiller_lost_exc_t &) {
                 /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.
                  * */
-            } catch (const typename listener_t<protocol_t>::broadcaster_lost_exc_t &) {
+            } catch (const listener_t::broadcaster_lost_exc_t &) {
                 /* We didn't find the broadcaster which means we should retry,
                  * same deal as above. */
             }
@@ -277,13 +278,3 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
         /* ignore */
     }
 }
-
-#include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_json_adapter.hpp"
-#include "memcached/protocol.hpp"
-#include "memcached/protocol_json_adapter.hpp"
-#include "rdb_protocol/protocol.hpp"
-
-template void reactor_t<mock::dummy_protocol_t>::be_secondary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<memcached_protocol_t>::be_secondary(memcached_protocol_t::region_t region, store_view_t<memcached_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<memcached_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<rdb_protocol_t>::be_secondary(rdb_protocol_t::region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;

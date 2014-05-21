@@ -168,20 +168,8 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::r
 
 #include "clustering/immediate_consistency/query/master_access.hpp"
 
-#include "mock/dummy_protocol.hpp"
-template class multi_throttling_client_t<
-    master_business_card_t<mock::dummy_protocol_t>::request_t,
-    master_business_card_t<mock::dummy_protocol_t>::inner_client_business_card_t
-    >;
-
-#include "memcached/protocol.hpp"
-template class multi_throttling_client_t<
-    master_business_card_t<memcached_protocol_t>::request_t,
-    master_business_card_t<memcached_protocol_t>::inner_client_business_card_t
-    >;
-
 #include "rdb_protocol/protocol.hpp"
 template class multi_throttling_client_t<
-    master_business_card_t<rdb_protocol_t>::request_t,
-    master_business_card_t<rdb_protocol_t>::inner_client_business_card_t
+    master_business_card_t::request_t,
+    master_business_card_t::inner_client_business_card_t
     >;

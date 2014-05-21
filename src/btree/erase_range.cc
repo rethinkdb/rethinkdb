@@ -2,7 +2,6 @@
 #include "btree/erase_range.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
-#include "btree/btree_store.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"

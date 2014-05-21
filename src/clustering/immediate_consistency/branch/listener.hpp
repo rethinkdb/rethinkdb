@@ -8,21 +8,23 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "concurrency/semaphore.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "serializer/types.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
 template <class> class boost_function_callback_t;
-template <class> class branch_history_manager_t;
-template <class> class broadcaster_t;
+class branch_history_manager_t;
+class broadcaster_t;
 template <class> class clone_ptr_t;
 template <class> class coro_pool_t;
-template <class> class intro_receiver_t;
+class intro_receiver_t;
 template <class> class registrant_t;
-template <class> class replier_t;
+class replier_t;
 template <class> class semilattice_read_view_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class watchable_t;
+class backfill_throttler_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 contacts a `broadcaster_t` to sign up for real-time updates, and also backfills
@@ -42,7 +44,6 @@ There are four ways a `listener_t` can go wrong:
     pulsed when it loses touch.
 */
 
-template<class protocol_t>
 class listener_t {
 public:
     class backfiller_lost_exc_t : public std::exception {
@@ -63,10 +64,11 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            branch_history_manager_t<protocol_t> *branch_history_manager,
-            store_view_t<protocol_t> *svs,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
+            backfill_throttler_t *backfill_throttler,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
+            branch_history_manager_t *branch_history_manager,
+            store_view_t *svs,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t> > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
@@ -79,9 +81,9 @@ public:
             const base_path_t &base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            branch_history_manager_t<protocol_t> *branch_history_manager,
-            broadcaster_t<protocol_t> *broadcaster,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata,
+            branch_history_manager_t *branch_history_manager,
+            broadcaster_t *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor,
             order_source_t *order_source) THROWS_ONLY(interrupted_exc_t);
@@ -94,7 +96,7 @@ public:
 
     // Getters used by the replier :(
     // TODO: Some of these can and should be passed directly to the replier?
-    store_view_t<protocol_t> *svs() const {
+    store_view_t *svs() const {
         guarantee(svs_ != NULL);
         return svs_;
     }
@@ -104,17 +106,17 @@ public:
         return branch_id_;
     }
 
-    typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_address() const {
+    listener_business_card_t::writeread_mailbox_t::address_t writeread_address() const {
         return writeread_mailbox_.get_address();
     }
 
-    typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_address() const {
+    listener_business_card_t::read_mailbox_t::address_t read_address() const {
         return read_mailbox_.get_address();
     }
 
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
-    const listener_intro_t<protocol_t> &registration_done_cond_value() const {
+    const listener_intro_t &registration_done_cond_value() const {
         return registration_done_cond_.wait();
     }
 
@@ -123,9 +125,9 @@ private:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
-        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
+        write_queue_entry_t(const write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
             write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
-        typename protocol_t::write_t write;
+        write_t write;
         transition_timestamp_t transition_timestamp;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
@@ -135,10 +137,10 @@ private:
     };
 
     // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
-    static boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard);
+    static boost::optional<boost::optional<backfiller_business_card_t> > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t> > &replier_bcard);
 
     // TODO: Boost boost optional optional business card business card protocol_tee tee tee tee piii kaaa chuuuuu!
-    static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > > get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard);
+    static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t> > > get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t> > &broadcaster_bcard);
 
     /* `try_start_receiving_writes()` is called from within the constructors. It
     tries to register with the master. It throws `interrupted_exc_t` if
@@ -146,18 +148,18 @@ private:
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
-    void on_write(const typename protocol_t::write_t &write,
+    void on_write(const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING;
 
-    void enqueue_write(const typename protocol_t::write_t &write,
+    void enqueue_write(const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
@@ -171,35 +173,35 @@ private:
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
-    void on_writeread(const typename protocol_t::write_t &write,
+    void on_writeread(const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+            mailbox_addr_t<void(write_response_t)> ack_addr,
             write_durability_t durability)
         THROWS_NOTHING;
 
-    void perform_writeread(const typename protocol_t::write_t &write,
+    void perform_writeread(const write_t &write,
             transition_timestamp_t transition_timestamp,
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+            mailbox_addr_t<void(write_response_t)> ack_addr,
             write_durability_t durability,
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 
-    void on_read(const typename protocol_t::read_t &read,
+    void on_read(const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+            mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING;
 
-    void perform_read(const typename protocol_t::read_t &read,
+    void perform_read(const read_t &read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
+            mailbox_addr_t<void(read_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 
@@ -207,17 +209,17 @@ private:
 
     mailbox_manager_t *const mailbox_manager_;
 
-    store_view_t<protocol_t> *const svs_;
+    store_view_t *const svs_;
 
     branch_id_t branch_id_;
 
-    typename protocol_t::region_t our_branch_region_;
+    region_t our_branch_region_;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
     check, we put them in a `promise_t`, `registration_done_cond`, that only
     gets pulsed when we successfully register. */
-    promise_t<listener_intro_t<protocol_t> > registration_done_cond_;
+    promise_t<listener_intro_t> registration_done_cond_;
 
     // This uuid exists solely as a temporary used to be passed to
     // uuid_to_str for perfmon_collection initialization and the
@@ -248,7 +250,7 @@ private:
 
     auto_drainer_t drainer_;
 
-    typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox_;
+    listener_business_card_t::write_mailbox_t write_mailbox_;
 
     /* `writeread_mailbox` and `read_mailbox` live on the `listener_t` even
     though they don't get used until the `replier_t` is constructed. The reason
@@ -256,10 +258,10 @@ private:
     `replier_t` is destroyed without doing a warm shutdown but the `listener_t`
     stays alive. The reason `read_mailbox` is here is for consistency, and to
     have all the query-handling code in one place. */
-    typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox_;
-    typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox_;
+    listener_business_card_t::writeread_mailbox_t writeread_mailbox_;
+    listener_business_card_t::read_mailbox_t read_mailbox_;
 
-    scoped_ptr_t<registrant_t<listener_business_card_t<protocol_t> > > registrant_;
+    scoped_ptr_t<registrant_t<listener_business_card_t> > registrant_;
 
     DISABLE_COPYING(listener_t);
 };

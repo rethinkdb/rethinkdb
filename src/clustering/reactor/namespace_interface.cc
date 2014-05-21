@@ -7,18 +7,17 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 
-template <class protocol_t>
-cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
+cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > dv,
-        typename protocol_t::context_t *_ctx)
+        clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > dv,
+        rdb_context_t *_ctx)
     : mailbox_manager(mm),
       directory_view(dv),
       ctx(_ctx),
       start_count(0),
-      watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
+      watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
     {
-        typename watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t freeze(directory_view);
+        watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >::freeze_t freeze(directory_view);
         update_registrants(true);
         // TODO: See if this watcher_subscription use is a significant use.
         watcher_subscription->reset(directory_view, &freeze);
@@ -29,25 +28,20 @@ cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
 }
 
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::read(
-    const typename protocol_t::read_t &r,
-    typename protocol_t::read_response_t *response,
+void cluster_namespace_interface_t::read(
+    const read_t &r,
+    read_response_t *response,
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_read_mode();
-    dispatch_immediate_op<
-        typename protocol_t::read_t,
-        fifo_enforcer_sink_t::exit_read_t,
-        typename protocol_t::read_response_t>(
-            &master_access_t<protocol_t>::new_read_token,
-            &master_access_t<protocol_t>::read,
+    dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
+            &master_access_t::new_read_token,
+            &master_access_t::read,
             r, response, order_token, interruptor);
 }
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::read_outdated(const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, signal_t *interruptor)
+void cluster_namespace_interface_t::read_outdated(const read_t &r, read_response_t *response, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     /* This seems kind of silly. We do it this way because
        `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
@@ -55,42 +49,39 @@ void cluster_namespace_interface_t<protocol_t>::read_outdated(const typename pro
     dispatch_outdated_read(r, response, interruptor);
 }
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::write(const typename protocol_t::write_t &w,
-                                                      typename protocol_t::write_response_t *response,
-                                                      order_token_t order_token,
-                                                      signal_t *interruptor)
+void cluster_namespace_interface_t::write(const write_t &w,
+                                          write_response_t *response,
+                                          order_token_t order_token,
+                                          signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_write_mode();
-    dispatch_immediate_op<typename protocol_t::write_t, fifo_enforcer_sink_t::exit_write_t, typename protocol_t::write_response_t>(&master_access_t<protocol_t>::new_write_token, &master_access_t<protocol_t>::write,
+    dispatch_immediate_op<write_t, fifo_enforcer_sink_t::exit_write_t, write_response_t>(&master_access_t::new_write_token, &master_access_t::write,
                                                                                                                                    w, response, order_token, interruptor);
 }
 
-template <class protocol_t>
-std::set<typename protocol_t::region_t>
-cluster_namespace_interface_t<protocol_t>::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
-    std::vector<typename protocol_t::region_t> s;
-    for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
-        for (typename std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
+std::set<region_t>
+cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+    std::vector<region_t> s;
+    for (region_map_t<std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
+        for (std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
             s.push_back((*jt)->region);
         }
     }
-    typename protocol_t::region_t whole;
+    region_t whole;
     region_join_result_t res = region_join(s, &whole);
-    if (res != REGION_JOIN_OK || whole != protocol_t::region_t::universe()) {
+    if (res != REGION_JOIN_OK || whole != region_t::universe()) {
         throw cannot_perform_query_exc_t("cannot compute sharding scheme because masters are missing or duplicate");
     }
-    return std::set<typename protocol_t::region_t>(s.begin(), s.end());
+    return std::set<region_t>(s.begin(), s.end());
 }
 
-template <class protocol_t>
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
+void cluster_namespace_interface_t::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
        member-function. */
-    void (master_access_t<protocol_t>::*how_to_make_token)(
+    void (master_access_t::*how_to_make_token)(
         fifo_enforcer_token_type *),  // NOLINT
-    void (master_access_t<protocol_t>::*how_to_run_query)(
+    void (master_access_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
@@ -161,10 +152,9 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
-template <class protocol_t>
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
-void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
-    void (master_access_t<protocol_t>::*how_to_run_query)(
+void cluster_namespace_interface_t::perform_immediate_op(
+    void (master_access_t::*how_to_run_query)(
         const op_type &,
         op_response_type *,
         order_token_t,
@@ -202,11 +192,10 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     }
 }
 
-template <class protocol_t>
 void
-cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(
-    const typename protocol_t::read_t &op,
-    typename protocol_t::read_response_t *response,
+cluster_namespace_interface_t::dispatch_outdated_read(
+    const read_t &op,
+    read_response_t *response,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
 
@@ -252,7 +241,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(
         }
     }
 
-    std::vector<typename protocol_t::read_response_t> results(direct_readers_to_contact.size());
+    std::vector<read_response_t> results(direct_readers_to_contact.size());
     std::vector<std::string> failures(direct_readers_to_contact.size());
     pmap(direct_readers_to_contact.size(), std::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
                                                      &direct_readers_to_contact, &results, &failures, ph::_1, interruptor));
@@ -268,16 +257,14 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(
     op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
-template <class protocol_t>
-void outdated_read_store_result(typename protocol_t::read_response_t *result_out, const typename protocol_t::read_response_t &result_in, cond_t *done) {
+void outdated_read_store_result(read_response_t *result_out, const read_response_t &result_in, cond_t *done) {
     *result_out = result_in;
     done->pulse();
 }
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
+void cluster_namespace_interface_t::perform_outdated_read(
     boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
-    std::vector<typename protocol_t::read_response_t> *results,
+    std::vector<read_response_t> *results,
     std::vector<std::string> *failures,
     int i,
     signal_t *interruptor)
@@ -287,8 +274,8 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
 
     try {
         cond_t done;
-        mailbox_t<void(typename protocol_t::read_response_t)> cont(mailbox_manager,
-                                                                   std::bind(&outdated_read_store_result<protocol_t>, &results->at(i), ph::_1, &done));
+        mailbox_t<void(read_response_t)> cont(mailbox_manager,
+                                              std::bind(&outdated_read_store_result, &results->at(i), ph::_1, &done));
 
         send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
@@ -304,16 +291,15 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     }
 }
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start) {
+void cluster_namespace_interface_t::update_registrants(bool is_start) {
     ASSERT_NO_CORO_WAITING;
-    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > existings = directory_view->get();
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > existings = directory_view->get();
 
-    for (typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
-        for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
+    for (std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
+        for (reactor_business_card_t::activity_map_t::const_iterator amit = it->second->activities.begin(); amit != it->second->activities.end(); ++amit) {
             bool has_anything_useful;
             bool is_primary;
-            if (const reactor_business_card_details::primary_t<protocol_t> *primary = boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary = boost::get<reactor_business_card_details::primary_t>(&amit->second.activity)) {
                 if (primary->master) {
                     has_anything_useful = true;
                     is_primary = true;
@@ -321,10 +307,10 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
                     has_anything_useful = false;
                     is_primary = false;  // Appease -Wconditional-uninitialized
                 }
-            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&amit->second.activity)) {
+            } else if (boost::get<reactor_business_card_details::secondary_up_to_date_t>(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
-            } else if (boost::get<reactor_business_card_details::secondary_without_primary_t<protocol_t> >(&amit->second.activity)) {
+            } else if (boost::get<reactor_business_card_details::secondary_without_primary_t>(&amit->second.activity)) {
                 has_anything_useful = true;
                 is_primary = false;
             } else {
@@ -351,17 +337,16 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
     }
 }
 
-template <class protocol_t>
-boost::optional<boost::optional<master_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
+boost::optional<boost::optional<master_business_card_t> >
+cluster_namespace_interface_t:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+    boost::optional<boost::optional<master_business_card_t> > ret;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<master_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        ret = boost::optional<master_business_card_t>();
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary_record =
+                boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->master) {
                     ret.get() = primary_record->master.get();
                 }
@@ -371,17 +356,16 @@ cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const s
     return ret;
 }
 
-template <class protocol_t>
-boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
+boost::optional<boost::optional<direct_reader_business_card_t> >
+cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+    boost::optional<boost::optional<direct_reader_business_card_t> > ret;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<direct_reader_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        ret = boost::optional<direct_reader_business_card_t>();
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
-                boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::primary_t *primary_record =
+                boost::get<reactor_business_card_details::primary_t>(&jt->second.activity)) {
                 if (primary_record->direct_reader) {
                     ret.get() = primary_record->direct_reader.get();
                 }
@@ -391,21 +375,20 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
     return ret;
 }
 
-template <class protocol_t>
-boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
-    boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
+boost::optional<boost::optional<direct_reader_business_card_t> >
+cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+    boost::optional<boost::optional<direct_reader_business_card_t> > ret;
+    std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> >::const_iterator it = map.find(peer);
     if (it != map.end()) {
-        ret = boost::optional<direct_reader_business_card_t<protocol_t> >();
-        typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
+        ret = boost::optional<direct_reader_business_card_t>();
+        reactor_business_card_t::activity_map_t::const_iterator jt = it->second->activities.find(activity_id);
         if (jt != it->second->activities.end()) {
-            if (const reactor_business_card_details::secondary_up_to_date_t<protocol_t> *secondary_up_to_date_record =
-                boost::get<reactor_business_card_details::secondary_up_to_date_t<protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::secondary_up_to_date_t *secondary_up_to_date_record =
+                boost::get<reactor_business_card_details::secondary_up_to_date_t>(&jt->second.activity)) {
                 ret.get() = secondary_up_to_date_record->direct_reader;
             }
-            if (const reactor_business_card_details::secondary_without_primary_t<protocol_t> *secondary_without_primary =
-                boost::get<reactor_business_card_details::secondary_without_primary_t<protocol_t> >(&jt->second.activity)) {
+            if (const reactor_business_card_details::secondary_without_primary_t *secondary_without_primary =
+                boost::get<reactor_business_card_details::secondary_without_primary_t>(&jt->second.activity)) {
                 ret.get() = secondary_without_primary->direct_reader;
             }
         }
@@ -413,20 +396,43 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
     return ret;
 }
 
-template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
-                                                                       bool is_start, bool is_primary, const typename protocol_t::region_t &region,
-                                                                       auto_drainer_t::lock_t lock) THROWS_NOTHING {
+template <class value_t>
+class region_map_set_membership_t {
+public:
+    region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
+        map(m), region(r), value(v) {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+            it->second.insert(value);
+        }
+        map->update(submap);
+    }
+    ~region_map_set_membership_t() {
+        region_map_t<std::set<value_t> > submap = map->mask(region);
+        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
+            it->second.erase(value);
+        }
+        map->update(submap);
+    }
+private:
+    region_map_t<std::set<value_t> > *map;
+    region_t region;
+    value_t value;
+};
+
+void cluster_namespace_interface_t::relationship_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id,
+                                                           bool is_start, bool is_primary, const region_t &region,
+                                                           auto_drainer_t::lock_t lock) THROWS_NOTHING {
     try {
-        scoped_ptr_t<master_access_t<protocol_t> > master_access;
-        scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
+        scoped_ptr_t<master_access_t> master_access;
+        scoped_ptr_t<resource_access_t<direct_reader_business_card_t> > direct_reader_access;
         if (is_primary) {
-            master_access.init(new master_access_t<protocol_t>(mailbox_manager,
-                                                               directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, ph::_1, peer_id, activity_id)),
-                                                               lock.get_drain_signal()));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
+            master_access.init(new master_access_t(mailbox_manager,
+                                                   directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_master_business_card, ph::_1, peer_id, activity_id)),
+                                                   lock.get_drain_signal()));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_primary, ph::_1, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(std::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t>(directory_view->subview(std::bind(&cluster_namespace_interface_t::extract_direct_reader_business_card_from_secondary, ph::_1, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;
@@ -435,9 +441,9 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
         relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
-        region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(&relationships,
-                                                                                             region,
-                                                                                             &relationship_record);
+        region_map_set_membership_t<relationship_t *> relationship_map_insertion(&relationships,
+                                                                                 region,
+                                                                                 &relationship_record);
 
         if (is_start) {
             guarantee(start_count > 0);
@@ -480,15 +486,5 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         update_registrants(false);
     }
 }
-
-
-#include "memcached/protocol.hpp"
-template class cluster_namespace_interface_t<memcached_protocol_t>;
-
-#include "mock/dummy_protocol.hpp"
-template class cluster_namespace_interface_t<mock::dummy_protocol_t>;
-
-#include "rdb_protocol/protocol.hpp"
-template class cluster_namespace_interface_t<rdb_protocol_t>;
 
 

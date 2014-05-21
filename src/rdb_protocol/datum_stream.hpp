@@ -33,32 +33,32 @@ class env_t;
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+        namespace_interface_t *internal, env_t *env);
 
-    void read(const rdb_protocol_t::read_t &,
-              rdb_protocol_t::read_response_t *response,
+    void read(const read_t &,
+              read_response_t *response,
               order_token_t tok,
               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(const rdb_protocol_t::read_t &,
-                       rdb_protocol_t::read_response_t *response,
+    void read_outdated(const read_t &,
+                       read_response_t *response,
                        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(rdb_protocol_t::write_t *,
-               rdb_protocol_t::write_response_t *response,
+    void write(write_t *,
+               write_response_t *response,
                order_token_t tok,
                signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
        on them for correctness. They should not block. */
-    std::set<rdb_protocol_t::region_t> get_sharding_scheme()
+    std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t);
     signal_t *get_initial_ready_signal();
     /* Check if the internal value is null. */
     bool has();
 private:
-    namespace_interface_t<rdb_protocol_t> *internal_;
+    namespace_interface_t *internal_;
     env_t *env_;
 };
 
@@ -67,17 +67,9 @@ public:
     rdb_namespace_access_t(uuid_u id, env_t *env);
     rdb_namespace_interface_t get_namespace_if();
 private:
-    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    base_namespace_repo_t::access_t internal_;
     env_t *env_;
 };
-
-// This is a more selective subset of the list at the top of protocol.cc.
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-typedef rdb_protocol_t::region_t region_t;
 
 class scope_env_t;
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
