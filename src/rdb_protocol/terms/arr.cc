@@ -495,18 +495,13 @@ private:
 class args_term_t : public op_term_t {
 public:
     args_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0, -1)) { }
-    // This just evaluates all the arguments to `args`, interprets them as
-    // arrays, and concatenates them.  The actual logic to make `args` splice
-    // arguments is in op.cc.
+        : op_term_t(env, term, argspec_t(1)) { }
+    // This just evaluates its argument and returns it as an array.  The actual
+    // logic to make `args` splice arguments is in op.cc.
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t eval_flags) {
-        std::vector<counted_t<const datum_t> > args;
-        for (size_t i = 0; i < num_args(); ++i) {
-            counted_t<const datum_t> d = arg(env, i, eval_flags)->as_datum();
-            const std::vector<counted_t<const datum_t> > &new_args = d->as_array();
-            args.insert(args.end(), new_args.begin(), new_args.end());
-        }
-        return new_val(make_counted<const datum_t>(std::move(args)));
+        counted_t<val_t> v0 = arg(env, 0, eval_flags);
+        v0->as_datum()->as_array(); // Force a type error
+        return v0;
     }
 private:
     virtual const char *name() const { return "args"; }

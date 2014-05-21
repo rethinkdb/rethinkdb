@@ -280,16 +280,10 @@ tests:
     - cd: tbl.get_all(r.args([]), 0, 1, 2)['id']
       ot: [0, 1, 2]
 
-    - cd: tbl.get_all(r.args(), 0, 1, 2)['id']
-      ot: [0, 1, 2]
-
     - cd: tbl.get_all(r.args([0]), 1, 2)['id']
       ot: [0, 1, 2]
 
     - cd: tbl.get_all(r.args([0, 1]), 2)['id']
-      ot: [0, 1, 2]
-
-    - cd: tbl.get_all(r.args([0], [1]), 2)['id']
       ot: [0, 1, 2]
 
     - cd: tbl.get_all(r.args([0, 1, 2]))['id']
@@ -297,10 +291,6 @@ tests:
 
     - cd: tbl.get_all(r.args([0]), 1, r.args([2]))['id']
       ot: [0, 1, 2]
-
-    - cd: tbl.get_all(0, r.args([1, 2]), r.args())['id']
-      ot: [0, 1, 2]
-
 
       # Make sure partial-evaluation still works
 
