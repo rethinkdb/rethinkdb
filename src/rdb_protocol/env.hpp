@@ -164,11 +164,12 @@ public:
 
     // The interruptor signal while a query evaluates.  This can get overwritten!
     // RSI: Holy shit, this can get overwritten?  We'll have to watch out for this
-    // when running stuff in parallel.
+    // when running stuff in parallel?
     signal_t *interruptor;
 
     // RSI: Will we have to watch out for this when running stuff in parallel?
-    scoped_ptr_t<profile::trace_t> trace;
+    // This pointer is non-empty if we are profiling this query.
+    const scoped_ptr_t<profile::trace_t> trace;
 
     profile_bool_t profile();
 

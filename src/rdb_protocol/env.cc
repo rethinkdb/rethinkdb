@@ -180,6 +180,18 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
       interruptor(_interruptor),
       eval_callback(NULL) { }
 
+// RSI: It's possible that query is empty?
+scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &query) {
+    if (query.has()) {
+        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
+            profile_arg->as_bool()) {
+            return make_scoped<profile::trace_t>();
+        }
+    }
+    return scoped_ptr_t<profile::trace_t>();
+}
+
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     const std::string &_reql_http_proxy,
@@ -205,16 +217,10 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    eval_callback(NULL)
-{
-    if (query.has()) {
-        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
-        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
-            profile_arg->as_bool()) {
-            trace.init(new profile::trace_t());
-        }
-    }
-}
+    trace(make_trace_initializer(query)),
+    eval_callback(NULL) {}
+
+
 
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
@@ -243,12 +249,10 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    eval_callback(NULL)
-{
-    if (_profile == profile_bool_t::PROFILE) {
-        trace.init(new profile::trace_t());
-    }
-}
+    trace(_profile == profile_bool_t::PROFILE
+          ? make_scoped<profile::trace_t>()
+          : scoped_ptr_t<profile::trace_t>()),
+    eval_callback(NULL) {}
 
 env_t::~env_t() { }
 
