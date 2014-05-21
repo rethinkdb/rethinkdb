@@ -568,7 +568,9 @@ void datum_stream_t::check_not_grouped(const char *msg) {
 std::vector<counted_t<const datum_t> >
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
-    env->throw_if_interruptor_pulsed();
+    if (env->interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
     // Cannot mix `next` and `next_batch`.
     r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
     check_not_grouped("Cannot treat the output of `group` as a stream "

@@ -360,7 +360,9 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
-    env->env->throw_if_interruptor_pulsed();
+    if (env->env->interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
     env->env->maybe_yield();
     INC_DEPTH;
 

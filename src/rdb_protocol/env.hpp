@@ -118,9 +118,6 @@ public:
     env_t(rdb_context_t *ctx, signal_t *interruptor);
 
     ~env_t();
-    void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    }
 
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     // RSI: We'll have to watch out for this when running stuff in parallel.
