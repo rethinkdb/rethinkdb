@@ -302,7 +302,6 @@ private:
     const bool return_vals;
 };
 
-// TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
         ql_env.global_optargs.init_optargs(br.optargs);
