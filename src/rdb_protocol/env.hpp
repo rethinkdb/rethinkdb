@@ -153,7 +153,7 @@ public:
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
     // RSI: Check if this can be used simultaneously by multiple coroutines.  (Surely yes.)
-    extproc_pool_t *extproc_pool;
+    extproc_pool_t *const extproc_pool;
 
     // HTTP proxy to use when running `r.http(...)` queries
     const std::string reql_http_proxy;
