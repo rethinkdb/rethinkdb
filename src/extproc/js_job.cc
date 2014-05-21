@@ -176,7 +176,15 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                     if (bad(res)) { return false; }
                 }
 
-                js_result_t js_result = js_env.eval(source);
+                js_result_t js_result;
+                try {
+                    js_result = js_env.eval(source);
+                } catch (std::exception &e) {
+                    js_result = e.what();
+                } catch (...) {
+                    js_result = std::string("encountered an unknown exception");
+                }
+
                 write_message_t msg;
                 msg << js_result;
                 int res = send_write_message(stream_out, &msg);
@@ -194,7 +202,14 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                     if (bad(res)) { return false; }
                 }
 
-                js_result_t js_result = js_env.call(id, args);
+                js_result_t js_result;
+                try {
+                    js_result = js_env.call(id, args);
+                } catch (std::exception &e) {
+                    js_result = e.what();
+                } catch (...) {
+                    js_result = std::string("encountered an unknown exception");
+                }
                 write_message_t msg;
                 msg << js_result;
                 int res = send_write_message(stream_out, &msg);
