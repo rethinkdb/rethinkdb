@@ -160,7 +160,8 @@ js_runner_t *env_t::get_js_runner() {
 }
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
-    : global_optargs(protob_t<Query>()),
+    : evals_since_yield(0),
+      global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
       reql_http_proxy(ctx ? ctx->reql_http_proxy : ""),
       cluster_access(
