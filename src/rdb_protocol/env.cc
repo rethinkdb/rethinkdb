@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 
 #include "clustering/administration/database_metadata.hpp"
@@ -134,9 +134,9 @@ void cluster_access_t::join_and_wait_to_propagate(
     }
 
     boost::function<bool (const cow_ptr_t<namespaces_semilattice_metadata_t> s)> p
-        = std::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
-                    ph::_1,
-                    sl_metadata.rdb_namespaces);
+        = boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
+                      _1,
+                      sl_metadata.rdb_namespaces);
 
     {
         on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
