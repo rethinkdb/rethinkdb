@@ -1,3 +1,18 @@
+# Release 1.12.5 (The Wizard of Oz)
+
+Released on 2014-05-21
+
+Big fix update.
+
+* Fixed a bug that caused `Guarantee failed: [!mod_info->deleted.second.empty() && mod_info->added.second.empty()]` errors (#2285)
+* Fixed the behaviour of `order_by` following `between` (#2307)
+* Fixed a bug that caused `Deserialization of rdb value failed with error archive_result_t::RANGE_ERROR` errors (#2399)
+* JavaScript driver: `reduce` no longer accepts the `base` argument (#2288)
+* Python driver: improved the error message when a cursor's connection is closed (#2291)
+* Python driver: improved the implementation of cursors (#2364, #2337)
+
+--
+
 # Release 1.12.4 (The Wizard of Oz)
 
 Released on 2014-04-22
