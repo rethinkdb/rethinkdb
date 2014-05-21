@@ -62,7 +62,8 @@ public:
         namespaces_semilattice_metadata;
     clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
         databases_semilattice_metadata;
-    // This is a read-WRITE view because of things like table_create_term_t.
+    // This is a read-WRITE view because of things like table_create_term_t.  Its
+    // home thread might be different from ours.
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
