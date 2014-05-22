@@ -90,6 +90,8 @@ private:
     event_log_t *redirected_event_log_;
     size_t disabled_ref_count;
     bool disabled();
+
+    DISABLE_COPYING(trace_t);
 };
 
 /* These are the instruments for adding profiling to code. You construct this
