@@ -211,35 +211,13 @@ void store_t::receive_backfill(
 
 void store_t::reset_data(
         const region_t &subregion,
-        const metainfo_t &new_metainfo,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
 
-    // 1. Update the metainfo
-    {
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-
-        const int expected_change_count = 1;
-        write_token_pair_t token_pair;
-        new_write_token_pair(&token_pair);
-        acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                     expected_change_count,
-                                     durability,
-                                     &token_pair,
-                                     &txn,
-                                     &superblock,
-                                     interruptor);
-
-        region_map_t<binary_blob_t> old_metainfo;
-        get_metainfo_internal(superblock->get(), &old_metainfo);
-        update_metainfo(old_metainfo, new_metainfo, superblock.get());
-    }
-
-    // 2. Erase the data in small chunks
+    // Erase the data in small chunks
     rdb_value_sizer_t sizer(cache->max_block_size());
     always_true_key_tester_t key_tester;
 

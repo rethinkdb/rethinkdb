@@ -301,11 +301,9 @@ void mock_store_t::receive_backfill(
 
 void mock_store_t::reset_data(
         const region_t &subregion,
-        const metainfo_t &new_metainfo,
         UNUSED write_durability_t durability,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
-    rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     write_token_pair_t token_pair;
     new_write_token_pair(&token_pair);
@@ -325,8 +323,6 @@ void mock_store_t::reset_data(
             table_.erase(jt);
         }
     }
-
-    metainfo_.update(new_metainfo);
 }
 
 std::string mock_store_t::values(std::string key) {

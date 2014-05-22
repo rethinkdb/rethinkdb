@@ -110,7 +110,6 @@ public:
      */
     virtual void reset_data(
             const region_t &subregion,
-            const metainfo_t &new_metainfo,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -256,15 +255,13 @@ public:
 
     void reset_data(
             const region_t &subregion,
-            const metainfo_t &new_metainfo,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
-        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, durability, interruptor);
+        store_view->reset_data(subregion, durability, interruptor);
     }
 
 private:
