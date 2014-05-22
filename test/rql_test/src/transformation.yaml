@@ -270,6 +270,8 @@ tests:
     # test slice
     - cd: tbl.slice(1, 3).count()
       ot: 2
+    - cd: tbl.slice(5).count()
+      ot: 95
     - cd: tbl.slice(-1, -3).count()
       ot: err('RqlRuntimeError', 'Cannot use a negative left index on a stream.', [0])
     - cd: tbl.slice(0, -3).count()
