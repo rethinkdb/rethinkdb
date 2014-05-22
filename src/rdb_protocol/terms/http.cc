@@ -115,7 +115,7 @@ private:
                               pb_rcheckable_t *auth);
 
     // Have a maximum timeout of 30 days
-    static const uint64_t MAX_TIMEOUT_MS = 2592000000;
+    static const uint64_t MAX_TIMEOUT_MS = 2592000000ull;
 };
 
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
