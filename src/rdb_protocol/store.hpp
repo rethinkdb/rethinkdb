@@ -176,18 +176,18 @@ public:
             block_id_t sindex_block_id);
 
     MUST_USE bool add_sindex(
-        const std::string &id,
+        const sindex_name_t &name,
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
     void set_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
+        const std::map<sindex_name_t, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::set<std::string> *created_sindexes_out)
+        std::set<sindex_name_t> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
-        const std::string &id,
+        const sindex_name_t &name,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
@@ -197,12 +197,12 @@ public:
     THROWS_NOTHING;
 
     bool drop_sindex(
-        const std::string &id,
+        const sindex_name_t &name,
         buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
-            const std::string &id,
+            const sindex_name_t &name,
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -211,7 +211,7 @@ public:
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
-            const std::string &id,
+            const sindex_name_t &name,
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -249,7 +249,7 @@ public:
     THROWS_NOTHING;
 
     bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            boost::optional<std::set<sindex_name_t> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t);
@@ -349,7 +349,7 @@ private:
 
     MUST_USE bool mark_secondary_index_deleted(
             buf_lock_t *sindex_block,
-            const std::string &id);
+            const sindex_name_t &name);
 
 public:
     void check_and_update_metainfo(

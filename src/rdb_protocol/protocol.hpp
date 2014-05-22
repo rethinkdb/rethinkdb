@@ -145,7 +145,7 @@ RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        const std::set<sindex_name_t> &sindexes_to_bring_up_to_date,
         store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;

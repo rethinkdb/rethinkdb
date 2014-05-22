@@ -271,7 +271,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val, 
+                kv_location_set(&kv_location, *info.key, new_val,
                                 info.btree->timestamp, deletion_context,
                                 mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
@@ -1376,7 +1376,7 @@ public:
     store_t *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
-    signal_t *interruptor_;  
+    signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(

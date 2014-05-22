@@ -35,7 +35,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
     superblock.reset();
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(&sindex_block, &sindexes);
 
     struct sindex_clearer_t {
@@ -61,7 +61,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
         }
     };
 
-    std::set<std::string> sindexes_to_update;
+    std::set<sindex_name_t> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (it->second.being_deleted) {
             // Finish deleting the index
@@ -109,7 +109,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             uuid_u sindex_uuid;
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                    rget.sindex->id,
+                    sindex_name_t(rget.sindex->id),
                     rget.table_name,
                     superblock,
                     &sindex_sb,
@@ -183,14 +183,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                    superblock->get_sindex_block_id());
         superblock->release();
 
-        std::map<std::string, secondary_index_t> sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         sindex_block.reset_buf_lock();
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (!it->second.being_deleted) {
-                res->sindexes.push_back(it->first);
+                guarantee(!it->first.being_deleted);
+                res->sindexes.push_back(it->first.name);
             }
         }
     }
@@ -204,20 +205,22 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                    superblock->get_sindex_block_id());
         superblock->release();
 
-        std::map<std::string, secondary_index_t> sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (it->second.being_deleted) {
+                guarantee(it->first.being_deleted);
                 continue;
             }
-            if (sindex_status.sindexes.find(it->first) != sindex_status.sindexes.end()
+            guarantee(!it->first.being_deleted);
+            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
                 progress_completion_fraction_t frac =
                     store->get_progress(it->second.id);
                 rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first];
+                    &res->statuses[it->first.name];
                 s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
@@ -414,14 +417,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         int write_res = send_write_message(&stream, &wm);
         guarantee(write_res == 0);
 
+        sindex_name_t name(c.id);
         res.success = store->add_sindex(
-            c.id,
+            name,
             stream.vector(),
             &sindex_block);
 
         if (res.success) {
-            std::set<std::string> sindexes;
-            sindexes.insert(c.id);
+            std::set<sindex_name_t> sindexes;
+            sindexes.insert(name);
             rdb_protocol::bring_sindexes_up_to_date(
                 sindexes, store, &sindex_block);
         }
@@ -431,7 +435,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        res.success = store->drop_sindex(d.id, std::move(sindex_block));
+        res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
 
         response->response = res;
     }
@@ -731,23 +735,28 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
-        // secondary indexes. This can cause problems if indexes are deleted
-        // and recreated very quickly. The very reason for why we have UUIDs
-        // in the sindexes is to avoid two post-constructions to interfere with
-        // each other in such cases.
-        // More information:
-        // https://github.com/rethinkdb/rethinkdb/issues/657
-        // https://github.com/rethinkdb/rethinkdb/issues/2087
-        //
-        // Assign new random UUIDs to the secondary indexes to avoid collisions
-        // during post construction:
-        std::map<std::string, secondary_index_t> sindexes = s.sindexes;
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            it->second.id = generate_uuid();
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        for (auto it = s.sindexes.begin(); it != s.sindexes.end(); ++it) {
+            secondary_index_t sindex = it->second;
+            // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
+            // secondary indexes. This can cause problems if indexes are deleted
+            // and recreated very quickly. The very reason for why we have UUIDs
+            // in the sindexes is to avoid two post-constructions to interfere with
+            // each other in such cases.
+            // More information:
+            // https://github.com/rethinkdb/rethinkdb/issues/657
+            // https://github.com/rethinkdb/rethinkdb/issues/2087
+            //
+            // Assign new random UUIDs to the secondary indexes to avoid collisions
+            // during post construction:
+            sindex.id = generate_uuid();
+
+            auto res = sindexes.insert(std::make_pair(sindex_name_t(it->first),
+                                                      sindex));
+            guarantee(res.second);
         }
 
-        std::set<std::string> created_sindexes;
+        std::set<sindex_name_t> created_sindexes;
         store->set_sindexes(sindexes, &sindex_block, &created_sindexes);
 
         if (!created_sindexes.empty()) {

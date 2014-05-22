@@ -13,6 +13,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
@@ -106,14 +107,14 @@ store_t::store_t(serializer_t *serializer,
             = acquire_sindex_block_for_read(superblock->expose_buf(),
                                             superblock->get_sindex_block_id());
 
-        std::map<std::string, secondary_index_t> sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first));
+                                                            it->first.name));
         }
     }
 
@@ -376,11 +377,11 @@ buf_lock_t store_t::acquire_sindex_block_for_write(
 }
 
 bool store_t::add_sindex(
-        const std::string &id,
+        const sindex_name_t &name,
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block) {
     secondary_index_t sindex;
-    if (::get_secondary_index(sindex_block, id, &sindex)) {
+    if (::get_secondary_index(sindex_block, name, &sindex)) {
         return false; // sindex was already created
     } else {
         {
@@ -398,19 +399,19 @@ bool store_t::add_sindex(
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, id));
+            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, name.name));
 
         sindex.post_construction_complete = false;
 
-        ::set_secondary_index(sindex_block, id, sindex);
+        ::set_secondary_index(sindex_block, name, sindex);
         return true;
     }
 }
 
-std::string compute_sindex_deletion_id(uuid_u sindex_uuid) {
-    // Add a '\0' at the end to make absolutely sure it can't collide with
-    // regular sindex names.
-    return "_DEL_" + uuid_to_str(sindex_uuid) + "\0";
+sindex_name_t compute_sindex_deletion_name(uuid_u sindex_uuid) {
+    sindex_name_t result("_DEL_" + uuid_to_str(sindex_uuid));
+    result.being_deleted = true;
+    return result;
 }
 
 class clear_sindex_traversal_cb_t
@@ -561,7 +562,16 @@ void store_t::clear_sindex(
                         const internal_node_t *root_int_node
                             = static_cast<const internal_node_t *>(
                                 rread.get_data_read());
-                        guarantee(root_int_node->npairs == 0);
+                        /* This just prints a warning in release mode for now,
+                        because leaking a few blocks is probably better than
+                        making the database inaccessible. */
+                        rassert(root_int_node->npairs == 0);
+                        if (root_int_node->npairs != 0) {
+                            logWRN("The secondary index tree was not empty after "
+                                   "clearing it. We are leaking some data blocks. "
+                                   "Please report this issue at "
+                                   "https://github.com/rethinkdb/rethinkdb/issues/");
+                        }
                     }
                     /* If the root is a leaf we are good */
                 }
@@ -594,19 +604,19 @@ void store_t::clear_sindex(
                                           sindex.superblock, access_t::write);
         sindex_superblock_lock.write_acq_signal()->wait_lazily_unordered();
         sindex_superblock_lock.mark_deleted();
-        ::delete_secondary_index(&sindex_block, compute_sindex_deletion_id(sindex.id));
+        ::delete_secondary_index(&sindex_block, compute_sindex_deletion_name(sindex.id));
         size_t num_erased = secondary_index_slices.erase(sindex.id);
         guarantee(num_erased == 1);
     }
 }
 
 void store_t::set_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
+        const std::map<sindex_name_t, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        std::set<std::string> *created_sindexes_out)
+        std::set<sindex_name_t> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t) {
 
-    std::map<std::string, secondary_index_t> existing_sindexes;
+    std::map<sindex_name_t, secondary_index_t> existing_sindexes;
     ::get_secondary_indexes(sindex_block, &existing_sindexes);
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
@@ -641,7 +651,7 @@ void store_t::set_sindexes(
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first));
+                                                            it->first.name));
 
             sindex.post_construction_complete = false;
 
@@ -652,16 +662,16 @@ void store_t::set_sindexes(
     }
 }
 
-bool store_t::mark_index_up_to_date(const std::string &id,
+bool store_t::mark_index_up_to_date(const sindex_name_t &name,
                                     buf_lock_t *sindex_block)
     THROWS_NOTHING {
     secondary_index_t sindex;
-    bool found = ::get_secondary_index(sindex_block, id, &sindex);
+    bool found = ::get_secondary_index(sindex_block, name, &sindex);
 
     if (found) {
         sindex.post_construction_complete = true;
 
-        ::set_secondary_index(sindex_block, id, sindex);
+        ::set_secondary_index(sindex_block, name, sindex);
     }
 
     return found;
@@ -683,16 +693,17 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 }
 
 MUST_USE bool store_t::drop_sindex(
-        const std::string &id,
+        const sindex_name_t &name,
         buf_lock_t sindex_block)
         THROWS_ONLY(interrupted_exc_t) {
+    guarantee(!name.being_deleted);
     /* Remove reference in the super block */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, name, &sindex)) {
         return false;
     } else {
         /* Mark the secondary index as deleted */
-        bool success = mark_secondary_index_deleted(&sindex_block, id);
+        bool success = mark_secondary_index_deleted(&sindex_block, name);
         guarantee(success);
 
         /* Clear the sindex later. It starts its own transaction and we don't
@@ -707,26 +718,26 @@ MUST_USE bool store_t::drop_sindex(
 
 MUST_USE bool store_t::mark_secondary_index_deleted(
         buf_lock_t *sindex_block,
-        const std::string &id) {
+        const sindex_name_t &name) {
     secondary_index_t sindex;
-    bool success = get_secondary_index(sindex_block, id, &sindex);
+    bool success = get_secondary_index(sindex_block, name, &sindex);
     if (!success) {
         return false;
     }
 
     // Delete the current entry
-    success = delete_secondary_index(sindex_block, id);
+    success = delete_secondary_index(sindex_block, name);
     guarantee(success);
 
     // Insert the new entry under a different name
-    const std::string sindex_del_name = compute_sindex_deletion_id(sindex.id);
+    const sindex_name_t sindex_del_name = compute_sindex_deletion_name(sindex.id);
     sindex.being_deleted = true;
     set_secondary_index(sindex_block, sindex_del_name, sindex);
     return true;
 }
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_read(
-        const std::string &id,
+        const sindex_name_t &name,
         const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -744,7 +755,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, name, &sindex)) {
         return false;
     }
 
@@ -754,7 +765,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {
-        throw sindex_not_ready_exc_t(id, sindex, table_name);
+        throw sindex_not_ready_exc_t(name.name, sindex, table_name);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -764,7 +775,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 }
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_write(
-        const std::string &id,
+        const sindex_name_t &name,
         const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
@@ -781,13 +792,13 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, name, &sindex)) {
         return false;
     }
     *sindex_uuid_out = sindex.id;
 
     if (!sindex.is_ready()) {
-        throw sindex_not_ready_exc_t(id, sindex, table_name);
+        throw sindex_not_ready_exc_t(name.name, sindex, table_name);
     }
 
 
@@ -816,7 +827,7 @@ void store_t::acquire_all_sindex_superblocks_for_write(
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> >(),
+            boost::optional<std::set<sindex_name_t> >(),
             sindex_block,
             sindex_sbs_out);
 }
@@ -826,8 +837,8 @@ void store_t::acquire_post_constructed_sindex_superblocks_for_write(
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING {
     assert_thread();
-    std::set<std::string> sindexes_to_acquire;
-    std::map<std::string, secondary_index_t> sindexes;
+    std::set<sindex_name_t> sindexes_to_acquire;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     ::get_secondary_indexes(sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -846,13 +857,13 @@ void store_t::acquire_post_constructed_sindex_superblocks_for_write(
 }
 
 bool store_t::acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            boost::optional<std::set<sindex_name_t> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     ::get_secondary_indexes(sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -883,7 +894,7 @@ bool store_t::acquire_sindex_superblocks_for_write(
     THROWS_ONLY(sindex_not_ready_exc_t) {
     assert_thread();
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     ::get_secondary_indexes(sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {

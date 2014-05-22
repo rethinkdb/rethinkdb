@@ -58,6 +58,29 @@ struct secondary_index_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+struct sindex_name_t {
+    sindex_name_t()
+        : name(""), being_deleted(false) { }
+    explicit sindex_name_t(const std::string &n)
+        : name(n), being_deleted(false) { }
+
+    bool operator<(const sindex_name_t &other) const {
+        return (being_deleted && !other.being_deleted) ||
+               (being_deleted == other.being_deleted && name < other.name);
+    }
+    bool operator==(const sindex_name_t &other) const {
+        return being_deleted == other.being_deleted && name == other.name;
+    }
+
+    std::string name;
+    // This additional bool in `sindex_name_t` makes sure that the name
+    // of an index that's being deleted can never conflict with any newly created
+    // index.
+    bool being_deleted;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 //Secondary Index functions
 
 /* Note if this function is called after secondary indexes have been added it
@@ -66,18 +89,18 @@ struct secondary_index_t {
 void initialize_secondary_indexes(buf_lock_t *superblock);
 
 bool get_secondary_index(buf_lock_t *sindex_block,
-                         const std::string &id,
+                         const sindex_name_t &name,
                          secondary_index_t *sindex_out);
 
 bool get_secondary_index(buf_lock_t *sindex_block, uuid_u id,
                          secondary_index_t *sindex_out);
 
 void get_secondary_indexes(buf_lock_t *sindex_block,
-                           std::map<std::string, secondary_index_t> *sindexes_out);
+                           std::map<sindex_name_t, secondary_index_t> *sindexes_out);
 
 /* Overwrites existing values with the same id. */
 void set_secondary_index(buf_lock_t *sindex_block,
-                         const std::string &id, const secondary_index_t &sindex);
+                         const sindex_name_t &name, const secondary_index_t &sindex);
 
 /* Must be used to overwrite an already existing sindex. */
 void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
@@ -85,6 +108,6 @@ void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
 
 // XXX note this just drops the entry. It doesn't cleanup the btree that it points
 // to. `drop_sindex` Does both and should be used publicly.
-bool delete_secondary_index(buf_lock_t *sindex_block, const std::string &id);
+bool delete_secondary_index(buf_lock_t *sindex_block, const sindex_name_t &name);
 
 #endif /* BTREE_SECONDARY_OPERATIONS_HPP_ */
