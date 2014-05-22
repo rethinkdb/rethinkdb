@@ -272,7 +272,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val, 
+                kv_location_set(&kv_location, *info.key, new_val,
                                 info.btree->timestamp, deletion_context,
                                 mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
@@ -640,73 +640,28 @@ void rdb_erase_range_convert_keys(const key_range_t &key_range,
      * names. */
 }
 
-void rdb_erase_major_range(key_tester_t *tester,
-                           const key_range_t &key_range,
-                           buf_lock_t *sindex_block,
-                           superblock_t *superblock,
-                           store_t *store,
-                           signal_t *interruptor) {
-
-    /* Dispatch the erase range to the sindexes. */
-    store_t::sindex_access_vector_t sindex_superblocks;
-    {
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block, &sindex_superblocks);
-
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(sindex_block);
-        sindex_block->reset_buf_lock();
-
-        // This is for a disk backed queue so there are no versioning issues.
-        write_message_t wm;
-        serialize(&wm, rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range)));
-        store->sindex_queue_push(wm, acq.get());
-    }
-
-    {
-        rdb_value_detacher_t detacher;
-        auto_drainer_t sindex_erase_drainer;
-        spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
-                &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                true /* release the superblock */, interruptor, &detacher);
-
-        /* Notice, when we exit this block we destruct the sindex_erase_drainer
-         * which means we'll wait until all of the sindex_erase_ranges finish
-         * executing. This is an important detail because the sindexes only
-         * store references to their data. They don't actually store a full
-         * copy of the data themselves. The call to btree_erase_range_generic
-         * is the one that will actually erase the data and if we were to make
-         * that call before the indexes were finished erasing we would have
-         * reference to data which didn't actually exist and another process
-         * could read that data. */
-        /* TL;DR it's very important that we make sure all of the coros spawned
-         * by spawn_sindex_erase_ranges complete before we proceed past this
-         * point. */
-    }
-
-    bool left_key_supplied, right_key_supplied;
-    store_key_t left_key_exclusive, right_key_inclusive;
-    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
-            &left_key_exclusive, &right_key_inclusive);
-
-    /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    /* Actually delete the values */
-    rdb_value_deleter_t deleter;
-
-    btree_erase_range_generic(&sizer, tester, &deleter,
-        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
-        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor);
-}
-
 void rdb_erase_small_range(key_tester_t *tester,
                            const key_range_t &key_range,
                            superblock_t *superblock,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out) {
+    done_erasing_t fully_erased = rdb_erase_small_range(tester, key_range, superblock,
+                                                        deletion_context, interruptor,
+                                                        0, NULL, mod_reports_out);
+    guarantee(fully_erased == done_erasing_t::DONE);
+}
+
+done_erasing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &key_range,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        unsigned int max_entries_erased,
+        store_key_t *highest_erased_key_out,
+        std::vector<rdb_modification_report_t> *mod_reports_out) {
+    rassert(max_entries_erased == 0 || highest_erased_key_out != NULL);
     rassert(mod_reports_out != NULL);
     mod_reports_out->clear();
 
@@ -719,8 +674,13 @@ void rdb_erase_small_range(key_tester_t *tester,
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     struct on_erase_cb_t {
-        static void on_erase(const store_key_t &key, const char *data,
+        static done_traversing_t on_erase(
+                const store_key_t &key,
+                const char *data,
                 const buf_parent_t &parent,
+                unsigned int _max_entries_erased,
+                unsigned int *_num_entries_erased_out,
+                store_key_t *_highest_erased_key_out,
                 std::vector<rdb_modification_report_t> *_mod_reports_out) {
             const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
 
@@ -738,14 +698,30 @@ void rdb_erase_small_range(key_tester_t *tester,
                 value->value_ref() + value->inline_size(block_size));
 
             _mod_reports_out->push_back(mod_report);
+            ++(*_num_entries_erased_out);
+            if (_max_entries_erased != 0
+                && *_num_entries_erased_out >= _max_entries_erased) {
+                // We have hit the limit. Don't erase any more.
+                *_highest_erased_key_out = key;
+                return done_traversing_t::YES;
+            } else {
+                return done_traversing_t::NO;
+            }
         }
     };
 
+    unsigned int num_entries_erased = 0;
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor, true /* release_superblock */,
-        std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
+        std::bind(&on_erase_cb_t::on_erase,
+                  ph::_1, ph::_2, ph::_3,
+                  max_entries_erased, &num_entries_erased, highest_erased_key_out,
+                  mod_reports_out));
+    const bool hit_limit = max_entries_erased != 0
+                           && num_entries_erased >= max_entries_erased;
+    return hit_limit ? done_erasing_t::REACHED_MAX : done_erasing_t::DONE;
 }
 
 // This is actually a kind of misleading name. This function estimates the size
@@ -1054,7 +1030,6 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,
@@ -1100,7 +1075,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 
     // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
-    serialize(&wm, rdb_sindex_change_t(mod_report));
+    serialize(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
@@ -1270,17 +1245,6 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
     }
 }
 
-void rdb_erase_major_range_sindexes(const store_t::sindex_access_vector_t &sindexes,
-                                    const rdb_erase_major_range_report_t *erase_range,
-                                    signal_t *interruptor, const value_deleter_t *deleter) {
-    auto_drainer_t drainer;
-
-    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
-                              &drainer, auto_drainer_t::lock_t(&drainer),
-                              false /* don't release the superblock */, interruptor,
-                              deleter);
-}
-
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
@@ -1410,7 +1374,7 @@ public:
     store_t *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
-    signal_t *interruptor_;  
+    signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
