@@ -88,7 +88,7 @@ private:
     /* redirected_event_log_ is used during sampling to send the events to the
      * sampler to be processed. */
     event_log_t *redirected_event_log_;
-    size_t disabled_ref_count;
+    size_t disabled_ref_count_;
     bool disabled();
 
     DISABLE_COPYING(trace_t);
