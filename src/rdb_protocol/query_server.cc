@@ -74,9 +74,11 @@ bool rdb_query_server_t::run_query(const ql::protob_t<Query> &query,
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
+#ifdef NDEBUG // In debug mode we crash, in release we send an error.
     } catch (const std::exception &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));
+#endif // NDEBUG
     }
 
     return response_needed;

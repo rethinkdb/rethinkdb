@@ -78,11 +78,15 @@ public:
     const uuid_u this_machine;
 };
 
-// The env_t.
+namespace changefeed {
+class client_t;
+} // namespace changefeed
+
 class env_t : public home_thread_mixin_t {
 public:
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed::client_t *_changefeed_client,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
@@ -100,6 +104,7 @@ public:
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed::client_t *_changefeed_client,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
@@ -148,6 +153,9 @@ public:
     // js_runner_t.
     // RSI: Check if this can be used simultaneously by multiple coroutines.  (Surely yes.)
     extproc_pool_t *const extproc_pool;
+
+    // Holds a bunch of mailboxes and maps them to streams.
+    changefeed::client_t *changefeed_client;
 
     // HTTP proxy to use when running `r.http(...)` queries
     const std::string reql_http_proxy;

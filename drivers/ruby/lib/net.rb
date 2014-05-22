@@ -12,7 +12,6 @@ module RethinkDB
     @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil, &b)
-      # $f.puts "("+RPP::pp(@body)+"),"
       unbound_if(@body == RQL)
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
@@ -127,9 +126,6 @@ module RethinkDB
       @mutex.synchronize{@opts[token] = opts}
       noreply = opts[:noreply]
 
-      # PP.pp JSON.parse(q.to_json)
-      # return nil
-
       dispatch(q, token)
       noreply ? nil : wait(token)
     end
@@ -187,9 +183,7 @@ module RethinkDB
     end
 
     def dispatch(msg, token)
-      # PP.pp msg
       payload = Shim.dump_json(msg).force_encoding('BINARY')
-      # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       prefix = [token, payload.bytesize].pack('Q<L<')
       send(prefix + payload)
       return token
@@ -309,14 +303,6 @@ module RethinkDB
       note_data(token, data)
     end
 
-    def stop_listener
-      if @listener
-        @listener.terminate
-        @listener.join
-        @listener = nil
-      end
-    end
-
     def start_listener
       class << @socket
         def maybe_timeout(sec=nil, &b)
@@ -347,7 +333,7 @@ module RethinkDB
 
       stop_listener if @listener
       @listener = Thread.new {
-        loop {
+        while true
           begin
             token = -1
             token = @socket.read_exn(8).unpack('q<')[0]
@@ -355,7 +341,6 @@ module RethinkDB
             response = @socket.read_exn(response_length)
             begin
               data = Shim.load_json(response, @opts[token])
-              # PP.pp data
             rescue Exception => e
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
@@ -377,7 +362,7 @@ module RethinkDB
               @mutex.synchronize{note_error(token, e)}
             end
           end
-        }
+        end
       }
     end
   end

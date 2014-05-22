@@ -40,6 +40,8 @@ class linux_tcp_conn_t :
 public:
     friend class linux_tcp_conn_descriptor_t;
 
+    void enable_keepalive();
+
     class connect_failed_exc_t : public std::exception {
     public:
         explicit connect_failed_exc_t(int en) :

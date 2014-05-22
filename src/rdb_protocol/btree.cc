@@ -22,6 +22,8 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
 
+#include "debug.hpp"
+
 rdb_value_sizer_t::rdb_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
 const rdb_value_t *rdb_value_sizer_t::as_rdb(const void *p) {
@@ -1067,7 +1069,32 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+    const rdb_modification_report_t &mod_report) {
+    // debugf("%" PRIu64 "\n", timestamp.longtime);
+    if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
+        // We spawn the sindex update in its own coroutine because we don't want to
+        // hold the sindex update for the changefeed update or vice-versa.
+        cond_t sindexes_updated_cond;
+        coro_t::spawn_now_dangerously(
+            std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
+                      this,
+                      mod_report,
+                      &sindexes_updated_cond));
+        {
+            store_->changefeed_server.send_all(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t(
+                        mod_report.info.deleted.first,
+                        mod_report.info.added.first)));
+        }
+
+        sindexes_updated_cond.wait_lazily_unordered();
+    }
+}
+
+void rdb_modification_report_cb_t::on_mod_report_sub(
+    const rdb_modification_report_t &mod_report,
+    cond_t *cond) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
@@ -1079,6 +1106,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
                         &deletion_context);
+    cond->pulse();
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,

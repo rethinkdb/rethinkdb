@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -201,6 +202,19 @@ private:
     virtual const char *name() const { return "reduce"; }
 };
 
+class changes_term_t : public op_term_t {
+public:
+    changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+        counted_t<table_t> tbl = arg(env, 0)->as_table();
+        changefeed::client_t *client = env->env->changefeed_client;
+        return new_val(env->env, client->new_feed(tbl, env->env));
+    }
+    virtual const char *name() const { return "changes"; }
+};
+
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
 class between_term_t : public bounded_op_term_t {
 public:
@@ -275,6 +289,10 @@ private:
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<between_term_t>(env, term);
+}
+counted_t<term_t> make_changes_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<changes_term_t>(env, term);
 }
 counted_t<term_t> make_reduce_term(
     compile_env_t *env, const protob_t<const Term> &term) {

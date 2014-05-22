@@ -4,18 +4,22 @@
 #include <algorithm>
 #include <functional>
 
-#include "containers/disk_backed_queue.hpp"
-#include "containers/cow_ptr.hpp"
-#include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/store.hpp"
-#include "rdb_protocol/func.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "containers/cow_ptr.hpp"
+#include "containers/disk_backed_queue.hpp"
+#include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/store.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "rpc/semilattice/watchable.hpp"
+
+#include "debug.hpp"
 
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
@@ -352,18 +356,23 @@ void add_status(const single_sindex_status_t &new_status,
 }  // namespace rdb_protocol
 
 rdb_context_t::rdb_context_t()
-    : extproc_pool(NULL), ns_repo(NULL),
-    cross_thread_namespace_watchables(get_num_threads()),
-    cross_thread_database_watchables(get_num_threads()),
-    directory_read_manager(NULL),
-    signals(get_num_threads()),
-    ql_stats_membership(&get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
-    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-    reql_http_proxy()
+    : extproc_pool(NULL),
+      ns_repo(NULL),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads()),
+      directory_read_manager(NULL),
+      signals(get_num_threads()),
+      manager(NULL),
+      changefeed_client(NULL),
+      ql_stats_membership(
+          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      reql_http_proxy()
 { }
 
 rdb_context_t::rdb_context_t(
     extproc_pool_t *_extproc_pool,
+    mailbox_manager_t *mailbox_manager,
     namespace_repo_t *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _cluster_metadata,
@@ -382,6 +391,10 @@ rdb_context_t::rdb_context_t(
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id),
+      manager(mailbox_manager),
+      changefeed_client(manager
+                        ? make_scoped<ql::changefeed::client_t>(manager)
+                        : scoped_ptr_t<ql::changefeed::client_t>()),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
       reql_http_proxy(_reql_http_proxy)
@@ -471,6 +484,14 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol::monokey_region(sindex_list_region_key());
     }
 
+    region_t operator()(const changefeed_subscribe_t &s) const {
+        return s.region;
+    }
+
+    region_t operator()(const changefeed_stamp_t &t) const {
+        return t.region;
+    }
+
     region_t operator()(const sindex_status_t &ss) const {
         return ss.region;
     }
@@ -512,6 +533,14 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         } else {
             return false;
         }
+    }
+
+    bool operator()(const changefeed_subscribe_t &s) const {
+        return rangey_read(s);
+    }
+
+    bool operator()(const changefeed_stamp_t &t) const {
+        return rangey_read(t);
     }
 
     bool operator()(const rget_read_t &rg) const {
@@ -592,6 +621,8 @@ public:
     void operator()(const distribution_read_t &rg);
     void operator()(const sindex_list_t &rg);
     void operator()(const sindex_status_t &rg);
+    void operator()(const changefeed_subscribe_t &);
+    void operator()(const changefeed_stamp_t &);
 
 private:
     read_response_t *responses; // Cannibalized for efficiency.
@@ -599,6 +630,38 @@ private:
     read_response_t *response_out;
     ql::env_t env;
 };
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
+    response_out->response = changefeed_subscribe_response_t();
+    auto out = boost::get<changefeed_subscribe_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<changefeed_subscribe_response_t>(
+            &responses[i].response);
+        for (auto it = res->addrs.begin(); it != res->addrs.end(); ++it) {
+            out->addrs.insert(std::move(*it));
+        }
+        for (auto it = res->server_uuids.begin();
+             it != res->server_uuids.end(); ++it) {
+            out->server_uuids.insert(std::move(*it));
+        }
+    }
+}
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
+    response_out->response = changefeed_stamp_response_t();
+    auto out = boost::get<changefeed_stamp_response_t>(&response_out->response);
+    for (size_t i = 0; i < count; ++i) {
+        auto res = boost::get<changefeed_stamp_response_t>(&responses[i].response);
+        for (auto it = res->stamps.begin(); it != res->stamps.end(); ++it) {
+            auto it_out = out->stamps.find(it->first);
+            if (it_out == out->stamps.end()) {
+                out->stamps[it->first] = it->second;
+            } else {
+                it_out->second = std::max(it->second, it_out->second);
+            }
+        }
+    }
+}
 
 void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
     guarantee(count == 1);
@@ -812,6 +875,14 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol::monokey_region(pd.key);
+    }
+
+    region_t operator()(const changefeed_subscribe_t &s) const {
+        return s.region;
+    }
+
+    region_t operator()(const changefeed_stamp_t &t) const {
+        return t.region;
     }
 
     region_t operator()(const sindex_create_t &s) const {
@@ -1064,6 +1135,8 @@ RDB_IMPL_ME_SERIALIZABLE_2(read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, result);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_response_t, server_uuids, addrs);
+RDB_IMPL_ME_SERIALIZABLE_1(changefeed_stamp_response_t, stamps);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t);
@@ -1077,7 +1150,8 @@ RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t,
 
 RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, key);
-
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_t, addr, region);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_stamp_t, addr, region);
 RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(sync_t, region);

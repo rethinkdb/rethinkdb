@@ -163,6 +163,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
+      changefeed_client(ctx ? ctx->changefeed_client.get() : NULL),
       reql_http_proxy(ctx ? ctx->reql_http_proxy : ""),
       cluster_access(
           ctx ? ctx->ns_repo : NULL,
@@ -194,6 +195,7 @@ scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &que
 
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
+    changefeed::client_t *_changefeed_client,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
     clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
@@ -209,6 +211,7 @@ env_t::env_t(
   : evals_since_yield(0),
     global_optargs(query),
     extproc_pool(_extproc_pool),
+    changefeed_client(_changefeed_client),
     reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -224,6 +227,7 @@ env_t::env_t(
 
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
+    changefeed::client_t *_changefeed_client,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
 
@@ -241,6 +245,7 @@ env_t::env_t(
   : evals_since_yield(0),
     global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
+    changefeed_client(_changefeed_client),
     reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,

@@ -83,6 +83,7 @@ public:
         return db->name + "." + name;
     }
 
+    uuid_u get_uuid() const { return uuid; }
 private:
     friend class distinct_term_t;
 
@@ -108,6 +109,9 @@ private:
 
     datum_range_t bounds;
     sorting_t sorting;
+
+    // The uuid of the table in the metadata.
+    uuid_u uuid;
 };
 
 

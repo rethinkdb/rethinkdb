@@ -23,7 +23,9 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
 
@@ -77,6 +79,8 @@ public:
             io_backender_t *io_backender,
             const base_path_t &base_path);
     ~store_t();
+
+    void note_reshard();
 
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
@@ -373,11 +377,12 @@ public:
     new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
+    rdb_context_t *ctx;
+    ql::changefeed::server_t changefeed_server;
+
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.
     auto_drainer_t drainer;
-
-    rdb_context_t *ctx;
 
 private:
     DISABLE_COPYING(store_t);

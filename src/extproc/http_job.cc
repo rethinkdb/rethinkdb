@@ -489,12 +489,16 @@ http_result_t perform_http(http_opts_t *opts) {
     switch (opts->result_format) {
     case http_result_format_t::AUTO:
         {
-            char *content_type_buffer;
+            std::string content_type;
+            char *content_type_buffer = NULL;
             curl_easy_getinfo(curl_handle.get(),
                               CURLINFO_CONTENT_TYPE,
                               &content_type_buffer);
 
-            std::string content_type(content_type_buffer);
+            if (content_type_buffer != NULL) {
+                content_type.assign(content_type_buffer);
+            }
+
             for (size_t i = 0; i < content_type.length(); ++i) {
                 content_type[i] = tolower(content_type[i]);
             }
