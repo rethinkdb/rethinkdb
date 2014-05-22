@@ -22,8 +22,8 @@ private:
     class write_impl_t : public mailbox_write_callback_t {
     public:
         explicit write_impl_t(int _arg) : arg(_arg) { }
-        void write(write_message_t *wm) {
-            serialize(wm, arg);
+        void write(cluster_version_t cluster_version, write_message_t *wm) {
+            serialize_for_version(cluster_version, wm, arg);
         }
     private:
         friend class read_impl_t;
@@ -33,9 +33,9 @@ private:
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream) {
+        void read(cluster_version_t cluster_version, read_stream_t *stream) {
             int i;
-            archive_result_t res = deserialize(stream, &i);
+            archive_result_t res = deserialize_for_version(cluster_version, stream, &i);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }

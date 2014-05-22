@@ -157,7 +157,7 @@ private:
         fifo_enforcer_write_token_t fifo_token;
 
         // This is serializable because this gets written to a disk backed queue.
-        RDB_MAKE_ME_SERIALIZABLE_4(0, write, order_token, transition_timestamp, fifo_token);
+        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
     // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.

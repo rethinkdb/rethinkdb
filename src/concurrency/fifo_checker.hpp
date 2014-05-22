@@ -21,7 +21,7 @@ struct order_bucket_t {
 
     bool valid() const;
 private:
-    RDB_MAKE_ME_SERIALIZABLE_1(0, uuid_);
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
 
     explicit order_bucket_t(uuid_u uuid) : uuid_(uuid) { }
 };
@@ -77,7 +77,7 @@ private:
 
     RDB_DECLARE_ME_SERIALIZABLE;
 #else
-    RDB_MAKE_ME_SERIALIZABLE_0(0);
+    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;

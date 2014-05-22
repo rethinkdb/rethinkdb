@@ -90,6 +90,7 @@ public:
     env_t(
         extproc_pool_t *_extproc_pool,
         changefeed::client_t *_changefeed_client,
+        const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -107,6 +108,7 @@ public:
     env_t(
         extproc_pool_t *_extproc_pool,
         changefeed::client_t *_changefeed_client,
+        const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -158,6 +160,9 @@ public:
 
     // Holds a bunch of mailboxes and maps them to streams.
     changefeed::client_t *changefeed_client;
+
+    // HTTP proxy to use when running `r.http(...)` queries
+    const std::string reql_http_proxy;
 
     // Access to the cluster, for talking over the cluster or about the cluster.
     cluster_access_t cluster_access;

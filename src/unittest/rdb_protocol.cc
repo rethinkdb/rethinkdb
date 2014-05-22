@@ -84,7 +84,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
                       dummy_auth,
                       &read_manager,
                       generate_uuid(),
-                      &get_global_perfmon_collection());
+                      &get_global_perfmon_collection(),
+                      std::string());
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(

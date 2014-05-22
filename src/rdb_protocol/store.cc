@@ -127,12 +127,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
-            sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
-            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
-            archive_result_t success = deserialize(&read_stream, &sindex_mapping);
-            guarantee_deserialization(success, "sindex description");
-            success = deserialize(&read_stream, &multi_bool);
-            guarantee_deserialization(success, "sindex description");
+            sindex_multi_bool_t multi_bool;
+            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
@@ -233,6 +229,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->changefeed_client.get(),
+               ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
@@ -394,8 +391,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize(&wm, c.mapping);
-        serialize(&wm, c.multi);
+        serialize_sindex_info(&wm, c.mapping, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -461,6 +457,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->changefeed_client.get(),
+               ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
@@ -492,6 +489,7 @@ private:
             store->get_in_line_for_sindex_queue(&sindex_block);
 
         write_message_t wm;
+        // This is for a disk backed queue so there's no versioning issues.
         serialize(&wm, rdb_sindex_change_t(*mod_report));
         store->sindex_queue_push(wm, acq.get());
 
@@ -774,6 +772,7 @@ private:
 
             rdb_live_deletion_context_t deletion_context;
             for (size_t i = 0; i < mod_reports.size(); ++i) {
+                // This is for a disk backed queue so there's no versioning issues.
                 serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
                 rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
             }

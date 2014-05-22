@@ -3,6 +3,7 @@
 
 #include <netinet/in.h>
 
+#include <algorithm>
 #include <functional>
 
 #include "errors.hpp"
@@ -18,14 +19,86 @@
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
-#include "utils.hpp"
 #include "rpc/connectivity/heartbeat.hpp"
+#include "stl_utils.hpp"
+#include "utils.hpp"
 
 // Number of messages after which the message handling loop yields
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
+// The cluster communication protocol version.
+#define CLUSTER_VERSION_STRING "1.13"
+
+const cluster_version_t CLUSTER_VERSION = cluster_version_t::v1_13;
+
+// Returns the version string ("1.13", "1.55", etc) for a given recognized version number.
+std::string cluster_version_string(cluster_version_t version_number) {
+    switch (version_number) {
+    case cluster_version_t::v1_13:
+        return "1.13";
+    }
+    unreachable();
+}
+
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
-const std::string connectivity_cluster_t::cluster_version(CLUSTER_VERSION_STRING);
+const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
+
+// Returns true and sets *out to the version number, if the version number in
+// version_string is a recognized version and the same or earlier than our version.
+bool version_number_recognized_compatible(const std::string &version_string,
+                                          cluster_version_t *out) {
+    if (version_string == "1.13") {
+        *out = cluster_version_t::v1_13;
+        return true;
+    }
+    return false;
+}
+
+// Returns false if the string is not a valid version string (matching /\d+(\.\d+)*/)
+bool split_version_string(const std::string &version_string, std::vector<int64_t> *out) {
+    const std::vector<std::string> parts = split_string(version_string, '.');
+    std::vector<int64_t> ret(parts.size());
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (!strtoi64_strict(parts[i], 10, &ret[i])) {
+            return false;
+        }
+    }
+    *out = std::move(ret);
+    return true;
+}
+
+// Returns true if the version string is recognized as a _greater_ version string
+// (than our software's connectivity_cluster_t::cluster_version_string).  Returns
+// false for unparseable version strings (see split_version_string) or lesser or
+// equal version strings.
+bool version_number_unrecognized_greater(const std::string &version_string) {
+    std::vector<int64_t> parts;
+    if (!split_version_string(version_string, &parts)) {
+        return false;
+    }
+
+    std::vector<int64_t> our_parts;
+    const bool success = split_version_string(
+            connectivity_cluster_t::cluster_version_string,
+            &our_parts);
+    guarantee(success);
+    return std::lexicographical_compare(our_parts.begin(), our_parts.end(),
+                                        parts.begin(), parts.end());
+}
+
+// Given a remote version string, we figure out whether we can try to talk to it, and
+// if we can, what version we shall talk on.
+bool resolve_protocol_version(const std::string &remote_version_string,
+                              cluster_version_t *out) {
+    if (version_number_recognized_compatible(remote_version_string, out)) {
+        return true;
+    }
+    if (version_number_unrecognized_greater(remote_version_string)) {
+        *out = CLUSTER_VERSION;
+        return true;
+    }
+    return false;
+}
 
 #if defined (__x86_64__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
@@ -392,10 +465,6 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
         logERR("could not deserialize data received from %s, closing connection", peer);
         return true;
 
-    case archive_result_t::VERSION_ERROR:
-        logERR("version mismatch with %s, closing connection", peer);
-        return true;
-
     default:
         logERR("unknown error occurred on connection from %s, closing connection", peer);
         return true;
@@ -418,9 +487,9 @@ static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t siz
     return true;
 }
 
-// Reads an int64_t for size, then the string data
+// Reads a uint64_t for size, then the string data
 static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
-                                          std::string* str_out,
+                                          std::string *str_out,
                                           const char *peer) {
     uint64_t raw_size;
     archive_result_t res = deserialize(conn, &raw_size);
@@ -434,7 +503,7 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
         return false;
     }
 
-    size_t size = static_cast<size_t>(raw_size);
+    size_t size = raw_size;
     scoped_array_t<char> buffer(size);
     if (!read_header_chunk(conn, buffer.data(), size, peer)) {
         return false;
@@ -563,8 +632,8 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t wm;
         wm.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_version.length()));
-        wm.append(cluster_version.data(), cluster_version.length());
+        serialize(&wm, static_cast<uint64_t>(cluster_version_string.length()));
+        wm.append(cluster_version_string.data(), cluster_version_string.length());
         serialize(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
@@ -594,19 +663,22 @@ void connectivity_cluster_t::run_t::handle(
     }
 
     // Check version number (e.g. 1.9.0-466-gadea67)
+    cluster_version_t resolved_version;
     {
-        std::string remote_version;
+        std::string remote_version_string;
 
-        if (!deserialize_compatible_string(conn, &remote_version, peername)) {
+        if (!deserialize_compatible_string(conn, &remote_version_string, peername)) {
             return;
         }
 
-        if (remote_version != cluster_version) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong version, "
-                   "peer: %s, local version: %s, remote version: %s, connection dropped\n",
-                   peername, cluster_version.c_str(), remote_version.c_str());
+        if (!resolve_protocol_version(remote_version_string, &resolved_version)) {
+            logWRN("Connection attempt from %s with unresolvable protocol version: %s",
+                   peername, sanitize_for_logger(remote_version_string).c_str());
             return;
         }
+
+        // In the future we'll need to support multiple cluster versions.
+        guarantee(resolved_version == cluster_version_t::ONLY_VERSION);
     }
 
     // Check bitsize (e.g. 32bit or 64bit)
@@ -820,7 +892,7 @@ void connectivity_cluster_t::run_t::handle(
         try {
             int messages_handled_since_yield = 0;
             while (true) {
-                message_handler->on_message(other_id, conn); // might raise fake_archive_exc_t
+                message_handler->on_message(other_id, resolved_version, conn); // might raise fake_archive_exc_t
 
                 ++messages_handled_since_yield;
                 if (messages_handled_since_yield >= MESSAGE_HANDLER_MAX_BATCH_SIZE) {
@@ -894,6 +966,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
+    const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
+
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
@@ -903,7 +977,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     buffer.reserve(1024);
     {
         ASSERT_FINITE_CORO_WAITING;
-        callback->write(&buffer);
+        callback->write(cluster_version, &buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -952,7 +1026,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
         buffer.swap(&buffer_data);
-        current_run->message_handler->on_local_message(me, std::move(buffer_data));
+        current_run->message_handler->on_local_message(me, cluster_version,
+                                                       std::move(buffer_data));
     } else {
         guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());

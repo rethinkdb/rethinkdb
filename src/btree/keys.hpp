@@ -129,8 +129,6 @@ public:
     }
 
     void rdb_serialize(write_message_t *wm) const {
-        // Not versioned right now, because these are small objects and that would
-        // be overhead.
         uint8_t sz = size();
         serialize(wm, sz);
         wm->append(contents(), sz);

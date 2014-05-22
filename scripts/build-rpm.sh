@@ -10,6 +10,8 @@
 set -eu
 
 main () {
+    MAKEFLAGS=${MAKEFLAGS:- -j 8}
+    export MAKEFLAGS
     ARCH=`gcc -dumpmachine | cut -f 1 -d -`
     RPM_ROOT=build/packages/rpm
     VERSION=`./scripts/gen-version.sh | sed -e s/-/_/g`
@@ -24,7 +26,7 @@ EOF
 
     test -n "${NOCONFIGURE:-}" || ./configure --static all --fetch all --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
-    `make command-line` -j 8 install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1 SPLIT_SYMBOLS=1
+    `make command-line` install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1 SPLIT_SYMBOLS=1
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 

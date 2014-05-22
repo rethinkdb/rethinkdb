@@ -250,6 +250,13 @@ struct rdb_erase_major_range_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi);
+void deserialize_sindex_info(const std::vector<char> &data,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi);
+
 typedef boost::variant<rdb_modification_report_t,
                        rdb_erase_major_range_report_t>
         rdb_sindex_change_t;

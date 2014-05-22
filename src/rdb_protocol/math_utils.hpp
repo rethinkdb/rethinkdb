@@ -4,6 +4,11 @@
 
 #include <limits>
 
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 template <class T>
 double safe_to_double(T val) {
     static const int64_t upper_limit = 1LL << 53;
@@ -17,5 +22,9 @@ double safe_to_double(T val) {
     rassert(val == static_cast<T>(res));
     return res;
 }
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic pop
+#endif
 
 #endif // RDB_PROTOCOL_MATH_UTILS_HPP_

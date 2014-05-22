@@ -60,18 +60,22 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
 static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
-    block_id_t block_id;
+    // Right now there's code that assumes sizeof(lba_entry_t) is a power of two.
+    // (It probably assumes that sizeof(lba_entry_t) evenly divides
+    // DEVICE_BLOCK_SIZE).
 
+    // Put the zero-padding at the beginning of the LBA entry.  We could use this, or
+    // the first 16 bits, perhaps, as a version flag.
+    uint32_t zero_reserved;
+
+    // This could be a uint16_t if you wanted it to be, as long as block sizes are
+    // all less than or equal to 4K (which is less than 64K).
     uint32_t ser_block_size;
 
-    // TODO: Remove the need for these fields (or this zero field).  Remove the
-    // requirement that lba_entry_t be a divisor of DEVICE_BLOCK_SIZE.  When doing
-    // so, be sure to make lba entries backwards compatiblizable for now.  (We could
-    // in the future use this value being non-zero to mean the lba entry is a
-    // new-style entry.)
-    uint32_t zero2;
+    block_id_t block_id;
 
     repli_timestamp_t recency;
+
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
@@ -79,15 +83,15 @@ struct lba_entry_t {
                             flagged_off64_t offset, uint32_t ser_block_size) {
         guarantee(ser_block_size != 0 || !offset.has_value());
         lba_entry_t entry;
-        entry.block_id = block_id;
+        entry.zero_reserved = 0;
         entry.ser_block_size = ser_block_size;
-        entry.zero2 = 0;
+        entry.block_id = block_id;
         entry.recency = recency;
         entry.offset = offset;
         return entry;
     }
 
-    static bool is_padding(const lba_entry_t* entry) {
+    static bool is_padding(const lba_entry_t *entry) {
         return entry->block_id == PADDING_BLOCK_ID  && entry->offset.is_padding();
     }
 

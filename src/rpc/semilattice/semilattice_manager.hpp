@@ -64,7 +64,7 @@ private:
 
     /* These are called in a blocking fashion by the message service or by the
     `connectivity_service_t`. */
-    void on_message(peer_id_t, read_stream_t *);
+    void on_message(peer_id_t, cluster_version_t, read_stream_t *);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
 

@@ -25,14 +25,17 @@ message_multiplexer_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *stream) {
+void message_multiplexer_t::run_t::on_message(peer_id_t source,
+                                              cluster_version_t version,
+                                              read_stream_t *stream) {
+    // All cluster versions currently use the same kinds of tags.
     tag_t tag;
     archive_result_t res = deserialize(stream, &tag);
     if (bad(res)) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
     guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
         "we aren't compatible with the cluster on the other end.");
-    client->run->message_handler->on_message(source, stream);
+    client->run->message_handler->on_message(source, version, stream);
 }
 
 message_multiplexer_t::client_t::run_t::run_t(client_t *c, message_handler_t *m) :
@@ -78,12 +81,13 @@ public:
         tag(_tag), subwriter(_subwriter) { }
     virtual ~tagged_message_writer_t() { }
 
-    void write(write_stream_t *os) {
+    void write(cluster_version_t cluster_version, write_stream_t *os) {
+        // All cluster versions use a uint8_t tag here.
         write_message_t wm;
         serialize(&wm, tag);
         int res = send_write_message(os, &wm);
         if (res) { throw fake_archive_exc_t(); }
-        subwriter->write(os);
+        subwriter->write(cluster_version, os);
     }
 
 private:

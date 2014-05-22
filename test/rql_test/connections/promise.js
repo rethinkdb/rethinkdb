@@ -44,8 +44,6 @@ var assert = function(predicate) {
 
 var port = parseInt(process.argv[2], 10)
 
-assertArgError(2, 0, function() { r.connect(); });
-
 r.connect({port: port}).then(function(c) {
     var tbl = r.table('test');
     var num_rows = parseInt(process.argv[3], 10);

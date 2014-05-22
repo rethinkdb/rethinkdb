@@ -51,6 +51,8 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
+    int64_t tell() const { return pos_; }
+
 private:
     int64_t pos_;
     const std::vector<char> *vec_;

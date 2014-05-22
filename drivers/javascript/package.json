@@ -8,7 +8,7 @@
     { "url" : "http://github.com/rethinkdb/rethinkdb/issues"
     , "email" : "bugs@rethinkdb.com"
     }
-, "files" : ["rethinkdb.js", "ast.js", "net.js", "util.js", "errors.js", "cursor.js", "README.md", "proto-def.js", "ql2.desc"]
+, "files" : ["rethinkdb.js", "ast.js", "net.js", "util.js", "errors.js", "cursor.js", "README.md", "proto-def.js"]
 , "repository" :
     { "type" : "git"
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"

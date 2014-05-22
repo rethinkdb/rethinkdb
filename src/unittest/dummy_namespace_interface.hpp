@@ -2,9 +2,10 @@
 #ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 #define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 
+#include <set>
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "containers/scoped.hpp"

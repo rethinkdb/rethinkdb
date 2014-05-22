@@ -47,7 +47,7 @@ public:
 private:
     friend class transition_timestamp_t;
     uint64_t num;
-    RDB_MAKE_ME_SERIALIZABLE_1(0, num);
+    RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
@@ -85,7 +85,7 @@ public:
 
 private:
     state_timestamp_t before;
-    RDB_MAKE_ME_SERIALIZABLE_1(0, before);
+    RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
 
 

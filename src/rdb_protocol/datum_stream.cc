@@ -103,7 +103,8 @@ reader_t::reader_t(
       use_outdated(_use_outdated),
       started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
-      active_range(readgen->original_keyrange()) { }
+      active_range(readgen->original_keyrange()),
+      items_index(0) { }
 
 void reader_t::add_transformation(transform_variant_t &&tv) {
     r_sanity_check(!started);
