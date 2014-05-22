@@ -8,31 +8,31 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_1(database_semilattice_metadata_t, 0, name);
+RDB_IMPL_ME_SERIALIZABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
 
-RDB_IMPL_ME_SERIALIZABLE_1(databases_semilattice_metadata_t, 0, databases);
+RDB_IMPL_ME_SERIALIZABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
-RDB_IMPL_ME_SERIALIZABLE_1(datacenter_semilattice_metadata_t, 0, name);
+RDB_IMPL_ME_SERIALIZABLE_1(datacenter_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(datacenter_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(datacenter_semilattice_metadata_t, name);
 
-RDB_IMPL_ME_SERIALIZABLE_1(datacenters_semilattice_metadata_t, 0, datacenters);
+RDB_IMPL_ME_SERIALIZABLE_1(datacenters_semilattice_metadata_t, datacenters);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(datacenters_semilattice_metadata_t, datacenters);
 RDB_IMPL_EQUALITY_COMPARABLE_1(datacenters_semilattice_metadata_t, datacenters);
 
-RDB_IMPL_ME_SERIALIZABLE_2(machine_semilattice_metadata_t, 0, datacenter, name);
+RDB_IMPL_ME_SERIALIZABLE_2(machine_semilattice_metadata_t, datacenter, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, datacenter, name);
 RDB_IMPL_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name);
 
-RDB_IMPL_ME_SERIALIZABLE_1(machines_semilattice_metadata_t, 0, machines);
+RDB_IMPL_ME_SERIALIZABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
 RDB_IMPL_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
-RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, 0, expectation_, hard_durability_);
+RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 
 
 RDB_IMPL_SEMILATTICE_JOINABLE_10(

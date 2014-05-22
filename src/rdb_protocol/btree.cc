@@ -12,16 +12,17 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
+#include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
-#include "containers/archive/varint.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
+
+#include "debug.hpp"
 
 rdb_value_sizer_t::rdb_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
@@ -271,7 +272,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, *info.key, new_val, 
+                kv_location_set(&kv_location, *info.key, new_val,
                                 info.btree->timestamp, deletion_context,
                                 mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
@@ -540,8 +541,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
         mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
+        guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     }
-    guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
@@ -990,9 +991,6 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
-    const uint64_t ser_version = 0;
-    serialize_varint_uint64(wm, ser_version);
-
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
         serialize(wm, HAS_NO_VALUE);
@@ -1011,15 +1009,8 @@ void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
 }
 
 archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res;
-
-    uint64_t ser_version;
-    res = deserialize_varint_uint64(s, &ser_version);
-    if (bad(res)) { return res; }
-    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
-
     int8_t has_value;
-    res = deserialize(s, &has_value);
+    archive_result_t res = deserialize(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
@@ -1038,7 +1029,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, 0, primary_key, info);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,
@@ -1053,10 +1044,36 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+    const rdb_modification_report_t &mod_report) {
+    // debugf("%" PRIu64 "\n", timestamp.longtime);
+    if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
+        // We spawn the sindex update in its own coroutine because we don't want to
+        // hold the sindex update for the changefeed update or vice-versa.
+        cond_t sindexes_updated_cond;
+        coro_t::spawn_now_dangerously(
+            std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
+                      this,
+                      mod_report,
+                      &sindexes_updated_cond));
+        {
+            store_->changefeed_server.send_all(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t(
+                        mod_report.info.deleted.first,
+                        mod_report.info.added.first)));
+        }
+
+        sindexes_updated_cond.wait_lazily_unordered();
+    }
+}
+
+void rdb_modification_report_cb_t::on_mod_report_sub(
+    const rdb_modification_report_t &mod_report,
+    cond_t *cond) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
+    // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
     serialize(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
@@ -1064,6 +1081,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
                         &deletion_context);
+    cond->pulse();
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
@@ -1083,6 +1101,30 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     }
 }
 
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi) {
+    serialize(wm, cluster_version_t::LATEST_VERSION);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+}
+
+void deserialize_sindex_info(const std::vector<char> &data,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi) {
+    inplace_vector_read_stream_t read_stream(&data);
+    cluster_version_t cluster_version;
+    archive_result_t success = deserialize(&read_stream, &cluster_version);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, multi);
+    guarantee_deserialization(success, "sindex description");
+
+    guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
+              "An sindex description was incompletely deserialized.");
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
@@ -1096,12 +1138,8 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
-    inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    archive_result_t success = deserialize(&read_stream, &mapping);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize(&read_stream, &multi);
-    guarantee_deserialization(success, "sindex deserialize");
+    sindex_multi_bool_t multi;
+    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other
@@ -1336,7 +1374,7 @@ public:
     store_t *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
-    signal_t *interruptor_;  
+    signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(

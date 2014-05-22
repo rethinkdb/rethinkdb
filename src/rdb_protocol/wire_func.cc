@@ -4,7 +4,6 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/archive.hpp"
-#include "containers/archive/varint.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -82,9 +81,6 @@ private:
 
 
 void wire_func_t::rdb_serialize(write_message_t *wm) const {
-    const uint64_t ser_version = 0;
-    serialize_varint_uint64(wm, ser_version);
-
     if (func_can_be_null()) {
         serialize(wm, func.has());
         if (!func.has()) return;
@@ -96,11 +92,6 @@ void wire_func_t::rdb_serialize(write_message_t *wm) const {
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
-
-    uint64_t ser_version;
-    res = deserialize_varint_uint64(s, &ser_version);
-    if (bad(res)) { return res; }
-    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
 
     if (func_can_be_null()) {
         bool has;
@@ -187,9 +178,9 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
     return bt.get_bt();
 }
 
-RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, 0, funcs, append_index, multi, bt);
+RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t, 0);
+RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
 
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,
@@ -201,7 +192,7 @@ map_wire_func_t map_wire_func_t::make_safely(
     return map_wire_func_t(body, make_vector(varname), backtrace);
 }
 
-RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, 0, filter_func, default_filter_val);
+RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
     serialize(wm, *bt);

@@ -104,6 +104,14 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &
     }
 }
 
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_subscribe_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_stamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
@@ -318,6 +326,8 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     rdb_ns_repo()
 {
     env.init(new ql::env_t(&extproc_pool,
+                           NULL,
+                           std::string(),
                            &rdb_ns_repo,
                            namespaces_metadata,
                            databases_metadata,

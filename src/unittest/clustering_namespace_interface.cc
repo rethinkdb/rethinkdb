@@ -18,6 +18,7 @@ namespace unittest {
 TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
+    std::map<key_range_t, machine_id_t> region_to_primary;
 
     /* Set up a reactor directory with no reactors in it */
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > empty_reactor_directory;
@@ -26,6 +27,7 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t namespace_interface(
         cluster.get_mailbox_manager(),
+        &region_to_primary,
         reactor_directory.get_watchable(),
         NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();

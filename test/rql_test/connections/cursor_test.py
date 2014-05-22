@@ -1,8 +1,10 @@
-from sys import argv
+#!/usr/bin/env python
+
+import os
+from sys import argv, path, exit, stdout
 from random import randint
 from subprocess import call
-from sys import path, exit, stdout
-path.insert(0, ".")
+path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 from test_util import RethinkDBTestServers
 
 path.insert(0, "../../drivers/python")
@@ -33,18 +35,20 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
         print '.',
         stdout.flush()
     print "Done\n"
-
+    
+    basedir = os.path.dirname(__file__)
+    
     if not lang or lang == 'py':
         print "Running Python"
-        res = res | call(["python", "connections/cursor.py", str(port), str(num_rows)])
+        res = res | call(["python", os.path.join(basedir, "cursor.py"), str(port), str(num_rows)])
         print ''
     if not lang or lang == 'js':
         print "Running JS"
-        res = res | call(["node", "connections/cursor.js", str(port), str(num_rows)])
+        res = res | call(["node", os.path.join(basedir, "cursor.js"), str(port), str(num_rows)])
         print ''
     if not lang or lang == 'js-promise':
         print "Running JS Promise"
-        res = res | call(["node", "connections/promise.js", str(port), str(num_rows)])
+        res = res | call(["node", os.path.join(basedir, "promise.js"), str(port), str(num_rows)])
         print ''
 
 

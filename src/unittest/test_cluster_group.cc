@@ -35,7 +35,7 @@
 
 namespace unittest {
 
-RDB_IMPL_ME_SERIALIZABLE_1(test_cluster_directory_t, 0, reactor_directory);
+RDB_IMPL_ME_SERIALIZABLE_1(test_cluster_directory_t, reactor_directory);
 
 
 void generate_sample_region(int i, int n, region_t *out) {
@@ -277,8 +277,10 @@ std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > test_cluster_group_t::e
 }
 
 void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out) {
+    std::map<key_range_t, machine_id_t> region_to_primary;
     out->init(new cluster_namespace_interface_t(
                       &test_clusters[i].mailbox_manager,
+                      &region_to_primary,
                       (&test_clusters[i])->directory_read_manager.get_root_view()
                       ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
                       NULL));

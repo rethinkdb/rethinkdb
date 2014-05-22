@@ -15,8 +15,7 @@ class wait_any_t : public signal_t {
 public:
     template <typename... Args>
     explicit wait_any_t(Args... args) {
-        // See http://www.smbc-comics.com/index.php?db=comics&id=1169
-        UNUSED int boner[] = { (add(args), 1)... };
+        UNUSED int arr[] = { (add(args), 1)... };
     }
 
     ~wait_any_t();

@@ -792,6 +792,6 @@ op_t *make_op(env_t *env, const transform_variant_t &tv) {
     return boost::apply_visitor(transform_visitor_t(env), tv);
 }
 
-RDB_IMPL_ME_SERIALIZABLE_3(rget_item_t, 0, key, empty_ok(sindex_key), data);
+RDB_IMPL_ME_SERIALIZABLE_3(rget_item_t, key, empty_ok(sindex_key), data);
 
 } // namespace ql

@@ -13,9 +13,11 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
+
 #include "arch/timing.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "clustering/administration/namespace_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -36,6 +38,7 @@ class cluster_namespace_interface_t : public namespace_interface_t {
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
+            const std::map<key_range_t, machine_id_t> *region_to_primary_,
             clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > dv,
             rdb_context_t *);
 
@@ -140,6 +143,7 @@ private:
                                 auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
+    const std::map<key_range_t, machine_id_t> *region_to_primary;
     clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > directory_view;
     rdb_context_t *ctx;
 

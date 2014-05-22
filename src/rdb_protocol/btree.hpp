@@ -247,6 +247,12 @@ struct rdb_modification_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi);
+void deserialize_sindex_info(const std::vector<char> &data,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
@@ -262,6 +268,8 @@ public:
     ~rdb_modification_report_cb_t();
 
 private:
+    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
+
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
     store_t *store_;

@@ -4,6 +4,10 @@
 
 #include <vector>
 
+// For cluster_version_t.  Once we drop old gcc's, we can just declare "enum class
+// cluster_version_t;" in this header.
+#include "containers/archive/versioned.hpp"
+
 class connectivity_service_t;
 class peer_id_t;
 class read_stream_t;
@@ -50,7 +54,7 @@ destructor is called. */
 class send_message_write_callback_t {
 public:
     virtual ~send_message_write_callback_t() { }
-    virtual void write(write_stream_t *stream) = 0;
+    virtual void write(cluster_version_t cluster_version, write_stream_t *stream) = 0;
 };
 
 class message_service_t  {
@@ -64,10 +68,12 @@ protected:
 
 class message_handler_t {
 public:
-    virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
+    virtual void on_message(peer_id_t source_peer, cluster_version_t version,
+                            read_stream_t *) = 0;
 
-    // Default implementation. Overwrite to optimize for the local case.
-    virtual void on_local_message(peer_id_t source_peer, std::vector<char> &&data);
+    // Default implementation. Override to optimize for the local case.
+    virtual void on_local_message(peer_id_t source_peer, cluster_version_t version,
+                                  std::vector<char> &&data);
 protected:
     virtual ~message_handler_t() { }
 };

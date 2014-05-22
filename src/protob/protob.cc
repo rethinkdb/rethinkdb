@@ -227,6 +227,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->make_overcomplicated(&conn);
+    conn->enable_keepalive();
 
 #ifdef __linux
     linux_event_watcher_t *ew = conn->get_event_watcher();

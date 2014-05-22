@@ -110,6 +110,10 @@ counted_t<term_t> make_default_term(
 counted_t<term_t> make_javascript_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
+// http.cc
+counted_t<term_t> make_http_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
 // json.cc
 counted_t<term_t> make_json_term(
     compile_env_t *env, const protob_t<const Term> &term);
@@ -172,6 +176,8 @@ counted_t<term_t> make_with_fields_term(
 
 // seq.cc
 counted_t<term_t> make_between_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_changes_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_reduce_term(
     compile_env_t *env, const protob_t<const Term> &term);

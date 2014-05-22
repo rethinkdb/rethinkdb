@@ -1,12 +1,11 @@
-#include "rdb_protocol/ql2.pb.h"
-
-#include <inttypes.h>
 #include "protob/json_shim.hpp"
 
-#include "utils.hpp"
-#include "debug.hpp"
+#include <inttypes.h>
 
+#include "debug.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/ql2.pb.h"
+#include "utils.hpp"
 
 std::map<std::string, int32_t> resolver;
 

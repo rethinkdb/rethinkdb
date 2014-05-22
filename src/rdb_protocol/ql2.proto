@@ -258,6 +258,21 @@ message Term {
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
 
+        // Takes an HTTP URL and gets it.  If the get succeeds and
+        //  returns valid JSON, it is converted into a DATUM
+        HTTP = 153; // STRING {data: OBJECT | STRING,
+                    //         timeout: !NUMBER,
+                    //         method: STRING,
+                    //         params: OBJECT,
+                    //         header: OBJECT | ARRAY,
+                    //         attempts: NUMBER,
+                    //         redirects: NUMBER,
+                    //         verify: BOOL,
+                    //         depaginate: BOOL,
+                    //         auth: OBJECT,
+                    //         result_format: STRING,
+                    //         } -> STRING | STREAM
+
         // Takes a string and throws an error with that message.
         // Inside of a `default` block, you can omit the first
         // argument to rethrow whatever error you catch (this is most
@@ -265,9 +280,6 @@ message Term {
         ERROR        = 12; // STRING -> Error | -> Error
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
-
-        // Takes a range of numbers and returns a random number within the range
-        RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
 
         // * Data Operators
         // Returns a reference to a database.
@@ -630,6 +642,11 @@ message Term {
         SPLIT = 149; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
 
         UNGROUP = 150; // GROUPED_DATA -> ARRAY
+
+        // Takes a range of numbers and returns a random number within the range
+        RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
+
+        CHANGES = 152; // TABLE -> STREAM
     }
     optional TermType type = 1;
 

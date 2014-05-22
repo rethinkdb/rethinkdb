@@ -98,8 +98,7 @@ std::string create_sindex(store_t *store) {
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
-    serialize(&wm, m);
-    serialize(&wm, multi_bool);
+    serialize_sindex_info(&wm, m, multi_bool);
 
     vector_stream_t stream;
     stream.reserve(wm.size());

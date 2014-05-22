@@ -1,9 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_
 
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
@@ -82,6 +84,34 @@ struct service_address_ports_t {
     int port_offset;
 };
 
+peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names);
+
+class serve_info_t {
+public:
+    serve_info_t(std::vector<host_and_port_t> &&_joins,
+                 std::string &&_reql_http_proxy,
+                 std::string &&_web_assets,
+                 service_address_ports_t _ports,
+                 boost::optional<std::string> _config_file) :
+        joins(std::move(_joins)),
+        reql_http_proxy(std::move(_reql_http_proxy)),
+        web_assets(std::move(_web_assets)),
+        ports(_ports),
+        config_file(_config_file)
+    { }
+
+    void look_up_peers() {
+        peers = look_up_peers_addresses(joins);
+    }
+
+    const std::vector<host_and_port_t> joins;
+    peer_address_set_t peers;
+    std::string reql_http_proxy;
+    std::string web_assets;
+    service_address_ports_t ports;
+    boost::optional<std::string> config_file;
+};
+
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
@@ -90,16 +120,10 @@ bool serve(io_backender_t *io_backender,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
            uint64_t total_cache_size,
-           const peer_address_set_t &joins,
-           service_address_ports_t ports,
-           std::string web_assets,
-           os_signal_cond_t *stop_cond,
-           const boost::optional<std::string>& config_file);
+           const serve_info_t &serve_info,
+           os_signal_cond_t *stop_cond);
 
-bool serve_proxy(const peer_address_set_t &joins,
-                 service_address_ports_t ports,
-                 std::string web_assets,
-                 os_signal_cond_t *stop_cond,
-                 const boost::optional<std::string>& config_file);
+bool serve_proxy(const serve_info_t& serve_info,
+                 os_signal_cond_t *stop_cond);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */

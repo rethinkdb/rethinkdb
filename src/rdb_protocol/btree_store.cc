@@ -8,10 +8,10 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
@@ -28,7 +28,7 @@ sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
                      sindex_name.c_str(),
                      table_name.c_str())) { }
 
-const char* sindex_not_post_constructed_exc_t::what() const throw() {
+const char *sindex_not_post_constructed_exc_t::what() const throw() {
     return info.c_str();
 }
 
@@ -46,16 +46,21 @@ store_t::store_t(serializer_t *serializer,
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
-      ctx(_ctx)
+      ctx(_ctx),
+      changefeed_server(ctx->manager)
 {
     cache.init(new cache_t(serializer, balancer, &perfmon_collection));
     general_cache_conn.init(new cache_conn_t(cache.get()));
 
     if (create) {
         vector_stream_t key;
+        // The version used when deserializing this data depends on the block magic.
+        // The block magic set by init_superblock corresponds to the latest version
+        // and so this serialization does too.
+        // VSI: Do this better.
         write_message_t wm;
         region_t kr = region_t::universe();
-        serialize(&wm, kr);
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, kr);
         key.reserve(wm.size());
         int res = send_write_message(&key, &wm);
         guarantee(!res);
@@ -340,6 +345,7 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
+            // This is for a disk backed queue so there's no versioning issues.
             serialize(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
@@ -809,7 +815,10 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
         write_message_t wm;
-        serialize(&wm, i->first);
+        // Versioning of this serialization will depend on the block magic.  But
+        // right now there's just one version.
+        // VSI: Make this code better.
+        serialize_for_version(cluster_version_t::ONLY_VERSION, &wm, i->first);
         key.reserve(wm.size());
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
@@ -852,7 +861,9 @@ get_metainfo_internal(buf_lock_t *sb_buf,
         region_t region;
         {
             inplace_vector_read_stream_t key(&i->first);
-            archive_result_t res = deserialize(&key, &region);
+            // Versioning of this deserialization will depend on the block magic.
+            // VSI: Make this code better.
+            archive_result_t res = deserialize_for_version(cluster_version_t::ONLY_VERSION, &key, &region);
             guarantee_deserialization(res, "region");
         }
 

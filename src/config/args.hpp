@@ -16,8 +16,13 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
+
+// The SERIALIZER_VERSION_STRING might remain unchanged for a while -- individual
+// metablocks now have a disk_format_version field that can be incremented for
+// on-the-fly version updating.
 #define SERIALIZER_VERSION_STRING "1.13"
-#define CLUSTER_VERSION_STRING "1.13"
+
+// See also CLUSTER_VERSION_STRING and cluster_version_t.
 
 /**
  * Basic configuration parameters.
