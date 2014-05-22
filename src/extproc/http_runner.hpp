@@ -48,7 +48,8 @@ enum class http_auth_type_t {
 enum class http_result_format_t {
     AUTO,
     TEXT,
-    JSON
+    JSON,
+    JSONP
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -61,7 +62,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         http_result_format_t, int8_t,
-        http_result_format_t::AUTO, http_result_format_t::JSON);
+        http_result_format_t::AUTO, http_result_format_t::JSONP);
 
 std::string http_method_to_str(http_method_t method);
 

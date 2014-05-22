@@ -432,8 +432,11 @@ void http_term_t::get_params(scope_env_t *env,
 }
 
 // The `result_format` optarg specifies how to interpret the HTTP result body from
-// the server. This option must be a STRING, and one of `auto`, `json`, or `text`.
+// the server. This option must be a STRING, and one of `auto`, `json`, `jsonp`, or
+// `text`.
 //  json - The result should be JSON and parsed into native datum_t objects
+//  jsonp - The result should be padded-JSON according to the format proposed on
+//    www.json-p.org
 //  text - The result should be returned as a literal string
 //  auto - The result will be parsed as JSON if the Content-Type is application/json,
 //         or a string otherwise.
@@ -446,12 +449,14 @@ void http_term_t::get_result_format(scope_env_t *env,
             *result_format_out = http_result_format_t::AUTO;
         } else if (result_format_str == "json") {
             *result_format_out = http_result_format_t::JSON;
+        } else if (result_format_str == "jsonp") {
+            *result_format_out = http_result_format_t::JSONP;
         } else if (result_format_str == "text") {
             *result_format_out = http_result_format_t::TEXT;
         } else {
             rfail_target(result_format.get(), base_exc_t::GENERIC,
                          "`result_format` (%s) is not recognized, ('auto', 'json', "
-                         "and 'text' are allowed).", result_format_str.c_str());
+                         "'jsonp', and 'text' are allowed).", result_format_str.c_str());
         }
     }
 }

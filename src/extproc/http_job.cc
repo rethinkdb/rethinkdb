@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <curl/curl.h>
 
+#include <re2/re2.h>
+
 #include <limits>
 
 #include "containers/archive/boost_types.hpp"
@@ -12,7 +14,8 @@
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
 
-http_result_t http_to_datum(const std::string &json, http_method_t method);
+http_result_t json_to_datum(const std::string &json);
+http_result_t jsonp_to_datum(const std::string &jsonp);
 http_result_t perform_http(http_opts_t *opts);
 
 class curl_exc_t : public std::exception {
@@ -485,7 +488,15 @@ http_result_t perform_http(http_opts_t *opts) {
         return strprintf("status code %ld", response_code);
     }
 
-    counted_t<const ql::datum_t> res;
+    // If this was a HEAD request, we should not be handling data, just return R_NULL
+    // so the user knows the request succeeded
+    if (opts->method == http_method_t::HEAD) {
+        return make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+    }
+
+    http_result_t res;
+    std::string body_data(curl_data.steal_recv_data());
+
     switch (opts->result_format) {
     case http_result_format_t::AUTO:
         {
@@ -502,30 +513,41 @@ http_result_t perform_http(http_opts_t *opts) {
             for (size_t i = 0; i < content_type.length(); ++i) {
                 content_type[i] = tolower(content_type[i]);
             }
+
             if (content_type.find("application/json") == 0) {
-                return http_to_datum(curl_data.steal_recv_data(), opts->method);
+                res = json_to_datum(body_data);
+            } else if (content_type.find("text/javascript") == 0 ||
+                       content_type.find("application/json-p") == 0 ||
+                       content_type.find("text/json-p") == 0) {
+                // Try to parse the result as JSON, then as JSONP, then plaintext
+                res = json_to_datum(body_data);
+                if (boost::get<std::string>(&res) != NULL) {
+                    res = jsonp_to_datum(body_data);
+                    if (boost::get<std::string>(&res) != NULL) {
+                        res = make_counted<const ql::datum_t>(std::move(body_data));
+                    }
+                }
             } else {
-                return make_counted<const ql::datum_t>(curl_data.steal_recv_data());
+                res = make_counted<const ql::datum_t>(std::move(body_data));
             }
         }
-        unreachable();
+        break;
     case http_result_format_t::JSON:
-        return http_to_datum(curl_data.steal_recv_data(), opts->method);
+        res = json_to_datum(body_data);
+        break;
+    case http_result_format_t::JSONP:
+        res = jsonp_to_datum(body_data);
+        break;
     case http_result_format_t::TEXT:
-        return make_counted<const ql::datum_t>(curl_data.steal_recv_data());
+        res = make_counted<const ql::datum_t>(std::move(body_data));
+        break;
     default:
         unreachable();
     }
-    unreachable();
+    return res;
 }
 
-http_result_t http_to_datum(const std::string &json, http_method_t method) {
-    // If this was a HEAD request, we should not be handling data, just return R_NULL
-    // so the user knows the request succeeded (JSON parsing would fail on an empty body)
-    if (method == http_method_t::HEAD) {
-        return make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
-    }
-
+http_result_t json_to_datum(const std::string &json) {
     scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
     if (cjson.get() == NULL) {
         return std::string("failed to parse JSON response");
@@ -534,3 +556,63 @@ http_result_t http_to_datum(const std::string &json, http_method_t method) {
     return make_counted<const ql::datum_t>(cjson);
 }
 
+// This class is created on-demand, but at most once per extproc.  There is
+// no code path to destroy this object, but memory usage shouldn't be terrible,
+// and it will be cleaned up when the extproc is shut down.
+class jsonp_parser_singleton_t {
+public:
+    static bool parse(const std::string &jsonp, std::string *json_string) {
+        initialize_if_needed();
+        return RE2::FullMatch(jsonp, instance->parser1, json_string) ||
+               RE2::FullMatch(jsonp, instance->parser2, json_string) ||
+               RE2::FullMatch(jsonp, instance->parser3, json_string);
+    }
+private:
+    // The JSONP specification at www.json-p.org provides the following formats:
+    // 1. functionName(JSON);
+    // 2. obj.functionName(JSON);
+    // 3. obj["function-name"](JSON);
+    // The following regular expressions will parse out the JSON section from each format
+    jsonp_parser_singleton_t() :
+        parser1(std::string(js_ident) + fn_call + expr_end),
+        parser2(std::string(js_ident) + "\\." + js_ident + fn_call + expr_end),
+        parser3(std::string(js_ident) + "\\[\\s*['\"].*['\"]\\s*\\]\\s*" +
+                fn_call + expr_end)
+    { }
+
+    static void initialize_if_needed() {
+        if (instance == NULL) {
+            instance = new jsonp_parser_singleton_t();
+        }
+    }
+
+    static jsonp_parser_singleton_t *instance;
+    // Matches a javascript identifier with whitespace on either side
+    static const char *js_ident;
+    // Matches the function call with a capture group for the JSON data
+    static const char *fn_call;
+    // Matches the end of the javascript expression, whitespace and an optional semicolon
+    static const char *expr_end;
+
+    RE2 parser1;
+    RE2 parser2;
+    RE2 parser3;
+};
+
+// Static const initializations for above
+jsonp_parser_singleton_t *jsonp_parser_singleton_t::instance = NULL;
+const char *jsonp_parser_singleton_t::fn_call = "\\(((?s).*)\\)";
+const char *jsonp_parser_singleton_t::expr_end = "\\s*;?\\s*";
+const char *jsonp_parser_singleton_t::js_ident =
+    "\\s*"
+    "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}]"
+    "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}]*"
+    "\\s*";
+
+http_result_t jsonp_to_datum(const std::string &jsonp) {
+    std::string json_string;
+    if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
+        return json_to_datum(json_string);
+    }
+    return std::string("failed to parse JSONP response");
+}
