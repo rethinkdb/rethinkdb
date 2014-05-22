@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Process: When you first open a connection, send the magic number
-// for the version of the protobuf you're targetting (in the [Version]
+// for the version of the protobuf you're targeting (in the [Version]
 // enum).  This should **NOT** be sent as a protobuf; just send the
 // little-endian 32-bit integer over the wire raw.  This number should
 // only be sent once per connection.
@@ -11,10 +11,16 @@
 // The magic number shall be followed by an authorization key.  The
 // first 4 bytes are the length of the key to be sent as a little-endian
 // 32-bit integer, followed by the key string.  Even if there is no key,
-// an empty string should be sent (length 0 and no data).  The server will
-// then respond with a NULL-terminated string response.  "SUCCESS" indicates
-// that the connection has been accepted. Any other response indicates an
-// error, and the response string should describe the error.
+// an empty string should be sent (length 0 and no data).
+
+// Following the authorization key, the client shall send a magic number
+// for the communication protocol they want to use (in the [Protocol]
+// enum).  This shall be a little-endian 32-bit integer.
+
+// The server will then respond with a NULL-terminated string response.
+// "SUCCESS" indicates that the connection has been accepted. Any other
+// response indicates an error, and the response string should describe
+// the error.
 
 // Next, for each query you want to send, construct a [Query] protobuf
 // and serialize it to a binary blob.  Send the blob's size to the
@@ -33,14 +39,20 @@
 //   token to get more results from the original query.
 ////////////////////////////////////////////////////////////////////////////////
 
-// This enum contains the magic numbers for your version.  See **THE HIGH-LEVEL
-// VIEW** for what to do with it.
 message VersionDummy { // We need to wrap it like this for some
                        // non-conforming protobuf libraries
+    // This enum contains the magic numbers for your version.  See **THE HIGH-LEVEL
+    // VIEW** for what to do with it.
     enum Version {
         V0_1      = 0x3f61ba36;
-        V0_2      = 0x723081e1;
-        V0_2_JSON = 0x5e72273a;
+        V0_2      = 0x723081e1; // Authorization key during handshake
+        V0_3      = 0x5f75e83e; // Authorization key and protocol during handshake
+    }
+
+    // The protocol to use after the handshake, specified in V0_3
+    enum Protocol {
+        PROTOBUF  = 0x271ffc41;
+        JSON      = 0x7e6970c7;
     }
 }
 
@@ -253,6 +265,9 @@ message Term {
         ERROR        = 12; // STRING -> Error | -> Error
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
+
+        // Takes a range of numbers and returns a random number within the range
+        RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
 
         // * Data Operators
         // Returns a reference to a database.

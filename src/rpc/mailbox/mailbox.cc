@@ -60,22 +60,22 @@ public:
     virtual ~raw_mailbox_writer_t() { }
 
     void write(write_stream_t *stream) {
-        write_message_t msg;
-        msg << dest_thread;
-        msg << dest_mailbox_id;
-        uint64_t prefix_length = static_cast<uint64_t>(msg.size());
+        write_message_t wm;
+        serialize(&wm, dest_thread);
+        serialize(&wm, dest_mailbox_id);
+        uint64_t prefix_length = static_cast<uint64_t>(wm.size());
 
-        subwriter->write(&msg);
+        subwriter->write(&wm);
 
         // Prepend the message length
         // TODO: It would be more efficient if we could make this part of `msg`.
         //  e.g. with a `prepend()` method on write_message_t.
         write_message_t length_msg;
-        length_msg << (static_cast<uint64_t>(msg.size()) - prefix_length);
+        serialize(&length_msg, static_cast<uint64_t>(wm.size()) - prefix_length);
 
         int res = send_write_message(stream, &length_msg);
         if (res) { throw fake_archive_exc_t(); }
-        res = send_write_message(stream, &msg);
+        res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -112,9 +112,13 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream) {
-    int32_t dest_thread;
+// Helper function for on_local_message and on_message
+void read_mailbox_header(read_stream_t *stream,
+                         uint64_t *data_length_out,
+                         int32_t *dest_thread_out,
+                         raw_mailbox_t::id_t *dest_mailbox_id_out) {
     uint64_t data_length = 0;
+    int32_t dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &data_length);
@@ -130,50 +134,78 @@ void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream)
         if (bad(res)) { throw fake_archive_exc_t(); }
     }
 
-    // Read the data from the read stream, so it can be deallocated before we continue
-    // in a coroutine
-    std::vector<char> stream_data;
-    int64_t stream_data_offset = 0;
-    // Special case for `vector_read_stream_t`s to avoid copying.
-    // `connectivity_cluster_t` gives us a `vector_read_stream_t` if the message is
-    // delivered locally.
-    vector_read_stream_t *vector_stream = dynamic_cast<vector_read_stream_t *>(stream);
-    if (vector_stream != NULL) {
-        // Avoid copying the data
-        vector_stream->swap(&stream_data, &stream_data_offset);
-        if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
-            // Either we go a vector_read_stream_t that contained more data
-            // than just ours (which shouldn't happen), or we got a wrong data_length
-            // from the network.
-            throw fake_archive_exc_t();
-        }
-    } else {
-        stream_data.resize(data_length);
-        int64_t bytes_read = force_read(stream, stream_data.data(), data_length);
-        if (bytes_read != static_cast<int64_t>(data_length)) {
-            throw fake_archive_exc_t();
-        }
+    *dest_mailbox_id_out = dest_mailbox_id;
+    *data_length_out = data_length;
+    *dest_thread_out = dest_thread;
+}
+
+void mailbox_manager_t::on_local_message(peer_id_t source_peer, std::vector<char> &&data) {
+    vector_read_stream_t stream(std::move(data));
+
+    uint64_t data_length;
+    int32_t dest_thread;
+    raw_mailbox_t::id_t dest_mailbox_id;
+    read_mailbox_header(&stream, &data_length, &dest_thread, &dest_mailbox_id);
+    if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
+        // TODO: this will just run the callback on the current thread, maybe do
+        // some load balancing, instead
+        dest_thread = get_thread_id().threadnum;
     }
 
-    if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
-        // TODO: this will just run the callback on the current thread, maybe do some load balancing, instead
-        dest_thread = get_thread_id().threadnum;
+    std::vector<char> stream_data;
+    int64_t stream_data_offset = 0;
+    
+    stream.swap(&stream_data, &stream_data_offset);
+    if(stream_data.size() - static_cast<uint64_t>(stream_data_offset) != data_length) {
+        // Either we got a vector_read_stream_t that contained more data
+        // than just ours (which shouldn't happen), or we got a wrong data_length
+        // from the network.
+        throw fake_archive_exc_t();
     }
 
     // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
     // Instead we pass in a pointer to our local automatically allocated object
     // and `mailbox_read_coroutine()` moves the data out of it before it yields.
     coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                            this, source_peer, threadnum_t(dest_thread),
-                                            dest_mailbox_id, &stream_data,
-                                            stream_data_offset));
+                                            this, source_peer,
+                                            threadnum_t(dest_thread), dest_mailbox_id,
+                                            &stream_data, stream_data_offset,
+                                            FORCE_YIELD));
+}
+
+void mailbox_manager_t::on_message(peer_id_t source_peer, read_stream_t *stream) {
+    uint64_t data_length;
+    int32_t dest_thread;
+    raw_mailbox_t::id_t dest_mailbox_id;
+    read_mailbox_header(stream, &data_length, &dest_thread, &dest_mailbox_id);
+    if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
+        dest_thread = get_thread_id().threadnum;
+    }
+
+    // Read the data from the read stream, so it can be deallocated before we continue
+    // in a coroutine
+    std::vector<char> stream_data;
+    stream_data.resize(data_length);
+    int64_t bytes_read = force_read(stream, stream_data.data(), data_length);
+    if (bytes_read != static_cast<int64_t>(data_length)) {
+        throw fake_archive_exc_t();
+    }
+
+    // We use `spawn_now_dangerously()` to avoid having to heap-allocate `stream_data`.
+    // Instead we pass in a pointer to our local automatically allocated object
+    // and `mailbox_read_coroutine()` moves the data out of it before it yields.
+    coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                            this, source_peer,
+                                            threadnum_t(dest_thread), dest_mailbox_id,
+                                            &stream_data, 0, MAYBE_YIELD));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
                                                threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
                                                std::vector<char> *stream_data,
-                                               int64_t stream_data_offset) {
+                                               int64_t stream_data_offset,
+                                               force_yield_t force_yield) {
 
     // Construct a new stream to use
     vector_read_stream_t stream(std::move(*stream_data), stream_data_offset);
@@ -183,6 +215,11 @@ void mailbox_manager_t::mailbox_read_coroutine(peer_id_t source_peer,
     bool archive_exception = false;
     {
         on_thread_t rethreader(dest_thread);
+        if (force_yield == FORCE_YIELD && rethreader.home_thread() == get_thread_id()) {
+            // Yield to avoid problems with reentrancy in case of local
+            // delivery.
+            coro_t::yield();
+        }
 
         try {
             raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);

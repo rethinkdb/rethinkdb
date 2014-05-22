@@ -22,7 +22,7 @@ void project(cJSON *json, std::set<std::string> keys);
 std::string cJSON_print_lexicographic(const cJSON *json);
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
-std::string cJSON_type_to_string(int type);
+const char *cJSON_type_to_string(int type);
 
 class scoped_cJSON_t {
 private:
@@ -151,7 +151,7 @@ public:
 };
 
 /* Json serialization */
-write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
+void serialize(write_message_t *wm, const cJSON &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 
 #endif /* HTTP_JSON_HPP_ */

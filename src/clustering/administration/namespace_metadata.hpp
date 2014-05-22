@@ -75,7 +75,9 @@ public:
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
-    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+    RDB_MAKE_ME_SERIALIZABLE_10(0, blueprint, primary_datacenter, replica_affinities, \
+                                ack_expectations, shards, name, primary_pinnings, \
+                                secondary_pinnings, primary_key, database);
 };
 
 namespace_semilattice_metadata_t new_namespace(
@@ -106,7 +108,7 @@ public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
     namespace_map_t namespaces;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, namespaces);
 };
 
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
@@ -148,7 +150,7 @@ public:
 
     reactor_bcards_map_t reactor_bcards;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, reactor_bcards);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);

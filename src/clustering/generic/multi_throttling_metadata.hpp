@@ -20,7 +20,7 @@ public:
             request_addr(ra), relinquish_tickets_addr(rta) { }
         mailbox_addr_t<void(request_t)> request_addr;
         mailbox_addr_t<void(int)> relinquish_tickets_addr;
-        RDB_MAKE_ME_SERIALIZABLE_2(request_addr, relinquish_tickets_addr);
+        RDB_MAKE_ME_SERIALIZABLE_2(0, request_addr, relinquish_tickets_addr);
         RDB_MAKE_ME_EQUALITY_COMPARABLE_2(this_t::server_business_card_t,
             request_addr, relinquish_tickets_addr);
     };
@@ -39,7 +39,7 @@ public:
         mailbox_addr_t<void(server_business_card_t)> intro_addr;
         mailbox_addr_t<void(int)> give_tickets_addr;
         mailbox_addr_t<void(int)> reclaim_tickets_addr;
-        RDB_MAKE_ME_SERIALIZABLE_4(inner_client_business_card,
+        RDB_MAKE_ME_SERIALIZABLE_4(0, inner_client_business_card,
             intro_addr, give_tickets_addr, reclaim_tickets_addr);
         RDB_MAKE_ME_EQUALITY_COMPARABLE_4(this_t::client_business_card_t,
             inner_client_business_card, intro_addr, give_tickets_addr,
@@ -57,7 +57,7 @@ public:
             const registrar_business_card_t<client_business_card_t> &r) :
         registrar(r) { }
     registrar_business_card_t<client_business_card_t> registrar;
-    RDB_MAKE_ME_SERIALIZABLE_1(registrar);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, registrar);
 
     bool operator==(const this_t &other) const {
         return registrar == other.registrar;

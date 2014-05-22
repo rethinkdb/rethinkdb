@@ -42,7 +42,8 @@ class cache_balancer_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
-    explicit sindex_not_post_constructed_exc_t(std::string sindex_name);
+    explicit sindex_not_post_constructed_exc_t(
+        const std::string &sindex_name, const std::string &table_name);
     const char* what() const throw();
     ~sindex_not_post_constructed_exc_t() throw();
 private:
@@ -183,7 +184,7 @@ public:
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out,
@@ -203,7 +204,7 @@ public:
     bool drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         signal_t *interruptor)
@@ -211,6 +212,7 @@ public:
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
+            const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
@@ -218,6 +220,7 @@ public:
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
+            const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
         THROWS_ONLY(sindex_not_post_constructed_exc_t);

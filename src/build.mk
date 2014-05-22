@@ -165,7 +165,6 @@ endif
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-  SYMBOLS := 1
   RT_CXXFLAGS += -O0
   ifeq ($(KEEP_INLINE),1)
     RT_CXXFLAGS+=-fkeep-inline-functions
@@ -186,10 +185,6 @@ endif
 
 ifeq (${STATIC_LIBGCC},1)
   RT_LDFLAGS += -static-libgcc -static-libstdc++
-endif
-
-ifeq ($(OPROFILE),1)
-  SYMBOLS=1
 endif
 
 ifeq ($(SYMBOLS),1)
@@ -337,6 +332,18 @@ ifeq ($(filter -l%, $(TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
 		false)
+endif
+endif
+ifeq (1,$(SPLIT_SYMBOLS))
+ifeq (Darwin,$(OS))
+	$P STRIP $@.dSYM
+	cd $(BUILD_DIR) && dsymutil --out=$(notdir $@.dSYM) $(notdir $@)
+	strip $@
+else
+	$P STRIP $@.debug
+	objcopy --only-keep-debug $@ $@.debug
+	objcopy --strip-debug $@
+	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $@.debug) $(notdir $@)
 endif
 endif
 

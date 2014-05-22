@@ -67,8 +67,8 @@ void distribution_app_t::handle(const http_req_t &req, http_res_t *result, signa
 
             scoped_cJSON_t data(render_as_json(&boost::get<distribution_read_response_t>(db_res.response).key_counts));
             http_json_res(data.get(), result);
-        } catch (const cannot_perform_query_exc_t &) {
-            *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+        } catch (const cannot_perform_query_exc_t &exc) {
+            *result = http_res_t(HTTP_INTERNAL_SERVER_ERROR, "text/plain", exc.what());
         }
     } else {
         *result = http_res_t(HTTP_NOT_FOUND);

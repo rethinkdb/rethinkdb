@@ -1,12 +1,13 @@
 err = require('./errors')
 util = require('./util')
-pb = require('./protobuf')
+
+protoResponseType = require('./proto-def').Response.ResponseType
+Promise = require('bluebird')
 
 # Import some names to this namespace for convenience
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-deconstructDatum = util.deconstructDatum
 mkErr = util.mkErr
 
 # setImmediate is not defined in some browsers (including Chrome)
@@ -35,21 +36,33 @@ class IterableResult
         n()
     )
 
-    toArray: ar (cb) ->
-        unless typeof cb is 'function'
-            throw new err.RqlDriverError "Argument to toArray must be a function."
-
-        arr = []
-        if not @hasNext()
-            cb null, arr
-        @each (err, row) =>
-            if err?
-                cb err
-            else
-                arr.push(row)
-
+    toArray: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            arr = []
             if not @hasNext()
                 cb null, arr
+            @each (err, row) =>
+                if err?
+                    cb err
+                else
+                    arr.push(row)
+
+                if not @hasNext()
+                    cb null, arr
+
+        if typeof cb is 'function'
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) =>
+                cb = (err, result) ->
+                    if err?
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
+            throw new err.RqlDriverError "First argument to `toArray` must be a function or undefined."
 
 class Cursor extends IterableResult
     stackSize: 100
@@ -72,14 +85,7 @@ class Cursor extends IterableResult
     _addResponse: (response) ->
         @_responses.push response
         @_outstandingRequests -= 1
-
-        pb.ResponseTypeSwitch(response, {
-            "SUCCESS_PARTIAL": =>
-                @_endFlag = false
-            },
-                => @_endFlag = true
-        )
-
+        @_endFlag = !(response.t is protoResponseType.SUCCESS_PARTIAL)
         @_contFlag = false
         @_promptNext()
         @
@@ -96,13 +102,13 @@ class Cursor extends IterableResult
 
     _handleRow: ->
         response = @_responses[0]
-        row = deconstructDatum(response.response[@_responseIndex], @_opts)
+        row = util.recursivelyConvertPseudotype(response.r[@_responseIndex], @_opts)
         cb = @_getCallback()
 
         @_responseIndex += 1
 
         # If we're done with this response, discard it
-        if @_responseIndex is response.response.length
+        if @_responseIndex is response.r.length
             @_responses.shift()
             @_responseIndex = 0
 
@@ -123,38 +129,36 @@ class Cursor extends IterableResult
                     # We're low on data, prebuffer
                     @_promptCont()
 
-                    if !@_endFlag && response.response? && @_responseIndex is response.response.length - 1
+                    if !@_endFlag && response.r? && @_responseIndex is response.r.length - 1
                         # Only one row left and we aren't at the end of the stream, we have to hold
                         #  onto this so we know if there's more data for hasNext
                         return
 
                 # Error responses are not discarded, and the error will be sent to all future callbacks
-                pb.ResponseTypeSwitch(response, {
-                    "SUCCESS_PARTIAL": =>
+                switch response.t
+                    when protoResponseType.SUCCESS_PARTIAL
                         @_handleRow()
-                    ,"SUCCESS_SEQUENCE": =>
-                        if response.response.length is 0
+                    when protoResponseType.SUCCESS_SEQUENCE
+                        if response.r.length is 0
                             @_responses.shift()
                         else
                             @_handleRow()
-                    ,"COMPILE_ERROR": =>
+                    when protoResponseType.COMPILE_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlCompileError, response, @_root)
-                    ,"CLIENT_ERROR": =>
+                    when protoResponseType.CLIENT_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlClientError, response, @_root)
-                    ,"RUNTIME_ERROR": =>
+                    when protoResponseType.RUNTIME_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlRuntimeError, response, @_root)
-                    },
-                        =>
-                            @_responses.shift()
-                            cb = @_getCallback()
-                            cb new err.RqlDriverError "Unknown response type for cursor"
-                )
+                    else
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb new err.RqlDriverError "Unknown response type for cursor"
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
@@ -166,12 +170,26 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> @_responses[0]? && @_responses[0].response.length > 0
+    hasNext: ar () -> @_responses[0]? && @_responses[0].r.length > 0
 
-    next: ar (cb) ->
-        nextCbCheck(cb)
-        @_cbQueue.push cb
-        @_promptNext()
+    next: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            @_cbQueue.push cb
+            @_promptNext()
+
+        if typeof cb is "function"
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
+            throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
 
     close: ar () ->
         unless @_endFlag
@@ -194,30 +212,56 @@ class ArrayResult extends IterableResult
             @__index = 0
         @__index < @length
 
-    next: ar (cb) ->
-        nextCbCheck(cb)
+    next: varar 0, 1, (cb) ->
+        fn = (cb) =>
 
-        # If people call next
-        if not @__index?
-            @__index = 0
+            # If people call next
+            if not @__index?
+                @__index = 0
 
-        if @hasNext() is true
-            self = @
-            if self.__index%@stackSize is @stackSize-1
-                # Reset the stack
-                setImmediate ->
+            if @hasNext() is true
+                self = @
+                if self.__index%@stackSize is @stackSize-1
+                    # Reset the stack
+                    setImmediate ->
+                        cb(null, self[self.__index++])
+                else
                     cb(null, self[self.__index++])
             else
-                cb(null, self[self.__index++])
-        else
-            cb new err.RqlDriverError "No more rows in the cursor."
+                cb new err.RqlDriverError "No more rows in the cursor."
 
-    toArray: ar (cb) ->
-        # IterableResult.toArray would create a copy
-        if @__index?
-            cb(null, @.slice(@__index, @.length))
+        if typeof cb is "function"
+            fn(cb)
         else
-            cb(null, @)
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+
+
+    toArray: varar 0, 1, (cb) ->
+        fn = (cb) =>
+            # IterableResult.toArray would create a copy
+            if @__index?
+                cb(null, @.slice(@__index, @.length))
+            else
+                cb(null, @)
+
+        if typeof cb is "function"
+            fn(cb)
+        else
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+
 
     close: ->
         return @
@@ -230,10 +274,5 @@ class ArrayResult extends IterableResult
         response.__proto__.__proto__ = [].__proto__
         response
 
-nextCbCheck = (cb) ->
-    unless typeof cb is 'function'
-        throw new err.RqlDriverError "Argument to next must be a function."
-
-module.exports.deconstructDatum = deconstructDatum
 module.exports.Cursor = Cursor
 module.exports.makeIterable = ArrayResult::makeIterable

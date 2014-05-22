@@ -41,9 +41,9 @@ const block_magic_t expected_magic = { { 'R', 'D', 'm', 'd' } };
 template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
-    write_message_t msg;
-    msg << value;
-    intrusive_list_t<write_buffer_t> *buffers = msg.unsafe_expose_buffers();
+    write_message_t wm;
+    serialize(&wm, value);
+    intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
         slen += p->size;
@@ -54,7 +54,7 @@ static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
         str.append(p->data, p->size);
     }
     guarantee(str.size() == slen);
-    blob_t blob(parent.cache()->get_block_size(), ref, maxreflen);
+    blob_t blob(parent.cache()->max_block_size(), ref, maxreflen);
     blob.clear(parent);
     blob.append_region(parent, str.size());
     blob.write_from_string(str, parent, 0);
@@ -64,8 +64,8 @@ static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
 template<class T>
 static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
                       T *value_out) {
-    blob_t blob(parent.cache()->get_block_size(),
-                     const_cast<char *>(ref), maxreflen);
+    blob_t blob(parent.cache()->max_block_size(),
+                const_cast<char *>(ref), maxreflen);
     blob_acq_t acq_group;
     buffer_group_t group;
     blob.expose_all(parent, access_t::read, &group, &acq_group);
@@ -97,7 +97,7 @@ persistent_file_t<metadata_t>::~persistent_file_t() {
 
 template <class metadata_t>
 block_size_t persistent_file_t<metadata_t>::get_cache_block_size() const {
-    return cache->get_block_size();
+    return cache->max_block_size();
 }
 
 template <class metadata_t>

@@ -7,8 +7,9 @@
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"
-#include "serializer/types.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/config.hpp"
+#include "serializer/types.hpp"
 
 /* serializer_multiplexer_t */
 
@@ -28,15 +29,15 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
-                                                         block_size_t block_size,
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
 
     std::vector<counted_t<standard_block_token_t> > tokens
-        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+        = ser->block_writes({ buf_write_info_t(buf.ser_buffer(), buf.block_size(),
+                                               block_id) },
                             io_account, &cb);
     guarantee(tokens.size() == 1);
     cb.wait();
@@ -57,13 +58,12 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    scoped_malloc_t<ser_buffer_t> buf
-        = serializer_t::allocate_buffer(ser->max_block_size());
-    multiplexer_config_block_t *c
-        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
-
     const block_size_t config_block_size = ser->max_block_size();
-    memset(c, 0, config_block_size.value());
+    buf_ptr_t buf = buf_ptr_t::alloc_zeroed(config_block_size);
+
+    multiplexer_config_block_t *c
+        = static_cast<multiplexer_config_block_t *>(buf.cache_data());
+
     c->magic = multiplexer_config_block_t::expected_magic;
     c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
@@ -71,7 +71,7 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), config_block_size,
+    op.token = serializer_block_write(ser, buf,
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     {
@@ -105,11 +105,13 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    scoped_malloc_t<ser_buffer_t> buf
-        = serializer_t::allocate_buffer(ser->max_block_size());
-    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
+    buf_ptr_t buf
+        = ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id),
+                          DEFAULT_DISK_ACCOUNT);
+    guarantee(buf.block_size() == ser->max_block_size());
+
     multiplexer_config_block_t *c
-        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
+        = reinterpret_cast<multiplexer_config_block_t *>(buf.cache_data());
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -157,12 +159,11 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        scoped_malloc_t<ser_buffer_t> buf
-            = serializer_t::allocate_buffer(underlying[0]->max_block_size());
-        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
+        buf_ptr_t buf = underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), DEFAULT_DISK_ACCOUNT);
+        guarantee(buf.block_size() == underlying[0]->max_block_size());
 
         multiplexer_config_block_t *c
-            = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
+            = reinterpret_cast<multiplexer_config_block_t *>(buf.cache_data());
         guarantee(c->magic == multiplexer_config_block_t::expected_magic,
                   "c->magic is %s", debug_strprint(c->magic).c_str());
         creation_timestamp = c->creation_timestamp;
@@ -248,15 +249,16 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account) {
-    return inner->block_read(token, buf, io_account);
+buf_ptr_t translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
+                                            file_account_t *io_account) {
+    return inner->block_read(token, io_account);
 }
 
 counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_size_t translator_serializer_t::max_block_size() const {
+max_block_size_t translator_serializer_t::max_block_size() const {
     return inner->max_block_size();
 }
 
@@ -296,7 +298,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
-        scoped_malloc_t<ser_buffer_t> *buf,
+        buf_ptr_t *buf,
         const counted_t<standard_block_token_t> &token) {
     inner->assert_thread();
 
@@ -315,7 +317,7 @@ void translator_serializer_t::offer_read_ahead_buf(
 
     // Okay, we take ownership of the buf, it's ours (even if read_ahead_callback is
     // NULL).
-    scoped_malloc_t<ser_buffer_t> local_buf = std::move(*buf);
+    buf_ptr_t local_buf = std::move(*buf);
 
     if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);

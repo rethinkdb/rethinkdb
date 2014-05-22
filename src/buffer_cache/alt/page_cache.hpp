@@ -76,11 +76,8 @@ class current_page_help_t;
 
 class current_page_t {
 public:
-    current_page_t(block_id_t block_id,
-                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
-                   page_cache_t *page_cache);
-    current_page_t(block_id_t block_id,
-                   scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
+    current_page_t(block_id_t block_id, buf_ptr_t buf,
                    const counted_t<standard_block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
@@ -101,6 +98,8 @@ private:
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
     void pulse_pulsables(current_page_acq_t *acq);
+    void add_keepalive();
+    void remove_keepalive();
 
     page_t *the_page_for_write(current_page_help_t help, cache_account_t *account);
     page_t *the_page_for_read(current_page_help_t help, cache_account_t *account);
@@ -128,14 +127,10 @@ private:
 
     bool is_deleted() const { return is_deleted_; }
 
-    void make_non_deleted(block_size_t block_size,
-                          scoped_malloc_t<ser_buffer_t> buf,
-                          current_page_help_t page_cache);
-
     // KSI: We could get rid of this variable if
     // page_txn_t::pages_write_acquired_last_ noted each page's block_id_t.  Other
     // space reductions are more important.
-    const block_id_t block_id_;
+    block_id_t block_id_;
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.
@@ -158,6 +153,11 @@ private:
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
+
+    // Avoids eviction if > 0. This is used by snapshotted current_page_acq_t's
+    // that have a snapshotted version of this block. If the current_page_t
+    // would be evicted that would mess with the block version.
+    intptr_t num_keepalives_;
 
     DISABLE_COPYING(current_page_t);
 };
@@ -268,7 +268,7 @@ public:
                          page_cache_t *cache);
 
     void offer_read_ahead_buf(block_id_t block_id,
-                              scoped_malloc_t<ser_buffer_t> *buf,
+                              buf_ptr_t *buf,
                               const counted_t<standard_block_token_t> &token);
 
     void destroy_self();
@@ -329,7 +329,7 @@ public:
     size_t total_page_memory() const;
     size_t evictable_page_memory() const;
 
-    block_size_t max_block_size() const { return max_block_size_; }
+    max_block_size_t max_block_size() const { return max_block_size_; }
 
     cache_account_t create_cache_account(int priority);
 
@@ -347,6 +347,11 @@ public:
 
     void have_read_ahead_cb_destroyed();
 
+    evicter_t &evicter() { return evicter_; }
+
+    auto_drainer_t::lock_t drainer_lock() { return drainer_->lock(); }
+    serializer_t *serializer() { return serializer_; }
+
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
@@ -357,9 +362,6 @@ private:
 
 
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
-
-    friend class page_t;
-    evicter_t &evicter() { return evicter_; }
 
     // KSI: Maybe just have txn_t hold a single list of block_change_t objects.
     struct block_change_t {
@@ -411,7 +413,6 @@ private:
     }
 
     friend class current_page_t;
-    serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
 
     void resize_current_pages_to_id(block_id_t block_id);
@@ -419,7 +420,7 @@ private:
     static void consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                     auto_drainer_t::lock_t lock);
 
-    const block_size_t max_block_size_;
+    const max_block_size_t max_block_size_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
     // flushes.  The rationale behind this is that reads are almost always blocking

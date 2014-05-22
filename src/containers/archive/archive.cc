@@ -23,6 +23,9 @@ const char *archive_result_as_str(archive_result_t archive_result) {
     case archive_result_t::RANGE_ERROR:
         return "archive_result_t::RANGE_ERROR";
         break;
+    case archive_result_t::VERSION_ERROR:
+        return "archive_result_t::VERSION_ERROR";
+        break;
     default:
         unreachable();
     }
@@ -83,8 +86,8 @@ size_t write_message_t::size() const {
     return ret;
 }
 
-int send_write_message(write_stream_t *s, const write_message_t *msg) {
-    intrusive_list_t<write_buffer_t> *list = const_cast<write_message_t *>(msg)->unsafe_expose_buffers();
+int send_write_message(write_stream_t *s, const write_message_t *wm) {
+    intrusive_list_t<write_buffer_t> *list = const_cast<write_message_t *>(wm)->unsafe_expose_buffers();
     for (write_buffer_t *p = list->head(); p; p = list->next(p)) {
         int64_t res = s->write(p->data, p->size);
         if (res == -1) {
@@ -95,10 +98,9 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
     return 0;
 }
 
-write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid) {
+void serialize(write_message_t *wm, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
-    msg.append(uuid.data(), uuid_u::static_size());
-    return msg;
+    wm->append(uuid.data(), uuid_u::static_size());
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
@@ -111,9 +113,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return archive_result_t::SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
-    msg.append(&addr.s6_addr, sizeof(addr.s6_addr));
-    return msg;
+void serialize(write_message_t *wm, const in6_addr &addr) {
+    wm->append(&addr.s6_addr, sizeof(addr.s6_addr));
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
@@ -126,4 +127,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);
+RDB_IMPL_SERIALIZABLE_1(in_addr, 0, s_addr);

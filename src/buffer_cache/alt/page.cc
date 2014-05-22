@@ -42,8 +42,6 @@ static const uint64_t READ_AHEAD_ACCESS_TIME = evicter_t::INITIAL_ACCESS_TIME - 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_deferred_loaded(this);
@@ -58,8 +56,6 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                cache_account_t *account)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -71,13 +67,10 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache,
                                             account));
 }
 
-page_t::page_t(block_id_t block_id, block_size_t block_size,
-               scoped_malloc_t<ser_buffer_t> buf,
+page_t::page_t(block_id_t block_id, buf_ptr_t buf,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(block_size.ser_value()),
       buf_(std::move(buf)),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
@@ -86,13 +79,11 @@ page_t::page_t(block_id_t block_id, block_size_t block_size,
 }
 
 page_t::page_t(block_id_t block_id,
-               scoped_malloc_t<ser_buffer_t> buf,
+               buf_ptr_t buf,
                const counted_t<standard_block_token_t> &block_token,
                page_cache_t *page_cache)
     : block_id_(block_id),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(block_token->block_size().ser_value()),
       buf_(std::move(buf)),
       block_token_(block_token),
       access_time_(READ_AHEAD_ACCESS_TIME),
@@ -104,8 +95,6 @@ page_t::page_t(block_id_t block_id,
 page_t::page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account)
     : block_id_(copyee->block_id_),
       loader_(NULL),
-      max_ser_block_size_(page_cache->max_block_size().ser_value()),
-      ser_buf_size_(0),
       access_time_(page_cache->evicter().next_access_time()),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
@@ -138,7 +127,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
     rassert(page->loader_ == NULL);
     page->loader_ = &loader;
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
     page_ptr_t copyee_ptr(copyee);
 
     // Okay, it's safe to block.
@@ -154,16 +143,11 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.
 
-            uint32_t ser_buf_size = copyee->ser_buf_size_;
-            rassert(copyee->buf_.has());
-            scoped_malloc_t<ser_buffer_t> buf
-                = serializer_t::allocate_buffer(page_cache->max_block_size());
-
-            memcpy(buf.get(), copyee->buf_.get(), ser_buf_size);
-
-            page->ser_buf_size_ = ser_buf_size;
-            page->buf_ = std::move(buf);
-            page->loader_ = NULL;
+            {
+                usage_adjuster_t adjuster(page_cache, page);
+                page->buf_ = buf_ptr_t::alloc_copy(copyee->buf_);
+                page->loader_ = NULL;
+            }
 
             page->pulse_waiters_or_make_evictable(page_cache);
         }
@@ -181,14 +165,16 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
                                        counted_t<standard_block_token_t> block_token,
-                                       scoped_malloc_t<ser_buffer_t> buf) {
+                                       buf_ptr_t buf) {
     rassert(!page->block_token_.has());
     rassert(!page->buf_.has());
     rassert(block_token.has());
-    page->ser_buf_size_ = block_token->block_size().ser_value();
-    page->buf_ = std::move(buf);
-    page->block_token_ = std::move(block_token);
-    page->loader_ = NULL;
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->buf_ = std::move(buf);
+        page->block_token_ = std::move(block_token);
+        page->loader_ = NULL;
+    }
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
@@ -262,10 +248,9 @@ void page_t::catch_up_with_deferred_load(
     // Before blocking, tell the evicter to put us in the right category.
     page_cache->evicter().catch_up_deferred_load(page);
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr_t buf;
     {
-        serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
+        serializer_t *const serializer = page_cache->serializer();
 
         // We use the fact that on_thread_t preserves order with the on_thread_t in
         // deferred_load_with_block_id.  This means that it's already run its section
@@ -273,9 +258,8 @@ void page_t::catch_up_with_deferred_load(
         on_thread_t th(serializer->home_thread());
         // Now finish what the rest of load_with_block_id would do.
         rassert(block_token_ptr->token.has());
-        serializer->block_read(block_token_ptr->token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token_ptr->token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -301,10 +285,10 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     // deferred_block_token_t pointer.
     deferred_block_token_t *on_heap_token = loader.block_token_ptr();
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     {
-        serializer_t *const serializer = page_cache->serializer_;
+        serializer_t *const serializer = page_cache->serializer();
         on_thread_t th(serializer->home_thread());
         // The index_read should not block.  It must not block, because we're
         // depending on order preservation across the on_thread_t.
@@ -322,9 +306,11 @@ void page_t::deferred_load_with_block_id(page_t *page, block_id_t block_id,
     rassert(!page->buf_.has());
     rassert(loader.block_token_ptr() == on_heap_token);
     rassert(on_heap_token->token.has());
-    page->ser_buf_size_ = on_heap_token->token->block_size().ser_value();
-    page->block_token_ = std::move(on_heap_token->token);
-    page->loader_ = NULL;
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->block_token_ = std::move(on_heap_token->token);
+        page->loader_ = NULL;
+    }
 
     rassert(page->waiters_.empty());
 
@@ -345,21 +331,18 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     rassert(page->loader_ == NULL);
     page->loader_ = &loader;
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr_t buf;
     counted_t<standard_block_token_t> block_token;
 
     {
-        serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
-
+        serializer_t *const serializer = page_cache->serializer();
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
         rassert(block_token.has());
-        serializer->block_read(block_token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -444,20 +427,18 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
 
     page_cache->evicter().reloading_page(page);
 
-    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+    auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     counted_t<standard_block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
-    scoped_malloc_t<ser_buffer_t> buf;
+    buf_ptr_t buf;
     {
-        serializer_t *const serializer = page_cache->serializer_;
-        buf = serializer_t::allocate_buffer(page_cache->max_block_size());
+        serializer_t *const serializer = page_cache->serializer();
 
         on_thread_t th(serializer->home_thread());
-        serializer->block_read(block_token,
-                               buf.get(),
-                               account->get());
+        buf = serializer->block_read(block_token,
+                                     account->get());
     }
 
     ASSERT_FINITE_CORO_WAITING;
@@ -467,45 +448,66 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
 
     rassert(page->block_token_.get() == block_token.get());
     rassert(!page->buf_.has());
-    rassert(page->ser_buf_size_ == block_token->block_size().ser_value());
     block_token.reset();
-    page->buf_ = std::move(buf);
-    page->loader_ = NULL;
+    {
+        usage_adjuster_t adjuster(page_cache, page);
+        page->buf_ = std::move(buf);
+        page->loader_ = NULL;
+    }
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
 
-void page_t::set_page_buf_size(block_size_t block_size) {
+void page_t::set_page_buf_size(block_size_t block_size, page_cache_t *page_cache) {
     rassert(buf_.has(),
             "Called outside page_acq_t or without waiting for the buf_ready_signal_?");
-    rassert(ser_buf_size_ != 0);
     rassert(!block_token_.has(),
             "Modified a page_t without resetting the block token.");
-    ser_buf_size_ = block_size.ser_value();
+    {
+        usage_adjuster_t adjuster(page_cache, this);
+        buf_.resize_fill_zero(block_size);
+    }
 }
 
 block_size_t page_t::get_page_buf_size() {
     rassert(buf_.has());
-    rassert(ser_buf_size_ != 0);
-    return block_size_t::unsafe_make(ser_buf_size_);
+    return buf_.block_size();
 }
 
-uint32_t page_t::hypothetical_memory_usage() const {
-    return max_ser_block_size_;
+uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
+    if (buf_.has()) {
+        return buf_.aligned_block_size();
+    } else if (block_token_.has()) {
+        return buf_ptr_t::compute_aligned_block_size(block_token_->block_size());
+    } else {
+        // If the block isn't loaded and we don't know, we respond conservatively,
+        // to stay on the proper side of the memory limit.
+        return page_cache->max_block_size().ser_value();
+    }
 }
 
 void *page_t::get_page_buf(page_cache_t *page_cache) {
     rassert(buf_.has());
     access_time_ = page_cache->evicter().next_access_time();
-    return buf_->cache_data;
+    return buf_.cache_data();
 }
 
-void page_t::reset_block_token() {
+void page_t::reset_block_token(DEBUG_VAR page_cache_t *page_cache) {
     // The page is supposed to have its buffer acquired in reset_block_token -- it's
     // the thing modifying the page.  We thus assume that the page is unevictable and
     // resetting block_token_ doesn't change that.
     rassert(!waiters_.empty());
-    block_token_.reset();
+    rassert(buf_.has());
+    if (block_token_.has()) {
+        rassert(buf_.block_size().value() == block_token_->block_size().value());
+#ifndef NDEBUG
+        const uint32_t usage_before = hypothetical_memory_usage(page_cache);
+#endif
+        block_token_.reset();
+        // Hypothetical memory usage shouldn't have changed -- because the buf is
+        // already loaded in memory.
+        rassert(usage_before == hypothetical_memory_usage(page_cache));
+    }
 }
 
 
@@ -519,13 +521,41 @@ void page_t::remove_waiter(page_acq_t *acq) {
     rassert(snapshot_refcount_ > 0);
 }
 
-void page_t::evict_self() {
+void page_t::evict_self(DEBUG_VAR page_cache_t *page_cache) {
     // A page_t can only self-evict if it has a block token (for now).
     rassert(waiters_.empty());
     rassert(block_token_.has());
     rassert(buf_.has());
+    rassert(block_token_->block_size().value() == buf_.block_size().value());
+#ifndef NDEBUG
+    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
+#endif
     buf_.reset();
+    // Hypothetical memory usage shouldn't have changed -- the block token has the
+    // same block size.
+    rassert(usage_before == hypothetical_memory_usage(page_cache));
 }
+
+ser_buffer_t *page_t::get_loaded_ser_buffer() {
+    rassert(buf_.has());
+    return buf_.ser_buffer();
+}
+
+// Used for after we've flushed the page.
+void page_t::init_block_token(counted_t<standard_block_token_t> token,
+                              DEBUG_VAR page_cache_t *page_cache) {
+    rassert(buf_.has());
+    rassert(buf_.block_size().value() == token->block_size().value());
+    rassert(!block_token_.has());
+#ifndef NDEBUG
+    const uint32_t usage_before = hypothetical_memory_usage(page_cache);
+#endif
+    block_token_ = std::move(token);
+    // Hypothetical memory usage shouldn't have changed -- the block token has the
+    // same block size.
+    rassert(usage_before == hypothetical_memory_usage(page_cache));
+}
+
 
 
 page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
@@ -568,8 +598,8 @@ block_size_t page_acq_t::get_buf_size() {
 
 void *page_acq_t::get_buf_write(block_size_t block_size) {
     buf_ready_signal_.wait();
-    page_->reset_block_token();
-    page_->set_page_buf_size(block_size);
+    page_->reset_block_token(page_cache_);
+    page_->set_page_buf_size(block_size, page_cache_);
     return page_->get_page_buf(page_cache_);
 }
 

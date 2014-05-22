@@ -32,12 +32,13 @@ public:
         } else {
 
             pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
-            protob_t<Term> func_term = r::fun(x, r::var(x)[name_datum]).release_counted();
+            protob_t<Term> func_term
+                = r::fun(x, r::var(x)[name_datum]).release_counted();
 
             prop_bt(func_term.get());
             compile_env_t empty_compile_env((var_visibility_t()));
-            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_compile_env,
-                                                                              func_term);
+            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
+                &empty_compile_env, func_term);
 
             index_func = func_term_term->eval_to_func(env->scope);
         }
@@ -56,7 +57,8 @@ public:
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
             return new_val(res.to_counted());
         } else {
-            rfail(base_exc_t::GENERIC, "Index `%s` already exists.", name.c_str());
+            rfail(base_exc_t::GENERIC, "Index `%s` already exists on table `%s`.",
+                  name.c_str(), table->display_name().c_str());
         }
     }
 
@@ -77,7 +79,8 @@ public:
             UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
             return new_val(res.to_counted());
         } else {
-            rfail(base_exc_t::GENERIC, "Index `%s` does not exist.", name.c_str());
+            rfail(base_exc_t::GENERIC, "Index `%s` does not exist on table `%s`.",
+                  name.c_str(), table->display_name().c_str());
         }
     }
 

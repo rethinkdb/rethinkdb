@@ -10,7 +10,7 @@ def random_key(opts):
     # this as a subroutine but wants to make sure that random keys don't collide with other random
     # keys.
     suf = opts.get("keysuffix", "")
-    return "".join(random.choice("abcdefghijklmnopqrstuvwxyz")
+    return "".join(random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
         for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):
@@ -130,7 +130,7 @@ def test(opts, mc, clone, deleted):
 
 def option_parser_for_serial_mix():
     op = memcached_workload_common.option_parser_for_memcache()
-    op["keysize"] = IntFlag("--keysize", 250)
+    op["keysize"] = IntFlag("--keysize", 127)
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
     def int_or_forever_parser(string):

@@ -62,6 +62,8 @@ public:
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
+    friend class usage_adjuster_t;
+
     // Tells the cache balancer about a page being loaded
     void notify_bytes_loading(int64_t ser_buf_change);
 
@@ -91,6 +93,23 @@ private:
     eviction_bag_t evicted_;
 
     DISABLE_COPYING(evicter_t);
+};
+
+// This adjusts the memory usage in the destructor, with the _same_ eviction bag the
+// page had in the constructor -- its lifespan ends before the page would have its
+// eviction bag changed.
+class usage_adjuster_t {
+public:
+    usage_adjuster_t(page_cache_t *page_cache, page_t *page);
+    ~usage_adjuster_t();
+
+private:
+    page_cache_t *const page_cache_;
+    page_t *const page_;
+    eviction_bag_t *const eviction_bag_;
+    const uint32_t original_usage_;
+
+    DISABLE_COPYING(usage_adjuster_t);
 };
 
 }  // namespace alt

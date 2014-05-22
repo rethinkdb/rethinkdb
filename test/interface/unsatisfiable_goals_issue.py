@@ -21,9 +21,9 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", process.http_port)])
     assert access.get_issues() == []
-    print "Creating a namespace with impossible goals..."
+    print "Creating a table with impossible goals..."
     datacenter = access.add_datacenter()
-    namespace = access.add_namespace(primary = datacenter, check = False)
+    namespace = access.add_table(primary = datacenter, check = False)
 
     # Make sure there are no unexpected problems with the namespace
     try:

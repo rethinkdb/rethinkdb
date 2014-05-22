@@ -37,7 +37,7 @@ public:
     backfill_session_id_t backfill_session_id;
     peer_id_t peer_id;
     reactor_activity_id_t activity_id;
-    RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, backfill_session_id, peer_id, activity_id);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(backfill_location_t,
         backfill_session_id, peer_id, activity_id);
 };
@@ -50,7 +50,7 @@ public:
         : backfills_waited_on(_backfills_waited_on)
     { }
     std::vector<backfill_location_t> backfills_waited_on;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, backfills_waited_on);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(primary_when_safe_t, backfills_waited_on);
 };
 
@@ -84,7 +84,7 @@ public:
     boost::optional<master_business_card_t> master;
     boost::optional<direct_reader_business_card_t> direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
+    RDB_MAKE_ME_SERIALIZABLE_4(0, broadcaster, replier, master, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(primary_t,
         broadcaster, replier, master, direct_reader);
 };
@@ -104,7 +104,7 @@ public:
     replier_business_card_t replier;
     direct_reader_business_card_t direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, replier, direct_reader);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, branch_id, replier, direct_reader);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(secondary_up_to_date_t,
         branch_id, replier, direct_reader);
 };
@@ -125,7 +125,7 @@ public:
     direct_reader_business_card_t direct_reader;
     branch_history_t branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(current_state, backfiller, direct_reader, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_4(0, current_state, backfiller, direct_reader, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_4(secondary_without_primary_t,
         current_state, backfiller, direct_reader, branch_history);
 };
@@ -141,7 +141,7 @@ public:
     { }
 
     backfill_location_t backfill;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfill);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, backfill);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(secondary_backfilling_t, backfill);
 };
 
@@ -163,7 +163,7 @@ public:
     backfiller_business_card_t backfiller;
     branch_history_t branch_history;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_3(0, current_state, backfiller, branch_history);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_3(nothing_when_safe_t,
         current_state, backfiller, branch_history);
 };
@@ -173,7 +173,7 @@ public:
  * the we would like to display in the ui. */
 class nothing_when_done_erasing_t {
 public:
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_MAKE_ME_SERIALIZABLE_0(0);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_when_done_erasing_t);
 };
 
@@ -181,7 +181,7 @@ public:
  * primary or a secondary. */
 class nothing_t {
 public:
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_MAKE_ME_SERIALIZABLE_0(0);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_t);
 };
 
@@ -212,7 +212,7 @@ struct reactor_activity_entry_t {
         : region(_region), activity(_activity) { }
     reactor_activity_entry_t() { }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(region, activity);
+    RDB_MAKE_ME_SERIALIZABLE_2(0, region, activity);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(reactor_activity_entry_t, region, activity);
 };
 
@@ -232,7 +232,7 @@ public:
     typedef std::map<reactor_activity_id_t, activity_entry_t> activity_map_t;
     activity_map_t activities;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(activities);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, activities);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(reactor_business_card_t, activities);
 };
 

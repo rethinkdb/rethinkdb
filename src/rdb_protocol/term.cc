@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
+#include "containers/cow_ptr.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -8,11 +11,8 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
-
 #include "rdb_protocol/terms/terms.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
 #include "thread_local.hpp"
-#include "protob/protob.hpp"
 
 namespace ql {
 
@@ -25,6 +25,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::ERROR:              return make_error_term(env, t);
     case Term::IMPLICIT_VAR:       return make_implicit_var_term(env, t);
+    case Term::RANDOM:             return make_random_term(env, t);
     case Term::DB:                 return make_db_term(env, t);
     case Term::TABLE:              return make_table_term(env, t);
     case Term::GET:                return make_get_term(env, t);
@@ -172,8 +173,8 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
 void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
-         Response *res,
-         stream_cache_t *stream_cache) {
+         stream_cache_t *stream_cache,
+         Response *res) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -273,15 +274,19 @@ void run(protob_t<Query> q,
             fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
-
     } break;
     case Query_QueryType_CONTINUE: {
         try {
             bool b = stream_cache->serve(token, res, interruptor);
-            rcheck_toplevel(b, base_exc_t::GENERIC,
-                            strprintf("Token %" PRIi64 " not in stream cache.", token));
+            if (!b) {
+                auto err = strprintf("Token %" PRIi64 " not in stream cache.", token);
+                fill_error(res, Response::CLIENT_ERROR, err, backtrace_t());
+            }
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
     } break;

@@ -15,6 +15,7 @@
 #include "concurrency/new_mutex.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
 filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath,
@@ -409,8 +410,8 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
-                                  ser_buffer_t *buf, file_account_t *io_account) {
+buf_ptr_t log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
+                                     file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
     guarantee(state == state_ready);
@@ -418,10 +419,11 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &tok
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    data_block_manager->read(token->offset_, token->block_size().ser_value(),
-                             buf, io_account);
+    buf_ptr_t ret = data_block_manager->read(token->offset_, token->block_size(),
+                                           io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
+    return ret;
 }
 
 // God this is such a hack.
@@ -706,8 +708,8 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-block_size_t log_serializer_t::max_block_size() const {
-    return static_config.block_size();
+max_block_size_t log_serializer_t::max_block_size() const {
+    return static_config.max_block_size();
 }
 
 bool log_serializer_t::coop_lock_and_check() {
@@ -913,11 +915,11 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
-        scoped_malloc_t<ser_buffer_t> &&buf,
+        buf_ptr_t &&buf,
         const counted_t<standard_block_token_t> &token) {
     assert_thread();
 
-    scoped_malloc_t<ser_buffer_t> local_buf = std::move(buf);
+    buf_ptr_t local_buf = std::move(buf);
     for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
         read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
                                                       &local_buf,

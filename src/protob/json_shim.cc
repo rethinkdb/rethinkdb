@@ -1,3 +1,5 @@
+#include "rdb_protocol/ql2.pb.h"
+
 #include <inttypes.h>
 #include "protob/json_shim.hpp"
 
@@ -5,7 +7,6 @@
 #include "debug.hpp"
 
 #include "http/json.hpp"
-#include "rdb_protocol/ql2.pb.h"
 
 std::map<std::string, int32_t> resolver;
 
@@ -43,7 +44,7 @@ void safe_extract(cJSON *json, T *t) {
 template<class T, class U>
 void transfer(cJSON *json, T *dest, void (T::*setter)(U)) {
     U tmp;
-    if (json) {
+    if (json != NULL) {
         safe_extract(json, &tmp);
         (dest->*setter)(std::move(tmp));
     }
@@ -51,14 +52,14 @@ void transfer(cJSON *json, T *dest, void (T::*setter)(U)) {
 
 template<class T, class U>
 void transfer(cJSON *json, T *dest, U *(T::*mut)()) {
-    if (json) {
+    if (json != NULL) {
         safe_extract(json, (dest->*mut)());
     }
 }
 
 template<class T, class U>
 void transfer_arr(cJSON *arr, T *dest, U *(T::*adder)()) {
-    if (arr) {
+    if (arr != NULL) {
         if (arr->type != cJSON_Object && arr->type != cJSON_Array) throw exc_t();
         int sz = cJSON_GetArraySize(arr);
         for (int i = 0; i < sz; ++i) {
@@ -102,61 +103,69 @@ void extract(cJSON *json, Term *t) {
 template<>
 void extract(cJSON *json, Datum *d) {
     switch (json->type) {
-    case cJSON_False: {
+    case cJSON_False:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(false);
-    } break;
-    case cJSON_True: {
+        break;
+    case cJSON_True:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(true);
-    } break;
-    case cJSON_NULL: {
+        break;
+    case cJSON_NULL:
         d->set_type(Datum::R_NULL);
-    } break;
-    case cJSON_Number: {
+        break;
+    case cJSON_Number:
         d->set_type(Datum::R_NUM);
         d->set_r_num(json->valuedouble);
-    } break;
-    case cJSON_String: {
+        break;
+    case cJSON_String:
         d->set_type(Datum::R_STR);
         d->set_r_str(json->valuestring);
-    } break;
-    case cJSON_Array: {
-        d->set_type(Datum::R_ARRAY);
-        int sz = cJSON_GetArraySize(json);
-        for (int i = 0; i < sz; ++i) {
-            cJSON *item = cJSON_GetArrayItem(json, i);
-            extract(item, d->add_r_array());
+        break;
+    case cJSON_Array:
+        {
+            d->set_type(Datum::R_ARRAY);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                extract(item, d->add_r_array());
+            }
         }
-    } break;
-    case cJSON_Object: {
-        d->set_type(Datum::R_OBJECT);
-        int sz = cJSON_GetArraySize(json);
-        for (int i = 0; i < sz; ++i) {
-            cJSON *item = cJSON_GetArrayItem(json, i);
-            Datum::AssocPair *ap = d->add_r_object();
-            ap->set_key(item->string);
-            extract(item, ap->mutable_val());
+        break;
+    case cJSON_Object:
+        {
+            d->set_type(Datum::R_OBJECT);
+            int sz = cJSON_GetArraySize(json);
+            for (int i = 0; i < sz; ++i) {
+                cJSON *item = cJSON_GetArrayItem(json, i);
+                Datum::AssocPair *ap = d->add_r_object();
+                ap->set_key(item->string);
+                extract(item, ap->mutable_val());
+            }
         }
-    } break;
-    default: unreachable();
+        break;
+    default:
+        unreachable();
     }
 }
 
 template<>
 void extract(cJSON *json, Query::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Term::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
 
 template<>
 void extract(cJSON *json, Datum::AssocPair *ap) {
+    if (json->string == NULL) throw exc_t();
     ap->set_key(json->string);
     extract(json, ap->mutable_val());
 }
@@ -164,15 +173,15 @@ void extract(cJSON *json, Datum::AssocPair *ap) {
 template<>
 void extract(cJSON *json, Query *q) {
     transfer(cJSON_GetArrayItem(json, 0), q, &Query::set_type);
-    transfer(cJSON_GetArrayItem(json, 1), q, &Query::set_token);
-    transfer(cJSON_GetArrayItem(json, 2), q, &Query::mutable_query);
+    transfer(cJSON_GetArrayItem(json, 1), q, &Query::mutable_query);
     q->set_accepts_r_json(true);
-    transfer_arr(cJSON_GetArrayItem(json, 3), q, &Query::add_global_optargs);
+    transfer_arr(cJSON_GetArrayItem(json, 2), q, &Query::add_global_optargs);
 }
 
-bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
+bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {
     try {
         q->Clear();
+        q->set_token(token);
         scoped_cJSON_t json_holder(cJSON_Parse(str));
         cJSON *json = json_holder.get();
         if (json == NULL) return false;
@@ -181,6 +190,8 @@ bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
     } catch (const exc_t &) {
         // This happens if the user provides bad JSON.  TODO: Give the user a
         // more specific error than "malformed query".
+        return false;
+    } catch (const google::protobuf::FatalException &) {
         return false;
     } catch (...) {
         // If we get an unexpected error, we only rethrow in debug mode.  (This
@@ -195,12 +206,12 @@ bool parse_json_pb(Query *q, char *str) THROWS_NOTHING {
     }
 }
 
-int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
+void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
     try {
-        *s += strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[", r->type(), r->token());
-        for (int i = 0; i < r->response_size(); ++i) {
+        *s += strprintf("{\"t\":%d,\"r\":[", r.type());
+        for (int i = 0; i < r.response_size(); ++i) {
             *s += (i == 0) ? "" : ",";
-            const Datum *d = &r->response(i);
+            const Datum *d = &r.response(i);
             if (d->type() == Datum::R_JSON) {
                 *s += d->r_str();
             } else if (d->type() == Datum::R_STR) {
@@ -212,43 +223,41 @@ int64_t write_json_pb(const Response *r, std::string *s) THROWS_NOTHING {
         }
         *s += "]";
 
-        if (r->has_backtrace()) {
+        if (r.has_backtrace()) {
             *s += ",\"b\":";
-            const Backtrace *bt = &r->backtrace();
+            const Backtrace *bt = &r.backtrace();
             scoped_cJSON_t arr(cJSON_CreateArray());
             for (int i = 0; i < bt->frames_size(); ++i) {
                 const Frame *f = &bt->frames(i);
                 switch (f->type()) {
-                case Frame::POS: {
+                case Frame::POS:
                     arr.AddItemToArray(cJSON_CreateNumber(f->pos()));
-                } break;
-                case Frame::OPT: {
+                    break;
+                case Frame::OPT:
                     arr.AddItemToArray(cJSON_CreateString(f->opt().c_str()));
-                } break;
-                default: unreachable();
+                    break;
+                default:
+                    unreachable();
                 }
             }
             *s += arr.PrintUnformatted();
         }
 
-        if (r->has_profile()) {
+        if (r.has_profile()) {
             *s += ",\"p\":";
-            const Datum *d = &r->profile();
+            const Datum *d = &r.profile();
             guarantee(d->type() == Datum::R_JSON);
             *s += d->r_str();
         }
 
         *s += "}";
-        return r->token();
     } catch (...) {
 #ifndef NDEBUG
         throw;
 #else
-        *s = strprintf("{\"t\":%d,\"k\":%" PRIi64 ",\"r\":[\"%s\"]}",
+        *s = strprintf("{\"t\":%d,\"r\":[\"%s\"]}",
                        Response::RUNTIME_ERROR,
-                       r->token(),
                        "Internal error in `write_json_pb`, please report this.");
-        return r->token();
 #endif // NDEBUG
     }
 }

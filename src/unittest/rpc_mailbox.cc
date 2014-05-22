@@ -22,8 +22,8 @@ private:
     class write_impl_t : public mailbox_write_callback_t {
     public:
         explicit write_impl_t(int _arg) : arg(_arg) { }
-        void write(write_message_t *msg) {
-            *msg << arg;
+        void write(write_message_t *wm) {
+            serialize(wm, arg);
         }
     private:
         friend class read_impl_t;

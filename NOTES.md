@@ -1,3 +1,29 @@
+# Release 1.12.4 (The Wizard of Oz)
+
+Released on 2014-04-22
+
+Bug fix update.
+
+* Fixed a bug that caused `Assertion failed: [page->is_disk_backed()]` errors (#2260)
+* Fixed a bug that caused incorrect query results and frequent server crashes under low memory conditions (#2237)
+
+--
+
+# Release 1.12.3 (The Wizard of Oz)
+
+Released on 2014-04-17
+
+Bug fix update.
+
+* Compilation no longer fails with SEMANTIC_SERIALIZER_CHECK=1 (#2239)
+* Identical `--join` options no longer cause a crash (#2219)
+* Fixed a race condition in the Ruby driver (#2194)
+* Concurrent backfills are now limited to 4 per peer and 12 total (#2211)
+* Failure to `fsync` a directory is now a warning instead of an error (#2255)
+* Packages are now available for Ubuntu 14.04, codename Trusty Tahr (#2101)
+
+--
+
 # Release 1.12.2 (The Wizard of Oz)
 
 Released on 2014-04-08
@@ -13,6 +39,8 @@ Bug fix update.
 * Updated the documentation (#2197)
 * Updated the sample config file (#2205)
 
+--
+
 # Release 1.12.1 (The Wizard of Oz)
 
 Released on 2014-03-27
@@ -27,6 +55,8 @@ Bug fix update.
 * Changed tables to scale their soft durability throttling based on their cache size
 * Fixed some build failures (#2183, #2174)
 * Fixed the Centos i686 packages (#2176)
+
+--
 
 # Release 1.12.0 (The Wizard of Oz)
 
@@ -168,6 +198,8 @@ language.
 ## Packaging ##
 
 * Support for Ubuntu Raring has been dropped (#1924)
+
+--
 
 # Release 1.11.3 (Breakfast at Tiffany's)
 

@@ -28,9 +28,6 @@ struct btree_key_t {
     uint16_t full_size() const {
         return size + offsetof(btree_key_t, contents);
     }
-    bool fits(int space) const {
-        return space > 0 && space > size;
-    }
 } __attribute__((__packed__));
 
 inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
@@ -131,10 +128,12 @@ public:
         return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    void rdb_serialize(write_message_t *wm) const {
+        // Not versioned right now, because these are small objects and that would
+        // be overhead.
         uint8_t sz = size();
-        msg << sz;
-        msg.append(contents(), sz);
+        serialize(wm, sz);
+        wm->append(contents(), sz);
     }
 
     template <class T> friend archive_result_t deserialize(read_stream_t *, T *);

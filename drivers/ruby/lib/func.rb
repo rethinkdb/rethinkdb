@@ -33,7 +33,8 @@ module RethinkDB
       :orderby => -1,
       :group => -1,
       :iso8601 => -1,
-      :index_create => -1
+      :index_create => -1,
+      :random => -1
     }
     @@method_aliases = {
       :lt => :<,
@@ -128,7 +129,7 @@ module RethinkDB
       you want a query that does equality comparison.
 
       If you need to see whether two queries are the same, compare
-      their protobufs like: `query1.to_pb == query2.to_pb`."
+      the raw qeuries like: `query1.to_pb == query2.to_pb`."
     end
 
     def do(*args, &b)

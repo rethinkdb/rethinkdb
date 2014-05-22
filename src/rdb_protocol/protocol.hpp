@@ -341,6 +341,7 @@ public:
 
     rget_read_t(const region_t &_region,
                 const std::map<std::string, ql::wire_func_t> &_optargs,
+                const std::string _table_name,
                 const ql::batchspec_t &_batchspec,
                 const std::vector<transform_variant_t> &_transforms,
                 boost::optional<terminal_variant_t> &&_terminal,
@@ -348,14 +349,16 @@ public:
                 sorting_t _sorting)
         : region(_region),
           optargs(_optargs),
+          table_name(std::move(_table_name)),
           batchspec(_batchspec),
           transforms(_transforms),
-        terminal(std::move(_terminal)),
-        sindex(std::move(_sindex)),
-        sorting(_sorting) { }
+          terminal(std::move(_terminal)),
+          sindex(std::move(_sindex)),
+          sorting(_sorting) { }
 
     region_t region; // We need this even for sindex reads due to sharding.
     std::map<std::string, ql::wire_func_t> optargs;
+    std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
 
     // We use these two for lazy maps, reductions, etc.

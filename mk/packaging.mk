@@ -12,7 +12,7 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
-DIST_FILE_LIST_REL := admin bench demos docs drivers lib mk packaging scripts src test
+DIST_FILE_LIST_REL := admin bench demos docs drivers mk packaging scripts src test
 DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
@@ -36,10 +36,10 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DIST_SUPPORT_PACKAGES := $(filter re2 gtest protobufjs handlebars v8, $(FETCH_LIST))
+DIST_SUPPORT_PACKAGES := re2 gtest protobufjs handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind v8
+  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -47,25 +47,19 @@ ifeq ($(BUILD_PORTABLE),1)
   endif
 endif
 
+MISSING_DIST_SUPPORT_PACKAGES := $(filter-out $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
+DIST_SUPPORT_PACKAGES := $(filter $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 DIST_CONFIGURE_DEFAULT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper
+DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev
 ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
   DEB_BUILD_DEPENDS += , nodejs-legacy
 endif
-ifneq (1,$(STATIC_V8))
-  ifeq ($(UBUNTU_RELEASE),saucy)
-    DEB_BUILD_DEPENDS += , libv8-3.14-dev
-  else
-    DEB_BUILD_DEPENDS += , libv8-dev
-  endif
-endif
 ifneq (1,$(BUILD_PORTABLE))
-  DEB_BUILD_DEPENDS += , protobuf-compiler, protobuf-c-compiler, libprotobuf-dev
-  DEB_BUILD_DEPENDS += , libprotobuf-c0-dev, libprotoc-dev, npm, libgoogle-perftools-dev
+  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, npm, libgoogle-perftools-dev
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -123,6 +117,7 @@ install-osx: install-binaries install-web
 
 .PHONY: build-osx
 build-osx: DESTDIR = $(OSX_PACKAGE_DIR)/pkg
+build-osx: SPLIT_SYMBOLS = 1
 build-osx: install-osx
 	mkdir -p $(OSX_PACKAGE_DIR)/install
 	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
@@ -167,6 +162,9 @@ $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 .PHONY: dist-dir
 dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(DIST_DIR)/precompiled/web
 dist-dir: $(DIST_DIR)/VERSION.OVERRIDE $(DIST_SUPPORT) $(DIST_DIR)/configure.default
+ifneq (,$(MISSING_DIST_SUPPORT_PACKAGES))
+	$(error Missing source packages in external. Please configure with '$(patsubst %,--fetch %,$(MISSING_DIST_SUPPORT_PACKAGES))')
+endif
 	$P CP $(DIST_SUPPORT) "->" $(DIST_DIR)/external
 	$(foreach path,$(DIST_SUPPORT), \
 	  $(foreach dir,$(DIST_DIR)/external/$(patsubst $(SUPPORT_SRC_DIR)/%,%,$(path)), \

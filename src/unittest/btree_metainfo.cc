@@ -3,6 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"

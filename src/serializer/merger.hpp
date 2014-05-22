@@ -9,6 +9,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "containers/scoped.hpp"
+#include "serializer/buf_ptr.hpp"
 #include "serializer/serializer.hpp"
 
 /*
@@ -48,9 +49,9 @@ public:
     }
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
-    void block_read(const counted_t<standard_block_token_t> &token,
-                    ser_buffer_t *buf, file_account_t *io_account) {
-        inner->block_read(token, buf, io_account);
+    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
+                       file_account_t *io_account) {
+        return inner->block_read(token, io_account);
     }
 
     /* The index stores three pieces of information for each ID:
@@ -96,7 +97,7 @@ public:
     }
 
     /* The size, in bytes, of each serializer block */
-    block_size_t max_block_size() const { return inner->max_block_size(); }
+    max_block_size_t max_block_size() const { return inner->max_block_size(); }
 
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }

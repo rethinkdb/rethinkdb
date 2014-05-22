@@ -34,15 +34,7 @@ inline bool divides(int64_t x, int64_t y) {
     return y % x == 0;
 }
 
-int64_t round_up_to_power_of_two(int64_t x);
-
-template <class T>
-double safe_to_double(T val) {
-    double res = static_cast<double>(val);
-    if (val != static_cast<T>(res)) {
-        return NAN;
-    }
-    return res;
-}
+int64_t int64_round_up_to_power_of_two(int64_t x);
+uint64_t uint64_round_up_to_power_of_two(uint64_t x);
 
 #endif  // MATH_HPP_

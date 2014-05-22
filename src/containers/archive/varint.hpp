@@ -22,7 +22,7 @@
 // silently truncate out-of-range varints when decoding.
 
 size_t varint_uint64_serialized_size(uint64_t value);
-void serialize_varint_uint64(write_message_t *msg, const uint64_t value);
+void serialize_varint_uint64(write_message_t *wm, const uint64_t value);
 archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out);
 
 #endif  // CONTAINERS_ARCHIVE_VARINT_HPP_

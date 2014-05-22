@@ -120,6 +120,7 @@ private:
         case Term::JAVASCRIPT:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
+        case Term::RANDOM:
         case Term::DB:
         case Term::TABLE:
         case Term::GET:
@@ -290,6 +291,7 @@ private:
         case Term::JAVASCRIPT:
         case Term::ERROR:
         case Term::IMPLICIT_VAR:
+        case Term::RANDOM:
         case Term::DB:
         case Term::TABLE:
         case Term::GET:

@@ -3,7 +3,7 @@
 #include "containers/printf_buffer.hpp"
 #include "containers/archive/stl_types.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_1(binary_blob_t, storage);
+RDB_IMPL_ME_SERIALIZABLE_1(binary_blob_t, 0, storage);
 
 
 void debug_print(printf_buffer_t *buf, const binary_blob_t &blob) {

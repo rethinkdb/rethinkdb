@@ -35,7 +35,10 @@ VANILLA_PACKAGE_NAME ?= rethinkdb
 SERVER_EXEC_NAME ?= rethinkdb
 
 # Set SYMBOLS to 1 to enable symbols, even in release mode
-SYMBOLS ?= 0
+SYMBOLS ?= 1
+
+# Put the symbols in a separate file
+SPLIT_SYMBOLS ?= 0
 
 # Add numeric indices to json objects in the json adapter
 JSON_SHORTCUTS ?= 0
@@ -71,7 +74,7 @@ STRICT_MAKE_VARIABLE_CHECK ?= 0
 COVERAGE ?= 0
 
 # Strip the executable when installing
-STRIP_ON_INSTALL ?= 1
+STRIP_ON_INSTALL ?= 0
 
 # If not empty, $(PVERSION) is used as the rethinkdb version number
 # for example, PVERSION ?= 1.3.2

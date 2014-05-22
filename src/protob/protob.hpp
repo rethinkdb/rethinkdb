@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef PROTOB_PROTOB_HPP_
 #define PROTOB_PROTOB_HPP_
 
@@ -19,35 +19,43 @@
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
 
+#include "rdb_protocol/stream_cache.hpp"
+#include "rdb_protocol/counted_term.hpp"
+
 class auth_key_t;
 class auth_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 
-enum protob_server_callback_mode_t {
-    INLINE, //protobs that arrive will be called inline
-    CORO_ORDERED, //a coroutine is spawned for each request but responses are sent back in order
-    CORO_UNORDERED //a coroutine is spawned for each request and responses are sent back as they are completed
+class client_context_t {
+public:
+    client_context_t(signal_t *_interruptor) : interruptor(_interruptor) { }
+    ql::stream_cache_t stream_cache;
+    signal_t *interruptor;
 };
 
-template<class context_t>
 class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t() : in_use(false), last_accessed(time(0)) {
-            ctx.interruptor = &interruptor;
-        }
-        context_t *get_ctx() {
+        http_conn_t() :
+            in_use(false),
+            last_accessed(time(0)),
+            client_ctx(&interruptor) { }
+
+        client_context_t *get_ctx() {
             last_accessed = time(0);
-            return &ctx;
+            return &client_ctx;
         }
+
         void pulse() {
             rassert(!interruptor.is_pulsed());
             interruptor.pulse();
         }
+
         bool is_expired() {
             return difftime(time(0), last_accessed) > TIMEOUT_SEC;
         }
+
         bool acquire() {
             if (in_use) {
                 return false;
@@ -55,6 +63,7 @@ public:
             in_use = true;
             return true;
         }
+
         void release() {
             in_use = false;
         }
@@ -62,19 +71,19 @@ public:
     private:
         bool in_use;
         cond_t interruptor;
-        context_t ctx;
         time_t last_accessed;
+        client_context_t client_ctx;
         DISABLE_COPYING(http_conn_t);
     };
 
     http_conn_cache_t() : next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
     ~http_conn_cache_t() {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
+        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator it;
         for (it = cache.begin(); it != cache.end(); ++it) it->second->pulse();
     }
 
     boost::shared_ptr<http_conn_t> find(int32_t key) {
-        typename std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
+        std::map<int32_t, boost::shared_ptr<http_conn_t> >::iterator
             it = cache.find(key);
         if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
         return it->second;
@@ -110,55 +119,53 @@ private:
     repeating_timer_t http_timeout_timer;
 };
 
-// A protob_server_t<request_t, response_t, context_t> expects response_t to be
-// a protocol buffers type.  However, request_t need not be.  The overloaded
-// functions make_empty_protob_bearer and underlying_protob_value are used to
-// initialize a request_t object and access the protocol buffers object.  Their
-// signatures are:
-//
-// // Initializes *request to a value that contains a protocol buffers object.
-// void make_empty_protob_bearer(request_t *request);
-//
-// // Retrieves the protocol buffers object from an initialized request_t.
-// request_t::protob_type *underlying_protob_value(request_t *request);
-//
-// "request_t::protob_type" does not actually have to be defined.
-
-
-// TODO: This templating is total bullshit.  We support *one* protobuf API, and
-// we're trying to move away from it.
-template <class request_t, class response_t, class context_t>
-class protob_server_t : public http_app_t {
+class query_handler_t {
 public:
-    protob_server_t(
-        const std::set<ip_address_t> &local_addresses,
-        int port,
-        boost::function<bool(request_t, response_t *, context_t *)> _f, // NOLINT
-        response_t (*_on_unparsable_query)(request_t, std::string),
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_metadata,
-        protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
-    ~protob_server_t();
+    virtual ~query_handler_t() { }
+
+    virtual MUST_USE bool run_query(const ql::protob_t<Query> &query,
+                                    Response *response_out,
+                                    client_context_t *client_ctx) = 0;
+
+    virtual void unparseable_query(int64_t token,
+                                   Response *response_out,
+                                   const std::string &info) = 0;
+};
+
+class query_server_t : public http_app_t {
+public:
+    query_server_t(const std::set<ip_address_t> &local_addresses,
+                   int port,
+                   query_handler_t *_handler,
+                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata);
+    ~query_server_t();
 
     int get_port() const;
 private:
-
-    void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
-                     auto_drainer_t::lock_t);
-    void send(const response_t &, bool, tcp_conn_t *conn, signal_t *closer)
-        THROWS_ONLY(tcp_conn_write_closed_exc_t);
+    static std::string read_sized_string(tcp_conn_t *conn,
+                                         size_t max_size,
+                                         const std::string &length_error_msg,
+                                         signal_t *interruptor);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
-    // For HTTP server
-    void handle(const http_req_t &, http_res_t *result, signal_t *interruptor);
+    // For the client driver socket
+    void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+                     auto_drainer_t::lock_t);
 
-    boost::function<bool(request_t, response_t *, context_t *)> f; // NOLINT
-    response_t (*on_unparsable_query)(request_t, std::string);
+    // This is templatized based on the wire protocol requested by the client
+    template<class protocol_t>
+    void connection_loop(tcp_conn_t *conn,
+                         client_context_t *client_ctx);
+
+    // For HTTP server
+    void handle(const http_req_t &request,
+                http_res_t *result,
+                signal_t *interruptor);
+
+    query_handler_t *handler;
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
         auth_metadata;
-
-    protob_server_callback_mode_t cb_mode;
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
@@ -172,43 +179,11 @@ private:
         ~pulse_on_destruct_t() { cond->pulse(); }
         cond_t *cond;
     } pulse_sdc_on_shutdown;
-    http_conn_cache_t<context_t> http_conn_cache;
+    http_conn_cache_t http_conn_cache;
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     unsigned next_thread;
 };
-
-//TODO figure out how to do 0 copy serialization with this.
-
-#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
-    isinline write_message_t &operator<<(write_message_t &msg, const pb_t &p) { \
-        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
-        int size = p.ByteSize();                                        \
-        scoped_array_t<char> data(size);                                \
-        p.SerializeToArray(data.data(), size);                          \
-        int32_t size32 = size;                                          \
-        msg << size32;                                                  \
-        msg.append(data.data(), data.size());                           \
-        return msg;                                                     \
-    }                                                                   \
-                                                                        \
-    isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
-        CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
-        int32_t size;                                                   \
-        archive_result_t res = deserialize(s, &size);                   \
-        if (bad(res)) { return res; }                                        \
-        if (size < 0) { return archive_result_t::RANGE_ERROR; }                   \
-        scoped_array_t<char> data(size);                                \
-        int64_t read_res = force_read(s, data.data(), data.size());     \
-        if (read_res != size) { return archive_result_t::SOCK_ERROR; }            \
-        p->ParseFromArray(data.data(), data.size());                    \
-        return archive_result_t::SUCCESS;                                         \
-    }
-
-#define RDB_MAKE_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, inline)
-#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, )
-
-#include "protob/protob.tcc"
 
 #endif /* PROTOB_PROTOB_HPP_ */

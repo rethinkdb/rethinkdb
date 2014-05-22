@@ -13,6 +13,7 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+class buf_ptr_t;
 class new_mutex_in_line_t;
 
 struct index_write_op_t {
@@ -47,11 +48,6 @@ public:
     serializer_t() { }
     virtual ~serializer_t() { }
 
-    /* The buffers that are used with do_read() and do_write() must be allocated using
-    this function. They can be safely called from any thread. */
-
-    static scoped_malloc_t<ser_buffer_t> allocate_buffer(block_size_t block_size);
-
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
     file_account_t *make_io_account(int priority);
@@ -65,8 +61,8 @@ public:
     virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
-    virtual void block_read(const counted_t<standard_block_token_t> &token,
-                            ser_buffer_t *buf, file_account_t *io_account) = 0;
+    virtual buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
+                               file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -116,8 +112,8 @@ public:
                  file_account_t *io_account,
                  iocallback_t *cb) = 0;
 
-    /* The size, in bytes, of each serializer block */
-    virtual block_size_t max_block_size() const = 0;
+    /* The maximum size (and right now the typical size) that a block can have. */
+    virtual max_block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;

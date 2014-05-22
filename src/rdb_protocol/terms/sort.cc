@@ -135,8 +135,15 @@ private:
             seq = v0->as_seq(env->env);
         }
 
+        counted_t<val_t> index = optarg(env, "index");
+        if (seq.has() && seq->is_exhausted()){
+            /* Do nothing for empty sequence */
+            if (!index.has()) {
+                rcheck(!comparisons.empty(), base_exc_t::GENERIC,
+                       "Must specify something to order by.");
+            }
         /* Add a sorting to the table if we're doing indexed sorting. */
-        if (counted_t<val_t> index = optarg(env, "index")) {
+        } else if (index.has()) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
@@ -182,7 +189,7 @@ private:
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
-            std::sort(to_sort.begin(), to_sort.end(), fn);
+            std::stable_sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
                 make_counted<const datum_t>(std::move(to_sort)), backtrace());
         }
@@ -219,9 +226,8 @@ private:
                 sampler.new_sample();
             }
         }
-        std::sort(arr.begin(), arr.end(),
-                  std::bind(lt_cmp, env->env,
-                            ph::_1, ph::_2));
+        // This doesn't need to be a stable sort because we eliminate duplicates.
+        std::sort(arr.begin(), arr.end(), std::bind(lt_cmp, env->env, ph::_1, ph::_2));
         std::vector<counted_t<const datum_t> > toret;
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             if (toret.size() == 0 || **it != *toret[toret.size()-1]) {

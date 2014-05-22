@@ -3,10 +3,6 @@ require 'thread'
 require 'timeout'
 
 module RethinkDB
-  def self.new_query(type, token)
-    [type, token]
-  end
-
   module Faux_Abort
     class Abort
     end
@@ -77,8 +73,8 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
-        res = @conn.run_internal(q, @opts)
+        q = [Query::QueryType::CONTINUE]
+        res = @conn.run_internal(q, @opts, @token)
         @results = Shim.response_to_native(res, @msg, @opts)
         if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
@@ -89,8 +85,8 @@ module RethinkDB
     def close
       if @more
         @more = false
-        q = RethinkDB::new_query(Query::QueryType::STOP, @token)
-        res = @conn.run_internal(q, @opts)
+        q = [Query::QueryType::STOP]
+        res = @conn.run_internal(q, @opts, @token)
         if res['t'] != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
           raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
         end
@@ -127,15 +123,15 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
-    def run_internal(q, opts)
-      @mutex.synchronize{@opts[q[1]] = opts}
+    def run_internal(q, opts, token)
+      @mutex.synchronize{@opts[token] = opts}
       noreply = opts[:noreply]
 
       # PP.pp JSON.parse(q.to_json)
       # return nil
 
-      dispatch(q)
-      noreply ? nil : wait(q[1])
+      dispatch(q, token)
+      noreply ? nil : wait(token)
     end
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
@@ -147,21 +143,21 @@ module RethinkDB
         all_opts[:noreply] = !!all_opts[:noreply]
       end
 
+      token = (@@token_cnt += 1)
       q = [Query::QueryType::START,
-           @@token_cnt += 1,
            msg,
            Hash[all_opts.map {|k,v|
                   [k.to_s, (v.class == RQL ? v.to_pb : RQL.new.expr(v).to_pb)]
                 }]]
 
-      res = run_internal(q, all_opts)
+      res = run_internal(q, all_opts, token)
       return res if !res
       if res['t'] == Response::ResponseType::SUCCESS_PARTIAL
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[1], true)
+                   msg, self, opts, token, true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, q[1], false)
+                   msg, self, opts, token, false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end
@@ -190,13 +186,13 @@ module RethinkDB
       @socket.write(packet)
     end
 
-    def dispatch msg
+    def dispatch(msg, token)
       # PP.pp msg
       payload = Shim.dump_json(msg).force_encoding('BINARY')
       # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
-      prefix = [payload.bytesize].pack('L<')
+      prefix = [token, payload.bytesize].pack('Q<L<')
       send(prefix + payload)
-      return msg[1]
+      return token
     end
 
     def wait token
@@ -229,7 +225,8 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = VersionDummy::Version::V0_2_JSON
+    @@magic_number = VersionDummy::Version::V0_3
+    @@wire_protocol = VersionDummy::Protocol::JSON
 
     def debug_socket; @socket; end
 
@@ -247,7 +244,7 @@ module RethinkDB
       self.noreply_wait() if opts[:noreply_wait]
 
       stop_listener
-      @socket.close if @socket
+      @socket.close rescue nil if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
       @opts = {}
@@ -276,8 +273,8 @@ module RethinkDB
 
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
-      res = run_internal(q, {noreply: false})
+      q = [Query::QueryType::NOREPLY_WAIT]
+      res = run_internal(q, {noreply: false}, @@token_cnt += 1)
       if res['t'] != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
@@ -306,7 +303,6 @@ module RethinkDB
     def note_error(token, e) # Synchronize around this!
       data = {
         't' => 16,
-        'k' => token,
         'r' => [e.inspect],
         'b' => []
       }
@@ -339,6 +335,7 @@ module RethinkDB
       @socket.write([@@magic_number].pack('L<'))
 
       @socket.write([@auth_key.size].pack('L<') + @auth_key)
+      @socket.write([@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)

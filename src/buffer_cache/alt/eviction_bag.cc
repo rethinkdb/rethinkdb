@@ -15,12 +15,9 @@ eviction_bag_t::~eviction_bag_t() {
     guarantee(size_ == 0, "size was %" PRIu64, size_);
 }
 
-void eviction_bag_t::add_without_size(page_t *page) {
-    bag_.add(page);
-}
-
-void eviction_bag_t::add_size(uint32_t ser_buf_size) {
-    size_ += ser_buf_size;
+void eviction_bag_t::change_size(int64_t adjustment) {
+    rassert(adjustment >= 0 || size_ >= static_cast<uint64_t>(-adjustment));
+    size_ += adjustment;
 }
 
 void eviction_bag_t::add(page_t *page, uint32_t ser_buf_size) {
@@ -40,7 +37,8 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset) {
+bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset,
+                                   page_cache_t *page_cache) {
     if (bag_.size() == 0) {
         return false;
     } else {
@@ -56,7 +54,7 @@ bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offse
             }
         }
 
-        remove(oldest, oldest->hypothetical_memory_usage());
+        remove(oldest, oldest->hypothetical_memory_usage(page_cache));
         *page_out = oldest;
         return true;
     }

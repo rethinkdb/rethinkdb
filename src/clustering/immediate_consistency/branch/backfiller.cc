@@ -1,8 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -32,11 +31,11 @@ backfiller_t::backfiller_t(mailbox_manager_t *mm,
     : mailbox_manager(mm), branch_history_manager(bhm),
       svs(_svs),
       backfill_mailbox(mailbox_manager,
-                       boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, _6, _7, auto_drainer_t::lock_t(&drainer))),
+                       std::bind(&backfiller_t::on_backfill, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, auto_drainer_t::lock_t(&drainer))),
       cancel_backfill_mailbox(mailbox_manager,
-                              boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
+                              std::bind(&backfiller_t::on_cancel_backfill, this, ph::_1, auto_drainer_t::lock_t(&drainer))),
       request_progress_mailbox(mailbox_manager,
-                               boost::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer))) { }
+                               std::bind(&backfiller_t::request_backfill_progress, this, ph::_1, ph::_2, auto_drainer_t::lock_t(&drainer))) { }
 
 backfiller_business_card_t backfiller_t::get_business_card() {
     return backfiller_business_card_t(backfill_mailbox.get_address(),
@@ -167,7 +166,7 @@ void backfiller_t::on_backfill(backfill_session_id_t session_id,
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
     static_semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
-    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&co_semaphore_t::unlock, &chunk_semaphore, _1));
+    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, std::bind(&co_semaphore_t::unlock, &chunk_semaphore, ph::_1));
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {

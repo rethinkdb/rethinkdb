@@ -1,14 +1,18 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include <functional>
+
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "concurrency/cond_var.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/wait_any.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 
@@ -77,11 +81,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(SEMAPHORE_NO_LIMIT,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
 {
     boost::optional<boost::optional<broadcaster_business_card_t> > business_card =
         broadcaster_metadata->get();
@@ -148,7 +152,7 @@ listener_t::listener_t(const base_path_t &base_path,
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
             mailbox_manager_,
-            boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+            std::bind(&cond_t::pulse, &backfiller_is_up_to_date));
 
         resource_access_t<replier_business_card_t> replier_access(replier);
         send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -252,11 +256,11 @@ listener_t::listener_t(const base_path_t &base_path,
     write_queue_semaphore_(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        std::bind(&listener_t::on_write, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        std::bind(&listener_t::on_writeread, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        std::bind(&listener_t::on_read, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5))
 {
     branch_birth_certificate_t this_branch_history;
     {
@@ -293,6 +297,10 @@ listener_t::listener_t(const base_path_t &base_path,
     listener_intro_t listener_intro;
     bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
     guarantee(registration_is_done);
+
+    /* Now that we are registered, install a shortcut for local access */
+    broadcaster->register_local_listener(listener_intro.listener_id, this,
+                                         local_listener_registration_.lock());
 
 #ifndef NDEBUG
     region_map_t<version_range_t> expected_initial_metainfo(svs_->get_region(),
@@ -364,7 +372,7 @@ void listener_t::try_start_receiving_writes(
     intro_receiver_t intro_receiver;
     listener_business_card_t::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t::fill, &intro_receiver, _1));
+                      std::bind(&intro_receiver_t::fill, &intro_receiver, ph::_1));
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t>(
@@ -390,39 +398,40 @@ void listener_t::on_write(const write_t &write,
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    rassert(region_is_superset(our_branch_region_, write.get_region()));
-    rassert(!region_is_empty(write.get_region()));
-    order_token.assert_write_mode();
-
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::enqueue_write, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::enqueue_write(const write_t &write,
-        transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void()> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+        mailbox_addr_t<void()> ack_addr)
+        THROWS_NOTHING {
     try {
-        fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
-        wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
-        write_queue_semaphore_.co_lock_interruptible(keepalive.get_drain_signal());
-        write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
-
+        cond_t dummy_interruptor;
+        local_write(write, transition_timestamp, order_token, fifo_token,
+                    &dummy_interruptor);
         send(mailbox_manager_, ack_addr);
-
     } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }
 
+void listener_t::local_write(const write_t &write,
+        transition_timestamp_t transition_timestamp,
+        order_token_t order_token,
+        fifo_enforcer_write_token_t fifo_token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(our_branch_region_, write.get_region()));
+    rassert(!region_is_empty(write.get_region()));
+    order_token.assert_write_mode();
+
+    auto_drainer_t::lock_t keepalive(&drainer_);
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
+    fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
+    wait_interruptible(&fifo_exit, &combined_interruptor);
+    write_queue_semaphore_.co_lock_interruptible(&combined_interruptor);
+    write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
+}
+
 void listener_t::perform_enqueued_write(const write_queue_entry_t &qe,
         state_timestamp_t backfill_end_timestamp,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     write_queue_semaphore_.unlock();
     if (write_queue_.size() <= WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY) {
         write_queue_has_drained_.pulse_if_not_already_pulsed();
@@ -467,71 +476,71 @@ void listener_t::on_writeread(const write_t &write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(write_response_t)> ack_addr,
-        write_durability_t durability) THROWS_NOTHING {
+        write_durability_t durability)
+        THROWS_NOTHING {
+    try {
+        cond_t dummy_interruptor;
+        write_response_t response = local_writeread(write, transition_timestamp,
+                                                    order_token, fifo_token,
+                                                    durability, &dummy_interruptor);
+        send(mailbox_manager_, ack_addr, response);
+    } catch (const interrupted_exc_t &) {
+        /* pass */
+    }
+}
+
+write_response_t listener_t::local_writeread(const write_t &write,
+        transition_timestamp_t transition_timestamp,
+        order_token_t order_token,
+        fifo_enforcer_write_token_t fifo_token,
+        write_durability_t durability,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
 
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::perform_writeread(const write_t &write,
-        transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void(write_response_t)> ack_addr,
-        const write_durability_t durability,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
-    try {
-        write_token_pair_t write_token_pair;
+    auto_drainer_t::lock_t keepalive(&drainer_);
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
+    write_token_pair_t write_token_pair;
+    {
         {
-            {
-                /* Briefly pass through `write_queue_entrance_sink_` in case we
-                are receiving a mix of writes and write-reads */
-                fifo_enforcer_sink_t::exit_write_t fifo_exit_1(&write_queue_entrance_sink_, fifo_token);
-            }
-
-            fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
-            wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
-
-            advance_current_timestamp_and_pulse_waiters(transition_timestamp);
-
-            svs_->new_write_token_pair(&write_token_pair);
+            /* Briefly pass through `write_queue_entrance_sink_` in case we
+            are receiving a mix of writes and write-reads */
+            fifo_enforcer_sink_t::exit_write_t fifo_exit_1(&write_queue_entrance_sink_, fifo_token);
         }
 
-        // Make sure we can serve the entire operation without masking it.
-        // (We shouldn't have been signed up for writereads if we couldn't.)
-        rassert(region_is_superset(svs_->get_region(), write.get_region()));
+        fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink_, fifo_token);
+        wait_interruptible(&fifo_exit_2, &combined_interruptor);
 
+        advance_current_timestamp_and_pulse_waiters(transition_timestamp);
+
+        svs_->new_write_token_pair(&write_token_pair);
+    }
+
+    // Make sure we can serve the entire operation without masking it.
+    // (We shouldn't have been signed up for writereads if we couldn't.)
+    rassert(region_is_superset(svs_->get_region(), write.get_region()));
 
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t metainfo_checker_callback(transition_timestamp.timestamp_before());
-        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
+    version_leq_metainfo_checker_callback_t metainfo_checker_callback(transition_timestamp.timestamp_before());
+    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs_->get_region());
 #endif
 
-        // Perform the operation
-        write_response_t response;
-
-        svs_->write(DEBUG_ONLY(metainfo_checker, )
-                    region_map_t<binary_blob_t>(svs_->get_region(),
-                                                                binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
-                    write,
-                    &response,
-                    durability,
-                    transition_timestamp,
-                    order_token,
-                    &write_token_pair,
-                    keepalive.get_drain_signal());
-
-        send(mailbox_manager_, ack_addr, response);
-
-    } catch (const interrupted_exc_t &) {
-        /* pass */
-    }
+    // Perform the operation
+    write_response_t response;
+    svs_->write(DEBUG_ONLY(metainfo_checker, )
+                region_map_t<binary_blob_t>(svs_->get_region(),
+                                            binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
+                write,
+                &response,
+                durability,
+                transition_timestamp,
+                order_token,
+                &write_token_pair,
+                &combined_interruptor);
+    return response;
 }
 
 void listener_t::on_read(const read_t &read,
@@ -540,63 +549,64 @@ void listener_t::on_read(const read_t &read,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(read_response_t)> ack_addr)
         THROWS_NOTHING {
+    try {
+        cond_t dummy_interruptor;
+        read_response_t response = local_read(read, expected_timestamp, order_token,
+                                              fifo_token, &dummy_interruptor);
+        send(mailbox_manager_, ack_addr, response);
+    } catch (const interrupted_exc_t &) {
+        /* pass */
+    }
+}
+
+read_response_t listener_t::local_read(const read_t &read,
+        state_timestamp_t expected_timestamp,
+        order_token_t order_token,
+        fifo_enforcer_read_token_t fifo_token,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();
 
-    coro_t::spawn_sometime(boost::bind(
-        &listener_t::perform_read, this,
-        read, expected_timestamp, order_token, fifo_token, ack_addr,
-        auto_drainer_t::lock_t(&drainer_)));
-}
-
-void listener_t::perform_read(const read_t &read,
-        state_timestamp_t expected_timestamp,
-        order_token_t order_token,
-        fifo_enforcer_read_token_t fifo_token,
-        mailbox_addr_t<void(read_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
-    try {
-        read_token_pair_t read_token_pair;
+    auto_drainer_t::lock_t keepalive = drainer_.lock();
+    wait_any_t combined_interruptor(keepalive.get_drain_signal(), interruptor);
+    read_token_pair_t read_token_pair;
+    {
         {
-            {
-                /* Briefly pass through `write_queue_entrance_sink_` in case we
-                are receiving a mix of writes and write-reads */
-                fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
-                    &write_queue_entrance_sink_, fifo_token);
-            }
-
-            fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
-                &store_entrance_sink_, fifo_token);
-            wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
-
-            guarantee(current_timestamp_ == expected_timestamp);
-
-            svs_->new_read_token_pair(&read_token_pair);
+            /* Briefly pass through `write_queue_entrance_sink_` in case we
+            are receiving a mix of writes and write-reads */
+            fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
+                &write_queue_entrance_sink_, fifo_token);
         }
 
+        fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
+            &store_entrance_sink_, fifo_token);
+        wait_interruptible(&fifo_exit_2, &combined_interruptor);
+
+        guarantee(current_timestamp_ == expected_timestamp);
+
+        svs_->new_read_token_pair(&read_token_pair);
+    }
+
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t metainfo_checker_callback(
-            expected_timestamp);
-        metainfo_checker_t metainfo_checker(
-            &metainfo_checker_callback, svs_->get_region());
+    version_leq_metainfo_checker_callback_t metainfo_checker_callback(
+        expected_timestamp);
+    metainfo_checker_t metainfo_checker(
+        &metainfo_checker_callback, svs_->get_region());
 #endif
 
-        // Perform the operation
-        read_response_t response;
-        svs_->read(
-            DEBUG_ONLY(metainfo_checker, )
-            read,
-            &response,
-            order_token,
-            &read_token_pair,
-            keepalive.get_drain_signal());
-
-        send(mailbox_manager_, ack_addr, response);
-    } catch (const interrupted_exc_t &) {
-        /* pass */
-    }
+    // Perform the operation
+    read_response_t response;
+    svs_->read(
+        DEBUG_ONLY(metainfo_checker, )
+        read,
+        &response,
+        order_token,
+        &read_token_pair,
+        &combined_interruptor);
+    return response;
 }
 
 void listener_t::wait_for_version(state_timestamp_t timestamp, signal_t *interruptor) {

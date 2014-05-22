@@ -3,6 +3,7 @@
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/wait_any.hpp"
@@ -20,10 +21,11 @@
 // (Really, some of the implementation is also in rdb_protocol/btree.cc.)
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
-        std::string sindex_name)
-    : info(strprintf("Index `%s` was accessed before its construction was finished.",
-                sindex_name.c_str()))
-{ }
+    const std::string &sindex_name, const std::string &table_name)
+    : info(strprintf("Index `%s` on table `%s` "
+                     "was accessed before its construction was finished.",
+                     sindex_name.c_str(),
+                     table_name.c_str())) { }
 
 const char* sindex_not_post_constructed_exc_t::what() const throw() {
     return info.c_str();
@@ -51,11 +53,11 @@ store_t::store_t(serializer_t *serializer,
 
     if (create) {
         vector_stream_t key;
-        write_message_t msg;
+        write_message_t wm;
         region_t kr = region_t::universe();
-        msg << kr;
-        key.reserve(msg.size());
-        int res = send_write_message(&key, &msg);
+        serialize(&wm, kr);
+        key.reserve(wm.size());
+        int res = send_write_message(&key, &wm);
         guarantee(!res);
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
@@ -389,7 +391,7 @@ bool store_t::add_sindex(
 // just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
      * the reason for this is that erase_all releases the sindex_superblock
@@ -416,7 +418,7 @@ void clear_sindex(
 void store_t::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out,
@@ -514,7 +516,7 @@ bool store_t::mark_index_up_to_date(uuid_u id,
 MUST_USE bool store_t::drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         signal_t *interruptor)
@@ -552,6 +554,7 @@ MUST_USE bool store_t::drop_sindex(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_read(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
@@ -575,7 +578,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
     buf_lock_t superblock_lock(&sindex_block, sindex.superblock, access_t::read);
@@ -586,6 +589,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_read(
 
 MUST_USE bool store_t::acquire_sindex_superblock_for_write(
         const std::string &id,
+        const std::string &table_name,
         superblock_t *superblock,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
@@ -604,7 +608,7 @@ MUST_USE bool store_t::acquire_sindex_superblock_for_write(
     }
 
     if (!sindex.post_construction_complete) {
-        throw sindex_not_post_constructed_exc_t(id);
+        throw sindex_not_post_constructed_exc_t(id, table_name);
     }
 
 
@@ -759,10 +763,10 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 
     for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
-        write_message_t msg;
-        msg << i->first;
-        key.reserve(msg.size());
-        DEBUG_VAR int res = send_write_message(&key, &msg);
+        write_message_t wm;
+        serialize(&wm, i->first);
+        key.reserve(wm.size());
+        DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>(i->second.data()),

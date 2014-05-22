@@ -56,7 +56,7 @@ private:
     typedef std::map<vclock_details::version_map_t, T> value_map_t;
     value_map_t values;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(values);
+    RDB_MAKE_ME_SERIALIZABLE_1(0, values);
 
     explicit vclock_t(const stamped_value_t &_value);
 

@@ -77,21 +77,37 @@ tests:
       ot: 0
 
     # Eq-Join
-    - def: ej = tbl.eq_join('a', tbl2).zip()
-      cd: ej.count()
+    - cd: tbl.eq_join('a', tbl2).zip().count()
       ot: 100
 
-    - py: "tbl.eq_join(lambda x: x['a'], tbl2).count()"
+    - cd: tbl.eq_join('fake', tbl2).zip().count()
+      ot: 0
+
+    - py: tbl.eq_join(lambda x:x['a'], tbl2).zip().count()
+      rb: tbl.eq_join(lambda{|x| x['a']}, tbl2).zip().count()
+      js: tbl.eq_join(function(x) { return x('a'); }, tbl2).zip().count()
+      ot: 100
+
+    - py: tbl.eq_join(lambda x:x['fake'], tbl2).zip().count()
+      rb: tbl.eq_join(lambda{|x| x['fake']}, tbl2).zip().count()
+      js: tbl.eq_join(function(x) { return x('fake'); }, tbl2).zip().count()
+      ot: 0
+
+    - py: tbl.eq_join(lambda x:None, tbl2).zip().count()
+      rb: tbl.eq_join(lambda{|x| nil}, tbl2).zip().count()
+      js: tbl.eq_join(function(x) { return null; }, tbl2).zip().count()
+      ot: 0
+
+    - py: tbl.eq_join(lambda x:x['a'], tbl2).count()
       rb: tbl.eq_join(lambda {|x| x[:a]}, tbl2).count()
       js: tbl.eq_join(function(x) { return x('a'); }, tbl2).count()
       ot: 100
 
     # eqjoin where id isn't a primary key
-    - def: ej = tbl.eq_join('a', tbl3).zip()
-      cd: ej.count()
+    - cd: tbl.eq_join('a', tbl3).zip().count()
       ot: 100
 
-    - py: "tbl.eq_join(lambda x: x['a'], tbl3).count()"
+    - py: tbl.eq_join(lambda x:x['a'], tbl3).count()
       rb: tbl.eq_join(lambda {|x| x[:a]}, tbl3).count()
       js: tbl.eq_join(function(x) { return x('a'); }, tbl3).count()
       ot: 100

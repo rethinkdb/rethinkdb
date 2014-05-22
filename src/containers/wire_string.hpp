@@ -6,6 +6,8 @@
 
 #include "containers/archive/archive.hpp"
 
+template <class> class scoped_ptr_t;
+
 /* `wire_string_t` is a length-prefixed ("Pascal style") string.
  * This has two advantages over C-strings:
  * - it can be efficiently serialized and deserialized
@@ -21,8 +23,8 @@ class wire_string_t {
 public:
     wire_string_t() = delete;
 
-    static wire_string_t *create(size_t _size);
-    static wire_string_t *create_and_init(size_t _size, const char *_data);
+    static scoped_ptr_t<wire_string_t> create(size_t _size);
+    static scoped_ptr_t<wire_string_t> create_and_init(size_t _size, const char *_data);
     static void operator delete(void *p);
 
     // The memory pointed to by the result to c_str() is guaranteed to be null
@@ -48,10 +50,6 @@ public:
 
     std::string to_std() const;
 
-    // Creates a new wire_string_t and returns a pointer to it.
-    // The new string is the concatenation of this and other.
-    wire_string_t *operator+(const wire_string_t &other) const;
-
 private:
     size_t size_;
     char data_[1];
@@ -60,10 +58,16 @@ private:
 };
 
 
+scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &b);
+
+
 size_t serialized_size(const wire_string_t &s);
 
-write_message_t &operator<<(write_message_t &msg, const wire_string_t &s);
+void serialize(write_message_t *wm, const wire_string_t &s);
 
-archive_result_t deserialize(read_stream_t *s, wire_string_t **out) THROWS_NOTHING;
+// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
+// functions, the value of `*out` is left in an unspecified state, should
+// deserialization fail.
+archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out);
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_

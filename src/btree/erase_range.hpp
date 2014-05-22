@@ -51,7 +51,7 @@ struct always_true_key_tester_t : public key_tester_t {
     }
 };
 
-void btree_erase_range_generic(value_sizer_t<void> *sizer, key_tester_t *tester,
+void btree_erase_range_generic(value_sizer_t *sizer, key_tester_t *tester,
         const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
         signal_t *interruptor, bool release_superblock = true,
@@ -59,7 +59,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, key_tester_t *tester,
             &on_erase_cb =
                 std::function<void(const store_key_t &, const char *, const buf_parent_t &)>());
 
-void erase_all(value_sizer_t<void> *sizer,
+void erase_all(value_sizer_t *sizer,
                const value_deleter_t *deleter,
                superblock_t *superblock,
                signal_t *interruptor,
