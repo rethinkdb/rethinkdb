@@ -290,7 +290,8 @@ bool do_serve(
 
             {
                 rdb_query_server_t rdb_query_server(address_ports.local_addresses,
-                                                    address_ports.reql_port, &rdb_ctx);
+                                                    address_ports.reql_port,
+                                                    &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
 

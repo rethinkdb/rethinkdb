@@ -4,20 +4,23 @@
 #include <algorithm>
 #include <functional>
 
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "containers/disk_backed_queue.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "containers/cow_ptr.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
+#include "rdb_protocol/store.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "rpc/semilattice/watchable.hpp"
+
+#include "debug.hpp"
 
 #include "debug.hpp"
 
@@ -1127,6 +1130,8 @@ RDB_IMPL_ME_SERIALIZABLE_2(read_t, 0, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(point_write_response_t, 0, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_response_t, 0, result);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_response_t, 0, server_uuids, addrs);
+RDB_IMPL_ME_SERIALIZABLE_1(changefeed_stamp_response_t, 0, stamps);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_create_response_t, 0, success);
 RDB_IMPL_ME_SERIALIZABLE_1(sindex_drop_response_t, 0, success);
 RDB_IMPL_ME_SERIALIZABLE_0(sync_response_t, 0);
@@ -1140,7 +1145,8 @@ RDB_IMPL_ME_SERIALIZABLE_4(batched_insert_t, 0,
 
 RDB_IMPL_ME_SERIALIZABLE_3(point_write_t, 0, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(point_delete_t, 0, key);
-
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_subscribe_t, 0, addr, region);
+RDB_IMPL_ME_SERIALIZABLE_2(changefeed_stamp_t, 0, addr, region);
 RDB_IMPL_ME_SERIALIZABLE_4(sindex_create_t, 0, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(sindex_drop_t, 0, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(sync_t, 0, region);

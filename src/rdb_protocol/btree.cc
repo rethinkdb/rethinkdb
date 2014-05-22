@@ -23,6 +23,8 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
 
+#include "debug.hpp"
+
 rdb_value_sizer_t::rdb_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
 const rdb_value_t *rdb_value_sizer_t::as_rdb(const void *p) {
