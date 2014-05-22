@@ -182,7 +182,7 @@ public:
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         std::set<std::string> *created_sindexes_out,
@@ -202,7 +202,7 @@ public:
     bool drop_sindex(
         const std::string &id,
         buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
+        value_sizer_t *sizer,
         const deletion_context_t *live_deletion_context,
         const deletion_context_t *post_construction_deletion_context,
         signal_t *interruptor)

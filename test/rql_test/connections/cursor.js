@@ -62,8 +62,6 @@ var assert = function(predicate) {
 
 var port = parseInt(process.argv[2], 10)
 
-assertArgVarError(1, 2, 0, function() { r.connect(); });
-
 r.connect({port:port}, function(err, c) {
     assertNoError(err);
 

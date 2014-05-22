@@ -128,10 +128,10 @@ public:
         return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    void rdb_serialize(write_message_t *wm) const {
         uint8_t sz = size();
-        msg << sz;
-        msg.append(contents(), sz);
+        serialize(wm, sz);
+        wm->append(contents(), sz);
     }
 
     template <class T> friend archive_result_t deserialize(read_stream_t *, T *);

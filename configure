@@ -20,16 +20,16 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
 
-    must_fetch_list='protobufjs bluebird'
+    must_fetch_list='bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 re2 z"
+    required_libs="protobuf v8 re2 z curl"
     optional_libs="gtest termcap"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="npm lessc coffee handlebars browserify proto2js bluebird"
+    web_assets_deps="npm lessc coffee handlebars browserify bluebird"
     required_bin_deps="protoc"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
@@ -304,7 +304,6 @@ tcmalloc_minimal:Google Perf Tools library
 v8:v8 javascript engine
 protobuf:Protobuf library
 browserify:Browserify
-proto2js:ProtoBuf.js
 v8:V8 JavaScript Engine
 re2:RE2
 z:zlib
@@ -820,7 +819,7 @@ build_try_lib_paths () {
 check_lib () {
     local info=$2
     local path
-    if contains "$please_fetch_list" $(pkg_name "$1"); then
+    if contains "$please_fetch_list $FETCH_LIST" $(pkg_name "$1"); then
         ${info}_dep $1
         fetch_lib $1
         return
@@ -1042,7 +1041,6 @@ pkg_name () {
         tcmalloc) echo gperftools ;;
         lessc) echo less ;;
         coffee) echo coffee-script ;;
-        proto2js) echo protobufjs ;;
         npm) echo node ;;
         z) echo zlib ;;
         *) echo "$1" ;;

@@ -161,8 +161,10 @@ js_runner_t *env_t::get_js_runner() {
 }
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
-    : global_optargs(protob_t<Query>()),
+    : evals_since_yield(0),
+      global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
+      reql_http_proxy(ctx ? ctx->reql_http_proxy : ""),
       cluster_access(
           ctx ? ctx->ns_repo : NULL,
           ctx ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
@@ -181,6 +183,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
 
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
+    const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
         _namespaces_semilattice_metadata,
@@ -195,6 +198,7 @@ env_t::env_t(
   : evals_since_yield(0),
     global_optargs(query),
     extproc_pool(_extproc_pool),
+    reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
                    _databases_semilattice_metadata,
@@ -215,6 +219,7 @@ env_t::env_t(
 
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
+    const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -231,6 +236,7 @@ env_t::env_t(
   : evals_since_yield(0),
     global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
+    reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
                    _databases_semilattice_metadata,

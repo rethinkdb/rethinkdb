@@ -539,11 +539,12 @@ module.exports.isConnection = (connection) ->
     return connection instanceof Connection
 
 # The main function of this module
-module.exports.connect = varar 1, 2, (host, callback) ->
-    # Host must be a string or an object
-    unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'
-        throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
-                                     "host to `connect` to or an object giving `host` and `port`."
+module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
+    if typeof hostOrCallback is 'function'
+        host = {}
+        callback = hostOrCallback
+    else
+        host = hostOrCallback
 
     create_connection = (host, callback) =>
         if TcpConnection.isAvailable()

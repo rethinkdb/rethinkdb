@@ -6,6 +6,7 @@ tests:
   - rb: tbl.insert({:a => nil})
   - rb: tbl.index_create('a')
   - rb: tbl.index_create('b')
+  - rb: tbl.index_wait()
 
   - rb: tbl.between(nil, nil).count
     ot: 1

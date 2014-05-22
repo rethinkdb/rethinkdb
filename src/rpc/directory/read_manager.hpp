@@ -49,7 +49,7 @@ private:
 
     /* These will be called in a blocking fashion by the connectivity service
     (or message service, in the case of `on_message()`) */
-    void on_message(peer_id_t, read_stream_t *) THROWS_ONLY(fake_archive_exc_t);
+    void on_message(peer_id_t, cluster_version_t, read_stream_t *) THROWS_ONLY(fake_archive_exc_t);
     void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 

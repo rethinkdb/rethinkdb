@@ -1,3 +1,0 @@
-message Test1u {
-    required uint32 a = 1;
-}

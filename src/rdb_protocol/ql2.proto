@@ -258,6 +258,21 @@ message Term {
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
 
+        // Takes an HTTP URL and gets it.  If the get succeeds and
+        //  returns valid JSON, it is converted into a DATUM
+        HTTP = 153; // STRING {data: OBJECT | STRING,
+                    //         timeout: !NUMBER,
+                    //         method: STRING,
+                    //         params: OBJECT,
+                    //         header: OBJECT | ARRAY,
+                    //         attempts: NUMBER,
+                    //         redirects: NUMBER,
+                    //         verify: BOOL,
+                    //         depaginate: BOOL,
+                    //         auth: OBJECT,
+                    //         result_format: STRING,
+                    //         } -> STRING | STREAM
+
         // Takes a string and throws an error with that message.
         // Inside of a `default` block, you can omit the first
         // argument to rethrow whatever error you catch (this is most

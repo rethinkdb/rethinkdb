@@ -5,9 +5,9 @@
 # We assemble path directives.
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS)
+RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE)
 
 ifneq ($(NO_TCMALLOC),1)
   RT_LDFLAGS += $(TCMALLOC_MINIMAL_LIBS)
@@ -165,7 +165,6 @@ endif
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-  SYMBOLS := 1
   RT_CXXFLAGS += -O0
   ifeq ($(KEEP_INLINE),1)
     RT_CXXFLAGS+=-fkeep-inline-functions
@@ -186,10 +185,6 @@ endif
 
 ifeq (${STATIC_LIBGCC},1)
   RT_LDFLAGS += -static-libgcc -static-libstdc++
-endif
-
-ifeq ($(OPROFILE),1)
-  SYMBOLS=1
 endif
 
 ifeq ($(SYMBOLS),1)
@@ -326,7 +321,7 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP)
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
@@ -337,6 +332,18 @@ ifeq ($(filter -l%, $(TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
 		false)
+endif
+endif
+ifeq (1,$(SPLIT_SYMBOLS))
+ifeq (Darwin,$(OS))
+	$P STRIP $@.dSYM
+	cd $(BUILD_DIR) && dsymutil --out=$(notdir $@.dSYM) $(notdir $@)
+	strip $@
+else
+	$P STRIP $@.debug
+	objcopy --only-keep-debug $@ $@.debug
+	objcopy --strip-debug $@
+	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $@.debug) $(notdir $@)
 endif
 endif
 
@@ -359,7 +366,7 @@ $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADE
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_INCLUDE_DEP) $(RE2_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) | $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_INCLUDE_DEP) $(RE2_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(CURL_INCLUDE_DEP) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \

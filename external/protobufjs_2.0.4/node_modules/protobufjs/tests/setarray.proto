@@ -1,7 +1,0 @@
-message Outer {
-    repeated Inner inners = 4;
-}
-
-message Inner {
-    required string str = 1;
-}

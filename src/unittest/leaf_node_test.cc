@@ -11,10 +11,9 @@
 
 struct short_value_t;
 
-template <>
-class value_sizer_t<short_value_t> : public value_sizer_t<void> {
+class short_value_sizer_t : public value_sizer_t {
 public:
-    explicit value_sizer_t<short_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit short_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
     int size(const void *value) const {
         int x = *reinterpret_cast<const uint8_t *>(value);
@@ -34,12 +33,12 @@ public:
         return magic;
     }
 
-    block_size_t block_size() const { return block_size_; }
+    max_block_size_t block_size() const { return block_size_; }
 
 private:
-    block_size_t block_size_;
+    max_block_size_t block_size_;
 
-    DISABLE_COPYING(value_sizer_t<short_value_t>);
+    DISABLE_COPYING(short_value_sizer_t);
 };
 
 namespace unittest {
@@ -70,7 +69,7 @@ private:
 
 class LeafNodeTracker {
 public:
-    LeafNodeTracker() : bs_(block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
+    LeafNodeTracker() : bs_(max_block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
                         tstamp_counter_(0) {
         leaf::init(&sizer_, node_.get());
         Print();
@@ -294,8 +293,8 @@ public:
     }
 
 private:
-    block_size_t bs_;
-    value_sizer_t<short_value_t> sizer_;
+    max_block_size_t bs_;
+    short_value_sizer_t sizer_;
     scoped_malloc_t<leaf_node_t> node_;
 
     uint64_t tstamp_counter_;

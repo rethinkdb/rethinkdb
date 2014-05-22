@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
+import utils
+
+if not os.path.isdir('run'):
+    os.makedirs('run')
+
+buildDir = os.getenv('BUILD_DIR') or utils.latest_build_dir()
+if len(sys.argv) > 1:
+    buildDir = sys.argv[1]
+os.environ['BUILD_DIR'] = buildDir
+
+sys.exit(os.system('_mocha %s ' % (os.path.join(os.path.dirname(__file__), 'date.js'))))

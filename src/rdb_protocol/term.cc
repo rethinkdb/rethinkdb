@@ -23,6 +23,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
+    case Term::HTTP:               return make_http_term(env, t);
     case Term::ERROR:              return make_error_term(env, t);
     case Term::IMPLICIT_VAR:       return make_implicit_var_term(env, t);
     case Term::RANDOM:             return make_random_term(env, t);
@@ -193,7 +194,7 @@ void run(protob_t<Query> q,
         threadnum_t th = get_thread_id();
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
-                ctx->extproc_pool, ctx->ns_repo,
+                ctx->extproc_pool, ctx->reql_http_proxy, ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,

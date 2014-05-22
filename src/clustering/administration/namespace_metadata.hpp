@@ -75,7 +75,9 @@ public:
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
 
-    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, primary_pinnings, secondary_pinnings, primary_key, database);
+    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities,
+                                ack_expectations, shards, name, primary_pinnings,
+                                secondary_pinnings, primary_key, database);
 };
 
 namespace_semilattice_metadata_t new_namespace(

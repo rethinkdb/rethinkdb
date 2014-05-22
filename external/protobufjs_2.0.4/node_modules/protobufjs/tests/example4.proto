@@ -1,5 +1,0 @@
-message Test4 {
-  repeated int32 d = 4 [packed=true];
-}
-
-// Test4 should encode to "<22 06 03 8E 02 9E A7 05>" with d=[3, 270, 86942]

@@ -23,12 +23,11 @@ struct rdb_value_t;
 
 class parallel_traversal_progress_t;
 
-bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
+bool btree_value_fits(max_block_size_t bs, int data_length, const rdb_value_t *value);
 
-template <>
-class value_sizer_t<rdb_value_t> : public value_sizer_t<void> {
+class rdb_value_sizer_t : public value_sizer_t {
 public:
-    explicit value_sizer_t<rdb_value_t>(block_size_t bs);
+    explicit rdb_value_sizer_t(max_block_size_t bs);
 
     static const rdb_value_t *as_rdb(const void *p);
 
@@ -42,14 +41,14 @@ public:
 
     block_magic_t btree_leaf_magic() const;
 
-    block_size_t block_size() const;
+    max_block_size_t block_size() const;
 
 private:
     // The block size.  It's convenient for leaf node code and for
     // some subclasses, too.
-    block_size_t block_size_;
+    max_block_size_t block_size_;
 
-    DISABLE_COPYING(value_sizer_t<rdb_value_t>);
+    DISABLE_COPYING(rdb_value_sizer_t);
 };
 
 struct rdb_modification_info_t;
@@ -250,6 +249,13 @@ struct rdb_erase_major_range_report_t {
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi);
+void deserialize_sindex_info(const std::vector<char> &data,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi);
 
 typedef boost::variant<rdb_modification_report_t,
                        rdb_erase_major_range_report_t>

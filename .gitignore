@@ -46,3 +46,4 @@ last_tested_versions
 test/performance/comparisons/comparison*
 test/performance/results/
 test/performance/run/
+/test/results

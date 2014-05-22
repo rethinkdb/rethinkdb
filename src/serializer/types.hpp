@@ -45,13 +45,13 @@ public:
     // This is a bit ugly in that things could use the wrong method:
     // things could call value() instead of ser_value() or vice versa.
 
-    // The "block size" used by things above the serializer.
+    // The "block size" (in bytes) used by things above the serializer.
     uint32_t value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_ - sizeof(ls_buf_data_t);
     }
 
-    // The "block size" used by things in the serializer.
+    // The "block size" (in bytes) used by things in the serializer.
     uint32_t ser_value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_;
@@ -72,8 +72,11 @@ public:
     static block_size_t undefined() {
         return valgrind_undefined<block_size_t>(unsafe_make(0));
     }
-private:
+
+protected:
     explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }
+
+private:
     uint32_t ser_bs_;
 };
 
@@ -84,6 +87,21 @@ inline bool operator==(block_size_t x, block_size_t y) {
 inline bool operator!=(block_size_t x, block_size_t y) {
     return !(x == y);
 }
+
+class max_block_size_t : public block_size_t {
+public:
+    using block_size_t::value;
+    using block_size_t::ser_value;
+
+    static max_block_size_t unsafe_make(uint32_t ser_bs) {
+        CT_ASSERT(sizeof(block_size_t) == sizeof(max_block_size_t));
+        return max_block_size_t(ser_bs);
+    }
+
+private:
+    explicit max_block_size_t(uint32_t ser_bs)
+        : block_size_t(ser_bs) { }
+};
 
 class repli_timestamp_t;
 

@@ -1,4 +1,0 @@
-message T139 {
-    required int32 a = 1;
-    required uint32 b = 2;
-}

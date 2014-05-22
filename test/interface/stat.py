@@ -25,14 +25,14 @@ with driver.Metacluster() as metacluster:
         for i in xrange(4)]
     for process in processes:
         process.wait_until_started_up()
-    print "Creating namespace..."
+    print "Creating table..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    ns = http.add_table(primary = dc)
     time.sleep(10)
-    host, port = driver.get_namespace_host(ns.port, processes)
+    host, port = driver.get_table_host(processes)
     access = http
 
     invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]

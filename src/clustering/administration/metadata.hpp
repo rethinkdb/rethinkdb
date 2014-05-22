@@ -159,7 +159,10 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(rdb_namespaces, machine_id, peer_id, cache_size, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_11(rdb_namespaces, machine_id, peer_id, cache_size,
+                                ips, get_stats_mailbox_address,
+                                semilattice_change_mailbox, auth_change_mailbox,
+                                log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t

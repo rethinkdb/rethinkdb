@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/var_types.hpp"
 
 #include "containers/archive/stl_types.hpp"
@@ -133,14 +133,14 @@ var_visibility_t var_scope_t::compute_visibility() const {
     return ret;
 }
 
-void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    msg << vars;
-    msg << implicit_depth;
+void var_scope_t::rdb_serialize(write_message_t *wm) const {
+    serialize(wm, vars);
+    serialize(wm, implicit_depth);
     if (implicit_depth == 1) {
         const bool has = maybe_implicit.has();
-        msg << has;
+        serialize(wm, has);
         if (has) {
-            msg << maybe_implicit;
+            serialize(wm, maybe_implicit);
         }
     }
 }

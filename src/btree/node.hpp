@@ -12,14 +12,9 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
+#include "version.hpp"
 
-template <class Value>
-class value_sizer_t;
-
-
-// Class to hold common use case.
-template <>
-class value_sizer_t<void> {
+class value_sizer_t {
 public:
     value_sizer_t() { }
     virtual ~value_sizer_t() { }
@@ -28,7 +23,7 @@ public:
     virtual bool fits(const void *value, int length_available) const = 0;
     virtual int max_possible_size() const = 0;
     virtual block_magic_t btree_leaf_magic() const = 0;
-    virtual block_size_t block_size() const = 0;
+    virtual max_block_size_t block_size() const = 0;
 
 private:
     DISABLE_COPYING(value_sizer_t);
@@ -66,8 +61,14 @@ struct btree_sindex_block_t {
     block_magic_t magic;
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 
+    // Right now there's only one version.
     static const block_magic_t expected_magic;
 } __attribute__ ((__packed__));
+
+inline cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
+    guarantee(data->magic == btree_sindex_block_t::expected_magic);
+    return cluster_version_t::ONLY_VERSION;
+}
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
@@ -100,15 +101,15 @@ inline bool is_leaf(const node_t *node) {
     return !is_internal(node);
 }
 
-bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
+bool is_mergable(value_sizer_t *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 
-bool is_underfull(value_sizer_t<void> *sizer, const node_t *node);
+bool is_underfull(value_sizer_t *sizer, const node_t *node);
 
-void split(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, btree_key_t *median);
+void split(value_sizer_t *sizer, node_t *node, node_t *rnode, btree_key_t *median);
 
-void merge(value_sizer_t<void> *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
+void merge(value_sizer_t *sizer, node_t *node, node_t *rnode, const internal_node_t *parent);
 
-void validate(value_sizer_t<void> *sizer, const node_t *node);
+void validate(value_sizer_t *sizer, const node_t *node);
 
 }  // namespace node
 

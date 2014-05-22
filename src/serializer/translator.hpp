@@ -120,7 +120,7 @@ public:
     std::vector<counted_t<standard_block_token_t> >
     block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 
-    block_size_t max_block_size() const;
+    max_block_size_t max_block_size() const;
 
     bool coop_lock_and_check();
 

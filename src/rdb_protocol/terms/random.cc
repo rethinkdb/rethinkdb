@@ -77,7 +77,7 @@ public:
 class random_term_t : public op_term_t {
 public:
     random_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(0,2), optargspec_t({"float"})) {
+        op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) {
     }
 private:
     virtual bool is_deterministic() const {
@@ -93,7 +93,7 @@ private:
         int64_t res;
         bool success = number_as_integer(bound, &res);
         rcheck(success, base_exc_t::GENERIC,
-               strprintf("%s bound (%.20g) could not be safely converted to an integer.",
+               strprintf("%s bound (%" PR_RECONSTRUCTABLE_DOUBLE ") could not be safely converted to an integer.",
                          type == bound_type_t::LOWER ? "Lower" : "Upper", bound));
         return res;
     }

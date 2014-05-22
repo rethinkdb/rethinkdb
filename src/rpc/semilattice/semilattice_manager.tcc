@@ -90,13 +90,14 @@ public:
     metadata_writer_t(const metadata_t &_md, metadata_version_t _mdv) :
         md(_md), mdv(_mdv) { }
 
-    void write(write_stream_t *stream) {
-        write_message_t msg;
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+        write_message_t wm;
+        // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_metadata;
-        msg << code;
-        msg << md;
-        msg << mdv;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize_for_version(cluster_version, &wm, md);
+        serialize_for_version(cluster_version, &wm, mdv);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -110,12 +111,13 @@ public:
     explicit sync_from_query_writer_t(sync_from_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(write_stream_t *stream) {
-        write_message_t msg;
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+        write_message_t wm;
+        // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_query;
-        msg << code;
-        msg << query_id;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize_for_version(cluster_version, &wm, query_id);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -128,13 +130,14 @@ public:
     sync_from_reply_writer_t(sync_from_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(write_stream_t *stream) {
-        write_message_t msg;
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+        write_message_t wm;
+        // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_reply;
-        msg << code;
-        msg << query_id;
-        msg << version;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize_for_version(cluster_version, &wm, query_id);
+        serialize_for_version(cluster_version, &wm, version);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -148,13 +151,14 @@ public:
     sync_to_query_writer_t(sync_to_query_id_t _query_id, metadata_version_t _version) :
         query_id(_query_id), version(_version) { }
 
-    void write(write_stream_t *stream) {
-        write_message_t msg;
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+        write_message_t wm;
+        // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_query;
-        msg << code;
-        msg << query_id;
-        msg << version;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize_for_version(cluster_version, &wm, query_id);
+        serialize_for_version(cluster_version, &wm, version);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -168,12 +172,13 @@ public:
     explicit sync_to_reply_writer_t(sync_to_query_id_t _query_id) :
         query_id(_query_id) { }
 
-    void write(write_stream_t *stream) {
-        write_message_t msg;
+    void write(cluster_version_t cluster_version, write_stream_t *stream) {
+        write_message_t wm;
+        // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_reply;
-        msg << code;
-        msg << query_id;
-        int res = send_write_message(stream, &msg);
+        serialize(&wm, code);
+        serialize_for_version(cluster_version, &wm, query_id);
+        int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
 private:
@@ -224,9 +229,13 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream_t *stream) {
+void semilattice_manager_t<metadata_t>::on_message(
+        peer_id_t sender,
+        cluster_version_t cluster_version,
+        read_stream_t *stream) {
     uint8_t code;
     {
+        // All cluster versions so far use a uint8_t code for this.
         archive_result_t res = deserialize(stream, &code);
         if (bad(res)) { throw fake_archive_exc_t(); }
     }
@@ -236,9 +245,9 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             metadata_t added_metadata;
             metadata_version_t change_version;
             {
-                archive_result_t res = deserialize(stream, &added_metadata);
+                archive_result_t res = deserialize_for_version(cluster_version, stream, &added_metadata);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize(stream, &change_version);
+                res = deserialize_for_version(cluster_version, stream, &change_version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
@@ -249,7 +258,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
         case message_code_sync_from_query: {
             sync_from_query_id_t query_id;
             {
-                archive_result_t res = deserialize(stream, &query_id);
+                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
@@ -261,9 +270,9 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                archive_result_t res = deserialize(stream, &query_id);
+                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize(stream, &version);
+                res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
@@ -275,9 +284,9 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
             sync_from_query_id_t query_id;
             metadata_version_t version;
             {
-                archive_result_t res = deserialize(stream, &query_id);
+                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
-                res = deserialize(stream, &version);
+                res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(
@@ -288,7 +297,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream
         case message_code_sync_to_reply: {
             sync_from_query_id_t query_id;
             {
-                archive_result_t res = deserialize(stream, &query_id);
+                archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
             coro_t::spawn_sometime(boost::bind(

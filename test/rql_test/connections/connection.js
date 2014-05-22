@@ -250,7 +250,7 @@ describe('Javascript connection API', function(){
                         c.use('db2');
                         r.table('t2').run(c, noError(function(){
                             c.use('test');
-                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `t2` does not exist.",
+                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist.",
                                                             done));
                         }));}));}));}));}));
 
@@ -316,7 +316,6 @@ describe('Javascript connection API', function(){
         }));
 
         it("missing arguments cause exception", withConnection(function(done,c){
-            assert.throws(function(){ r.connect(); });
             assert.throws(function(){ c.use(); });
             done();
         }));

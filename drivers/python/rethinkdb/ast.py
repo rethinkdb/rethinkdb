@@ -20,6 +20,9 @@ def expr(val, nesting_depth=20):
     if nesting_depth <= 0:
         raise RqlDriverError("Nesting depth limit exceeded")
 
+    if not isinstance(nesting_depth, int):
+        raise RqlDriverError("Second argument to `r.expr` must be a number.")
+
     if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, list):
@@ -676,6 +679,10 @@ class Var(RqlQuery):
 class JavaScript(RqlTopLevelQuery):
     tt = p.Term.JAVASCRIPT
     st = "js"
+
+class Http(RqlTopLevelQuery):
+    tt = p.Term.HTTP
+    st = "http"
 
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
