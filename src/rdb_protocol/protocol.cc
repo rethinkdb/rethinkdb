@@ -22,8 +22,6 @@
 
 #include "debug.hpp"
 
-#include "debug.hpp"
-
 store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
