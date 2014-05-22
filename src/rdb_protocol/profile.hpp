@@ -64,7 +64,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     trace_t();
-    counted_t<const ql::datum_t> as_datum();
+    counted_t<const ql::datum_t> as_datum() const;
     event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
