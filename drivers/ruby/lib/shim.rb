@@ -121,7 +121,7 @@ module RethinkDB
     def self.fast_expr(x, max_depth)
       if max_depth == 0
         raise RqlDriverError, "Maximum expression depth exceeded " +
-          "(you can override this with `r.expr(X, MAX_DEPTH)`.)."
+          "(you can override this with `r.expr(X, MAX_DEPTH)`)."
       end
       case x
       when RQL then x
