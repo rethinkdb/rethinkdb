@@ -5,6 +5,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "btree/node.hpp"
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
@@ -18,7 +19,6 @@
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
-#include "btree/internal_node.hpp"
 
 // Some of this implementation is in store.cc and some in btree_store.cc for no
 // particularly good reason.  Historically it turned out that way, and for now
