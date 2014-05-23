@@ -104,6 +104,7 @@ public:
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
     virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
+    virtual bool sends_empty_batches() const = 0;
 
     virtual void accumulate(
         env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) = 0;
@@ -163,6 +164,9 @@ private:
     virtual bool is_exhausted() const {
         return source->is_exhausted() && batch_cache_exhausted();
     }
+    virtual bool sends_empty_batches() const {
+        return source->sends_empty_batches();
+    }
 
 protected:
     const counted_t<datum_stream_t> source;
@@ -185,6 +189,7 @@ public:
     array_datum_stream_t(counted_t<const datum_t> _arr,
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
+    virtual bool sends_empty_batches() const;
 
 private:
     virtual bool is_array();
@@ -209,6 +214,7 @@ private:
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
+    virtual bool sends_empty_batches() const;
     uint64_t index, left, right;
 };
 
@@ -254,6 +260,7 @@ public:
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
     virtual bool is_exhausted() const;
+    virtual bool sends_empty_batches() const;
 
 private:
     std::vector<counted_t<const datum_t> >
@@ -421,6 +428,7 @@ public:
     }
 
     bool is_exhausted() const;
+    virtual bool sends_empty_batches() const;
 private:
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
