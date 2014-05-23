@@ -58,8 +58,8 @@ public:
     counted_t<const datum_t> unpack(const char *name);
     counted_t<const datum_t> row, val;
 };
-static inline void serialize_grouped(
-    write_message_t *wm, const optimizer_t &o) { // NOLINT
+
+static inline void serialize_grouped(write_message_t *wm, const optimizer_t &o) {
     serialize(wm, o.row.has());
     if (o.row.has()) {
         r_sanity_check(o.val.has());
@@ -146,9 +146,6 @@ class grouped_t {
 public:
     virtual ~grouped_t() { } // See grouped_data_t below.
     void rdb_serialize(write_message_t *wm) const {
-        const uint64_t ser_version = 0;
-        serialize_varint_uint64(wm, ser_version);
-
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
             serialize_grouped(wm, it->first);
@@ -156,16 +153,10 @@ public:
         }
     }
     archive_result_t rdb_deserialize(read_stream_t *s) {
-        uint64_t sz = m.size();
-        guarantee(sz == 0);
-        archive_result_t res;
+        guarantee(m.empty());
 
-        uint64_t ser_version;
-        res = deserialize_varint_uint64(s, &ser_version);
-        if (bad(res)) { return res; }
-        if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
-
-        res = deserialize_varint_uint64(s, &sz);
+        uint64_t sz;
+        archive_result_t res = deserialize_varint_uint64(s, &sz);
         if (bad(res)) { return res; }
         if (sz > std::numeric_limits<size_t>::max()) {
             return archive_result_t::RANGE_ERROR;

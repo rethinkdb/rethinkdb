@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "concurrency/auto_drainer.hpp"

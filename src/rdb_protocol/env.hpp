@@ -79,13 +79,17 @@ public:
     const uuid_u this_machine;
 };
 
-// The env_t.
+namespace changefeed {
+class client_t;
+} // namespace changefeed
+
 class env_t : public home_thread_mixin_t {
 public:
     typedef namespaces_semilattice_metadata_t ns_metadata_t;
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed::client_t *_changefeed_client,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
@@ -103,6 +107,7 @@ public:
 
     env_t(
         extproc_pool_t *_extproc_pool,
+        changefeed::client_t *_changefeed_client,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
@@ -152,6 +157,9 @@ public:
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
     extproc_pool_t *extproc_pool;
+
+    // Holds a bunch of mailboxes and maps them to streams.
+    changefeed::client_t *changefeed_client;
 
     // HTTP proxy to use when running `r.http(...)` queries
     const std::string reql_http_proxy;

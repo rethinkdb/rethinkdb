@@ -10,6 +10,7 @@ tests:
     ot: ({'created' => 1})
   - rb: tbl.index_create('idi'){|row| row['id']}
     ot: ({'created':1})
+  - rb: tbl.index_wait()
 
 # Create a mix of truncated and untruncated sindex keys.
   - def:

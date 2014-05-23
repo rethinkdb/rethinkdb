@@ -23,6 +23,8 @@ public:
     explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());
     ~mock_store_t();
 
+    void note_reshard() { }
+
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
@@ -73,8 +75,6 @@ public:
 
     void reset_data(
             const region_t &subregion,
-            const metainfo_t &new_metainfo,
-            write_token_pair_t *token,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);

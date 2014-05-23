@@ -20,7 +20,7 @@ public:
 
     read_mailbox_t::address_t read_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(0, read_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_1(read_mailbox);
 };
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(direct_reader_business_card_t, read_mailbox);

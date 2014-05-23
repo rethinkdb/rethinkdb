@@ -10,6 +10,8 @@
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
 
+#define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
+
 http_result_t http_to_datum(const std::string &json, http_method_t method);
 http_result_t perform_http(http_opts_t *opts);
 
@@ -154,6 +156,7 @@ void http_job_t::worker_error() {
 }
 
 bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
+    static bool curl_initialized(false);
     http_opts_t opts;
     {
         archive_result_t res = deserialize(stream_in, &opts);
@@ -162,12 +165,23 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
 
     http_result_t result;
 
-    try {
-        result = perform_http(&opts);
-    } catch (const std::exception &ex) {
-        result = std::string(ex.what());
-    } catch (...) {
-        result = std::string("unknown error");
+    CURLcode curl_res = CURLE_OK;
+    if (!curl_initialized) {
+        curl_res = curl_global_init(CURL_GLOBAL_SSL);
+        curl_initialized = true;
+    }
+
+    if (curl_res == CURLE_OK) {
+        try {
+            result = perform_http(&opts);
+        } catch (const std::exception &ex) {
+            result = std::string(ex.what());
+        } catch (...) {
+            result = std::string("unknown error");
+        }
+    } else {
+        result = std::string("global initialization");
+        curl_initialized = false;
     }
 
     write_message_t msg;
@@ -397,7 +411,11 @@ void set_default_opts(CURL *curl_handle,
     exc_setopt(curl_handle, CURLOPT_PROTOCOLS,
                CURLPROTO_HTTP | CURLPROTO_HTTPS, "PROTOCOLS");
 
-    exc_setopt(curl_handle, CURLOPT_ACCEPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+    exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
+
+    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+
+    exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
 
     // Use the proxy set when launched
     if (!proxy.empty()) {
@@ -471,12 +489,16 @@ http_result_t perform_http(http_opts_t *opts) {
     switch (opts->result_format) {
     case http_result_format_t::AUTO:
         {
-            char *content_type_buffer;
+            std::string content_type;
+            char *content_type_buffer = NULL;
             curl_easy_getinfo(curl_handle.get(),
                               CURLINFO_CONTENT_TYPE,
                               &content_type_buffer);
 
-            std::string content_type(content_type_buffer);
+            if (content_type_buffer != NULL) {
+                content_type.assign(content_type_buffer);
+            }
+
             for (size_t i = 0; i < content_type.length(); ++i) {
                 content_type[i] = tolower(content_type[i]);
             }

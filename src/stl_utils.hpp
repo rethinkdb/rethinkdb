@@ -1,11 +1,14 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef STL_UTILS_HPP_
 #define STL_UTILS_HPP_
 
 #include <map>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
+
+#include "errors.hpp"
 
 class printf_buffer_t;
 
@@ -45,6 +48,8 @@ std::map<K, V> make_map(const std::pair<K, V> &arg, Args... args) {
     UNUSED int dummy[] = { (ret.insert(args), 1)... };
     return ret;
 }
+
+std::vector<std::string> split_string(const std::string &s, char sep);
 
 #include "stl_utils.tcc"
 

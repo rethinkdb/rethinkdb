@@ -4,6 +4,8 @@
 
 #include "buffer_cache/alt/alt.hpp" // for buf_parent_t
 
+enum class done_traversing_t { NO, YES };
+
 class value_deleter_t {
 public:
     value_deleter_t() { }
@@ -25,4 +27,3 @@ public:
 enum release_superblock_t {RELEASE, KEEP};
 
 #endif	/* BTREE_TYPES_HPP_ */
-

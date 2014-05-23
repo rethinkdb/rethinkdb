@@ -86,7 +86,7 @@ private:
     in6_addr ipv6_addr;
     uint32_t ipv6_scope_id;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(0, addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
+    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 };
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
@@ -98,7 +98,7 @@ public:
     int value() const;
 private:
     int value_;
-    RDB_MAKE_ME_SERIALIZABLE_1(0, value_);
+    RDB_MAKE_ME_SERIALIZABLE_1(value_);
 };
 
 class ip_and_port_t {
@@ -116,7 +116,7 @@ private:
     ip_address_t ip_;
     port_t port_;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, ip_, port_);
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 };
 
 class host_and_port_t {
@@ -136,7 +136,7 @@ private:
     std::string host_;
     port_t port_;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(0, host_, port_);
+    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
 };
 
 class peer_address_t {

@@ -12,16 +12,17 @@
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
+#include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
-#include "containers/archive/varint.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/shards.hpp"
+
+#include "debug.hpp"
 
 rdb_value_sizer_t::rdb_value_sizer_t(max_block_size_t bs) : block_size_(bs) { }
 
@@ -540,8 +541,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
         mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
+        guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     }
-    guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
@@ -639,72 +640,28 @@ void rdb_erase_range_convert_keys(const key_range_t &key_range,
      * names. */
 }
 
-void rdb_erase_major_range(key_tester_t *tester,
-                           const key_range_t &key_range,
-                           buf_lock_t *sindex_block,
-                           superblock_t *superblock,
-                           store_t *store,
-                           signal_t *interruptor) {
-
-    /* Dispatch the erase range to the sindexes. */
-    store_t::sindex_access_vector_t sindex_superblocks;
-    {
-        store->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block, &sindex_superblocks);
-
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(sindex_block);
-        sindex_block->reset_buf_lock();
-
-        write_message_t wm;
-        serialize(&wm, rdb_sindex_change_t(rdb_erase_major_range_report_t(key_range)));
-        store->sindex_queue_push(wm, acq.get());
-    }
-
-    {
-        rdb_value_detacher_t detacher;
-        auto_drainer_t sindex_erase_drainer;
-        spawn_sindex_erase_ranges(&sindex_superblocks, key_range,
-                &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
-                release_superblock_t::RELEASE, interruptor, &detacher);
-
-        /* Notice, when we exit this block we destruct the sindex_erase_drainer
-         * which means we'll wait until all of the sindex_erase_ranges finish
-         * executing. This is an important detail because the sindexes only
-         * store references to their data. They don't actually store a full
-         * copy of the data themselves. The call to btree_erase_range_generic
-         * is the one that will actually erase the data and if we were to make
-         * that call before the indexes were finished erasing we would have
-         * reference to data which didn't actually exist and another process
-         * could read that data. */
-        /* TL;DR it's very important that we make sure all of the coros spawned
-         * by spawn_sindex_erase_ranges complete before we proceed past this
-         * point. */
-    }
-
-    bool left_key_supplied, right_key_supplied;
-    store_key_t left_key_exclusive, right_key_inclusive;
-    rdb_erase_range_convert_keys(key_range, &left_key_supplied, &right_key_supplied,
-            &left_key_exclusive, &right_key_inclusive);
-
-    /* We need these structures to perform the erase range. */
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-
-    /* Actually delete the values */
-    rdb_value_deleter_t deleter;
-
-    btree_erase_range_generic(&sizer, tester, &deleter,
-        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
-        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor);
-}
-
 void rdb_erase_small_range(key_tester_t *tester,
                            const key_range_t &key_range,
                            superblock_t *superblock,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out) {
+    done_erasing_t fully_erased = rdb_erase_small_range(tester, key_range, superblock,
+                                                        deletion_context, interruptor,
+                                                        0, NULL, mod_reports_out);
+    guarantee(fully_erased == done_erasing_t::DONE);
+}
+
+done_erasing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &key_range,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        unsigned int max_entries_erased,
+        store_key_t *highest_erased_key_out,
+        std::vector<rdb_modification_report_t> *mod_reports_out) {
+    rassert(max_entries_erased == 0 || highest_erased_key_out != NULL);
     rassert(mod_reports_out != NULL);
     mod_reports_out->clear();
 
@@ -717,8 +674,13 @@ void rdb_erase_small_range(key_tester_t *tester,
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
 
     struct on_erase_cb_t {
-        static void on_erase(const store_key_t &key, const char *data,
+        static done_traversing_t on_erase(
+                const store_key_t &key,
+                const char *data,
                 const buf_parent_t &parent,
+                unsigned int _max_entries_erased,
+                unsigned int *_num_entries_erased_out,
+                store_key_t *_highest_erased_key_out,
                 std::vector<rdb_modification_report_t> *_mod_reports_out) {
             const rdb_value_t *value = reinterpret_cast<const rdb_value_t *>(data);
 
@@ -736,14 +698,30 @@ void rdb_erase_small_range(key_tester_t *tester,
                 value->value_ref() + value->inline_size(block_size));
 
             _mod_reports_out->push_back(mod_report);
+            ++(*_num_entries_erased_out);
+            if (_max_entries_erased != 0
+                && *_num_entries_erased_out >= _max_entries_erased) {
+                // We have hit the limit. Don't erase any more.
+                *_highest_erased_key_out = key;
+                return done_traversing_t::YES;
+            } else {
+                return done_traversing_t::NO;
+            }
         }
     };
 
+    unsigned int num_entries_erased = 0;
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         superblock, interruptor, release_superblock_t::RELEASE,
-        std::bind(&on_erase_cb_t::on_erase, ph::_1, ph::_2, ph::_3, mod_reports_out));
+        std::bind(&on_erase_cb_t::on_erase,
+                  ph::_1, ph::_2, ph::_3,
+                  max_entries_erased, &num_entries_erased, highest_erased_key_out,
+                  mod_reports_out));
+    const bool hit_limit = max_entries_erased != 0
+                           && num_entries_erased >= max_entries_erased;
+    return hit_limit ? done_erasing_t::REACHED_MAX : done_erasing_t::DONE;
 }
 
 // This is actually a kind of misleading name. This function estimates the size
@@ -1013,9 +991,6 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
-    const uint64_t ser_version = 0;
-    serialize_varint_uint64(wm, ser_version);
-
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
         serialize(wm, HAS_NO_VALUE);
@@ -1034,15 +1009,8 @@ void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
 }
 
 archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res;
-
-    uint64_t ser_version;
-    res = deserialize_varint_uint64(s, &ser_version);
-    if (bad(res)) { return res; }
-    if (ser_version != 0) { return archive_result_t::VERSION_ERROR; }
-
     int8_t has_value;
-    res = deserialize(s, &has_value);
+    archive_result_t res = deserialize(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
@@ -1061,8 +1029,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, 0, primary_key, info);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_major_range_report_t, 0, range_to_erase);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,
@@ -1077,17 +1044,44 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+    const rdb_modification_report_t &mod_report) {
+    // debugf("%" PRIu64 "\n", timestamp.longtime);
+    if (mod_report.info.deleted.first.has() || mod_report.info.added.first.has()) {
+        // We spawn the sindex update in its own coroutine because we don't want to
+        // hold the sindex update for the changefeed update or vice-versa.
+        cond_t sindexes_updated_cond;
+        coro_t::spawn_now_dangerously(
+            std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
+                      this,
+                      mod_report,
+                      &sindexes_updated_cond));
+        {
+            store_->changefeed_server.send_all(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t(
+                        mod_report.info.deleted.first,
+                        mod_report.info.added.first)));
+        }
+
+        sindexes_updated_cond.wait_lazily_unordered();
+    }
+}
+
+void rdb_modification_report_cb_t::on_mod_report_sub(
+    const rdb_modification_report_t &mod_report,
+    cond_t *cond) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
+    // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
-    serialize(&wm, rdb_sindex_change_t(mod_report));
+    serialize(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
                         &deletion_context);
+    cond->pulse();
 }
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
@@ -1107,6 +1101,30 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     }
 }
 
+void serialize_sindex_info(write_message_t *wm,
+                           const ql::map_wire_func_t &mapping,
+                           const sindex_multi_bool_t &multi) {
+    serialize(wm, cluster_version_t::LATEST_VERSION);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+}
+
+void deserialize_sindex_info(const std::vector<char> &data,
+                             ql::map_wire_func_t *mapping,
+                             sindex_multi_bool_t *multi) {
+    inplace_vector_read_stream_t read_stream(&data);
+    cluster_version_t cluster_version;
+    archive_result_t success = deserialize(&read_stream, &cluster_version);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, mapping);
+    guarantee_deserialization(success, "sindex description");
+    success = deserialize_for_version(cluster_version, &read_stream, multi);
+    guarantee_deserialization(success, "sindex description");
+
+    guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
+              "An sindex description was incompletely deserialized.");
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const store_t::sindex_access_t *sindex,
@@ -1120,12 +1138,8 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
-    inplace_vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    archive_result_t success = deserialize(&read_stream, &mapping);
-    guarantee_deserialization(success, "sindex deserialize");
-    success = deserialize(&read_stream, &multi);
-    guarantee_deserialization(success, "sindex deserialize");
+    sindex_multi_bool_t multi;
+    deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other
@@ -1234,17 +1248,6 @@ void rdb_update_sindexes(const store_t::sindex_access_vector_t &sindexes,
         deletion_context->post_deleter()->delete_value(buf_parent_t(txn),
                 modification->info.deleted.second.data());
     }
-}
-
-void rdb_erase_major_range_sindexes(const store_t::sindex_access_vector_t &sindexes,
-                                    const rdb_erase_major_range_report_t *erase_range,
-                                    signal_t *interruptor, const value_deleter_t *deleter) {
-    auto_drainer_t drainer;
-
-    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
-                              &drainer, auto_drainer_t::lock_t(&drainer),
-                              release_superblock_t::KEEP, interruptor,
-                              deleter);
 }
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {

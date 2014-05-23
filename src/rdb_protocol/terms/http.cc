@@ -4,6 +4,7 @@
 #include <string>
 #include "debug.hpp"
 
+#include "math.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -109,10 +110,12 @@ private:
                                  const char *key_name,
                                  pb_rcheckable_t *val);
 
-    void get_auth_item(const counted_t<const datum_t> &datum,
-                       const std::string &name,
-                       std::string *str_out,
-                       pb_rcheckable_t *auth);
+    std::string get_auth_item(const counted_t<const datum_t> &datum,
+                              const std::string &name,
+                              pb_rcheckable_t *auth);
+
+    // Have a maximum timeout of 30 days
+    static const uint64_t MAX_TIMEOUT_MS = 2592000000;
 };
 
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
@@ -129,8 +132,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
     } catch (const http_worker_exc_t &ex) {
         http_result = std::string("crash in a worker process");
     } catch (const interrupted_exc_t &ex) {
-        http_result = strprintf("timed out after %" PRIu64 ".%03" PRIu64 " seconds",
-                                opts->timeout_ms / 1000, opts->timeout_ms % 1000);
+        http_result = std::string("interrupted");
     } catch (const std::exception &ex) {
         http_result = std::string("encounted an exception - ") + ex.what();
     } catch (...) {
@@ -168,11 +170,14 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
                                  uint64_t *timeout_ms_out) {
     counted_t<val_t> timeout = optarg(env, "timeout");
     if (timeout.has()) {
-        *timeout_ms_out = timeout->as_int<uint64_t>();
-        if (*timeout_ms_out > std::numeric_limits<uint64_t>::max() / 1000) {
-            *timeout_ms_out = std::numeric_limits<uint64_t>::max();
+        double tmp = timeout->as_num();
+        tmp *= 1000;
+
+        if (tmp < 0) {
+            rfail_target(timeout.get(), base_exc_t::GENERIC,
+                         "`timeout` may not be negative.");
         } else {
-            *timeout_ms_out *= 1000;
+            *timeout_ms_out = clamp<uint64_t>(tmp, 0, MAX_TIMEOUT_MS);
         }
     }
 }
@@ -262,10 +267,9 @@ void http_term_t::get_method(scope_env_t *env,
     }
 }
 
-void http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
-                                const std::string &name,
-                                std::string *str_out,
-                                pb_rcheckable_t *auth) {
+std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
+                                       const std::string &name,
+                                       pb_rcheckable_t *auth) {
     counted_t<const datum_t> item = datum->get(name, NOTHROW);
     if (!item.has()) {
         rfail_target(auth, base_exc_t::GENERIC,
@@ -275,11 +279,11 @@ void http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
                      "Expected `auth.%s` to be a STRING, but found %s.",
                      name.c_str(), item->get_type_name().c_str());
     }
-    str_out->assign(item->as_str().to_std());
+    return item->as_str().to_std();
 }
 
 // The `auth` optarg takes an object consisting of the following fields:
-//  type - STRING, the type of authentication to perform 'basic' or 'digest'
+//  type - STRING, the type of authentication to perform 'basic' or 'digest', defaults to 'basic'
 //  user - STRING, the username to use
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
@@ -293,10 +297,25 @@ void http_term_t::get_auth(scope_env_t *env,
                          datum_auth->get_type_name().c_str());
         }
 
-        std::string user, pass, type;
-        get_auth_item(datum_auth, "type", &type, auth.get());
-        get_auth_item(datum_auth, "user", &user, auth.get());
-        get_auth_item(datum_auth, "pass", &pass, auth.get());
+        // Default to 'basic' if no type is specified
+        std::string type;
+        {
+            counted_t<const datum_t> type_datum = datum_auth->get("type", NOTHROW);
+
+            if (type_datum.has()) {
+                if (type_datum->get_type() != datum_t::R_STR) {
+                    rfail_target(auth.get(), base_exc_t::GENERIC,
+                                 "Expected `auth.type` to be a STRING, but found %s.",
+                                 datum_auth->get_type_name().c_str());
+                }
+                type.assign(type_datum->as_str().to_std());
+            } else {
+                type.assign("basic");
+            }
+        }
+
+        std::string user = get_auth_item(datum_auth, "user", auth.get());
+        std::string pass = get_auth_item(datum_auth, "pass", auth.get());
 
         if (type == "basic") {
             auth_out->make_basic_auth(std::move(user), std::move(pass));

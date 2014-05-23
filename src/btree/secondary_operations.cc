@@ -4,13 +4,13 @@
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
+#include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_5(secondary_index_t, 0, superblock, opaque_definition,
+RDB_IMPL_ME_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
                            post_construction_complete, being_deleted, id);
 
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_name_t, 0, name, being_deleted);
+RDB_IMPL_ME_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
 
 void get_secondary_indexes_internal(
         buf_lock_t *sindex_block,
@@ -22,8 +22,8 @@ void get_secondary_indexes_internal(
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        const_cast<char *>(data->sindex_blob),
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-
-    deserialize_from_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes_out);
+    deserialize_for_version_from_blob(sindex_block_version(data),
+                                      buf_parent_t(sindex_block), &sindex_blob, sindexes_out);
 }
 
 void set_secondary_indexes_internal(
@@ -36,7 +36,8 @@ void set_secondary_indexes_internal(
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-    serialize_onto_blob(buf_parent_t(sindex_block), &sindex_blob, sindexes);
+    serialize_for_version_onto_blob(sindex_block_version(data),
+                                    buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
 void initialize_secondary_indexes(buf_lock_t *sindex_block) {

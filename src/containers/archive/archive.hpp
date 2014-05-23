@@ -39,8 +39,6 @@ enum class archive_result_t {
     SOCK_EOF,
     // The value deserialized was out of range.
     RANGE_ERROR,
-    // The value has an unsupported version.
-    VERSION_ERROR,
 };
 
 inline bool bad(archive_result_t res) {

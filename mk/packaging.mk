@@ -36,7 +36,7 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DIST_SUPPORT_PACKAGES := re2 gtest protobufjs handlebars v8
+DIST_SUPPORT_PACKAGES := re2 gtest handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
   DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind
@@ -115,6 +115,16 @@ build-deb: deb-src-dir
 .PHONY: install-osx
 install-osx: install-binaries install-web
 
+ifneq (Darwin,$(OS))
+  PRODUCT_BUILD = $(error MacOS package can only be built on that OS)
+else ifneq ("","$(findstring $(SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
+  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg --sign "$(SIGNATURE_NAME)"
+else ifeq ($(REQUIRE_SIGNED),1)
+  PRODUCT_BUILD = $(error Certificate not found: $(SIGNITURE_NAME))
+else
+  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
+endif
+
 .PHONY: build-osx
 build-osx: DESTDIR = $(OSX_PACKAGE_DIR)/pkg
 build-osx: SPLIT_SYMBOLS = 1
@@ -122,8 +132,8 @@ build-osx: install-osx
 	mkdir -p $(OSX_PACKAGE_DIR)/install
 	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
 	mkdir $(OSX_PACKAGE_DIR)/dmg
-	productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
-# TODO: the PREFIX should not be hardcoded in the uninstall script
+	$(PRODUCT_BUILD)
+# TODO: the PREFIX should not be hardcoded in the uninstall script 
 	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/

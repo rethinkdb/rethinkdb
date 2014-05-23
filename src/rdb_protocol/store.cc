@@ -14,6 +14,12 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 
+#include "debug.hpp"
+
+void store_t::note_reshard() {
+    changefeed_server.stop_all();
+}
+
 void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
@@ -81,6 +87,22 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
+    void operator()(const changefeed_subscribe_t &s) {
+        store->changefeed_server.add_client(s.addr);
+        response->response = changefeed_subscribe_response_t();
+        auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
+        guarantee(res != NULL);
+        res->server_uuids.insert(store->changefeed_server.get_uuid());
+        res->addrs.insert(store->changefeed_server.get_stop_addr());
+    }
+
+    void operator()(const changefeed_stamp_t &s) {
+        response->response = changefeed_stamp_response_t();
+        boost::get<changefeed_stamp_response_t>(&response->response)
+            ->stamps[store->changefeed_server.get_uuid()]
+            = store->changefeed_server.get_stamp(s.addr);
+    }
+
     void operator()(const point_read_t &get) {
         response->response = point_read_response_t();
         point_read_response_t *res =
@@ -135,12 +157,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
-            sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
-            inplace_vector_read_stream_t read_stream(&sindex_mapping_data);
-            archive_result_t success = deserialize(&read_stream, &sindex_mapping);
-            guarantee_deserialization(success, "sindex description");
-            success = deserialize(&read_stream, &multi_bool);
-            guarantee_deserialization(success, "sindex description");
+            sindex_multi_bool_t multi_bool;
+            deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(sindex_uuid),
@@ -248,6 +266,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
+               ctx->changefeed_client.get(),
                ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
@@ -298,7 +317,8 @@ void store_t::protocol_read(const read_t &read,
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
-    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    // This is a tad hacky, this just adds a stop event to signal the end of the
+    // parallel task.
     response->event_log.push_back(profile::stop_t());
 }
 
@@ -389,7 +409,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
                 &deletion_context, res, &mod_report.info, ql_env.trace.get_or_null());
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_report);
     }
 
     void operator()(const point_delete_t &d) {
@@ -402,15 +422,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
                 res, &mod_report.info, ql_env.trace.get_or_null());
 
-        update_sindexes(&mod_report);
+        update_sindexes(mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
         sindex_create_response_t res;
 
         write_message_t wm;
-        serialize(&wm, c.mapping);
-        serialize(&wm, c.multi);
+        serialize_sindex_info(&wm, c.mapping, c.multi);
 
         vector_stream_t stream;
         stream.reserve(wm.size());
@@ -467,6 +486,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
+               ctx->changefeed_client.get(),
                ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
@@ -494,19 +514,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    void update_sindexes(const rdb_modification_report_t *mod_report) {
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(&sindex_block);
-
-        write_message_t wm;
-        serialize(&wm, rdb_sindex_change_t(*mod_report));
-        store->sindex_queue_push(wm, acq.get());
-
-        store_t::sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
-                                                                     &sindexes);
-        rdb_live_deletion_context_t deletion_context;
-        rdb_update_sindexes(sindexes, mod_report, txn, &deletion_context);
+    void update_sindexes(const rdb_modification_report_t &mod_report) {
+        std::vector<rdb_modification_report_t> mod_reports;
+        // This copying of the mod_report is inefficient, but it seems this
+        // function is only used for unit tests at the moment anyway.
+        mod_reports.push_back(mod_report);
+        store->update_sindexes(txn, &sindex_block, mod_reports,
+                               true /* release_sindex_block */);
     }
 
     btree_slice_t *btree;
@@ -539,7 +553,8 @@ void store_t::protocol_write(const write_t &write,
 
     response->n_shards = 1;
     response->event_log = v.extract_event_log();
-    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    // This is a tad hacky, this just adds a stop event to signal the end of the
+    // parallel task.
     response->event_log.push_back(profile::stop_t());
 }
 
@@ -767,25 +782,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const std::vector<rdb_modification_report_t> &mod_reports) {
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(&sindex_block);
-        scoped_array_t<write_message_t> queue_wms(mod_reports.size());
-        {
-            store_t::sindex_access_vector_t sindexes;
-            store->acquire_post_constructed_sindex_superblocks_for_write(
-                    &sindex_block, &sindexes);
-            sindex_block.reset_buf_lock();
-
-            rdb_live_deletion_context_t deletion_context;
-            for (size_t i = 0; i < mod_reports.size(); ++i) {
-                serialize(&queue_wms[i], rdb_sindex_change_t(mod_reports[i]));
-                rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
-            }
-        }
-
-        // Write mod reports onto the sindex queue. We are in line for the
-        // sindex_queue mutex and can already release all other locks.
-        store->sindex_queue_push(queue_wms, acq.get());
+        store->update_sindexes(txn,
+                               &sindex_block,
+                               mod_reports,
+                               true /* release sindex block */);
     }
 
     store_t *store;
@@ -841,22 +841,4 @@ void store_t::delayed_clear_sindex(
         /* Ignore. The sindex deletion will continue when the store
         is next started up. */
     }
-}
-
-void store_t::protocol_reset_data(const region_t &subregion,
-                                  superblock_t *superblock,
-                                  signal_t *interruptor) {
-    with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    rdb_value_sizer_t sizer(cache->max_block_size());
-
-    always_true_key_tester_t key_tester;
-    buf_lock_t sindex_block
-        = acquire_sindex_block_for_write(superblock->expose_buf(),
-                                         superblock->get_sindex_block_id());
-    // TODO (daniel): This doesn't actually delete anything at all except for
-    // large blobs.
-    rdb_erase_major_range(&key_tester, subregion.inner,
-                          &sindex_block,
-                          superblock, this,
-                          interruptor);
 }

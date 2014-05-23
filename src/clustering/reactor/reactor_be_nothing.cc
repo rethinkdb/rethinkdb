@@ -123,14 +123,27 @@ void reactor_t::be_nothing(region_t region,
          * that we are beginning the process of erasing data. */
         directory_entry.set(reactor_business_card_t::nothing_when_done_erasing_t());
 
-        /* This actually erases the data. */
         {
             cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
             on_thread_t th(svs->home_thread());
-            write_token_pair_t token_pair;
-            svs->new_write_token_pair(&token_pair);
 
-            svs->reset_data(region, region_map_t<binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, write_durability_t::HARD, &ct_interruptor);
+            /* Persist that we don't have any valid data anymore for this range */
+            {
+                order_source_t order_source; // TODO: order_token_t::ignore
+                object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+                svs->new_write_token(&write_token);
+
+                svs->set_metainfo(
+                    region_map_t<binary_blob_t>(
+                        region,
+                        binary_blob_t(version_range_t(version_t::zero()))),
+                    order_source.check_in("be_nothing"),
+                    &write_token,
+                    &ct_interruptor);
+            }
+
+            /* This actually erases the data. */
+            svs->reset_data(region, write_durability_t::HARD, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,
