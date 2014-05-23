@@ -466,7 +466,7 @@ private:
     // A coro pool (with one coroutine) to process current page eviction.
     // This exists to avoid reentrant calls to `consider_evicting_current_page()`
     // that could otherwise blow the stack.
-    unlimited_fifo_queue_t<block_id_t> consider_evicting_current_page_queue_;
+    unlimited_fifo_queue_t<block_id_t> current_page_eviction_queue_;
     std_function_callback_t<block_id_t> current_page_eviction_cb_;
     scoped_ptr_t<coro_pool_t<block_id_t> > current_page_eviction_worker_;
 
