@@ -164,7 +164,9 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(protob_t<Query>()),
       extproc_pool(ctx ? ctx->extproc_pool : NULL),
-      changefeed_client(ctx ? ctx->changefeed_client.get() : NULL),
+      changefeed_client(ctx && ctx->changefeed_client.has()
+                        ? ctx->changefeed_client.get()
+                        : NULL),
       reql_http_proxy(ctx ? ctx->reql_http_proxy : ""),
       cluster_access(
           ctx ? ctx->ns_repo : NULL,
