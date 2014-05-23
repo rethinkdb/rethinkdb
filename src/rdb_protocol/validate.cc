@@ -43,7 +43,7 @@
         rcheck_toplevel(                                                \
             pbname##_##pbname##Type_IsValid(pb.type()),                 \
             ql::base_exc_t::GENERIC,                                    \
-            strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type  %d).", \
+            strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type %d).", \
                       pb.type()));                                      \
     } while (0)
 
