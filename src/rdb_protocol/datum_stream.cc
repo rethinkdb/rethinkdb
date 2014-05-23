@@ -961,7 +961,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     for (; streams_index < streams.size(); ++streams_index) {
         std::vector<counted_t<const datum_t> > batch
             = streams[streams_index]->next_batch(env, batchspec);
-        if (batch.size() != 0) {
+        if (batch.size() != 0 || streams[streams_index]->sends_empty_batches()) {
             return batch;
         }
     }
