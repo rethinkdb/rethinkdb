@@ -9,6 +9,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/coro_pool.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "do_on_thread.hpp"
@@ -85,6 +86,14 @@ void page_read_ahead_cb_t::destroy_self() {
 
 void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
     ASSERT_NO_CORO_WAITING;
+    // Perform the eviction later. Evicting a current_page_t can cause
+    // recursive calls to `consider_evicting_current_page()`, and that
+    // could otherwise blow the stack.
+    consider_evicting_current_page_queue_.push(block_id);
+}
+
+void page_cache_t::consider_evicting_current_page_handler(block_id_t block_id) {
+    ASSERT_NO_CORO_WAITING;
     // We can't do anything until read-ahead is done, because it uses the existence
     // of a current_page_t entry to figure out whether the read-ahead page could be
     // out of date.
@@ -158,7 +167,7 @@ void page_cache_t::have_read_ahead_cb_destroyed() {
 void page_cache_t::consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                        auto_drainer_t::lock_t lock) {
     for (block_id_t id = 0; id < page_cache->current_pages_.size(); ++id) {
-        page_cache->consider_evicting_current_page(id);
+        page_cache->consider_evicting_current_page_handler(id);
         if (id % 16 == 15) {
             coro_t::yield();
             if (lock.get_drain_signal()->is_pulsed()) {
@@ -190,6 +199,10 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       free_list_(serializer),
       evicter_(),
       read_ahead_cb_(NULL),
+      current_page_eviction_cb_(std::bind(
+              &page_cache_t::consider_evicting_current_page_handler, this, ph::_1)),
+      current_page_eviction_worker_(make_scoped<coro_pool_t<block_id_t> >(
+              1, &consider_evicting_current_page_queue_, &current_page_eviction_cb_)),
       drainer_(make_scoped<auto_drainer_t>()) {
 
     const bool start_read_ahead = balancer->read_ahead_ok_at_start();
@@ -227,6 +240,8 @@ page_cache_t::~page_cache_t() {
     have_read_ahead_cb_destroyed();
 
     drainer_.reset();
+
+    current_page_eviction_worker_.reset();
     for (size_t i = 0, e = current_pages_.size(); i < e; ++i) {
         if (i % 256 == 255) {
             coro_t::yield();

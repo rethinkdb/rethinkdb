@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
+#include <functional>
+
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
@@ -311,11 +313,11 @@ public:
 
     perfmon_counter_t queue_count;
     perfmon_membership_t queue_count_membership;
-    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    unlimited_fifo_queue_t<std::function<void()> > background_write_queue;
     calling_callback_t background_write_caller;
 
 private:
-    coro_pool_t<boost::function<void()> > background_write_workers;
+    coro_pool_t<std::function<void()> > background_write_workers;
     broadcaster_t *controller;
     auto_drainer_t drainer;
 
@@ -452,10 +454,10 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
                 unreachable();
             }
 
-            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
+            it->first->background_write_queue.push(std::bind(&broadcaster_t::background_writeread, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
-            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+            it->first->background_write_queue.push(std::bind(&broadcaster_t::background_write, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token));
         }
     }
