@@ -175,7 +175,7 @@ private:
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
     merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> d = v0->as_datum();
