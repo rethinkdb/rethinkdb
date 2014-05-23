@@ -17,7 +17,9 @@
 #include "debug.hpp"
 
 void store_t::note_reshard() {
-    changefeed_server.stop_all();
+    if (changefeed_server.has()) {
+        changefeed_server->stop_all();
+    }
 }
 
 void store_t::help_construct_bring_sindexes_up_to_date() {
@@ -60,19 +62,21 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        store->changefeed_server.add_client(s.addr);
+        guarantee(store->changefeed_server.has());
+        store->changefeed_server->add_client(s.addr);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server.get_uuid());
-        res->addrs.insert(store->changefeed_server.get_stop_addr());
+        res->server_uuids.insert(store->changefeed_server->get_uuid());
+        res->addrs.insert(store->changefeed_server->get_stop_addr());
     }
 
     void operator()(const changefeed_stamp_t &s) {
+        guarantee(store->changefeed_server.has());
         response->response = changefeed_stamp_response_t();
         boost::get<changefeed_stamp_response_t>(&response->response)
-            ->stamps[store->changefeed_server.get_uuid()]
-            = store->changefeed_server.get_stamp(s.addr);
+            ->stamps[store->changefeed_server->get_uuid()]
+            = store->changefeed_server->get_stamp(s.addr);
     }
 
     void operator()(const point_read_t &get) {
@@ -228,7 +232,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.get(),
+               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
                ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
@@ -456,7 +460,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.get(),
+               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
                ctx->reql_http_proxy,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
@@ -514,7 +518,8 @@ void store_t::protocol_write(const write_t &write,
     rdb_write_visitor_t v(btree.get(), this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
-                          timestamp.to_repli_timestamp(), ctx,
+                          timestamp.to_repli_timestamp(),
+                          ctx,
                           response, interruptor);
     {
         profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);

@@ -381,7 +381,7 @@ public:
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     rdb_context_t *ctx;
-    ql::changefeed::server_t changefeed_server;
+    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
 
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.
