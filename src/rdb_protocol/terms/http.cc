@@ -177,7 +177,7 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
             rfail_target(timeout.get(), base_exc_t::GENERIC,
                          "`timeout` may not be negative.");
         } else {
-            *timeout_ms_out = clamp<uint64_t>(tmp, 0, MAX_TIMEOUT_MS);
+            *timeout_ms_out = clamp<double>(tmp, 0, MAX_TIMEOUT_MS);
         }
     }
 }
