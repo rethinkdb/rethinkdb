@@ -115,7 +115,7 @@ private:
                               pb_rcheckable_t *auth);
 
     // Have a maximum timeout of 30 days
-    static const uint64_t MAX_TIMEOUT_MS = 2592000000;
+    static const uint64_t MAX_TIMEOUT_MS = 2592000000ull;
 };
 
 counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
@@ -177,7 +177,7 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
             rfail_target(timeout.get(), base_exc_t::GENERIC,
                          "`timeout` may not be negative.");
         } else {
-            *timeout_ms_out = clamp<uint64_t>(tmp, 0, MAX_TIMEOUT_MS);
+            *timeout_ms_out = clamp<double>(tmp, 0, MAX_TIMEOUT_MS);
         }
     }
 }

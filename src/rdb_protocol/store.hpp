@@ -39,6 +39,7 @@ class real_superblock_t;
 class superblock_t;
 class txn_t;
 class cache_balancer_t;
+struct rdb_modification_report_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
@@ -137,8 +138,6 @@ public:
 
     void reset_data(
             const region_t &subregion,
-            const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
@@ -156,6 +155,14 @@ public:
 
     void emergency_deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue);
+
+    // Updates the live sindexes, and pushes modification reports onto the sindex
+    // queues of non-live indexes.
+    void update_sindexes(
+            txn_t *txn,
+            buf_lock_t *sindex_block,
+            const std::vector<rdb_modification_report_t> &mod_reports,
+            bool release_sindex_block);
 
     void sindex_queue_push(
             const write_message_t &value,
@@ -295,10 +302,6 @@ public:
     void protocol_receive_backfill(scoped_ptr_t<superblock_t> &&superblock,
                                    signal_t *interruptor,
                                    const backfill_chunk_t &chunk);
-
-    void protocol_reset_data(const region_t &subregion,
-                             superblock_t *superblock,
-                             signal_t *interruptor);
 
     void get_metainfo_internal(buf_lock_t *sb_buf,
                                region_map_t<binary_blob_t> *out)
