@@ -23,7 +23,9 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
 
@@ -37,6 +39,7 @@ class real_superblock_t;
 class superblock_t;
 class txn_t;
 class cache_balancer_t;
+struct rdb_modification_report_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
@@ -77,6 +80,8 @@ public:
             io_backender_t *io_backender,
             const base_path_t &base_path);
     ~store_t();
+
+    void note_reshard();
 
     /* store_view_t interface */
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
@@ -133,8 +138,6 @@ public:
 
     void reset_data(
             const region_t &subregion,
-            const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
@@ -152,6 +155,14 @@ public:
 
     void emergency_deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue);
+
+    // Updates the live sindexes, and pushes modification reports onto the sindex
+    // queues of non-live indexes.
+    void update_sindexes(
+            txn_t *txn,
+            buf_lock_t *sindex_block,
+            const std::vector<rdb_modification_report_t> &mod_reports,
+            bool release_sindex_block);
 
     void sindex_queue_push(
             const write_message_t &value,
@@ -292,10 +303,6 @@ public:
                                    signal_t *interruptor,
                                    const backfill_chunk_t &chunk);
 
-    void protocol_reset_data(const region_t &subregion,
-                             superblock_t *superblock,
-                             signal_t *interruptor);
-
     void get_metainfo_internal(buf_lock_t *sb_buf,
                                region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
@@ -373,11 +380,12 @@ public:
     new_mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
+    rdb_context_t *ctx;
+    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.
     auto_drainer_t drainer;
-
-    rdb_context_t *ctx;
 
 private:
     DISABLE_COPYING(store_t);

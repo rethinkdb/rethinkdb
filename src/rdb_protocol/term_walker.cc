@@ -154,6 +154,7 @@ private:
         case Term::MERGE:
         case Term::LITERAL:
         case Term::BETWEEN:
+        case Term::CHANGES:
         case Term::REDUCE:
         case Term::MAP:
         case Term::FILTER:
@@ -327,6 +328,7 @@ private:
         case Term::ARGS:
         case Term::LITERAL:
         case Term::BETWEEN:
+        case Term::CHANGES:
         case Term::ORDERBY:
         case Term::DISTINCT:
         case Term::UNION:

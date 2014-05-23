@@ -161,28 +161,35 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
 
-/* `rdb_erase_major_range` has a complexity of O(n) where n is the size of the
- * btree, if secondary indexes are present. Be careful when to use it. */
-void rdb_erase_major_range(key_tester_t *tester,
-                           const key_range_t &keys,
-                           buf_lock_t *sindex_block,
-                           superblock_t *superblock,
-                           store_t *store,
-                           signal_t *interruptor);
-
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
  * the btree, and m is the number of documents actually being deleted.
  * It also requires O(m) memory.
- * In contrast to `rdb_erase_major_range()`, it doesn't update secondary indexes
- * itself, but returns a number of modification reports that should be applied
- * to secondary indexes separately. Furthermore, it detaches blobs rather than
- * deleting them. */
+ * It returns a number of modification reports that should be applied
+ * to secondary indexes separately. Blobs are detached, and should be deleted later
+ * if required (passing the modification reports to store_t::update_sindexes()
+ * takes care of that). */
 void rdb_erase_small_range(key_tester_t *tester,
                            const key_range_t &keys,
                            superblock_t *superblock,
                            const deletion_context_t *deletion_context,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
+
+/* This variant also takes a `max_entries_erased` parameter. Once that many entries
+ * have been erased, it will abort and write the key of the last erased entry into
+ * `highest_erased_key_out`.
+ * Returns `true` if  all data in the range has been erased, or `false` if erasing
+ * was terminated because of hitting the `max_entries_erased` parameter. */
+enum done_erasing_t { DONE, REACHED_MAX };
+done_erasing_t rdb_erase_small_range(
+        key_tester_t *tester,
+        const key_range_t &keys,
+        superblock_t *superblock,
+        const deletion_context_t *deletion_context,
+        signal_t *interruptor,
+        unsigned int max_entries_erased,
+        store_key_t *highest_erased_key_out,
+        std::vector<rdb_modification_report_t> *mod_reports_out);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
@@ -240,26 +247,12 @@ struct rdb_modification_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-
-struct rdb_erase_major_range_report_t {
-    rdb_erase_major_range_report_t() { }
-    explicit rdb_erase_major_range_report_t(const key_range_t &_range_to_erase)
-        : range_to_erase(_range_to_erase) { }
-    key_range_t range_to_erase;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi);
 void deserialize_sindex_info(const std::vector<char> &data,
                              ql::map_wire_func_t *mapping,
                              sindex_multi_bool_t *multi);
-
-typedef boost::variant<rdb_modification_report_t,
-                       rdb_erase_major_range_report_t>
-        rdb_sindex_change_t;
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
@@ -275,6 +268,8 @@ public:
     ~rdb_modification_report_cb_t();
 
 private:
+    void on_mod_report_sub(const rdb_modification_report_t &, cond_t *);
+
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
     store_t *store_;
@@ -289,12 +284,6 @@ void rdb_update_sindexes(
         const rdb_modification_report_t *modification,
         txn_t *txn,
         const deletion_context_t *deletion_context);
-
-
-void rdb_erase_major_range_sindexes(
-        const store_t::sindex_access_vector_t &sindexes,
-        const rdb_erase_major_range_report_t *erase_range,
-        signal_t *interruptor, const value_deleter_t *deleter);
 
 void post_construct_secondary_indexes(
         store_t *store,

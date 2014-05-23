@@ -131,8 +131,8 @@ public:
     template<class callable_t>
     void publish(const callable_t &callable) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&publisher.mutex);
-        for (typename publisher_t<subscriber_t>::subscription_t *sub = publisher.subscriptions.head();
-             sub;
+        for (auto sub = publisher.subscriptions.head();
+             sub != NULL;
              sub = publisher.subscriptions.next(sub)) {
             /* `callable()` should not block */
             ASSERT_FINITE_CORO_WAITING;

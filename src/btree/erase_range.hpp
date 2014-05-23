@@ -6,6 +6,7 @@
 
 #include "errors.hpp"
 #include "btree/node.hpp"
+#include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 
 class buf_parent_t;
@@ -51,13 +52,18 @@ struct always_true_key_tester_t : public key_tester_t {
     }
 };
 
+/* The return value of the `on_erase_cb` determines whether this function
+continues erasing more values (true) or not (false). */
 void btree_erase_range_generic(value_sizer_t *sizer, key_tester_t *tester,
         const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
         signal_t *interruptor, bool release_superblock = true,
-        const std::function<void(const store_key_t &, const char *, const buf_parent_t &)>
-            &on_erase_cb =
-                std::function<void(const store_key_t &, const char *, const buf_parent_t &)>());
+        const std::function<done_traversing_t(const store_key_t &,
+                                              const char *,
+                                              const buf_parent_t &)>
+            &on_erase_cb = std::function<done_traversing_t(const store_key_t &,
+                                                           const char *,
+                                                           const buf_parent_t &)>());
 
 void erase_all(value_sizer_t *sizer,
                const value_deleter_t *deleter,

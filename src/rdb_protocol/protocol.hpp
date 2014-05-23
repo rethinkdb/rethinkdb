@@ -20,9 +20,11 @@
 #include "concurrency/cond_var.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
 #include "rdb_protocol/shards.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 class store_t;
 class buf_lock_t;
@@ -171,13 +173,15 @@ enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
         sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
 
-class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
+class cluster_semilattice_metadata_t;
+class mailbox_manager_t;
 
 class rdb_context_t {
 public:
     rdb_context_t();
     rdb_context_t(extproc_pool_t *_extproc_pool,
+                  mailbox_manager_t *mailbox_manager,
                   namespace_repo_t *_ns_repo,
                   boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -206,6 +210,9 @@ public:
     cond_t interruptor;
     scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
     uuid_u machine_id;
+
+    mailbox_manager_t *manager;
+    scoped_ptr_t<ql::changefeed::client_t> changefeed_client;
 
     perfmon_collection_t ql_stats_collection;
     perfmon_membership_t ql_stats_membership;
@@ -270,9 +277,27 @@ struct sindex_status_response_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+struct changefeed_subscribe_response_t {
+    changefeed_subscribe_response_t() { }
+    std::set<uuid_u> server_uuids;
+    std::set<ql::changefeed::server_t::addr_t> addrs;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct changefeed_stamp_response_t {
+    changefeed_stamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // machines and don't synchronize with each other.)
+    std::map<uuid_u, uint64_t> stamps;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 struct read_response_t {
     typedef boost::variant<point_read_response_t,
                            rget_read_response_t,
+                           changefeed_subscribe_response_t,
+                           changefeed_stamp_response_t,
                            distribution_read_response_t,
                            sindex_list_response_t,
                            sindex_status_response_t> variant_t;
@@ -388,9 +413,31 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+class changefeed_subscribe_t {
+public:
+    changefeed_subscribe_t() { }
+    explicit changefeed_subscribe_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(_addr), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+class changefeed_stamp_t {
+public:
+    changefeed_stamp_t() : region(region_t::universe()) { }
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
+    region_t region;
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 struct read_t {
     typedef boost::variant<point_read_t,
                            rget_read_t,
+                           changefeed_subscribe_t,
+                           changefeed_stamp_t,
                            distribution_read_t,
                            sindex_list_t,
                            sindex_status_t> variant_t;
@@ -409,8 +456,9 @@ struct read_t {
         THROWS_ONLY(interrupted_exc_t);
 
     read_t() { }
-    read_t(const variant_t &r, profile_bool_t _profile)
-        : read(r), profile(_profile) { }
+    template<class T>
+    read_t(T &&_read, profile_bool_t _profile)
+        : read(std::forward<T>(_read)), profile(_profile) { }
 
     // Only use snapshotting if we're doing a range get.
     bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
@@ -435,12 +483,10 @@ struct point_write_response_t {
 
 struct point_delete_response_t {
     point_delete_result_t result;
-
     point_delete_response_t() {}
     explicit point_delete_response_t(point_delete_result_t _result)
         : result(_result)
     { }
-
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
@@ -626,48 +672,23 @@ struct write_t {
     durability_requirement_t durability() const { return durability_requirement; }
 
     write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-    write_t(const batched_replace_t &br,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(br), durability_requirement(durability), profile(_profile) { }
-    write_t(const batched_insert_t &bi,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(bi), durability_requirement(durability), profile(_profile) { }
-    write_t(const point_write_t &w,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(w), durability_requirement(durability), profile(_profile) { }
-    write_t(const point_delete_t &d,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(d), durability_requirement(durability), profile(_profile) { }
-    write_t(const sindex_create_t &c, profile_bool_t _profile)
-        : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-          profile(_profile) { }
-    write_t(const sindex_drop_t &c, profile_bool_t _profile)
-        : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-          profile(_profile) { }
-    write_t(const sindex_create_t &c,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(c), durability_requirement(durability),
-          profile(_profile) { }
-    write_t(const sindex_drop_t &c,
-            durability_requirement_t durability,
-            profile_bool_t _profile)
-        : write(c), durability_requirement(durability),
-          profile(_profile) { }
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when
      *  splitting up batched replaces/inserts) and want it to only have an
      *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
      *  durability. */
-    write_t(const sync_t &c,
+    template<class T>
+    write_t(T &&t,
             durability_requirement_t durability,
             profile_bool_t _profile)
-        : write(c), durability_requirement(durability), profile(_profile) { }
+        : write(std::forward<T>(t)),
+          durability_requirement(durability), profile(_profile) { }
+    template<class T>
+    write_t(T &&t, profile_bool_t _profile)
+        : write(std::forward<T>(t)),
+          durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+          profile(_profile) { }
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -686,10 +707,8 @@ struct backfill_chunk_t {
     };
     struct delete_range_t {
         region_t range;
-
         delete_range_t() { }
         explicit delete_range_t(const region_t& _range) : range(_range) { }
-
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct key_value_pairs_t {

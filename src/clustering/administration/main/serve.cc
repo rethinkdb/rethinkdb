@@ -237,6 +237,7 @@ bool do_serve(io_backender_t *io_backender,
 
         // Namespace repo
         rdb_context_t rdb_ctx(&extproc_pool,
+                              &mailbox_manager,
                               NULL,
                               semilattice_manager_cluster.get_root_view(),
                               auth_manager_cluster.get_root_view(),
@@ -299,8 +300,10 @@ bool do_serve(io_backender_t *io_backender,
             }
 
             {
-                rdb_query_server_t rdb_query_server(serve_info.ports.local_addresses,
-                                                    serve_info.ports.reql_port, &rdb_ctx);
+                rdb_query_server_t rdb_query_server(
+                    serve_info.ports.local_addresses,
+                    serve_info.ports.reql_port,
+                    &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
 
