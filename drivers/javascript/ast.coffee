@@ -456,7 +456,7 @@ class MakeObject extends RDBOp
 
 class Var extends RDBOp
     tt: protoTermType.VAR
-    compose: (args) -> ['var_'+args[0]]
+    compose: (args) -> ['var_'+args]
 
 class JavaScript extends RDBOp
     tt: protoTermType.JAVASCRIPT
