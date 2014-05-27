@@ -89,7 +89,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
     // Perform the eviction later. Evicting a current_page_t can cause
     // recursive calls to `consider_evicting_current_page()`, and that
     // could otherwise blow the stack.
-    current_page_eviction_queue_.push(block_id);
+    consider_evicting_current_page_queue_.push(block_id);
 }
 
 void page_cache_t::consider_evicting_current_page_handler(block_id_t block_id) {
@@ -202,7 +202,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       current_page_eviction_cb_(std::bind(
               &page_cache_t::consider_evicting_current_page_handler, this, ph::_1)),
       current_page_eviction_worker_(make_scoped<coro_pool_t<block_id_t> >(
-              1, &current_page_eviction_queue_, &current_page_eviction_cb_)),
+              1, &consider_evicting_current_page_queue_, &current_page_eviction_cb_)),
       drainer_(make_scoped<auto_drainer_t>()) {
 
     const bool start_read_ahead = balancer->read_ahead_ok_at_start();
