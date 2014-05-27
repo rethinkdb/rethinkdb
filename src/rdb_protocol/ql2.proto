@@ -118,6 +118,7 @@ message Response {
                               // the same token as this response, you will get
                               // more of the sequence.  Keep sending [CONTINUE]
                               // queries until you get back [SUCCESS_SEQUENCE].
+        SUCCESS_FEED     = 5; // Like [SUCCESS_PARTIAL] but for feeds.
         WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
 
         // These response types indicate failure.

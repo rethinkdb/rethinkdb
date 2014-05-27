@@ -104,7 +104,7 @@ public:
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
     virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
-    virtual bool sends_empty_batches() const = 0;
+    virtual bool is_cfeed() const = 0;
 
     virtual void accumulate(
         env_t *env, eager_acc_t *acc, const terminal_variant_t &tv) = 0;
@@ -164,8 +164,8 @@ private:
     virtual bool is_exhausted() const {
         return source->is_exhausted() && batch_cache_exhausted();
     }
-    virtual bool sends_empty_batches() const {
-        return source->sends_empty_batches();
+    virtual bool is_cfeed() const {
+        return source->is_cfeed();
     }
 
 protected:
@@ -189,7 +189,7 @@ public:
     array_datum_stream_t(counted_t<const datum_t> _arr,
                          const protob_t<const Backtrace> &bt_src);
     virtual bool is_exhausted() const;
-    virtual bool sends_empty_batches() const;
+    virtual bool is_cfeed() const;
 
 private:
     virtual bool is_array();
@@ -214,7 +214,7 @@ private:
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
-    virtual bool sends_empty_batches() const;
+    virtual bool is_cfeed() const;
     uint64_t index, left, right;
 };
 
@@ -250,7 +250,15 @@ class union_datum_stream_t : public datum_stream_t {
 public:
     union_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                          const protob_t<const Backtrace> &bt_src)
-        : datum_stream_t(bt_src), streams(_streams), streams_index(0) { }
+        : datum_stream_t(bt_src), streams(_streams), streams_index(0),
+          is_cfeed_union(false) {
+        for (auto it = streams.begin(); it != streams.end(); ++it) {
+            if ((*it)->is_cfeed()) {
+                is_cfeed_union = true;
+                break;
+            }
+        }
+    }
 
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
@@ -260,7 +268,7 @@ public:
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
     virtual bool is_exhausted() const;
-    virtual bool sends_empty_batches() const;
+    virtual bool is_cfeed() const;
 
 private:
     std::vector<counted_t<const datum_t> >
@@ -268,6 +276,7 @@ private:
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
+    bool is_cfeed_union;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by
@@ -428,7 +437,7 @@ public:
     }
 
     bool is_exhausted() const;
-    virtual bool sends_empty_batches() const;
+    virtual bool is_cfeed() const;
 private:
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
