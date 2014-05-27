@@ -272,6 +272,7 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() { return false; }
     virtual bool is_exhausted() const { return false; }
+    virtual bool sends_empty_batches() const { return true; }
     virtual std::vector<counted_t<const datum_t> >
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL
@@ -310,12 +311,20 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
     if (els.size() == 0 && !exc) {
         cond_t wait_for_data;
         cond = &wait_for_data;
+        signal_timer_t timer;
+        if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+            timer.start(batcher->microtime_left() / 1000);
+        }
         try {
+            wait_any_t any_interruptor(interruptor, &timer);
             // We don't need to wait on the drain signal because the interruptor
             // will be pulsed if we're shutting down.
-            wait_interruptible(cond, interruptor);
+            wait_interruptible(cond, &any_interruptor);
         } catch (const interrupted_exc_t &e) {
             cond = NULL;
+            if (timer.is_pulsed()) {
+                return std::vector<counted_t<const datum_t> >();
+            }
             throw e;
         }
         guarantee(cond == NULL);
