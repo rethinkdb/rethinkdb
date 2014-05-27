@@ -17,10 +17,8 @@
 #include "concurrency/access.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cond_var.hpp"
-#include "concurrency/coro_pool.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/new_semaphore.hpp"
-#include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/backindex_bag.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
@@ -423,7 +421,6 @@ private:
 
     static void consider_evicting_all_current_pages(page_cache_t *page_cache,
                                                     auto_drainer_t::lock_t lock);
-    void consider_evicting_current_page_handler(block_id_t block_id);
 
     const block_size_t max_block_size_;
 
@@ -462,13 +459,6 @@ private:
     // Holds a lock on *drainer_ is until shortly after the page_read_ahead_cb_t is
     // destroyed and all possible read-ahead operations have completed.
     auto_drainer_t::lock_t read_ahead_cb_existence_;
-
-    // A coro pool (with one coroutine) to process current page eviction.
-    // This exists to avoid reentrant calls to `consider_evicting_current_page()`
-    // that could otherwise blow the stack.
-    unlimited_fifo_queue_t<block_id_t> consider_evicting_current_page_queue_;
-    std_function_callback_t<block_id_t> current_page_eviction_cb_;
-    scoped_ptr_t<coro_pool_t<block_id_t> > current_page_eviction_worker_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 

@@ -2,9 +2,9 @@
 #ifndef CONCURRENCY_CORO_POOL_HPP_
 #define CONCURRENCY_CORO_POOL_HPP_
 
-#include <functional>
+#include "errors.hpp"
+#include <boost/function.hpp>
 
-#include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/queue/passive_producer.hpp"
@@ -21,18 +21,18 @@ public:
 };
 
 template <class T>
-class std_function_callback_t : public coro_pool_callback_t<T> {
+class boost_function_callback_t : public coro_pool_callback_t<T> {
 public:
-    explicit std_function_callback_t(std::function<void(T, signal_t *)> _f)
+    explicit boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
         : f(_f)
     { }
     void coro_pool_callback(T t, signal_t *interruptor) {
         f(t, interruptor);
     }
 private:
-    std::function<void(T, signal_t *)> f;
+    boost::function<void(T, signal_t *)> f;
 
-    DISABLE_COPYING(std_function_callback_t);
+    DISABLE_COPYING(boost_function_callback_t);
 };
 
 template <class T>
@@ -96,9 +96,9 @@ private:
     auto_drainer_t coro_drain_semaphore;
 };
 
-class calling_callback_t : public coro_pool_callback_t<std::function<void()> > {
+class calling_callback_t : public coro_pool_callback_t<boost::function<void()> > {
 public:
-    void coro_pool_callback(std::function<void()> f, UNUSED signal_t *interruptor) {
+    void coro_pool_callback(boost::function<void()> f, UNUSED signal_t *interruptor) {
         f();
     }
 };
