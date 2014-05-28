@@ -218,6 +218,9 @@ class RqlQuery(object):
     def keys(self, *args):
         return Keys(self, *args)
 
+    def changes(self, *args):
+        return Changes(self, *args)
+
     # Polymorphic object/sequence operations
     def pluck(self, *args):
         return Pluck(self, *args)
@@ -711,6 +714,10 @@ class Random(RqlTopLevelQuery):
     tt = p.Term.RANDOM
     st = "random"
 
+class Changes(RqlMethodQuery):
+    tt = p.Term.CHANGES
+    st = "changes"
+
 class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT
     st = "default"
@@ -884,7 +891,7 @@ class DB(RqlTopLevelQuery):
 
 class FunCall(RqlQuery):
     tt = p.Term.FUNCALL
-    
+
     # This object should be constructed with arguments first, and the function itself as
     # the last parameter.  This makes it easier for the places where this object is
     # constructed.  The actual wire format is function first, arguments last, so we flip

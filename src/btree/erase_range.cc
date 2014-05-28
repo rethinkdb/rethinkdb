@@ -4,11 +4,11 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
+#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "btree/types.hpp"
 #include "concurrency/fifo_checker.hpp"
-
-void noop_value_deleter_t::delete_value(buf_parent_t, const void *) const { }
 
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
@@ -142,7 +142,8 @@ void btree_erase_range_generic(value_sizer_t *sizer,
         key_tester_t *tester, const value_deleter_t *deleter,
         const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null,
-        superblock_t *superblock, signal_t *interruptor, bool release_superblock,
+        superblock_t *superblock, signal_t *interruptor,
+        release_superblock_t release_superblock,
         const std::function<done_traversing_t(const store_key_t &,
                                               const char *,
                                               const buf_parent_t &)>
@@ -152,22 +153,4 @@ void btree_erase_range_generic(value_sizer_t *sizer,
                                 on_erase_cb);
     btree_parallel_traversal(superblock, &helper, interruptor,
                              release_superblock);
-}
-
-// KSI: Wait, seriously?  Is it actually correct and proper for our
-// partially-completed btree erasure operation to be interrupted?  If the tree is
-// already detached, the worst that would happen is that we leak blocks, yes.
-void erase_all(value_sizer_t *sizer,
-               const value_deleter_t *deleter,
-               superblock_t *superblock,
-               signal_t *interruptor,
-               bool release_superblock) {
-    struct always_true_tester_t : public key_tester_t {
-        bool key_should_be_erased(const btree_key_t *) { return true; }
-    } always_true_tester;
-
-    btree_erase_range_generic(sizer, &always_true_tester,
-                              deleter, NULL, NULL,
-                              superblock,
-                              interruptor, release_superblock);
 }

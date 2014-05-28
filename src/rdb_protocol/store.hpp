@@ -41,13 +41,14 @@ class txn_t;
 class cache_balancer_t;
 struct rdb_modification_report_t;
 
-class sindex_not_post_constructed_exc_t : public std::exception {
+class sindex_not_ready_exc_t : public std::exception {
 public:
-    explicit sindex_not_post_constructed_exc_t(
-        const std::string &sindex_name, const std::string &table_name);
+    explicit sindex_not_ready_exc_t(std::string sindex_name,
+                                    const secondary_index_t &sindex,
+                                    const std::string &table_name);
     const char* what() const throw();
-    ~sindex_not_post_constructed_exc_t() throw();
-private:
+    ~sindex_not_ready_exc_t() throw();
+protected:
     std::string info;
 };
 
@@ -186,22 +187,18 @@ public:
             block_id_t sindex_block_id);
 
     MUST_USE bool add_sindex(
-        const std::string &id,
+        const sindex_name_t &name,
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block);
 
     void set_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
+        const std::map<sindex_name_t, secondary_index_t> &sindexes,
         buf_lock_t *sindex_block,
-        value_sizer_t *sizer,
-        const deletion_context_t *live_deletion_context,
-        const deletion_context_t *post_construction_deletion_context,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
+        std::set<sindex_name_t> *created_sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
-        const std::string &id,
+        const sindex_name_t &name,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
@@ -211,28 +208,26 @@ public:
     THROWS_NOTHING;
 
     bool drop_sindex(
-        const std::string &id,
-        buf_lock_t *sindex_block,
-        value_sizer_t *sizer,
-        const deletion_context_t *live_deletion_context,
-        const deletion_context_t *post_construction_deletion_context,
-        signal_t *interruptor)
+        const sindex_name_t &name,
+        buf_lock_t sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
-            const std::string &id,
+            const sindex_name_t &name,
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out) // Optional, may be NULL
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            uuid_u *sindex_uuid_out)
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
-            const std::string &id,
+            const sindex_name_t &name,
             const std::string &table_name,
             superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out)
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            uuid_u *sindex_uuid_out)
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -252,12 +247,12 @@ public:
             block_id_t sindex_block_id,
             buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_ready_exc_t);
 
     void acquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
@@ -265,18 +260,18 @@ public:
     THROWS_NOTHING;
 
     bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            boost::optional<std::set<sindex_name_t> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+    THROWS_ONLY(sindex_not_ready_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+    THROWS_ONLY(sindex_not_ready_exc_t);
 
-    btree_slice_t *get_sindex_slice(std::string id) {
+    btree_slice_t *get_sindex_slice(const uuid_u &id) {
         return &(secondary_index_slices.at(id));
     }
 
@@ -333,6 +328,20 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
+    // Helper function to clear out a secondary index that has been
+    // marked as deleted. To be run in a coroutine.
+    void delayed_clear_sindex(
+            secondary_index_t sindex,
+            auto_drainer_t::lock_t store_keepalive)
+            THROWS_NOTHING;
+    // Internally called by `delayed_clear_sindex()`
+    void clear_sindex(
+            secondary_index_t sindex,
+            value_sizer_t *sizer,
+            const deletion_context_t *deletion_context,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
     void help_construct_bring_sindexes_up_to_date();
 
     void acquire_superblock_for_write(
@@ -344,6 +353,10 @@ private:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
+
+    MUST_USE bool mark_secondary_index_deleted(
+            buf_lock_t *sindex_block,
+            const sindex_name_t &name);
 
 public:
     void check_and_update_metainfo(
@@ -374,7 +387,7 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
+    boost::ptr_map<const uuid_u, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;

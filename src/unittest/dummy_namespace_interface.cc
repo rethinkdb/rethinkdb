@@ -60,7 +60,7 @@ void dummy_performer_t::write(const write_t &write,
 
 dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
                                          order_source_t *order_source)
-    : next(n), current_timestamp(state_timestamp_t::zero()) {
+    : next(n) {
     cond_t interruptor;
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
@@ -70,10 +70,15 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
     next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
                                  &read_token, &interruptor, &metainfo);
 
-    for (region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
-         it != metainfo.end();
-         ++it) {
-        rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
+    current_timestamp = state_timestamp_t::zero();
+    for (typename region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
+                                                        it != metainfo.end();
+                                                        it++) {
+        state_timestamp_t region_timestamp
+            = binary_blob_t::get<state_timestamp_t>(it->second);
+        if (region_timestamp > current_timestamp) {
+            current_timestamp = region_timestamp;
+        }
     }
 }
 
@@ -152,7 +157,8 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
 dummy_namespace_interface_t::
 dummy_namespace_interface_t(std::vector<region_t> shards,
                             store_view_t **stores, order_source_t
-                            *order_source, rdb_context_t *_ctx)
+                            *order_source, rdb_context_t *_ctx,
+                            bool initialize_metadata)
     : ctx(_ctx)
 {
     /* Make sure shards are non-overlapping and stuff */
@@ -167,7 +173,7 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
     std::vector<dummy_sharder_t::shard_t> shards_of_this_db;
     for (size_t i = 0; i < shards.size(); ++i) {
         /* Initialize metadata everywhere */
-        {
+        if (initialize_metadata) {
             cond_t interruptor;
 
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
