@@ -38,8 +38,17 @@
 
 #define check_empty(pb, field_size, field) check_size(0, pb, field_size, field)
 
+#define check_type(pbname, pb) do {                             \
+        check_has(pb, has_type, "type");                        \
+        rcheck_toplevel(                                                \
+            pbname##_##pbname##Type_IsValid(pb.type()),                 \
+            ql::base_exc_t::GENERIC,                                    \
+            strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type %d).", \
+                      pb.type()));                                      \
+    } while (0)
+
 void validate_pb(const Query &q) {
-    check_has(q, has_type, "type");
+    check_type(Query, q);
     if (q.type() == Query::START) {
         check_has(q, has_query, "query");
         validate_pb(q.query());
@@ -59,7 +68,7 @@ void validate_pb(const Query::AssocPair &ap) {
 }
 
 void validate_pb(const Frame &f) {
-    check_has(f, has_type, "type");
+    check_type(Frame, f);
     if (f.type() == Frame::POS) {
         check_has(f, has_pos, "pos");
     } else {
@@ -74,7 +83,7 @@ void validate_pb(const Backtrace &bt) {
 }
 
 void validate_pb(const Response &r) {
-    check_has(r, has_type, "type");
+    check_type(Response, r);
     if (r.type() == Response::SUCCESS_ATOM
         || r.type() == Response::SUCCESS_SEQUENCE
         || r.type() == Response::SUCCESS_PARTIAL) {
@@ -89,7 +98,7 @@ void validate_pb(const Response &r) {
 }
 
 void validate_pb(const Datum &d) {
-    check_has(d, has_type, "type");
+    check_type(Datum, d);
     if (d.type() == Datum::R_BOOL) {
         check_has(d, has_r_bool, "r_bool");
     } else {
@@ -149,7 +158,7 @@ void validate_var_term(const Term &t) {
 }
 
 void validate_pb(const Term &t) {
-    check_has(t, has_type, "type");
+    check_type(Term, t);
     if (t.type() == Term::DATUM) {
         check_has(t, has_datum, "datum");
     } else {

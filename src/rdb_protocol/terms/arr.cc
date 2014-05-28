@@ -6,6 +6,8 @@
 #include "rdb_protocol/op.hpp"
 #include "stl_utils.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
 
 class pend_term_t : public op_term_t {
@@ -490,67 +492,103 @@ private:
     virtual const char *name() const { return "contains"; }
 };
 
-counted_t<term_t> make_contains_term(compile_env_t *env, const protob_t<const Term> &term) {
+class args_term_t : public op_term_t {
+public:
+    args_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+    // This just evaluates its argument and returns it as an array.  The actual
+    // logic to make `args` splice arguments is in op.cc.
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t eval_flags) {
+        counted_t<val_t> v0 = arg(env, 0, eval_flags);
+        v0->as_datum()->as_array(); // Force a type error
+        return v0;
+    }
+private:
+    virtual const char *name() const { return "args"; }
+};
+
+counted_t<term_t> make_args_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<args_term_t>(env, term);
+}
+
+counted_t<term_t> make_contains_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<contains_term_t>(env, term);
 }
 
-counted_t<term_t> make_append_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_append_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<append_term_t>(env, term);
 }
 
-counted_t<term_t> make_prepend_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_prepend_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<prepend_term_t>(env, term);
 }
 
-counted_t<term_t> make_nth_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_nth_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<nth_term_t>(env, term);
 }
 
-counted_t<term_t> make_is_empty_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_is_empty_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<is_empty_term_t>(env, term);
 }
 
-counted_t<term_t> make_slice_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_slice_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<slice_term_t>(env, term);
 }
 
-counted_t<term_t> make_limit_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_limit_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<limit_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_insert_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_set_insert_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_insert_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_union_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_set_union_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_union_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_intersection_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_set_intersection_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_intersection_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_difference_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_set_difference_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_difference_term_t>(env, term);
 }
 
-counted_t<term_t> make_insert_at_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_insert_at_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_delete_at_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_delete_at_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_change_at_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_change_at_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<change_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_splice_at_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_splice_at_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<splice_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_indexes_of_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_indexes_of_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<indexes_of_term_t>(env, term);
 }
 

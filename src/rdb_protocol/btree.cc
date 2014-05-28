@@ -1055,8 +1055,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                       this,
                       mod_report,
                       &sindexes_updated_cond));
-        {
-            store_->changefeed_server.send_all(
+        if (store_->changefeed_server.has()) {
+            store_->changefeed_server->send_all(
                 ql::changefeed::msg_t(
                     ql::changefeed::msg_t::change_t(
                         mod_report.info.deleted.first,

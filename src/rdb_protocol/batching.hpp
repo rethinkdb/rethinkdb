@@ -52,6 +52,11 @@ public:
         els_left(std::move(other.els_left)),
         size_left(std::move(other.size_left)),
         end_time(std::move(other.end_time)) { }
+    microtime_t microtime_left() {
+        microtime_t cur_time = current_microtime();
+        return end_time > cur_time ? end_time - cur_time : 0;
+    }
+    batch_type_t get_batch_type() { return batch_type; }
 private:
     DISABLE_COPYING(batcher_t);
     friend class batchspec_t;

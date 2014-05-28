@@ -65,11 +65,12 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         std::rethrow_exception(exc);
     }
 
-    if (entry->stream->is_exhausted() || res->response_size() == 0) {
+    bool cfeed = entry->stream->is_cfeed();
+    if (entry->stream->is_exhausted() || (res->response_size() == 0 && !cfeed)) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else {
-        res->set_type(Response::SUCCESS_PARTIAL);
+        res->set_type(cfeed ? Response::SUCCESS_FEED : Response::SUCCESS_PARTIAL);
     }
     return true;
 }

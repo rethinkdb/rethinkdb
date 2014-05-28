@@ -709,6 +709,9 @@ lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
 bool lazy_datum_stream_t::is_exhausted() const {
     return reader.is_finished() && batch_cache_exhausted();
 }
+bool lazy_datum_stream_t::is_cfeed() const {
+    return false;
+}
 
 array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
                                            const protob_t<const Backtrace> &bt_source)
@@ -723,6 +726,9 @@ counted_t<const datum_t> array_datum_stream_t::next_arr_el() {
 
 bool array_datum_stream_t::is_exhausted() const {
     return index >= arr->size();
+}
+bool array_datum_stream_t::is_cfeed() const {
+    return false;
 }
 
 std::vector<counted_t<const datum_t> >
@@ -865,6 +871,9 @@ bool slice_datum_stream_t::is_exhausted() const {
     return (left >= right || index >= right || source->is_exhausted())
         && batch_cache_exhausted();
 }
+bool slice_datum_stream_t::is_cfeed() const {
+    return source->is_cfeed();
+}
 
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(counted_t<datum_stream_t> _src)
@@ -942,13 +951,16 @@ bool union_datum_stream_t::is_exhausted() const {
     }
     return batch_cache_exhausted();
 }
+bool union_datum_stream_t::is_cfeed() const {
+    return is_cfeed_union;
+}
 
 std::vector<counted_t<const datum_t> >
 union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     for (; streams_index < streams.size(); ++streams_index) {
         std::vector<counted_t<const datum_t> > batch
             = streams[streams_index]->next_batch(env, batchspec);
-        if (batch.size() != 0) {
+        if (batch.size() != 0 || streams[streams_index]->is_cfeed()) {
             return batch;
         }
     }

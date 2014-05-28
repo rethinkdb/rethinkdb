@@ -17,6 +17,12 @@
 // Must be <= than MAX_CHUNKS_OUT in backfiller.cc
 #define ALLOCATION_CHUNK 8
 
+// Increasing this value makes backfills faster, but also increases
+// their impact on other queries.
+// (See https://github.com/rethinkdb/rethinkdb/issues/2392 for some
+//  empirical data)
+#define CHUNK_PROCESSING_CONCURRENCY 4
+
 struct backfill_queue_entry_t {
     // TODO: The fact that fifo_enforcer_queue_t requires a default
     // constructor (and assignment operator, presumably) is completely asinine.
@@ -54,7 +60,7 @@ public:
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
         done_message_arrived(false), num_outstanding_chunks(0),
-        chunk_processing_semaphore(1)
+        chunk_processing_semaphore(CHUNK_PROCESSING_CONCURRENCY)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {

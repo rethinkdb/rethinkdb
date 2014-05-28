@@ -118,6 +118,7 @@ message Response {
                               // the same token as this response, you will get
                               // more of the sequence.  Keep sending [CONTINUE]
                               // queries until you get back [SUCCESS_SEQUENCE].
+        SUCCESS_FEED     = 5; // Like [SUCCESS_PARTIAL] but for feeds.
         WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
 
         // These response types indicate failure.
@@ -647,6 +648,7 @@ message Term {
         RANDOM = 151; // NUMBER, NUMBER {float:BOOL} -> DATUM
 
         CHANGES = 152; // TABLE -> STREAM
+        ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
     }
     optional TermType type = 1;
 

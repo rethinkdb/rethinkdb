@@ -7,12 +7,13 @@ tests:
    ot:
      py: err('RqlDriverError', 'Nesting depth limit exceeded', [])
      js: err('RqlDriverError', 'Nesting depth limit exceeded', [])
-     rb: err('RqlDriverError', 'Maximum expression depth of 20 exceeded.', [])
+     rb: err('RqlDriverError', 'Maximum expression depth exceeded (you can override this with `r.expr(X, MAX_DEPTH)`).', [])
 
  - cd: r.expr({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}}, 7)
-   rb: []
-   ot: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+   ot:
+     py: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+     js: err('RqlDriverError', 'Nesting depth limit exceeded', [])
+     rb: err('RqlDriverError', 'Maximum expression depth exceeded (you can override this with `r.expr(X, MAX_DEPTH)`).', [])
 
  - cd: r.expr({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}}, 10)
-   rb: []
    ot: ({'a':{'a':{'a':{'a':{'a':{'a':{'a':{}}}}}}}})
