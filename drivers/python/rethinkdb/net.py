@@ -53,7 +53,8 @@ class Cursor(object):
         self.connection_closed = False
 
     def _extend(self, response):
-        self.end_flag = response.type != p.Response.SUCCESS_PARTIAL
+        self.end_flag = response.type != p.Response.SUCCESS_PARTIAL and \
+                        response.type != p.Response.SUCCESS_FEED
         self.responses.append(response)
 
         if len(self.responses) == 1 and not self.end_flag:
@@ -72,7 +73,9 @@ class Cursor(object):
                 break
 
             self.conn._check_error_response(self.responses[0], self.query.term)
-            if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
+            if self.responses[0].type != p.Response.SUCCESS_PARTIAL and \
+               self.responses[0].type != p.Response.SUCCESS_SEQUENCE and \
+               self.responses[0].type != p.Response.SUCCESS_FEED:
                 raise RqlDriverError("Unexpected response type received for cursor")
 
             response_data = recursively_convert_pseudotypes(self.responses[0].data, self.opts)
@@ -210,7 +213,9 @@ class Connection(object):
         cursor._extend(response)
         cursor.outstanding_requests -= 1
 
-        if response.type != p.Response.SUCCESS_PARTIAL and cursor.outstanding_requests == 0:
+        if response.type != p.Response.SUCCESS_PARTIAL and \
+           response.type != p.Response.SUCCESS_FEED and \
+           cursor.outstanding_requests == 0:
             del self.cursor_cache[response.token]
 
     def _continue_cursor(self, cursor):
@@ -304,7 +309,9 @@ class Connection(object):
         response = self._read_response(query.token)
         self._check_error_response(response, query.term)
 
-        if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
+        if response.type == p.Response.SUCCESS_PARTIAL or \
+           response.type == p.Response.SUCCESS_SEQUENCE or \
+           response.type == p.Response.SUCCESS_FEED:
             # Sequence responses
             value = Cursor(self, query, opts)
             self.cursor_cache[query.token] = value
