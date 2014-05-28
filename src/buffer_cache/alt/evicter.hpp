@@ -86,7 +86,7 @@ private:
 
     // This is set to true while `evict_if_necessary()` is active.
     // It avoids reentrant calls to that function.
-    bool evict_if_necessary_active;
+    bool evict_if_necessary_active_;
 
     // These track every page's eviction status.
     eviction_bag_t unevictable_;

@@ -15,14 +15,14 @@ evicter_t::evicter_t()
       bytes_loaded_counter_(0),
       access_count_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME),
-      evict_if_necessary_active(false) { }
+      evict_if_necessary_active_(false) { }
 
 evicter_t::~evicter_t() {
     assert_thread();
     if (initialized_) {
         balancer_->remove_evicter(this);
     }
-    rassert(!evict_if_necessary_active);
+    guarantee(!evict_if_necessary_active_);
 }
 
 void evicter_t::initialize(page_cache_t *page_cache,
@@ -197,7 +197,7 @@ uint64_t evicter_t::in_memory_size() const {
 void evicter_t::evict_if_necessary() THROWS_NOTHING {
     assert_thread();
     guarantee(initialized_);
-    if (evict_if_necessary_active) {
+    if (evict_if_necessary_active_) {
         // Reentrant call to evict_if_necessary().
         // There is no need to start another eviction loop, plus we want to avoid
         // recursive reentrant calls for reasons of correctness and to avoid stack
@@ -209,7 +209,7 @@ void evicter_t::evict_if_necessary() THROWS_NOTHING {
     // currently in the process of being evicted, to avoid reflushing a page
     // currently being written for the purpose of eviction.
 
-    evict_if_necessary_active = true;
+    evict_if_necessary_active_ = true;
     page_t *page;
     while (in_memory_size() > memory_limit_
            && evictable_disk_backed_.remove_oldish(&page, access_time_counter_)) {
@@ -217,7 +217,7 @@ void evicter_t::evict_if_necessary() THROWS_NOTHING {
         page->evict_self();
         page_cache_->consider_evicting_current_page(page->block_id());
     }
-    evict_if_necessary_active = false;
+    evict_if_necessary_active_ = false;
 }
 
 }  // namespace alt
