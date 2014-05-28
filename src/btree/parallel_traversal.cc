@@ -537,8 +537,8 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         buf_lock_t stat_block(buf_parent_t(txn), state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
-        auto stat_block_buf =
-            static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
+        auto stat_block_buf = static_cast<btree_statblock_t *>(
+                stat_block_write.get_data_write(BTREE_STATBLOCK_SIZE));
         stat_block_buf->population += population_change;
     } else {
         // Don't acquire the block to not change the value.

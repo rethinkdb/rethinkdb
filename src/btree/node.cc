@@ -8,6 +8,14 @@ const block_magic_t btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' 
 const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } };
 const block_magic_t btree_sindex_block_t::expected_magic = { { 's', 'i', 'n', 'd' } };
 
+btree_superblock_t::btree_superblock_t() {
+    // TODO!
+    fprintf(stderr, "metainfo blob maxreflen is %d\n", (int)btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    // Just some place to put the CT_ASSERTs
+    CT_ASSERT(btree_superblock_t::METAINFO_BLOB_MAXREFLEN > 0);
+    CT_ASSERT(sizeof(btree_superblock_t) == DEVICE_BLOCK_SIZE);
+}
+
 namespace node {
 
 bool is_underfull(value_sizer_t *sizer, const node_t *node) {
