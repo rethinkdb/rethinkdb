@@ -12,6 +12,7 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
+#include "serializer/types.hpp"
 #include "version.hpp"
 
 class value_sizer_t {
@@ -36,10 +37,11 @@ struct btree_superblock_t {
     block_id_t stat_block;
     block_id_t sindex_block;
 
-    static const int METAINFO_BLOB_MAXREFLEN = DEVICE_BLOCK_SIZE - sizeof(magic)
-                                                                 - sizeof(root_block)
-                                                                 - sizeof(stat_block)
-                                                                 - sizeof(sindex_block);
+    static const int METAINFO_BLOB_MAXREFLEN
+        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
+                                                               - sizeof(root_block)
+                                                               - sizeof(stat_block)
+                                                               - sizeof(sindex_block);
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 

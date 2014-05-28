@@ -11,7 +11,8 @@ const block_magic_t btree_sindex_block_t::expected_magic = { { 's', 'i', 'n', 'd
 void btree_superblock_ct_asserts() {
     // Just some place to put the CT_ASSERTs
     CT_ASSERT(btree_superblock_t::METAINFO_BLOB_MAXREFLEN > 0);
-    CT_ASSERT(sizeof(btree_superblock_t) == DEVICE_BLOCK_SIZE);
+    CT_ASSERT(from_cache_block_size_t<sizeof(btree_superblock_t)>::ser_size \
+              == DEVICE_BLOCK_SIZE);
 }
 
 namespace node {
