@@ -44,8 +44,6 @@ struct btree_superblock_t {
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
-
-    btree_superblock_t();
 } __attribute__ ((__packed__));
 static const uint32_t BTREE_SUPERBLOCK_SIZE = sizeof(btree_superblock_t);
 
