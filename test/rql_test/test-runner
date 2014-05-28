@@ -420,7 +420,7 @@ def getTestList(rootPath, testFilters=None, languages=None):
         if groupName in ('.', './'):
             groupName = ''
         if groupName == 'src' or groupName.startswith('src/'):
-            groupName = 'polygot' + groupName.lstrip('src')
+            groupName = 'polyglot' + groupName.lstrip('src')
         
         for fileName in [x for x in files if x.count('.') > 0]:
             

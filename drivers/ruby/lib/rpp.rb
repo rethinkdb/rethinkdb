@@ -73,8 +73,7 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return false if name == "db" || name == "table" || name == "funcall"
-      return true
+      return !["db", "table", "funcall", "args", "branch"].include?(name)
     end
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []

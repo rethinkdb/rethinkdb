@@ -23,6 +23,8 @@ counted_t<term_t> make_random_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // arr.cc
+counted_t<term_t> make_args_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_contains_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_append_term(

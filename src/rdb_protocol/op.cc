@@ -4,9 +4,14 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
+#include "debug.hpp"
+
 namespace ql {
-argspec_t::argspec_t(int n) : min(n), max(n) { }
-argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
+argspec_t::argspec_t(int n) : min(n), max(n), eval_flags(NO_FLAGS) { }
+argspec_t::argspec_t(int _min, int _max)
+    : min(_min), max(_max), eval_flags(NO_FLAGS) { }
+argspec_t::argspec_t(int _min, int _max, eval_flags_t _eval_flags)
+    : min(_min), max(_max), eval_flags(_eval_flags) { }
 std::string argspec_t::print() {
     if (min == max) {
         return strprintf("%d argument(s)", min);
@@ -52,19 +57,138 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
     return ret;
 }
 
-op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
-                     argspec_t argspec, optargspec_t optargspec)
-    : term_t(term), arg_verifier(NULL) {
-    args.reserve(term->args_size());
-    for (int i = 0; i < term->args_size(); ++i) {
-        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
-        args.push_back(t);
+class faux_term_t : public term_t {
+public:
+    faux_term_t(protob_t<const Term> src, counted_t<const datum_t> _d)
+        : term_t(std::move(src)), d(std::move(_d)) { }
+    virtual const char *name() const { return "<EXPANDED FROM r.args>"; }
+    virtual bool is_deterministic() const { return true; }
+    virtual void accumulate_captures(var_captures_t *) const { }
+private:
+    virtual counted_t<val_t> term_eval(scope_env_t *, eval_flags_t) {
+        return new_val(d);
     }
+    counted_t<const datum_t> d;
+};
 
+
+class args_t : public pb_rcheckable_t {
+public:
+    args_t(protob_t<const Term> _src,
+           argspec_t _argspec,
+           std::vector<counted_t<term_t> > _original_args);
+    // Must be called before `eval_arg`.
+    void start_eval(scope_env_t *env, eval_flags_t flags,
+                    counted_t<val_t> _arg0 = counted_t<val_t>());
+    counted_t<val_t> eval_arg(scope_env_t *env, size_t i, eval_flags_t flags);
+    size_t size() { return args.size(); }
+
+    counted_t<grouped_data_t> maybe_grouped_data(
+        scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags);
+    const std::vector<counted_t<term_t> > &get_original_args() {
+        return original_args;
+    }
+private:
+    counted_t<term_t> get(size_t i);
+    protob_t<const Term> src;
+    argspec_t argspec;
+    counted_t<val_t> arg0;
+    std::vector<counted_t<term_t> > original_args;
+    std::vector<counted_t<term_t> > args;
+};
+
+counted_t<grouped_data_t> args_t::maybe_grouped_data(
+    scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags) {
+    counted_t<grouped_data_t> gd;
+    if (args.size() != 0) {
+        if (!arg0.has()) {
+            arg0 = get(0)->eval(env, flags);
+        }
+        gd = is_grouped_seq_op
+            ? arg0->maybe_as_grouped_data()
+            : arg0->maybe_as_promiscuous_grouped_data(env->env);
+    }
+    if (gd.has()) {
+        arg0.reset();
+    }
+    return std::move(gd);
+}
+
+args_t::args_t(protob_t<const Term> _src,
+               argspec_t _argspec,
+               std::vector<counted_t<term_t> > _original_args)
+    : pb_rcheckable_t(get_backtrace(_src)),
+      src(std::move(_src)),
+      argspec(std::move(_argspec)),
+      original_args(std::move(_original_args)) {
+    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
+        if ((*it)->get_src()->type() == Term::ARGS) {
+            return;
+        }
+    }
+    // We check this here *and* in `start_eval` because if `r.args` isn't in
+    // play we want to give a compile-time error.
+    rcheck(argspec.contains(original_args.size()),
+           base_exc_t::GENERIC,
+           strprintf("Expected %s but found %zu.",
+                     argspec.print().c_str(), original_args.size()));
+}
+
+void args_t::start_eval(scope_env_t *env, eval_flags_t flags,
+                        counted_t<val_t> _arg0) {
+    eval_flags_t new_flags = static_cast<eval_flags_t>(
+        flags | argspec.get_eval_flags());
+    args.clear();
+    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
+        if ((*it)->get_src()->type() == Term::ARGS) {
+            counted_t<val_t> v = (*it)->eval(env, new_flags);
+            counted_t<const datum_t> d = v->as_datum();
+            for (size_t i = 0; i < d->size(); ++i) {
+                args.push_back(counted_t<term_t>(new faux_term_t(src, d->get(i))));
+            }
+        } else {
+            args.push_back(*it);
+        }
+    }
     rcheck(argspec.contains(args.size()),
            base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
+    arg0 = std::move(_arg0);
+}
+
+counted_t<val_t> args_t::eval_arg(scope_env_t *env, size_t i, eval_flags_t flags) {
+    if (i == 0) {
+        if (!arg0.has()) {
+            arg0 = get(0)->eval(env, flags);
+        }
+        counted_t<val_t> v;
+        v.swap(arg0);
+        return std::move(v);
+    } else {
+        return get(i)->eval(env, flags);
+    }
+}
+
+counted_t<term_t> args_t::get(size_t i) {
+    r_sanity_check(i < args.size());
+    r_sanity_check(args[i].has());
+    counted_t<term_t> ret;
+    ret.swap(args[i]);
+    r_sanity_check(!args[i].has());
+    return std::move(ret);
+}
+
+op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
+                     argspec_t argspec, optargspec_t optargspec)
+    : term_t(term) {
+    std::vector<counted_t<term_t> > original_args;
+    original_args.reserve(term->args_size());
+    for (int i = 0; i < term->args_size(); ++i) {
+        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
+        original_args.push_back(t);
+    }
+    args.init(new args_t(term, std::move(argspec), std::move(original_args)));
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
@@ -84,64 +208,25 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
         optargs.insert(std::make_pair(ap->key(), t));
     }
 }
-op_term_t::~op_term_t() { r_sanity_check(arg_verifier == NULL); }
+op_term_t::~op_term_t() { }
 
-// We use this to detect double-evals.  (We've had several problems with those
-// in the past.)
-class arg_verifier_t {
-public:
-    arg_verifier_t(std::vector<counted_t<term_t> > *_args,
-                   arg_verifier_t **_slot)
-        : args(_args), args_consumed(args->size(), false), slot(_slot) {
-        *slot = this;
-    }
-    ~arg_verifier_t() {
-        r_sanity_check(*slot == this);
-        *slot = NULL;
-    }
-
-    counted_t<term_t> consume(size_t i) {
-        r_sanity_check(i < args->size());
-        r_sanity_check(!args_consumed[i]);
-        args_consumed[i] = true;
-        return (*args)[i];
-    }
-
-private:
-    std::vector<counted_t<term_t> > *args;
-    std::vector<bool> args_consumed;
-    arg_verifier_t **slot;
-};
-
-size_t op_term_t::num_args() const { return args.size(); }
+size_t op_term_t::num_args() const { return args->size(); }
 counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
-    if (i == 0) {
-        if (!arg0.has()) arg0 = arg_verifier->consume(0)->eval(env, flags);
-        counted_t<val_t> v;
-        v.swap(arg0);
-        r_sanity_check(!arg0.has());
-        return std::move(v);
-    } else {
-        r_sanity_check(arg_verifier != NULL);
-        return arg_verifier->consume(i)->eval(env, flags);
-    }
+    return args->eval_arg(env, i, flags);
 }
 
 counted_t<val_t> op_term_t::term_eval(scope_env_t *env, eval_flags_t eval_flags) {
-    scoped_ptr_t<arg_verifier_t> av(new arg_verifier_t(&args, &arg_verifier));
+    args->start_eval(env, eval_flags);
     counted_t<val_t> ret;
-    if (num_args() != 0 && can_be_grouped()) {
-        arg0 = arg_verifier->consume(0)->eval(env, eval_flags);
-        counted_t<grouped_data_t> gd = is_grouped_seq_op()
-            ? arg0->maybe_as_grouped_data()
-            : arg0->maybe_as_promiscuous_grouped_data(env->env);
+    if (can_be_grouped()) {
+        counted_t<grouped_data_t> gd
+            = args->maybe_grouped_data(env, is_grouped_seq_op(), eval_flags);
         if (gd.has()) {
             counted_t<grouped_data_t> out(new grouped_data_t());
             for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
-                arg0 = make_counted<val_t>(kv->second, backtrace());
+                args->start_eval(env, eval_flags,
+                                 make_counted<val_t>(kv->second, backtrace()));
                 (*out)[kv->first] = eval_impl(env, eval_flags)->as_datum();
-                av.reset();
-                av.init(new arg_verifier_t(&args, &arg_verifier));
             }
             return make_counted<val_t>(out, backtrace());
         }
@@ -172,7 +257,9 @@ counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const 
 }
 
 void op_term_t::accumulate_captures(var_captures_t *captures) const {
-    for (auto it = args.begin(); it != args.end(); ++it) {
+    const std::vector<counted_t<term_t> > &original_args
+        = args->get_original_args();
+    for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         (*it)->accumulate_captures(captures);
     }
     for (auto it = optargs.begin(); it != optargs.end(); ++it) {
@@ -183,8 +270,10 @@ void op_term_t::accumulate_captures(var_captures_t *captures) const {
 
 
 bool op_term_t::is_deterministic() const {
-    for (size_t i = 0; i < args.size(); ++i) {
-        if (!args[i]->is_deterministic()) {
+    const std::vector<counted_t<term_t> > &original_args
+        = args->get_original_args();
+    for (size_t i = 0; i < original_args.size(); ++i) {
+        if (!original_args[i]->is_deterministic()) {
             return false;
         }
     }

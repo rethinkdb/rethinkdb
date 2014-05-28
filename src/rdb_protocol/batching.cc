@@ -152,12 +152,18 @@ batcher_t batchspec_t::to_batcher() const {
         || batch_type != batch_type_t::NORMAL_FIRST
             ? max_size
             : std::max<int64_t>(1, max_size / first_scaledown_factor);
+    microtime_t cur_time = current_microtime();
     // TODO: Look into real_end_time. This logic seems somewhat odd.
     microtime_t real_end_time =
-        (batch_type == batch_type_t::NORMAL || batch_type == batch_type_t::NORMAL_FIRST)
-        && end_time > current_microtime()
-            ? end_time
-            : std::numeric_limits<decltype(batchspec_t().end_time)>::max();
+        batch_type == batch_type_t::NORMAL
+            ? (end_time > cur_time
+               ? end_time
+               : std::numeric_limits<decltype(batchspec_t().end_time)>::max())
+            : (batch_type == batch_type_t::NORMAL_FIRST
+               ? (end_time > cur_time
+                  ? cur_time + (end_time - cur_time) / first_scaledown_factor
+                  : cur_time)
+               : std::numeric_limits<decltype(batchspec_t().end_time)>::max());
     return batcher_t(batch_type, real_min_els, real_max_els, real_max_size,
                      real_end_time);
 }

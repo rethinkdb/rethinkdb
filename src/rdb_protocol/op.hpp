@@ -18,15 +18,21 @@ namespace ql {
 
 class func_term_t;
 
-// Specifies the range of normal arguments a function can take.
+// Specifies the range of normal arguments a function can take (arguments
+// provided by `r.args` count toward the total).  You may also optionally
+// provide `eval_flags` that should be used when pre-evaluating arguments (which
+// `r.args` has to do).
 class argspec_t {
 public:
     explicit argspec_t(int n);
     argspec_t(int _min, int _max);
+    argspec_t(int _min, int _max, eval_flags_t eval_flags);
     std::string print();
     bool contains(int n) const;
+    eval_flags_t get_eval_flags() const { return eval_flags; }
 private:
     int min, max; // max may be -1 for unbounded
+    eval_flags_t eval_flags;
 };
 
 // Specifies the optional arguments a function can take.
@@ -49,7 +55,7 @@ private:
     std::set<std::string> legal_args;
 };
 
-class arg_verifier_t;
+class args_t;
 
 // Almost all terms will inherit from this and use its member functions to
 // access their arguments.
@@ -93,9 +99,7 @@ private:
 
     counted_t<term_t> consume(size_t i);
 
-    counted_t<val_t> arg0;
-    std::vector<counted_t<term_t> > args;
-    arg_verifier_t *arg_verifier; // Use this to access `args`.
+    scoped_ptr_t<args_t> args;
 
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<term_t> > optargs;

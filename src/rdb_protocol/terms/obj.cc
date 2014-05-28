@@ -29,16 +29,15 @@ private:
 class object_term_t : public op_term_t {
 public:
     object_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0, -1)) {
+        : op_term_t(env, term, argspec_t(0, -1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         rcheck(num_args() % 2 == 0,
                base_exc_t::GENERIC,
                strprintf("OBJECT expects an even number of arguments (but found %zu).",
                          num_args()));
-    }
-private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         datum_ptr_t obj(datum_t::R_OBJECT);
-        for (size_t i = 0; i < num_args(); i+=2){
+        for (size_t i = 0; i < num_args(); i+=2) {
             std::string key = arg(env, i)->as_str().to_std();
             counted_t<const datum_t> keyval = arg(env, i+1)->as_datum();
             bool b = obj.add(key, keyval);
