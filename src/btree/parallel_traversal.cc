@@ -348,11 +348,6 @@ void btree_parallel_traversal(superblock_t *superblock,
     traversal_state_t state(superblock->cache()->max_block_size(),
                             helper, interruptor);
 
-    /* Make sure there's a stat block*/
-    if (helper->btree_node_mode() == access_t::write) {
-        ensure_stat_block(superblock);
-    }
-
     /* Record the stat block for updating populations later */
     state.stat_block = superblock->get_stat_block_id();
 
@@ -531,7 +526,7 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
 
     if (state->helper->btree_node_mode() != access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
-    } else if (population_change != 0) {
+    } else if (population_change != 0 && state->stat_block != NULL_BLOCK_ID) {
         // The stat block has no parent, our changes to it are commutative and
         // readers expect out-of-date values.
         buf_lock_t stat_block(buf_parent_t(txn), state->stat_block, access_t::write);

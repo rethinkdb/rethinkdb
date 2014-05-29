@@ -338,21 +338,19 @@ void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }
 
-void ensure_stat_block(superblock_t *sb) {
-    const block_id_t node_id = sb->get_stat_block_id();
+void create_stat_block(superblock_t *sb) {
+    guarantee(sb->get_stat_block_id() == NULL_BLOCK_ID);
 
-    if (node_id == NULL_BLOCK_ID) {
-        buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
-                              alt_create_t::create);
-        buf_write_t write(&stats_block);
-        // Make the stat block be the default constructed stats block.
+    buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
+                          alt_create_t::create);
+    buf_write_t write(&stats_block);
+    // Make the stat block be the default constructed stats block.
 
-        // TODO: This would only initialize the entire stats block if
-        // sizeof(btree_statblock_t) == block_size.value().
-        *static_cast<btree_statblock_t *>(write.get_data_write())
-            = btree_statblock_t();
-        sb->set_stat_block_id(stats_block.block_id());
-    }
+    // TODO: This would only initialize the entire stats block if
+    // sizeof(btree_statblock_t) == block_size.value().
+    *static_cast<btree_statblock_t *>(write.get_data_write())
+        = btree_statblock_t();
+    sb->set_stat_block_id(stats_block.block_id());
 }
 
 buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb) {
@@ -765,7 +763,6 @@ void find_keyvalue_location_for_write(
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
-    ensure_stat_block(superblock);
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
 
     keyvalue_location_out->stats = stats;
@@ -1012,10 +1009,12 @@ void apply_keyvalue_change(
     // Modify the stats block.  The stats block is detached from the rest of the
     // btree, we don't keep a consistent view of it, so we pass the txn as its
     // parent.
-    buf_lock_t stat_block(buf_parent_t(kv_loc->buf.txn()),
-                          kv_loc->stat_block, access_t::write);
-    buf_write_t stat_block_write(&stat_block);
-    auto stat_block_buf
-        = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
-    stat_block_buf->population += population_change;
+    if (kv_loc->stat_block != NULL_BLOCK_ID) {
+        buf_lock_t stat_block(buf_parent_t(kv_loc->buf.txn()),
+                              kv_loc->stat_block, access_t::write);
+        buf_write_t stat_block_write(&stat_block);
+        auto stat_block_buf
+            = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
+        stat_block_buf->population += population_change;
+    }
 }
