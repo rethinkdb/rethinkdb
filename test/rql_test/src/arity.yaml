@@ -90,10 +90,7 @@ tests:
 
     - cd:
       - db.table_drop()
-      ot:
-        rb: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
-        py: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
-        js: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+      ot: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
 
 
     - cd: db.table_create()
