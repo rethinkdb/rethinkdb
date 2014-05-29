@@ -86,7 +86,8 @@ class dummy_namespace_interface_t : public namespace_interface_t {
 public:
     dummy_namespace_interface_t(std::vector<region_t> shards,
                                 store_view_t **stores, order_source_t
-                                *order_source, rdb_context_t *_ctx);
+                                *order_source, rdb_context_t *_ctx,
+                                bool initialize_metadata);
 
     void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, response, tok, interruptor);

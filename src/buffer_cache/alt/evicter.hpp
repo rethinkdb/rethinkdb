@@ -68,7 +68,7 @@ private:
     void notify_bytes_loading(int64_t ser_buf_change);
 
     // Evicts any evictable pages until under the memory limit
-    void evict_if_necessary();
+    void evict_if_necessary() THROWS_NOTHING;
 
     bool initialized_;
     page_cache_t *page_cache_;
@@ -85,6 +85,10 @@ private:
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;
+
+    // This is set to true while `evict_if_necessary()` is active.
+    // It avoids reentrant calls to that function.
+    bool evict_if_necessary_active_;
 
     // These track every page's eviction status.
     eviction_bag_t unevictable_;
