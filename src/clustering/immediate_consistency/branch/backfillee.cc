@@ -42,7 +42,7 @@ struct backfill_queue_entry_t {
 void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue,
                          backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
     // Here we reconstruct the ordering of the backfill chunks.
-    // (note how `queue` is a `fifo_encorcer_queue_t`)
+    // (note how `queue` is a `fifo_enforcer_queue_t`)
     queue->push(token, backfill_queue_entry_t(true, chunk, token));
 }
 
