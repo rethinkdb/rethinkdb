@@ -4,19 +4,24 @@ set -e
 set -o nounset
 set -o pipefail
 
+function on_err() {
+    echo "ERROR $0:$1" >&2
+    echo "Files in $tmpdir." >&2
+}
+trap 'on_err $LINENO' ERR
+
 function err() { figlet "ERROR" >&2; echo "$@" >&2; exit 1; }
+function highlight() {
+    printf "%80s\n" '*' | tr ' ' '*'
+    echo "$@"
+    printf "%80s\n" '*' | tr ' ' '*'
+}
 
 rdbdir=$(cd -P -- `dirname -- $0`/../.. && pwd -P)
 tstdir=$rdbdir/test/changefeeds
 bindir=$rdbdir/build/debug
 tmpdir=`mktemp -d`
 pushd $tmpdir
-
-function on_err() {
-    echo "ERROR $0:$1" >&2
-    echo "Files in $tmpdir." >&2
-}
-trap 'on_err $LINENO' ERR
 
 figlet "Servers"
 export PORT_OFFSET=${PORT_OFFSET-14000}
@@ -32,17 +37,54 @@ function admin() {
     $bindir/rethinkdb admin --join localhost:$((PORT_OFFSET+29016)) "$@"
 }
 admin create database test
-admin create table t --database test
-admin set replicas test.t 3
-admin pin shard test.t -inf-+inf --master 2 --replicas 3 4
 {
-    admin create table test2 --database test
-    admin create table test3 --database test
+    admin create table t --database test
+    admin set replicas test.t 3
+    admin pin shard test.t -inf-+inf --master 2 --replicas 3 4
 } &
-bg_creation=$!
-TIMEOUT=15 $tstdir/wait_for_table.rb 1 t >wait.t
-wait $bg_creation || err "Admin failure."
+t1=$!
+admin create table t2 --database test &
+t2=$!
+admin create table t3 --database test &
+t3=$!
 
+wait $t2 || err "Admin failure."
+TIMEOUT=15 $tstdir/wait_for_table.rb 1 t2 >wait2.t
+################################################################################
+##### Test that resharding a table interrupts feeds.
+################################################################################
+figlet 'Reshard'
+TIMEOUT=10 $tstdir/cfeed_src.rb 2 t2 &
+src_pid=$!
+TIMEOUT=10 $tstdir/cfeed_sink.rb 3 t2 't_reshard.sink' &
+sink_pid=$!
+sleep 3
+admin split shard test.t2 S8
+set +e
+wait $sink_pid && err "Sink succeeded after reshard."
+wait $src_pid && err "Src succeeded after reshard replica."
+set -e
+highlight `wc t_reshard.sink`
+
+TIMEOUT=15 $tstdir/wait_for_table.rb 1 t2 >wait2.t
+################################################################################
+##### Test that dropping a table interrupts feeds.
+################################################################################
+figlet 'Drop'
+TIMEOUT=10 $tstdir/cfeed_src.rb 3 t2 &
+src_pid=$!
+TIMEOUT=10 $tstdir/cfeed_sink.rb 4 t2 't_drop.sink' &
+sink_pid=$!
+sleep 3
+admin rm table test.t2
+set +e
+wait $sink_pid && err "Sink succeeded after drop."
+wait $src_pid && err "Src succeeded after drop replica."
+set -e
+highlight `wc t_drop.sink`
+
+wait $t1 || err "Admin failure."
+TIMEOUT=15 $tstdir/wait_for_table.rb 1 t >wait.t
 ################################################################################
 ##### Test that killing a replica does not interrupt feeds.
 ################################################################################
@@ -55,10 +97,10 @@ kill $server_3
 kill -9 $server_4
 wait $sink_pid || err "Sink failed after killing replica."
 wait $src_pid || err "Src failed after killing replica."
-wc t_replica.sink
+highlight `wc t_replica.sink`
 
 ################################################################################
-##### Test that killing a master *does* interrupt feeds.
+##### Test that killing a master interrupts feeds.
 ################################################################################
 figlet "Master"
 TIMEOUT=10 $tstdir/cfeed_src.rb 1 t &
@@ -66,12 +108,15 @@ src_pid=$!
 TIMEOUT=10 $tstdir/cfeed_sink.rb 1 t 't_master.sink' &
 sink_pid=$!
 sleep 3
-kill $server_2
+highlight `wc t_master.sink`
+kill -9 $server_2
 set +e
 wait $sink_pid && err "Sink succeeded after killing master."
 wait $src_pid && err "Src succeeded after killing master."
 set -e
-wc t_master.sink
+highlight `wc t_master.sink`
+
+
 
 # HOSTNAME=`hostname`
 # tag() {

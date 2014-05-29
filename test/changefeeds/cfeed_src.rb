@@ -8,6 +8,7 @@ $tbl = ARGV[1]
 $start = Time.now
 $timeout = ENV['TIMEOUT'].to_i
 
+p "Src..."
 r.connect(host: ENV['HOST'], port: $port).repl
 docs = (0...1000).map{|i| {n: i, pid: $$, target: "#{ENV['HOST']}:#{$port}"}}
 while Time.now < $start + $timeout
@@ -17,3 +18,4 @@ while Time.now < $start + $timeout
     { target: row['target'] + " UPDATED", updated: true }
   }.run
 end
+p "Src DONE."
