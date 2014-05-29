@@ -1,3 +1,4 @@
+#!/usr/local/bin/ruby
 p "wait_for_table.rb starting..."
 
 $LOAD_PATH.unshift('~/rethinkdb/drivers/ruby/lib')
@@ -7,7 +8,7 @@ include RethinkDB::Shortcuts
 host = ARGV[0]
 port = 28015 + ARGV[1].to_i
 $start = Time.now
-$timeout = 10
+$timeout = (ENV['TIMEOUT'] || 1).to_i
 
 def loop
   while Time.now < $start + $timeout

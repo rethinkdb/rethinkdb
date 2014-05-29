@@ -4,7 +4,7 @@ set -e
 set -o nounset
 set -o pipefail
 
-function err() { echo "$@" >&2; exit 1; }
+function err() { figlet "ERROR" >&2; echo "$@" >&2; exit 1; }
 
 rdbdir=$(cd -P -- `dirname -- $0`/../.. && pwd -P)
 tstdir=$rdbdir/test/changefeeds
@@ -18,20 +18,50 @@ function on_err() {
 }
 trap 'on_err $LINENO' ERR
 
-figlet "Launching servers."
+figlet "Servers"
 PORT_OFFSET=${PORT_OFFSET-14000}
 for i in {1..4}; do
     mkdir -p $i
-    $bindir/rethinkdb \
-        -o $((PORT_OFFSET+i)) \
-        --bind all \
-        -d $i/rethinkdb_data \
+    $bindir/rethinkdb -o $((PORT_OFFSET+i)) -n $i --bind all -d $i/rethinkdb_data \
         --join localhost:$((PORT_OFFSET+29016)) &
+    eval "server_$i=$!"
 done
 
-TIMEOUT=10 $tstdir/setup.rb localhost $((PORT_OFFSET+1))
+TIMEOUT=10 $tstdir/setup.rb localhost $((PORT_OFFSET+1)) >setup.t
+function admin() {
+    $bindir/rethinkdb admin --join localhost:$((PORT_OFFSET+29016)) "$@"
+}
+admin set replicas test.test 3
+admin pin shard test.test -inf-+inf --master 2 --replicas 3 4
+TIMEOUT=15 $tstdir/wait_for_table.rb localhost $((PORT_OFFSET+1)) >wait.t
 
-wait
+################################################################################
+##### Test that killing a replica does not interrupt feeds.
+################################################################################
+figlet "Replica"
+TIMEOUT=10 $tstdir/cfeed_src.rb localhost $((PORT_OFFSET+1)) &
+src_pid=$!
+TIMEOUT=10 $tstdir/cfeed_sink.rb localhost $((PORT_OFFSET+1)) "t1" &
+sink_pid=$!
+kill $server_3
+kill -9 $server_4
+wait $sink_pid || err "Sink failed after killing replica."
+wait $src_pid || err "Src failed after killing replica."
+
+################################################################################
+##### Test that killing a master *does* interrupt feeds.
+################################################################################
+figlet "Master"
+TIMEOUT=10 $tstdir/cfeed_src.rb localhost $((PORT_OFFSET+1)) &
+src_pid=$!
+TIMEOUT=10 $tstdir/cfeed_sink.rb localhost $((PORT_OFFSET+1)) "t2" &
+sink_pid=$!
+sleep 3
+kill $server_2
+set +e
+wait $sink_pid && err "Sink succeeded after killing master."
+wait $src_pid && err "Src succeeded after killing master."
+set -e
 
 # HOSTNAME=`hostname`
 # tag() {

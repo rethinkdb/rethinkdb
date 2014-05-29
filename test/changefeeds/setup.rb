@@ -32,7 +32,7 @@ loop {
       r.table('test').info.run rescue r.table_create('test').run
       p "#{$0} Populating..."
       loop {
-        r.table('test').insert((0...100).map{{}}).run
+        r.table('test').insert((0...5).map{{}}).run
         p "#{$0} DONE"
         exit 0
       }
