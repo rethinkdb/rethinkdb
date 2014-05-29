@@ -210,12 +210,30 @@ bool store_t::send_backfill(
     return false;
 }
 
+void store_t::throttle_backfill_chunk(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    // Warning: No re-ordering is allowed during throttling!
+
+    // As long as our secondary index post construction is implemented using a
+    // secondary index mod queue, it doesn't make sense from a performance point
+    // of view to run secondary index post construction and backfilling at the same
+    // time. We pause backfilling while any index post construction is going on on
+    // this store by acquiring a read lock on `backfill_postcon_lock`.
+    rwlock_in_line_t lock_acq(&backfill_postcon_lock, access_t::read);
+    wait_any_t waiter(lock_acq.read_signal(), interruptor);
+    waiter.wait_lazily_ordered();
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+}
+
 void store_t::receive_backfill(
         const backfill_chunk_t &chunk,
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;

@@ -73,6 +73,9 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    void throttle_backfill_chunk(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
     void reset_data(
             const region_t &subregion,
             write_durability_t durability,

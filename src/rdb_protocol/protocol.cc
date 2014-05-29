@@ -166,7 +166,7 @@ void bring_sindexes_up_to_date(
     for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
         guarantee(!it->being_deleted, "Trying to bring an index up to date that's "
-                                      "being deleted"); 
+                                      "being deleted");
         auto sindexes_it = sindexes.find(*it);
         guarantee(sindexes_it != sindexes.end());
         sindexes_to_bring_up_to_date_uuid.insert(sindexes_it->second.id);
@@ -192,6 +192,14 @@ void post_construct_and_drain_queue(
     THROWS_NOTHING
 {
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
+
+    rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);
+    // Note that we don't actually wait for the lock to be acquired.
+    // All we want is to pause backfills by having our write lock acquisition
+    // in line.
+    // Waiting for the write lock would restrict us to having only one post
+    // construction active at any time (which we might not want, for no specific
+    // reason).
 
     try {
         post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());

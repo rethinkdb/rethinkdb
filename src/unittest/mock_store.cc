@@ -299,6 +299,9 @@ void mock_store_t::receive_backfill(
     }
 }
 
+void mock_store_t::throttle_backfill_chunk(signal_t *)
+        THROWS_ONLY(interrupted_exc_t) { }
+
 void mock_store_t::reset_data(
         const region_t &subregion,
         UNUSED write_durability_t durability,
