@@ -106,6 +106,11 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
+    /* Throttles an individual backfill chunk. Preserves ordering.
+    [May block] */
+    virtual void throttle_backfill_chunk(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
+
     /* Deletes every key in the region.
     [Precondition] region_is_superset(region, subregion)
     [May block]
@@ -262,6 +267,12 @@ public:
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         store_view->receive_backfill(chunk, token_pair, interruptor);
+    }
+
+    void throttle_backfill_chunk(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+        home_thread_mixin_t::assert_thread();
+        store_view->throttle_backfill_chunk(interruptor);
     }
 
     void reset_data(

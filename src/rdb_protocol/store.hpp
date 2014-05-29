@@ -19,6 +19,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/rwlock.hpp"
 #include "containers/map_sentries.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
@@ -135,6 +136,10 @@ public:
             const backfill_chunk_t &chunk,
             write_token_pair_t *token_pair,
             signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
+    // Preserves ordering
+    void throttle_backfill_chunk(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
@@ -395,6 +400,14 @@ public:
 
     rdb_context_t *ctx;
     scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+
+    // This lock is used to pause backfills while secondary indexes are being
+    // post constructed. Secondary index post construction gets in line for a write
+    // lock on this and stays there for as long as it's running. It does not
+    // actually wait for the write lock, so multiple secondary indexes can be
+    // post constructed at the same time.
+    // A read lock is acquired before a backfill chunk is being processed.
+    rwlock_t backfill_postcon_lock;
 
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.

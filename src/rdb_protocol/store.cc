@@ -807,7 +807,6 @@ void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
-    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     rdb_receive_backfill_visitor_t v(this, btree.get(),
                                      superblock->expose_buf().txn(),
                                      std::move(superblock),
