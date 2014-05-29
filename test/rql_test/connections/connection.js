@@ -250,7 +250,7 @@ describe('Javascript connection API', function(){
                         c.use('db2');
                         r.table('t2').run(c, noError(function(){
                             c.use('test');
-                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist.",
+                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist",
                                                             done));
                         }));}));}));}));}));
 
@@ -263,14 +263,14 @@ describe('Javascript connection API', function(){
         it("test default durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "default"},
-                    givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\").", done));
+                    givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\")", done));
             });
         }));
 
         it("test wrong durability", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "wrong"},
-                    givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", done))
+                    givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\")", done))
             });
         }));
 
