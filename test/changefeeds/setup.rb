@@ -1,4 +1,5 @@
-p "setup.rb starting..."
+#!/usr/local/bin/ruby
+p "#{$0} starting..."
 
 $LOAD_PATH.unshift('~/rethinkdb/drivers/ruby/lib')
 load 'rethinkdb.rb'
@@ -7,7 +8,7 @@ include RethinkDB::Shortcuts
 host = ARGV[0]
 port = 28015 + ARGV[1].to_i
 $start = Time.now
-$timeout = 5
+$timeout = (ENV['TIMEOUT'] || 1).to_i
 
 def loop
   while Time.now < $start + $timeout
@@ -20,24 +21,24 @@ def loop
   end
 end
 
-p "  Connecting to #{host}:#{port}..."
+p "#{$0} Connecting to #{host}:#{port}..."
 loop {
   r.connect(host: host, port: port).repl
-  p "  Creating DB..."
+  p "#{$0} Creating DB..."
   loop {
     r.db('test').info.run rescue r.db_create('test').run
-    p "  Creating table..."
+    p "#{$0} Creating table..."
     loop {
       r.table('test').info.run rescue r.table_create('test').run
-      p "  Populating..."
+      p "#{$0} Populating..."
       loop {
         r.table('test').insert((0...100).map{{}}).run
-        p "setup.rb DONE"
+        p "#{$0} DONE"
         exit 0
       }
     }
   }
 }
 
-p "setup.rb TIMED OUT"
+p "#{$0} TIMED OUT"
 exit 1
