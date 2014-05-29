@@ -15,12 +15,9 @@ public:
     { }
 
     void read_stat_block(buf_lock_t *stat_block) {
-        if (stat_block != NULL) {
-            buf_read_t read(stat_block);
-            key_count = static_cast<const btree_statblock_t *>(read.get_data_read())->population;
-        } else {
-            key_count = 0;
-        }
+        guarantee (stat_block != NULL);
+        buf_read_t read(stat_block);
+        key_count = static_cast<const btree_statblock_t *>(read.get_data_read())->population;
     }
 
     // This is free to call mark_deleted.

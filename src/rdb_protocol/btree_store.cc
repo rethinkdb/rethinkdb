@@ -93,6 +93,8 @@ store_t::store_t(serializer_t *serializer,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
+        real_superblock_t sb(std::move(superblock));
+        create_stat_block(&sb);
     }
 
     btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
@@ -630,10 +632,6 @@ void store_t::clear_sindex(
                 root_node.write_acq_signal()->wait_lazily_unordered();
                 root_node.mark_deleted();
             }
-            // TODO (daniel): There currently appears to be a stat block for
-            // secondary indexes which is stupid. It makes them slower, since it
-            // is being updated everytime a secondary index is being written to.
-            // That should be changed. For now we just delete it here:
             if (sindex_superblock.get_stat_block_id() != NULL_BLOCK_ID) {
                 buf_lock_t stat_block(sindex_superblock.expose_buf(),
                                       sindex_superblock.get_stat_block_id(),
@@ -641,7 +639,6 @@ void store_t::clear_sindex(
                 stat_block.write_acq_signal()->wait_lazily_unordered();
                 stat_block.mark_deleted();
             }
-            // TODO (daniel): ... and even an sindex block.
             if (sindex_superblock.get_sindex_block_id() != NULL_BLOCK_ID) {
                 buf_lock_t sind_block(sindex_superblock.expose_buf(),
                                       sindex_superblock.get_sindex_block_id(),
