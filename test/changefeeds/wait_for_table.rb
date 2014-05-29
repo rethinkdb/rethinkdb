@@ -1,14 +1,12 @@
 #!/usr/local/bin/ruby
-p "wait_for_table.rb starting..."
-
 $LOAD_PATH.unshift('~/rethinkdb/drivers/ruby/lib')
 load 'rethinkdb.rb'
 include RethinkDB::Shortcuts
 
-host = ARGV[0]
-port = 28015 + ARGV[1].to_i
+$port = ENV['PORT_OFFSET'].to_i + 28015 + ARGV[0].to_i
+$tbl = ARGV[1]
 $start = Time.now
-$timeout = (ENV['TIMEOUT'] || 1).to_i
+$timeout = ENV['TIMEOUT'].to_i
 
 def loop
   while Time.now < $start + $timeout
@@ -21,16 +19,16 @@ def loop
   end
 end
 
-p "  Connecting to #{host}:#{port}..."
+p "#{$0} Connecting to #{ENV['HOST']}:#{$port}..."
 loop {
-  r.connect(host: host, port: port).repl
-  p "Counting..."
+  r.connect(host: ENV['HOST'], port: $port).repl
+  p "  Counting..."
   loop {
-    r.table('test').count.run
-    p "wait_for_table.rb DONE"
+    r.table($tbl).count.run
+    p "#{$0} DONE"
     exit 0
   }
 }
 
-p "wait_for_table.rb TIMED OUT"
+p "#{$0} TIMED OUT"
 exit 1

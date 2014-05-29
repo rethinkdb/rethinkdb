@@ -3,30 +3,17 @@ $LOAD_PATH.unshift('~/rethinkdb/drivers/ruby/lib')
 load 'rethinkdb.rb'
 include RethinkDB::Shortcuts
 
-host = ARGV[0]
-port = 28015 + ARGV[1].to_i
-$start = Time.now
-$timeout = (ENV['TIMEOUT'] || 1).to_i
-
-def loop
-  while Time.now < $start + $timeout
-    begin
-      yield
-    rescue => e
-      PP.pp [e, e.backtrace]
-    end
-    sleep 0.1
-  end
-end
+$port = ENV['PORT_OFFSET'].to_i + 28015 + ARGV[0].to_i
+$tbl = ARGV[1]
+$file = ARGV[2]
 
 begin
-  Timeout::timeout($timeout) {
+  Timeout::timeout(ENV['TIMEOUT'].to_i) {
     p "Sink at #{$$}..."
-    r.connect(host: host, port: port).repl
-    File.open(ARGV[2] || "sink_#{$$}.t", "w") {|f|
-      r.table('test').insert({pid: $$}).run
-      $success = true
-      r.table('test').changes.run.each {|change|
+    r.connect(host: ENV['HOST'], port: $port).repl
+    File.open($file, "w") {|f|
+      r.table($tbl).insert({pid: $$}).run
+      r.table($tbl).changes.run.each {|change|
         raise `figlet FAILED` if (change['new_val']['pid'] rescue nil) == $$
         f.write(change.to_json + "\n")
         f.flush
@@ -34,6 +21,5 @@ begin
     }
   }
 rescue Timeout::Error => e
-  exit 1 if !$success
-  p "Sink at #{$$} DONE."
+  p "Sink at #{$file} DONE."
 end
