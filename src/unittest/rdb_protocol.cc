@@ -24,10 +24,11 @@
 namespace unittest {
 namespace {
 
-void run_with_namespace_interface(boost::function<void(namespace_interface_t *, order_source_t *)> fun, bool oversharding) {
+void run_with_namespace_interface(
+        boost::function<void(namespace_interface_t *, order_source_t *)> fun,
+        bool oversharding,
+        int num_restarts) {
     recreate_temporary_directory(base_path_t("."));
-
-    order_source_t order_source;
 
     /* Pick shards */
     std::vector<region_t> store_shards;
@@ -61,8 +62,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
                                                       &get_global_perfmon_collection()));
     }
 
-    boost::ptr_vector<store_t> underlying_stores;
-
     /* Create some structures for the rdb_context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
@@ -87,32 +86,46 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t *, 
                       &get_global_perfmon_collection(),
                       std::string());
 
-    for (size_t i = 0; i < store_shards.size(); ++i) {
-        underlying_stores.push_back(
-                new store_t(serializers[i].get(), &balancer,
-                    temp_files[i].name().permanent_path(), true,
-                    &get_global_perfmon_collection(), &ctx,
-                    &io_backender, base_path_t(".")));
-    }
-
-    boost::ptr_vector<store_view_t> stores;
-    for (size_t i = 0; i < nsi_shards.size(); ++i) {
-        if (oversharding) {
-            stores.push_back(new store_subview_t(&underlying_stores[0], nsi_shards[i]));
-        } else {
-            stores.push_back(new store_subview_t(&underlying_stores[i], nsi_shards[i]));
+    for (int rep = 0; rep < num_restarts; ++rep) {
+        const bool do_create = rep == 0;
+        boost::ptr_vector<store_t> underlying_stores;
+        for (size_t i = 0; i < store_shards.size(); ++i) {
+            underlying_stores.push_back(
+                    new store_t(serializers[i].get(), &balancer,
+                        temp_files[i].name().permanent_path(), do_create,
+                        &get_global_perfmon_collection(), &ctx,
+                        &io_backender, base_path_t(".")));
         }
+
+        boost::ptr_vector<store_view_t> stores;
+        for (size_t i = 0; i < nsi_shards.size(); ++i) {
+            if (oversharding) {
+                stores.push_back(new store_subview_t(&underlying_stores[0], nsi_shards[i]));
+            } else {
+                stores.push_back(new store_subview_t(&underlying_stores[i], nsi_shards[i]));
+            }
+        }
+
+        /* Set up namespace interface */
+        order_source_t order_source;
+        dummy_namespace_interface_t nsi(nsi_shards, stores.c_array(),
+                                        &order_source,
+                                        &ctx,
+                                        do_create);
+
+        fun(&nsi, &order_source);
     }
-
-    /* Set up namespace interface */
-    dummy_namespace_interface_t nsi(nsi_shards, stores.c_array(), &order_source, &ctx);
-
-    fun(&nsi, &order_source);
 }
 
-void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t *, order_source_t*)> fun, bool oversharded) {
+void run_in_thread_pool_with_namespace_interface(
+        boost::function<void(namespace_interface_t *, order_source_t*)> fun,
+        bool oversharded,
+        int num_restarts = 1) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun, oversharded));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface,
+                                           fun,
+                                           oversharded,
+                                           num_restarts));
 }
 
 }   /* anonymous namespace */
@@ -196,6 +209,36 @@ std::string create_sindex(namespace_interface_t *nsi,
     return id;
 }
 
+void wait_for_sindex(namespace_interface_t *nsi,
+                          order_source_t *osource,
+                          const std::string &id) {
+    std::set<std::string> sindexes;
+    sindexes.insert(id);
+    for (int attempts = 0; attempts < 25; ++attempts) {
+        sindex_status_t d(sindexes);
+        read_t read(d, profile_bool_t::PROFILE);
+        read_response_t response;
+
+        cond_t interruptor;
+        nsi->read(read, &response, osource->check_in("unittest::wait_for_sindex(rdb_protocol_t.cc-A"), &interruptor);
+
+        sindex_status_response_t *res =
+            boost::get<sindex_status_response_t>(&response.response);
+
+        if (res == NULL) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+
+        auto it = res->statuses.find(id);
+        if (it != res->statuses.end() && it->second.ready) {
+            return;
+        } else {
+            nap((attempts+1) * 50);
+        }
+    }
+    ADD_FAILURE() << "Waiting for sindex " << id << " timed out.";
+}
+
 bool drop_sindex(namespace_interface_t *nsi,
                  order_source_t *osource,
                  const std::string &id) {
@@ -218,9 +261,7 @@ bool drop_sindex(namespace_interface_t *nsi,
 void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *osource) {
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
-
-    // KSI: Ugh, why is sindex creation so slow that we need a nap?
-    nap(100);
+    wait_for_sindex(nsi, osource, id);
 
     std::shared_ptr<const scoped_cJSON_t> data(
         new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
@@ -317,8 +358,74 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
     }
 }
 
+void run_create_drop_sindex_with_data_test(namespace_interface_t *nsi,
+                                           order_source_t *osource,
+                                           int num_docs) {
+    /* Create a secondary index. */
+    std::string id = create_sindex(nsi, osource);
+    wait_for_sindex(nsi, osource, id);
+
+    for (int i = 0; i < num_docs; ++i) {
+        std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i+1);
+        std::shared_ptr<const scoped_cJSON_t> data(
+            new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
+        counted_t<const ql::datum_t> d(
+            new ql::datum_t(cJSON_GetObjectItem(data->get(), "id")));
+        store_key_t pk = store_key_t(d->print_primary());
+
+        /* Insert a piece of data (it will be indexed using the secondary
+         * index). */
+        write_t write(
+            point_write_t(pk, make_counted<ql::datum_t>(*data)),
+            DURABILITY_REQUIREMENT_SOFT,
+            profile_bool_t::PROFILE);
+        write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write,
+                   &response,
+                   osource->check_in(
+                       "unittest::run_create_drop_sindex_with_data_test(rdb_protocol.cc-A"),
+                   &interruptor);
+
+        /* The result can be either STORED or DUPLICATE (in case this
+         * test has been run before on the same store). Either is fine.*/
+        if (!boost::get<point_write_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
+}
+
+void run_repeated_create_drop_sindex_test(namespace_interface_t *nsi,
+                                          order_source_t *osource) {
+    // Create and drop index with a couple of documents in it
+    run_create_drop_sindex_with_data_test(nsi, osource, 128);
+    // ... and just for fun sometimes do it a second time immediately after.
+    if (randint(4) == 0) {
+        run_create_drop_sindex_with_data_test(nsi, osource, 128);
+    }
+
+    // Nap for a random time before we shut down the namespace interface
+    // (in 3 out of 4 cases).
+    if (randint(4) != 0) {
+        nap(randint(200));
+    }
+}
+
 TEST(RDBProtocol, SindexCreateDrop) {
     run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test, false);
+}
+
+TEST(RDBProtocol, SindexRepeatedCreateDrop) {
+    // Repeat the test 10 times on the same data files.
+    run_in_thread_pool_with_namespace_interface(&run_repeated_create_drop_sindex_test,
+                                                false,
+                                                10);
 }
 
 TEST(RDBProtocol, OvershardedSindexCreateDrop) {
@@ -376,9 +483,7 @@ TEST(RDBProtocol, OvershardedSindexList) {
 
 void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *osource) {
     std::string sindex_id = create_sindex(nsi, osource);
-
-    // KSI: Ugh, why is sindex creation so slow that we need a nap?
-    nap(100);
+    wait_for_sindex(nsi, osource, sindex_id);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
@@ -483,7 +588,7 @@ void run_sindex_missing_attr_test(namespace_interface_t *nsi, order_source_t *os
         nsi->write(write,
                    &response,
                    osource->check_in(
-                       "unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
+                       "unittest::run_sindex_missing_attr_test(rdb_protocol.cc-A"),
                    &interruptor);
 
         if (!boost::get<point_write_response_t>(&response.response)) {

@@ -122,7 +122,7 @@ void post_construct_and_drain_queue(
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        const std::set<sindex_name_t> &sindexes_to_bring_up_to_date,
         store_t *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING
@@ -159,12 +159,14 @@ void bring_sindexes_up_to_date(
         store->register_sindex_queue(mod_queue.get(), acq.get());
     }
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
+        guarantee(!it->being_deleted, "Trying to bring an index up to date that's "
+                                      "being deleted");
         auto sindexes_it = sindexes.find(*it);
         guarantee(sindexes_it != sindexes.end());
         sindexes_to_bring_up_to_date_uuid.insert(sindexes_it->second.id);
@@ -190,6 +192,14 @@ void post_construct_and_drain_queue(
     THROWS_NOTHING
 {
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
+
+    rwlock_in_line_t lock_acq(&store->backfill_postcon_lock, access_t::write);
+    // Note that we don't actually wait for the lock to be acquired.
+    // All we want is to pause backfills by having our write lock acquisition
+    // in line.
+    // Waiting for the write lock would restrict us to having only one post
+    // construction active at any time (which we might not want, for no specific
+    // reason).
 
     try {
         post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());

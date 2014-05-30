@@ -343,15 +343,10 @@ struct internal_node_releaser_t : public parent_releaser_t {
 void btree_parallel_traversal(superblock_t *superblock,
                               btree_traversal_helper_t *helper,
                               signal_t *interruptor,
-                              bool release_superblock)
+                              release_superblock_t release_superblock)
     THROWS_ONLY(interrupted_exc_t) {
     traversal_state_t state(superblock->cache()->max_block_size(),
                             helper, interruptor);
-
-    /* Make sure there's a stat block*/
-    if (helper->btree_node_mode() == access_t::write) {
-        ensure_stat_block(superblock);
-    }
 
     /* Record the stat block for updating populations later */
     state.stat_block = superblock->get_stat_block_id();
@@ -386,7 +381,7 @@ void btree_parallel_traversal(superblock_t *superblock,
         }
     } superblock_releaser;
     superblock_releaser.superblock = superblock;
-    superblock_releaser.release_superblock = release_superblock;
+    superblock_releaser.release_superblock = release_superblock == RELEASE;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();
@@ -531,14 +526,14 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
 
     if (state->helper->btree_node_mode() != access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
-    } else if (population_change != 0) {
+    } else if (population_change != 0 && state->stat_block != NULL_BLOCK_ID) {
         // The stat block has no parent, our changes to it are commutative and
         // readers expect out-of-date values.
         buf_lock_t stat_block(buf_parent_t(txn), state->stat_block, access_t::write);
         buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
-        auto stat_block_buf =
-            static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
+        auto stat_block_buf = static_cast<btree_statblock_t *>(
+                stat_block_write.get_data_write(BTREE_STATBLOCK_SIZE));
         stat_block_buf->population += population_change;
     } else {
         // Don't acquire the block to not change the value.

@@ -68,6 +68,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 bool btree_depth_first_traversal(superblock_t *superblock,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
-                                 direction_t direction);
+                                 direction_t direction,
+                                 release_superblock_t release_superblock = RELEASE);
 
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */

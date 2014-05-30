@@ -17,21 +17,21 @@ tests:
 
     # The fix also changed affected arg checking for other variable argument functions
     - js: r('a').eq()
-      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+      ot: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.")
 
     - js: r('a').lt()
-      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+      ot: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.")
 
     - js: r(['a']).union()
-      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+      ot: ['a']
 
     - js: r.do()
       ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
 
     - js: r.add()
-      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.")
+      ot: err("RqlCompileError", "Expected 1 or more argument(s) but found 0.")
 
     - js: r.add(1)
-      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
+      ot: 1
 
     - js: r.tableDrop('foo')

@@ -43,19 +43,47 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 
     superblock.reset();
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(&sindex_block, &sindexes);
 
-    std::set<std::string> sindexes_to_update;
+    struct sindex_clearer_t {
+        static void clear(store_t *store,
+                          secondary_index_t sindex,
+                          auto_drainer_t::lock_t store_keepalive) {
+            try {
+                // Note that we can safely use a noop deleter here, since the
+                // secondary index cannot be in use at this point and we therefore
+                // don't have to detach anything.
+                rdb_noop_deletion_context_t noop_deletion_context;
+                rdb_value_sizer_t sizer(store->cache->max_block_size());
+
+                /* Clear the sindex. */
+                store->clear_sindex(
+                    sindex,
+                    &sizer,
+                    &noop_deletion_context,
+                    store_keepalive.get_drain_signal());
+            } catch (const interrupted_exc_t &e) {
+                /* Ignore */
+            }
+        }
+    };
+
+    std::set<sindex_name_t> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!it->second.post_construction_complete) {
+        if (it->second.being_deleted) {
+            // Finish deleting the index
+            coro_t::spawn_sometime(std::bind(&sindex_clearer_t::clear,
+                                             this, it->second, drainer.lock()));
+        } else if (!it->second.post_construction_complete) {
+            // Complete post constructing the index
             sindexes_to_update.insert(it->first);
         }
     }
 
     if (!sindexes_to_update.empty()) {
         rdb_protocol::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                        &sindex_block);
+                                                &sindex_block);
     }
 }
 
@@ -104,13 +132,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
 
+            uuid_u sindex_uuid;
             try {
                 bool found = store->acquire_sindex_superblock_for_read(
-                    rget.sindex->id,
+                    sindex_name_t(rget.sindex->id),
                     rget.table_name,
                     superblock,
                     &sindex_sb,
-                    &sindex_mapping_data);
+                    &sindex_mapping_data,
+                    &sindex_uuid);
                 if (!found) {
                     res->result = ql::exc_t(
                         ql::base_exc_t::GENERIC,
@@ -119,7 +149,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         NULL);
                     return;
                 }
-            } catch (const sindex_not_post_constructed_exc_t &e) {
+            } catch (const sindex_not_ready_exc_t &e) {
                 res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC, e.what(), NULL);
                 return;
@@ -135,7 +165,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             deserialize_sindex_info(sindex_mapping_data, &sindex_mapping, &multi_bool);
 
             rdb_rget_secondary_slice(
-                store->get_sindex_slice(rget.sindex->id),
+                store->get_sindex_slice(sindex_uuid),
                 rget.sindex->original_range, rget.sindex->region,
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transforms,
                 rget.terminal, rget.region.inner, rget.sorting,
@@ -175,13 +205,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                    superblock->get_sindex_block_id());
         superblock->release();
 
-        std::map<std::string, secondary_index_t> sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         sindex_block.reset_buf_lock();
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            res->sindexes.push_back(it->first);
+            if (!it->second.being_deleted) {
+                guarantee(!it->first.being_deleted);
+                res->sindexes.push_back(it->first.name);
+            }
         }
     }
 
@@ -194,18 +227,23 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                    superblock->get_sindex_block_id());
         superblock->release();
 
-        std::map<std::string, secondary_index_t> sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
         sindex_block.reset_buf_lock();
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (sindex_status.sindexes.find(it->first) != sindex_status.sindexes.end()
+            if (it->second.being_deleted) {
+                guarantee(it->first.being_deleted);
+                continue;
+            }
+            guarantee(!it->first.being_deleted);
+            if (sindex_status.sindexes.find(it->first.name) != sindex_status.sindexes.end()
                 || sindex_status.sindexes.empty()) {
                 progress_completion_fraction_t frac =
                     store->get_progress(it->second.id);
                 rdb_protocol::single_sindex_status_t *s =
-                    &res->statuses[it->first];
-                s->ready = it->second.post_construction_complete;
+                    &res->statuses[it->first.name];
+                s->ready = it->second.is_ready();
                 if (!s->ready) {
                     if (frac.estimate_of_total_nodes == -1) {
                         s->blocks_processed = 0;
@@ -401,14 +439,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         int write_res = send_write_message(&stream, &wm);
         guarantee(write_res == 0);
 
+        sindex_name_t name(c.id);
         res.success = store->add_sindex(
-            c.id,
+            name,
             stream.vector(),
             &sindex_block);
 
         if (res.success) {
-            std::set<std::string> sindexes;
-            sindexes.insert(c.id);
+            std::set<sindex_name_t> sindexes;
+            sindexes.insert(name);
             rdb_protocol::bring_sindexes_up_to_date(
                 sindexes, store, &sindex_block);
         }
@@ -418,16 +457,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
-        rdb_value_sizer_t sizer(btree->cache()->max_block_size());
-        rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
-
-        res.success = store->drop_sindex(d.id,
-                                         &sindex_block,
-                                         &sizer,
-                                         &live_deletion_context,
-                                         &post_construction_deletion_context,
-                                         &interruptor);
+        res.success = store->drop_sindex(sindex_name_t(d.id), std::move(sindex_block));
 
         response->response = res;
     }
@@ -724,31 +754,29 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // Release the superblock. We don't need it for this.
         superblock.reset();
 
-        rdb_value_sizer_t sizer(txn->cache()->max_block_size());
-        rdb_live_deletion_context_t live_deletion_context;
-        rdb_post_construction_deletion_context_t post_construction_deletion_context;
-        std::set<std::string> created_sindexes;
+        std::map<sindex_name_t, secondary_index_t> sindexes;
+        for (auto it = s.sindexes.begin(); it != s.sindexes.end(); ++it) {
+            secondary_index_t sindex = it->second;
+            // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
+            // secondary indexes. This can cause problems if indexes are deleted
+            // and recreated very quickly. The very reason for why we have UUIDs
+            // in the sindexes is to avoid two post-constructions to interfere with
+            // each other in such cases.
+            // More information:
+            // https://github.com/rethinkdb/rethinkdb/issues/657
+            // https://github.com/rethinkdb/rethinkdb/issues/2087
+            //
+            // Assign new random UUIDs to the secondary indexes to avoid collisions
+            // during post construction:
+            sindex.id = generate_uuid();
 
-        // backfill_chunk_t::sindexes_t contains hard-coded UUIDs for the
-        // secondary indexes. This can cause problems if indexes are deleted
-        // and recreated very quickly. The very reason for why we have UUIDs
-        // in the sindexes is to avoid two post-constructions to interfere with
-        // each other in such cases.
-        // More information:
-        // https://github.com/rethinkdb/rethinkdb/issues/657
-        // https://github.com/rethinkdb/rethinkdb/issues/2087
-        //
-        // Assign new random UUIDs to the secondary indexes to avoid collisions
-        // during post construction:
-        std::map<std::string, secondary_index_t> sindexes = s.sindexes;
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            it->second.id = generate_uuid();
+            auto res = sindexes.insert(std::make_pair(sindex_name_t(it->first),
+                                                      sindex));
+            guarantee(res.second);
         }
 
-        store->set_sindexes(sindexes, &sindex_block, &sizer,
-                            &live_deletion_context,
-                            &post_construction_deletion_context,
-                            &created_sindexes, interruptor);
+        std::set<sindex_name_t> created_sindexes;
+        store->set_sindexes(sindexes, &sindex_block, &created_sindexes);
 
         if (!created_sindexes.empty()) {
             rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
@@ -778,10 +806,42 @@ void store_t::protocol_receive_backfill(scoped_ptr_t<superblock_t> &&_superblock
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     scoped_ptr_t<superblock_t> superblock(std::move(_superblock));
-    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     rdb_receive_backfill_visitor_t v(this, btree.get(),
                                      superblock->expose_buf().txn(),
                                      std::move(superblock),
                                      interruptor);
     boost::apply_visitor(v, chunk.val);
+}
+
+void store_t::delayed_clear_sindex(
+        secondary_index_t sindex,
+        auto_drainer_t::lock_t store_keepalive)
+        THROWS_NOTHING
+{
+    try {
+        rdb_value_sizer_t sizer(cache->max_block_size());
+        /* If the index had been completely constructed, we must
+         * detach its values since snapshots might be accessing it.
+         * If on the other hand the index had not finished post
+         * construction, it would be incorrect to do so.
+         * The reason being that some of the values that the sindex
+         * points to might have been deleted in the meantime
+         * (the deletion would be on the sindex queue, but might
+         * not have found its way into the index tree yet). */
+        rdb_live_deletion_context_t live_deletion_context;
+        rdb_post_construction_deletion_context_t post_con_deletion_context;
+        deletion_context_t *actual_deletion_context =
+            sindex.post_construction_complete
+            ? static_cast<deletion_context_t *>(&live_deletion_context)
+            : static_cast<deletion_context_t *>(&post_con_deletion_context);
+
+        /* Clear the sindex. */
+        clear_sindex(sindex,
+                     &sizer,
+                     actual_deletion_context,
+                     store_keepalive.get_drain_signal());
+    } catch (const interrupted_exc_t &e) {
+        /* Ignore. The sindex deletion will continue when the store
+        is next started up. */
+    }
 }

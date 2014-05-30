@@ -575,7 +575,7 @@ private:
 
 void sindex_erase_range(const key_range_t &key_range,
         superblock_t *superblock, auto_drainer_t::lock_t,
-        signal_t *interruptor, bool release_superblock,
+        signal_t *interruptor, release_superblock_t release_superblock,
         const value_deleter_t *deleter) THROWS_NOTHING {
 
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
@@ -598,7 +598,7 @@ void spawn_sindex_erase_ranges(
         const key_range_t &key_range,
         auto_drainer_t *drainer,
         auto_drainer_t::lock_t,
-        bool release_superblock,
+        release_superblock_t release_superblock,
         signal_t *interruptor,
         const value_deleter_t *deleter) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
@@ -714,7 +714,7 @@ done_erasing_t rdb_erase_small_range(
     btree_erase_range_generic(&sizer, tester, deletion_context->in_tree_deleter(),
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        superblock, interruptor, true /* release_superblock */,
+        superblock, interruptor, release_superblock_t::RELEASE,
         std::bind(&on_erase_cb_t::on_erase,
                   ph::_1, ph::_2, ph::_3,
                   max_entries_erased, &num_entries_erased, highest_erased_key_out,
@@ -1187,7 +1187,12 @@ void rdb_update_single_sindex(
         }
     }
 
-    if (modification->info.added.first) {
+    // If the secondary index is being deleted, we don't add any new values to
+    // the sindex tree.
+    // This is so we don't race against any sindex erase about who is faster
+    // (we with inserting new entries, or the erase with removing them).
+    const bool sindex_is_being_deleted = sindex->sindex.being_deleted;
+    if (!sindex_is_being_deleted && modification->info.added.first) {
         try {
             counted_t<const ql::datum_t> added = modification->info.added.first;
 

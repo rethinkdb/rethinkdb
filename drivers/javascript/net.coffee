@@ -143,8 +143,6 @@ class Connection extends events.EventEmitter
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
-                console.log opts
-                console.log callback
                 throw new err.RqlDriverError "First argument to two-argument `close` must be an object."
             cb = callback
         else if Object::toString.call(optsOrCallback) is '[object Object]'

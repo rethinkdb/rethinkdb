@@ -125,12 +125,6 @@ tests:
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
 
     # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
-    - js: r.expr([1, 2, 3]).map()
-      cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
-    - js: r.expr([1, 2, 3]).map(1, 2)
-      cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
     - js: r.expr([1, 2, 3]).filter()
       cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])

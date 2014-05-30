@@ -163,9 +163,17 @@ void do_agnostic_btree_backfill(value_sizer_t *sizer,
         THROWS_ONLY(interrupted_exc_t) {
     rassert(coro_t::self());
 
-    std::map<std::string, secondary_index_t> sindexes;
+    std::map<sindex_name_t, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
-    callback->on_sindexes(sindexes, interruptor);
+    std::map<std::string, secondary_index_t> live_sindexes;
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        if (!it->second.being_deleted) {
+            guarantee(!it->first.being_deleted);
+            auto res = live_sindexes.insert(std::make_pair(it->first.name, it->second));
+            guarantee(res.second);
+        }
+    }
+    callback->on_sindexes(live_sindexes, interruptor);
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;

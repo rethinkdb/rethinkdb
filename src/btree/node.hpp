@@ -12,6 +12,7 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
+#include "serializer/types.hpp"
 #include "version.hpp"
 
 class value_sizer_t {
@@ -36,15 +37,17 @@ struct btree_superblock_t {
     block_id_t stat_block;
     block_id_t sindex_block;
 
-    // We are unnecessarily generous with the amount of space
-    // allocated here, but there's nothing else to push out of the
-    // way.
-    static const int METAINFO_BLOB_MAXREFLEN = 1500;
+    static const int METAINFO_BLOB_MAXREFLEN
+        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
+                                                               - sizeof(root_block)
+                                                               - sizeof(stat_block)
+                                                               - sizeof(sindex_block);
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
 } __attribute__ ((__packed__));
+static const uint32_t BTREE_SUPERBLOCK_SIZE = sizeof(btree_superblock_t);
 
 struct btree_statblock_t {
     //The total number of keys in the btree
@@ -54,6 +57,7 @@ struct btree_statblock_t {
         : population(0)
     { }
 } __attribute__ ((__packed__));
+static const uint32_t BTREE_STATBLOCK_SIZE = sizeof(btree_statblock_t);
 
 struct btree_sindex_block_t {
     static const int SINDEX_BLOB_MAXREFLEN = 4076;

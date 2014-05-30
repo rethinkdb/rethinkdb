@@ -41,6 +41,8 @@ struct backfill_queue_entry_t {
 
 void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t> *queue,
                          backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
+    // Here we reconstruct the ordering of the backfill chunks.
+    // (note how `queue` is a `fifo_enforcer_queue_t`)
     queue->push(token, backfill_queue_entry_t(true, chunk, token));
 }
 
@@ -59,16 +61,21 @@ public:
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
-        done_message_arrived(false), num_outstanding_chunks(0),
-        chunk_processing_semaphore(CHUNK_PROCESSING_CONCURRENCY)
+        done_message_arrived(false), num_outstanding_chunks(0)
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const backfill_chunk_t& chunk, signal_t *interruptor) {
-        new_semaphore_acq_t sem_acq(&chunk_processing_semaphore, 1);
-        sem_acq.acquisition_signal()->wait_lazily_unordered();
+        // No re-ordering must happen up to the point where we obtain a
+        // token_pair from the store.
+        // This is also asserted by `chunk_queue->finish_write(chunk_token)`.
+        try {
+            svs->throttle_backfill_chunk(interruptor);
+        } catch (const interrupted_exc_t &) {
+            chunk_queue->finish_write(chunk_token);
+            throw;
+        }
 
         write_token_pair_t token_pair;
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token_pair(&token_pair);
         chunk_queue->finish_write(chunk_token);
 
@@ -77,6 +84,8 @@ public:
 
     void coro_pool_callback(backfill_queue_entry_t chunk, signal_t *interruptor) {
         assert_thread();
+        /* Warning: This function is called with the chunks in the right order.
+        No re-ordering must happen before apply_backfill_chunk is called. */
         try {
             if (chunk.is_not_last_backfill_chunk) {
                 /* This is an actual backfill chunk */
@@ -143,8 +152,6 @@ private:
     int unacked_chunks;
     bool done_message_arrived;
     int num_outstanding_chunks;
-    // Limits the number of chunks that are processed in parallel at any given time
-    new_semaphore_t chunk_processing_semaphore;
 
     DISABLE_COPYING(chunk_callback_t);
 };
@@ -330,7 +337,8 @@ void backfillee(
 
         chunk_callback_t chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
-        coro_pool_t<backfill_queue_entry_t> backfill_workers(10, &chunk_queue, &chunk_callback);
+        coro_pool_t<backfill_queue_entry_t> backfill_workers(CHUNK_PROCESSING_CONCURRENCY,
+                                                             &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
         {

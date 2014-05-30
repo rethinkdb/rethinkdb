@@ -80,6 +80,14 @@ private:
     uint32_t ser_bs_;
 };
 
+// For use in compile-time constants
+template<uint32_t ser_size> struct from_ser_block_size_t {
+    static const uint32_t cache_size = ser_size - sizeof(ls_buf_data_t);
+};
+template<uint32_t cache_size> struct from_cache_block_size_t {
+    static const uint32_t ser_size = cache_size + sizeof(ls_buf_data_t);
+};
+
 inline bool operator==(block_size_t x, block_size_t y) {
     return x.ser_value() == y.ser_value();
 }
