@@ -189,7 +189,9 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
           NULL,
           ctx != NULL ? ctx->machine_id : uuid_u()),
       interruptor(_interruptor),
-      eval_callback(NULL) { }
+      eval_callback(NULL) {
+    rassert(interruptor != NULL);
+}
 
 // RSI: It's possible that query is empty?
 scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &query) {
@@ -206,7 +208,7 @@ scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &que
 // Called by rdb_write_visitor_t, with a NULL directory_read_manager and an empty query.  Called
 // by run (in term.cc, the parser's query-running method).  This time _with_ a
 // directory_read_manager.  RSI: This shouldn't take query -- it should take a
-// profile_bool_t directly.
+// profile_bool_t directly.  (Except that it's also used to initialize global_optargs.)
 // Called by unittest/rdb_env.cc, with a NULL client and NULL directory_read_manager.  And an empty query.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
@@ -236,12 +238,13 @@ env_t::env_t(
                    _this_machine),
     interruptor(_interruptor),
     trace(make_trace_initializer(query)),
-    eval_callback(NULL) {}
+    eval_callback(NULL) {
+    rassert(interruptor != NULL);
+}
 
-// Used to construct the env on the store_t.  (Notably, we pass NULL for the
-// directory_read_manager.)  RSI: Ask mlucy whether we can really use much of the
-// parameters we have here.
-// RSI: Remove directory_read_manager parameter.
+// Used to construct the env on the store_t (for reads).  (Notably, we pass NULL for
+// the directory_read_manager.)  RSI: Ask mlucy whether we can really use much of the
+// parameters we have here.  RSI: Remove directory_read_manager parameter.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -274,7 +277,9 @@ env_t::env_t(
     trace(_profile == profile_bool_t::PROFILE
           ? make_scoped<profile::trace_t>()
           : scoped_ptr_t<profile::trace_t>()),
-    eval_callback(NULL) {}
+    eval_callback(NULL) {
+    rassert(interruptor != NULL);
+}
 
 env_t::~env_t() { }
 
