@@ -384,6 +384,7 @@ batched_replace_response_t rdb_batched_replace(
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+        debugf("%zu\n", keys.size());
         for (size_t i = 0; i < keys.size(); ++i) {
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;

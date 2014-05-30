@@ -117,6 +117,7 @@ void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
 #endif
 
 /* coro_t */
+#include "debug.hpp"
 
 #ifndef NDEBUG
 TLS_with_init(int64_t, coro_selfname_counter, 0);
@@ -142,6 +143,12 @@ coro_t::coro_t() :
 
 #ifndef NDEBUG
     TLS_get_cglobals()->coro_count++;
+    if (!((TLS_get_cglobals()->coro_count < MAX_COROS_PER_THREAD))) {
+        auto m = TLS_get_cglobals()->running_coroutine_counts;
+        for (auto it = m.begin(); it != m.end(); ++it) {
+            debugf("%20zu %s\n", it->second, it->first.c_str());
+        }
+    }
     rassert(TLS_get_cglobals()->coro_count < MAX_COROS_PER_THREAD, "Too many "
             "coroutines allocated on this thread. This is problem due to a "
             "misuse of the coroutines\n");
