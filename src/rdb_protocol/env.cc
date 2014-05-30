@@ -262,8 +262,7 @@ env_t::env_t(
 }
 
 // Used to construct the env on the store_t (for reads).  (Notably, we pass NULL for
-// the directory_read_manager.)  RSI: Ask mlucy whether we can really use much of the
-// parameters we have here.  RSI: Remove directory_read_manager parameter.
+// the directory_read_manager.)  RSI: Remove directory_read_manager parameter.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
