@@ -2531,7 +2531,10 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor?.hasNext?
+                        if cursor.toString? and cursor.toString() is '[object Feed]'
+                            @toggle_executing false
+                            @results_view.render_error(null, new Error("Feeds cannot be displayed in the dataexplorer."))
+                        else if cursor?.hasNext?
                             @state.cursor = cursor
                             if cursor.hasNext() is true
                                 @state.cursor.next get_result_callback
