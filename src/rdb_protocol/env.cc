@@ -268,8 +268,8 @@ env_t::~env_t() { }
 
 void env_t::maybe_yield() {
     if (++evals_since_yield > EVALS_BEFORE_YIELD) {
-        coro_t::yield();
         evals_since_yield = 0;
+        coro_t::yield();
     }
 }
 
