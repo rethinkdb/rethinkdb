@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
@@ -385,10 +387,17 @@ batched_replace_response_t rdb_batched_replace(
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
         debugf("%zu\n", keys.size());
+        unlimited_fifo_queue_t<std::function<void()> > coro_queue;
+        struct callback_t : public coro_pool_callback_t<std::function<void()> > {
+            virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
+                f();
+            }
+        } callback;
+        coro_pool_t<std::function<void()> > coro_pool(8, &coro_queue, &callback);
         for (size_t i = 0; i < keys.size(); ++i) {
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
-            coro_t::spawn_sometime(
+            coro_queue.push(
                 std::bind(
                     &do_a_replace_from_batched_replace,
                     auto_drainer_t::lock_t(&drainer),
@@ -402,7 +411,6 @@ batched_replace_response_t rdb_batched_replace(
                     sindex_cb,
                     &stats,
                     trace));
-
             current_superblock.init(superblock_promise.wait());
         }
     } // Make sure the drainer is destructed before the return statement.
