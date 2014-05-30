@@ -95,7 +95,11 @@ class Connection extends events.EventEmitter
 
                 if cursor._endFlag && cursor._outstandingRequests is 0
                     @_delQuery(token)
+            else if feed?
+                feed._addResponse(response)
 
+                if feed._endFlag && feed._outstandingRequests is 0
+                    @_delQuery(token)
             else if cb?
                 # Behavior varies considerably based on response type
                 switch response.t
