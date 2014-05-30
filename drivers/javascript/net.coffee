@@ -330,6 +330,7 @@ class Connection extends events.EventEmitter
             if query.global_optargs? and Object.keys(query.global_optargs).length > 0
                 data.push(query.global_optargs)
 
+        console.log(data)
         @_writeQuery(query.token, JSON.stringify(data))
 
 

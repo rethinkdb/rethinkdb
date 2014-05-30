@@ -26,10 +26,9 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
    
     basedir = os.path.dirname(__file__)
    
-    print "Hello"
     stdout.flush()
     if not lang or lang == 'js':
-        print "Running JS"
+        print "Running JS feeds"
         stdout.flush()
         res = res | call(["node", os.path.join(basedir, "feeds.js"), str(port)])
         print ''
