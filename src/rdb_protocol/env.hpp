@@ -122,6 +122,8 @@ public:
 
     env_t(rdb_context_t *ctx, signal_t *interruptor);
 
+    explicit env_t(signal_t *interruptor);
+
     ~env_t();
 
     static const uint32_t EVALS_BEFORE_YIELD = 256;

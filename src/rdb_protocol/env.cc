@@ -159,11 +159,7 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
-// Used in constructing the env for unsharding.  Used with a NULL ctx in constructing
-// the env for rdb_update_single_sindex.  Used with NULL ctx and NULL interruptor in
-// unittest/rdb_btree.cc.  Used with a NULL ctx and dummy interruptor in
-// rdb_backfill.cc.
-// RSI: Separate out NULL-ctx constructor.
+// Used in constructing the env for unsharding.
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(protob_t<Query>()),
@@ -188,6 +184,29 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
                     semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
           NULL,
           ctx != NULL ? ctx->machine_id : uuid_u()),
+      interruptor(_interruptor),
+      eval_callback(NULL) {
+    rassert(interruptor != NULL);
+}
+
+
+// Used in constructing the env for unsharding.  Used in constructing the env for
+// rdb_update_single_sindex.  Used in unittest/rdb_btree.cc.  Used in
+// rdb_backfill.cc.
+env_t::env_t(signal_t *_interruptor)
+    : evals_since_yield(0),
+      global_optargs(protob_t<Query>()),
+      extproc_pool(NULL),
+      changefeed_client(NULL),
+      reql_http_proxy(""),
+      cluster_access(
+          NULL,
+          clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
+          clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+          boost::shared_ptr<
+              semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+          NULL,
+          uuid_u()),
       interruptor(_interruptor),
       eval_callback(NULL) {
     rassert(interruptor != NULL);
