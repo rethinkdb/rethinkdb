@@ -159,6 +159,11 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
+// Used in constructing the env for unsharding.  Used with a NULL ctx in constructing
+// the env for rdb_update_single_sindex.  Used with NULL ctx and NULL interruptor in
+// unittest/rdb_btree.cc.  Used with a NULL ctx and dummy interruptor in
+// rdb_backfill.cc.
+// RSI: Separate out NULL-ctx constructor.
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(protob_t<Query>()),
