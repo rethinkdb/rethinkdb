@@ -198,6 +198,153 @@ class Cursor extends IterableResult
 
     toString: ar () -> "[object Cursor]"
 
+
+class Feed
+    stackSize: 100
+
+    constructor: (conn, token, opts, root) ->
+        @_conn = conn
+        @_token = token
+        @_opts = opts
+        @_root = root # current query
+
+        @_responses = []
+        @_responseIndex = 0
+        @_outstandingRequests = 1 # Because we haven't add the response yet
+        @_iterations = 0
+        @_endFlag = false
+        @_contFlag = false
+        @_cont = null
+        @_cbQueue = []
+
+    bufferEmpty: ->
+        @_responses.length is 0 or @_responses[0].r.length <= @_responseIndex
+
+    _addResponse: (response) ->
+        @_responses.push response
+        @_outstandingRequests -= 1
+        @_endFlag = response.t isnt protoResponseType.SUCCESS_FEED
+        @_contFlag = false
+        @_promptNext()
+        @
+
+    _getCallback: ->
+        @_iterations += 1
+        cb = @_cbQueue.shift()
+
+        if @_iterations % @stackSize is @stackSize - 1
+            immediateCb = ((err, row) -> setImmediate -> cb(err, row))
+            return immediateCb
+        else
+            return cb
+
+    _handleRow: ->
+        response = @_responses[0]
+        row = util.recursivelyConvertPseudotype(response.r[@_responseIndex], @_opts)
+        cb = @_getCallback()
+
+        @_responseIndex += 1
+
+        # If we're done with this response, discard it
+        if @_responseIndex is response.r.length
+            @_responses.shift()
+            @_responseIndex = 0
+
+        cb null, row
+
+    _promptNext: ->
+        while @_cbQueue[0]?
+            if @bufferEmpty() is true
+                if @_responses.length is 1
+                    @_responses.shift()
+                    
+                if @_responses.length <= 1
+                    @_promptCont()
+
+                return
+            else
+                # Try to get a row out of the responses
+                response = @_responses[0]
+
+                if @_responses.length <= 1
+                    @_promptCont()
+
+                # Error responses are not discarded, and the error will be sent to all future callbacks
+                switch response.t
+                    when protoResponseType.SUCCESS_FEED
+                        @_handleRow()
+                    when protoResponseType.SUCCESS_SEQUENCE
+                        if response.r.length is 0
+                            @_responses.shift()
+                        else
+                            @_handleRow()
+                    when protoResponseType.COMPILE_ERROR
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlCompileError, response, @_root)
+                    when protoResponseType.CLIENT_ERROR
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlClientError, response, @_root)
+                    when protoResponseType.RUNTIME_ERROR
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlRuntimeError, response, @_root)
+                    else
+                        @_responses.shift()
+                        cb = @_getCallback()
+                        cb new err.RqlDriverError "Unknown response type for cursor"
+
+    _promptCont: ->
+        # Let's ask the server for more data if we haven't already
+        if !@_contFlag && !@_endFlag
+            @_contFlag = true
+            @_outstandingRequests += 1
+            @_conn._continueQuery(@_token)
+
+    hasNext: ->
+        throw new err.RqlDriverError "hasNext is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "toArray is not available for feeds."
+
+    next: (cb) ->
+        fn = (cb) =>
+            @_cbQueue.push cb
+            @_promptNext()
+
+        if typeof cb is "function"
+            fn(cb)
+        else if cb is undefined
+            p = new Promise (resolve, reject) ->
+                cb = (err, result) ->
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(result)
+                fn(cb)
+            return p
+        else
+            throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
+
+
+    close: ->
+        unless @_endFlag
+            @_outstandingRequests += 1
+            @_conn._endQuery(@_token)
+
+    toString: ar () -> "[object Feed]"
+
+    each: ->
+        #TODO
+
+    on: ->
+        #TODO
+    off: ->
+        #TODO
+
+    #TODO other EventEmitter methods
+
+
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
 
@@ -275,4 +422,5 @@ class ArrayResult extends IterableResult
         response
 
 module.exports.Cursor = Cursor
+module.exports.Feed = Feed
 module.exports.makeIterable = ArrayResult::makeIterable

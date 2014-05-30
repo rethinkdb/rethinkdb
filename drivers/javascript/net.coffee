@@ -89,7 +89,7 @@ class Connection extends events.EventEmitter
     _processResponse: (response, token) ->
         profile = response.p
         if @outstandingCallbacks[token]?
-            {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
+            {cb:cb, root:root, cursor: cursor, opts: opts, feed: feed} = @outstandingCallbacks[token]
             if cursor?
                 cursor._addResponse(response)
 
@@ -130,6 +130,13 @@ class Connection extends events.EventEmitter
                             cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
                             cb null, cursor._addResponse(response)
+                    when protoResponseType.SUCCESS_FEED
+                        feed = new cursors.Feed @, token, opts, root
+                        @outstandingCallbacks[token].feed = feed
+                        if profile?
+                            cb null, {profile: profile, value: feed._addResponse(response)}
+                        else
+                            cb null, feed._addResponse(response)
                     when protoResponseType.WAIT_COMPLETE
                         @_delQuery(token)
                         cb null, null
