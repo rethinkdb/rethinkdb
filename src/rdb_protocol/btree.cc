@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "concurrency/coro_pool.hpp"
-#include "concurrency/queue/unlimited_fifo.hpp"
 #include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
@@ -15,6 +13,8 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
