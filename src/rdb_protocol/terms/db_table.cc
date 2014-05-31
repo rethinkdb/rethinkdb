@@ -110,8 +110,12 @@ private:
         name_string_t db_name = get_name(arg(env, 0), this, "Database");
         uuid_u uuid;
         {
-            const_rethreading_metadata_accessor_t meta(env);
-            uuid = meta_get_uuid(&meta.db_searcher, db_name,
+            databases_semilattice_metadata_t db_metadata
+                = env->env->cluster_access.databases_semilattice_metadata->get();
+            const_metadata_searcher_t<database_semilattice_metadata_t>
+                db_searcher(&db_metadata.databases);
+
+            uuid = meta_get_uuid(&db_searcher, db_name,
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
         }
