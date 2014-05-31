@@ -1440,17 +1440,8 @@ bool data_block_manager_t::should_we_keep_gcing() const {
 }
 
 bool data_block_manager_t::should_terminate_one_gc_thread() const {
-    // As long as the garbage ratio is still higher than GC_START_RATIO,
-    // we don't terminate any GC thread. This is to avoid oscillating between
-    // a small and a very high number of GC threads all the time.
-    // Only when when we are below GC_START_RATIO, we start terminating unneeded
-    // threads:
-    if (garbage_ratio() < GC_START_RATIO) {
-        const size_t goal_num_active_gcs = compute_gc_concurrency();
-        return active_gcs.size() > goal_num_active_gcs;
-    } else {
-        return false;
-    }
+    const size_t goal_num_active_gcs = compute_gc_concurrency();
+    return active_gcs.size() > goal_num_active_gcs;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
