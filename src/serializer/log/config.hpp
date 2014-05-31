@@ -13,15 +13,9 @@
 
 struct log_serializer_dynamic_config_t {
     log_serializer_dynamic_config_t() {
-        gc_low_ratio = DEFAULT_GC_LOW_RATIO;
-        gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
         read_ahead = true;
         io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     }
-
-    /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
-    garbage until it reaches gc_low_ratio. */
-    double gc_low_ratio, gc_high_ratio;
 
     /* The (minimal) batch size of i/o requests being taken from a single i/o account.
     It is a factor because the actual batch size is this factor multiplied by the
@@ -31,8 +25,7 @@ struct log_serializer_dynamic_config_t {
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(gc_low_ratio, gc_high_ratio, io_batch_factor, \
-                               read_ahead);
+    RDB_MAKE_ME_SERIALIZABLE_2(io_batch_factor, read_ahead);
 };
 
 /* This is equivalent to log_serializer_static_config_t below, but is an on-disk
