@@ -392,7 +392,9 @@ batched_replace_response_t rdb_batched_replace(
                 f();
             }
         } callback;
-        coro_pool_t<std::function<void()> > coro_pool(8, &coro_queue, &callback);
+        const size_t MAX_CONCURRENT_REPLACES = 8;
+        coro_pool_t<std::function<void()> > coro_pool(
+            MAX_CONCURRENT_REPLACES, &coro_queue, &callback);
         for (size_t i = 0; i < keys.size(); ++i) {
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
