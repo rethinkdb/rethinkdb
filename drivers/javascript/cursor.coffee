@@ -3,6 +3,7 @@ util = require('./util')
 
 protoResponseType = require('./proto-def').Response.ResponseType
 Promise = require('bluebird')
+EventEmitter = require('events').EventEmitter
 
 # Import some names to this namespace for convenience
 ar = util.ar
@@ -217,6 +218,9 @@ class Feed
         @_cont = null
         @_cbQueue = []
 
+        @next = @_next
+        @each = @_each
+
     bufferEmpty: ->
         @_responses.length is 0 or @_responses[0].r.length <= @_responseIndex
 
@@ -307,7 +311,7 @@ class Feed
     toArray: ->
         throw new err.RqlDriverError "`toArray` is not available for feeds."
 
-    next: (cb) ->
+    _next: (cb) ->
         fn = (cb) =>
             @_cbQueue.push cb
             @_promptNext()
@@ -326,7 +330,6 @@ class Feed
         else
             throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
 
-
     close: ->
         unless @_endFlag
             @_outstandingRequests += 1
@@ -334,7 +337,7 @@ class Feed
 
     toString: ar () -> "[object Feed]"
 
-    each: (cb, onError) ->
+    _each: (cb, onError) ->
         unless typeof cb is 'function'
             throw new err.RqlDriverError "First argument to each must be a function."
         if onError? and typeof onError isnt 'function'
@@ -343,20 +346,101 @@ class Feed
         stopFlag = false
         n = =>
             if stopFlag is false
-                @next (err, row) =>
+                @_next (err, row) =>
                     if err?
-                        onError(err)
+                        cb(err)
                     else
                         stopFlag = (cb(err, row) is false)
                         n()
         n()
 
-    on: ->
-        #TODO
-    off: ->
-        #TODO
+    _makeEmitter: ->
+        @emitter = new EventEmitter
+        @each = ->
+            throw new err.RqlDriverError "You cannot the cursor interface and the EventEmitter interface at the same time."
+        @next = ->
+            throw new err.RqlDriverError "You cannot the cursor interface and the EventEmitter interface at the same time."
 
-    #TODO other EventEmitter methods
+
+    addListener: (args...) ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.addListener(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    on: (args...) ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.on(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    once: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.once(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    removeListener: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.removeListener(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    removAllListeners: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.removeAllListener(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    setMaxListeners: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.setMaxListeners(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    listeners: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.listeners(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
+
+    emit: ->
+        if not @emitter?
+            @_makeEmitter()
+        @emitter.emit(args...)
+        @_each (err, data) =>
+            if err?
+                @emitter.emit('error', err)
+            else
+                @emitter.emit('data', data)
 
 
 # Used to wrap array results so they support the same iterable result

@@ -92,7 +92,7 @@ function test1() {
 }
 
 function test2() {
-    // Testing errors with `next`
+    // Test `each`
     console.log("Running test2");
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
@@ -103,8 +103,11 @@ function test2() {
             var count = 0;
             feed.each(function(err, data) {
                 if (err) {
-                    if ((count === 4) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
-                        // That's fine, the next step we'll be called by the onError callback
+                    if ((count === 3) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
+                        r.tableCreate('test').run(conn, function(err, result) {
+                            if (err) throw err;
+                            test3();
+                        })
                     }
                     else {
                         throw err;
@@ -118,11 +121,6 @@ function test2() {
                         throw new Error("Test shouldn't have enter this part of the code")
                     }
                 }
-            }, function() {
-                r.tableCreate('test').run(conn, function(err, result) {
-                    if (err) throw err;
-                    test3();
-                })
             });
         });
         setTimeout(function() { // Wait one seconds before doing the writes to be sure that the feed is opened
@@ -166,8 +164,53 @@ function test3() {
                 }
             });
             conn.close();
-            done();
+            test4();
         });
+    });
+}
+
+function test4() {
+    // Test `each`
+    console.log("Running test4");
+    r.connect({port:port}, function(err, conn) {
+        if (err) throw err;
+
+        r.table('test').changes().run(conn, function(err, feed) {
+            if (err) throw err;
+
+            var count = 0;
+            feed.on('error', function(err) {
+                if ((count === 3) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
+                    conn.close();
+                    done();
+                }
+                else {
+                    throw err;
+                }
+            })
+            feed.on('data', function(data) {
+                if (count < 3) {
+                    count++;
+                }
+                else {
+                    throw new Error("Test shouldn't have enter this part of the code")
+                }
+            });
+        });
+
+        setTimeout(function() { // Wait one seconds before doing the writes to be sure that the feed is opened
+            r.connect({port: port}, function(err, conn) {
+                r.table('test').insert({}).run(conn).then(function() {
+                    return r.table('test').insert({}).run(conn);
+                }).then(function() {
+                    return r.table('test').insert({}).run(conn);
+                }).then(function() {
+                    return r.tableDrop('test').run(conn);
+                }).error(function(err) {
+                    throw err;
+                });
+            });
+        }, 1000);
     });
 }
 
