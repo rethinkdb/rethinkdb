@@ -303,9 +303,9 @@ class Feed
             @_conn._continueQuery(@_token)
 
     hasNext: ->
-        throw new err.RqlDriverError "hasNext is not available for feeds."
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
     toArray: ->
-        throw new err.RqlDriverError "toArray is not available for feeds."
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
 
     next: (cb) ->
         fn = (cb) =>
@@ -334,8 +334,22 @@ class Feed
 
     toString: ar () -> "[object Feed]"
 
-    each: ->
-        #TODO
+    each: (cb, onError) ->
+        unless typeof cb is 'function'
+            throw new err.RqlDriverError "First argument to each must be a function."
+        if onError? and typeof onError isnt 'function'
+            throw new err.RqlDriverError "Optional second argument to each must be a function or undefined."
+
+        stopFlag = false
+        n = =>
+            if stopFlag is false
+                @next (err, row) =>
+                    if err?
+                        onError(err)
+                    else
+                        stopFlag = (cb(err, row) is false)
+                        n()
+        n()
 
     on: ->
         #TODO
