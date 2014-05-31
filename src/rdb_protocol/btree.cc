@@ -13,6 +13,8 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -380,6 +382,15 @@ batched_replace_response_t rdb_batched_replace(
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
     {
+        unlimited_fifo_queue_t<std::function<void()> > coro_queue;
+        struct callback_t : public coro_pool_callback_t<std::function<void()> > {
+            virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
+                f();
+            }
+        } callback;
+        const size_t MAX_CONCURRENT_REPLACES = 8;
+        coro_pool_t<std::function<void()> > coro_pool(
+            MAX_CONCURRENT_REPLACES, &coro_queue, &callback);
         auto_drainer_t drainer;
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
@@ -387,7 +398,7 @@ batched_replace_response_t rdb_batched_replace(
         for (size_t i = 0; i < keys.size(); ++i) {
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
-            coro_t::spawn_sometime(
+            coro_queue.push(
                 std::bind(
                     &do_a_replace_from_batched_replace,
                     auto_drainer_t::lock_t(&drainer),
@@ -401,7 +412,6 @@ batched_replace_response_t rdb_batched_replace(
                     sindex_cb,
                     &stats,
                     trace));
-
             current_superblock.init(superblock_promise.wait());
         }
     } // Make sure the drainer is destructed before the return statement.
