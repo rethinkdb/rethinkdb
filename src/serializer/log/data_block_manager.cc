@@ -38,9 +38,9 @@ const int GC_IO_PRIORITY_NICE = 8;
 const int GC_IO_PRIORITY_HIGH = (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR);
 
 // The ratio at which we start GCing.
-const double GC_START_RATIO = 0.1;
+const double GC_START_RATIO = 0.15;
 // The ratio at which we don't want to keep GC'ing.
-const double GC_STOP_RATIO = 0.05;
+const double GC_STOP_RATIO = 0.1;
 // The ratio at which we start taking more serious measures to get the garbage
 // rate down.
 const double GC_HIGH_RATIO = GC_START_RATIO * 2.0;
