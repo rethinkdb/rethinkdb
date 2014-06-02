@@ -312,7 +312,8 @@ subscription_t::get_els(batcher_t *batcher, const signal_t *interruptor) {
         cond_t wait_for_data;
         cond = &wait_for_data;
         signal_timer_t timer;
-        if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+        if (batcher->get_batch_type() == batch_type_t::NORMAL
+            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
             timer.start(batcher->microtime_left() / 1000);
         }
         try {
