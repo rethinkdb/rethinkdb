@@ -63,12 +63,9 @@ struct const_rethreading_metadata_accessor_t : public on_thread_t {
     explicit const_rethreading_metadata_accessor_t(scope_env_t *env)
     : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
       metadata(env->env->cluster_access.semilattice_metadata->get()),
-      ns_searcher(&metadata.rdb_namespaces.get()->namespaces),
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
-    const_metadata_searcher_t<namespace_semilattice_metadata_t>
-        ns_searcher;
     const_metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
 };
 
@@ -421,10 +418,14 @@ private:
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
-            const_rethreading_metadata_accessor_t meta(env);
-            for (auto it = meta.ns_searcher.find_next(meta.ns_searcher.begin(), pred);
-                 it != meta.ns_searcher.end();
-                 it = meta.ns_searcher.find_next(++it, pred)) {
+            cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata
+                = env->env->cluster_access.namespaces_semilattice_metadata->get();
+            const_metadata_searcher_t<namespace_semilattice_metadata_t>
+                ns_searcher(&ns_metadata->namespaces);
+
+            for (auto it = ns_searcher.find_next(ns_searcher.begin(), pred);
+                 it != ns_searcher.end();
+                 it = ns_searcher.find_next(++it, pred)) {
                 guarantee(!it->second.is_deleted());
                 if (it->second.get_ref().name.in_conflict()) continue;
                 tables.push_back(it->second.get_ref().name.get().c_str());
