@@ -1,21 +1,26 @@
 # This test framework is responsible for running the test suite
 
-import multiprocessing
-import Queue
-import threading
-import signal
 from argparse import ArgumentParser
-import sys
-import tempfile
 from os.path import abspath, join, dirname, pardir, getmtime, relpath
-import os
-import traceback
-import subprocess
-import time
-import traceback
-import shutil
+import curses
+import Queue
+import fcntl
 import fnmatch
 import math
+import multiprocessing
+import os
+import shutil
+import signal
+import struct
+import subprocess
+import sys
+import tempfile
+import termios
+import threading
+import time
+import traceback
+import traceback
+
 from utils import guess_is_text_file
 import test_report
 
@@ -334,13 +339,16 @@ class TestRunner(object):
 
 # For printing the status of TestRunner to stdout
 class TextView(object):
-    red     = "\033[31;1m"
-    green   = "\033[32;1m"
-    yellow  = "\033[33;1m"
-    nocolor = "\033[0m"
-
     def __init__(self):
         self.use_color = sys.stdout.isatty()
+        if self.use_color:
+            curses.setupterm()
+            setf = curses.tigetstr('setaf')
+            bold = curses.tigetstr('bold')
+            self.red = curses.tparm(setf, 1) + bold
+            self.green = curses.tparm(setf, 2) + bold
+            self.yellow = curses.tparm(setf, 3) + bold
+            self.nocolor = curses.tigetstr('sgr0')
 
     def tell(self, event, name, **args):
         if event not in ['STARTED', 'CANCEL']:
@@ -370,8 +378,6 @@ class TextView(object):
 # For printing the status to a terminal
 class TermView(TextView):
 
-    printingQueue = None
-
     def __init__(self, total):
         TextView.__init__(self)
         self.running_list = []
@@ -381,6 +387,9 @@ class TermView(TextView):
         self.total = total
         self.start_time = time.time()
         self.printingQueue = Queue.Queue()
+        self.columns = curses.tigetnum('cols')
+        self.clear_line = curses.tparm(curses.tigetstr('cub'), self.columns) + curses.tigetstr('dl1')
+        signal.signal(signal.SIGWINCH, lambda *args: self.tell('SIGWINCH', args))
         self.thread = threading.Thread(target=self.run, name='TermView')
         self.thread.daemon = True
         self.thread.start()
@@ -405,8 +414,10 @@ class TermView(TextView):
                 self.thread_tell(*args, **kwargs)
 
     def thread_tell(self, event, name, **kwargs):
-        if event == 'CANCEL':
-            print 'CANCELLING', name
+        if event == 'SIGWINCH':
+            self.columns = struct.unpack('hh', fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))[1]
+            self.update_status()
+        elif event == 'CANCEL':
             self.total -= name
         elif event == 'STARTED':
             self.running_list += [name]
@@ -425,22 +436,29 @@ class TermView(TextView):
         self.show_status()
 
     def clear_status(self):
-        self.buffer += "\033[0E\033[K"
+        self.buffer += self.clear_line
 
     def show_status(self):
         if self.running_list:
             running = len(self.running_list)
-            names = self.format_running()
             passed = self.passed
             failed = self.failed
             remaining = self.total - passed - failed - running
+            duration = self.format_duration(time.time() - self.start_time)
+            def format(names):
+                return '[%s/%s/%d/%d %s %s]' % (passed, failed, running, remaining, duration, names)
+            names = ''
+            for i in range(running + 1):
+                next = self.format_running(i)
+                if len(format(next)) > self.columns - 1:
+                    break
+                names = next
             if self.use_color:
                 if passed:
                     passed = self.green + str(passed) + self.nocolor
                 if failed:
                     failed = self.red + str(failed) + self.nocolor
-            duration = self.format_duration(time.time() - self.start_time)
-            self.buffer += '[%s/%s/%d/%d %s %s]' % (passed, failed, running, remaining, duration, names)
+            self.buffer += format(names)
 
     def format_duration(self, elapsed):
         elapsed = math.floor(elapsed)
@@ -455,9 +473,13 @@ class TermView(TextView):
             ret = "%dh%s" % (hours, ret)
         return ret
 
-    def format_running(self):
-        ret = self.running_list[0]
-        if len(self.running_list) > 1:
+    def format_running(self, max):
+        ret = ''
+        for i in range(max):
+            if i > 0:
+                ret += ', '
+            ret += self.running_list[i]
+        if len(self.running_list) > max:
             ret += ", ..."
         return ret
 
