@@ -76,6 +76,8 @@
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
 // Size of each extent (in bytes)
+// This should not be too small, or garbage collection will become
+// inefficient (especially on rotational drives).
 #define DEFAULT_EXTENT_SIZE                       (2 * MEGABYTE)
 
 // Ratio of free ram to use for the cache by default
