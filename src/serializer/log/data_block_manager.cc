@@ -23,7 +23,7 @@ const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
  *****************/
 
 // How many GC routines to launch in concurrently, at maximum
-const size_t MAX_CONCURRENT_GCS = 128;
+const size_t MAX_CONCURRENT_GCS = 32;
 
 // Garbage Collection uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
