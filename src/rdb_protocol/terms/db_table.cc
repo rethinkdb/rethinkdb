@@ -64,13 +64,11 @@ struct const_rethreading_metadata_accessor_t : public on_thread_t {
     : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
       metadata(env->env->cluster_access.semilattice_metadata->get()),
       ns_searcher(&metadata.rdb_namespaces.get()->namespaces),
-      db_searcher(&metadata.databases.databases),
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
     const_metadata_searcher_t<namespace_semilattice_metadata_t>
         ns_searcher;
-    const_metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
     const_metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
 };
 
@@ -379,12 +377,18 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            const_rethreading_metadata_accessor_t meta(env);
-            for (auto it = meta.db_searcher.find_next(meta.db_searcher.begin());
-                 it != meta.db_searcher.end();
-                 it = meta.db_searcher.find_next(++it)) {
+            databases_semilattice_metadata_t db_metadata
+                = env->env->cluster_access.databases_semilattice_metadata->get();
+            const_metadata_searcher_t<database_semilattice_metadata_t>
+                db_searcher(&db_metadata.databases);
+
+            for (auto it = db_searcher.find_next(db_searcher.begin());
+                 it != db_searcher.end();
+                 it = db_searcher.find_next(++it)) {
                 guarantee(!it->second.is_deleted());
-                if (it->second.get_ref().name.in_conflict()) continue;
+                if (it->second.get_ref().name.in_conflict()) {
+                    continue;
+                }
                 dbs.push_back(it->second.get_ref().name.get().c_str());
             }
         }
