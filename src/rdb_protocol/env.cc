@@ -32,35 +32,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
     return counted_t<const datum_t>();
 }
 
-global_optargs_t::global_optargs_t() { }
-
-global_optargs_t::global_optargs_t(protob_t<Query> q) {
-    if (!q.has()) {
-        return;
-    }
-    Term *t = q->mutable_query();
-    preprocess_term(t);
-
-    for (int i = 0; i < q->global_optargs_size(); ++i) {
-        const Query::AssocPair &ap = q->global_optargs(i);
-        bool conflict = add_optarg(ap.key(), ap.val());
-        rcheck_toplevel(
-                !conflict, base_exc_t::GENERIC,
-                strprintf("Duplicate global optarg: %s", ap.key().c_str()));
-    }
-
-    Term arg = r::db("test").get();
-
-    Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-    propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
-    UNUSED bool _b = add_optarg("db", arg);
-    //          ^^ UNUSED because user can override this value safely
-}
-
-bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
-    if (optargs.count(key)) {
-        return true;
-    }
+wire_func_t construct_optarg_wire_func(const Term &val) {
     protob_t<Term> arg = r::fun(r::expr(val)).release_counted();
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
@@ -68,10 +40,44 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     counted_t<func_term_t> func_term
         = make_counted<func_term_t>(&empty_compile_env, arg);
     counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
-
-    optargs[key] = wire_func_t(func);
-    return false;
+    return wire_func_t(func);
 }
+
+std::map<std::string, wire_func_t> construct_optarg_map(protob_t<Query> q) {
+    rassert(q.has());
+
+    Term *t = q->mutable_query();
+    preprocess_term(t);
+
+    std::map<std::string, wire_func_t> optargs;
+
+    for (int i = 0; i < q->global_optargs_size(); ++i) {
+        const Query::AssocPair &ap = q->global_optargs(i);
+        if (optargs.count(ap.key())) {
+            rfail_toplevel(
+                    base_exc_t::GENERIC,
+                    "Duplicate global optarg: %s", ap.key().c_str());
+        }
+        optargs[ap.key()] = construct_optarg_wire_func(ap.val());
+    }
+
+    // Supply a default db of "test" if there is no "db" optarg.
+    if (!optargs.count("db")) {
+        Term arg = r::db("test").get();
+        Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
+        propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
+        optargs["db"] = construct_optarg_wire_func(arg);
+    }
+
+    return optargs;
+}
+
+global_optargs_t::global_optargs_t() { }
+
+global_optargs_t::global_optargs_t(protob_t<Query> q)
+    : optargs(q.has()
+              ? construct_optarg_map(q)
+              : std::map<std::string, wire_func_t>()) { }
 
 void global_optargs_t::init_optargs(
     const std::map<std::string, wire_func_t> &_optargs) {

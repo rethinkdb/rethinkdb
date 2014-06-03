@@ -31,8 +31,6 @@ public:
     global_optargs_t();
     explicit global_optargs_t(protob_t<Query> q);
 
-    // Returns whether or not there was a key conflict.
-    MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     // returns NULL if no entry
     counted_t<val_t> get_optarg(env_t *env, const std::string &key);
