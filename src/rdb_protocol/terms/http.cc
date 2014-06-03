@@ -13,30 +13,6 @@
 
 namespace ql {
 
-class http_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
-public:
-    explicit http_result_visitor_t(const http_opts_t *_opts,
-                                   const pb_rcheckable_t *_parent) :
-          opts(_opts), parent(_parent) { }
-
-    // This http resulted in an error
-    counted_t<val_t> operator()(const std::string &err_val) const {
-        rfail_target(parent, base_exc_t::GENERIC,
-                     "Error in HTTP %s of `%s`: %s.",
-                     http_method_to_str(opts->method).c_str(),
-                     opts->url.c_str(), err_val.c_str());
-    }
-
-    // This http resulted in data
-    counted_t<val_t> operator()(const counted_t<const datum_t> &datum) const {
-        return make_counted<val_t>(datum, parent->backtrace());
-    }
-
-private:
-    const http_opts_t *opts;
-    const pb_rcheckable_t *parent;
-};
-
 class http_term_t : public op_term_t {
 public:
     http_term_t(compile_env_t *env, const protob_t<const Term> &term) :
@@ -125,22 +101,41 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
     opts->proxy.assign(env->env->reql_http_proxy);
     get_optargs(env, opts.get());
 
-    http_result_t http_result;
+    http_result_t res;
     try {
         http_runner_t runner(env->env->extproc_pool);
-        http_result = runner.http(opts.get(), env->env->interruptor);
+        runner.http(opts.get(), &res, env->env->interruptor);
     } catch (const http_worker_exc_t &ex) {
-        http_result = std::string("crash in a worker process");
+        res.error.assign("crash in a worker process");
     } catch (const interrupted_exc_t &ex) {
-        http_result = std::string("interrupted");
+        res.error.assign("interrupted");
     } catch (const std::exception &ex) {
-        http_result = std::string("encounted an exception - ") + ex.what();
+        res.error = std::string("encounted an exception - ") + ex.what();
     } catch (...) {
-        http_result = std::string("encountered an unknown exception");
+        res.error.assign("encountered an unknown exception");
     }
 
-    return boost::apply_visitor(http_result_visitor_t(opts.get(), this),
-                                http_result);
+    if (!res.error.empty()) {
+        std::string error_string = strprintf("Error in HTTP %s of `%s`: %s.",
+                                             http_method_to_str(opts->method).c_str(),
+                                             opts->url.c_str(),
+                                             res.error.c_str());
+        if (res.header.has()) {
+            error_string.append("\nheader:\n" + res.header->print());
+        }
+
+        if (res.body.has()) {
+            error_string.append("\nbody:\n" + res.body->print());
+        }
+
+        // Any error coming back from the extproc may be due to the fragility of
+        // interfacing with external servers.  Provide a non-existence error so that
+        // users may call `r.default` for more robustness.
+        rfail_target(this, base_exc_t::NON_EXISTENCE,
+                     "%s", error_string.c_str());
+    }
+
+    return make_counted<val_t>(res.body, backtrace());
 }
 
 void http_term_t::get_optargs(scope_env_t *env,
