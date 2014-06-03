@@ -227,18 +227,8 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     }
 }
 
-// RSI: It's possible that query is empty?
-scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &query) {
-    if (query.has() && profile_bool_optarg(query) == profile_bool_t::PROFILE) {
-        return make_scoped<profile::trace_t>();
-    }
-    return scoped_ptr_t<profile::trace_t>();
-}
-
 // Called by run (in term.cc, the parser's query-running method).  This time _with_ a
-// directory_read_manager.  RSI: This shouldn't take query -- it should take a
-// profile_bool_t directly.  (Except that it's also used to initialize
-// global_optargs.)
+// directory_read_manager.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -275,7 +265,7 @@ env_t::env_t(
 }
 
 // Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
-// christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
+// Christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
 // changefeed_client.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
