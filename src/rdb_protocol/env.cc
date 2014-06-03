@@ -266,9 +266,8 @@ env_t::env_t(
 }
 
 // Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
-// christ, what the fuck is this shit), a NULL directory_read_manager.  Called by
-// unittest/rdb_env.cc, with a NULL changefeed_client and NULL
-// directory_read_manager.
+// christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
+// changefeed_client.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -280,8 +279,6 @@ env_t::env_t(
         _databases_semilattice_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _semilattice_metadata,
-    // RSI: always null.
-    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine)
   : evals_since_yield(0),
@@ -293,7 +290,7 @@ env_t::env_t(
                    _namespaces_semilattice_metadata,
                    _databases_semilattice_metadata,
                    _semilattice_metadata,
-                   _directory_read_manager,
+                   NULL,
                    _this_machine),
     interruptor(_interruptor),
     trace(),

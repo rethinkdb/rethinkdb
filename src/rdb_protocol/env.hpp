@@ -117,7 +117,6 @@ public:
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine);
 

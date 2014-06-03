@@ -495,7 +495,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
-               NULL,
                &interruptor,
                ctx->machine_id) {
         sindex_block =

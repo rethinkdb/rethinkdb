@@ -332,7 +332,6 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            namespaces_metadata,
                            databases_metadata,
                            dummy_semilattice_controller.get_view(),
-                           NULL,
                            &interruptor,
                            test_env->machine_id));  // RSI
     rdb_ns_repo.set_env(env.get());
