@@ -26,6 +26,8 @@ class term_t;
  * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
 
+std::map<std::string, wire_func_t> extract_optarg_map(protob_t<Query> q);
+
 class global_optargs_t {
 public:
     global_optargs_t();

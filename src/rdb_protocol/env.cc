@@ -43,7 +43,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     return wire_func_t(func);
 }
 
-std::map<std::string, wire_func_t> construct_optarg_map(protob_t<Query> q) {
+std::map<std::string, wire_func_t> extract_optarg_map(protob_t<Query> q) {
     rassert(q.has());
 
     Term *t = q->mutable_query();
@@ -250,7 +250,7 @@ env_t::env_t(
     protob_t<Query> query)
   : evals_since_yield(0),
     global_optargs(query.has()
-                   ? construct_optarg_map(query)
+                   ? extract_optarg_map(query)
                    : std::map<std::string, wire_func_t>()),
     extproc_pool(_extproc_pool),
     changefeed_client(_changefeed_client),
