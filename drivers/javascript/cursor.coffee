@@ -225,7 +225,13 @@ class Feed
         @_responses.length is 0 or @_responses[0].r.length <= @_responseIndex
 
     _addResponse: (response) ->
-        @_responses.push response
+        if response.t is protoResponseType.SUCCESS_FEED or response.t is protoResponseType.SUCCESS_SEQUENCE
+            # We push a "ok" response only if it's not empty
+            if response.r.length > 0
+                @_responses.push response
+        else
+            @_responses.push response
+
         @_outstandingRequests -= 1
         @_endFlag = response.t isnt protoResponseType.SUCCESS_FEED
         @_contFlag = false
@@ -259,13 +265,9 @@ class Feed
     _promptNext: ->
         while @_cbQueue[0]?
             if @bufferEmpty() is true
-                # This can happen if the response sent back is empty (else a response is shifted in `_handleRow`
-                if @_responses.length is 1
-                    @_responses.shift()
-                    
+                # We prefetch things here, set `is 0` to avoid prefectch
                 if @_responses.length <= 1
                     @_promptCont()
-
                 return
             else
                 # Try to get a row out of the responses

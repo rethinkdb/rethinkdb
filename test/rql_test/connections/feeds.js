@@ -72,7 +72,7 @@ function test1() {
             feed.next(fn);
         });
     
-        setTimeout(function() { // Wait one seconds before doing the writes to be sure that the feed is opened
+        setTimeout(function() { // Wait 5 seconds to retrieve some empty responses
             r.connect({port: port}, function(err, conn) {
                 r.table('test').insert({id: idValue, value: 'insert'}).run(conn).then(function() {
                     return r.table('test').get(idValue).update({value: 'update'}).run(conn);
@@ -86,7 +86,7 @@ function test1() {
                     throw err;
                 });
             });
-        }, 1000);
+        }, 5000);
 
     });
 }
