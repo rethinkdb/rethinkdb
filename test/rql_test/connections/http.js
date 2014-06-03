@@ -27,7 +27,7 @@ function expect_error(res, err, err_type, err_info) {
         if (err['name'] !== err_type) {
             throw new Error("Expected an error of type " + err_type + ", but got " + err['name'] + ": " + err['msg']);
         }
-        if (err['msg'] !== err_info) {
+        if (err['msg'].indexOf(err_info) !== 0) {
             throw new Error('expected error: ' + err_info + '\nactual error: ' + err['msg'])
         }
     } else {
@@ -138,7 +138,7 @@ function test_head(conn) {
 
     r.http(url, {method:'HEAD', resultFormat:'text'}).run(conn, function(err, res) {
             expect_no_error(err);
-            expect_eq(res, '');
+            expect_eq(res, null);
         });
 
     r.http(url, {method:'HEAD', resultFormat:'json'}).run(conn, function(err, res) {
@@ -163,13 +163,6 @@ function test_post(conn) {
             expect_eq(res['json'], post_1_data);
         });
 
-    r.http(url, {method:'POST', data:r.expr(post_1_data).coerceTo('string')}).run(conn, function(err, res) {
-            expect_no_error(err);
-            // Default content type is x-www-form-encoded, which changes the '+' to a space
-            var expected = {str:'%in fo ',number:135.5,nil:null};
-            expect_eq(res['json'], expected)
-        });
-
     var post_2_data = 'a=b&b=c'
     r.http(url, {method:'POST', data:post_2_data}).run(conn, function(err, res) {
             expect_no_error(err);
@@ -177,7 +170,9 @@ function test_post(conn) {
         });
 
     var post_3_data = '<arbitrary>data</arbitrary>'
-    r.http(url, {method:'POST', data:post_3_data}).run(conn, function(err, res) {
+    r.http(url, {method:'POST',
+                 data:post_3_data,
+                 header:{'Content-Type':'application/text'}}).run(conn, function(err, res) {
             expect_no_error(err);
             expect_eq(res['data'], post_3_data)
             pass("post", conn);
@@ -339,13 +334,13 @@ function test_digest_auth(conn) {
 
 function test_verify(conn) {
     function test_part(url, done) {
-        r.http(url, {verify:true, redirects:5}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'Peer certificate cannot be authenticated with given CA certificates'));
+        r.http(url, {method:'HEAD', verify:true, redirects:5}).run(conn, function(err, res) {
+                expect_error(res, err, 'RqlRuntimeError', err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'));
             });
 
-        r.http(url, {verify:false, redirects:5}).split().nth(0).run(conn, function(err, res) {
+        r.http(url, {method:'HEAD', verify:false, redirects:5}).run(conn, function(err, res) {
                 expect_no_error(err);
-                expect_eq(res, '<html>');
+                expect_eq(res, null);
                 done();
             });
     }

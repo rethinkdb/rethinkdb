@@ -14,7 +14,8 @@ def expect_error(query, err_type, err_info):
     try:
         res = query.run(conn)
     except err_type as ex:
-        if ex.message != err_info:
+        if ex.message.find(err_info) != 0:
+            print 'Expected:\n "%s"\nFound:\n "%s"' % (err_info, ex.message)
             raise
         return
     raise RuntimeError("Expected an error, but got success with result: %s" % str(res))
@@ -26,7 +27,7 @@ def expect_eq(left, right):
                            "\n  EXPECTED: %s" % str(right))
 
 def err_string(method, url, msg):
-    return 'Error in HTTP %s of `%s`: %s.' % (method, url, msg)
+    return 'Error in HTTP %s of `%s`: %s' % (method, url, msg)
 
 def test_get():
     url = 'httpbin.org/get'
@@ -63,7 +64,7 @@ def test_head():
     url = 'httpbin.org/get'
 
     res = r.http(url, method='HEAD', result_format='text').run(conn)
-    expect_eq(res, '')
+    expect_eq(res, None)
 
     res = r.http(url, method='HEAD').run(conn)
     expect_eq(res, None)
@@ -81,16 +82,13 @@ def test_post():
                  header={'Content-Type':'application/json'}).run(conn)
     expect_eq(res['json'], post_data)
 
-    res = r.http(url, method='POST', data=r.expr(post_data).coerce_to('string')).run(conn)
-    post_data['str'] = '%in fo ' # Default content type is x-www-form-encoded, which changes the '+' to a space
-    expect_eq(res['json'], post_data)
-
     post_data = 'a=b&b=c'
     res = r.http(url, method='POST', data=post_data).run(conn)
     expect_eq(res['form'], {'a':'b','b':'c'})
 
     post_data = '<arbitrary>data</arbitrary>'
-    res = r.http(url, method='POST', data=post_data).run(conn)
+    res = r.http(url, method='POST', data=post_data,
+                 header={'Content-Type':'application/text/'}).run(conn)
     expect_eq(res['data'], post_data)
 
 def test_put():
@@ -196,11 +194,11 @@ def test_digest_auth():
 
 def test_verify():
     def test_part(url):
-        expect_error(r.http(url, verify=True, redirects=5),
-                     r.RqlRuntimeError, err_string('GET', url, 'Peer certificate cannot be authenticated with given CA certificates'))
+        expect_error(r.http(url, method='HEAD', verify=True, redirects=5),
+                     r.RqlRuntimeError, err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'))
 
-        res = r.http(url, verify=False, redirects=5).split()[0].run(conn)
-        expect_eq(res, '<html>')
+        res = r.http(url, method='HEAD', verify=False, redirects=5).run(conn)
+        expect_eq(res, None)
 
     test_part('http://dev.rethinkdb.com')
     test_part('https://dev.rethinkdb.com')
