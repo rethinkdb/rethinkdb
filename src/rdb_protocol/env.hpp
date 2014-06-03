@@ -172,7 +172,6 @@ public:
 
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
-    // RSI: Check if this can be used simultaneously by multiple coroutines.  (Surely yes.)
     extproc_pool_t *const extproc_pool;
 
     // Holds a bunch of mailboxes and maps them to streams.
@@ -182,16 +181,15 @@ public:
     const std::string reql_http_proxy;
 
     // Access to the cluster, for talking over the cluster or about the cluster.
-    // RSI: Can this be used from multiple coroutines?  Check.
     cluster_access_t cluster_access;
 
     // The interruptor signal while a query evaluates.  This can get overwritten!
-    // RSI: Holy shit, this can get overwritten?  We'll have to watch out for this
-    // when running stuff in parallel?
+    // RSI: This can get overwritten -- specifically, when we run the next batch get.
+    // That's ridiculous.
     signal_t *interruptor;
 
-    // RSI: Will we have to watch out for this when running stuff in parallel?
-    // This pointer is non-empty if we are profiling this query.
+    // RSI: Will we have to watch out for this when running stuff in parallel?  This
+    // pointer is non-empty if and only if we are profiling this query.
     const scoped_ptr_t<profile::trace_t> trace;
 
     profile_bool_t profile();
