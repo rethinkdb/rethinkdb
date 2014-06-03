@@ -162,7 +162,7 @@ js_runner_t *env_t::get_js_runner() {
 // Used in constructing the env for unsharding.
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
-      global_optargs(protob_t<Query>()),
+      global_optargs(),
       extproc_pool(ctx != NULL ? ctx->extproc_pool : NULL),
       changefeed_client(ctx != NULL && ctx->changefeed_client.has()
                         ? ctx->changefeed_client.get()
