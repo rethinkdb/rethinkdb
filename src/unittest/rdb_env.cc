@@ -333,7 +333,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            databases_metadata,
                            dummy_semilattice_controller.get_view(),
                            &interruptor,
-                           test_env->machine_id));  // RSI
+                           test_env->machine_id));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas
