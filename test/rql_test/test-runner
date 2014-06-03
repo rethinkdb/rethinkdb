@@ -2,11 +2,7 @@
 
 import yaml
 
-import atexit, collections, distutils.spawn, operator, optparse, shutil, signal, stat, subprocess, tempfile, time, traceback
-import sys
-import types
-import re
-import os
+import atexit, collections, distutils.spawn, operator, optparse, os, re, shutil, signal, stat, subprocess, sys, types, tempfile, time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
 import test_exceptions, utils
@@ -247,30 +243,36 @@ class TestGroup:
             myClass.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
-        (code, runopts) = myClass.get_code(test, lang, index)
+        try:
+            (code, runopts) = myClass.get_code(test, lang, index)
+        except Exception, e:
+            raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
         for test_case in code:
-            out.write("test("+test_case)
-            expected = myClass.get_expected(test, lang)
-            if not expected:
-                expected = '""'
-            out.write(', '+expected)
-            out.write(', "' + testName + '"')
-
-            if runopts:
-                runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
-                out.write(', '+runoptsrepr)
-
-            out.write(')\n')
-
-            # We want to auto-shard tables that we create. There is stil no
-            # way to do this from rql so we have to hack the admin cli.
-            
-            if shard > 0:
-                pattern = 'table_create\\(\'(\\w+)\'\\)'
-                mo = re.search(pattern, test_case)
-                if mo:
-                    table_name = mo.group(1)
-                    out.write('shard("'+table_name+'")\n')
+            try:
+                out.write("test("+test_case)
+                expected = myClass.get_expected(test, lang)
+                if not expected:
+                    expected = '""'
+                out.write(', '+expected)
+                out.write(', "' + testName + '"')
+    
+                if runopts:
+                    runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
+                    out.write(', '+runoptsrepr)
+    
+                out.write(')\n')
+    
+                # We want to auto-shard tables that we create. There is stil no
+                # way to do this from rql so we have to hack the admin cli.
+                
+                if shard > 0:
+                    pattern = 'table_create\\(\'(\\w+)\'\\)'
+                    mo = re.search(pattern, test_case)
+                    if mo:
+                        table_name = mo.group(1)
+                        out.write('shard("'+table_name+'")\n')
+            except Exception, e:
+                raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(code), str(e)))
     
     @classmethod
     def write_def(myClass, out, defobj, lang, index):
@@ -294,13 +296,13 @@ class TestGroup:
 
                 # lang_specific may be a dict giving a code attribute
                 if isinstance(lang_specific, dict):
-                    assert 'cd' in lang_specific
+                    assert 'cd' in lang_specific, "There is no cd for %s" % lang
                     code = lang_specific['cd']
                 else:
                     code = lang_specific
 
             elif 'cd' in obj:
-                    code = obj['cd']
+                code = obj['cd']
 
             else:
                 code = None
@@ -331,6 +333,8 @@ class TestGroup:
             if isinstance(expected, dict):
                 if expected.has_key(lang):
                     expected = expected[lang]
+                elif 'cd' not in expected:
+                    raise Exception('There was not an expected value for language %s' % lang)
                 else:
                     expected = expected['cd']
             return Langs.repr_expected_for(lang, expected)
@@ -658,7 +662,8 @@ def main():
                 TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards-1)
             except Exception, e:
                 failedTests.append(test.name)
-                sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s" % (test.name, str(e)))
+                sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s\n" % (test.name, str(e)))
+                continue
             
             # - start the server
             
@@ -666,7 +671,7 @@ def main():
                 if options.cluster_port is not None:
                     sys.exit('Internal failure: we somehow lost track of the already running server!')
                 servers = test_util.RethinkDBTestServers(num_servers=1, server_build_dir=build_directory)
-                servers.start() # TODO: handle server fallovers
+                servers.start() # TODO: handle server failures
             
             # --
             
@@ -718,15 +723,15 @@ def main():
             
     
     if len(failedTests) == 0:
-        plural = ''
+        testNumberMessage = 'the 1 test'
         if len(testList) > 1:
-            plural = 's'
-        print('== Sucessfully passed all %s test%s in %.2f seconds!' % (len(testList), plural, time.time() - startTime))
+            testNumberMessage = 'all %s tests' % len(testList)
+        print('\n== Sucessfully passed %s in %.2f seconds!' % (testNumberMessage, time.time() - startTime))
     else:
         plural = ''
         if len(failedTests) > 1:
             plural = 's'
-        sys.stderr.write('== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTests)))
+        sys.stderr.write('\n== Failed %d test%s (of %d) in %.2f seconds!\n\t%s\n\n' % (len(failedTests), plural, len(testList), time.time() - startTime, '\n\t'.join(failedTests)))
     return len(failedTests) == 0
         
 if __name__ == '__main__':
