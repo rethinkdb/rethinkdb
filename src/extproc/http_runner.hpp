@@ -15,7 +15,13 @@
 #include "concurrency/signal.hpp"
 
 // http calls result either in a DATUM return value or an error string
-typedef boost::variant<counted_t<const ql::datum_t>, std::string> http_result_t;
+struct http_result_t {
+    counted_t<const ql::datum_t> header;
+    counted_t<const ql::datum_t> body;
+    std::string error;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
 
 class extproc_pool_t;
 class http_runner_t;
@@ -48,7 +54,8 @@ enum class http_auth_type_t {
 enum class http_result_format_t {
     AUTO,
     TEXT,
-    JSON
+    JSON,
+    JSONP
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -61,7 +68,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         http_result_format_t, int8_t,
-        http_result_format_t::AUTO, http_result_format_t::JSON);
+        http_result_format_t::AUTO, http_result_format_t::JSONP);
 
 std::string http_method_to_str(http_method_t method);
 
@@ -113,8 +120,9 @@ class http_runner_t : public home_thread_mixin_t {
 public:
     explicit http_runner_t(extproc_pool_t *_pool);
 
-    http_result_t http(const http_opts_t *opts,
-                       signal_t *interruptor);
+    void http(const http_opts_t *opts,
+              http_result_t *res_out,
+              signal_t *interruptor);
 
 private:
     extproc_pool_t *pool;
