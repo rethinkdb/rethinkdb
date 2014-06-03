@@ -218,10 +218,11 @@ static const char *parse_string(cJSON *item,const char *str)
                     uc = parse_hex4(ptr+1);
                     ptr += 4;
 
-                    /* check for invalid. */
+                    // Fail on invalid Unicode characters, unlike normal cJSON.
                     if ((uc >= 0xDC00 && uc <= 0xDFFF) || uc == 0) {
-                        break;
+                        return 0;
                     }
+
                     if (uc >= 0xD800 && uc <= 0xDBFF) {
                         /* UTF16 surrogate pairs. */
                         if (ptr[1] != '\\' || ptr[2] != 'u') {
@@ -243,8 +244,8 @@ static const char *parse_string(cJSON *item,const char *str)
                         len = 2;
                     } else if (uc < 0x10000) {
                         len = 3;
-                        ptr2 += len;
                     }
+                    ptr2 += len;
 
                     switch (len) {
                         case 4: *--ptr2 = ((uc | 0x80) & 0xBF); uc >>= 6;
