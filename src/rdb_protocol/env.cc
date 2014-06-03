@@ -195,7 +195,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
 // rdb_backfill.cc.
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
-      global_optargs(protob_t<Query>()),
+      global_optargs(),
       extproc_pool(NULL),
       changefeed_client(NULL),
       reql_http_proxy(""),
@@ -281,7 +281,7 @@ env_t::env_t(
     uuid_u _this_machine,
     profile_bool_t _profile)
   : evals_since_yield(0),
-    global_optargs(protob_t<Query>()),
+    global_optargs(),
     extproc_pool(_extproc_pool),
     changefeed_client(_changefeed_client),
     reql_http_proxy(_reql_http_proxy),
