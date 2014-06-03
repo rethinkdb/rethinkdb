@@ -14,9 +14,21 @@
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
 
-http_result_t json_to_datum(const std::string &json);
-http_result_t jsonp_to_datum(const std::string &jsonp);
-http_result_t perform_http(http_opts_t *opts);
+void parse_header(std::string &&header,
+                  http_result_t *res_out);
+
+void json_to_datum(const std::string &json,
+                   http_result_t *res_out);
+void json_to_datum(std::string &&json,
+                   http_result_t *res_out);
+
+void jsonp_to_datum(const std::string &jsonp,
+                    http_result_t *res_out);
+void jsonp_to_datum(std::string &&jsonp,
+                    http_result_t *res_out);
+
+void perform_http(http_opts_t *opts,
+                  http_result_t *res_out);
 
 class curl_exc_t : public std::exception {
 public:
@@ -78,29 +90,36 @@ class curl_data_t {
 public:
     curl_data_t() : send_data_offset(0) { }
 
-    static size_t write(char *ptr, size_t size, size_t nmemb, void* instance);
+    static size_t write_body(char *ptr, size_t size, size_t nmemb, void* instance);
+    static size_t write_header(char *ptr, size_t size, size_t nmemb, void* instance);
     static size_t read(char *ptr, size_t size, size_t nmemb, void* instance);
 
     void set_send_data(std::string &&_send_data) {
         send_data.assign(std::move(_send_data));
     }
 
-    std::string steal_recv_data() {
-        return std::move(recv_data);
+    std::string steal_header_data() {
+        return std::move(header_data);
+    }
+
+    std::string steal_body_data() {
+        return std::move(body_data);
     }
 
     scoped_curl_slist_t headers;
 
 private:
-    // This is called for getting data in the response from the server
-    size_t write_internal(char *ptr, size_t size);
+    // These are called for getting data in the response from the server
+    size_t write_body_internal(char *ptr, size_t size);
+    size_t write_header_internal(char *ptr, size_t size);
 
     // This is called for writing data to the request when sending
     size_t read_internal(char *ptr, size_t size);
 
     size_t send_data_offset;
     std::string send_data;
-    std::string recv_data;
+    std::string body_data;
+    std::string header_data;
 };
 
 size_t multiply_with_overflow_check(size_t a, size_t b, const std::string &info) {
@@ -110,9 +129,18 @@ size_t multiply_with_overflow_check(size_t a, size_t b, const std::string &info)
     return a * b;
 }
 
-size_t curl_data_t::write(char *ptr, size_t size, size_t nmemb, void* instance) {
+size_t curl_data_t::write_header(char *ptr, size_t size, size_t nmemb, void* instance) {
     curl_data_t *self = static_cast<curl_data_t *>(instance);
-    return self->write_internal(ptr, multiply_with_overflow_check(size, nmemb, "write"));
+    return self->write_header_internal(ptr,
+                                       multiply_with_overflow_check(size, nmemb,
+                                                                    "write header"));
+};
+
+size_t curl_data_t::write_body(char *ptr, size_t size, size_t nmemb, void* instance) {
+    curl_data_t *self = static_cast<curl_data_t *>(instance);
+    return self->write_body_internal(ptr,
+                                     multiply_with_overflow_check(size, nmemb,
+                                                                  "write body"));
 };
 
 size_t curl_data_t::read(char *ptr, size_t size, size_t nmemb, void* instance) {
@@ -120,8 +148,13 @@ size_t curl_data_t::read(char *ptr, size_t size, size_t nmemb, void* instance) {
     return self->read_internal(ptr, multiply_with_overflow_check(size, nmemb, "read"));
 };
 
-size_t curl_data_t::write_internal(char *ptr, size_t size) {
-    recv_data.append(ptr, size);
+size_t curl_data_t::write_header_internal(char *ptr, size_t size) {
+    header_data.append(ptr, size);
+    return size;
+}
+
+size_t curl_data_t::write_body_internal(char *ptr, size_t size) {
+    body_data.append(ptr, size);
     return size;
 }
 
@@ -137,7 +170,8 @@ size_t curl_data_t::read_internal(char *ptr, size_t size) {
 http_job_t::http_job_t(extproc_pool_t *pool, signal_t *interruptor) :
     extproc_job(pool, &worker_fn, interruptor) { }
 
-http_result_t http_job_t::http(const http_opts_t *opts) {
+void http_job_t::http(const http_opts_t *opts,
+                      http_result_t *res_out) {
     write_message_t msg;
     serialize(&msg, *opts);
     {
@@ -145,13 +179,11 @@ http_result_t http_job_t::http(const http_opts_t *opts) {
         if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
     }
 
-    http_result_t result;
-    archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+    archive_result_t res = deserialize(extproc_job.read_stream(), res_out);
     if (bad(res)) {
         throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
                                           "(%s)", archive_result_as_str(res)));
     }
-    return result;
 }
 
 void http_job_t::worker_error() {
@@ -176,14 +208,14 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
 
     if (curl_res == CURLE_OK) {
         try {
-            result = perform_http(&opts);
+            perform_http(&opts, &result);
         } catch (const std::exception &ex) {
-            result = std::string(ex.what());
+            result.error.assign(ex.what());
         } catch (...) {
-            result = std::string("unknown error");
+            result.error.assign("unknown error");
         }
     } else {
-        result = std::string("global initialization");
+        result.error.assign("global initialization");
         curl_initialized = false;
     }
 
@@ -407,8 +439,12 @@ void set_default_opts(CURL *curl_handle,
                       const std::string &proxy,
                       const curl_data_t &curl_data) {
     exc_setopt(curl_handle, CURLOPT_WRITEFUNCTION,
-               &curl_data_t::write, "WRITE FUNCTION");
+               &curl_data_t::write_body, "WRITE FUNCTION");
     exc_setopt(curl_handle, CURLOPT_WRITEDATA, &curl_data, "WRITE DATA");
+
+    exc_setopt(curl_handle, CURLOPT_HEADERFUNCTION,
+               &curl_data_t::write_header, "HEADER FUNCTION");
+    exc_setopt(curl_handle, CURLOPT_HEADERDATA, &curl_data, "HEADER DATA");
 
     // Only allow http protocol
     exc_setopt(curl_handle, CURLOPT_PROTOCOLS,
@@ -428,19 +464,21 @@ void set_default_opts(CURL *curl_handle,
 
 // TODO: implement depaginate
 // TODO: implement streams
-http_result_t perform_http(http_opts_t *opts) {
+void perform_http(http_opts_t *opts, http_result_t *res_out) {
     scoped_curl_handle_t curl_handle;
     curl_data_t curl_data;
 
     if (curl_handle.get() == NULL) {
-        return std::string("initialization");
+        res_out->error.assign("initialization");
+        return;
     }
 
     try {
         set_default_opts(curl_handle.get(), opts->proxy, curl_data);
         transfer_opts(opts, curl_handle.get(), &curl_data);
     } catch (const curl_exc_t &ex) {
-        return ex.what();
+        res_out->error.assign(ex.what());
+        return;
     }
 
     CURLcode curl_res = CURLE_OK;
@@ -455,7 +493,8 @@ http_result_t perform_http(http_opts_t *opts) {
             // Could be a temporary error, try again
             continue;
         } else if (curl_res != CURLE_OK) {
-            return std::string(curl_easy_strerror(curl_res));
+            res_out->error.assign(curl_easy_strerror(curl_res));
+            return;
         }
 
         curl_res = curl_easy_getinfo(curl_handle.get(),
@@ -474,86 +513,124 @@ http_result_t perform_http(http_opts_t *opts) {
         }
     }
 
+    std::string body_data(curl_data.steal_body_data());
+    std::string header_data(curl_data.steal_header_data());
+
     if (opts->attempts == 0) {
-        return std::string("could not perform, no attempts allowed");
+        res_out->error.assign("could not perform, no attempts allowed");
     } else if (curl_res == CURLE_SEND_ERROR) {
-        return std::string("error when sending data");
+        res_out->error.assign("error when sending data");
     } else if (curl_res == CURLE_RECV_ERROR) {
-        return std::string("error when receiving data");
+        res_out->error.assign("error when receiving data");
     } else if (curl_res == CURLE_COULDNT_CONNECT) {
-        return std::string("could not connect to server");
+        res_out->error.assign("could not connect to server");
     } else if (curl_res != CURLE_OK) {
-        return strprintf("reading response code, '%s'", curl_easy_strerror(curl_res));
+        res_out->error = strprintf("reading response code, '%s'",
+                                   curl_easy_strerror(curl_res));
     } else if (response_code < 200 || response_code >= 300) {
-        return strprintf("status code %ld", response_code);
-    }
-
-    // If this was a HEAD request, we should not be handling data, just return R_NULL
-    // so the user knows the request succeeded
-    if (opts->method == http_method_t::HEAD) {
-        return make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
-    }
-
-    http_result_t res;
-    std::string body_data(curl_data.steal_recv_data());
-
-    switch (opts->result_format) {
-    case http_result_format_t::AUTO:
-        {
-            std::string content_type;
-            char *content_type_buffer = NULL;
-            curl_easy_getinfo(curl_handle.get(),
-                              CURLINFO_CONTENT_TYPE,
-                              &content_type_buffer);
-
-            if (content_type_buffer != NULL) {
-                content_type.assign(content_type_buffer);
-            }
-
-            for (size_t i = 0; i < content_type.length(); ++i) {
-                content_type[i] = tolower(content_type[i]);
-            }
-
-            if (content_type.find("application/json") == 0) {
-                res = json_to_datum(body_data);
-            } else if (content_type.find("text/javascript") == 0 ||
-                       content_type.find("application/json-p") == 0 ||
-                       content_type.find("text/json-p") == 0) {
-                // Try to parse the result as JSON, then as JSONP, then plaintext
-                res = json_to_datum(body_data);
-                if (boost::get<std::string>(&res) != NULL) {
-                    res = jsonp_to_datum(body_data);
-                    if (boost::get<std::string>(&res) != NULL) {
-                        res = make_counted<const ql::datum_t>(std::move(body_data));
-                    }
-                }
-            } else {
-                res = make_counted<const ql::datum_t>(std::move(body_data));
-            }
+        if (!header_data.empty()) {
+            parse_header(std::move(header_data), res_out);
         }
-        break;
-    case http_result_format_t::JSON:
-        res = json_to_datum(body_data);
-        break;
-    case http_result_format_t::JSONP:
-        res = jsonp_to_datum(body_data);
-        break;
-    case http_result_format_t::TEXT:
-        res = make_counted<const ql::datum_t>(std::move(body_data));
-        break;
-    default:
-        unreachable();
+        if (!body_data.empty()) {
+            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+        }
+        res_out->error = strprintf("status code %ld", response_code);
+    } else {
+        parse_header(std::move(header_data), res_out);
+
+        // If this was a HEAD request, we should not be handling data, just return R_NULL
+        // so the user knows the request succeeded
+        if (opts->method == http_method_t::HEAD) {
+            res_out->body = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+            return;
+        }
+
+        rassert(res_out->error.empty());
+
+        switch (opts->result_format) {
+        case http_result_format_t::AUTO:
+            {
+                std::string content_type;
+                char *content_type_buffer = NULL;
+                curl_easy_getinfo(curl_handle.get(),
+                                  CURLINFO_CONTENT_TYPE,
+                                  &content_type_buffer);
+
+                if (content_type_buffer != NULL) {
+                    content_type.assign(content_type_buffer);
+                }
+
+                for (size_t i = 0; i < content_type.length(); ++i) {
+                    content_type[i] = tolower(content_type[i]);
+                }
+
+                if (content_type.find("application/json") == 0) {
+                    json_to_datum(std::move(body_data), res_out);
+                } else if (content_type.find("text/javascript") == 0 ||
+                           content_type.find("application/json-p") == 0 ||
+                           content_type.find("text/json-p") == 0) {
+                    // Try to parse the result as JSON, then as JSONP, then plaintext
+                    // Do not use move semantics here, as we retry on errors
+                    json_to_datum(body_data, res_out);
+                    if (!res_out->error.empty()) {
+                        res_out->error.clear();
+                        jsonp_to_datum(body_data, res_out);
+                        if (!res_out->error.empty()) {
+                            res_out->error.clear();
+                            res_out->body =
+                                make_counted<const ql::datum_t>(std::move(body_data));
+                        }
+                    }
+                } else {
+                    res_out->body =
+                        make_counted<const ql::datum_t>(std::move(body_data));
+                }
+            }
+            break;
+        case http_result_format_t::JSON:
+            json_to_datum(std::move(body_data), res_out);
+            break;
+        case http_result_format_t::JSONP:
+            jsonp_to_datum(std::move(body_data), res_out);
+            break;
+        case http_result_format_t::TEXT:
+            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            break;
+        default:
+            unreachable();
+        }
     }
-    return res;
 }
 
-http_result_t json_to_datum(const std::string &json) {
-    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
-    if (cjson.get() == NULL) {
-        return std::string("failed to parse JSON response");
-    }
+void parse_header(std::string &&header,
+                  http_result_t *res_out) {
+    // TODO: implement this
+    res_out->header = make_counted<const ql::datum_t>(std::move(header));
+}
 
-    return make_counted<const ql::datum_t>(cjson);
+// This version will not use move semantics for the body data, to be used in
+// result_format="auto", where we may fallback to jsonp
+void json_to_datum(const std::string &json,
+                   http_result_t *res_out) {
+    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
+    if (cjson.get() != NULL) {
+        res_out->body = make_counted<const ql::datum_t>(cjson);
+    } else {
+        res_out->error.assign("failed to parse JSON response");
+    }
+}
+
+// This version uses move semantics and includes the body as a string when a
+// parsing error occurs.
+void json_to_datum(std::string &&json,
+                   http_result_t *res_out) {
+    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
+    if (cjson.get() != NULL) {
+        res_out->body = make_counted<const ql::datum_t>(cjson);
+    } else {
+        res_out->error.assign("failed to parse JSON response");
+        res_out->body = make_counted<const ql::datum_t>(std::move(json));
+    }
 }
 
 // This class is created on-demand, but at most once per extproc.  There is
@@ -609,10 +686,26 @@ const char *jsonp_parser_singleton_t::js_ident =
     "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}]*"
     "\\s*";
 
-http_result_t jsonp_to_datum(const std::string &jsonp) {
+// This version will not use move semantics for the body data, to be used in
+// result_format="auto", where we may fallback to passing back the body as a string
+void jsonp_to_datum(const std::string &jsonp, http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        return json_to_datum(json_string);
+        json_to_datum(json_string, res_out);
+    } else {
+        res_out->error.assign("failed to parse JSONP response");
     }
-    return std::string("failed to parse JSONP response");
+}
+
+
+// This version uses move semantics and includes the body as a string when a
+// parsing error occurs.
+void jsonp_to_datum(std::string &&jsonp, http_result_t *res_out) {
+    std::string json_string;
+    if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
+        json_to_datum(std::move(json_string), res_out);
+    } else {
+        res_out->error.assign("failed to parse JSONP response");
+        res_out->body = make_counted<const ql::datum_t>(std::move(jsonp));
+    }
 }

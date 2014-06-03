@@ -93,8 +93,14 @@ void server_t::send_all_with_lock(const auto_drainer_t::lock_t &, msg_t msg) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
-        send(manager, it->first, stamped_msg_t(uuid, it->second.stamp, msg));
-        it->second.stamp += 1;
+        uint64_t stamp;
+        {
+            // We don't need a write lock as long as we make sure the coroutine
+            // doesn't block between reading and updating the stamp.
+            ASSERT_NO_CORO_WAITING;
+            stamp = it->second.stamp++;
+        }
+        send(manager, it->first, stamped_msg_t(uuid, stamp, msg));
     }
 }
 
