@@ -474,7 +474,8 @@ def cleanup(*args):
         try:
             os.killpg(processGroupId, signal.SIGKILL) # TODO: police this
         except: pass
-    sys.exit()
+    if len(args) == 2 and args[0] == signal.SIGINT:
+        sys.exit(130) # standard signal.SIGINT exit code
 atexit.register(cleanup)
 signal.signal(signal.SIGINT, cleanup) # TODO: cover all relevent signals
 
