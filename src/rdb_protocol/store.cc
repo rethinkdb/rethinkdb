@@ -497,8 +497,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                ctx->cluster_metadata,
                NULL,
                &interruptor,
-               ctx->machine_id,
-               ql::protob_t<Query>()) {
+               ctx->machine_id) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());

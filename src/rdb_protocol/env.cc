@@ -228,11 +228,10 @@ scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &que
     return scoped_ptr_t<profile::trace_t>();
 }
 
-// Called by rdb_write_visitor_t, with a NULL directory_read_manager and an empty query.  Called
-// by run (in term.cc, the parser's query-running method).  This time _with_ a
+// Called by run (in term.cc, the parser's query-running method).  This time _with_ a
 // directory_read_manager.  RSI: This shouldn't take query -- it should take a
-// profile_bool_t directly.  (Except that it's also used to initialize global_optargs.)
-// Called by unittest/rdb_env.cc, with a NULL client and NULL directory_read_manager.  And an empty query.
+// profile_bool_t directly.  (Except that it's also used to initialize
+// global_optargs.)
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -247,11 +246,10 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
+    std::map<std::string, wire_func_t> optargs,
     protob_t<Query> query)
   : evals_since_yield(0),
-    global_optargs(query.has()
-                   ? extract_optarg_map(query)
-                   : std::map<std::string, wire_func_t>()),
+    global_optargs(std::move(optargs)),
     extproc_pool(_extproc_pool),
     changefeed_client(_changefeed_client),
     reql_http_proxy(_reql_http_proxy),
@@ -263,6 +261,42 @@ env_t::env_t(
                    _this_machine),
     interruptor(_interruptor),
     trace(make_trace_initializer(query)),
+    eval_callback(NULL) {
+    rassert(interruptor != NULL);
+}
+
+// Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
+// christ, what the fuck is this shit), a NULL directory_read_manager.  Called by
+// unittest/rdb_env.cc, with a NULL changefeed_client and NULL
+// directory_read_manager.
+env_t::env_t(
+    extproc_pool_t *_extproc_pool,
+    changefeed::client_t *_changefeed_client,
+    const std::string &_reql_http_proxy,
+    base_namespace_repo_t *_ns_repo,
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
+        _namespaces_semilattice_metadata,
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+        _databases_semilattice_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        _semilattice_metadata,
+    // RSI: always null.
+    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+    signal_t *_interruptor,
+    uuid_u _this_machine)
+  : evals_since_yield(0),
+    global_optargs(),
+    extproc_pool(_extproc_pool),
+    changefeed_client(_changefeed_client),
+    reql_http_proxy(_reql_http_proxy),
+    cluster_access(_ns_repo,
+                   _namespaces_semilattice_metadata,
+                   _databases_semilattice_metadata,
+                   _semilattice_metadata,
+                   _directory_read_manager,
+                   _this_machine),
+    interruptor(_interruptor),
+    trace(),
     eval_callback(NULL) {
     rassert(interruptor != NULL);
 }

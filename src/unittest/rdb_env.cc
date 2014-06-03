@@ -334,13 +334,12 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            dummy_semilattice_controller.get_view(),
                            NULL,
                            &interruptor,
-                           test_env->machine_id,
-                           ql::protob_t<Query>()));
+                           test_env->machine_id));  // RSI
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas
     for (auto it = test_env->initial_datas.begin(); it != test_env->initial_datas.end(); ++it) {
-        std::map<store_key_t, scoped_cJSON_t*> *data = get_data(it->first);
+        std::map<store_key_t, scoped_cJSON_t *> *data = get_data(it->first);
         data->swap(*it->second);
         delete it->second;
     }
