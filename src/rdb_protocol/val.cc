@@ -587,8 +587,6 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         unreachable();
     }
 
-    // We use a switch here so that people have to update it if they add another
-    // shortcut.
     switch (shortcut) {
     case CONSTANT_SHORTCUT:
         return new_constant_func(as_datum(), backtrace());
