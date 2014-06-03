@@ -205,7 +205,7 @@ void run(protob_t<Query> q,
                 ctx->directory_read_manager,
                 interruptor,
                 ctx->machine_id,
-                extract_optarg_map(q),
+                global_optargs(q),
                 q));
 
         counted_t<term_t> root_term;

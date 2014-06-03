@@ -43,7 +43,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
     return wire_func_t(func);
 }
 
-std::map<std::string, wire_func_t> extract_optarg_map(protob_t<Query> q) {
+std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q) {
     rassert(q.has());
 
     Term *t = q->mutable_query();
@@ -216,14 +216,21 @@ env_t::env_t(signal_t *_interruptor)
     rassert(interruptor != NULL);
 }
 
+profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
+    rassert(query.has());
+    counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+    if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
+        profile_arg->as_bool()) {
+        return profile_bool_t::PROFILE;
+    } else {
+        return profile_bool_t::DONT_PROFILE;
+    }
+}
+
 // RSI: It's possible that query is empty?
 scoped_ptr_t<profile::trace_t> make_trace_initializer(const protob_t<Query> &query) {
-    if (query.has()) {
-        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
-        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
-            profile_arg->as_bool()) {
-            return make_scoped<profile::trace_t>();
-        }
+    if (query.has() && profile_bool_optarg(query) == profile_bool_t::PROFILE) {
+        return make_scoped<profile::trace_t>();
     }
     return scoped_ptr_t<profile::trace_t>();
 }

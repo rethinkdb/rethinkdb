@@ -26,7 +26,7 @@ class term_t;
  * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
 counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
 
-std::map<std::string, wire_func_t> extract_optarg_map(protob_t<Query> q);
+std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q);
 
 class global_optargs_t {
 public:
@@ -82,6 +82,8 @@ public:
 namespace changefeed {
 class client_t;
 } // namespace changefeed
+
+profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 class env_t : public home_thread_mixin_t {
 public:
