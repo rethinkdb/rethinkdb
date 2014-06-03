@@ -297,8 +297,7 @@ env_t::env_t(
     rassert(interruptor != NULL);
 }
 
-// Used to construct the env on the store_t (for reads).  (Notably, we pass NULL for
-// the directory_read_manager.)  RSI: Remove directory_read_manager parameter.
+// Used to construct the env on the store_t (for reads).
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -312,7 +311,6 @@ env_t::env_t(
          _databases_semilattice_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _semilattice_metadata,
-    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
     profile_bool_t _profile)
@@ -325,7 +323,7 @@ env_t::env_t(
                    _namespaces_semilattice_metadata,
                    _databases_semilattice_metadata,
                    _semilattice_metadata,
-                   _directory_read_manager,
+                   NULL,
                    _this_machine),
     interruptor(_interruptor),
     trace(_profile == profile_bool_t::PROFILE
