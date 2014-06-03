@@ -29,7 +29,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
 class global_optargs_t {
 public:
     global_optargs_t();
-    explicit global_optargs_t(protob_t<Query> q);
+    explicit global_optargs_t(std::map<std::string, wire_func_t> optargs);
 
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     // returns NULL if no entry

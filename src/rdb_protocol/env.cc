@@ -74,10 +74,8 @@ std::map<std::string, wire_func_t> construct_optarg_map(protob_t<Query> q) {
 
 global_optargs_t::global_optargs_t() { }
 
-global_optargs_t::global_optargs_t(protob_t<Query> q)
-    : optargs(q.has()
-              ? construct_optarg_map(q)
-              : std::map<std::string, wire_func_t>()) { }
+global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> _optargs)
+    : optargs(_optargs) { }
 
 void global_optargs_t::init_optargs(
     const std::map<std::string, wire_func_t> &_optargs) {
@@ -251,7 +249,9 @@ env_t::env_t(
     uuid_u _this_machine,
     protob_t<Query> query)
   : evals_since_yield(0),
-    global_optargs(query),
+    global_optargs(query.has()
+                   ? construct_optarg_map(query)
+                   : std::map<std::string, wire_func_t>()),
     extproc_pool(_extproc_pool),
     changefeed_client(_changefeed_client),
     reql_http_proxy(_reql_http_proxy),
