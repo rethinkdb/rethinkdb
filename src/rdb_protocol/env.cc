@@ -254,7 +254,7 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     std::map<std::string, wire_func_t> optargs,
-    protob_t<Query> query)
+    profile_bool_t profile)
   : evals_since_yield(0),
     global_optargs(std::move(optargs)),
     extproc_pool(_extproc_pool),
@@ -267,7 +267,9 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    trace(make_trace_initializer(query)),
+    trace(profile == profile_bool_t::PROFILE
+          ? make_scoped<profile::trace_t>()
+          : scoped_ptr_t<profile::trace_t>()),
     eval_callback(NULL) {
     rassert(interruptor != NULL);
 }

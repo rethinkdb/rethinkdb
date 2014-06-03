@@ -104,7 +104,7 @@ public:
         signal_t *_interruptor,
         uuid_u _this_machine,
         std::map<std::string, wire_func_t> optargs,
-        protob_t<Query> query);
+        profile_bool_t profile);
 
     env_t(
         extproc_pool_t *_extproc_pool,

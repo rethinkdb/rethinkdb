@@ -206,7 +206,7 @@ void run(protob_t<Query> q,
                 interruptor,
                 ctx->machine_id,
                 global_optargs(q),
-                q));
+                profile_bool_optarg(q)));
 
         counted_t<term_t> root_term;
         try {
