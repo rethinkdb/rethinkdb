@@ -170,7 +170,7 @@ function test3() {
 }
 
 function test4() {
-    // Test `each`
+    // Test `events
     console.log("Running test4");
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
@@ -181,8 +181,30 @@ function test4() {
             var count = 0;
             feed.on('error', function(err) {
                 if ((count === 3) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
-                    conn.close();
-                    done();
+                    
+                    // Test that Cursor's method were deactivated
+                    assert.throws(function() {
+                        feed.each();
+                    }, function(err) {
+                        if (err.message === "You cannot use the cursor interface and the EventEmitter interface at the same time.") {
+                            return true;
+                        }
+                    });
+
+                    assert.throws(function() {
+                        feed.next();
+                    }, function(err) {
+                        if (err.message === "You cannot use the cursor interface and the EventEmitter interface at the same time.") {
+                            return true;
+                        }
+                    });
+
+                    r.tableCreate('test').run(conn, function(err, result) {
+                        if (err) throw err;
+                        conn.close();
+                        test5();
+                    })
+
                 }
                 else {
                     throw err;
@@ -212,6 +234,27 @@ function test4() {
             });
         }, 1000);
     });
+}
+
+function test5() {
+    // Close a feed
+    console.log("Running test5");
+    r.connect({port:port}, function(err, conn) {
+        if (err) throw err;
+
+        r.table('test').changes().run(conn, function(err, feed) {
+            if (err) throw err;
+
+            feed.close();
+            setTimeout(function() {
+                // We give the feed 1 second to get closed
+                assert.equal(feed._endFlag, true);
+                conn.close();
+                done();
+            }, 1000);
+        });
+    });
+
 }
 
 function done() {
