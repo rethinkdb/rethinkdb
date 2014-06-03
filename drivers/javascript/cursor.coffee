@@ -259,6 +259,7 @@ class Feed
     _promptNext: ->
         while @_cbQueue[0]?
             if @bufferEmpty() is true
+                # This can happen if the response sent back is empty (else a response is shifted in `_handleRow`
                 if @_responses.length is 1
                     @_responses.shift()
                     
@@ -357,9 +358,9 @@ class Feed
     _makeEmitter: ->
         @emitter = new EventEmitter
         @each = ->
-            throw new err.RqlDriverError "You cannot the cursor interface and the EventEmitter interface at the same time."
+            throw new err.RqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
         @next = ->
-            throw new err.RqlDriverError "You cannot the cursor interface and the EventEmitter interface at the same time."
+            throw new err.RqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
     addListener: (args...) ->
