@@ -2510,6 +2510,7 @@ module 'DataExplorerView', ->
 
                     if error?
                         @toggle_executing false
+                        error.message = error.message.replace('Changefeeds not allowed on this connection', 'Changefeeds are not available in the data explorer')
                         if @queries.length > 1
                             @results_view.render_error(@raw_queries[@index-1], error)
                         else
@@ -2531,10 +2532,7 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor.toString? and cursor.toString() is '[object Feed]'
-                            @toggle_executing false
-                            @results_view.render_error(null, new Error("Feeds cannot be displayed in the dataexplorer."))
-                        else if cursor?.hasNext?
+                        if cursor?.hasNext?
                             @state.cursor = cursor
                             if cursor.hasNext() is true
                                 @state.cursor.next get_result_callback
