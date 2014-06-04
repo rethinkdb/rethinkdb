@@ -20,9 +20,10 @@ class env_t;
 
 namespace ql {
 
+enum class reject_cfeeds_t { NO, YES };
 class stream_cache_t {
 public:
-    stream_cache_t() { }
+    stream_cache_t(reject_cfeeds_t _reject_cfeeds) : reject_cfeeds(_reject_cfeeds) { }
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
@@ -51,6 +52,7 @@ private:
     };
 
     boost::ptr_map<int64_t, entry_t> streams;
+    reject_cfeeds_t reject_cfeeds;
     DISABLE_COPYING(stream_cache_t);
 };
 
