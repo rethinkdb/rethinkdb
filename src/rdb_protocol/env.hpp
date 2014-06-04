@@ -128,7 +128,6 @@ public:
     ~env_t();
 
     static const uint32_t EVALS_BEFORE_YIELD = 256;
-    // RSI: We'll have to watch out for this when running stuff in parallel.
     uint32_t evals_since_yield;
 
     // Will yield after EVALS_BEFORE_YIELD calls
