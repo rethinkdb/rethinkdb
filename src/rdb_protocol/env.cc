@@ -342,4 +342,28 @@ void env_t::maybe_yield() {
     }
 }
 
+// Constructs a fully-functional env_t, for use in term.cc and stream cache code.
+// (Eventually this should be a constructor.  The env_t constructor that takes an
+// rdb_context_t currently uses NULL instead of the directory_read_manager for some
+// reason, and I'm in too much of a rush to figure out why.)
+scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
+                                      signal_t *interruptor,
+                                      std::map<std::string, wire_func_t> optargs,
+                                      profile_bool_t profile_bool) {
+    const threadnum_t th = get_thread_id();
+    return make_scoped<ql::env_t>(
+            ctx->extproc_pool,
+            ctx->changefeed_client.get(),
+            ctx->reql_http_proxy,
+            ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
+            ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
+            ctx->cluster_metadata,
+            ctx->directory_read_manager,
+            interruptor,
+            ctx->machine_id,
+            std::move(optargs),
+            profile_bool);
+}
+
 } // namespace ql

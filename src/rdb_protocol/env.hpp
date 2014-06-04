@@ -221,6 +221,10 @@ public:
     var_scope_t scope;
 };
 
+scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
+                                      signal_t *interruptor,
+                                      std::map<std::string, wire_func_t> optargs,
+                                      profile_bool_t profile_bool);
 }  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_
