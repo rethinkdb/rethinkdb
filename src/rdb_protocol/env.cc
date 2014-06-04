@@ -312,7 +312,7 @@ scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
     const threadnum_t th = get_thread_id();
     return make_scoped<ql::env_t>(
             ctx->extproc_pool,
-            ctx->changefeed_client.get(),
+            ctx->changefeed_client.get_or_null(),
             ctx->reql_http_proxy,
             ctx->ns_repo,
             ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
