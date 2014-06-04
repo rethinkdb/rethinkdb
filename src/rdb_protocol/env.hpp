@@ -184,9 +184,7 @@ public:
     cluster_access_t cluster_access;
 
     // The interruptor signal while a query evaluates.  This can get overwritten!
-    // RSI: This can get overwritten -- specifically, when we run the next batch get.
-    // That's ridiculous.
-    signal_t *interruptor;
+    signal_t *const interruptor;
 
     // RSI: Will we have to watch out for this when running stuff in parallel?  This
     // pointer is non-empty if and only if we are profiling this query.
@@ -224,7 +222,7 @@ public:
 scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
                                       signal_t *interruptor,
                                       std::map<std::string, wire_func_t> optargs,
-                                      profile_bool_t profile_bool);
+                                      profile_bool_t profile);
 }  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_

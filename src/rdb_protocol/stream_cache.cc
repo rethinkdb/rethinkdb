@@ -16,8 +16,11 @@ void stream_cache_t::insert(int64_t key,
                             scoped_ptr_t<env_t> val_env,
                             counted_t<datum_stream_t> val_stream) {
     maybe_evict();
+    // RSI: It would be nice to move the optargs map.
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
-        key, new entry_t(time(0), use_json, std::move(val_env), val_stream));
+            key, new entry_t(time(0), use_json,
+                             val_env->global_optargs.get_all_optargs(),
+                             val_env->profile(), val_stream));
     guarantee(res.second);
 }
 
@@ -34,24 +37,24 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        // Reset the env_t's interruptor to a good one before we use it.  This may be a
-        // hack.  (I'd rather not have env_t be mutable this way -- could we construct
-        // a new env_t instead?  Why do we keep env_t's around anymore?)
-        entry->env->interruptor = interruptor;
+        scoped_ptr_t<env_t> env = make_complete_env(rdb_ctx,
+                                                    interruptor,
+                                                    entry->global_optargs,
+                                                    entry->profile);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
                                       : batch_type_t::NORMAL_FIRST;
         std::vector<counted_t<const datum_t> > ds
             = entry->stream->next_batch(
-                entry->env.get(),
-                batchspec_t::user(batch_type, entry->env.get()));
+                env.get(),
+                batchspec_t::user(batch_type, env.get()));
         entry->has_sent_batch = true;
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
-        if (entry->env->trace.has()) {
-            entry->env->trace->as_datum()->write_to_protobuf(
+        if (env->trace.has()) {
+            env->trace->as_datum()->write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {
@@ -84,12 +87,14 @@ void stream_cache_t::maybe_evict() {
 }
 
 stream_cache_t::entry_t::entry_t(time_t _last_activity,
-                                  use_json_t _use_json,
-                                  scoped_ptr_t<env_t> &&env_ptr,
-                                  counted_t<datum_stream_t> _stream)
+                                 use_json_t _use_json,
+                                 std::map<std::string, wire_func_t> _global_optargs,
+                                 profile_bool_t _profile,
+                                 counted_t<datum_stream_t> _stream)
     : last_activity(_last_activity),
       use_json(_use_json),
-      env(std::move(env_ptr)),
+      global_optargs(std::move(_global_optargs)),
+      profile(_profile),
       stream(_stream),
       max_age(DEFAULT_MAX_AGE),
       has_sent_batch(false) { }

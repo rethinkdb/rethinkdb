@@ -23,12 +23,10 @@ namespace ql {
 enum class reject_cfeeds_t { NO, YES };
 class stream_cache_t {
 public:
-    stream_cache_t(rdb_context_t *_ctx,
+    stream_cache_t(rdb_context_t *_rdb_ctx,
                    reject_cfeeds_t _reject_cfeeds)
-        : ctx(_ctx),
-          reject_cfeeds(_reject_cfeeds) {
-        (void)ctx;  // RSI: Use this field.
-    }
+        : rdb_ctx(_rdb_ctx),
+          reject_cfeeds(_reject_cfeeds) {}
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
@@ -44,11 +42,13 @@ private:
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity,
                 use_json_t use_json,
-                scoped_ptr_t<env_t> &&env_ptr,
+                std::map<std::string, wire_func_t> global_optargs,
+                profile_bool_t profile,
                 counted_t<datum_stream_t> _stream);
         time_t last_activity;
         use_json_t use_json;
-        scoped_ptr_t<env_t> env;
+        std::map<std::string, wire_func_t> global_optargs;
+        profile_bool_t profile;
         counted_t<datum_stream_t> stream;
         time_t max_age;
         bool has_sent_batch;
@@ -56,7 +56,7 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
-    rdb_context_t *const ctx;
+    rdb_context_t *const rdb_ctx;
     const reject_cfeeds_t reject_cfeeds;
     boost::ptr_map<int64_t, entry_t> streams;
     DISABLE_COPYING(stream_cache_t);

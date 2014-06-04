@@ -349,7 +349,7 @@ void env_t::maybe_yield() {
 scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
                                       signal_t *interruptor,
                                       std::map<std::string, wire_func_t> optargs,
-                                      profile_bool_t profile_bool) {
+                                      profile_bool_t profile) {
     const threadnum_t th = get_thread_id();
     return make_scoped<ql::env_t>(
             ctx->extproc_pool,
@@ -363,7 +363,7 @@ scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
             interruptor,
             ctx->machine_id,
             std::move(optargs),
-            profile_bool);
+            profile);
 }
 
 } // namespace ql
