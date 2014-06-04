@@ -12,9 +12,9 @@ bool stream_cache_t::contains(int64_t key) {
 }
 
 void stream_cache_t::insert(int64_t key,
-                             use_json_t use_json,
-                             scoped_ptr_t<env_t> &&val_env,
-                             counted_t<datum_stream_t> val_stream) {
+                            use_json_t use_json,
+                            scoped_ptr_t<env_t> val_env,
+                            counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
         key, new entry_t(time(0), use_json, std::move(val_env), val_stream));

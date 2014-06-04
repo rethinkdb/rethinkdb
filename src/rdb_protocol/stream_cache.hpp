@@ -27,7 +27,7 @@ public:
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
-                scoped_ptr_t<env_t> &&val_env,
+                scoped_ptr_t<env_t> val_env,
                 counted_t<datum_stream_t> val_stream);
     void erase(int64_t key);
     MUST_USE bool serve(int64_t key, Response *res, signal_t *interruptor);
