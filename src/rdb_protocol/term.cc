@@ -172,6 +172,26 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
+scoped_ptr_t<ql::env_t> make_env(rdb_context_t *ctx,
+                                 signal_t *interruptor,
+                                 std::map<std::string, wire_func_t> optargs,
+                                 profile_bool_t profile_bool) {
+    const threadnum_t th = get_thread_id();
+    return make_scoped<ql::env_t>(
+            ctx->extproc_pool,
+            ctx->changefeed_client.get(),
+            ctx->reql_http_proxy,
+            ctx->ns_repo,
+            ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
+            ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
+            ctx->cluster_metadata,
+            ctx->directory_read_manager,
+            interruptor,
+            ctx->machine_id,
+            std::move(optargs),
+            profile_bool);
+}
+
 void run(protob_t<Query> q,
          rdb_context_t *ctx,
          signal_t *interruptor,
@@ -192,21 +212,9 @@ void run(protob_t<Query> q,
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        threadnum_t th = get_thread_id();
-        scoped_ptr_t<ql::env_t> env(
-            new ql::env_t(
-                ctx->extproc_pool,
-                ctx->changefeed_client.get(),
-                ctx->reql_http_proxy,
-                ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
-                ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
-                ctx->cluster_metadata,
-                ctx->directory_read_manager,
-                interruptor,
-                ctx->machine_id,
-                global_optargs(q),
-                profile_bool_optarg(q)));
+        scoped_ptr_t<ql::env_t> env = make_env(ctx, interruptor,
+                                               global_optargs(q),
+                                               profile_bool_optarg(q));
 
         counted_t<term_t> root_term;
         try {
