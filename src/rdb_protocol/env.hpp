@@ -165,7 +165,7 @@ public:
     // Access to the cluster, for talking over the cluster or about the cluster.
     cluster_access_t cluster_access;
 
-    // The interruptor signal while a query evaluates.  This can get overwritten!
+    // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 
     // This is _always_ empty, because profiling is not supported in this release.
