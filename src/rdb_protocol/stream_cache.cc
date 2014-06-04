@@ -13,14 +13,14 @@ bool stream_cache_t::contains(int64_t key) {
 
 void stream_cache_t::insert(int64_t key,
                             use_json_t use_json,
-                            scoped_ptr_t<env_t> val_env,
+                            std::map<std::string, wire_func_t> global_optargs,
+                            profile_bool_t profile_requested,
                             counted_t<datum_stream_t> val_stream) {
     maybe_evict();
-    // RSI: It would be nice to move the optargs map.
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
             key, new entry_t(time(0), use_json,
-                             val_env->global_optargs.get_all_optargs(),
-                             val_env->profile(), val_stream));
+                             std::move(global_optargs),
+                             profile_requested, val_stream));
     guarantee(res.second);
 }
 
@@ -39,8 +39,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     try {
         scoped_ptr_t<env_t> env = make_complete_env(rdb_ctx,
                                                     interruptor,
-                                                    entry->global_optargs,
-                                                    entry->profile);
+                                                    entry->global_optargs);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
@@ -53,8 +52,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
-        if (env->trace.has()) {
-            env->trace->as_datum()->write_to_protobuf(
+        if (entry->profile == profile_bool_t::PROFILE) {
+            datum_t(profile::NOT_SUPPORTED_MESSAGE).write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {

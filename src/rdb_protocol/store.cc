@@ -262,7 +262,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        superblock_t *_superblock,
                        rdb_context_t *ctx,
                        read_response_t *_response,
-                       profile_bool_t profile,
+                       profile_bool_t,  /* Unused because profiling is disabled this
+                                           release. */
                        signal_t *_interruptor) :
         response(_response),
         btree(_btree),
@@ -279,8 +280,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                    ->get_watchable(),
                ctx->cluster_metadata,
                &interruptor,
-               ctx->machine_id,
-               profile)
+               ctx->machine_id)
     { }
 
     ql::env_t *get_env() {

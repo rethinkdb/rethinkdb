@@ -192,9 +192,9 @@ void run(protob_t<Query> q,
 
     switch (q->type()) {
     case Query_QueryType_START: {
+        const profile_bool_t profile = profile_bool_optarg(q);
         scoped_ptr_t<ql::env_t> env = make_complete_env(ctx, interruptor,
-                                                        global_optargs(q),
-                                                        profile_bool_optarg(q));
+                                                        global_optargs(q));
 
         counted_t<term_t> root_term;
         try {
@@ -229,8 +229,8 @@ void run(protob_t<Query> q,
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (profile == profile_bool_t::PROFILE) {
+                    datum_t(profile::NOT_SUPPORTED_MESSAGE).write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (counted_t<grouped_data_t> gd
@@ -238,8 +238,8 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d(std::move(*gd));
                 d.write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (profile == profile_bool_t::PROFILE) {
+                    datum_t(profile::NOT_SUPPORTED_MESSAGE).write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
@@ -247,12 +247,14 @@ void run(protob_t<Query> q,
                 if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
-                    if (env->trace.has()) {
-                        env->trace->as_datum()->write_to_protobuf(
+                    if (profile == profile_bool_t::PROFILE) {
+                        datum_t(profile::NOT_SUPPORTED_MESSAGE).write_to_protobuf(
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache->insert(token, use_json, std::move(env), seq);
+                    stream_cache->insert(token, use_json,
+                                         env->global_optargs.get_all_optargs(),
+                                         profile, seq);
                     bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }

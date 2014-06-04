@@ -243,8 +243,7 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    std::map<std::string, wire_func_t> optargs,
-    profile_bool_t profile)
+    std::map<std::string, wire_func_t> optargs)
   : evals_since_yield(0),
     global_optargs(std::move(optargs)),
     extproc_pool(_extproc_pool),
@@ -257,16 +256,14 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    trace(profile == profile_bool_t::PROFILE
-          ? make_scoped<profile::trace_t>()
-          : scoped_ptr_t<profile::trace_t>()),
+    trace(),
     eval_callback(NULL) {
     rassert(interruptor != NULL);
 }
 
 // Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
 // Christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
-// changefeed_client.
+// changefeed_client.  Used to construct the env on the store_t (for reads).
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
@@ -292,43 +289,6 @@ env_t::env_t(
                    NULL,
                    _this_machine),
     interruptor(_interruptor),
-    trace(),
-    eval_callback(NULL) {
-    rassert(interruptor != NULL);
-}
-
-// Used to construct the env on the store_t (for reads).
-env_t::env_t(
-    extproc_pool_t *_extproc_pool,
-    changefeed::client_t *_changefeed_client,
-    const std::string &_reql_http_proxy,
-    base_namespace_repo_t *_ns_repo,
-
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-        _namespaces_semilattice_metadata,
-
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-         _databases_semilattice_metadata,
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        _semilattice_metadata,
-    signal_t *_interruptor,
-    uuid_u _this_machine,
-    profile_bool_t _profile)
-  : evals_since_yield(0),
-    global_optargs(),
-    extproc_pool(_extproc_pool),
-    changefeed_client(_changefeed_client),
-    reql_http_proxy(_reql_http_proxy),
-    cluster_access(_ns_repo,
-                   _namespaces_semilattice_metadata,
-                   _databases_semilattice_metadata,
-                   _semilattice_metadata,
-                   NULL,
-                   _this_machine),
-    interruptor(_interruptor),
-    trace(_profile == profile_bool_t::PROFILE
-          ? make_scoped<profile::trace_t>()
-          : scoped_ptr_t<profile::trace_t>()),
     eval_callback(NULL) {
     rassert(interruptor != NULL);
 }
@@ -348,8 +308,7 @@ void env_t::maybe_yield() {
 // reason, and I'm in too much of a rush to figure out why.)
 scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
                                       signal_t *interruptor,
-                                      std::map<std::string, wire_func_t> optargs,
-                                      profile_bool_t profile) {
+                                      std::map<std::string, wire_func_t> optargs) {
     const threadnum_t th = get_thread_id();
     return make_scoped<ql::env_t>(
             ctx->extproc_pool,
@@ -362,8 +321,7 @@ scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
             ctx->directory_read_manager,
             interruptor,
             ctx->machine_id,
-            std::move(optargs),
-            profile);
+            std::move(optargs));
 }
 
 } // namespace ql

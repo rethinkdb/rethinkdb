@@ -19,6 +19,8 @@ class datum_t;
 
 namespace profile {
 
+extern const char *const NOT_SUPPORTED_MESSAGE;
+
 struct start_t {
     start_t();
     explicit start_t(const std::string &description);

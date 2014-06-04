@@ -103,8 +103,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        std::map<std::string, wire_func_t> optargs,
-        profile_bool_t profile);
+        std::map<std::string, wire_func_t> optargs);
 
     env_t(
         extproc_pool_t *_extproc_pool,
@@ -121,23 +120,6 @@ public:
             _semilattice_metadata,
         signal_t *_interruptor,
         uuid_u _this_machine);
-
-    env_t(
-        extproc_pool_t *_extproc_pool,
-        changefeed::client_t *_changefeed_client,
-        const std::string &_reql_http_proxy,
-        base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
-        signal_t *_interruptor,
-        uuid_u _this_machine,
-        profile_bool_t _profile);
 
     env_t(rdb_context_t *ctx, signal_t *interruptor);
 
@@ -186,10 +168,16 @@ public:
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *const interruptor;
 
-    // RSI: Will we have to watch out for this when running stuff in parallel?  This
-    // pointer is non-empty if and only if we are profiling this query.
+    // This is _always_ empty, because profiling is not supported in this release.
+    // (Unfortunately, all the profiling code expects this field to exist!  Letting
+    // this field be empty is the quickest way to disable profiling support in the
+    // 1.13 release.  When reintroducing profiling support, please make sure that
+    // every env_t constructor contains a profile parameter -- rdb_read_visitor_t in
+    // particular no longer passes its profile parameter along.
     const scoped_ptr_t<profile::trace_t> trace;
 
+    // Always returns profile_bool_t::DONT_PROFILE for now, because trace is empty,
+    // because we don't support profiling in this release.
     profile_bool_t profile();
 
 private:
@@ -221,8 +209,7 @@ public:
 
 scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
                                       signal_t *interruptor,
-                                      std::map<std::string, wire_func_t> optargs,
-                                      profile_bool_t profile);
+                                      std::map<std::string, wire_func_t> optargs);
 }  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_
