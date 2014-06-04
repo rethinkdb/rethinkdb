@@ -369,6 +369,34 @@ counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
+counted_t<func_t> new_page_func(counted_t<const datum_t> method,
+                                const protob_t<const Backtrace> &bt_src) {
+    if (method->get_type() != datum_t::R_NULL) {
+        std::string name = method->as_str().to_std();
+        if (name == "link-next") {
+            pb::dummy_var_t info = pb::dummy_var_t::FUNC_PAGE;
+            protob_t<Term> twrap =
+                r::fun(info,
+                       r::var(info)["header"]["link"]["rel=\"next\""]
+                           .default_(r::null()))
+                .release_counted();
+
+            propagate_backtrace(twrap.get(), bt_src.get());
+
+            compile_env_t empty_compile_env((var_visibility_t()));
+            counted_t<func_term_t> func_term =
+                make_counted<func_term_t>(&empty_compile_env, twrap);
+            return func_term->eval_to_func(var_scope_t());
+        } else {
+            std::string msg = strprintf("`page` method '%s' not recognized, "
+                                        "only 'link-next' is available.", name.c_str());
+            rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
+        }
+    }
+    return counted_t<func_t>();
+}
+
+
 counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {
     rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();
@@ -379,7 +407,9 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<func_t> func = make_counted<js_func_t>(code, timeout_ms, parent->backtrace());
+    counted_t<func_t> func = make_counted<js_func_t>(code,
+                                                     timeout_ms,
+                                                     parent->backtrace());
     return make_counted<val_t>(func, parent->backtrace());
 }
 

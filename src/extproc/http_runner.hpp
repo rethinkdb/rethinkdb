@@ -5,6 +5,7 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <map>
 #include <utility>
 
 #include "errors.hpp"
@@ -75,10 +76,12 @@ std::string http_method_to_str(http_method_t method);
 struct http_opts_t {
     // Sets the default options
     http_opts_t();
+    http_opts_t(http_opts_t &&) = default;
 
     struct http_auth_t {
         // No auth by default
         http_auth_t();
+        http_auth_t(http_auth_t &&auth);
 
         void make_basic_auth(std::string &&user,
                              std::string &&pass);
@@ -98,18 +101,17 @@ struct http_opts_t {
 
     std::string proxy;
     std::string url;
-    std::vector<std::pair<std::string, std::string> > url_params;
+    counted_t<const ql::datum_t> url_params;
     std::vector<std::string> header;
 
     // These will be used based on the method specified
     std::string data;
-    std::vector<std::pair<std::string, std::string> > form_data;
+    std::map<std::string, std::string> form_data;
 
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;
 
-    bool depaginate;
     bool verify;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -120,7 +122,7 @@ class http_runner_t : public home_thread_mixin_t {
 public:
     explicit http_runner_t(extproc_pool_t *_pool);
 
-    void http(const http_opts_t *opts,
+    void http(const http_opts_t &opts,
               http_result_t *res_out,
               signal_t *interruptor);
 

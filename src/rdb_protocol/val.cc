@@ -596,6 +596,8 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         return new_get_field_func(as_datum(), backtrace());
     case PLUCK_SHORTCUT:
         return new_pluck_func(as_datum(), backtrace());
+    case PAGE_SHORTCUT:
+        return new_page_func(as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

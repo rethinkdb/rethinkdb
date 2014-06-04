@@ -44,6 +44,7 @@ enum class dummy_var_t {
     FUNC_GETFIELD,
     FUNC_PLUCK,
     FUNC_EQCOMPARISON,
+    FUNC_PAGE,
 };
 
 // Don't use this!  r::var and map_wire_func_t::make_safely use this.  Returns the
