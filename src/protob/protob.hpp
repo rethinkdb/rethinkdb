@@ -42,10 +42,11 @@ class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t(rdb_context_t *rdb_ctx) :
+        explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor) { }
+            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor) {
+        }
 
         client_context_t *get_ctx() {
             last_accessed = time(0);

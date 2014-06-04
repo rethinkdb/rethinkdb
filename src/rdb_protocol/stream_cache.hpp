@@ -26,7 +26,9 @@ public:
     stream_cache_t(rdb_context_t *_rdb_ctx,
                    reject_cfeeds_t _reject_cfeeds)
         : rdb_ctx(_rdb_ctx),
-          reject_cfeeds(_reject_cfeeds) {}
+          reject_cfeeds(_reject_cfeeds) {
+        rassert(rdb_ctx != NULL);
+    }
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,

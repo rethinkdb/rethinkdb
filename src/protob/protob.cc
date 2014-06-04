@@ -8,7 +8,6 @@
 #include <limits>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
@@ -165,6 +164,7 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
         pulse_sdc_on_shutdown(&main_shutting_down_cond),
         next_thread(0)
 {
+    rassert(rdb_ctx != NULL);
     for (int i = 0; i < get_num_threads(); ++i) {
         cross_thread_signal_t *s =
             new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
@@ -174,8 +174,8 @@ query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
 
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
-            boost::bind(&query_server_t::handle_conn,
-                        this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+            std::bind(&query_server_t::handle_conn,
+                      this, ph::_1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
@@ -389,6 +389,7 @@ void query_server_t::handle(const http_req_t &req,
     }
 
     std::string string_conn_id = *optional_conn_id;
+    // RSI: What.  What happens if this is a garbage value?
     int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
     if (req.method == POST &&
