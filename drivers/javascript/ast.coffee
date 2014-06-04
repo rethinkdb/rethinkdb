@@ -166,6 +166,7 @@ class RDBVal extends TermBase
     hasFields: (args...) -> new HasFields {}, @, args...
     withFields: (args...) -> new WithFields {}, @, args...
     keys: (args...) -> new Keys {}, @, args...
+    changes: (args...) -> new Changes {}, @, args...
 
     # pluck and without on zero fields are allowed
     pluck: (args...) -> new Pluck {}, @, args...
@@ -644,6 +645,11 @@ class WithFields extends RDBOp
 class Keys extends RDBOp
     tt: protoTermType.KEYS
     mt: 'keys'
+
+class Changes extends RDBOp
+    tt: protoTermType.CHANGES
+    mt: 'changes'
+
 
 class Object_ extends RDBOp
     tt: protoTermType.OBJECT
