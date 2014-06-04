@@ -223,7 +223,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     // This must be read here because of home threads and stuff
     const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
 
-    threadnum_t chosen_thread = threadnum_t((next_thread++) % get_num_db_threads());
+    threadnum_t chosen_thread = threadnum_t(next_thread);
+    next_thread = (next_thread + 1) % get_num_db_threads();
+
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
 

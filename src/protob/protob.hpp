@@ -197,8 +197,7 @@ private:
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
-    // RSI: This is bad.
-    unsigned next_thread;
+    int next_thread;
 };
 
 #endif /* PROTOB_PROTOB_HPP_ */
