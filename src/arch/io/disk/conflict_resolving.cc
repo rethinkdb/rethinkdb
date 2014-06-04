@@ -59,6 +59,13 @@ void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *so
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     action->conflict_count = 0;
 
+    if (resize_active[action->get_fd()] > 0) {
+        /* There is a resizing operation going on. Get in line for it. */
+
+        action->conflict_count += resize_active[action->get_fd()];
+        resize_waiter_queues[action->get_fd()].push_back(action);
+    }
+
     if (action->get_is_resize()) {
         /* Block out subsequent operations; reads, writes and resizes alike. */
         ++resize_active[action->get_fd()];
@@ -68,89 +75,6 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
         int64_t start;
         int64_t end;
         get_range(action, &start, &end);
-
-        /* If this is a read, we check whether there is a write from which we
-        can "steal" data to satisfy the read immediately. We currently only
-        do this if there is a single write operation that provides all the data
-        that we need, we don't combine multiple writes that affect different parts
-        of the read request. */
-        if (action->get_is_read()) {
-            /* The logic here is a bit tricky. What we do is the following:
-            First we check the queue for the first chunk. If there is a write that
-            can satisfy us, it must span all chunks and therefore be on the first
-            chunk's queue. We pick the latest write that exists on that queue, so
-            we get the most recent version of the data. We then check the other
-            chunks and make sure that the same write is also the latest write on
-            these queues. If there is another more recent write, we cannot take
-            the data from our initial write, because a subrange of it will be
-            overwritten by that other write. As an optimization, we could
-            still use the data from the initial write and just replace that part of
-            it, using the data from the other write. We leave this extension as an
-            exercise to the reader. */
-
-            action_t *latest_write = NULL;
-
-            std::map<int64_t, std::deque<action_t*> >::iterator it;
-            it = chunk_queues->find(start);
-            if (it != chunk_queues->end()) {
-                std::deque<action_t *> &queue = it->second;
-
-                /* Locate the latest write on the queue */
-                std::deque<action_t *>::reverse_iterator qrit;
-                for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
-                    if ((*qrit)->get_is_write()) {
-                        /* We found it! Check if it's of any use to us...
-                        If the range it was supposed to write is a superrange of
-                        our range, then it's a valid candidate. */
-                        if ((*qrit)->get_offset() <= action->get_offset() &&
-                                (*qrit)->get_offset() + (*qrit)->get_count() >= action->get_offset() + action->get_count() ) {
-
-                            latest_write = *qrit;
-                        }
-
-                        /* No other write on the queue can be the latest one. Stop looking. */
-                        break;
-                    }
-                }
-            }
-
-            /* Now check that latest_write is also latest for all other chunks.
-            Keep on validating as long as we have a latest_write candidate. */
-            for (int64_t block = start; latest_write && block < end; block++) {
-                it = chunk_queues->find(start);
-                rassert(it != chunk_queues->end()); // Note: At least latest_write should be there!
-                std::deque<action_t *> &queue = it->second;
-
-                /* Locate the latest write on the queue */
-                std::deque<action_t *>::reverse_iterator qrit;
-                for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
-                    if ((*qrit)->get_is_write()) {
-
-                        if (*qrit != latest_write) {
-                            /* This write is more recent than latest_write, so latest_write
-                            isn't actually the latest one over the whole range,
-                            This renders it unusable for us. */
-                            latest_write = NULL;
-                        }
-
-                        /* No other write on the queue can be the latest one. Stop looking. */
-                        break;
-                    }
-                }
-            }
-
-            if (latest_write) {
-                guarantee(action->conflict_count == 0,
-                          "Short-circuited a read despite it already being on a "
-                          "waiter queue.");
-
-                copy_full_action_buf(action, latest_write, action->get_offset() - latest_write->get_offset());
-
-                action->set_successful_due_to_conflict();
-                done_fun(action);
-                return;
-            }
-        }
 
         /* Determine if there are chunk conflicts and put ourself on the queues */
         for (int64_t block = start; block < end; block++) {
@@ -171,13 +95,6 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
             it->second.push_back(action);
         }
     } // if (!action->get_is_resize())
-
-    if (resize_active[action->get_fd()] > 0) {
-        /* There is a resizing operation going on. Get in line for it. */
-
-        action->conflict_count += resize_active[action->get_fd()];
-        resize_waiter_queues[action->get_fd()].push_back(action);
-    }
 
     /* If there are no conflicts, we can start right away. */
     if (action->conflict_count == 0) {
