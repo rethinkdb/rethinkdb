@@ -23,7 +23,12 @@ namespace ql {
 enum class reject_cfeeds_t { NO, YES };
 class stream_cache_t {
 public:
-    stream_cache_t(reject_cfeeds_t _reject_cfeeds) : reject_cfeeds(_reject_cfeeds) { }
+    stream_cache_t(rdb_context_t *_ctx,
+                   reject_cfeeds_t _reject_cfeeds)
+        : ctx(_ctx),
+          reject_cfeeds(_reject_cfeeds) {
+        (void)ctx;  // RSI: Use this field.
+    }
     MUST_USE bool contains(int64_t key);
     void insert(int64_t key,
                 use_json_t use_json,
@@ -51,8 +56,9 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
+    rdb_context_t *const ctx;
+    const reject_cfeeds_t reject_cfeeds;
     boost::ptr_map<int64_t, entry_t> streams;
-    reject_cfeeds_t reject_cfeeds;
     DISABLE_COPYING(stream_cache_t);
 };
 

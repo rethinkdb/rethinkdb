@@ -153,10 +153,12 @@ public:
     }
 };
 
-query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
+query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
+                               const std::set<ip_address_t> &local_addresses,
                                int port,
                                query_handler_t *_handler,
                                boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata) :
+        rdb_ctx(_rdb_ctx),
         handler(_handler),
         auth_metadata(_auth_metadata),
         shutting_down_conds(get_num_threads()),
@@ -236,7 +238,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(&interruptor, ql::reject_cfeeds_t::NO);
+    client_context_t client_ctx(rdb_ctx, ql::reject_cfeeds_t::NO, &interruptor);
 
     std::string init_error;
     int32_t client_magic_number = -1;
@@ -326,6 +328,7 @@ public:
     interruptor_mixer_t(client_context_t *_client_ctx, signal_t *new_interruptor) :
         client_ctx(_client_ctx), old_interruptor(client_ctx->interruptor),
         combined_interruptor(old_interruptor, new_interruptor) {
+        // TODO: This is fucking insane.
         client_ctx->interruptor = &combined_interruptor;
     }
 
@@ -367,7 +370,7 @@ void query_server_t::handle(const http_req_t &req,
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == GET &&
         req.resource.as_string().find("open-new-connection")) {
-        int32_t conn_id = http_conn_cache.create();
+        int32_t conn_id = http_conn_cache.create(rdb_ctx);
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
