@@ -59,13 +59,6 @@ void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *so
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     action->conflict_count = 0;
 
-    if (resize_active[action->get_fd()] > 0) {
-        /* There is a resizing operation going on. Get in line for it. */
-
-        action->conflict_count += resize_active[action->get_fd()];
-        resize_waiter_queues[action->get_fd()].push_back(action);
-    }
-
     if (action->get_is_resize()) {
         /* Block out subsequent operations; reads, writes and resizes alike. */
         ++resize_active[action->get_fd()];
@@ -147,6 +140,10 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
             }
 
             if (latest_write) {
+                guarantee(action->conflict_count == 0,
+                          "Short-circuited a read despite it already being on a "
+                          "waiter queue.");
+
                 copy_full_action_buf(action, latest_write, action->get_offset() - latest_write->get_offset());
 
                 action->set_successful_due_to_conflict();
@@ -174,6 +171,13 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
             it->second.push_back(action);
         }
     } // if (!action->get_is_resize())
+
+    if (resize_active[action->get_fd()] > 0) {
+        /* There is a resizing operation going on. Get in line for it. */
+
+        action->conflict_count += resize_active[action->get_fd()];
+        resize_waiter_queues[action->get_fd()].push_back(action);
+    }
 
     /* If there are no conflicts, we can start right away. */
     if (action->conflict_count == 0) {
