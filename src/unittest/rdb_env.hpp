@@ -38,7 +38,7 @@ class mock_namespace_repo_t;
 //  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t {
 private:
-    std::map<store_key_t, scoped_cJSON_t*> data;
+    std::map<store_key_t, scoped_cJSON_t *> data;
     mock_namespace_repo_t *parent;
 
 public:
@@ -75,9 +75,9 @@ private:
         void NORETURN operator()(UNUSED const sindex_list_t &sl);
         void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
-        read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, read_response_t *_response);
+        read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data, read_response_t *_response);
 
-        std::map<store_key_t, scoped_cJSON_t*> *data;
+        std::map<store_key_t, scoped_cJSON_t *> *data;
         read_response_t *response;
     };
 
@@ -90,9 +90,9 @@ private:
         void NORETURN operator()(UNUSED const sindex_drop_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
-        write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, write_response_t *_response);
+        write_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data, ql::env_t *_env, write_response_t *_response);
 
-        std::map<store_key_t, scoped_cJSON_t*> *data;
+        std::map<store_key_t, scoped_cJSON_t *> *data;
         ql::env_t *env;
         write_response_t *response;
     };
@@ -107,7 +107,7 @@ public:
     void set_env(ql::env_t *_env);
     ql::env_t *get_env();
 
-    mock_namespace_interface_t* get_ns_if(const namespace_id_t &ns_id);
+    mock_namespace_interface_t *get_ns_if(const namespace_id_t &ns_id);
 
 private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
@@ -120,7 +120,7 @@ private:
     };
 
     ql::env_t *env;
-    std::map<namespace_id_t, mock_namespace_cache_entry_t*> cache;
+    std::map<namespace_id_t, mock_namespace_cache_entry_t *> cache;
 };
 
 class invalid_name_exc_t : public std::exception {
@@ -167,7 +167,7 @@ public:
         ql::env_t *get();
         void interrupt();
 
-        std::map<store_key_t, scoped_cJSON_t*>* get_data(const namespace_id_t &ns_id);
+        std::map<store_key_t, scoped_cJSON_t *> *get_data(const namespace_id_t &ns_id);
 
     private:
         dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
@@ -191,7 +191,7 @@ private:
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.
-    std::map<namespace_id_t, std::map<store_key_t, scoped_cJSON_t*>*> initial_datas;
+    std::map<namespace_id_t, std::map<store_key_t, scoped_cJSON_t *> *> initial_datas;
 };
 
 }
