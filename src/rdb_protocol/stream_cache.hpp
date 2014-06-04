@@ -35,7 +35,7 @@ private:
     void maybe_evict();
 
     struct entry_t {
-        ~entry_t(); // `env_t` is incomplete
+        ~entry_t();
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity,
                 use_json_t use_json,
