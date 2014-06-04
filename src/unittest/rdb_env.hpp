@@ -183,8 +183,6 @@ public:
     void make_env(scoped_ptr_t<instance_t> *instance_out);
 
 private:
-    friend class instance_t;
-
     uuid_u machine_id;
     cluster_semilattice_metadata_t metadata;
     extproc_spawner_t extproc_spawner;
