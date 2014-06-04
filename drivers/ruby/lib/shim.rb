@@ -1,31 +1,31 @@
-def recursive_munge(x, parse_time, parse_group)
-  case x
-  when Hash
-    if parse_time && x['$reql_type$'] == 'TIME'
-      t = Time.at(x['epoch_time'])
-      tz = x['timezone']
-      return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
-    elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
-      return Hash[x['data']]
-    else
-      x.each {|k, v|
-        v2 = recursive_munge(v, parse_time, parse_group)
-        x[k] = v2 if v.object_id != v2.object_id
-      }
-    end
-  when Array
-    x.each_with_index {|v, i|
-      v2 = recursive_munge(v, parse_time, parse_group)
-      x[i] = v2 if v.object_id != v2.object_id
-    }
-  end
-  return x
-end
-
 module RethinkDB
   require 'json'
   require 'time'
   module Shim
+    def self.recursive_munge(x, parse_time, parse_group)
+      case x
+      when Hash
+        if parse_time && x['$reql_type$'] == 'TIME'
+          t = Time.at(x['epoch_time'])
+          tz = x['timezone']
+          return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
+          return Hash[x['data']]
+        else
+          x.each {|k, v|
+            v2 = recursive_munge(v, parse_time, parse_group)
+            x[k] = v2 if v.object_id != v2.object_id
+          }
+        end
+      when Array
+        x.each_with_index {|v, i|
+          v2 = recursive_munge(v, parse_time, parse_group)
+          x[i] = v2 if v.object_id != v2.object_id
+        }
+      end
+      return x
+    end
+
     def self.load_json(target, opts={})
       res = JSON.parse(target, opts)
       recursive_munge(JSON.parse(target),
