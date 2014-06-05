@@ -2,8 +2,7 @@
 #ifndef CONCURRENCY_CORO_POOL_HPP_
 #define CONCURRENCY_CORO_POOL_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
+#include <functional>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/interruptor.hpp"
