@@ -236,7 +236,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(&interruptor);
+    client_context_t client_ctx(&interruptor, ql::reject_cfeeds_t::NO);
 
     std::string init_error;
     int32_t client_magic_number = -1;

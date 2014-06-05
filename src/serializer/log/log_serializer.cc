@@ -960,39 +960,32 @@ void debug_print(printf_buffer_t *buf,
     }
 }
 
-void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
-    struct adjuster_t : public linux_thread_message_t {
-        void on_thread_switch() {
-            rassert(p->ref_count_ + adjustment >= 0);
-            p->ref_count_ += adjustment;
-            if (p->ref_count_ == 0) {
-                p->do_destroy();
-            }
-            delete this;
-        }
-        ls_block_token_pointee_t *p;
-        int adjustment;
-    };
-
-    if (get_thread_id() == p->serializer_->home_thread()) {
-        rassert(p->ref_count_ + adjustment >= 0);
-        p->ref_count_ += adjustment;
-        if (p->ref_count_ == 0) {
-            p->do_destroy();
-        }
-    } else {
-        adjuster_t *adjuster = new adjuster_t;
-        adjuster->p = p;
-        adjuster->adjustment = adjustment;
-        DEBUG_VAR bool res = continue_on_thread(p->serializer_->home_thread(), adjuster);
-        rassert(!res);
-    }
-}
-
 void counted_add_ref(ls_block_token_pointee_t *p) {
-    adjust_ref(p, 1);
+    DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    rassert(res > 0);
 }
 
 void counted_release(ls_block_token_pointee_t *p) {
-    adjust_ref(p, -1);
+    struct destroyer_t : public linux_thread_message_t {
+        void on_thread_switch() {
+            rassert(p->ref_count_ == 0);
+            p->do_destroy();
+            delete this;
+        }
+        ls_block_token_pointee_t *p;
+    };
+
+    intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    rassert(res >= 0);
+    if (res == 0) {
+        if (get_thread_id() == p->serializer_->home_thread()) {
+            p->do_destroy();
+        } else {
+            destroyer_t *destroyer = new destroyer_t;
+            destroyer->p = p;
+            DEBUG_VAR bool cont = continue_on_thread(p->serializer_->home_thread(),
+                                                     destroyer);
+            rassert(!cont);
+        }
+    }
 }
