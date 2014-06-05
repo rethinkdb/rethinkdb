@@ -554,12 +554,12 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
     : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
 }
 
-counted_t<datum_stream_t> datum_stream_t::add_grouping(
+void datum_stream_t::add_grouping(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     check_not_grouped("Cannot call `group` on the output of `group` "
                       "(did you mean to `ungroup`?).");
     grouped = true;
-    return add_transformation(env, std::move(tv), bt);
+    add_transformation(env, std::move(tv), bt);
 }
 void datum_stream_t::check_not_grouped(const char *msg) {
     rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
@@ -610,11 +610,10 @@ bool datum_stream_t::batch_cache_exhausted() const {
     return batch_cache_index >= batch_cache.size();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
+void eager_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     ops.emplace_back(make_op(env, std::move(tv)));
     update_bt(bt);
-    return counted_from_this();
 }
 
 eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
@@ -684,12 +683,10 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       current_batch_offset(0),
       reader(*ns_access, use_outdated, std::move(readgen)) { }
 
-counted_t<datum_stream_t>
-lazy_datum_stream_t::add_transformation(
+void lazy_datum_stream_t::add_transformation(
     env_t *, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
     update_bt(bt);
-    return counted_from_this();
 }
 
 void lazy_datum_stream_t::accumulate(
@@ -898,13 +895,12 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
+void union_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->add_transformation(env, transform_variant_t(std::move(tv)), bt);
+        (*it)->add_transformation(env, transform_variant_t(std::move(tv)), bt);
     }
     update_bt(bt);
-    return counted_from_this();
 }
 
 void union_datum_stream_t::accumulate(

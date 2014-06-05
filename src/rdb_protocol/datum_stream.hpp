@@ -77,10 +77,9 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
-    // RSI: add_transformation should be const?
-    virtual counted_t<datum_stream_t> add_transformation(
+    virtual void add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) = 0;
-    counted_t<datum_stream_t> add_grouping(
+    void add_grouping(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
 
     counted_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
@@ -137,8 +136,7 @@ private:
 
     virtual bool is_array() = 0;
 
-    // RSI: add_transformation should be const... it probably isn't.
-    virtual counted_t<datum_stream_t> add_transformation(
+    virtual void add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
@@ -262,7 +260,7 @@ public:
         }
     }
 
-    virtual counted_t<datum_stream_t> add_transformation(
+    virtual void add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
@@ -444,7 +442,7 @@ private:
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-    virtual counted_t<datum_stream_t> add_transformation(
+    virtual void add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
