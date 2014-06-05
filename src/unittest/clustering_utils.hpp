@@ -2,12 +2,10 @@
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
@@ -105,9 +103,9 @@ class test_inserter_t {
 public:
     typedef std::map<std::string, std::string> state_t;
 
-    test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun,
-               boost::function<std::string(const std::string&, order_token_t, signal_t *)> _rfun,
-               boost::function<std::string()> _key_gen_fun,
+    test_inserter_t(std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
+               std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
+               std::function<std::string()> _key_gen_fun,
                     order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
@@ -115,7 +113,7 @@ public:
                                          this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    test_inserter_t(namespace_interface_t *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+    test_inserter_t(namespace_interface_t *namespace_if, std::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
           wfun(std::bind(&test_inserter_t::write_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
@@ -127,7 +125,7 @@ public:
                                          this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    test_inserter_t(master_access_t *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+    test_inserter_t(master_access_t *master_access, std::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
           wfun(std::bind(&test_inserter_t::write_master_access, master_access, ph::_1, ph::_2, ph::_3, ph::_4)),
@@ -196,9 +194,9 @@ public:
     }
 
 private:
-    boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> wfun;
-    boost::function<std::string(const std::string&, order_token_t, signal_t *)> rfun;
-    boost::function<std::string()> key_gen_fun;
+    std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> wfun;
+    std::function<std::string(const std::string &, order_token_t, signal_t *)> rfun;
+    std::function<std::string()> key_gen_fun;
     order_source_t *osource;
 
     DISABLE_COPYING(test_inserter_t);
