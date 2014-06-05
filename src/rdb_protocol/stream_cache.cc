@@ -31,8 +31,10 @@ void stream_cache_t::erase(int64_t key) {
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
-    if (it == streams.end()) return false;
-    entry_t *entry = it->second;
+    if (it == streams.end()) {
+        return false;
+    }
+    entry_t *const entry = it->second;
     entry->last_activity = time(0);
 
     std::exception_ptr exc;
@@ -67,7 +69,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         std::rethrow_exception(exc);
     }
 
-    bool cfeed = entry->stream->is_cfeed();
+    const bool cfeed = entry->stream->is_cfeed();
     if (cfeed && reject_cfeeds == reject_cfeeds_t::YES) {
         erase(key);
         rfail_toplevel(base_exc_t::GENERIC,
