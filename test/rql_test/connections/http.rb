@@ -67,7 +67,7 @@ def test_head()
     url = 'httpbin.org/get'
 
     res = r.http(url, {:method => 'HEAD', :result_format => 'text'}).run()
-    expect_eq(res, '')
+    expect_eq(res, nil)
 
     res = r.http(url, {:method => 'HEAD'}).run()
     expect_eq(res, nil)
@@ -88,11 +88,6 @@ def test_post()
                        :header => {'Content-Type' => 'application/json'}}).run()
     expect_eq(res['json'], post_data)
 
-    res = r.http(url, {:method => 'POST',
-                       :data => r.expr(post_data).coerce_to('string')}).run()
-    post_data['str'] = '%in fo ' # Default content type is x-www-form-encoded, which changes the '+' to a space
-    expect_eq(res['json'], post_data)
-
     post_data = 'a=b&b=c'
     res = r.http(url, {:method => 'POST',
                        :data => post_data}).run()
@@ -100,7 +95,8 @@ def test_post()
 
     post_data = '<arbitrary>data</arbitrary>'
     res = r.http(url, {:method => 'POST',
-                       :data => post_data}).run()
+                       :data => post_data,
+                       :header => {'Content-Type' => 'application/text'}}).run()
     expect_eq(res['data'], post_data)
 end
 
@@ -221,11 +217,11 @@ end
 
 def test_verify()
     def test_part(url)
-        expect_error(r.http(url, {:verify => true, :redirects => 5}),
-                     RethinkDB::RqlRuntimeError, err_string('GET', url, 'Peer certificate cannot be authenticated with given CA certificates'))
+        expect_error(r.http(url, {:method => 'HEAD', :verify => true, :redirects => 5}),
+                     RethinkDB::RqlRuntimeError, err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'))
 
-        res = r.http(url, {:verify => false, :redirects => 5}).split()[0].run()
-        expect_eq(res, '<html>')
+        res = r.http(url, {:method => 'HEAD', :verify => false, :redirects => 5}).run()
+        expect_eq(res, nil)
     end
 
     test_part('http://dev.rethinkdb.com')

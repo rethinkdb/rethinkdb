@@ -28,9 +28,11 @@ template <class> class semilattice_readwrite_view_t;
 
 class client_context_t {
 public:
-    explicit client_context_t(signal_t *_interruptor) : interruptor(_interruptor) { }
-    ql::stream_cache_t stream_cache;
+    explicit client_context_t(signal_t *_interruptor, ql::reject_cfeeds_t reject_cfeeds)
+        : interruptor(_interruptor),
+          stream_cache(reject_cfeeds) { }
     signal_t *interruptor;
+    ql::stream_cache_t stream_cache;
 };
 
 class http_conn_cache_t : public repeating_timer_callback_t {
@@ -40,7 +42,7 @@ public:
         http_conn_t() :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(&interruptor) { }
+            client_ctx(&interruptor, ql::reject_cfeeds_t::YES) { }
 
         client_context_t *get_ctx() {
             last_accessed = time(0);
@@ -90,7 +92,8 @@ public:
     }
     int32_t create() {
         int32_t key = next_id++;
-        cache.insert(std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
+        cache.insert(
+            std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
         return key;
     }
     void erase(int32_t key) {

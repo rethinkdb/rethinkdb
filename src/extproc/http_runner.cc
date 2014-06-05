@@ -5,6 +5,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "arch/timing.hpp"
 
+RDB_IMPL_ME_SERIALIZABLE_3(http_result_t, empty_ok(header), empty_ok(body), error);
 RDB_IMPL_ME_SERIALIZABLE_3(http_opts_t::http_auth_t, type, username, password);
 RDB_IMPL_ME_SERIALIZABLE_14(http_opts_t, auth, method, result_format, url,
                             proxy, url_params, header, data, form_data, timeout_ms,
@@ -60,8 +61,9 @@ void http_opts_t::http_auth_t::make_digest_auth(std::string &&user,
 http_runner_t::http_runner_t(extproc_pool_t *_pool) :
     pool(_pool) { }
 
-http_result_t http_runner_t::http(const http_opts_t *opts,
-                                  signal_t *interruptor) {
+void http_runner_t::http(const http_opts_t *opts,
+                         http_result_t *res_out,
+                         signal_t *interruptor) {
     signal_timer_t timeout;
     wait_any_t combined_interruptor(interruptor, &timeout);
     http_job_t job(pool, &combined_interruptor);
@@ -70,13 +72,14 @@ http_result_t http_runner_t::http(const http_opts_t *opts,
     timeout.start(opts->timeout_ms);
 
     try {
-        return job.http(opts);
+        job.http(opts, res_out);
     } catch (const interrupted_exc_t &ex) {
-        if (timeout.is_pulsed()) {
-            return strprintf("timed out after %" PRIu64 ".%03" PRIu64 " seconds",
-                             opts->timeout_ms / 1000, opts->timeout_ms % 1000);
+        if (!timeout.is_pulsed()) {
+            throw;
         }
-        throw;
+        res_out->error =
+            strprintf("timed out after %" PRIu64 ".%03" PRIu64 " seconds",
+                      opts->timeout_ms / 1000, opts->timeout_ms % 1000);
     } catch (...) {
         // This will mark the worker as errored so we don't try to re-sync with it
         //  on the next line (since we're in a catch statement, we aren't allowed)

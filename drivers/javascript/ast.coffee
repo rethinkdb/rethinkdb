@@ -166,6 +166,7 @@ class RDBVal extends TermBase
     hasFields: (args...) -> new HasFields {}, @, args...
     withFields: (args...) -> new WithFields {}, @, args...
     keys: (args...) -> new Keys {}, @, args...
+    changes: (args...) -> new Changes {}, @, args...
 
     # pluck and without on zero fields are allowed
     pluck: (args...) -> new Pluck {}, @, args...
@@ -463,7 +464,7 @@ class MakeObject extends RDBOp
 
 class Var extends RDBOp
     tt: protoTermType.VAR
-    compose: (args) -> ['var_'+args[0]]
+    compose: (args) -> ['var_'+args]
 
 class JavaScript extends RDBOp
     tt: protoTermType.JAVASCRIPT
@@ -644,6 +645,11 @@ class WithFields extends RDBOp
 class Keys extends RDBOp
     tt: protoTermType.KEYS
     mt: 'keys'
+
+class Changes extends RDBOp
+    tt: protoTermType.CHANGES
+    mt: 'changes'
+
 
 class Object_ extends RDBOp
     tt: protoTermType.OBJECT
