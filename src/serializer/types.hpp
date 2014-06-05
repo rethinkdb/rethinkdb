@@ -126,7 +126,8 @@ private:
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
-    friend void adjust_ref(ls_block_token_pointee_t *p, int adjustment);
+    friend void counted_add_ref(ls_block_token_pointee_t *p);
+    friend void counted_release(ls_block_token_pointee_t *p);
 
     ls_block_token_pointee_t(log_serializer_t *serializer,
                              int64_t initial_offset,
