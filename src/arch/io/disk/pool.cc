@@ -2,6 +2,7 @@
 #include "arch/io/disk/pool.hpp"
 
 #include <fcntl.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
