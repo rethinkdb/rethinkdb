@@ -2,6 +2,8 @@
 #ifndef RPC_SEMILATTICE_WATCHABLE_HPP_
 #define RPC_SEMILATTICE_WATCHABLE_HPP_
 
+#include <functional>
+
 template <class T>
 class semilattice_watchable_t : public watchable_t<T> {
 public:
@@ -24,7 +26,7 @@ public:
         return view->get();
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return view->get_publisher();
     }
 

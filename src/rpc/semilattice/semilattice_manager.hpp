@@ -20,7 +20,7 @@ constraints:
 1. It must have public and sane default constructor, copy constructor,
     copy assignment, and destructor.
 
-2. It must be serializable using `boost::serialization`.
+2. It must be serializable.
 
 3. There must exist a function:
 
@@ -53,7 +53,7 @@ private:
         void join(const metadata_t &);
         void sync_from(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
         void sync_to(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
-        publisher_t<boost::function<void()> > *get_publisher();
+        publisher_t<std::function<void()> > *get_publisher();
     };
 
     class metadata_writer_t;
@@ -76,7 +76,7 @@ private:
     void deliver_sync_to_query_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
     void deliver_sync_to_reply_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, auto_drainer_t::lock_t);
 
-    static void call_function_with_no_args(const boost::function<void()> &);
+    static void call_function_with_no_args(const std::function<void()> &);
     void join_metadata_locally(metadata_t);
     void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 
@@ -85,7 +85,7 @@ private:
 
     metadata_version_t metadata_version;
     metadata_t metadata;
-    publisher_controller_t<boost::function<void()> > metadata_publisher;
+    publisher_controller_t<std::function<void()> > metadata_publisher;
     rwi_lock_assertion_t metadata_mutex;
 
     std::map<peer_id_t, metadata_version_t> last_versions_seen;

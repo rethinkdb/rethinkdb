@@ -3,6 +3,9 @@
 
 #include <functional>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
@@ -222,7 +225,7 @@ listener_t::listener_t(const base_path_t &base_path,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp_ = backfill_end_timestamp;
-    write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
+    write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
@@ -312,7 +315,7 @@ listener_t::listener_t(const base_path_t &base_path,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp_ = listener_intro.broadcaster_begin_timestamp;
-    write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
+    write_queue_coro_pool_callback_.init(new std_function_callback_t<write_queue_entry_t>(
             boost::bind(&listener_t::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
         new coro_pool_t<write_queue_entry_t>(

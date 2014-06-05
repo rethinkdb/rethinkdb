@@ -25,7 +25,7 @@
 namespace unittest {
 
 void run_with_broadcaster(
-    boost::function< void(
+    std::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
         branch_history_manager_t *,
         clone_ptr_t< watchable_t< boost::optional< boost::optional<
@@ -107,14 +107,14 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                              branch_history_manager_t *,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > >,
-                              scoped_ptr_t<broadcaster_t> *,
-                              test_store_t *,
-                              scoped_ptr_t<listener_t> *,
-                              rdb_context_t *,
-                              order_source_t *)> fun)
+        std::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+                            branch_history_manager_t *,
+                            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > >,
+                            scoped_ptr_t<broadcaster_t> *,
+                            test_store_t *,
+                            scoped_ptr_t<listener_t> *,
+                            rdb_context_t *,
+                            order_source_t *)> fun)
 {
     extproc_spawner_t extproc_spawner;
     run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
@@ -187,7 +187,7 @@ void run_backfill_test(size_t value_padding_length,
     test_inserter_t inserter(
         std::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(),
                   ph::_1, ph::_2, ph::_3, ph::_4),
-        NULL,
+        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
         &mc_key_gen,
         order_source,
         "rdb_backfill run_partial_backfill_test inserter",
@@ -306,7 +306,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     test_inserter_t inserter(
         std::bind(&write_to_broadcaster, 0, broadcaster->get(),
                   ph::_1, ph::_2, ph::_3, ph::_4),
-        NULL,
+        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
         &mc_key_gen,
         order_source,
         "rdb_backfill run_partial_backfill_test inserter",

@@ -2,8 +2,7 @@
 #ifndef ARCH_IO_DISK_ACCOUNTING_HPP_
 #define ARCH_IO_DISK_ACCOUNTING_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
+#include <functional>
 
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
@@ -97,7 +96,7 @@ public:
 
     void submit(action_t *a);
 
-    boost::function<void (action_t *)> done_fun;
+    std::function<void (action_t *)> done_fun;
 
     passive_producer_t<accounting_payload_t *> * const producer;
     void done(accounting_payload_t *p);

@@ -29,14 +29,14 @@ boost::optional<boost::optional<replier_business_card_t> > wrap_replier_in_optio
 }
 
 void run_with_broadcaster(
-        boost::function<void(io_backender_t *,
-                             simple_mailbox_cluster_t *,
-                             branch_history_manager_t *,
-                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
-                             scoped_ptr_t<broadcaster_t> *,
-                             mock_store_t *,
-                             scoped_ptr_t<listener_t> *,
-                             order_source_t *)> fun) {
+        std::function<void(io_backender_t *,
+                           simple_mailbox_cluster_t *,
+                           branch_history_manager_t *,
+                           clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
+                           scoped_ptr_t<broadcaster_t> *,
+                           mock_store_t *,
+                           scoped_ptr_t<listener_t> *,
+                           order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
@@ -85,14 +85,14 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function<void(io_backender_t *,
-                             simple_mailbox_cluster_t *,
-                             branch_history_manager_t *,
-                             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
-                             scoped_ptr_t<broadcaster_t> *,
-                             mock_store_t *,
-                             scoped_ptr_t<listener_t> *,
-                             order_source_t *)> fun)
+        std::function<void(io_backender_t *,
+                           simple_mailbox_cluster_t *,
+                           branch_history_manager_t *,
+                           clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
+                           scoped_ptr_t<broadcaster_t> *,
+                           mock_store_t *,
+                           scoped_ptr_t<listener_t> *,
+                           order_source_t *)> fun)
 {
     unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
 }
@@ -203,7 +203,7 @@ void run_backfill_test(io_backender_t *io_backender,
     test_inserter_t inserter(
         std::bind(&write_to_broadcaster, broadcaster->get(),
                   ph::_1, ph::_2, ph::_3, ph::_4),
-        NULL,
+        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
         &dummy_key_gen,
         order_source,
         "run_backfill_test/inserter",
@@ -272,7 +272,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     test_inserter_t inserter(
         std::bind(&write_to_broadcaster, broadcaster->get(),
                   ph::_1, ph::_2, ph::_3, ph::_4),
-        NULL,
+        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
         &dummy_key_gen,
         order_source,
         "run_partial_backfill_test/inserter",

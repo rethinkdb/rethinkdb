@@ -639,7 +639,7 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 /* Network listener object */
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
         const std::set<ip_address_t> &bind_addresses, int _port,
-        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
+        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &cb) :
     callback(cb),
     local_addresses(bind_addresses),
     port(_port),
@@ -945,7 +945,7 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
     via event_listener.watch(). */
 }
 
-void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
+void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t> &arg) { }
 
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int port) :
     listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, noop_fun))
@@ -960,7 +960,7 @@ int linux_tcp_bound_socket_t::get_port() const {
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
-    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
         listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
 {
     if (!listener->begin_listening()) {
@@ -970,7 +970,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_ad
 
 linux_tcp_listener_t::linux_tcp_listener_t(
     linux_tcp_bound_socket_t *bound_socket,
-    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
         listener(bound_socket->listener.release())
 {
     listener->callback = callback;
@@ -986,7 +986,7 @@ int linux_tcp_listener_t::get_port() const {
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(
     const std::set<ip_address_t> &bind_addresses,
     int port,
-    const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
+    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
         listener(bind_addresses, port, callback)
 { }
 
