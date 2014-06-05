@@ -612,7 +612,7 @@ bool datum_stream_t::batch_cache_exhausted() const {
 
 counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    ops.emplace_back(make_op(env, tv));
+    ops.emplace_back(make_op(env, std::move(tv)));
     update_bt(bt);
     return counted_from_this();
 }
@@ -901,7 +901,7 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->add_transformation(env, transform_variant_t(tv), bt);
+        *it = (*it)->add_transformation(env, transform_variant_t(std::move(tv)), bt);
     }
     update_bt(bt);
     return counted_from_this();

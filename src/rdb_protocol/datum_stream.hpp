@@ -77,6 +77,7 @@ class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
 public:
     virtual ~datum_stream_t() { }
 
+    // RSI: add_transformation should be const?
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) = 0;
     counted_t<datum_stream_t> add_grouping(
@@ -136,6 +137,7 @@ private:
 
     virtual bool is_array() = 0;
 
+    // RSI: add_transformation should be const... it probably isn't.
     virtual counted_t<datum_stream_t> add_transformation(
         env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
