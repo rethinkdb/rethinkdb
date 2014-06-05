@@ -4,8 +4,11 @@
 
 #include "clustering/reactor/directory_echo.hpp"
 
-#include <map>
 #include <functional>
+#include <map>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :

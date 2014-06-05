@@ -3,6 +3,9 @@
 
 #include <functional>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"

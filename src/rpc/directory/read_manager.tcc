@@ -7,6 +7,9 @@
 #include <map>
 #include <utility>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"

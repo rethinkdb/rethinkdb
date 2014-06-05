@@ -3,6 +3,9 @@
 
 #include <functional>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"

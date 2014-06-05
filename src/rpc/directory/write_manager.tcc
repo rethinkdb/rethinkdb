@@ -7,6 +7,9 @@
 #include <map>
 #include <set>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/runtime/coroutines.hpp"
 #include "rpc/connectivity/messages.hpp"
 

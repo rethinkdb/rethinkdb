@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 template <class value_t>
 cross_thread_watchable_variable_t<value_t>::cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &w,
                                                                               threadnum_t _dest_thread) :

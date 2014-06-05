@@ -3,8 +3,9 @@
 
 #include <functional>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/bind.hpp>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
