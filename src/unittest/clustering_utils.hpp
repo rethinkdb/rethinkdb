@@ -6,6 +6,9 @@
 #include <set>
 #include <string>
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
