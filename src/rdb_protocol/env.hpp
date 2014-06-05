@@ -202,8 +202,10 @@ class scope_env_t {
 public:
     scope_env_t(env_t *_env, var_scope_t &&_scope)
         : env(_env), scope(std::move(_scope)) { }
-    env_t *env;
-    var_scope_t scope;
+    env_t *const env;
+    const var_scope_t scope;
+
+    DISABLE_COPYING(scope_env_t);
 };
 
 scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
