@@ -29,7 +29,7 @@ public:
         read(cache->get());
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return cache->get_publisher();
     }
 
@@ -67,7 +67,7 @@ private:
             return &cached_value;
         }
 
-        publisher_t<boost::function<void()> > *get_publisher() {
+        publisher_t<std::function<void()> > *get_publisher() {
             assert_thread();
             return publisher_controller.get_publisher();
         }
@@ -107,7 +107,7 @@ private:
 
         callable_type lens;
         result_type cached_value;
-        publisher_controller_t<boost::function<void()> > publisher_controller;
+        publisher_controller_t<std::function<void()> > publisher_controller;
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 

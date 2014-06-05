@@ -32,7 +32,7 @@ private:
     void on_value_changed();
     void deliver(value_t new_value);
 
-    static void call(const boost::function<void()> &f) {
+    static void call(const std::function<void()> &f) {
         f();
     }
 
@@ -54,7 +54,7 @@ private:
         void apply_read(const std::function<void(const value_t*)> &read) {
             return parent->apply_read(read);
         }
-        publisher_t<boost::function<void()> > *get_publisher() {
+        publisher_t<std::function<void()> > *get_publisher() {
             return parent->publisher_controller.get_publisher();
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -67,7 +67,7 @@ private:
     };
 
     clone_ptr_t<watchable_t<value_t> > original;
-    publisher_controller_t<boost::function<void()> > publisher_controller;
+    publisher_controller_t<std::function<void()> > publisher_controller;
     rwi_lock_assertion_t rwi_lock_assertion;
     value_t value;
     w_t watchable;

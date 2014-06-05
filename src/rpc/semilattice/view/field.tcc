@@ -33,7 +33,7 @@ public:
         outer->sync_from(peer, interruptor);
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return outer->get_publisher();
     }
 
@@ -71,7 +71,7 @@ public:
         outer->sync_to(peer, interruptor);
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return outer->get_publisher();
     }
 

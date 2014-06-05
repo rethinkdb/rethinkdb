@@ -221,7 +221,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
 }
 
 template<class metadata_t>
-publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
+publisher_t<std::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
     guarantee(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata_publisher.get_publisher();
@@ -404,7 +404,7 @@ void semilattice_manager_t<metadata_t>::deliver_sync_to_reply_on_home_thread(UNU
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::call_function_with_no_args(const boost::function<void()> &fun) {
+void semilattice_manager_t<metadata_t>::call_function_with_no_args(const std::function<void()> &fun) {
     fun();
 }
 

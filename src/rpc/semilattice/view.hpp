@@ -41,8 +41,8 @@ public:
 
     class subscription_t {
     public:
-        explicit subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, boost::shared_ptr<semilattice_read_view_t> v) : subs(cb) {
+        explicit subscription_t(std::function<void()> cb) : subs(cb) { }
+        subscription_t(std::function<void()> cb, boost::shared_ptr<semilattice_read_view_t> v) : subs(cb) {
             reset(v);
         }
         void reset(boost::shared_ptr<semilattice_read_view_t> v) {
@@ -57,10 +57,10 @@ public:
         /* Hold a pointer to the `semilattice_read_view_t` so it doesn't die while
         we are subscribed to it */
         boost::shared_ptr<semilattice_read_view_t> view;
-        publisher_t<boost::function<void()> >::subscription_t subs;
+        publisher_t<std::function<void()> >::subscription_t subs;
     };
 
-    virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
+    virtual publisher_t<std::function<void()> > *get_publisher() = 0;
 
 protected:
     virtual ~semilattice_read_view_t() { }
