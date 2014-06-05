@@ -104,7 +104,7 @@ private:
     typename watchable_t<value_t>::subscription_t subs;
 
     single_value_producer_t<value_t> value_producer;
-    boost_function_callback_t<value_t> deliver_cb;
+    std_function_callback_t<value_t> deliver_cb;
     coro_pool_t<value_t> messanger_pool;
 
     DISABLE_COPYING(cross_thread_watchable_variable_t);
