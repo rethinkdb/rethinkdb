@@ -180,9 +180,9 @@ public:
 
     counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
-    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection(env_t *env);
+    std::pair<counted_t<table_t>, counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
-    std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
+    std::pair<counted_t<table_t>, counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
