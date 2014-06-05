@@ -7,9 +7,6 @@
 #include <map>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
@@ -65,7 +62,7 @@ void directory_read_manager_t<metadata_t>::on_message(
 
             /* Spawn a new coroutine because we might not be on the home thread
             and `on_message()` isn't supposed to block very long */
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &directory_read_manager_t::propagate_initialization, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 initial_value, metadata_fifo_state,
@@ -87,7 +84,7 @@ void directory_read_manager_t<metadata_t>::on_message(
 
             /* Spawn a new coroutine because we might not be on the home thread
             and `on_message()` isn't supposed to block very long */
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &directory_read_manager_t::propagate_update, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 new_value, metadata_fifo_token,
@@ -116,7 +113,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     explicitly interrupt them rather than letting them finish on their own
     because, if the network reordered messages, they might wait indefinitely for
     a message that will now never come. */
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &directory_read_manager_t::interrupt_updates_and_free_session, this,
         session_to_destroy,
         auto_drainer_t::lock_t(&global_drainer)));

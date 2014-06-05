@@ -7,9 +7,6 @@
 #include <map>
 #include <set>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "rpc/connectivity/messages.hpp"
 
@@ -20,7 +17,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     message_service(sub),
     value_watchable(value),
     session_counter(0),
-    value_subscription(boost::bind(&directory_write_manager_t::on_change, this)),
+    value_subscription(std::bind(&directory_write_manager_t::on_change, this)),
     connectivity_subscription(this) {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value_watchable);
     connectivity_service_t::peers_list_freeze_t connectivity_freeze(message_service->get_connectivity_service());
@@ -43,7 +40,7 @@ void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NO
     }
 
     typename watchable_t<metadata_t>::freeze_t freeze(value_watchable);
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &directory_write_manager_t::send_initialization, this,
         peer, session_id,
         value_watchable->get(), metadata_fifo_source.get_state(),
@@ -73,7 +70,7 @@ void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
         // get_peers_list() should be in sync with the on_connect/on_disconnect state.
         guarantee(session_it != sessions.end());
 
-        coro_t::spawn_sometime(boost::bind(
+        coro_t::spawn_sometime(std::bind(
             &directory_write_manager_t::send_update, this,
             *it, session_it->second,
             new_value, metadata_fifo_token,
