@@ -103,7 +103,7 @@ void env_t::do_eval_callback() {
     }
 }
 
-profile_bool_t env_t::profile() {
+profile_bool_t env_t::profile() const {
     return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 

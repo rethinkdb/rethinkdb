@@ -177,7 +177,7 @@ public:
 
     // Always returns profile_bool_t::DONT_PROFILE for now, because trace is empty,
     // because we don't support profiling in this release.
-    profile_bool_t profile();
+    profile_bool_t profile() const;
 
 private:
     js_runner_t js_runner;
