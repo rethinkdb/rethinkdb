@@ -177,7 +177,7 @@ tests:
       - tbl.eq_join(1)
       ot:
         py: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
-        py: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
         js: err("RqlDriverError", "Expected 2 argument(s) but found 1.", [])
 
     - ot: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])

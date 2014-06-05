@@ -26,11 +26,10 @@ module RethinkDB
       return x
     end
 
-    def self.load_json(target, opts={})
-      res = JSON.parse(target, opts)
+    def self.load_json(target, opts=nil)
       recursive_munge(JSON.parse(target),
-                      opts[:time_format] != 'raw',
-                      opts[:group_format] != 'raw')
+                      opts && opts[:time_format] != 'raw',
+                      opts && opts[:group_format] != 'raw')
     end
 
     def self.dump_json(*a, &b)
@@ -88,6 +87,7 @@ module RethinkDB
       when Numeric then RQL.new(x)
       when FalseClass then RQL.new(x)
       when TrueClass then RQL.new(x)
+      when NilClass then RQL.new(x)
       when Time then
         epoch_time = x.to_f
         offset = x.utc_offset
