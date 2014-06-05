@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/network_logger.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 network_logger_t::network_logger_t(
         peer_id_t our_peer_id,
         const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &dv,
