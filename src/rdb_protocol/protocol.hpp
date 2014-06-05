@@ -338,8 +338,6 @@ struct sindex_rangespec_t {
 };
 
 class rget_read_t {
-    typedef ql::transform_variant_t transform_variant_t;
-    typedef ql::terminal_variant_t terminal_variant_t;
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
@@ -347,8 +345,8 @@ public:
                 const std::map<std::string, ql::wire_func_t> &_optargs,
                 const std::string _table_name,
                 const ql::batchspec_t &_batchspec,
-                const std::vector<transform_variant_t> &_transforms,
-                boost::optional<terminal_variant_t> &&_terminal,
+                const std::vector<ql::transform_variant_t> &_transforms,
+                boost::optional<ql::terminal_variant_t> &&_terminal,
                 boost::optional<sindex_rangespec_t> &&_sindex,
                 sorting_t _sorting)
         : region(_region),
