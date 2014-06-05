@@ -4,8 +4,7 @@
 
 // Implementation in runtime.cc.
 
-#include "errors.hpp"
-#include <boost/function.hpp>
+#include <functional>
 
 /* `run_in_thread_pool()` starts a RethinkDB thread pool, runs the given
 function in a coroutine inside of it, waits for the function to return, and then
