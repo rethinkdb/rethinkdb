@@ -4,9 +4,6 @@
 
 #include <functional>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "concurrency/interruptor.hpp"
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
