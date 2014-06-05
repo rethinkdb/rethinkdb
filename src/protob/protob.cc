@@ -389,7 +389,6 @@ void query_server_t::handle(const http_req_t &req,
     }
 
     std::string string_conn_id = *optional_conn_id;
-    // RSI: What.  What happens if this is a garbage value?
     int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
     if (req.method == POST &&
