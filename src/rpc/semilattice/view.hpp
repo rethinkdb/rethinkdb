@@ -3,7 +3,6 @@
 #define RPC_SEMILATTICE_VIEW_HPP_
 
 #include "errors.hpp"
-#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "concurrency/interruptor.hpp"

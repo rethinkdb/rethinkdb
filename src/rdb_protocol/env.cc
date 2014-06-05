@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
