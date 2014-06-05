@@ -107,8 +107,8 @@ void pool_diskmgr_t::action_t::run() {
                 // This happens when running out of disk space.
                 // The errno in that case is 0 and doesn't tell us about the
                 // real reason for the failed i/o.
-                // We set the io_result to be -ENOSPC and print an error into
-                // the log about what actually happened.
+                // We set the io_result to be -ENOSPC and print an error stating
+                // what actually happened.
                 io_result = -ENOSPC;
                 logERR("Failed I/O: lensum (%" PRIi64 ") != res (%" PRIi64 ")."
                        " Assuming we ran out of disk space.", lensum, res);
