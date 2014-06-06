@@ -1,101 +1,52 @@
-class TIME
-  def self.__rdb_new_json_create(o)
-    t = Time.at(o['epoch_time'])
-    tz = o['timezone']
-    (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
-  end
-  if !methods.include?(:json_create)
-    singleton_class.send(:alias_method, :json_create, :__rdb_new_json_create)
-  end
-end
-
-class GROUPED_DATA
-  def self.__rdb_new_json_create(o)
-    Hash[o['data']]
-  end
-  if !methods.include?(:json_create)
-    singleton_class.send(:alias_method, :json_create, :__rdb_new_json_create)
-  end
-end
-
-class Time
-  def __rdb_new_to_json(*a, &b)
-    epoch_time = self.to_f
-    offset = self.utc_offset
-    raw_offset = offset.abs
-    raw_hours = raw_offset / 3600
-    raw_minutes = (raw_offset / 60) - (raw_hours * 60)
-    timezone = (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
-    { '$reql_type$' => 'TIME',
-      'epoch_time'  => epoch_time,
-      'timezone'    => timezone }.to_json(*a, &b)
-  end
-end
-
 module RethinkDB
   require 'json'
   require 'time'
   module Shim
-    def self.load_json(target, opts=nil)
-      old_create_id = JSON.create_id
-      begin
-        ::TIME.singleton_class.send(:alias_method,
-                                    :__rdb_old_json_create, :json_create)
-        ::TIME.singleton_class.send(:alias_method,
-                                    :json_create, :__rdb_new_json_create)
-        if opts && opts[:time_format] == 'raw'
-          ::TIME.singleton_class.send(:remove_method, :json_create)
+    def self.recursive_munge(x, parse_time, parse_group)
+      case x
+      when Hash
+        if parse_time && x['$reql_type$'] == 'TIME'
+          t = Time.at(x['epoch_time'])
+          tz = x['timezone']
+          return (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        elsif parse_group && x['$reql_type$'] == 'GROUPED_DATA'
+          return Hash[x['data']]
+        else
+          x.each {|k, v|
+            v2 = recursive_munge(v, parse_time, parse_group)
+            x[k] = v2 if v.object_id != v2.object_id
+          }
         end
-        ::GROUPED_DATA.singleton_class.send(:alias_method,
-                                            :__rdb_old_json_create, :json_create)
-        ::GROUPED_DATA.singleton_class.send(:alias_method,
-                                            :json_create, :__rdb_new_json_create)
-        if opts && opts[:group_format] == 'raw'
-          ::GROUPED_DATA.singleton_class.send(:remove_method, :json_create)
-        end
-        JSON.create_id = '$reql_type$'
-        JSON.load(target)
-      ensure
-        JSON.create_id = old_create_id
-        ::TIME.singleton_class.send(:alias_method,
-                                    :json_create, :__rdb_old_json_create)
-        ::GROUPED_DATA.singleton_class.send(:alias_method,
-                                            :json_create, :__rdb_old_json_create)
+      when Array
+        x.each_with_index {|v, i|
+          v2 = recursive_munge(v, parse_time, parse_group)
+          x[i] = v2 if v.object_id != v2.object_id
+        }
       end
+      return x
+    end
+
+    def self.load_json(target, opts=nil)
+      recursive_munge(JSON.parse(target),
+                      opts && opts[:time_format] != 'raw',
+                      opts && opts[:group_format] != 'raw')
     end
 
     def self.dump_json(*a, &b)
-      begin
-        ::Time.class_eval {
-          alias_method :__rdb_old_to_json, :to_json if methods.include?(:to_json)
-          alias_method :to_json, :__rdb_new_to_json
-        }
-        JSON.dump(*a, &b)
-      ensure
-        ::Time.class_eval {
-          if methods.include?(:__rdb_old_to_json)
-            alias_method :to_json, :__rdb_old_to_json
-          else
-            remove_method :to_json
-          end
-        }
-      end
+      JSON.generate(*a, &b)
     end
 
     def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
       begin
         case r['t']
-        when rt::SUCCESS_ATOM then r['r'][0]
-        when rt::SUCCESS_FEED then r['r']
-        when rt::SUCCESS_PARTIAL then r['r']
+        when rt::SUCCESS_ATOM     then r['r'][0]
+        when rt::SUCCESS_FEED     then r['r']
+        when rt::SUCCESS_PARTIAL  then r['r']
         when rt::SUCCESS_SEQUENCE then r['r']
-        when rt::RUNTIME_ERROR then
-          raise RqlRuntimeError, r['r'][0]
-        when rt::COMPILE_ERROR then # TODO: remove?
-          raise RqlCompileError, r['r'][0]
-        when rt::CLIENT_ERROR then
-          raise RqlDriverError, r['r'][0]
+        when rt::RUNTIME_ERROR    then raise RqlRuntimeError, r['r'][0]
+        when rt::COMPILE_ERROR    then raise RqlCompileError, r['r'][0]
+        when rt::CLIENT_ERROR     then raise RqlDriverError,  r['r'][0]
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
@@ -131,7 +82,23 @@ module RethinkDB
       when Hash then RQL.new(Hash[x.map{|k,v| [safe_to_s(k),
                                                fast_expr(v, max_depth-1)]}])
       when Proc then RQL.new.new_func(&x)
-      else RQL.new(x)
+      when String then RQL.new(x)
+      when Symbol then RQL.new(x)
+      when Numeric then RQL.new(x)
+      when FalseClass then RQL.new(x)
+      when TrueClass then RQL.new(x)
+      when NilClass then RQL.new(x)
+      when Time then
+        epoch_time = x.to_f
+        offset = x.utc_offset
+        raw_offset = offset.abs
+        raw_hours = raw_offset / 3600
+        raw_minutes = (raw_offset / 60) - (raw_hours * 60)
+        tz = (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
+        RQL.new({ '$reql_type$' => 'TIME',
+                  'epoch_time'  => epoch_time,
+                  'timezone'    => tz })
+      else raise RqlDriverError, "r.expr can't handle #{x.inspect} of class #{x.class}."
       end
     end
 
