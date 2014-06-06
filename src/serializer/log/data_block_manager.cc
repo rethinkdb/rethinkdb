@@ -858,14 +858,17 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
                     if (gc_state->current_entry == entry) {
                         gc_state->current_entry = NULL;
                         ++num_matched;
-#ifndef NDEBUG
+#ifdef NDEBUG
+                        // In release mode, terminate the loop as soon
+                        // as we have found our entry.
+                        // In debug, continue to ensure that there is *exactly*
+                        // one match.
                         break;
 #endif
                     }
                 }
                 guarantee(num_matched == 1);
-                break;
-            }
+            } break;
             default:
                 unreachable();
         }
@@ -1008,7 +1011,6 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
            && should_we_keep_gcing()
            && !should_terminate_one_gc_thread()) {
         gc_one_extent(gc_state);
-        coro_t::yield();
 
         if (state == state_shutting_down) {
             active_gcs.remove(gc_state);

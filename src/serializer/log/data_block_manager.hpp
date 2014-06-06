@@ -147,8 +147,6 @@ private:
 
     bool should_perform_read_ahead(int64_t offset);
 
-    /* internal garbage collection structures */
-
     log_serializer_stats_t *const stats;
 
     // This is permitted to destroy the data_block_manager.
