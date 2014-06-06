@@ -3,8 +3,9 @@
 
 #include <functional>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/bind.hpp>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -309,11 +310,11 @@ public:
 
     perfmon_counter_t queue_count;
     perfmon_membership_t queue_count_membership;
-    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    unlimited_fifo_queue_t<std::function<void()> > background_write_queue;
     calling_callback_t background_write_caller;
 
 private:
-    coro_pool_t<boost::function<void()> > background_write_workers;
+    coro_pool_t<std::function<void()> > background_write_workers;
     broadcaster_t *controller;
     auto_drainer_t drainer;
 

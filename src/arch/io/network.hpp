@@ -9,13 +9,11 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <functional>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#include "utils.hpp"
-#include <boost/function.hpp>
 
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
@@ -335,7 +333,7 @@ the provided callback will be called in a new coroutine every time something con
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
-        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
+        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
 
@@ -350,7 +348,7 @@ protected:
     MUST_USE bool bind_sockets();
 
     // The callback to call when we get a connection
-    boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> callback;
+    std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> callback;
 
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
@@ -405,9 +403,9 @@ private:
 class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
-        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
+        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);
     linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
-        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
+        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);
 
     int get_port() const;
 
@@ -419,7 +417,7 @@ private:
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
     linux_repeated_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
-        const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
+        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);
     void begin_repeated_listening_attempts();
 
     signal_t *get_bound_signal();

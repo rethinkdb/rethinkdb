@@ -28,7 +28,7 @@ public:
         superview->sync_from(peer, interruptor);
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return superview->get_publisher();
     }
 
@@ -66,7 +66,7 @@ public:
         superview->sync_to(peer, interruptor);
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return superview->get_publisher();
     }
 

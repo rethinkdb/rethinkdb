@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/auto_reconnect.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/timing.hpp"
 #include "concurrency/wait_any.hpp"
 

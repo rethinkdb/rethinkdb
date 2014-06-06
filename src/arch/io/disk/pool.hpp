@@ -4,10 +4,8 @@
 
 #include <sys/uio.h>
 
+#include <functional>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
@@ -134,7 +132,7 @@ public:
     on each one when it's done. */
     pool_diskmgr_t(linux_event_queue_t *queue, passive_producer_t<action_t *> *source,
                    int max_concurrent_io_requests);
-    boost::function<void(action_t *)> done_fun;
+    std::function<void(action_t *)> done_fun;
     ~pool_diskmgr_t();
 
 private:

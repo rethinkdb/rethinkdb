@@ -84,7 +84,7 @@ void run_concurrent_test() {
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
     disk_backed_queue_wrapper_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
-    boost_function_callback_t<int> callback(&randomly_delay);
+    std_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {
         queue.push(i);
