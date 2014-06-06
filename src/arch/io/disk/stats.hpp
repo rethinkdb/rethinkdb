@@ -2,10 +2,8 @@
 #ifndef ARCH_IO_DISK_STATS_HPP_
 #define ARCH_IO_DISK_STATS_HPP_
 
+#include <functional>
 #include <string>
-
-#include "utils.hpp"
-#include <boost/function.hpp>
 
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -24,9 +22,9 @@ struct stats_diskmgr_t {
 
     void submit(action_t *a);
 
-    boost::function<void (action_t *)> done_fun;
+    std::function<void (action_t *)> done_fun;
 
-    boost::function<void (conflict_resolving_diskmgr_action_t *)> submit_fun;
+    std::function<void (conflict_resolving_diskmgr_action_t *)> submit_fun;
 
     void done(conflict_resolving_diskmgr_action_t *p);
 

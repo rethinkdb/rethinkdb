@@ -2,6 +2,7 @@
 #ifndef HTTP_JSON_JSON_ADAPTER_HPP_
 #define HTTP_JSON_JSON_ADAPTER_HPP_
 
+#include <functional>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -10,7 +11,6 @@
 #include <utility>
 
 #include "errors.hpp"
-#include <boost/function.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
@@ -255,7 +255,7 @@ private:
 template <class container_t>
 class json_map_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
-    typedef boost::function<typename container_t::key_type()> gen_function_t;
+    typedef std::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
     typedef std::set<typename container_t::key_type> keys_set_t;
 
@@ -281,7 +281,7 @@ private:
 template <class container_t, class ctx_t>
 class json_ctx_map_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
-    typedef boost::function<typename container_t::key_type()> gen_function_t;
+    typedef std::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
     typedef std::set<typename container_t::key_type> keys_set_t;
 
@@ -312,7 +312,7 @@ private:
 template <class container_t>
 class json_adapter_with_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
-    typedef boost::function<typename container_t::key_type()> gen_function_t;
+    typedef std::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
 public:
     json_adapter_with_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
@@ -335,7 +335,7 @@ private:
 template <class container_t, class ctx_t>
 class json_ctx_adapter_with_inserter_t : public json_adapter_if_t {
     typedef json_adapter_if_t::json_adapter_map_t json_adapter_map_t;
-    typedef boost::function<typename container_t::key_type()> gen_function_t;
+    typedef std::function<typename container_t::key_type()> gen_function_t;
     typedef typename container_t::mapped_type value_t;
 public:
     json_ctx_adapter_with_inserter_t(container_t *, gen_function_t, const ctx_t &ctx, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));

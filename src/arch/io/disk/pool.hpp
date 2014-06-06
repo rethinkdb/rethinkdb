@@ -4,10 +4,8 @@
 
 #include <sys/uio.h>
 
+#include <functional>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
@@ -92,7 +90,7 @@ struct pool_diskmgr_action_t
 
     void set_successful_due_to_conflict() { io_result = get_count(); }
     bool get_succeeded() const { return io_result == static_cast<int64_t>(get_count()); }
-    int get_errno() const {
+    int get_io_errno() const {
         rassert(io_result < 0);
         return -io_result;
     }
@@ -134,7 +132,7 @@ public:
     on each one when it's done. */
     pool_diskmgr_t(linux_event_queue_t *queue, passive_producer_t<action_t *> *source,
                    int max_concurrent_io_requests);
-    boost::function<void(action_t *)> done_fun;
+    std::function<void(action_t *)> done_fun;
     ~pool_diskmgr_t();
 
 private:

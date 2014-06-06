@@ -515,7 +515,7 @@ class HttpConnection extends Connection
     )
 
     _writeQuery: (token, data) ->
-        buf = new Buffer(data.length + 8)
+        buf = new Buffer(encodeURI(data).split(/%..|./).length - 1 + 8)
         buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
         buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
         buf.write(data, 8)

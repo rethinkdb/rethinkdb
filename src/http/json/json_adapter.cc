@@ -2,8 +2,7 @@
 #include "http/json/json_adapter.hpp"
 
 #include <inttypes.h>
-
-#include <limits>
+#include <limits.h>
 
 #include "utils.hpp"
 

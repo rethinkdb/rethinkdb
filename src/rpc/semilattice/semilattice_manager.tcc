@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_signal.hpp"
@@ -70,7 +69,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     std::set<peer_id_t> peers = parent->message_service->get_connectivity_service()->get_peers_list();
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         if (*it != parent->message_service->get_connectivity_service()->get_me()) {
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::send_metadata_to_peer, parent,
                 *it, added_metadata, new_version,
                 auto_drainer_t::lock_t(parent->drainers.get())));
@@ -222,7 +221,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
 }
 
 template<class metadata_t>
-publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
+publisher_t<std::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
     guarantee(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata_publisher.get_publisher();
@@ -250,7 +249,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 res = deserialize_for_version(cluster_version, stream, &change_version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::deliver_metadata_on_home_thread, this,
                 sender, added_metadata, change_version, auto_drainer_t::lock_t(drainers.get())));
             break;
@@ -261,7 +260,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_query_on_home_thread, this,
                 sender, query_id, auto_drainer_t::lock_t(drainers.get())));
             break;
@@ -275,7 +274,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_from_reply_on_home_thread, this,
                 sender, query_id, version, auto_drainer_t::lock_t(drainers.get())));
             break;
@@ -289,7 +288,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 res = deserialize_for_version(cluster_version, stream, &version);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_query_on_home_thread, this,
                 sender, query_id, version, auto_drainer_t::lock_t(drainers.get())));
             break;
@@ -300,7 +299,7 @@ void semilattice_manager_t<metadata_t>::on_message(
                 archive_result_t res = deserialize_for_version(cluster_version, stream, &query_id);
                 if (bad(res)) { throw fake_archive_exc_t(); }
             }
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &semilattice_manager_t<metadata_t>::deliver_sync_to_reply_on_home_thread, this,
                 sender, query_id, auto_drainer_t::lock_t(drainers.get())));
             break;
@@ -320,7 +319,7 @@ void semilattice_manager_t<metadata_t>::on_connect(peer_id_t peer) {
 
     /* We have to spawn this in a separate coroutine because `on_connect()` is
     not supposed to block. */
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &semilattice_manager_t<metadata_t>::send_metadata_to_peer, this,
         peer, metadata, metadata_version, auto_drainer_t::lock_t(drainers.get())));
 }
@@ -405,7 +404,7 @@ void semilattice_manager_t<metadata_t>::deliver_sync_to_reply_on_home_thread(UNU
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::call_function_with_no_args(const boost::function<void()> &fun) {
+void semilattice_manager_t<metadata_t>::call_function_with_no_args(const std::function<void()> &fun) {
     fun();
 }
 

@@ -153,6 +153,8 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> obj,
 counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src);
 
+counted_t<func_t> new_page_func(counted_t<const datum_t> method,
+                                const protob_t<const Backtrace> &bt_src);
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:

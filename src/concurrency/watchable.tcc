@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "arch/timing.hpp"
@@ -30,7 +29,7 @@ public:
         read(cache->get());
     }
 
-    publisher_t<boost::function<void()> > *get_publisher() {
+    publisher_t<std::function<void()> > *get_publisher() {
         return cache->get_publisher();
     }
 
@@ -50,7 +49,7 @@ private:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
             parent(p->clone()),
             lens(l),
-            parent_subscription(boost::bind(
+            parent_subscription(std::bind(
                 &subview_watchable_t<result_type, outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
                 this)) {
             typename watchable_t<outer_type>::freeze_t freeze(parent);
@@ -68,7 +67,7 @@ private:
             return &cached_value;
         }
 
-        publisher_t<boost::function<void()> > *get_publisher() {
+        publisher_t<std::function<void()> > *get_publisher() {
             assert_thread();
             return publisher_controller.get_publisher();
         }
@@ -108,7 +107,7 @@ private:
 
         callable_type lens;
         result_type cached_value;
-        publisher_controller_t<boost::function<void()> > publisher_controller;
+        publisher_controller_t<std::function<void()> > publisher_controller;
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
@@ -210,7 +209,7 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
     clone_ptr_t<watchable_t<value_type> > clone_this(this->clone());
     while (true) {
         cond_t changed;
-        typename watchable_t<value_type>::subscription_t subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<value_type>::subscription_t subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
         {
             typename watchable_t<value_type>::freeze_t freeze(clone_this);
             ASSERT_FINITE_CORO_WAITING;
@@ -249,8 +248,8 @@ void run_until_satisfied_2(
 
     while (true) {
         cond_t changed;
-        typename watchable_t<a_type>::subscription_t a_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
-        typename watchable_t<b_type>::subscription_t b_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<a_type>::subscription_t a_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<b_type>::subscription_t b_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
         {
             typename watchable_t<a_type>::freeze_t a_freeze(a);
             typename watchable_t<b_type>::freeze_t b_freeze(b);

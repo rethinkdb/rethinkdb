@@ -4,16 +4,12 @@
 
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 
-namespace boost { template <class> class function; }
 class binary_blob_t;
 class chunk_fun_callback_t;
 class metainfo_checker_t;

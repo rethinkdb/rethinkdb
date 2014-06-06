@@ -54,7 +54,7 @@ private:
         void sync_to(peer_id_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         }
-        publisher_t<boost::function<void()> > *get_publisher() {
+        publisher_t<std::function<void()> > *get_publisher() {
             rassert(controller, "accessing a `dummy_semilattice_controller_t`'s "
                 "view after the controller was destroyed.");
             return controller->change_publisher.get_publisher();
@@ -67,10 +67,10 @@ private:
     metadata_t metadata;
 
     mutex_t change_lock;
-    static void call(const boost::function<void()> &fun) {
+    static void call(const std::function<void()> &fun) {
         fun();
     }
-    publisher_controller_t<boost::function<void()> > change_publisher;
+    publisher_controller_t<std::function<void()> > change_publisher;
 };
 
 #endif /* UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_ */

@@ -24,6 +24,13 @@ file_account_t::~file_account_t() {
 }
 
 void linux_iocallback_t::on_io_failure(int errsv, int64_t offset, int64_t count) {
-    crash("I/O operation failed.  (%s) (offset = %" PRIi64 ", count = %" PRIi64 ")",
-          errno_string(errsv).c_str(), offset, count);
+    if (errsv == ENOSPC) {
+        // fail_due_to_user_error rather than crash because we don't want to
+        // print a backtrace in this case.
+        fail_due_to_user_error("Ran out of disk space. (offset = %" PRIi64
+                               ", count = %" PRIi64 ")", offset, count);
+    } else {
+        crash("I/O operation failed. (%s) (offset = %" PRIi64 ", count = %" PRIi64 ")",
+              errno_string(errsv).c_str(), offset, count);
+    }
 }

@@ -2,11 +2,9 @@
 #ifndef ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_
 #define ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_
 
-#include <map>
 #include <deque>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
+#include <functional>
+#include <map>
 
 #include "arch/io/disk/accounting.hpp"
 #include "arch/runtime/runtime_utils.hpp"
@@ -69,12 +67,12 @@ struct conflict_resolving_diskmgr_t {
     /* Call submit() to send an action to the conflict_resolving_diskmgr_t.
     conflict_resolving_diskmgr_t calls done_fun() when the operation is done. */
     void submit(action_t *action);
-    boost::function<void(action_t *)> done_fun;
+    std::function<void(action_t *)> done_fun;
 
     /* conflict_resolving_diskmgr_t calls submit_fun() to send actions down to the next
     level. The next level should call done() when the operation passed to submit_fun()
     is done. */
-    boost::function<void(accounting_diskmgr_action_t *)> submit_fun;
+    std::function<void(accounting_diskmgr_action_t *)> submit_fun;
     void done(accounting_diskmgr_action_t *payload);
 
 private:

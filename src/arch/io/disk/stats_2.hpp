@@ -23,7 +23,7 @@ struct stats_diskmgr_2_t : private passive_producer_t<pool_diskmgr_t::action_t *
             perfmon_collection_t *stats, const std::string &name,
             passive_producer_t<action_t *> *_source);
 
-    boost::function<void (action_t *)> done_fun;
+    std::function<void (action_t *)> done_fun;
 
     passive_producer_t<pool_diskmgr_t::action_t *> *const producer;
     void done(pool_diskmgr_t::action_t *p);

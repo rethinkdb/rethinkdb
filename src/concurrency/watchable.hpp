@@ -1,11 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_WATCHABLE_HPP_
 #define CONCURRENCY_WATCHABLE_HPP_
 
 #include <functional>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "concurrency/interruptor.hpp"
 #include "concurrency/mutex_assertion.hpp"
@@ -35,15 +32,15 @@ template <class value_t> class watchable_freeze_t;
 template <class value_t>
 class watchable_subscription_t {
 public:
-    /* The `boost::function<void()>` passed to the constructor is a callback
+    /* The `std::function<void()>` passed to the constructor is a callback
        that will be called whenever the value changes. The callback must not
        block, and it must not create or destroy `subscription_t` objects. */
 
-    explicit watchable_subscription_t(const boost::function<void()> &f)
+    explicit watchable_subscription_t(const std::function<void()> &f)
         : subscription(f)
     { }
 
-    watchable_subscription_t(const boost::function<void()> &f, const clone_ptr_t<watchable_t<value_t> > &watchable,
+    watchable_subscription_t(const std::function<void()> &f, const clone_ptr_t<watchable_t<value_t> > &watchable,
                              watchable_freeze_t<value_t> *freeze)
         : subscription(f, watchable->get_publisher()) {
         watchable->assert_thread();
@@ -61,7 +58,7 @@ public:
     }
 
 private:
-    typename publisher_t<boost::function<void()> >::subscription_t subscription;
+    typename publisher_t<std::function<void()> >::subscription_t subscription;
 
     DISABLE_COPYING(watchable_subscription_t);
 };
@@ -117,7 +114,7 @@ public:
 
     /* These are internal; the reason they're public is so that `subview()` and
     similar things can be implemented. */
-    virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
+    virtual publisher_t<std::function<void()> > *get_publisher() = 0;
     virtual rwi_lock_assertion_t *get_rwi_lock_assertion() = 0;
 
     /* `subview()` returns another `watchable_t` whose value is derived from
@@ -165,7 +162,7 @@ void run_until_satisfied_2(
         signal_t *interruptor,
         int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
 
-inline void call_function(const boost::function<void()> &f) {
+inline void call_function(const std::function<void()> &f) {
     f();
 }
 
@@ -218,7 +215,7 @@ private:
         value_t get() {
             return parent->value;
         }
-        publisher_t<boost::function<void()> > *get_publisher() {
+        publisher_t<std::function<void()> > *get_publisher() {
             return parent->publisher_controller.get_publisher();
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -230,7 +227,7 @@ private:
         watchable_variable_t<value_t> *parent;
     };
 
-    publisher_controller_t<boost::function<void()> > publisher_controller;
+    publisher_controller_t<std::function<void()> > publisher_controller;
     value_t value;
     rwi_lock_assertion_t rwi_lock_assertion;
 

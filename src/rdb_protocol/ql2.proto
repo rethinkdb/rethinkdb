@@ -269,7 +269,8 @@ message Term {
                     //         attempts: NUMBER,
                     //         redirects: NUMBER,
                     //         verify: BOOL,
-                    //         depaginate: BOOL,
+                    //         page: FUNC | STRING,
+                    //         page_limit: NUMBER,
                     //         auth: OBJECT,
                     //         result_format: STRING,
                     //         } -> STRING | STREAM

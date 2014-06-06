@@ -1,8 +1,9 @@
 module RethinkDB
   class RQL
+    @@gensym_mutex = Mutex.new
     @@gensym_cnt = 0
     def new_func(&b)
-      args = (0...b.arity).map{@@gensym_cnt += 1}
+      args = @@gensym_mutex.synchronize{(0...b.arity).map{@@gensym_cnt += 1}}
       body = b.call(*(args.map{|i| RQL.new.var i}))
       RQL.new.func(args, body)
     end
