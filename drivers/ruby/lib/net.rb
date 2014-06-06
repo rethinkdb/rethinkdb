@@ -97,7 +97,7 @@ module RethinkDB
 
     def fetch_batch
       @conn.set_opts(@token, @opts)
-      @conn.dispatch([Query::QueryType::CONTINUE])
+      @conn.dispatch([Query::QueryType::CONTINUE], @token)
     end
   end
 
