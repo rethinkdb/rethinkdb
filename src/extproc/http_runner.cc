@@ -35,7 +35,7 @@ http_opts_t::http_opts_t() :
     form_data(),
     timeout_ms(30000),
     attempts(5),
-    max_redirects(0),
+    max_redirects(1),
     depaginate(false),
     verify(true) { }
 
