@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <limits.h>
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
@@ -79,8 +80,8 @@ int check_pid_file(const std::string &pid_filepath) {
     }
 
     // Make a copy of the filename since `dirname` may modify it
-    char pid_dir[PATH_MAX + 1];
-    strncpy(pid_dir, pid_filepath.c_str(), PATH_MAX + 1);
+    char pid_dir[PATH_MAX];
+    strncpy(pid_dir, pid_filepath.c_str(), PATH_MAX);
     if (access(dirname(pid_dir), W_OK) == -1) {
         logERR("Cannot access the pid-file directory.");
         return EXIT_FAILURE;

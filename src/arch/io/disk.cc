@@ -8,6 +8,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <limits.h>
 
 #include <algorithm>
 #include <functional>
