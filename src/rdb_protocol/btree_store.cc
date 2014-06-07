@@ -1,5 +1,5 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "rdb_protocol/store.hpp"
+#include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
 #include <functional>
 
@@ -527,9 +527,8 @@ void store_t::clear_sindex(
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
-            clear_sindex_traversal_cb_t::CHUNK_SIZE /* Not really the right value,
-                                                     * since many keys will share a
-                                                     * leaf node */,
+            // Not really the right value, since many keys will share a leaf node:
+            clear_sindex_traversal_cb_t::CHUNK_SIZE,
             write_durability_t::SOFT,
             &token_pair,
             &txn,
