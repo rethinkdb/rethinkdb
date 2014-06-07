@@ -195,7 +195,7 @@ public:
     namespace_repo_t *ns_repo;
 
     /* These arrays contain a watchable for each thread.
-     * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
+       i.e. cross_thread_namespace_watchables[0] is a watchable for thread 0. */
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > >
     cross_thread_namespace_watchables;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<

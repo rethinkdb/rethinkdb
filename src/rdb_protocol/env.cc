@@ -178,11 +178,11 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
       reql_http_proxy(ctx != NULL ? ctx->reql_http_proxy : ""),
       cluster_access(
           ctx != NULL ? ctx->ns_repo : NULL,
-          ctx != NULL
+          ctx != NULL && ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].has() /* RSI */
               ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
               : clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
-          ctx != NULL
+          ctx != NULL && ctx->cross_thread_database_watchables[get_thread_id().threadnum].has() /* RSI */
               ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
               : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
