@@ -67,7 +67,12 @@ public:
     // db_create_term_t, etc.  Its home thread might be different from ours.
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
+
+    // This field can be NULL.  Importantly, this field is NULL everywhere except in
+    // the parser's env_t.  This is because you "cannot nest meta operations inside
+    // queries."  RSI: What does that even mean?
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
+
 
     // Semilattice modification functions
     void join_and_wait_to_propagate(

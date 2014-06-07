@@ -87,7 +87,6 @@ protected:
     }
 
 private:
-
     virtual std::string write_eval_impl(scope_env_t *env, eval_flags_t flags) = 0;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         std::string op = write_eval_impl(env, flags);
