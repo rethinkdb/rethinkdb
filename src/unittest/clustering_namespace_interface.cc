@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -18,7 +19,7 @@ namespace unittest {
 TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
-    std::map<key_range_t, machine_id_t> region_to_primary;
+    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
 
     /* Set up a reactor directory with no reactors in it */
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > empty_reactor_directory;
@@ -27,8 +28,9 @@ TPTEST(ClusteringNamespaceInterface, MissingMaster) {
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t namespace_interface(
         cluster.get_mailbox_manager(),
-        &region_to_primary,
+        &region_to_primary_maps,
         reactor_directory.get_watchable(),
+        generate_uuid(),
         NULL); //<-- this should be a valid context by passing null we're assuming this unit test doesn't do anything complicated enough to need it
     namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 

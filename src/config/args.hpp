@@ -63,19 +63,6 @@
 // 0 = minimal priority
 #define SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY   5
 
-// Garbage Collection uses its own two IO accounts.
-// There is one low-priority account that is meant to guarantee
-// (performance-wise) unintrusive garbage collection.
-// If the garbage ratio keeps growing,
-// GC starts using the high priority account instead, which
-// might have a negative influence on database performance
-// under i/o heavy workloads but guarantees that the database
-// doesn't grow indefinitely.
-//
-// This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY_NICE                       8
-#define GC_IO_PRIORITY_HIGH                       (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR)
-
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 
@@ -89,7 +76,9 @@
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
 // Size of each extent (in bytes)
-#define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
+// This should not be too small, or garbage collection will become
+// inefficient (especially on rotational drives).
+#define DEFAULT_EXTENT_SIZE                       (2 * MEGABYTE)
 
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   2
@@ -138,17 +127,6 @@
 // The btree superblock, which has a reference to the root node block
 // id.
 #define SUPERBLOCK_ID                             0
-
-// The ratio at which we should start GCing.
-#define DEFAULT_GC_HIGH_RATIO                     0.20
-
-// The ratio at which we don't want to keep GC'ing.
-#define DEFAULT_GC_LOW_RATIO                      0.15
-
-// What's the maximum number of "young" extents we can have?
-#define GC_YOUNG_EXTENT_MAX_SIZE                  50
-// What's the definition of a "young" extent in microseconds?
-#define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.

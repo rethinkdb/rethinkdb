@@ -587,16 +587,22 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         unreachable();
     }
 
-    switch (shortcut) {
-    case CONSTANT_SHORTCUT:
-        return new_constant_func(as_datum(), backtrace());
-    case GET_FIELD_SHORTCUT:
-        return new_get_field_func(as_datum(), backtrace());
-    case PLUCK_SHORTCUT:
-        return new_pluck_func(as_datum(), backtrace());
-    case NO_SHORTCUT:
-        // fallthru
-    default: unreachable();
+    try {
+        switch (shortcut) {
+        case CONSTANT_SHORTCUT:
+            return new_constant_func(as_datum(), backtrace());
+        case GET_FIELD_SHORTCUT:
+            return new_get_field_func(as_datum(), backtrace());
+        case PLUCK_SHORTCUT:
+            return new_pluck_func(as_datum(), backtrace());
+        case PAGE_SHORTCUT:
+            return new_page_func(as_datum(), backtrace());
+        case NO_SHORTCUT:
+            // fallthru
+        default: unreachable();
+        }
+    } catch (const datum_exc_t &ex) {
+        throw exc_t(ex, backtrace().get());
     }
 }
 

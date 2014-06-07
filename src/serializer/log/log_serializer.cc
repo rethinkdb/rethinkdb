@@ -243,7 +243,9 @@ struct ls_start_existing_fsm_t :
             ser->lba_index = new lba_list_t(ser->extent_manager,
                     std::bind(&log_serializer_t::write_metablock_sans_pipelining,
                               ser, ph::_1, ph::_2));
-            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
+            ser->data_block_manager
+                = new data_block_manager_t(ser->extent_manager, ser,
+                                           &ser->static_config, ser->stats.get());
 
             // STATE E
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {

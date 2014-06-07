@@ -10,6 +10,7 @@
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
 #include "containers/printf_buffer.hpp"
+#include "logger.hpp"
 
 int blocker_pool_queue_depth(int max_concurrent_io_requests) {
     guarantee(max_concurrent_io_requests > 0);
@@ -27,7 +28,7 @@ void debug_print(printf_buffer_t *buf,
                  action.get_fd(),
                  action.get_count(),
                  action.get_offset(),
-                 action.get_succeeded() ? 0 : action.get_errno());
+                 action.get_succeeded() ? 0 : action.get_io_errno());
 }
 
 pool_diskmgr_t::pool_diskmgr_t(linux_event_queue_t *queue,
@@ -66,6 +67,7 @@ void pool_diskmgr_t::action_t::run() {
             io_result = 0;
         } else {
             io_result = -get_errno();
+            return;
         }
     } break;
     case ACTION_READ:
@@ -101,6 +103,17 @@ void pool_diskmgr_t::action_t::run() {
             int64_t lensum = 0;
             for (size_t j = i; j < i + len; ++j) {
                 lensum += vecs[j].iov_len;
+            }
+            if (lensum != res && type == ACTION_WRITE) {
+                // This happens when running out of disk space.
+                // The errno in that case is 0 and doesn't tell us about the
+                // real reason for the failed i/o.
+                // We set the io_result to be -ENOSPC and print an error stating
+                // what actually happened.
+                io_result = -ENOSPC;
+                logERR("Failed I/O: lensum (%" PRIi64 ") != res (%" PRIi64 ")."
+                       " Assuming we ran out of disk space.", lensum, res);
+                return;
             }
             guarantee(lensum == res);
 

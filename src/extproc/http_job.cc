@@ -11,10 +11,11 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
+#include "http/http_parser.hpp"
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
 
-void parse_header(std::string &&header,
+void parse_header(const std::string &header,
                   http_result_t *res_out);
 
 void json_to_datum(const std::string &json,
@@ -78,7 +79,7 @@ public:
     void add(const std::string &str) {
         slist = curl_slist_append(slist, str.c_str());
         if (slist == NULL) {
-            throw curl_exc_t("appending headers, allocation failure");
+            throw curl_exc_t("appending header, allocation failure");
         }
     }
 
@@ -106,7 +107,7 @@ public:
         return std::move(body_data);
     }
 
-    scoped_curl_slist_t headers;
+    scoped_curl_slist_t header;
 
 private:
     // These are called for getting data in the response from the server
@@ -170,10 +171,10 @@ size_t curl_data_t::read_internal(char *ptr, size_t size) {
 http_job_t::http_job_t(extproc_pool_t *pool, signal_t *interruptor) :
     extproc_job(pool, &worker_fn, interruptor) { }
 
-void http_job_t::http(const http_opts_t *opts,
+void http_job_t::http(const http_opts_t &opts,
                       http_result_t *res_out) {
     write_message_t msg;
-    serialize(&msg, *opts);
+    serialize(&msg, opts);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
@@ -296,7 +297,7 @@ void url_encode_kv(CURL *curl_handle,
 }
 
 std::string url_encode_fields(CURL *curl_handle,
-        const std::vector<std::pair<std::string, std::string> > &fields) {
+        const std::map<std::string, std::string> &fields) {
     std::string data;
     for (auto it = fields.begin(); it != fields.end(); ++it) {
         if (it != fields.begin()) {
@@ -305,6 +306,37 @@ std::string url_encode_fields(CURL *curl_handle,
         url_encode_kv(curl_handle, it->first, it->second, &data);
     }
     return data;
+}
+
+std::string url_encode_fields(CURL *curl_handle,
+                              const counted_t<const ql::datum_t> &fields) {
+    // Convert to a common format
+    if (!fields.has()) {
+        return std::string();
+    }
+
+    const std::map<std::string, counted_t<const ql::datum_t> > &fields_map =
+        fields->as_object();
+    std::map<std::string, std::string> translated_fields;
+
+    for (auto it = fields_map.begin(); it != fields_map.end(); ++it) {
+        std::string val;
+        if (it->second->get_type() == ql::datum_t::R_NUM) {
+            val = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
+                            it->second->as_num());
+        } else if (it->second->get_type() == ql::datum_t::R_STR) {
+            val = it->second->as_str().to_std();
+        } else if (it->second->get_type() != ql::datum_t::R_NULL) {
+            // This shouldn't happen because we check this in the main process anyway
+            throw curl_exc_t(strprintf("expected `params.%s` to be a NUMBER, STRING, "
+                                       "or NULL, but found %s",
+                                       it->first.c_str(),
+                                       it->second->get_type_name().c_str()));
+        }
+        translated_fields[it->first] = val;
+    }
+
+    return url_encode_fields(curl_handle, translated_fields);
 }
 
 void transfer_method_opt(http_opts_t *opts,
@@ -355,7 +387,7 @@ void transfer_method_opt(http_opts_t *opts,
 }
 
 void transfer_url_opt(const std::string &url,
-        const std::vector<std::pair<std::string, std::string> > &url_params,
+        const counted_t<const ql::datum_t> &url_params,
         CURL *curl_handle) {
     std::string full_url = url;
     std::string params = url_encode_fields(curl_handle, url_params);
@@ -397,11 +429,11 @@ void transfer_header_opt(const std::vector<std::string> &header,
                          CURL *curl_handle,
                          curl_data_t *curl_data) {
     for (auto it = header.begin(); it != header.end(); ++it) {
-        curl_data->headers.add(*it);
+        curl_data->header.add(*it);
     }
 
-    if (curl_data->headers.get() != NULL) {
-        exc_setopt(curl_handle, CURLOPT_HTTPHEADER, curl_data->headers.get(), "HEADER");
+    if (curl_data->header.get() != NULL) {
+        exc_setopt(curl_handle, CURLOPT_HTTPHEADER, curl_data->header.get(), "HEADER");
     }
 }
 
@@ -462,8 +494,7 @@ void set_default_opts(CURL *curl_handle,
     }
 }
 
-// TODO: implement depaginate
-// TODO: implement streams
+// TODO: implement streaming API support
 void perform_http(http_opts_t *opts, http_result_t *res_out) {
     scoped_curl_handle_t curl_handle;
     curl_data_t curl_data;
@@ -529,14 +560,14 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                                    curl_easy_strerror(curl_res));
     } else if (response_code < 200 || response_code >= 300) {
         if (!header_data.empty()) {
-            parse_header(std::move(header_data), res_out);
+            parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
             res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
-        parse_header(std::move(header_data), res_out);
+        parse_header(header_data, res_out);
 
         // If this was a HEAD request, we should not be handling data, just return R_NULL
         // so the user knows the request succeeded
@@ -602,10 +633,154 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
     }
 }
 
-void parse_header(std::string &&header,
+class header_parser_singleton_t {
+public:
+    static counted_t<const ql::datum_t> parse(const std::string &header);
+    
+private:
+    static void initialize();
+    static header_parser_singleton_t *instance;
+
+    header_parser_singleton_t();
+
+    // Callbacks from http-parser
+    static int on_headers_complete(UNUSED http_parser *parser);
+    static int on_header_field(http_parser *parser, const char *field, size_t length);
+    static int on_header_value(http_parser *parser, const char *value, size_t length);
+
+    // Helper function to special-case 'Link' header parsing
+    void add_link_header(const std::string &line);
+
+    http_parser_settings settings;
+    http_parser parser;
+
+    RE2 link_parser;
+    std::map<std::string, counted_t<const ql::datum_t> > header_fields;
+    std::map<std::string, counted_t<const ql::datum_t> > link_headers;
+    std::string current_field;
+};
+header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
+
+// The link_parser regular expression is used to parse 'Link' headers from HTTP
+// responses (see RFC 5988 - http://tools.ietf.org/html/rfc5988).  We are interested
+// in parsing out one or two strings for each link.  Examples:
+//
+// Link: <http://example.org>; rel="next"
+//  - we want the strings 'http://example.org' and 'rel="next"'
+// Link: <http://example.org>; title="Arbitrary String", <http://example.org>
+//  - this is two links on the same header line, but should be parsed separately
+//  - for the first, we want 'http://example.org' and 'title="Arbitrary String"'
+//  - for the second, there is only one string, the link 'http://example.org',
+//     this will be stored in the result with an empty key.  If more than one of
+//     these is given in the response, the last one will take precedence.
+// 
+// The link_parser regular expression consists of two main chunks, with gratuitous
+// whitespace padding:
+// <([^>]*)> - this is the first capture group, for the link portion.  Since the URL
+//     cannot contain '>' characters, we capture everything from the first '<' to the
+//     first '>'.
+// (?:;([^,]+)(?:,|$) - this is the optional remainder of the link (called the param
+//     in the RFC).  We match the semicolon, followed by the param, followed by either
+//     a comma or the end of the line.  Like before, the capture group is configured
+//     to only capture the param. Note: this will fail if the param contains a comma.
+header_parser_singleton_t::header_parser_singleton_t() :
+    link_parser("^\\s*<([^>]*)>\\s*(?:;\\s*([^,]+)\\s*(?:,|$))")
+{
+    memset(&settings, 0, sizeof(settings));
+    settings.on_header_field = &header_parser_singleton_t::on_header_field;
+    settings.on_header_value = &header_parser_singleton_t::on_header_value;
+    settings.on_headers_complete = &header_parser_singleton_t::on_headers_complete;
+}
+    
+void header_parser_singleton_t::initialize() {
+    if (instance == NULL) {
+        instance = new header_parser_singleton_t();
+    }
+
+    instance->current_field.clear();
+    http_parser_init(&instance->parser, HTTP_RESPONSE);
+    instance->parser.data = instance;
+}
+
+counted_t<const ql::datum_t>
+header_parser_singleton_t::parse(const std::string &header) {
+    initialize();
+    size_t res = http_parser_execute(&instance->parser,
+                                     &instance->settings,
+                                     header.data(),
+                                     header.length());
+
+    if (instance->parser.upgrade) {
+        // Upgrade header was present - error
+        throw curl_exc_t("upgrade header present in response headers");
+    } else if (res != header.length()) {
+        throw curl_exc_t("unknown error when parsing response headers");
+    }
+
+    // Return an empty object if we didn't receive any headers
+    if (instance->header_fields.size() == 0 &&
+        instance->link_headers.size() == 0) {
+        return counted_t<const ql::datum_t>();
+    } else if (instance->link_headers.size() > 0) {
+        // Include the specially-parsed link header field
+        instance->header_fields["link"] =
+            make_counted<const ql::datum_t>(std::move(instance->link_headers));
+    }
+
+    return make_counted<const ql::datum_t>(std::move(instance->header_fields));
+}
+
+int header_parser_singleton_t::on_headers_complete(UNUSED http_parser *parser) {
+    // Always stop once we've parsed the headers
+    return 1;
+}
+
+int header_parser_singleton_t::on_header_field(http_parser *parser,
+                                               const char *field,
+                                               size_t length) {
+    guarantee(instance == parser->data);
+    instance->current_field.assign(field, length);
+
+    // Lowercase header fields so they are more reliable
+    for (size_t i = 0; i < instance->current_field.length(); ++i) {
+        instance->current_field[i] = tolower(instance->current_field[i]);
+    }
+    return 0;
+}
+
+int header_parser_singleton_t::on_header_value(http_parser *parser,
+                                               const char *value,
+                                               size_t length) {
+    guarantee(instance == parser->data);
+    // Special handling for 'Link' headers to make them usable in the query language
+    if (instance->current_field == "link") {
+        instance->add_link_header(std::string(value, length));
+    } else {
+        instance->header_fields[instance->current_field] =
+            make_counted<const ql::datum_t>(std::string(value, length));
+    }
+    return 0;
+}
+
+void header_parser_singleton_t::add_link_header(const std::string &line) {
+    // Capture the link and its parameter
+    re2::StringPiece line_re2(line);
+    std::string value;
+    std::string param;
+    while (RE2::FindAndConsume(&line_re2, link_parser, &value, &param)) {
+        link_headers[param] = make_counted<const ql::datum_t>(std::move(value));
+    }
+
+    if (line_re2.length() != 0) {
+        // The entire string was not consumed, meaning something does not match
+        throw curl_exc_t(strprintf("failed to parse link header line: '%s'",
+                                   line.c_str()));
+    }
+}
+
+void parse_header(const std::string &header,
                   http_result_t *res_out) {
-    // TODO: implement this
-    res_out->header = make_counted<const ql::datum_t>(std::move(header));
+    res_out->header = header_parser_singleton_t::parse(header);
 }
 
 // This version will not use move semantics for the body data, to be used in

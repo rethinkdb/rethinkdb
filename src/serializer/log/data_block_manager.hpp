@@ -6,6 +6,7 @@
 
 #include "arch/types.hpp"
 #include "containers/bitset.hpp"
+#include "containers/intrusive_list.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"
 #include "containers/two_level_array.hpp"
@@ -31,28 +32,10 @@ struct metablock_mixin_t;  // see log_serializer.hpp.
 class data_block_manager_t {
     friend class gc_entry_t;
     friend class dbm_read_ahead_t;
-private:
-    struct gc_write_t {
-        ser_buffer_t *buf;
-        int64_t old_offset;
-        block_size_t block_size;
-        gc_write_t(ser_buffer_t *b, int64_t _old_offset,
-                   block_size_t _block_size)
-            : buf(b), old_offset(_old_offset),
-              block_size(_block_size) { }
-    };
-
-    struct gc_writer_t {
-        gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *parent);
-        bool done;
-    private:
-        void write_gcs(gc_write_t *writes, size_t num_writes);
-        data_block_manager_t *parent;
-    };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em,
-                         log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config,
+    data_block_manager_t(extent_manager_t *em, log_serializer_t *serializer,
+                         const log_serializer_on_disk_static_config_t *static_config,
                          log_serializer_stats_t *parent);
     ~data_block_manager_t();
 
@@ -84,9 +67,6 @@ public:
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
 
-    /* take step in gcing */
-    void run_gc();
-
     void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
@@ -108,14 +88,53 @@ public:
 private:
     void actually_shutdown();
 
+    struct gc_state_t : public intrusive_list_node_t<gc_state_t>{
+    public:
+        // The entry we're currently GCing.
+        // If the entry becomes empty in the middle of GCing it because
+        // of other writes, this pointer should be set to NULL.
+        // That will cause the GC to abort.
+        gc_entry_t *current_entry;
+
+        gc_state_t()
+            : current_entry(NULL) { }
+    };
+
+    struct gc_write_t {
+        ser_buffer_t *buf;
+        int64_t old_offset;
+        block_size_t block_size;
+        gc_write_t(ser_buffer_t *b, int64_t _old_offset,
+                   block_size_t _block_size)
+            : buf(b), old_offset(_old_offset),
+              block_size(_block_size) { }
+    };
+
+    /* Runs in a coroutine and keeps calling `gc_one_extent()` for as long as
+    we should keep GCing. */
+    void run_gc(gc_state_t *gc_state);
+
+    void gc_one_extent(gc_state_t *gc_state);
+
+    void write_gcs(const std::vector<gc_write_t> &writes, gc_state_t *gc_state);
+
+    // Determine how many GC processes should run concurrently at the moment.
+    // Returns a number between 1 and MAX_CONCURRENT_GCS
+    size_t compute_gc_concurrency() const;
+
+    // Picks an i/o account for GC to use, based on the current garbage rate
     file_account_t *choose_gc_io_account();
 
-    /* Checks whether the extent is empty and if it is, notifies the extent manager
-       and cleans up */
+    // Checks whether the extent is empty and if it is, notifies the extent manager
+    // and cleans up
     void check_and_handle_empty_extent(uint64_t extent_id);
 
     // Tells if we should keep gc'ing.
     bool should_we_keep_gcing() const;
+
+    // Checks the size of active_gcs and determines whether at least one
+    // GC thread should terminate.
+    bool should_terminate_one_gc_thread() const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
@@ -127,18 +146,6 @@ private:
     void destroy_entry(gc_entry_t *entry);
 
     bool should_perform_read_ahead(int64_t offset);
-
-    /* internal garbage collection structures */
-    struct gc_read_callback_t : public iocallback_t {
-        data_block_manager_t *parent;
-        void on_io_complete() {
-            rassert(parent->gc_state.step() == gc_read);
-            parent->run_gc();
-        }
-    };
-
-    void on_gc_write_done();
-
 
     log_serializer_stats_t *const stats;
 
@@ -154,7 +161,6 @@ private:
 
     state_t state;
 
-    const log_serializer_dynamic_config_t* const dynamic_config;
     const log_serializer_on_disk_static_config_t* const static_config;
 
     extent_manager_t *const extent_manager;
@@ -180,17 +186,6 @@ private:
     /* Contains every extent in the gc_entry_t::state_old state */
     priority_queue_t<gc_entry_t *, gc_entry_less_t> gc_pq;
 
-
-    /* Buffer used during GC. */
-    std::vector<gc_write_t> gc_writes;
-
-    enum gc_step {
-        gc_reconstruct, /* reconstructing on startup */
-        gc_ready, /* ready to start */
-        gc_read,  /* waiting for reads, acquiring main_mutex */
-        gc_write /* waiting for writes */
-    };
-
     /* \brief structure to keep track of global stats about the data blocks
      */
     class gc_stat_t {
@@ -205,40 +200,8 @@ private:
         int get() const { return val; }
     };
 
-    struct gc_state_t {
-    private:
-        // Which step we're on.  See set_step.
-        gc_step step_;
-
-    public:
-        // Outstanding io requests
-        int refcount;
-
-        // A buffer for blocks we're transferring.
-        scoped_malloc_t<char> gc_blocks;
-
-
-        // The entry we're currently GCing.
-        gc_entry_t *current_entry;
-
-        data_block_manager_t::gc_read_callback_t gc_read_callback;
-
-        gc_state_t()
-            : step_(gc_ready), refcount(0),
-              current_entry(NULL) { }
-
-        ~gc_state_t() { }
-
-        gc_step step() const { return step_; }
-
-        // Sets step_.
-        void set_step(gc_step next_step) {
-            step_ = next_step;
-            rassert(step_ != gc_ready || !gc_blocks.has());
-        }
-    };
-
-    gc_state_t gc_state;
+    /* The state of all currently active GC coroutines */
+    intrusive_list_t<gc_state_t> active_gcs;
 
 
     struct gc_stats_t {

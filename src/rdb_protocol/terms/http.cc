@@ -25,7 +25,8 @@ public:
                                 "attempts",
                                 "redirects",
                                 "verify",
-                                "depaginate",
+                                "page",
+                                "page_limit",
                                 "auth",
                                 "result_format" }))
     { }
@@ -57,11 +58,11 @@ private:
                            http_result_format_t *result_format_out);
 
     void get_params(scope_env_t *env,
-                    std::vector<std::pair<std::string, std::string> > *params_out);
+                    counted_t<const datum_t> *params_out);
 
     void get_data(scope_env_t *env,
                   std::string *data_out,
-                  std::vector<std::pair<std::string, std::string> > *form_data_out,
+                  std::map<std::string, std::string> *form_data_out,
                   std::vector<std::string> *header_out,
                   http_method_t method);
 
@@ -76,6 +77,10 @@ private:
 
     void get_auth(scope_env_t *env,
                   http_opts_t::http_auth_t *auth_out);
+
+    void get_page_and_limit(scope_env_t *env,
+                            counted_t<func_t> *depaginate_fn_out,
+                            int64_t *depaginate_limit_out);
 
     // Helper functions, used in optarg parsing
     void verify_header_string(const std::string &str,
@@ -94,31 +99,72 @@ private:
     static const uint64_t MAX_TIMEOUT_MS = 2592000000ull;
 };
 
-counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
-                                        UNUSED eval_flags_t flags) {
-    scoped_ptr_t<http_opts_t> opts(new http_opts_t());
-    opts->url.assign(arg(env, 0)->as_str().to_std());
-    opts->proxy.assign(env->env->reql_http_proxy);
-    get_optargs(env, opts.get());
-
-    http_result_t res;
-    try {
-        http_runner_t runner(env->env->extproc_pool);
-        runner.http(opts.get(), &res, env->env->interruptor);
-    } catch (const http_worker_exc_t &ex) {
-        res.error.assign("crash in a worker process");
-    } catch (const interrupted_exc_t &ex) {
-        res.error.assign("interrupted");
-    } catch (const std::exception &ex) {
-        res.error = std::string("encounted an exception - ") + ex.what();
-    } catch (...) {
-        res.error.assign("encountered an unknown exception");
+void check_url_params(const counted_t<const datum_t> &params,
+                      pb_rcheckable_t *val) {
+    if (params->get_type() == datum_t::R_OBJECT) {
+        const std::map<std::string, counted_t<const datum_t> > &params_map =
+            params->as_object();
+        for (auto it = params_map.begin(); it != params_map.end(); ++it) {
+            if (it->second->get_type() != datum_t::R_NUM &&
+                it->second->get_type() != datum_t::R_STR &&
+                it->second->get_type() != datum_t::R_NULL) {
+                rfail_target(val, base_exc_t::GENERIC,
+                             "Expected `params.%s` to be a NUMBER, STRING or NULL, "
+                             "but found %s:\n%s",
+                             it->first.c_str(), it->second->get_type_name().c_str(),
+                             it->second->print().c_str());
+            }
+        }
+    } else {
+        rfail_target(val, base_exc_t::GENERIC,
+                     "Expected `params` to be an OBJECT, but found %s:\n%s",
+                     params->get_type_name().c_str(),
+                     params->print().c_str());
     }
+}
 
+class http_datum_stream_t : public eager_datum_stream_t {
+public:
+    http_datum_stream_t(http_opts_t &&_opts,
+                        counted_t<func_t> &&_depaginate_fn,
+                        int64_t _depaginate_limit,
+                        const protob_t<const Backtrace> &bt) :
+        eager_datum_stream_t(bt),
+        opts(std::move(_opts)),
+        depaginate_fn(_depaginate_fn),
+        depaginate_limit(_depaginate_limit),
+        more(depaginate_limit != 0) { }
+
+    bool is_array() { return false; }
+    bool is_exhausted() const { return !more && batch_cache_exhausted(); }
+    bool is_cfeed() const { return false; }
+
+private:
+    std::vector<counted_t<const datum_t> >
+    next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec);
+
+    // Helper functions used during `next_raw_batch`
+    bool apply_depaginate(env_t *env, const http_result_t &res);
+
+    bool handle_depage_result(counted_t<const datum_t> depage);
+    bool apply_depage_url(counted_t<const datum_t> new_url);
+    void apply_depage_params(counted_t<const datum_t> new_params);
+
+    http_opts_t opts;
+    object_buffer_t<http_runner_t> runner;
+    counted_t<func_t> depaginate_fn;
+    int64_t depaginate_limit;
+    bool more;
+};
+
+
+void check_error_result(const http_result_t &res,
+                        const http_opts_t &opts,
+                        pb_rcheckable_t *parent) {
     if (!res.error.empty()) {
         std::string error_string = strprintf("Error in HTTP %s of `%s`: %s.",
-                                             http_method_to_str(opts->method).c_str(),
-                                             opts->url.c_str(),
+                                             http_method_to_str(opts.method).c_str(),
+                                             opts.url.c_str(),
                                              res.error.c_str());
         if (res.header.has()) {
             error_string.append("\nheader:\n" + res.header->print());
@@ -131,11 +177,202 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
         // Any error coming back from the extproc may be due to the fragility of
         // interfacing with external servers.  Provide a non-existence error so that
         // users may call `r.default` for more robustness.
-        rfail_target(this, base_exc_t::NON_EXISTENCE,
+        rfail_target(parent, base_exc_t::NON_EXISTENCE,
                      "%s", error_string.c_str());
     }
+}
 
-    return make_counted<val_t>(res.body, backtrace());
+void dispatch_http(env_t *env,
+                   const http_opts_t &opts,
+                   http_runner_t *runner,
+                   http_result_t *res_out,
+                   pb_rcheckable_t* parent) {
+    try {
+        runner->http(opts, res_out, env->interruptor);
+    } catch (const http_worker_exc_t &ex) {
+        res_out->error.assign("crash in a worker process");
+    } catch (const interrupted_exc_t &ex) {
+        res_out->error.assign("interrupted");
+    } catch (const std::exception &ex) {
+        res_out->error = std::string("encounted an exception - ") + ex.what();
+    } catch (...) {
+        res_out->error.assign("encountered an unknown exception");
+    }
+
+    check_error_result(*res_out, opts, parent);
+}
+
+counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
+                                        UNUSED eval_flags_t flags) {
+    http_opts_t opts;
+    opts.url.assign(arg(env, 0)->as_str().to_std());
+    opts.proxy.assign(env->env->reql_http_proxy);
+    get_optargs(env, &opts);
+
+    counted_t<func_t> depaginate_fn;
+    int64_t depaginate_limit(0);
+    get_page_and_limit(env, &depaginate_fn, &depaginate_limit);
+
+    // If we're depaginating, return a stream that will be evaluated automatically
+    if (depaginate_fn.has()) {
+        counted_t<datum_stream_t> http_stream = counted_t<datum_stream_t>(
+            new http_datum_stream_t(std::move(opts),
+                                    std::move(depaginate_fn),
+                                    depaginate_limit,
+                                    backtrace()));
+        return new_val(env->env, http_stream);
+    }
+
+    // Otherwise, just run the http operation and return the datum
+    http_result_t res;
+    http_runner_t runner(env->env->extproc_pool);
+    dispatch_http(env->env, opts, &runner, &res, this);
+
+    return new_val(res.body);
+}
+
+std::vector<counted_t<const datum_t> >
+http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchspec) {
+    if (!more) {
+        return std::vector<counted_t<const datum_t> >();
+    }
+
+    if (!runner.has()) {
+        runner.create(env->extproc_pool);
+    }
+
+    profile::sampler_t sampler(strprintf("Performing HTTP %s of `%s`",
+                                         http_method_to_str(opts.method).c_str(),
+                                         opts.url.c_str()),
+                               env->trace);
+
+    http_result_t res;
+    dispatch_http(env, opts, runner.get(), &res, this);
+    r_sanity_check(res.body.has());
+
+    // Set doneness so next batch we return an empty result to indicate
+    // the end of the stream
+    more = apply_depaginate(env, res);
+
+    if (res.body->get_type() == datum_t::R_ARRAY) {
+        return res.body->as_array();
+    }
+
+    return std::vector<counted_t<const datum_t> >({ res.body });
+}
+
+// Returns true if another request should be made, false otherwise
+bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res) {
+    if (depaginate_limit > 0) {
+        --depaginate_limit;
+    }
+    if (depaginate_limit == 0) {
+        return false;
+    }
+
+    // Provide an empty OBJECT datum instead of any non-existent arguments
+    counted_t<const datum_t> empty = make_counted<const datum_t>(datum_t::R_OBJECT);
+    std::map<std::string, counted_t<const datum_t> > arg_obj
+            { { "params", opts.url_params.has() ? opts.url_params : empty },
+              { "header", res.header.has() ? res.header : empty },
+              { "body",   res.body.has() ? res.body : empty } };
+    std::vector<counted_t<const datum_t> > args
+        { make_counted<const datum_t>(std::move(arg_obj)) };
+
+    try {
+        counted_t<const datum_t> depage = depaginate_fn->call(env, args)->as_datum();
+        return handle_depage_result(depage);
+    } catch (const ql::exc_t &ex) {
+        // Tack on some debugging info, as this shit can be tough
+        throw ql::exc_t(ex.get_type(),
+                        strprintf("Error in HTTP %s of `%s`: %s.\n"
+                                  "Error occurred during `page` called with:\n%s\n",
+                                  http_method_to_str(opts.method).c_str(),
+                                  opts.url.c_str(),
+                                  ex.what(),
+                                  args[0]->print().c_str()),
+                        ex.backtrace());
+    }
+}
+
+bool http_datum_stream_t::apply_depage_url(counted_t<const datum_t> new_url) {
+    // NULL url indicates no further depagination
+    if (new_url->get_type() == datum_t::R_NULL) {
+        return false;
+    } else if (new_url->get_type() != datum_t::R_STR) {
+        rfail(base_exc_t::GENERIC,
+              "Expected `url` in OBJECT returned by `page` to be a "
+              "STRING or NULL, but found %s.",
+              new_url->get_type_name().c_str());
+    }
+    opts.url.assign(new_url->as_str().to_std());
+    return true;
+}
+
+void http_datum_stream_t::apply_depage_params(counted_t<const datum_t> new_params) {
+    // Verify new params and merge with the old ones, new taking precedence
+    check_url_params(new_params, this);
+    opts.url_params->merge(new_params);
+}
+
+bool http_datum_stream_t::handle_depage_result(counted_t<const datum_t> depage) {
+    if (depage->get_type() == datum_t::R_NULL ||
+        depage->get_type() == datum_t::R_STR) {
+        return apply_depage_url(depage);
+    } else if (depage->get_type() == datum_t::R_OBJECT) {
+        counted_t<const datum_t> new_url = depage->get("url", NOTHROW);
+        counted_t<const datum_t> new_params = depage->get("params", NOTHROW);
+        if (!new_url.has() && !new_params.has()) {
+            rfail(base_exc_t::GENERIC,
+                  "OBJECT returned by `page` must contain "
+                  "`url` and/or `params` fields.");
+        }
+
+        if (new_params.has()) {
+            apply_depage_params(new_params);
+        }
+
+        if (new_url.has()) {
+            return apply_depage_url(new_url);
+        }
+    } else {
+        rfail(base_exc_t::GENERIC,
+              "Expected `page` to return an OBJECT, but found %s.",
+              depage->get_type_name().c_str());
+    }
+
+    return true;
+}
+
+// Depagination functions must follow the given specification:
+// OBJECT fn(OBJECT, OBJECT, DATUM)
+// Return value: OBJECT containing the following fields
+//   url - the new url to get
+//   params - the new parameters to use (will be merged with old parameters)
+// Parameter 2: last URL parameters used
+// Parameter 3: last headers received
+// Parameter 4: last data received
+void http_term_t::get_page_and_limit(scope_env_t *env,
+                                     counted_t<func_t> *depaginate_fn_out,
+                                     int64_t *depaginate_limit_out) {
+    counted_t<val_t> page = optarg(env, "page");
+    counted_t<val_t> page_limit = optarg(env, "page_limit");
+
+    if (!page.has()) {
+        return;
+    } else if (!page_limit.has()) {
+        rfail_target(page, base_exc_t::GENERIC,
+                     "Cannot use `page` without specifying `page_limit` "
+                     "(a positive number performs that many requests, -1 is unlimited).");
+    }
+
+    *depaginate_fn_out = page->as_func(PAGE_SHORTCUT);
+    *depaginate_limit_out = page_limit->as_int<int64_t>();
+
+    if (*depaginate_limit_out < -1) {
+        rfail_target(page_limit, base_exc_t::GENERIC,
+                     "`page_limit` should be greater than or equal to -1.");
+    }
 }
 
 void http_term_t::get_optargs(scope_env_t *env,
@@ -154,8 +391,6 @@ void http_term_t::get_optargs(scope_env_t *env,
     get_timeout_ms(env, &opts_out->timeout_ms);
     get_attempts(env, &opts_out->attempts);
     get_redirects(env, &opts_out->max_redirects);
-    // TODO: make depaginate a function, also a string to select a predefined style
-    get_bool_optarg("depaginate", env, &opts_out->depaginate);
     get_bool_optarg("verify", env, &opts_out->verify);
 }
 
@@ -278,7 +513,8 @@ std::string http_term_t::get_auth_item(const counted_t<const datum_t> &datum,
 }
 
 // The `auth` optarg takes an object consisting of the following fields:
-//  type - STRING, the type of authentication to perform 'basic' or 'digest', defaults to 'basic'
+//  type - STRING, the type of authentication to perform 'basic' or 'digest'
+//      defaults to 'basic'
 //  user - STRING, the username to use
 //  pass - STRING, the password to use
 void http_term_t::get_auth(scope_env_t *env,
@@ -354,7 +590,7 @@ std::string http_term_t::print_http_param(const counted_t<const datum_t> &datum,
 //   "key=val&key=val" in the request body.
 void http_term_t::get_data(scope_env_t *env,
         std::string *data_out,
-        std::vector<std::pair<std::string, std::string> > *form_data_out,
+        std::map<std::string, std::string> *form_data_out,
         std::vector<std::string> *header_out,
         http_method_t method) {
     counted_t<val_t> data = optarg(env, "data");
@@ -384,7 +620,7 @@ void http_term_t::get_data(scope_env_t *env,
                                                            "data",
                                                            it->first.c_str(),
                                                            data.get());
-                    form_data_out->push_back(std::make_pair(it->first, val_str));
+                    (*form_data_out)[it->first] = val_str;
                 }
             } else {
                 rfail_target(data.get(), base_exc_t::GENERIC,
@@ -394,7 +630,8 @@ void http_term_t::get_data(scope_env_t *env,
         } else {
             rfail_target(this, base_exc_t::GENERIC,
                          "`data` should only be specified on a PUT, POST, PATCH, "
-                         "or DELETE request.");
+                         "or DELETE request.  If you want URL parameters, use "
+                         "`params` instead.");
         }
     }
 }
@@ -402,27 +639,13 @@ void http_term_t::get_data(scope_env_t *env,
 // The `params` optarg specifies parameters to append to the requested URL, in the
 // format "?key=val&key=val". The optarg must be an OBJECT with NUMBER, STRING, or
 // NULL values. A NULL value will result in "key=" with no value.
+// Values are sanitized here, but converted in the extproc.
 void http_term_t::get_params(scope_env_t *env,
-        std::vector<std::pair<std::string, std::string> > *params_out) {
+        counted_t<const datum_t> *params_out) {
     counted_t<val_t> params = optarg(env, "params");
     if (params.has()) {
-        counted_t<const datum_t> datum_params = params->as_datum();
-        if (datum_params->get_type() == datum_t::R_OBJECT) {
-            const std::map<std::string, counted_t<const datum_t> > &params_map =
-                datum_params->as_object();
-            for (auto it = params_map.begin(); it != params_map.end(); ++it) {
-                std::string val_str = print_http_param(it->second,
-                                                       "params",
-                                                       it->first.c_str(),
-                                                       params.get());
-                params_out->push_back(std::make_pair(it->first, val_str));
-            }
-
-        } else {
-            rfail_target(params.get(), base_exc_t::GENERIC,
-                         "Expected `params` to be an OBJECT, but found %s.",
-                         datum_params->get_type_name().c_str());
-        }
+        *params_out = params->as_datum();
+        check_url_params(*params_out, params.get());
     }
 }
 
@@ -478,7 +701,7 @@ void http_term_t::get_redirects(scope_env_t *env,
 }
 
 // This is a generic function for parsing out a boolean optarg yet still providing a
-// helpful message.  At the moment, it is only used for `depaginate` and `verify`.
+// helpful message.  At the moment, it is only used for `page` and `verify`.
 void http_term_t::get_bool_optarg(const std::string &optarg_name,
                                   scope_env_t *env,
                                   bool *bool_out) {

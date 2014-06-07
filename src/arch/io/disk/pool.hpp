@@ -90,7 +90,7 @@ struct pool_diskmgr_action_t
 
     void set_successful_due_to_conflict() { io_result = get_count(); }
     bool get_succeeded() const { return io_result == static_cast<int64_t>(get_count()); }
-    int get_errno() const {
+    int get_io_errno() const {
         rassert(io_result < 0);
         return -io_result;
     }

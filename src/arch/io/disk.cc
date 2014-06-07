@@ -8,6 +8,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <limits.h>
 
 #include <algorithm>
 #include <functional>
@@ -166,7 +167,7 @@ public:
         } else {
             do_on_thread(a2->cb_thread,
                          std::bind(&linux_iocallback_t::on_io_failure,
-                                   a2->cb, a2->get_errno(),
+                                   a2->cb, a2->get_io_errno(),
                                    static_cast<int64_t>(a2->get_offset()),
                                    static_cast<int64_t>(a2->get_count())));
         }

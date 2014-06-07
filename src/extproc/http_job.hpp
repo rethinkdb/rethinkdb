@@ -14,7 +14,7 @@ class http_job_t {
 public:
     http_job_t(extproc_pool_t *pool, signal_t *interruptor);
 
-    void http(const http_opts_t *opts, http_result_t *res_out);
+    void http(const http_opts_t &opts, http_result_t *res_out);
 
     // Marks the extproc worker as errored to simplify cleanup later
     void worker_error();

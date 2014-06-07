@@ -63,6 +63,7 @@ module RethinkDB
       @conn = connection
       @opts = opts
       @token = token
+      fetch_batch
     end
 
     def each (&block) # :nodoc:
@@ -72,11 +73,12 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = [Query::QueryType::CONTINUE]
-        res = @conn.run_internal(q, @opts, @token)
+        res = @conn.wait(@token)
         @results = Shim.response_to_native(res, @msg, @opts)
         if res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
+        else
+          fetch_batch
         end
       end
     end
@@ -91,6 +93,11 @@ module RethinkDB
         end
         return true
       end
+    end
+
+    def fetch_batch
+      @conn.set_opts(@token, @opts)
+      @conn.dispatch([Query::QueryType::CONTINUE], @token)
     end
   end
 
@@ -122,8 +129,11 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
-    def run_internal(q, opts, token)
+    def set_opts(token, opts)
       @mutex.synchronize{@opts[token] = opts}
+    end
+    def run_internal(q, opts, token)
+      set_opts(token, opts)
       noreply = opts[:noreply]
 
       dispatch(q, token)
@@ -151,7 +161,7 @@ module RethinkDB
       if res['t'] == Response::ResponseType::SUCCESS_PARTIAL ||
           res['t'] == Response::ResponseType::SUCCESS_FEED
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
-                   msg, self, opts, token, true)
+                           msg, self, opts, token, true)
       elsif res['t'] == Response::ResponseType::SUCCESS_SEQUENCE
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, token, false)

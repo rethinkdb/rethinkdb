@@ -1,16 +1,15 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/data_block_manager.hpp"
 
+#include <functional>
 #include <inttypes.h>
 #include <sys/uio.h>
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "errors.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -18,6 +17,39 @@
 
 // Max amount of bytes which can be read ahead in one i/o transaction (if enabled)
 const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
+
+/*****************
+ * GC Parameters *
+ *****************/
+
+// How many GC routines to launch in concurrently, at maximum
+const size_t MAX_CONCURRENT_GCS = 32;
+
+// Garbage Collection uses its own two IO accounts.
+// There is one low-priority account that is meant to guarantee
+// (performance-wise) unintrusive garbage collection.
+// If the garbage ratio keeps growing,
+// GC starts using the high priority account instead, which
+// might have a negative influence on database performance
+// under i/o heavy workloads but guarantees that the database
+// doesn't grow indefinitely.
+const int GC_IO_PRIORITY_NICE = 8;
+// 4 times the priority of all caches combined
+const int GC_IO_PRIORITY_HIGH = (4 * CACHE_WRITES_IO_PRIORITY * CPU_SHARDING_FACTOR);
+
+// The ratio at which we start GCing.
+const double GC_START_RATIO = 0.15;
+// The ratio at which we don't want to keep GC'ing.
+const double GC_STOP_RATIO = 0.1;
+// The ratio at which we start taking more serious measures to get the garbage
+// rate down.
+const double GC_HIGH_RATIO = 0.5;
+
+// What's the maximum number of "young" extents we can have?
+const size_t GC_YOUNG_EXTENT_MAX_SIZE = 50;
+// What's the definition of a "young" extent in microseconds?
+const microtime_t GC_YOUNG_EXTENT_TIMELIMIT_MICROS = 50000;
+
 
 // Identifies an extent, the time we started writing to the
 // extent, whether it's the extent we're currently writing to, and
@@ -273,7 +305,7 @@ private:
     std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
         return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
     }
-    
+
 #ifndef NDEBUG
     uint32_t compute_garbage_bytes() const {
         uint32_t b = parent->static_config->extent_size();
@@ -294,7 +326,7 @@ private:
         return count;
     }
 #endif
-    
+
     // old_block can be NULL if a block_info was freshly added
     void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
         rassert(new_block != NULL);
@@ -313,7 +345,7 @@ private:
             garbage_bytes_stat -= aligned_value(new_block->block_size);
         }
     }
-    
+
     // Used by constructors.
     void add_self_to_parent_entries() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
@@ -348,14 +380,14 @@ public:
         state_young,
         // Candidate to be GCed. It is in gc_pq.
         state_old,
-        // Currently being GCed. It is equal to gc_state.current_entry.
+        // Currently being GCed. It is equal to `current_entry` in one of `active_gcs`.
         state_in_gc
     } state;
 
 private:
     // Block information, ordered by relative offset.
     std::vector<block_info_t> block_infos;
-    
+
     // Some stats we maintain to make certain operations faster
     uint32_t garbage_bytes_stat;
     unsigned int num_live_blocks_stat;
@@ -367,26 +399,14 @@ private:
     DISABLE_COPYING(gc_entry_t);
 };
 
-
-// TODO: Right now we perform garbage collection via the do_write() interface on the
-// log_serializer_t. This leads to bugs in a couple of ways:
-//
-// 1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The
-//    data block manager shouldn't have to know about that stuff.
-//
-// 2. We have to special-case the serializer so that it allows us to submit
-//    do_write()s during shutdown. If there were an alternative interface, it could
-//    ignore or refuse our GC requests when it is shutting down.
-
-// Later, rewrite this so that we have a special interface through which to order
-// garbage collection.
-
-data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
-    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config),
+data_block_manager_t::data_block_manager_t(
+        extent_manager_t *em, log_serializer_t *_serializer,
+        const log_serializer_on_disk_static_config_t *_static_config,
+        log_serializer_stats_t *_stats)
+    : stats(_stats), shutdown_callback(NULL), state(state_unstarted),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
-      gc_state(), gc_stats(stats)
+      gc_stats(stats)
 {
-    rassert(dynamic_config != NULL);
     rassert(static_config != NULL);
     rassert(extent_manager != NULL);
     rassert(serializer != NULL);
@@ -402,7 +422,6 @@ void data_block_manager_t::prepare_initial_metablock(data_block_manager::metablo
 
 void data_block_manager_t::start_reconstruct() {
     guarantee(state == state_unstarted);
-    gc_state.set_step(gc_reconstruct);
 }
 
 // Marks the block at the given offset as alive, in the appropriate
@@ -413,7 +432,7 @@ void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size
     uint64_t extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
-        guarantee(gc_state.step() == gc_reconstruct);  // This is called at startup.
+        guarantee(state == state_unstarted); // This is called at startup.
 
         gc_entry_t *entry = new gc_entry_t(this, extent_id * extent_manager->extent_size);
         reconstructed_extents.push_back(entry);
@@ -425,8 +444,6 @@ void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size
 
 void data_block_manager_t::end_reconstruct() {
     guarantee(state == state_unstarted);
-    guarantee(gc_state.step() == gc_reconstruct);
-    gc_state.set_step(gc_ready);
 }
 
 void data_block_manager_t::start_existing(file_t *file,
@@ -547,7 +564,6 @@ void read_ahead_interval(const int64_t block_offset,
     *end_offset_out = ceil_aligned(unaligned_end_offset, device_block_size);
 }
 
-
 void read_ahead_offset_and_size(int64_t off_in,
                                 int64_t ser_block_size_in,
                                 int64_t extent_size,
@@ -665,7 +681,6 @@ public:
     }
 };
 
-
 bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     uint64_t extent_id = static_config->extent_index(offset);
 
@@ -720,11 +735,6 @@ std::vector<counted_t<ls_block_token_pointee_t> >
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
-    // Either we're ready to write, or we're shutting down and just finished reading
-    // blocks for gc and called do_write.
-    guarantee(state == state_ready ||
-              (state == state_shutting_down && gc_state.step() == gc_write));
-
     // These tokens are grouped by extent.  You can do a contiguous write in each
     // extent.
     std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > token_groups
@@ -840,10 +850,25 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
                 break;
 
             /* Notify the GC that the extent got released during GC */
-            case gc_entry_t::state_in_gc:
-                guarantee(gc_state.current_entry == entry);
-                gc_state.current_entry = NULL;
-                break;
+            case gc_entry_t::state_in_gc: {
+                int num_matched = 0;
+                for (gc_state_t *gc_state = active_gcs.head();
+                     gc_state != NULL;
+                     gc_state = active_gcs.next(gc_state)) {
+                    if (gc_state->current_entry == entry) {
+                        gc_state->current_entry = NULL;
+                        ++num_matched;
+#ifdef NDEBUG
+                        // In release mode, terminate the loop as soon
+                        // as we have found our entry.
+                        // In debug, continue to ensure that there is *exactly*
+                        // one match.
+                        break;
+#endif
+                    }
+                }
+                guarantee(num_matched == 1);
+            } break;
             default:
                 unreachable();
         }
@@ -855,17 +880,51 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
     }
 }
 
+size_t data_block_manager_t::compute_gc_concurrency() const {
+    // Ok, what we do here is the following:
+    // As long as the GC ratio is not increasing, i.e. below GC_START_RATIO,
+    // we only start 1 GC coroutine.
+    // When it turns out that the GC ratio has increased since we have started
+    // GCing, we linearly increase the number of concurrent GCs, until reaching
+    // the maximum at GC_HIGH_RATIO.
+    // (If the GC ratio still keeps growing at that point, there's probably
+    // not much we can do. Unless we would be ok with throttling writes.)
+    //
+    // Also see `choose_gc_io_account()` for the second component in the automatic
+    // GC scaling process.
+
+    CT_ASSERT(GC_HIGH_RATIO > GC_START_RATIO);
+    CT_ASSERT(GC_START_RATIO > GC_STOP_RATIO);
+
+    const double gc_ratio = garbage_ratio();
+    if (gc_ratio < GC_START_RATIO) {
+        return 1;
+    } else if (gc_ratio >= GC_HIGH_RATIO) {
+        return MAX_CONCURRENT_GCS;
+    } else {
+        rassert(gc_ratio >= GC_START_RATIO);
+        rassert(gc_ratio < GC_HIGH_RATIO);
+        rassert(GC_HIGH_RATIO - GC_START_RATIO > 0.0);
+        double linear_factor = (gc_ratio - GC_START_RATIO)
+            / (GC_HIGH_RATIO - GC_START_RATIO);
+        size_t total_concurrency =
+            1 + static_cast<size_t>(linear_factor * MAX_CONCURRENT_GCS);
+        // std::min to avoid rounding errors leading to illegal return values
+        return std::min(total_concurrency, MAX_CONCURRENT_GCS);
+    }
+}
+
 file_account_t *data_block_manager_t::choose_gc_io_account() {
     // Start going into high priority as soon as the garbage ratio is more than
-    // 2% above the configured goal.
+    // GC_HIGH_RATIO.
     // The idea is that we use the nice i/o account whenever possible, except
     // if it proves insufficient to maintain an acceptable garbage ratio, in
     // which case we switch over to the high priority account until the situation
     // has improved.
 
-    // This means that we can end up oscillating between both accounts, which
-    // is probably fine. TODO: Make sure it actually is in practice!
-    if (garbage_ratio() > dynamic_config->gc_high_ratio * 1.02) {
+    // Note that this means that we can end up oscillating between both accounts,
+    // which is fine.
+    if (garbage_ratio() > GC_HIGH_RATIO) {
         return gc_io_account_high.get();
     } else {
         return gc_io_account_nice.get();
@@ -924,14 +983,20 @@ void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
 }
 
 void data_block_manager_t::start_gc() {
-    if (gc_state.step() == gc_ready) run_gc();
-}
+    if (state != state_ready) {
+        // Don't run GC while we are still starting up. We might still be
+        // reconstructing extent information.
+        // Also don't run it when we're shutting down, since that would just make
+        // the shut down take longer.
+        return;
+    }
 
-data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *_parent)
-    : done(num_writes == 0), parent(_parent) {
-    if (!done) {
-        coro_t::spawn_later_ordered(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs,
-                this, writes, num_writes));
+    const size_t goal_num_active_gcs = compute_gc_concurrency();
+    while (active_gcs.size() < goal_num_active_gcs) {
+        gc_state_t *new_gc_state = new gc_state_t();
+        active_gcs.push_back(new_gc_state);
+        coro_t::spawn_sometime(std::bind(&data_block_manager_t::run_gc, this,
+                                         new_gc_state));
     }
 }
 
@@ -941,316 +1006,283 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
     }
 };
 
-void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num_writes) {
-    if (parent->gc_state.current_entry != NULL) {
-        block_write_cond_t block_write_cond;
+void data_block_manager_t::run_gc(gc_state_t *gc_state) {
+    while (!gc_pq.empty()
+           && should_we_keep_gcing()
+           && !should_terminate_one_gc_thread()) {
+        gc_one_extent(gc_state);
 
-        // We acquire block tokens for all the blocks before writing new
-        // version.  The point of this is to make sure the _new_ block is
-        // correctly "alive" when we write it.
-
-        std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
-        old_block_tokens.reserve(num_writes);
-
-        // New block tokens, to hold the return value of
-        // data_block_manager_t::write() instead of immediately discarding the
-        // created token and causing the extent or block to be collected.
-        std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
-
-        {
-            // Step 1: Write buffers to disk and assemble index operations
-            ASSERT_NO_CORO_WAITING;
-
-            std::vector<buf_write_info_t> the_writes;
-            the_writes.reserve(num_writes);
-            for (size_t i = 0; i < num_writes; ++i) {
-                old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
-                                                                                    writes[i].block_size));
-
-                the_writes.push_back(buf_write_info_t(writes[i].buf,
-                                                      writes[i].block_size,
-                                                      writes[i].buf->ser_header.block_id));
+        if (state == state_shutting_down) {
+            active_gcs.remove(gc_state);
+            if (active_gcs.empty()) {
+                actually_shutdown();
             }
-
-            new_block_tokens
-                = parent->many_writes(the_writes, parent->choose_gc_io_account(),
-                                      &block_write_cond);
-
-            guarantee(new_block_tokens.size() == num_writes);
+            return;
         }
-
-        // Step 2: Wait on all writes to finish
-        block_write_cond.wait();
-
-        // We created block tokens for our blocks we're writing, so
-        // there's no way the current entry could have become NULL.
-        guarantee(parent->gc_state.current_entry != NULL);
-
-        std::vector<index_write_op_t> index_write_ops;
-
-        // Step 3: Figure out index ops.  It's important that we do this
-        // now, right before the index_write, so that the updates to the
-        // index are done atomically.
-        {
-            ASSERT_NO_CORO_WAITING;
-
-            for (size_t i = 0; i < num_writes; ++i) {
-                unsigned int block_index
-                    = parent->gc_state.current_entry->block_index(writes[i].old_offset);
-
-                if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
-                    block_id_t block_id = writes[i].buf->ser_header.block_id;
-
-                    index_write_ops.push_back(
-                            index_write_op_t(block_id,
-                                             to_standard_block_token(
-                                                     block_id,
-                                                     new_block_tokens[i])));
-                }
-
-                // (If we don't have an i_array entry, the block is referenced
-                // by a non-negative number of tokens only.  These get tokens
-                // remapped later.)
-            }
-
-            // Step 4A: Remap tokens to new offsets.  It is important
-            // that we do this _before_ calling index_write.
-            // Otherwise, the token_offset map would still point to
-            // the extent we're gcing.  Then somebody could do an
-            // index_write after our index_write starts but before it
-            // returns in Step 4 below, resulting in i_array entries
-            // that point to the current entry.  This should empty out
-            // all the t_array bits.
-            for (size_t i = 0; i < num_writes; ++i) {
-                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, new_block_tokens[i]->offset());
-            }
-
-            // Step 4A-2: Now that the block tokens have been remapped
-            // to a new offset, destroying these tokens will update
-            // the bits in the t_array of the new offset (if they're
-            // the last token).
-            old_block_tokens.clear();
-            new_block_tokens.clear();
-        }
-
-        // Step 4B: Commit the transaction to the serializer, emptying
-        // out all the i_array bits.
-        new_mutex_in_line_t dummy_acq;  // We don't use the precise-locking feature
-                                        // of index_write.
-        parent->serializer->index_write(&dummy_acq,
-                                        index_write_ops,
-                                        parent->choose_gc_io_account());
-
-        ASSERT_NO_CORO_WAITING;
-
-        index_write_ops.clear();
     }
 
+    active_gcs.remove(gc_state);
+}
+
+void data_block_manager_t::gc_one_extent(gc_state_t *gc_state) {
+    // A buffer for blocks we're transferring.
+    scoped_malloc_t<char> gc_blocks;
+
+    // A helper for waiting for all reads to finish
+    struct gc_read_cb_t : public cond_t, public iocallback_t {
+        gc_read_cb_t() : refcount(0) { }
+        void on_io_complete() {
+            guarantee(refcount > 0);
+            refcount--;
+            if (refcount == 0) {
+                pulse();
+            }
+        }
+        // Number of outstanding requests
+        int refcount;
+    };
+    gc_read_cb_t read_cb;
+
+    // 1: Grab an entry and read the data
     {
         ASSERT_NO_CORO_WAITING;
 
-        // Step 5: Call parent
-        done = true;
-        parent->on_gc_write_done();
-    }
+        ++stats->pm_serializer_data_extents_gced;
 
-    // Step 6: Delete us
-    delete this;
-}
+        /* grab the entry */
+        guarantee (!gc_pq.empty());
+        guarantee(gc_state->current_entry == NULL);
+        gc_state->current_entry = gc_pq.pop();
+        gc_state->current_entry->our_pq_entry = NULL;
 
-void data_block_manager_t::on_gc_write_done() {
+        guarantee(gc_state->current_entry->state == gc_entry_t::state_old);
+        gc_state->current_entry->state = gc_entry_t::state_in_gc;
+        gc_stats.old_garbage_block_bytes -= gc_state->current_entry->garbage_bytes();
+        gc_stats.old_total_block_bytes -= static_config->extent_size();
 
-    // Continue GC
-    run_gc();
-}
+        /* read all the live data into buffers */
 
-void data_block_manager_t::run_gc() {
-    bool run_again = true;
-    while (run_again) {
-        run_again = false;
-        switch (gc_state.step()) {
-            case gc_ready: {
-                if (gc_pq.empty() || !should_we_keep_gcing()) {
-                    return;
-                }
+        // read_async can call the callback immediately, which
+        // will then decrement the refcount and pulse the condition before
+        // we have even issued all the reads we need.
+        // We increment the refcount once, and then call `on_io_complete()`
+        // once manually when we have issued all reads.
+        read_cb.refcount++;
 
-                ASSERT_NO_CORO_WAITING;
+        gc_blocks.init(malloc_aligned(extent_manager->extent_size, DEVICE_BLOCK_SIZE));
 
-                ++stats->pm_serializer_data_extents_gced;
+        // We're going to send as few discrete reads as possible, minimizing
+        // disk->CPU bandwidth usage, instead of simply reading the entire
+        // extent.
 
-                /* grab the entry */
-                gc_state.current_entry = gc_pq.pop();
-                gc_state.current_entry->our_pq_entry = NULL;
+        uint32_t current_interval_begin = 0;
+        uint32_t current_interval_end = 0;
 
-                guarantee(gc_state.current_entry->state == gc_entry_t::state_old);
-                gc_state.current_entry->state = gc_entry_t::state_in_gc;
-                gc_stats.old_garbage_block_bytes -= gc_state.current_entry->garbage_bytes();
-                gc_stats.old_total_block_bytes -= static_config->extent_size();
+        const int64_t extent_offset = gc_state->current_entry->extent_ref.offset();
 
-                /* read all the live data into buffers */
+        for (unsigned int i = 0, bpe = gc_state->current_entry->num_blocks();
+             i < bpe;
+             ++i) {
+            if (!gc_state->current_entry->block_is_garbage(i)) {
+                const uint32_t beg = gc_state->current_entry->relative_offset(i);
+                rassert(divides(DEVICE_BLOCK_SIZE, beg));
 
-                /* make sure the read callback knows who we are */
-                gc_state.gc_read_callback.parent = this;
+                const uint32_t end
+                    = gc_state->current_entry->relative_offset(i)
+                    + gc_entry_t::aligned_value(gc_state->current_entry->block_size(i));
 
-                guarantee(gc_state.refcount == 0);
-
-                // read_async can call the callback immediately, which
-                // will then decrement the refcount (and that's all it
-                // will do if the refcount is not zero).  So we
-                // increment the refcount here and set the step to
-                // gc_read, before any calls to read_async.
-                gc_state.refcount++;
-
-                guarantee(!gc_state.gc_blocks.has());
-                gc_state.gc_blocks.init(malloc_aligned(extent_manager->extent_size,
-                                                       DEVICE_BLOCK_SIZE));
-                gc_state.set_step(gc_read);
-
-                // We're going to send as few discrete reads as possible, minimizing
-                // disk->CPU bandwidth usage, instead of simply reading the entire
-                // extent.
-
-                uint32_t current_interval_begin = 0;
-                uint32_t current_interval_end = 0;
-
-                const int64_t extent_offset = gc_state.current_entry->extent_ref.offset();
-
-                for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks();
-                     i < bpe;
-                     ++i) {
-                    if (!gc_state.current_entry->block_is_garbage(i)) {
-                        const uint32_t beg
-                            = gc_state.current_entry->relative_offset(i);
-                        rassert(divides(DEVICE_BLOCK_SIZE, beg));
-
-                        const uint32_t end
-                            = gc_state.current_entry->relative_offset(i)
-                            + gc_entry_t::aligned_value(gc_state.current_entry->block_size(i));
-
-                        if (beg <= current_interval_end) {
-                            current_interval_end = end;
-                        } else {
-                            if (current_interval_end > current_interval_begin) {
-                                gc_state.refcount++;
-                                dbfile->read_async(
-                                        extent_offset + current_interval_begin,
-                                        current_interval_end - current_interval_begin,
-                                        gc_state.gc_blocks.get() + current_interval_begin,
-                                        choose_gc_io_account(),
-                                        &gc_state.gc_read_callback);
-                            }
-
-                            current_interval_begin = beg;
-                            current_interval_end = end;
-                        }
-                    }
-                }
-
-                guarantee(current_interval_begin < current_interval_end);
-
-                gc_state.refcount++;
-                dbfile->read_async(
-                        extent_offset + current_interval_begin,
-                        current_interval_end - current_interval_begin,
-                        gc_state.gc_blocks.get() + current_interval_begin,
-                        choose_gc_io_account(),
-                        &gc_state.gc_read_callback);
-
-                // Fall through to the gc_read case, where we
-                // decrement the refcount we incremented before the
-                // for loop.
-            }
-            case gc_read: {
-                gc_state.refcount--;
-                if (gc_state.refcount > 0) {
-                    /* We got a block, but there are still more to go */
-                    break;
-                }
-
-                /* If other forces cause all of the blocks in the extent to become
-                garbage before we even finish GCing it, they will set current_entry
-                to NULL. */
-                if (gc_state.current_entry == NULL) {
-                    guarantee(gc_state.gc_blocks.has());
-                    gc_state.gc_blocks.reset();
-                    gc_state.set_step(gc_ready);
-                    break;
-                }
-
-                /* an array to put our writes in */
-                size_t num_writes = gc_state.current_entry->num_live_blocks();
-
-                gc_writes.clear();
-                gc_writes.reserve(num_writes);
-                for (unsigned int i = 0, iend = gc_state.current_entry->num_blocks(); i < iend; ++i) {
-
-                    /* We re-check the bit array here in case a write came in for one
-                    of the blocks we are GCing. We wouldn't want to overwrite the new
-                    valid data with out-of-date data. */
-                    if (gc_state.current_entry->block_is_garbage(i)) {
-                        continue;
-                    }
-
-                    ser_buffer_t *block = reinterpret_cast<ser_buffer_t *>(gc_state.gc_blocks.get() + gc_state.current_entry->relative_offset(i));
-                    const int64_t block_offset = gc_state.current_entry->extent_ref.offset()
-                        + gc_state.current_entry->relative_offset(i);
-
-                    gc_writes.push_back(gc_write_t(block, block_offset,
-                                                   gc_state.current_entry->block_size(i)));
-                }
-
-                guarantee(gc_writes.size() == num_writes);
-
-                gc_state.set_step(gc_write);
-
-                /* schedule the write */
-                gc_writer_t *gc_writer = new gc_writer_t(gc_writes.data(), gc_writes.size(), this);
-                if (!gc_writer->done) {
-                    break;
+                if (beg <= current_interval_end) {
+                    current_interval_end = end;
                 } else {
-                    delete gc_writer;
+                    if (current_interval_end > current_interval_begin) {
+                        read_cb.refcount++;
+                        dbfile->read_async(
+                                extent_offset + current_interval_begin,
+                                current_interval_end - current_interval_begin,
+                                gc_blocks.get() + current_interval_begin,
+                                choose_gc_io_account(),
+                                &read_cb);
+                    }
+
+                    current_interval_begin = beg;
+                    current_interval_end = end;
                 }
             }
-
-            case gc_write:
-                //We need to do this here so that we don't
-                //get stuck on the GC treadmill
-                mark_unyoung_entries();
-                /* Our write should have forced all of the blocks in the extent to
-                become garbage, which should have caused the extent to be released
-                and gc_state.current_entry to become NULL. */
-
-                guarantee(gc_state.current_entry == NULL,
-                          "%p: %" PRIu32 " garbage bytes left on the extent, %" PRIu32
-                          " index-referenced bytes, %" PRIu32
-                          " token-referenced bytes, at offset %" PRIi64
-                          ".  block dump:\n%s\n",
-                          this,
-                          gc_state.current_entry->garbage_bytes(),
-                          gc_state.current_entry->index_bytes(),
-                          gc_state.current_entry->token_bytes(),
-                          gc_state.current_entry->extent_ref.offset(),
-                          gc_state.current_entry->format_block_infos("\n").c_str());
-
-                guarantee(gc_state.refcount == 0);
-
-                guarantee(gc_state.gc_blocks.has());
-                gc_state.gc_blocks.reset();
-                gc_state.set_step(gc_ready);
-
-                if (state == state_shutting_down) {
-                    actually_shutdown();
-                    return;
-                }
-
-                run_again = true;   // We might want to start another GC round
-                break;
-
-            case gc_reconstruct:
-            default:
-                unreachable("Unknown gc_step");
         }
+
+        guarantee(current_interval_begin < current_interval_end);
+
+        read_cb.refcount++;
+        dbfile->read_async(
+                extent_offset + current_interval_begin,
+                current_interval_end - current_interval_begin,
+                gc_blocks.get() + current_interval_begin,
+                choose_gc_io_account(),
+                &read_cb);
+
+        // Ok, all reads have been issued. Call `on_io_complete()` once to allow
+        // `read_cb` to be pulsed (see comment above).
+        read_cb.on_io_complete();
     }
+
+    /* Wait for the reads to finish */
+    read_cb.wait_lazily_unordered();
+
+    /* If other forces cause all of the blocks in the extent to become
+    garbage before we even finish GCing it, they will set current_entry
+    to NULL. */
+    if (gc_state->current_entry == NULL) {
+        return;
+    }
+
+    // 2: Rewrite the blocks that are still live
+    std::vector<gc_write_t> gc_writes;
+    {
+        ASSERT_NO_CORO_WAITING;
+
+        const size_t num_writes = gc_state->current_entry->num_live_blocks();
+
+        gc_writes.reserve(num_writes);
+        for (unsigned int i = 0, iend = gc_state->current_entry->num_blocks(); i < iend; ++i) {
+
+            /* We re-check the bit array here in case a write came in for one
+            of the blocks we are GCing. We wouldn't want to overwrite the new
+            valid data with out-of-date data. */
+            if (gc_state->current_entry->block_is_garbage(i)) {
+                continue;
+            }
+
+            ser_buffer_t *block = reinterpret_cast<ser_buffer_t *>(gc_blocks.get()
+                + gc_state->current_entry->relative_offset(i));
+            const int64_t block_offset = gc_state->current_entry->extent_ref.offset()
+                + gc_state->current_entry->relative_offset(i);
+
+            gc_writes.push_back(gc_write_t(block, block_offset,
+                                           gc_state->current_entry->block_size(i)));
+        }
+        guarantee(gc_writes.size() == num_writes);
+    }
+    write_gcs(gc_writes, gc_state);
+
+    /* We need to do this here so that we don't
+    get stuck on the GC treadmill */
+    mark_unyoung_entries();
+
+    /* Our write should have forced all of the blocks in the extent to
+    become garbage, which should have caused the extent to be released
+    and gc_state.current_entry to become NULL. */
+    guarantee(gc_state->current_entry == NULL,
+              "%p: %" PRIu32 " garbage bytes left on the extent, %" PRIu32
+              " index-referenced bytes, %" PRIu32
+              " token-referenced bytes, at offset %" PRIi64
+              ".  block dump:\n%s\n",
+              this,
+              gc_state->current_entry->garbage_bytes(),
+              gc_state->current_entry->index_bytes(),
+              gc_state->current_entry->token_bytes(),
+              gc_state->current_entry->extent_ref.offset(),
+              gc_state->current_entry->format_block_infos("\n").c_str());
+}
+
+void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
+                                     gc_state_t *gc_state) {
+    guarantee(gc_state->current_entry != NULL);
+
+    block_write_cond_t block_write_cond;
+
+    // We acquire block tokens for all the blocks before writing new
+    // version.  The point of this is to make sure the _new_ block is
+    // correctly "alive" when we write it.
+
+    std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
+    old_block_tokens.reserve(writes.size());
+
+    // New block tokens, to hold the return value of
+    // data_block_manager_t::write() instead of immediately discarding the
+    // created token and causing the extent or block to be collected.
+    std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+
+    {
+        // Step 1: Write buffers to disk and assemble index operations
+        ASSERT_NO_CORO_WAITING;
+
+        std::vector<buf_write_info_t> the_writes;
+        the_writes.reserve(writes.size());
+        for (size_t i = 0; i < writes.size(); ++i) {
+            old_block_tokens.push_back(serializer->generate_block_token(writes[i].old_offset,
+                                                                        writes[i].block_size));
+
+            the_writes.push_back(buf_write_info_t(writes[i].buf,
+                                                  writes[i].block_size,
+                                                  writes[i].buf->ser_header.block_id));
+        }
+
+        new_block_tokens = many_writes(the_writes, choose_gc_io_account(),
+                                       &block_write_cond);
+
+        guarantee(new_block_tokens.size() == writes.size());
+    }
+
+    // Step 2: Wait on all writes to finish
+    block_write_cond.wait();
+
+    // We created block tokens for our blocks we're writing, so
+    // there's no way the current entry could have become NULL.
+    guarantee(gc_state->current_entry != NULL);
+
+    std::vector<index_write_op_t> index_write_ops;
+
+    // Step 3: Figure out index ops.  It's important that we do this
+    // now, right before the index_write, so that the updates to the
+    // index are done atomically.
+    {
+        ASSERT_NO_CORO_WAITING;
+
+        for (size_t i = 0; i < writes.size(); ++i) {
+            unsigned int block_index
+                = gc_state->current_entry->block_index(writes[i].old_offset);
+
+            if (gc_state->current_entry->block_referenced_by_index(block_index)) {
+                block_id_t block_id = writes[i].buf->ser_header.block_id;
+
+                index_write_ops.push_back(
+                        index_write_op_t(block_id,
+                                         to_standard_block_token(
+                                                 block_id,
+                                                 new_block_tokens[i])));
+            }
+
+            // (If we don't have an i_array entry, the block is referenced
+            // by a non-negative number of tokens only.  These get tokens
+            // remapped later.)
+        }
+
+        // Step 4A: Remap tokens to new offsets.  It is important
+        // that we do this _before_ calling index_write.
+        // Otherwise, the token_offset map would still point to
+        // the extent we're gcing.  Then somebody could do an
+        // index_write after our index_write starts but before it
+        // returns in Step 4 below, resulting in i_array entries
+        // that point to the current entry.  This should empty out
+        // all the t_array bits.
+        for (size_t i = 0; i < writes.size(); ++i) {
+            serializer->remap_block_to_new_offset(writes[i].old_offset,
+                                                  new_block_tokens[i]->offset());
+        }
+
+        // Step 4A-2: Now that the block tokens have been remapped
+        // to a new offset, destroying these tokens will update
+        // the bits in the t_array of the new offset (if they're
+        // the last token).
+        old_block_tokens.clear();
+        new_block_tokens.clear();
+    }
+
+    // Step 4B: Commit the transaction to the serializer, emptying
+    // out all the i_array bits.
+    new_mutex_in_line_t dummy_acq;
+    serializer->index_write(&dummy_acq, index_write_ops,
+                            choose_gc_io_account());
 }
 
 void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
@@ -1268,7 +1300,7 @@ bool data_block_manager_t::shutdown(data_block_manager::shutdown_callback_t *cb)
     guarantee(state == state_ready);
     state = state_shutting_down;
 
-    if (gc_state.step() != gc_ready) {
+    if (!active_gcs.empty()) {
         shutdown_callback = cb;
         return false;
     } else {
@@ -1404,17 +1436,21 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
 // Answers the following question: We're in the middle of gc'ing, and
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
-// false when the entry is active or young, or when its garbage ratio
-// is lower than GC_THRESHOLD_RATIO_*.
+// false when the garbage ratio is lower than GC_STOP_RATIO.
 bool data_block_manager_t::should_we_keep_gcing() const {
-    return garbage_ratio() > dynamic_config->gc_low_ratio;
+    return garbage_ratio() > GC_STOP_RATIO;
+}
+
+bool data_block_manager_t::should_terminate_one_gc_thread() const {
+    const size_t goal_num_active_gcs = compute_gc_concurrency();
+    return active_gcs.size() > goal_num_active_gcs;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return garbage_ratio() > dynamic_config->gc_high_ratio;
+    return garbage_ratio() > GC_START_RATIO;
 }
 
 bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {
