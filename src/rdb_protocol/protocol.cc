@@ -777,6 +777,7 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, rdb_context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
+    rassert(ctx != NULL);
     rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
