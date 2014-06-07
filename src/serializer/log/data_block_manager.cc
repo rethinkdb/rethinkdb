@@ -43,7 +43,7 @@ const double GC_START_RATIO = 0.15;
 const double GC_STOP_RATIO = 0.1;
 // The ratio at which we start taking more serious measures to get the garbage
 // rate down.
-const double GC_HIGH_RATIO = GC_START_RATIO * 2.0;
+const double GC_HIGH_RATIO = 0.5;
 
 // What's the maximum number of "young" extents we can have?
 const size_t GC_YOUNG_EXTENT_MAX_SIZE = 50;
