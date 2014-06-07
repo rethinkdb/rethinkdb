@@ -171,30 +171,24 @@ js_runner_t *env_t::get_js_runner() {
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
-      extproc_pool(ctx != NULL ? ctx->extproc_pool : NULL),
-      changefeed_client(ctx != NULL && ctx->changefeed_client.has()
-                        ? ctx->changefeed_client.get()
-                        : NULL),
-      reql_http_proxy(ctx != NULL ? ctx->reql_http_proxy : ""),
+      extproc_pool(ctx->extproc_pool),
+      changefeed_client(ctx->changefeed_client.get_or_null()),
+      reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
-          ctx != NULL ? ctx->ns_repo : NULL,
-          ctx != NULL && ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].has() /* RSI */
+          ctx->ns_repo,
+          ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].has() /* RSI */
               ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
               : clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
-          ctx != NULL && ctx->cross_thread_database_watchables[get_thread_id().threadnum].has() /* RSI */
+          ctx->cross_thread_database_watchables[get_thread_id().threadnum].has() /* RSI */
               ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                   ->get_watchable()
               : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-          ctx != NULL
-              ? ctx->cluster_metadata
-              : boost::shared_ptr<
-                    semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+          ctx->cluster_metadata,
           NULL,
-          ctx != NULL ? ctx->machine_id : uuid_u()),
+          ctx->machine_id),
       interruptor(_interruptor),
       eval_callback(NULL) {
-    // RSI: Remove ctx NULL handling, fix caller.
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
 }
