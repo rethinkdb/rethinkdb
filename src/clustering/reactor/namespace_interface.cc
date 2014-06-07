@@ -9,12 +9,15 @@
 
 cluster_namespace_interface_t::cluster_namespace_interface_t(
         mailbox_manager_t *mm,
-        const std::map<key_range_t, machine_id_t> *region_to_primary_,
+        const std::map<namespace_id_t, std::map<key_range_t, machine_id_t> >
+            *region_to_primary_maps_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > > > dv,
+        const namespace_id_t &namespace_id_,
         rdb_context_t *_ctx)
     : mailbox_manager(mm),
-      region_to_primary(region_to_primary_),
+      region_to_primary_maps(region_to_primary_maps_),
       directory_view(dv),
+      namespace_id(namespace_id_),
       ctx(_ctx),
       start_count(0),
       watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
@@ -116,17 +119,21 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                 }
             }
             if (!chosen_relationship) {
-                if (region_to_primary->find(it->first.inner) != region_to_primary->end()) {
-                    std::string mid = uuid_to_str(region_to_primary->find(it->first.inner)->second);
-                    throw cannot_perform_query_exc_t("Master for shard " +
-                                                     key_range_to_string(it->first.inner) +
-                                                     " not available (machine " +
-                                                     mid + " is not ready)");
-                } else {
-                    throw cannot_perform_query_exc_t("Master for shard " +
-                                                     key_range_to_string(it->first.inner) +
-                                                     " not available");
+                auto region_to_primary = region_to_primary_maps->find(namespace_id);
+                if (region_to_primary != region_to_primary_maps->end()) {
+                    auto primary = region_to_primary->second.find(it->first.inner);
+                    if (primary != region_to_primary->second.end()) {
+                        std::string mid = uuid_to_str(primary->second);
+                        // Throw a more specific error if possible
+                        throw cannot_perform_query_exc_t("Master for shard " +
+                                                         key_range_to_string(it->first.inner) +
+                                                         " not available (machine " +
+                                                         mid + " is not ready)");
+                    }
                 }
+                throw cannot_perform_query_exc_t("Master for shard " +
+                                                 key_range_to_string(it->first.inner) +
+                                                 " not available");
             }
             new_op_info->master_access = chosen_relationship->master_access;
             (new_op_info->master_access->*how_to_make_token)(

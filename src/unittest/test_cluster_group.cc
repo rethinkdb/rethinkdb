@@ -21,6 +21,7 @@
 #include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
+#include "containers/uuid.hpp"
 #include "concurrency/watchable.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -277,12 +278,13 @@ std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > test_cluster_group_t::e
 }
 
 void test_cluster_group_t::make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out) {
-    std::map<key_range_t, machine_id_t> region_to_primary;
+    std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > region_to_primary_maps;
     out->init(new cluster_namespace_interface_t(
                       &test_clusters[i].mailbox_manager,
-                      &region_to_primary,
+                      &region_to_primary_maps,
                       (&test_clusters[i])->directory_read_manager.get_root_view()
                       ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional),
+                      generate_uuid(),
                       NULL));
     (*out)->get_initial_ready_signal()->wait_lazily_unordered();
 }

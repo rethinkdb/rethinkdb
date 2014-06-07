@@ -189,8 +189,9 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
 
     cluster_namespace_interface_t namespace_interface(
         mailbox_manager,
-        &((*region_to_primary_maps.get())[namespace_id]),
+        region_to_primary_maps.get(),
         cross_thread_watchable.get_watchable(),
+        namespace_id,
         ctx);
 
     try {
