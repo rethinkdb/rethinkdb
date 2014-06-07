@@ -66,7 +66,7 @@ public:
 
     void construct_all_reactors(const blueprint_t &bp);
 
-    peer_id_t get_peer_id(unsigned i);
+    peer_id_t get_peer_id(size_t i);
 
     blueprint_t compile_blueprint(const std::string& bp);
 
@@ -75,7 +75,7 @@ public:
     static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > extract_reactor_business_cards_no_optional(
             const change_tracking_map_t<peer_id_t, test_cluster_directory_t> &input);
 
-    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t> *out);
+    scoped_ptr_t<cluster_namespace_interface_t> make_namespace_interface(int i);
 
     void run_queries();
 

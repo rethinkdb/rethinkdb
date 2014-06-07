@@ -21,6 +21,7 @@ cluster_namespace_interface_t::cluster_namespace_interface_t(
       ctx(_ctx),
       start_count(0),
       watcher_subscription(new watchable_subscription_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >(std::bind(&cluster_namespace_interface_t::update_registrants, this, false))) {
+    rassert(ctx != NULL);
     {
         watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t> > >::freeze_t freeze(directory_view);
         update_registrants(true);

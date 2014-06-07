@@ -194,13 +194,14 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
           ctx != NULL ? ctx->machine_id : uuid_u()),
       interruptor(_interruptor),
       eval_callback(NULL) {
+    // RSI: Remove ctx NULL handling, fix caller.
+    rassert(ctx != NULL);
     rassert(interruptor != NULL);
 }
 
 
-// Used in constructing the env for unsharding.  Used in constructing the env for
-// rdb_update_single_sindex.  Used in unittest/rdb_btree.cc.  Used in
-// rdb_backfill.cc.
+// Used in constructing the env for rdb_update_single_sindex.  Used in
+// unittest/rdb_btree.cc.  Used in rdb_backfill.cc.
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
