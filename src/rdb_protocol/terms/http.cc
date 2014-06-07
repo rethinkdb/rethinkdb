@@ -630,7 +630,8 @@ void http_term_t::get_data(scope_env_t *env,
         } else {
             rfail_target(this, base_exc_t::GENERIC,
                          "`data` should only be specified on a PUT, POST, PATCH, "
-                         "or DELETE request.");
+                         "or DELETE request.  If you want URL parameters, use "
+                         "`params` instead.");
         }
     }
 }
