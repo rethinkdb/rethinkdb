@@ -431,7 +431,9 @@ void reactor_t::be_primary(region_t region, store_view_t *svs, const clone_ptr_t
         perfmon_collection_t region_perfmon_collection;
         perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
-        broadcaster_t broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, &order_source, &ct_interruptor);
+        broadcaster_t broadcaster(mailbox_manager, ctx, branch_history_manager, svs,
+                                  &region_perfmon_collection, &order_source,
+                                  &ct_interruptor);
 
         on_thread_t th2(this->home_thread());
 

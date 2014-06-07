@@ -39,13 +39,17 @@ static void run_read_write_test() {
 
     /* Set up a branch */
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
+
+    rdb_context_t rdb_context;
+
     cond_t interruptor;
     broadcaster_t broadcaster(cluster.get_mailbox_manager(),
-                                                &branch_history_manager,
-                                                &initial_store,
-                                                &get_global_perfmon_collection(),
-                                                &order_source,
-                                                &interruptor);
+                              &rdb_context,
+                              &branch_history_manager,
+                              &initial_store,
+                              &get_global_perfmon_collection(),
+                              &order_source,
+                              &interruptor);
 
     watchable_variable_t<boost::optional<broadcaster_business_card_t> > broadcaster_metadata_controller(
         boost::optional<broadcaster_business_card_t>(broadcaster.get_business_card()));
@@ -129,13 +133,17 @@ static void run_broadcaster_problem_test() {
 
     /* Set up a branch */
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
+
+    rdb_context_t rdb_context;
+
     cond_t interruptor;
     broadcaster_t broadcaster(cluster.get_mailbox_manager(),
-                                                &branch_history_manager,
-                                                &initial_store,
-                                                &get_global_perfmon_collection(),
-                                                &order_source,
-                                                &interruptor);
+                              &rdb_context,
+                              &branch_history_manager,
+                              &initial_store,
+                              &get_global_perfmon_collection(),
+                              &order_source,
+                              &interruptor);
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_controller(
         boost::optional<boost::optional<broadcaster_business_card_t> >(broadcaster.get_business_card()));

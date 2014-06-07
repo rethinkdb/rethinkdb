@@ -72,11 +72,13 @@ void run_with_broadcaster(
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store(&io_backender, &order_source, &ctx);
+
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t> broadcaster(
         new broadcaster_t(
             cluster.get_mailbox_manager(),
+            &ctx,
             &branch_history_manager,
             &initial_store.store,
             &get_global_perfmon_collection(),

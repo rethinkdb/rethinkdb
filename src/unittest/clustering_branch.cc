@@ -51,9 +51,12 @@ void run_with_broadcaster(
     mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
 
+    rdb_context_t rdb_context;
+
     scoped_ptr_t<broadcaster_t> broadcaster(
         new broadcaster_t(
             cluster.get_mailbox_manager(),
+            &rdb_context,
             &branch_history_manager,
             &initial_store,
             &get_global_perfmon_collection(),
