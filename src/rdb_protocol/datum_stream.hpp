@@ -33,18 +33,24 @@ class env_t;
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
-        namespace_interface_t *internal, env_t *env);
+        namespace_interface_t *internal);
 
-    void read(const read_t &,
+    // RSI: Is interruptor ever not env->interruptor?
+    void read(env_t *env,
+              const read_t &,
               read_response_t *response,
               order_token_t tok,
               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(const read_t &,
+    // RSI: Is interruptor ever not env->interruptor?
+    void read_outdated(env_t *env,
+                       const read_t &,
                        read_response_t *response,
                        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(write_t *,
+    // RSI: Is interruptor ever not env->interruptor?
+    void write(env_t *env,
+               write_t *,
                write_response_t *response,
                order_token_t tok,
                signal_t *interruptor)
@@ -61,18 +67,15 @@ public:
     bool has();
 private:
     namespace_interface_t *internal_;
-    // RSI: Holy shit wtf this env_t field.
-    env_t *env_;
 };
 
 class rdb_namespace_access_t {
 public:
+    // RSI: Split out env_t parameter?
     rdb_namespace_access_t(uuid_u id, env_t *env);
     rdb_namespace_interface_t get_namespace_if();
 private:
     base_namespace_repo_t::access_t internal_;
-    // RSI: Holy shit wtf this env_t field.
-    env_t *env_;
 };
 
 class scope_env_t;
