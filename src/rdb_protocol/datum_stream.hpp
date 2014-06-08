@@ -35,25 +35,19 @@ public:
     rdb_namespace_interface_t(
         namespace_interface_t *internal);
 
-    // RSI: Is interruptor ever not env->interruptor?
     void read(env_t *env,
               const read_t &,
               read_response_t *response,
-              order_token_t tok,
-              signal_t *interruptor)
+              order_token_t tok)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    // RSI: Is interruptor ever not env->interruptor?
     void read_outdated(env_t *env,
                        const read_t &,
-                       read_response_t *response,
-                       signal_t *interruptor)
+                       read_response_t *response)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    // RSI: Is interruptor ever not env->interruptor?
     void write(env_t *env,
                write_t *,
                write_response_t *response,
-               order_token_t tok,
-               signal_t *interruptor)
+               order_token_t tok)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     /* These calls are for the sole purpose of optimizing queries; don't rely

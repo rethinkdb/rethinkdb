@@ -76,7 +76,7 @@ counted_t<const datum_t> table_t::do_batched_write(
         write_t write(std::move(t), durability_requirement, env->profile());
         write_response_t response;
         access->get_namespace_if().write(env, &write, &response,
-                                         order_token_t::ignore, env->interruptor);
+                                         order_token_t::ignore);
         auto dp = boost::get<counted_t<const datum_t> >(&response.response);
         r_sanity_check(dp != NULL);
         return *dp;
@@ -184,8 +184,7 @@ MUST_USE bool table_t::sindex_create(env_t *env,
     write_t write(sindex_create_t(id, wire_func, multi), env->profile());
 
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore,
-                                     env->interruptor);
+    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
 
     sindex_create_response_t *response =
         boost::get<sindex_create_response_t>(&res.response);
@@ -197,8 +196,7 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     write_t write(sindex_drop_t(id), env->profile());
 
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore,
-                                     env->interruptor);
+    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
 
     sindex_drop_response_t *response =
         boost::get<sindex_drop_response_t>(&res.response);
@@ -211,8 +209,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     read_t read(sindex_list, env->profile());
     try {
         read_response_t res;
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore,
-                                        env->interruptor);
+        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
         sindex_list_response_t *s_res =
             boost::get<sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
@@ -236,8 +233,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
     read_t read(sindex_status, env->profile());
     try {
         read_response_t res;
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore,
-                                        env->interruptor);
+        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
         auto s_res = boost::get<sindex_status_response_t>(&res.response);
         r_sanity_check(s_res);
 
@@ -283,8 +279,7 @@ MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
     write_t write(sync_t(), durability_requirement, env->profile());
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore,
-                                     env->interruptor);
+    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
 
     sync_response_t *response = boost::get<sync_response_t>(&res.response);
     r_sanity_check(response);
@@ -298,10 +293,9 @@ counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> p
     read_t read(point_read_t(store_key_t(pks)), env->profile());
     read_response_t res;
     if (use_outdated) {
-        access->get_namespace_if().read_outdated(env, read, &res, env->interruptor);
+        access->get_namespace_if().read_outdated(env, read, &res);
     } else {
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore,
-                                        env->interruptor);
+        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
     }
     point_read_response_t *p_res =
         boost::get<point_read_response_t>(&res.response);
