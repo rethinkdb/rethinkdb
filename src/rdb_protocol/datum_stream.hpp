@@ -64,7 +64,6 @@ private:
 
 class rdb_namespace_access_t {
 public:
-    // RSI: Split out env_t parameter?
     rdb_namespace_access_t(uuid_u id, env_t *env);
     rdb_namespace_interface_t get_namespace_if();
 private:
