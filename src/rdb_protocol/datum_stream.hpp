@@ -32,8 +32,7 @@ class env_t;
  */
 class rdb_namespace_interface_t {
 public:
-    rdb_namespace_interface_t(
-        namespace_interface_t *internal);
+    explicit rdb_namespace_interface_t(namespace_interface_t *internal);
 
     void read(env_t *env,
               const read_t &,
