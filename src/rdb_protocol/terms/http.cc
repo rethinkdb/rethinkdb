@@ -273,11 +273,11 @@ bool http_datum_stream_t::apply_depaginate(env_t *env, const http_result_t &res)
     // Provide an empty OBJECT datum instead of any non-existent arguments
     counted_t<const datum_t> empty = make_counted<const datum_t>(datum_t::R_OBJECT);
     std::map<std::string, counted_t<const datum_t> > arg_obj
-            { { "params", opts.url_params.has() ? opts.url_params : empty },
-              { "header", res.header.has() ? res.header : empty },
-              { "body",   res.body.has() ? res.body : empty } };
+        = { { "params", opts.url_params.has() ? opts.url_params : empty },
+            { "header", res.header.has() ? res.header : empty },
+            { "body", res.body.has() ? res.body : empty } };
     std::vector<counted_t<const datum_t> > args
-        { make_counted<const datum_t>(std::move(arg_obj)) };
+        = { make_counted<const datum_t>(std::move(arg_obj)) };
 
     try {
         counted_t<const datum_t> depage = depaginate_fn->call(env, args)->as_datum();
