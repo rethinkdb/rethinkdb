@@ -71,10 +71,6 @@ signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
     return internal_->get_initial_ready_signal();
 }
 
-bool rdb_namespace_interface_t::has() {
-    return internal_;
-}
-
 rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
     : internal_(env->cluster_access.ns_repo, id, env->interruptor)
 { }

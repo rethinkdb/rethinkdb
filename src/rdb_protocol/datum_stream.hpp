@@ -54,10 +54,7 @@ public:
     std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t);
     signal_t *get_initial_ready_signal();
-    /* Check if the internal value is null. */
-    // RSI: What the fuck can the "internal value", whatever the fuck that is, be
-    // null for?
-    bool has();
+
 private:
     namespace_interface_t *internal_;
 };
