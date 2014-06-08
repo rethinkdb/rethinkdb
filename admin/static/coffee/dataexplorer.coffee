@@ -3342,6 +3342,7 @@ module 'DataExplorerView', ->
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
         no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
         profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
+        escape_template: Handlebars.templates['escape-template']
         primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
         events: ->
@@ -3549,7 +3550,7 @@ module 'DataExplorerView', ->
                                     @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
                                 expandable_columns = []
                 when 'raw'
-                    @.$('.raw_view_textarea').html JSON.stringify @results
+                    @.$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
                     @$('.results').hide()
                     @$('.raw_view_container').show()
                     @expand_raw_textarea()
