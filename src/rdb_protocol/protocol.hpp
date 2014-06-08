@@ -28,6 +28,7 @@
 
 class store_t;
 class buf_lock_t;
+template <class> class clone_ptr_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -40,6 +41,7 @@ class namespaces_semilattice_metadata_t;
 struct secondary_index_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+template <class> class watchable_t;
 class Term;
 class Datum;
 class Backtrace;
@@ -194,12 +196,12 @@ public:
     extproc_pool_t *extproc_pool;
     namespace_repo_t *ns_repo;
 
-    /* These arrays contain a watchable for each thread.
-       i.e. cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > >
-    cross_thread_namespace_watchables;
-    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
-                                      databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+    clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
+    get_namespaces_watchable_or_null();
+
+    clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
+    get_databases_watchable_or_null();
+
     boost::shared_ptr< semilattice_readwrite_view_t<
                            cluster_semilattice_metadata_t> > cluster_metadata;
     boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
@@ -220,6 +222,16 @@ public:
     perfmon_membership_t ql_ops_running_membership;
 
     const std::string reql_http_proxy;
+
+private:
+    /* These arrays contain a watchable for each thread.
+       i.e. cross_thread_namespace_watchables[0] is a watchable for thread 0.  (In
+       the bogus unit testing default-constructed rdb_context_t, these are arrays
+       with empty scoped pointers.) */
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
+
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+
     DISABLE_COPYING(rdb_context_t);
 };
 

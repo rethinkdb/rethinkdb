@@ -176,14 +176,8 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
       reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
           ctx->ns_repo,
-          ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].has() /* RSI */
-              ? ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                  ->get_watchable()
-              : clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
-          ctx->cross_thread_database_watchables[get_thread_id().threadnum].has() /* RSI */
-              ? ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                  ->get_watchable()
-              : clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+          ctx->get_namespaces_watchable_or_null(),
+          ctx->get_databases_watchable_or_null(),
           ctx->cluster_metadata,
           NULL,
           ctx->machine_id),
@@ -309,14 +303,13 @@ scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
                                       signal_t *interruptor,
                                       std::map<std::string, wire_func_t> optargs) {
     rassert(ctx != NULL);
-    const threadnum_t th = get_thread_id();
     return make_scoped<ql::env_t>(
             ctx->extproc_pool,
             ctx->changefeed_client.get_or_null(),
             ctx->reql_http_proxy,
             ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
-            ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
+            ctx->get_namespaces_watchable_or_null(),
+            ctx->get_databases_watchable_or_null(),
             ctx->cluster_metadata,
             ctx->directory_read_manager,
             interruptor,

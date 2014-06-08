@@ -274,10 +274,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
                ctx->reql_http_proxy,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
-                   ->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
-                   ->get_watchable(),
+               ctx->get_namespaces_watchable_or_null(),
+               ctx->get_databases_watchable_or_null(),
                ctx->cluster_metadata,
                &interruptor,
                ctx->machine_id)
@@ -491,8 +489,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
                ctx->reql_http_proxy,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
+               ctx->get_namespaces_watchable_or_null(),
+               ctx->get_databases_watchable_or_null(),
                ctx->cluster_metadata,
                &interruptor,
                ctx->machine_id) {

@@ -339,8 +339,6 @@ void add_status(const single_sindex_status_t &new_status,
 rdb_context_t::rdb_context_t()
     : extproc_pool(NULL),
       ns_repo(NULL),
-      cross_thread_namespace_watchables(get_num_threads()),
-      cross_thread_database_watchables(get_num_threads()),
       directory_read_manager(NULL),
       signals(get_num_threads()),
       manager(NULL),
@@ -348,7 +346,9 @@ rdb_context_t::rdb_context_t()
       ql_stats_membership(
           &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy()
+      reql_http_proxy(),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads())
 { }
 
 rdb_context_t::rdb_context_t(
@@ -365,8 +365,6 @@ rdb_context_t::rdb_context_t(
     perfmon_collection_t *global_stats,
     const std::string &_reql_http_proxy)
     : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
-      cross_thread_namespace_watchables(get_num_threads()),
-      cross_thread_database_watchables(get_num_threads()),
       cluster_metadata(_cluster_metadata),
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
@@ -378,7 +376,9 @@ rdb_context_t::rdb_context_t(
                         : scoped_ptr_t<ql::changefeed::client_t>()),
       ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
-      reql_http_proxy(_reql_http_proxy)
+      reql_http_proxy(_reql_http_proxy),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads())
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
@@ -396,6 +396,24 @@ rdb_context_t::rdb_context_t(
 }
 
 rdb_context_t::~rdb_context_t() { }
+
+clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
+rdb_context_t::get_namespaces_watchable_or_null() {
+    int threadnum = get_thread_id().threadnum;
+    return cross_thread_namespace_watchables[threadnum].has()
+        ? cross_thread_namespace_watchables[threadnum]->get_watchable()
+        : clone_ptr_t< watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >();
+}
+
+clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
+rdb_context_t::get_databases_watchable_or_null() {
+    int threadnum = get_thread_id().threadnum;
+    return cross_thread_database_watchables[threadnum].has()
+        ? cross_thread_database_watchables[threadnum]->get_watchable()
+        : clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >();
+}
+
+
 
 namespace rdb_protocol {
 // Construct a region containing only the specified key
