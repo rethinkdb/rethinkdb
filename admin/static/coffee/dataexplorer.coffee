@@ -89,7 +89,6 @@ module 'DataExplorerView', ->
         clear_history_view: (event) =>
             that = @
             @clear_history() # Delete from localstorage
-            @history_view.history = @history
 
             @history_view.clear_history event
 
@@ -2989,7 +2988,7 @@ module 'DataExplorerView', ->
                 if /^(http|https):\/\/[^\s]+$/i.test(value)
                     return @template_json_tree.url
                         url: value
-                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
                     return @template_json_tree.email
                         email: value
                 else
@@ -3343,6 +3342,7 @@ module 'DataExplorerView', ->
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
         no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
         profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
+        escape_template: Handlebars.templates['escape-template']
         primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
         events: ->
@@ -3550,7 +3550,7 @@ module 'DataExplorerView', ->
                                     @$('.value-'+expandable_columns[0]['col']).css 'max-width', current_size+max_size-20
                                 expandable_columns = []
                 when 'raw'
-                    @.$('.raw_view_textarea').html JSON.stringify @results
+                    @.$('.raw_view_textarea').html @escape_template(JSON.stringify(@results))
                     @$('.results').hide()
                     @$('.raw_view_container').show()
                     @expand_raw_textarea()
@@ -3757,7 +3757,7 @@ module 'DataExplorerView', ->
             that = @
             event.preventDefault()
             @container.clear_history()
-            @history = @container.history
+            @history = @container.state.history
 
             @$('.query_history').slideUp 'fast', ->
                 $(@).remove()

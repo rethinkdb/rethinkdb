@@ -151,6 +151,7 @@ module 'NamespaceView', ->
         render: =>
             @.$el.html @template
                 name: @name
+                db: databases.get(@model.get('database')).get 'name'
             return @
 
         destroy: =>
