@@ -70,7 +70,9 @@ public:
 
     // This field can be NULL.  Importantly, this field is NULL everywhere except in
     // the parser's env_t.  This is because you "cannot nest meta operations inside
-    // queries."  RSI: What does that even mean?
+    // queries" -- as meta_write_op_t will complain.  However, term_walker.cc is what
+    // actually enforces this property.  RSI: Make this field always be non-NULL, and
+    // rely on term_walker.cc's enforcement.
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
 
