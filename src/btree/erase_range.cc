@@ -52,6 +52,8 @@ public:
 
         scoped_malloc_t<char> value(sizer_->max_possible_size());
 
+        int population_change = 0;
+
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             if (stop_erasing_) {
                 break;
@@ -70,8 +72,10 @@ public:
             deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
-            -- *population_change_out;
+            --population_change;
         }
+
+        *population_change_out = population_change;
     }
 
     void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {

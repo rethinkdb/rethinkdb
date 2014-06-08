@@ -299,7 +299,7 @@ void mock_store_t::receive_backfill(
     }
 }
 
-void mock_store_t::throttle_backfill_chunk(signal_t *)
+void mock_store_t::throttle_backfill_chunk(UNUSED signal_t *signal)
         THROWS_ONLY(interrupted_exc_t) { }
 
 void mock_store_t::reset_data(

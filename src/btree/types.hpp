@@ -26,4 +26,4 @@ public:
 
 enum release_superblock_t {RELEASE, KEEP};
 
-#endif	/* BTREE_TYPES_HPP_ */
+#endif /* BTREE_TYPES_HPP_ */
