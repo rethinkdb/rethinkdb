@@ -2988,7 +2988,7 @@ module 'DataExplorerView', ->
                 if /^(http|https):\/\/[^\s]+$/i.test(value)
                     return @template_json_tree.url
                         url: value
-                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
                     return @template_json_tree.email
                         email: value
                 else
