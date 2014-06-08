@@ -107,7 +107,7 @@ module 'NamespaceView', ->
                         machine.num_keys = 0
 
                     # Update the info for the machine
-                    machine.num_keys += parseInt(keys) if typeof keys is 'string'
+                    machine.num_keys += parseInt(keys) if role isnt 'role_nothing' and typeof keys is 'string'
                     machine.num_primaries += 1 if role is 'role_primary'
                     machine.num_secondaries += 1 if role is 'role_secondary'
                     machine.shards.push
