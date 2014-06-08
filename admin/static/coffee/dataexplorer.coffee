@@ -89,7 +89,6 @@ module 'DataExplorerView', ->
         clear_history_view: (event) =>
             that = @
             @clear_history() # Delete from localstorage
-            @history_view.history = @history
 
             @history_view.clear_history event
 
@@ -3757,7 +3756,7 @@ module 'DataExplorerView', ->
             that = @
             event.preventDefault()
             @container.clear_history()
-            @history = @container.history
+            @history = @container.state.history
 
             @$('.query_history').slideUp 'fast', ->
                 $(@).remove()
