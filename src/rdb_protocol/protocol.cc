@@ -612,7 +612,7 @@ public:
                             rdb_context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
-          env(ctx, interruptor) { }
+          env(ctx, interruptor, std::map<std::string, ql::wire_func_t>()) { }
 
     void operator()(const point_read_t &);
 

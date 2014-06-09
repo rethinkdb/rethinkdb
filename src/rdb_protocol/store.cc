@@ -270,7 +270,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         store(_store),
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx, &interruptor)
+        ql_env(ctx, &interruptor, std::map<std::string, ql::wire_func_t>())
     { }
 
     ql::env_t *get_env() {
@@ -477,7 +477,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx, &interruptor) {
+        ql_env(ctx, &interruptor, std::map<std::string, ql::wire_func_t>()) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());

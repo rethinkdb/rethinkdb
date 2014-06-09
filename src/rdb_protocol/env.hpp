@@ -109,8 +109,6 @@ public:
         signal_t *_interruptor,
         uuid_u _this_machine);
 
-    env_t(rdb_context_t *ctx, signal_t *interruptor);
-
     env_t(rdb_context_t *ctx, signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs);
 

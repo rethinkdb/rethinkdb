@@ -167,27 +167,6 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
-// Used in constructing the env for unsharding.
-// RSI: Redundant.
-env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
-    : evals_since_yield(0),
-      global_optargs(),
-      extproc_pool(ctx->extproc_pool),
-      changefeed_client(ctx->changefeed_client.get_or_null()),
-      reql_http_proxy(ctx->reql_http_proxy),
-      cluster_access(
-          ctx->ns_repo,
-          ctx->get_namespaces_watchable_or_null(),
-          ctx->get_databases_watchable_or_null(),
-          ctx->cluster_metadata,
-          ctx->directory_read_manager,
-          ctx->machine_id),
-      interruptor(_interruptor),
-      eval_callback(NULL) {
-    rassert(ctx != NULL);
-    rassert(interruptor != NULL);
-}
-
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs)
     : evals_since_yield(0),
@@ -209,8 +188,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 }
 
 
-// Used in constructing the env for rdb_update_single_sindex.  Used in
-// unittest/rdb_btree.cc.  Used in unittest/rdb_backfill.cc.
+// Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),

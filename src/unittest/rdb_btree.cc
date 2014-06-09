@@ -220,7 +220,7 @@ void _check_keys_are_present(store_t *store,
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
          * which prevents to profiling code from crashing. */
-        ql::env_t dummy_env(NULL, &dummy_interruptor);
+        ql::env_t dummy_env(&dummy_interruptor);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
@@ -291,8 +291,8 @@ void _check_keys_are_NOT_present(store_t *store,
         rget_read_response_t res;
         double ii = i * i;
         /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
-         * which prevents the profiling code from crashing. */
-        ql::env_t dummy_env(NULL, &dummy_interruptor);
+           which prevents the profiling code from crashing. */
+        ql::env_t dummy_env(&dummy_interruptor);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_uuid),
             rdb_protocol::sindex_key_range(
