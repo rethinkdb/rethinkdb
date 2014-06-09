@@ -33,8 +33,7 @@ void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n)
                 // ASCII dependency here
                 buf->appendf("%c", ch);
             } else {
-                const char *table = "0123456789ABCDEF";
-                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
+                buf->appendf("\\x%02x", ch);
             }
             break;
         }
