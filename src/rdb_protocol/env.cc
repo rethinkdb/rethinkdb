@@ -219,10 +219,9 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     }
 }
 
-// Called by unittest/rdb_env.cc, with a NULL changefeed_client.
+// Called by unittest/rdb_env.cc.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
-    changefeed::client_t *_changefeed_client,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
     clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
@@ -236,7 +235,7 @@ env_t::env_t(
   : evals_since_yield(0),
     global_optargs(),
     extproc_pool(_extproc_pool),
-    changefeed_client(_changefeed_client),
+    changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,

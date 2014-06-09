@@ -95,7 +95,6 @@ class env_t : public home_thread_mixin_t {
 public:
     env_t(
         extproc_pool_t *_extproc_pool,
-        changefeed::client_t *_changefeed_client,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
