@@ -18,9 +18,11 @@ void stream_cache_t::insert(int64_t key,
                             counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
-            key, new entry_t(time(0), use_json,
+            key, new entry_t(time(0),
+                             use_json,
                              std::move(global_optargs),
-                             profile_requested, val_stream));
+                             profile_requested,
+                             val_stream));
     guarantee(res.second);
 }
 

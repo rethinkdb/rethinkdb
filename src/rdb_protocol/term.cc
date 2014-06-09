@@ -251,9 +251,11 @@ void run(protob_t<Query> q,
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache->insert(token, use_json,
+                    stream_cache->insert(token,
+                                         use_json,
                                          env.global_optargs.get_all_optargs(),
-                                         profile, seq);
+                                         profile,
+                                         seq);
                     bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
