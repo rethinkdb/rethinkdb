@@ -2354,7 +2354,7 @@ module 'DataExplorerView', ->
                     if database.get('name') is db_name
                         return {
                             db_found: true
-                            error: false
+                            error
                             id: database.get('id')
                             name: db_name
                         }
@@ -2369,9 +2369,10 @@ module 'DataExplorerView', ->
             @skip_value += @current_results.length
             try
                 @current_results = []
-                if @extra_row isnt undefined
-                    @current_results.push @extra_row
-                    @extra_row = undefined
+
+                # If the user can show more results, it means that we have buffer one row, so we put it back in @current_results
+                @current_results.push @extra_row
+                @extra_row = undefined
 
                 @start_time = new Date()
 
@@ -2535,7 +2536,7 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if typeof cursor._next is 'function'
+                        if typeof cursor._next is 'function' # If the result is a cursor
                             @state.cursor = cursor
                             @state.cursor.next get_result_callback
                         else
@@ -2585,6 +2586,7 @@ module 'DataExplorerView', ->
                             @current_results.push data
                             @state.cursor.next get_result_callback
                         else if @current_results.length is @limit
+                            # We buffer one row to be able to tell if there are more results or not
                             @extra_row = data
                             get_result_callback() # Display results
                         return true
@@ -2599,7 +2601,7 @@ module 'DataExplorerView', ->
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: @extra_row isnt undefined
+                        has_more_data: @extra_row isnt undefined # If we could buffer one more row, it means that there are more results available
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
