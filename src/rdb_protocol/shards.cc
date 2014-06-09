@@ -182,8 +182,8 @@ private:
     batcher_t *const batcher;
 };
 
-accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher) {
-    return new append_t(sorting, batcher);
+scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher) {
+    return make_scoped<append_t>(sorting, batcher);
 }
 
 // This can't be a normal terminal because it wouldn't preserve ordering.
@@ -249,8 +249,8 @@ private:
     size_t size;
 };
 
-eager_acc_t *make_to_array() {
-    return new to_array_t();
+scoped_ptr_t<eager_acc_t> make_to_array() {
+    return make_scoped<to_array_t>();
 }
 
 template<class T>
@@ -558,12 +558,14 @@ public:
     env_t *env;
 };
 
-accumulator_t *make_terminal(env_t *env, const terminal_variant_t &t) {
-    return boost::apply_visitor(terminal_visitor_t<accumulator_t>(env), t);
+scoped_ptr_t<accumulator_t> make_terminal(env_t *env, const terminal_variant_t &t) {
+    return scoped_ptr_t<accumulator_t>(
+            boost::apply_visitor(terminal_visitor_t<accumulator_t>(env), t));
 }
 
-eager_acc_t *make_eager_terminal(env_t *env, const terminal_variant_t &t) {
-    return boost::apply_visitor(terminal_visitor_t<eager_acc_t>(env), t);
+scoped_ptr_t<eager_acc_t> make_eager_terminal(env_t *env, const terminal_variant_t &t) {
+    return scoped_ptr_t<eager_acc_t>(
+            boost::apply_visitor(terminal_visitor_t<eager_acc_t>(env), t));
 }
 
 class ungrouped_op_t : public op_t {
@@ -788,8 +790,8 @@ private:
     env_t *env;
 };
 
-op_t *make_op(env_t *env, const transform_variant_t &tv) {
-    return boost::apply_visitor(transform_visitor_t(env), tv);
+scoped_ptr_t<op_t> make_op(env_t *env, const transform_variant_t &tv) {
+    return scoped_ptr_t<op_t>(boost::apply_visitor(transform_visitor_t(env), tv));
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3(rget_item_t, key, empty_ok(sindex_key), data);

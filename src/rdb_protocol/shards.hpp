@@ -271,17 +271,14 @@ public:
         protob_t<const Backtrace> bt, bool is_grouped) = 0;
 };
 
-// Make sure to put these right into a scoped pointer.
-accumulator_t *make_append(const sorting_t &sorting, batcher_t *batcher);
-//                                           NULL if unsharding ^^^^^^^
-accumulator_t *make_terminal(
-    ql::env_t *env, const terminal_variant_t &t);
+scoped_ptr_t<accumulator_t> make_append(const sorting_t &sorting, batcher_t *batcher);
+//                                                        NULL if unsharding ^^^^^^^
+scoped_ptr_t<accumulator_t> make_terminal(ql::env_t *env, const terminal_variant_t &t);
 
-eager_acc_t *make_to_array();
-eager_acc_t *make_eager_terminal(
-    ql::env_t *env, const terminal_variant_t &t);
+scoped_ptr_t<eager_acc_t> make_to_array();
+scoped_ptr_t<eager_acc_t> make_eager_terminal(ql::env_t *env, const terminal_variant_t &t);
 
-op_t *make_op(env_t *env, const transform_variant_t &tv);
+scoped_ptr_t<op_t> make_op(env_t *env, const transform_variant_t &tv);
 
 } // namespace ql
 

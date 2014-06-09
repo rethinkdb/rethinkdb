@@ -772,7 +772,7 @@ public:
                       ? ql::make_terminal(env, *_terminal)
                       : ql::make_append(sorting, &batcher)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers.emplace_back(ql::make_op(env, _transforms[i]));
+            transformers.push_back(ql::make_op(env, _transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }

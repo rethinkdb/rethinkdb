@@ -528,7 +528,7 @@ counted_t<val_t> datum_stream_t::run_terminal(
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc(make_to_array());
+    scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped());
 }
@@ -606,7 +606,7 @@ bool datum_stream_t::batch_cache_exhausted() const {
 
 void eager_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    ops.emplace_back(make_op(env, std::move(tv)));
+    ops.push_back(make_op(env, std::move(tv)));
     update_bt(bt);
 }
 
