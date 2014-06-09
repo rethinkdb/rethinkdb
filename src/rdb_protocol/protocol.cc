@@ -340,7 +340,6 @@ rdb_context_t::rdb_context_t()
     : extproc_pool(NULL),
       ns_repo(NULL),
       directory_read_manager(NULL),
-      signals(get_num_threads()),
       manager(NULL),
       changefeed_client(NULL),
       ql_stats_membership(
@@ -368,7 +367,6 @@ rdb_context_t::rdb_context_t(
       cluster_metadata(_cluster_metadata),
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
-      signals(get_num_threads()),
       machine_id(_machine_id),
       manager(mailbox_manager),
       changefeed_client(manager
@@ -391,7 +389,6 @@ rdb_context_t::rdb_context_t(
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
                                                             metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
 
-        signals[thread].init(new cross_thread_signal_t(&interruptor, threadnum_t(thread)));
     }
 }
 

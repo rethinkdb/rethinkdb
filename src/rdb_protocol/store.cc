@@ -264,13 +264,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        read_response_t *_response,
                        profile_bool_t,  /* Unused because profiling is disabled this
                                            release. */
-                       signal_t *_interruptor) :
+                       signal_t *interruptor) :
         response(_response),
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx, &interruptor, std::map<std::string, ql::wire_func_t>())
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>())
     { }
 
     ql::env_t *get_env() {
@@ -286,11 +285,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    read_response_t *response;
-    btree_slice_t *btree;
-    store_t *store;
-    superblock_t *superblock;
-    wait_any_t interruptor;
+    read_response_t *const response;
+    btree_slice_t *const btree;
+    store_t *const store;
+    superblock_t *const superblock;
     ql::env_t ql_env;
 
     DISABLE_COPYING(rdb_read_visitor_t);
@@ -469,15 +467,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         repli_timestamp_t _timestamp,
                         rdb_context_t *ctx,
                         write_response_t *_response,
-                        signal_t *_interruptor) :
+                        signal_t *interruptor) :
         btree(_btree),
         store(_store),
         txn(_txn),
         response(_response),
         superblock(_superblock),
         timestamp(_timestamp),
-        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx, &interruptor, std::map<std::string, ql::wire_func_t>()) {
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>()) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
@@ -505,13 +502,12 @@ private:
                                true /* release_sindex_block */);
     }
 
-    btree_slice_t *btree;
-    store_t *store;
-    txn_t *txn;
-    write_response_t *response;
-    scoped_ptr_t<superblock_t> *superblock;
-    repli_timestamp_t timestamp;
-    wait_any_t interruptor;
+    btree_slice_t *const btree;
+    store_t *const store;
+    txn_t *const txn;
+    write_response_t *const response;
+    scoped_ptr_t<superblock_t> *const superblock;
+    const repli_timestamp_t timestamp;
     ql::env_t ql_env;
     buf_lock_t sindex_block;
 
