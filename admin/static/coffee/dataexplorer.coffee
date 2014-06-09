@@ -2582,12 +2582,11 @@ module 'DataExplorerView', ->
                             return false
 
                     if data isnt undefined
-                        if @current_results.length < @limit
+                        if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
                             @current_results.push data
                             @state.cursor.next get_result_callback
-                        else if @current_results.length is @limit
-                            # We buffer one row to be able to tell if there are more results or not
-                            @extra_row = data
+                        else if @current_results.length is @limit # If we have enough result, we still want to know if there are more results available
+                            @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
                             get_result_callback() # Display results
                         return true
 
