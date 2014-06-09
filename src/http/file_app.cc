@@ -8,6 +8,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "debug.hpp"
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "containers/archive/file_stream.hpp"
 #include "http/file_app.hpp"
@@ -27,7 +28,12 @@ void file_http_app_t::handle(const http_req_t &req, http_res_t *result, signal_t
 
     std::string resource(req.resource.as_string());
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
-        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
+        printf_buffer_t resource_buffer;
+        debug_print_quoted_string(&resource_buffer,
+                                  reinterpret_cast<const uint8_t *>(resource.data()),
+                                  resource.length());
+        logINF("Someone asked for the nonwhitelisted file %s.  If this should be "
+               "accessible, add it to the whitelist.", resource_buffer.c_str());
         *result = http_res_t(HTTP_FORBIDDEN);
         return;
     }
