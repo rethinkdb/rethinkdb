@@ -116,6 +116,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const rget_read_t &rget) {
         if (rget.transforms.size() != 0 || rget.terminal) {
+            // This asserts that the optargs have been initialized.  (There is always
+            // a 'db' optarg.)  We have the same assertion in
+            // rdb_r_unshard_visitor_t.
             rassert(rget.optargs.size() != 0);
         }
         ql_env.global_optargs.init_optargs(rget.optargs);
