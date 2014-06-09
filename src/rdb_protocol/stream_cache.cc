@@ -39,17 +39,15 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        scoped_ptr_t<env_t> env = make_complete_env(rdb_ctx,
-                                                    interruptor,
-                                                    entry->global_optargs);
+        env_t env(rdb_ctx, interruptor, entry->global_optargs);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
                                       : batch_type_t::NORMAL_FIRST;
         std::vector<counted_t<const datum_t> > ds
             = entry->stream->next_batch(
-                env.get(),
-                batchspec_t::user(batch_type, env.get()));
+                &env,
+                batchspec_t::user(batch_type, &env));
         entry->has_sent_batch = true;
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);

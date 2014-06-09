@@ -193,8 +193,7 @@ void run(protob_t<Query> q,
     switch (q->type()) {
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
-        scoped_ptr_t<ql::env_t> env = make_complete_env(ctx, interruptor,
-                                                        global_optargs(q));
+        env_t env(ctx, interruptor, global_optargs(q));
 
         counted_t<term_t> root_term;
         try {
@@ -223,7 +222,7 @@ void run(protob_t<Query> q,
         }
 
         try {
-            scope_env_t scope_env(env.get(), var_scope_t());
+            scope_env_t scope_env(&env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
@@ -243,8 +242,8 @@ void run(protob_t<Query> q,
                         res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                counted_t<datum_stream_t> seq = val->as_seq(env.get());
-                if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
+                counted_t<datum_stream_t> seq = val->as_seq(&env);
+                if (counted_t<const datum_t> arr = seq->as_array(&env)) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
                     if (profile == profile_bool_t::PROFILE) {
@@ -253,7 +252,7 @@ void run(protob_t<Query> q,
                     }
                 } else {
                     stream_cache->insert(token, use_json,
-                                         env->global_optargs.get_all_optargs(),
+                                         env.global_optargs.get_all_optargs(),
                                          profile, seq);
                     bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);

@@ -129,6 +129,9 @@ public:
 
     env_t(rdb_context_t *ctx, signal_t *interruptor);
 
+    env_t(rdb_context_t *ctx, signal_t *interruptor,
+          std::map<std::string, wire_func_t> optargs);
+
     explicit env_t(signal_t *interruptor);
 
     ~env_t();
@@ -214,9 +217,6 @@ public:
     DISABLE_COPYING(scope_env_t);
 };
 
-scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
-                                      signal_t *interruptor,
-                                      std::map<std::string, wire_func_t> optargs);
 }  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_

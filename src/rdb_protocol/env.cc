@@ -168,6 +168,7 @@ js_runner_t *env_t::get_js_runner() {
 }
 
 // Used in constructing the env for unsharding.
+// RSI: Redundant.
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
@@ -179,7 +180,27 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
           ctx->get_namespaces_watchable_or_null(),
           ctx->get_databases_watchable_or_null(),
           ctx->cluster_metadata,
-          NULL,
+          ctx->directory_read_manager,
+          ctx->machine_id),
+      interruptor(_interruptor),
+      eval_callback(NULL) {
+    rassert(ctx != NULL);
+    rassert(interruptor != NULL);
+}
+
+env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
+             std::map<std::string, wire_func_t> optargs)
+    : evals_since_yield(0),
+      global_optargs(std::move(optargs)),
+      extproc_pool(ctx->extproc_pool),
+      changefeed_client(ctx->changefeed_client.get_or_null()),
+      reql_http_proxy(ctx->reql_http_proxy),
+      cluster_access(
+          ctx->ns_repo,
+          ctx->get_namespaces_watchable_or_null(),
+          ctx->get_databases_watchable_or_null(),
+          ctx->cluster_metadata,
+          ctx->directory_read_manager,
           ctx->machine_id),
       interruptor(_interruptor),
       eval_callback(NULL) {
@@ -189,7 +210,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
 
 
 // Used in constructing the env for rdb_update_single_sindex.  Used in
-// unittest/rdb_btree.cc.  Used in rdb_backfill.cc.
+// unittest/rdb_btree.cc.  Used in unittest/rdb_backfill.cc.
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
@@ -295,26 +316,5 @@ void env_t::maybe_yield() {
     }
 }
 
-// Constructs a fully-functional env_t, for use in term.cc and stream cache code.
-// (Eventually this should be a constructor.  The env_t constructor that takes an
-// rdb_context_t currently uses NULL instead of the directory_read_manager for some
-// reason, and I'm in too much of a rush to figure out why.)
-scoped_ptr_t<env_t> make_complete_env(rdb_context_t *ctx,
-                                      signal_t *interruptor,
-                                      std::map<std::string, wire_func_t> optargs) {
-    rassert(ctx != NULL);
-    return make_scoped<ql::env_t>(
-            ctx->extproc_pool,
-            ctx->changefeed_client.get_or_null(),
-            ctx->reql_http_proxy,
-            ctx->ns_repo,
-            ctx->get_namespaces_watchable_or_null(),
-            ctx->get_databases_watchable_or_null(),
-            ctx->cluster_metadata,
-            ctx->directory_read_manager,
-            interruptor,
-            ctx->machine_id,
-            std::move(optargs));
-}
 
 } // namespace ql
