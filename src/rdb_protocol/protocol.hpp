@@ -193,14 +193,14 @@ public:
                   const std::string &_reql_http_proxy);
     ~rdb_context_t();
 
-    extproc_pool_t *extproc_pool;
-    namespace_repo_t *ns_repo;
-
     clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
     get_namespaces_watchable_or_null();
 
     clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
     get_databases_watchable_or_null();
+
+    extproc_pool_t *extproc_pool;
+    namespace_repo_t *ns_repo;
 
     boost::shared_ptr< semilattice_readwrite_view_t<
                            cluster_semilattice_metadata_t> > cluster_metadata;
