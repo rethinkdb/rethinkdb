@@ -1,9 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/data_block_manager.hpp"
 
-#include <functional>
 #include <inttypes.h>
 #include <sys/uio.h>
+
+#include <functional>
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
