@@ -111,7 +111,7 @@ void pool_diskmgr_t::action_t::run() {
                 // We set the io_result to be -ENOSPC and print an error stating
                 // what actually happened.
                 io_result = -ENOSPC;
-                logERR("Failed I/O: lensum (%" PRIi64 ") != res (%" PRIi64 ")."
+                logERR("Failed I/O: lensum (%" PRIi64 ") != res (%zd)."
                        " Assuming we ran out of disk space.", lensum, res);
                 return;
             }
