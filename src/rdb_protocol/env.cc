@@ -241,40 +241,6 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     }
 }
 
-// Called by run (in term.cc, the parser's query-running method).  This time _with_ a
-// directory_read_manager.
-env_t::env_t(
-    extproc_pool_t *_extproc_pool,
-    changefeed::client_t *_changefeed_client,
-    const std::string &_reql_http_proxy,
-    base_namespace_repo_t *_ns_repo,
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-        _namespaces_semilattice_metadata,
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-        _databases_semilattice_metadata,
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        _semilattice_metadata,
-    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-    signal_t *_interruptor,
-    uuid_u _this_machine,
-    std::map<std::string, wire_func_t> optargs)
-  : evals_since_yield(0),
-    global_optargs(std::move(optargs)),
-    extproc_pool(_extproc_pool),
-    changefeed_client(_changefeed_client),
-    reql_http_proxy(_reql_http_proxy),
-    cluster_access(_ns_repo,
-                   _namespaces_semilattice_metadata,
-                   _databases_semilattice_metadata,
-                   _semilattice_metadata,
-                   _directory_read_manager,
-                   _this_machine),
-    interruptor(_interruptor),
-    trace(),
-    eval_callback(NULL) {
-    rassert(interruptor != NULL);
-}
-
 // Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
 // Christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
 // changefeed_client.  Used to construct the env on the store_t (for reads).

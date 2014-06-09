@@ -106,24 +106,6 @@ public:
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        signal_t *_interruptor,
-        uuid_u _this_machine,
-        std::map<std::string, wire_func_t> optargs);
-
-    env_t(
-        extproc_pool_t *_extproc_pool,
-        changefeed::client_t *_changefeed_client,
-        const std::string &_reql_http_proxy,
-        base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
         signal_t *_interruptor,
         uuid_u _this_machine);
 
