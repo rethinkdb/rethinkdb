@@ -349,7 +349,7 @@ ql::env_t *test_rdb_env_t::instance_t::get() {
     return env.get();
 }
 
-std::map<store_key_t, scoped_cJSON_t*>* test_rdb_env_t::instance_t::get_data(const namespace_id_t &ns_id) {
+std::map<store_key_t, scoped_cJSON_t *> *test_rdb_env_t::instance_t::get_data(const namespace_id_t &ns_id) {
     mock_namespace_interface_t *ns_if = rdb_ns_repo.get_ns_if(ns_id);
     guarantee(ns_if != NULL);
     return ns_if->get_data();
