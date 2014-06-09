@@ -2369,6 +2369,10 @@ module 'DataExplorerView', ->
             @skip_value += @current_results.length
             try
                 @current_results = []
+                if @extra_row isnt undefined
+                    @current_results.push @extra_row
+                    @extra_row = undefined
+
                 @start_time = new Date()
 
                 @id_execution++
@@ -2518,7 +2522,6 @@ module 'DataExplorerView', ->
                         @save_query
                             query: @raw_query
                             broken_query: true
-
                         return false
 
                     if results?.profile? and @state.last_query_has_profile is true
@@ -2532,12 +2535,9 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor?.hasNext?
+                        if typeof cursor._next is 'function'
                             @state.cursor = cursor
-                            if cursor.hasNext() is true
-                                @state.cursor.next get_result_callback
-                            else
-                                get_result_callback() # Display results
+                            @state.cursor.next get_result_callback
                         else
                             @toggle_executing false
 
@@ -2573,17 +2573,21 @@ module 'DataExplorerView', ->
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
                     if error?
-                        if @queries.length > 1
-                            @results_view.render_error(@query, error)
-                        else
-                            @results_view.render_error(null, error)
-                        return false
+                        if error.message isnt 'No more rows in the cursor.'
+                            if @queries.length > 1
+                                @results_view.render_error(@query, error)
+                            else
+                                @results_view.render_error(null, error)
+                            return false
 
                     if data isnt undefined
-                        @current_results.push data
-                        if @current_results.length < @limit and @state.cursor.hasNext() is true
+                        if @current_results.length < @limit
+                            @current_results.push data
                             @state.cursor.next get_result_callback
-                            return true
+                        else if @current_results.length is @limit
+                            @extra_row = data
+                            get_result_callback() # Display results
+                        return true
 
                     @toggle_executing false
 
@@ -2595,7 +2599,7 @@ module 'DataExplorerView', ->
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: @state.cursor.hasNext()
+                        has_more_data: @extra_row isnt undefined
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
