@@ -219,9 +219,7 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     }
 }
 
-// Called by rdb_write_visitor_t, with a _possibly_ NULL changefeed client (fucking
-// Christ, what the fuck is this shit).  Called by unittest/rdb_env.cc, with a NULL
-// changefeed_client.  Used to construct the env on the store_t (for reads).
+// Called by unittest/rdb_env.cc, with a NULL changefeed_client.
 env_t::env_t(
     extproc_pool_t *_extproc_pool,
     changefeed::client_t *_changefeed_client,
