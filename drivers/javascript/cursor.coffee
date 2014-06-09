@@ -143,7 +143,7 @@ class IterableResult
 
     ## Implement IterableResult
     hasNext: ->
-        throw new err.RqlDriverError "The `hasNext` has been removed since 1.13. Use `next` instead."
+        throw new err.RqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
 
     _next: varar 0, 1, (cb) ->
         fn = (cb) =>
