@@ -651,6 +651,13 @@ void rdb_r_unshard_visitor_t::operator()(const point_read_t &) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
+    if (rg.transforms.size() != 0 || rg.terminal) {
+        // This asserts that the optargs have been initialized.  (There is always a
+        // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
+        rassert(rg.optargs.size() != 0);
+    }
+    env.global_optargs.init_optargs(rg.optargs);
+
     // Initialize response.
     response_out->response = rget_read_response_t();
     auto out = boost::get<rget_read_response_t>(&response_out->response);
