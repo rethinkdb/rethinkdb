@@ -2370,7 +2370,7 @@ module 'DataExplorerView', ->
             try
                 @current_results = []
 
-                # If the user can show more results, it means that we have buffer one row, so we put it back in @current_results
+                # If there are more results to show, we had to buffer one row, so we add that one extra row to the current results
                 @current_results.push @extra_row
                 @extra_row = undefined
 
@@ -2585,7 +2585,7 @@ module 'DataExplorerView', ->
                         if @current_results.length < @limit # We display @limit results per page, if we don't have enough, we keep requesting more
                             @current_results.push data
                             @state.cursor.next get_result_callback
-                        else if @current_results.length is @limit # If we have enough result, we still want to know if there are more results available
+                        else if @current_results.length is @limit # If we've reached the limit of results we can show, we still want to know if there are more results available
                             @extra_row = data # We requested an extra row, but won't display it on the current page, so we need to save it for later (when the user wants to show more results)
                             get_result_callback() # Display results
                         return true
