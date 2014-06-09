@@ -270,15 +270,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         store(_store),
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
-               ctx->reql_http_proxy,
-               ctx->ns_repo,
-               ctx->get_namespaces_watchable_or_null(),
-               ctx->get_databases_watchable_or_null(),
-               ctx->cluster_metadata,
-               &interruptor,
-               ctx->machine_id)
+        ql_env(ctx, &interruptor)
     { }
 
     ql::env_t *get_env() {
@@ -485,15 +477,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
-        ql_env(ctx->extproc_pool,
-               ctx->changefeed_client.has() ? ctx->changefeed_client.get() : NULL,
-               ctx->reql_http_proxy,
-               ctx->ns_repo,
-               ctx->get_namespaces_watchable_or_null(),
-               ctx->get_databases_watchable_or_null(),
-               ctx->cluster_metadata,
-               &interruptor,
-               ctx->machine_id) {
+        ql_env(ctx, &interruptor) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());

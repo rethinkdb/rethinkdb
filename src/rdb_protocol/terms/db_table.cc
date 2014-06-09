@@ -79,9 +79,7 @@ public:
 protected:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
-        rcheck(env->cluster_access.directory_read_manager != NULL,
-               base_exc_t::GENERIC,
-               "Cannot nest meta operations inside queries.");
+        r_sanity_check(env->cluster_access.directory_read_manager != NULL);
         r_sanity_check(env->cluster_access.directory_read_manager->home_thread() == get_thread_id());
         return env->cluster_access.directory_read_manager->get_root_view();
     }
