@@ -30,7 +30,7 @@ NOINLINE void set_errno(int new_errno) {
 NORETURN void crash_oom() {
     const char *message = "rethinkdb: Memory allocation failed. This usually means "
                           "that we have run out of RAM. Aborting.\n";
-    fwrite(message, 1, strlen(message), stderr);
+    UNUSED size_t res = fwrite(message, 1, strlen(message), stderr);
     abort();
 }
 
