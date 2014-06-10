@@ -238,9 +238,15 @@ describe('Javascript connection API', function(){
         }));
 
         it("close waits even without callback", withConnection(function(done, c){
-            r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
-            c.close();
-            r(1).run(c, noError(done));
+            var start = Date.now();
+            var timeout = 1.5;
+            r.js('while(true);', {timeout: timeout}).run(c, {noreply: true});
+            c.close(function(err) {
+                if (err) throw err;
+                var duration = Date.now()-start;
+                assert(duration > timeout*1000);
+                done()
+            });
         }));
 
         it("test use", withConnection(function(done, c){

@@ -90,8 +90,10 @@ r.connect({port:port}, function(err, c) {
             r(ar_to_send).run(c, function(err, res) {
                 var i = 0;
                 res.each(function(err, res2) {
+                    if (err) throw err;
                     assert(res2 === ar_to_send[i])
                     i++;
+                    return true
                 })
             })
 
@@ -140,12 +142,12 @@ r.connect({port:port}, function(err, c) {
             // These simply test that we appropriately check arg numbers for
             // cursor api methods
             assertArgError(1, 0, function() { cur.each(); });
-            assertArgError(0, 1, function() { cur.hasNext(1); });
             assertArgError(0, 1, function() { cur.close(1); });
             assertArgError(0, 1, function() { cur.toString(1); });
 
             var i = 0;
             cur.each(function(err, row) {
+                if (err) throw err;
                 assertNoError(err);
                 i++;
             }, function() {
