@@ -606,10 +606,10 @@ public:
     rdb_r_unshard_visitor_t(read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
-                            rdb_context_t *ctx,
-                            signal_t *interruptor)
+                            rdb_context_t *_ctx,
+                            signal_t *_interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
-          env(ctx, interruptor, std::map<std::string, ql::wire_func_t>()) { }
+          ctx(_ctx), interruptor(_interruptor) { }
 
     void operator()(const point_read_t &);
 
@@ -621,10 +621,11 @@ public:
     void operator()(const changefeed_stamp_t &);
 
 private:
-    read_response_t *responses; // Cannibalized for efficiency.
-    size_t count;
-    read_response_t *response_out;
-    ql::env_t env;
+    read_response_t *const responses; // Cannibalized for efficiency.
+    const size_t count;
+    read_response_t *const response_out;
+    rdb_context_t *const ctx;
+    signal_t *const interruptor;
 };
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_subscribe_t &) {
@@ -671,7 +672,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
         rassert(rg.optargs.size() != 0);
     }
-    env.global_optargs.init_optargs(rg.optargs);
+    ql::env_t env(ctx, interruptor, rg.optargs);
 
     // Initialize response.
     response_out->response = rget_read_response_t();
