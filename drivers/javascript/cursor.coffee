@@ -220,26 +220,6 @@ class IterableResult
         else
             throw new err.RqlDriverError "First argument to `toArray` must be a function or undefined."
 
-class Cursor extends IterableResult
-    constructor: ->
-        @_type = protoResponseType.SUCCESS_PARTIAL
-        super
-
-    toString: ar () -> "[object Cursor]"
-
-class Feed extends IterableResult
-    constructor: ->
-        @_type = protoResponseType.SUCCESS_FEED
-        super
-
-
-    hasNext: ->
-        throw new err.RqlDriverError "`hasNext` is not available for feeds."
-    toArray: ->
-        throw new err.RqlDriverError "`toArray` is not available for feeds."
-
-    toString: ar () -> "[object Feed]"
-
     _makeEmitter: ->
         @emitter = new EventEmitter
         @each = ->
@@ -302,6 +282,27 @@ class Feed extends IterableResult
             @emitter.emit('error', err)
         else
             @emitter.emit('data', data)
+
+
+
+class Cursor extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    toString: ar () -> "[object Cursor]"
+
+class Feed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_FEED
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object Feed]"
 
 
 # Used to wrap array results so they support the same iterable result
