@@ -27,11 +27,11 @@ sudo npm install -g mocha
 
 ### Basic Usage
 
-`./test_runner` runs all the tests.
+`./test-runner` runs all the tests.
 
-`./test_runner --list` lists all of the tests.
+`./test-runner --list` lists all of the tests.
 
-`./test_runner --clean` cleans the `run` folder where the runtime data is put.
+`./test-runner --clean` cleans the `run` folder where the runtime data is put.
 
 Specific tests, or groups of tests, can be spcified with regular expressions as arguments. Additionally the 
 `-i/--interpreter` flag can be used one or more times to specifiy the drivers to use. 
@@ -51,30 +51,30 @@ test will be printed to the screen. A summary of failing tests is printed at the
 
 The tests can be run for a specific language.
 
-* `./test_runner -i py`
-* `./test_runner -i js`
-* `./test_runner -i rb`
+* `./test-runner -i py`
+* `./test-runner -i js`
+* `./test-runner -i rb`
 
 ### Polyglot tests
 
 There are five ways to run the polyglot tests.
 
-* `./test_runner run polyglot` runs all the polyglot tests.
-* `./test_runner run polyglot -i py`
-* `./test_runner run polyglot -i js`
-* `./test_runner run polyglot -i rb`
+* `./test-runner run polyglot` runs all the polyglot tests.
+* `./test-runner run polyglot -i py`
+* `./test-runner run polyglot -i js`
+* `./test-runner run polyglot -i rb`
 
 ### Connection tests
 
-* `./test_runner run connections/connection` run both the javascript and python versions of the tests
-* `./test_runner run -i js connections/connection`
-* `./test_runner run -i py connections/connection`
+* `./test-runner run connections/connection` run both the javascript and python versions of the tests
+* `./test-runner run -i js connections/connection`
+* `./test-runner run -i py connections/connection`
 
 ### Cursor tests
 
-* `./test_runner run connections/cursor` run both the javascript and python versions of the tests
-* `./test_runner run -i js connections/cursor`
-* `./test_runner run -i py connections/cursor`
+* `./test-runner run connections/cursor` run both the javascript and python versions of the tests
+* `./test-runner run -i js connections/cursor`
+* `./test-runner run -i py connections/cursor`
 
 ### Customization
 
