@@ -2353,7 +2353,7 @@ module 'DataExplorerView', ->
                     if database.get('name') is db_name
                         return {
                             db_found: true
-                            error
+                            error: false
                             id: database.get('id')
                             name: db_name
                         }
