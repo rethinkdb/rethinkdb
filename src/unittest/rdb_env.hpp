@@ -136,24 +136,25 @@ private:
 };
 
 // Because of how internal objects are meant to be instantiated, the proper order of
-//  instantiation is to create a test_rdb_env_t at the top-level of the test (before
-//  entering the thread pool), then to call make_env() on the object once inside the
-//  thread pool.  From there, the instance can provide a pointer to the rdb_env_t.
-// At the moment, this mocks everything except the directory (which is a huge bitch to
-//  do, but you're welcome to try), so metaqueries will not work, but everything else
-//  should be good.  That is, you can specify databases and tables, but you can't create
-//  or destroy them using reql in this environment.  As such, you should create any
-//  necessary databases and tables BEFORE creating the instance_t by using the
-//  add_table and add_database functions.
+// instantiation is to create a test_rdb_env_t at the top-level of the test (before
+// entering the thread pool), then to call make_env() on the object once inside the
+// thread pool.  From there, the instance can provide a pointer to the rdb_env_t.  At
+// the moment, this mocks everything except the directory (which is a huge bitch to
+// do, but you're welcome to try), so metaqueries will not work, but everything else
+// should be good.  That is, you can specify databases and tables, but you can't
+// create or destroy them using reql in this environment.  As such, you should create
+// any necessary databases and tables BEFORE creating the instance_t by using the
+// add_table and add_database functions.
 class test_rdb_env_t {
 public:
     test_rdb_env_t();
     ~test_rdb_env_t();
 
-    // The initial_data parameter allows a test to provide a starting dataset.  At the moment,
-    //  it just takes a set of maps of strings to strings, which will be converted into a set
-    //  of JSON structures.  This means that the JSON values will only be strings, but if a
-    //  test needs different properties in their objects, this call should be modified.
+    // The initial_data parameter allows a test to provide a starting dataset.  At
+    // the moment, it just takes a set of maps of strings to strings, which will be
+    // converted into a set of JSON structures.  This means that the JSON values will
+    // only be strings, but if a test needs different properties in their objects,
+    // this call should be modified.
     namespace_id_t add_table(const std::string &table_name,
                              const uuid_u &db_id,
                              const std::string &primary_key,
@@ -180,7 +181,7 @@ public:
         cond_t interruptor;
     };
 
-    void make_env(scoped_ptr_t<instance_t> *instance_out);
+    scoped_ptr_t<instance_t> make_env();
 
 private:
     uuid_u machine_id;

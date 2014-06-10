@@ -313,8 +313,8 @@ database_id_t test_rdb_env_t::add_database(const std::string &db_name) {
     return database_id;
 }
 
-void test_rdb_env_t::make_env(scoped_ptr_t<instance_t> *instance_out) {
-    instance_out->init(new instance_t(this));
+scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
+    return make_scoped<instance_t>(this);
 }
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
