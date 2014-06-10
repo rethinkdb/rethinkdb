@@ -251,82 +251,57 @@ class Feed extends IterableResult
     addListener: (args...) ->
         if not @emitter?
             @_makeEmitter()
+            @_each @_eachCb
         @emitter.addListener(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
 
     on: (args...) ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.on(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
+
 
     once: ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.once(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
 
     removeListener: ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.removeListener(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
 
-    removAllListeners: ->
+    removeAllListeners: ->
         if not @emitter?
             @_makeEmitter()
-        @emitter.removeAllListener(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
+            setImmediate => @_each @_eachCb
+        @emitter.removeAllListeners(args...)
 
     setMaxListeners: ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.setMaxListeners(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
 
     listeners: ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.listeners(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
 
     emit: ->
         if not @emitter?
             @_makeEmitter()
+            setImmediate => @_each @_eachCb
         @emitter.emit(args...)
-        @_each (err, data) =>
-            if err?
-                @emitter.emit('error', err)
-            else
-                @emitter.emit('data', data)
+
+    _eachCb: (err, data) =>
+        if err?
+            @emitter.emit('error', err)
+        else
+            @emitter.emit('data', data)
 
 
 # Used to wrap array results so they support the same iterable result
