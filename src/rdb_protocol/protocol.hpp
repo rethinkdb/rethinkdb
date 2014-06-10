@@ -181,7 +181,9 @@ class mailbox_manager_t;
 
 class rdb_context_t {
 public:
+    // Used by unit tests.
     rdb_context_t();
+    // The "real" constructor used outside of unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   mailbox_manager_t *mailbox_manager,
                   namespace_repo_t *_ns_repo,

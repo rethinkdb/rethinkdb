@@ -175,6 +175,7 @@ public:
         clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_metadata;
         clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> > databases_metadata;
         extproc_pool_t extproc_pool;
+        rdb_context_t rdb_ctx;
         scoped_ptr_t<ql::env_t> env;
         reactor_test_cluster_t test_cluster;
         mock_namespace_repo_t rdb_ns_repo;
