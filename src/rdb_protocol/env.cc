@@ -182,6 +182,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
           ctx->directory_read_manager,
           ctx->machine_id),
       interruptor(_interruptor),
+      rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
@@ -204,6 +205,7 @@ env_t::env_t(signal_t *_interruptor)
           NULL,
           uuid_u()),
       interruptor(_interruptor),
+      rdb_ctx(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);
 }
@@ -221,6 +223,8 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
 
 // Called by unittest/rdb_env.cc.
 env_t::env_t(
+    // This is a half-full rdb_context_t -- see rdb_env.hpp and rdb_env.cc.
+    rdb_context_t *ctx,
     extproc_pool_t *_extproc_pool,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
@@ -244,7 +248,9 @@ env_t::env_t(
                    NULL,
                    _this_machine),
     interruptor(_interruptor),
+    rdb_ctx(ctx),
     eval_callback(NULL) {
+    (void)rdb_ctx;  // RSI
     rassert(interruptor != NULL);
 }
 

@@ -95,6 +95,7 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 class env_t : public home_thread_mixin_t {
 public:
     env_t(
+        rdb_context_t *ctx,
         extproc_pool_t *_extproc_pool,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
@@ -169,6 +170,8 @@ public:
     profile_bool_t profile() const;
 
 private:
+    rdb_context_t *const rdb_ctx;
+
     js_runner_t js_runner;
 
     eval_callback_t *eval_callback;
