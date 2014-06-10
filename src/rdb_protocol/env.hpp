@@ -123,6 +123,8 @@ public:
     // Will yield after EVALS_BEFORE_YIELD calls
     void maybe_yield();
 
+    extproc_pool_t *get_extproc_pool();
+
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
     js_runner_t *get_js_runner();
@@ -140,10 +142,6 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
-
-    // A pool used for running external JS jobs.  Inexplicably this isn't inside of
-    // js_runner_t.
-    extproc_pool_t *const extproc_pool;
 
     // Holds a bunch of mailboxes and maps them to streams.
     changefeed::client_t *changefeed_client;
@@ -171,6 +169,9 @@ public:
 
 private:
     rdb_context_t *const rdb_ctx;
+
+    // A pool used for running external JS jobs.  And used by r.http.
+    extproc_pool_t *const extproc_pool;
 
     js_runner_t js_runner;
 

@@ -158,6 +158,12 @@ void cluster_access_t::join_and_wait_to_propagate(
     }
 }
 
+extproc_pool_t *env_t::get_extproc_pool() {
+    assert_thread();
+    r_sanity_check(extproc_pool != NULL);
+    return extproc_pool;
+}
+
 js_runner_t *env_t::get_js_runner() {
     assert_thread();
     r_sanity_check(extproc_pool != NULL);
@@ -171,7 +177,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      extproc_pool(ctx->extproc_pool),
       changefeed_client(ctx->changefeed_client.get_or_null()),
       reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
@@ -183,6 +188,7 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
           ctx->machine_id),
       interruptor(_interruptor),
       rdb_ctx(ctx),
+      extproc_pool(ctx->extproc_pool),
       eval_callback(NULL) {
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
@@ -193,7 +199,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
-      extproc_pool(NULL),
       changefeed_client(NULL),
       reql_http_proxy(""),
       cluster_access(
@@ -206,6 +211,7 @@ env_t::env_t(signal_t *_interruptor)
           uuid_u()),
       interruptor(_interruptor),
       rdb_ctx(NULL),
+      extproc_pool(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);
 }
@@ -238,7 +244,6 @@ env_t::env_t(
     uuid_u _this_machine)
   : evals_since_yield(0),
     global_optargs(),
-    extproc_pool(_extproc_pool),
     changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
@@ -249,6 +254,7 @@ env_t::env_t(
                    _this_machine),
     interruptor(_interruptor),
     rdb_ctx(ctx),
+    extproc_pool(_extproc_pool),
     eval_callback(NULL) {
     (void)rdb_ctx;  // RSI
     rassert(interruptor != NULL);

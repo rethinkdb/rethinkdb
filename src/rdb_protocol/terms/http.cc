@@ -225,7 +225,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
 
     // Otherwise, just run the http operation and return the datum
     http_result_t res;
-    http_runner_t runner(env->env->extproc_pool);
+    http_runner_t runner(env->env->get_extproc_pool());
     dispatch_http(env->env, opts, &runner, &res, this);
 
     return new_val(res.body);
@@ -238,7 +238,7 @@ http_datum_stream_t::next_raw_batch(env_t *env, UNUSED const batchspec_t &batchs
     }
 
     if (!runner.has()) {
-        runner.create(env->extproc_pool);
+        runner.create(env->get_extproc_pool());
     }
 
     profile::sampler_t sampler(strprintf("Performing HTTP %s of `%s`",
