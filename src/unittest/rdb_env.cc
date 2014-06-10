@@ -322,12 +322,11 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
     databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
     extproc_pool(2),
-    rdb_ctx(),
+    rdb_ctx(&extproc_pool),
     test_cluster(0),
     rdb_ns_repo()
 {
     env.init(new ql::env_t(&rdb_ctx,
-                           &extproc_pool,
                            std::string(),
                            &rdb_ns_repo,
                            namespaces_metadata,

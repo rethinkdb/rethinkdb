@@ -351,6 +351,20 @@ rdb_context_t::rdb_context_t()
 { }
 
 rdb_context_t::rdb_context_t(
+        extproc_pool_t *_extproc_pool)
+    : extproc_pool(_extproc_pool),
+      ns_repo(NULL),
+      directory_read_manager(NULL),
+      manager(NULL),
+      changefeed_client(NULL),
+      ql_stats_membership(
+          &get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
+      reql_http_proxy(),
+      cross_thread_namespace_watchables(get_num_threads()),
+      cross_thread_database_watchables(get_num_threads()) { }
+
+rdb_context_t::rdb_context_t(
     extproc_pool_t *_extproc_pool,
     mailbox_manager_t *mailbox_manager,
     namespace_repo_t *_ns_repo,
@@ -363,7 +377,8 @@ rdb_context_t::rdb_context_t(
     machine_id_t _machine_id,
     perfmon_collection_t *global_stats,
     const std::string &_reql_http_proxy)
-    : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
+    : extproc_pool(_extproc_pool),
+      ns_repo(_ns_repo),
       cluster_metadata(_cluster_metadata),
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),

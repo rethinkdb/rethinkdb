@@ -160,13 +160,14 @@ void cluster_access_t::join_and_wait_to_propagate(
 
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
-    r_sanity_check(extproc_pool != NULL);
-    return extproc_pool;
+    r_sanity_check(rdb_ctx != NULL);
+    r_sanity_check(rdb_ctx->extproc_pool != NULL);
+    return rdb_ctx->extproc_pool;
 }
 
 js_runner_t *env_t::get_js_runner() {
     assert_thread();
-    r_sanity_check(extproc_pool != NULL);
+    extproc_pool_t *extproc_pool = get_extproc_pool();
     if (!js_runner.connected()) {
         js_runner.begin(extproc_pool, interruptor);
     }
@@ -188,7 +189,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
           ctx->machine_id),
       interruptor(_interruptor),
       rdb_ctx(ctx),
-      extproc_pool(ctx->extproc_pool),
       eval_callback(NULL) {
     rassert(ctx != NULL);
     rassert(interruptor != NULL);
@@ -211,7 +211,6 @@ env_t::env_t(signal_t *_interruptor)
           uuid_u()),
       interruptor(_interruptor),
       rdb_ctx(NULL),
-      extproc_pool(NULL),
       eval_callback(NULL) {
     rassert(interruptor != NULL);
 }
@@ -231,7 +230,6 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
 env_t::env_t(
     // This is a half-full rdb_context_t -- see rdb_env.hpp and rdb_env.cc.
     rdb_context_t *ctx,
-    extproc_pool_t *_extproc_pool,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
     clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
@@ -254,7 +252,6 @@ env_t::env_t(
                    _this_machine),
     interruptor(_interruptor),
     rdb_ctx(ctx),
-    extproc_pool(_extproc_pool),
     eval_callback(NULL) {
     (void)rdb_ctx;  // RSI
     rassert(interruptor != NULL);

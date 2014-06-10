@@ -183,6 +183,9 @@ class rdb_context_t {
 public:
     // Used by unit tests.
     rdb_context_t();
+    // Also used by unit tests.
+    rdb_context_t(extproc_pool_t *extproc_pool);
+
     // The "real" constructor used outside of unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   mailbox_manager_t *mailbox_manager,

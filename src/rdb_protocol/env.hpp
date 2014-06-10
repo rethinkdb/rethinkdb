@@ -96,7 +96,6 @@ class env_t : public home_thread_mixin_t {
 public:
     env_t(
         rdb_context_t *ctx,
-        extproc_pool_t *_extproc_pool,
         const std::string &_reql_http_proxy,
         base_namespace_repo_t *_ns_repo,
 
@@ -169,9 +168,6 @@ public:
 
 private:
     rdb_context_t *const rdb_ctx;
-
-    // A pool used for running external JS jobs.  And used by r.http.
-    extproc_pool_t *const extproc_pool;
 
     js_runner_t js_runner;
 
