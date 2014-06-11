@@ -172,8 +172,6 @@ public:
 
     private:
         dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
-        clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_metadata;
-        clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> > databases_metadata;
         extproc_pool_t extproc_pool;
         rdb_context_t rdb_ctx;
         scoped_ptr_t<ql::env_t> env;

@@ -112,12 +112,6 @@ profile_bool_t env_t::profile() const {
 
 cluster_access_t::cluster_access_t(
         base_namespace_repo_t *_ns_repo,
-
-        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            _namespaces_semilattice_metadata,
-
-        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-             _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
@@ -125,9 +119,7 @@ cluster_access_t::cluster_access_t(
     : ns_repo(_ns_repo),
       semilattice_metadata(_semilattice_metadata),
       directory_read_manager(_directory_read_manager),
-      this_machine(_this_machine),
-      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-      databases_semilattice_metadata(_databases_semilattice_metadata) { }
+      this_machine(_this_machine) { }
 
 void env_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join)
@@ -194,8 +186,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
           ctx->ns_repo,
-          ctx->get_namespaces_watchable_or_null(),
-          ctx->get_databases_watchable_or_null(),
           ctx->cluster_metadata,
           ctx->directory_read_manager,
           ctx->machine_id),
@@ -215,8 +205,6 @@ env_t::env_t(signal_t *_interruptor)
       reql_http_proxy(""),
       cluster_access(
           NULL,
-          clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >(),
-          clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
           boost::shared_ptr<
               semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
           NULL,
@@ -244,10 +232,6 @@ env_t::env_t(
     rdb_context_t *ctx,
     const std::string &_reql_http_proxy,
     base_namespace_repo_t *_ns_repo,
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-        _namespaces_semilattice_metadata,
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-        _databases_semilattice_metadata,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _semilattice_metadata,
     signal_t *_interruptor,
@@ -257,8 +241,6 @@ env_t::env_t(
     changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
     cluster_access(_ns_repo,
-                   _namespaces_semilattice_metadata,
-                   _databases_semilattice_metadata,
                    _semilattice_metadata,
                    NULL,
                    _this_machine),
