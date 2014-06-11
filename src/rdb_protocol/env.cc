@@ -133,14 +133,9 @@ void env_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join)
     THROWS_ONLY(interrupted_exc_t) {
     cluster_access.semilattice_metadata->assert_thread();
-
-    // RSI: This function is f'd up because it causes too many thread switches.  No?
-    cluster_semilattice_metadata_t sl_metadata;
-    {
-        on_thread_t switcher(cluster_access.semilattice_metadata->home_thread());
-        cluster_access.semilattice_metadata->join(metadata_to_join);
-        sl_metadata = cluster_access.semilattice_metadata->get();
-    }
+    cluster_access.semilattice_metadata->join(metadata_to_join);
+    cluster_semilattice_metadata_t sl_metadata
+        = cluster_access.semilattice_metadata->get();
 
     {
         on_thread_t switcher(home_thread());
