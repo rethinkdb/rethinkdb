@@ -381,7 +381,8 @@ void btree_parallel_traversal(superblock_t *superblock,
         }
     } superblock_releaser;
     superblock_releaser.superblock = superblock;
-    superblock_releaser.release_superblock = release_superblock == RELEASE;
+    superblock_releaser.release_superblock =
+        release_superblock == release_superblock_t::RELEASE;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();

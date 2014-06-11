@@ -148,7 +148,7 @@ void btree_parallel_traversal(
         superblock_t *superblock,
         btree_traversal_helper_t *helper,
         signal_t *interruptor,
-        release_superblock_t release_superblock = RELEASE)
+        release_superblock_t release_superblock = release_superblock_t::RELEASE)
         THROWS_ONLY(interrupted_exc_t);
 
 
