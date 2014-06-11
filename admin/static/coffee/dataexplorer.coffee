@@ -2817,6 +2817,7 @@ module 'DataExplorerView', ->
     
     class @SharedResultView extends Backbone.View
         template_json_tree:
+            'large_container' : Handlebars.templates['dataexplorer_large_result_json_tree_container-template']
             'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
             'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
             'span_with_quotes': Handlebars.templates['dataexplorer_result_json_tree_span_with_quotes-template']
@@ -3136,8 +3137,13 @@ module 'DataExplorerView', ->
 
 
         json_to_tree: (result) =>
-            return @template_json_tree.container
-                tree: @json_to_node(result)
+            result_json = JSON.stringify(result, null, 4)
+            if result_json.length > @large_response_threshold
+                return @template_json_tree.large_container
+                    json_data: result_json
+            else
+                return @template_json_tree.container
+                    tree: @json_to_node(result)
 
         json_to_table_get_attr: (flatten_attr) =>
             return @template_json_table.tr_attr
@@ -3355,6 +3361,7 @@ module 'DataExplorerView', ->
                 'click .activate_profiler': 'activate_profiler'
 
         current_result: []
+        large_response_threshold: 100000 # ~ 2000 uuids
 
         initialize: (args) =>
             @container = args.container
