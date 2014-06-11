@@ -59,11 +59,6 @@ public:
 
     base_namespace_repo_t *ns_repo;
 
-    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > >
-        namespaces_semilattice_metadata;
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-        databases_semilattice_metadata;
-
     // This is a read-WRITE view because of things like table_create_term_t,
     // db_create_term_t, etc.  Its home thread might be different from ours.
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
@@ -84,6 +79,14 @@ public:
 
 
     const uuid_u this_machine;
+
+    friend class env_t;
+
+private:
+    clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > >
+        namespaces_semilattice_metadata;
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+        databases_semilattice_metadata;
 };
 
 namespace changefeed {
@@ -128,6 +131,11 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
+    const clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > > &
+    namespaces_semilattice_metadata();
+    const clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > &
+    databases_semilattice_metadata();
+
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
     public:
@@ -137,6 +145,7 @@ public:
 
     void set_eval_callback(eval_callback_t *callback);
     void do_eval_callback();
+
 
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.

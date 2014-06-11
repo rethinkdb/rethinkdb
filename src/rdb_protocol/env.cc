@@ -124,11 +124,11 @@ cluster_access_t::cluster_access_t(
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine)
     : ns_repo(_ns_repo),
-      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-      databases_semilattice_metadata(_databases_semilattice_metadata),
       semilattice_metadata(_semilattice_metadata),
       directory_read_manager(_directory_read_manager),
-      this_machine(_this_machine) { }
+      this_machine(_this_machine),
+      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+      databases_semilattice_metadata(_databases_semilattice_metadata) { }
 
 void cluster_access_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join,
@@ -173,6 +173,16 @@ js_runner_t *env_t::get_js_runner() {
     }
     return &js_runner;
 }
+
+const clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > > &
+env_t::namespaces_semilattice_metadata() {
+    return cluster_access.namespaces_semilattice_metadata;
+}
+const clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > &
+env_t::databases_semilattice_metadata() {
+    return cluster_access.databases_semilattice_metadata;
+}
+
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs)

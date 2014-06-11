@@ -103,7 +103,7 @@ private:
         uuid_u uuid;
         {
             databases_semilattice_metadata_t db_metadata
-                = env->env->cluster_access.databases_semilattice_metadata->get();
+                = env->env->databases_semilattice_metadata()->get();
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -372,7 +372,7 @@ private:
         std::vector<std::string> dbs;
         {
             databases_semilattice_metadata_t db_metadata
-                = env->env->cluster_access.databases_semilattice_metadata->get();
+                = env->env->databases_semilattice_metadata()->get();
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -416,7 +416,7 @@ private:
         namespace_predicate_t pred(&db_id);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata
-                = env->env->cluster_access.namespaces_semilattice_metadata->get();
+                = env->env->namespaces_semilattice_metadata()->get();
             const_metadata_searcher_t<namespace_semilattice_metadata_t>
                 ns_searcher(&ns_metadata->namespaces);
 

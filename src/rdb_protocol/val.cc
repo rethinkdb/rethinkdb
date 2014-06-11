@@ -27,7 +27,7 @@ table_t::table_t(env_t *env,
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_metadata
-        = env->cluster_access.namespaces_semilattice_metadata->get();
+        = env->namespaces_semilattice_metadata()->get();
     const_metadata_searcher_t<namespace_semilattice_metadata_t>
         ns_searcher(&namespaces_metadata.get()->namespaces);
     // TODO: fold into iteration below

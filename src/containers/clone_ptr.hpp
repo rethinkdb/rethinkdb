@@ -19,13 +19,24 @@ public:
     /* Takes ownership of the argument. */
     explicit clone_ptr_t(T *) THROWS_NOTHING;  // NOLINT
 
+    clone_ptr_t(clone_ptr_t &&movee) : object(std::move(movee.object)) { }
+
+    template<class U>
+    clone_ptr_t(clone_ptr_t<U> &&movee) : object(std::move(movee.object)) { }
+
     clone_ptr_t(const clone_ptr_t &x) THROWS_NOTHING;
     template<class U>
     clone_ptr_t(const clone_ptr_t<U> &x) THROWS_NOTHING;  // NOLINT(runtime/explicit)
 
     clone_ptr_t &operator=(const clone_ptr_t &x) THROWS_NOTHING;
+    clone_ptr_t &operator=(const clone_ptr_t &&x) THROWS_NOTHING;
+
     template<class U>
     clone_ptr_t &operator=(const clone_ptr_t<U> &x) THROWS_NOTHING;
+    template<class U>
+    clone_ptr_t &operator=(const clone_ptr_t<U> &&x) THROWS_NOTHING;
+
+
 
     T &operator*() const THROWS_NOTHING;
     T *operator->() const THROWS_NOTHING;
