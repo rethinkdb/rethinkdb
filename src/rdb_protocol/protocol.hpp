@@ -198,8 +198,13 @@ public:
                   const std::string &_reql_http_proxy);
     ~rdb_context_t();
 
+    cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_metadata();
+
     clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
     get_namespaces_watchable_or_null();
+
+    // This could soooo be optimized if you don't want to copy the whole thing.
+    void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
     get_databases_watchable_or_null();

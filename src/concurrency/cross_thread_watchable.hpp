@@ -27,6 +27,12 @@ public:
 
     threadnum_t home_thread() { return watchable_thread; }
 
+    // RSI: templatize callable
+    void apply_read(const std::function<void(const value_t *)> &read) {
+        ASSERT_NO_CORO_WAITING;
+        read(&value);
+    }
+
 private:
     friend class cross_thread_watcher_subscription_t;
     void on_value_changed();
@@ -34,11 +40,6 @@ private:
 
     static void call(const std::function<void()> &f) {
         f();
-    }
-
-    void apply_read(const std::function<void(const value_t*)> &read) {
-        ASSERT_NO_CORO_WAITING;
-        read(&value);
     }
 
     class w_t : public watchable_t<value_t> {
