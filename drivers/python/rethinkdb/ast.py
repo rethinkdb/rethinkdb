@@ -1319,7 +1319,11 @@ class Func(RqlQuery):
     def __init__(self, lmbd):
         vrs = []
         vrids = []
-        for i in range(lmbd.func_code.co_argcount):
+        try:
+            code = lmbd.func_code
+        except AttributeError:
+            code = lmbd.__code__
+        for i in range(code.co_argcount):
             Func.lock.acquire()
             var_id = Func.nextVarId
             Func.nextVarId += 1
