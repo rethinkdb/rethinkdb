@@ -41,7 +41,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        env_t env(rdb_ctx, interruptor, entry->global_optargs);
+        env_t env(rdb_ctx, interruptor, entry->global_optargs, entry->profile);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL

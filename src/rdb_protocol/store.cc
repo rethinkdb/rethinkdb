@@ -265,14 +265,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        superblock_t *_superblock,
                        rdb_context_t *ctx,
                        read_response_t *_response,
-                       profile_bool_t,  /* Unused because profiling is disabled this
-                                           release. */
+                       profile_bool_t profile,
                        signal_t *interruptor) :
         response(_response),
         btree(_btree),
         store(_store),
         superblock(_superblock),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>())
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
+               profile)
     { }
 
     ql::env_t *get_env() {
@@ -469,6 +469,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
                         rdb_context_t *ctx,
+                        profile_bool_t profile,
                         write_response_t *_response,
                         signal_t *interruptor) :
         btree(_btree),
@@ -477,7 +478,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response(_response),
         superblock(_superblock),
         timestamp(_timestamp),
-        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>()) {
+        ql_env(ctx, interruptor, std::map<std::string, ql::wire_func_t>(),
+               profile) {
         sindex_block =
             store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                                   (*superblock)->get_sindex_block_id());
@@ -522,12 +524,15 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
-    rdb_write_visitor_t v(btree.get(), this,
+    rdb_write_visitor_t v(btree.get(),
+                          this,
                           (*superblock)->expose_buf().txn(),
                           superblock,
                           timestamp.to_repli_timestamp(),
                           ctx,
-                          response, interruptor);
+                          write.profile,
+                          response,
+                          interruptor);
     {
         profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);

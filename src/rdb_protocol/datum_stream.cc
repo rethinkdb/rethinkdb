@@ -357,6 +357,7 @@ primary_readgen_t::primary_readgen_t(
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
+
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
     std::string table_name,

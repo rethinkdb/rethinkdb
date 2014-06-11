@@ -326,7 +326,8 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
             test_env->machine_id) {
     env.init(new ql::env_t(&rdb_ctx,
                            &interruptor,
-                           std::map<std::string, ql::wire_func_t>()));
+                           std::map<std::string, ql::wire_func_t>(),
+                           profile_bool_t::DONT_PROFILE));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas

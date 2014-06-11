@@ -651,12 +651,14 @@ void scale_down_distribution(size_t result_limit, std::map<store_key_t, int64_t>
 
 class rdb_r_unshard_visitor_t : public boost::static_visitor<void> {
 public:
-    rdb_r_unshard_visitor_t(read_response_t *_responses,
+    rdb_r_unshard_visitor_t(profile_bool_t _profile,
+                            read_response_t *_responses,
                             size_t _count,
                             read_response_t *_response_out,
                             rdb_context_t *_ctx,
                             signal_t *_interruptor)
-        : responses(_responses), count(_count), response_out(_response_out),
+        : profile(_profile), responses(_responses),
+          count(_count), response_out(_response_out),
           ctx(_ctx), interruptor(_interruptor) { }
 
     void operator()(const point_read_t &);
@@ -669,6 +671,7 @@ public:
     void operator()(const changefeed_stamp_t &);
 
 private:
+    const profile_bool_t profile;
     read_response_t *const responses; // Cannibalized for efficiency.
     const size_t count;
     read_response_t *const response_out;
@@ -720,7 +723,7 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
         // 'db' optarg.)  We have the same assertion in rdb_read_visitor_t.
         rassert(rg.optargs.size() != 0);
     }
-    ql::env_t env(ctx, interruptor, rg.optargs);
+    ql::env_t env(ctx, interruptor, rg.optargs, profile);
 
     // Initialize response.
     response_out->response = rget_read_response_t();
@@ -849,7 +852,8 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     rassert(ctx != NULL);
-    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+    rdb_r_unshard_visitor_t v(profile, responses, count,
+                              response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
     /* We've got some profiling to do. */

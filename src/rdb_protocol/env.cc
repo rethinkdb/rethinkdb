@@ -107,7 +107,7 @@ void env_t::do_eval_callback() {
 }
 
 profile_bool_t env_t::profile() const {
-    return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
+    return is_profile_requested;
 }
 
 void env_t::join_and_wait_to_propagate(
@@ -204,10 +204,12 @@ void env_t::get_databases_metadata(databases_semilattice_metadata_t *out) {
 
 
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
-             std::map<std::string, wire_func_t> optargs)
+             std::map<std::string, wire_func_t> optargs,
+             profile_bool_t _is_profile_requested)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
       interruptor(_interruptor),
+      is_profile_requested(_is_profile_requested),
       rdb_ctx(ctx),
       eval_callback(NULL) {
     rassert(ctx != NULL);

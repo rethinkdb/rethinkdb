@@ -50,8 +50,10 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 class env_t : public home_thread_mixin_t {
 public:
     env_t(rdb_context_t *ctx, signal_t *interruptor,
-          std::map<std::string, wire_func_t> optargs);
+          std::map<std::string, wire_func_t> optargs,
+          profile_bool_t is_profile_requested);
 
+    // RSI: profile_bool_t?
     explicit env_t(signal_t *interruptor);
 
     ~env_t();
@@ -115,11 +117,11 @@ public:
     // particular no longer passes its profile parameter along.
     const scoped_ptr_t<profile::trace_t> trace;
 
-    // Always returns profile_bool_t::DONT_PROFILE for now, because trace is empty,
-    // because we don't support profiling in this release.
     profile_bool_t profile() const;
 
 private:
+    profile_bool_t is_profile_requested;
+
     rdb_context_t *const rdb_ctx;
 
     js_runner_t js_runner;
