@@ -184,7 +184,8 @@ public:
     // Used by unit tests.
     rdb_context_t();
     // Also used by unit tests.
-    rdb_context_t(extproc_pool_t *extproc_pool);
+    rdb_context_t(extproc_pool_t *extproc_pool,
+                  boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata);
 
     // The "real" constructor used outside of unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
@@ -230,6 +231,8 @@ public:
     const std::string reql_http_proxy;
 
 private:
+    void help_construct_cross_thread_watchables();
+
     /* These arrays contain a watchable for each thread.
        i.e. cross_thread_namespace_watchables[0] is a watchable for thread 0.  (In
        the bogus unit testing default-constructed rdb_context_t, these are arrays

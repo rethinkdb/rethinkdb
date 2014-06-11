@@ -350,10 +350,27 @@ rdb_context_t::rdb_context_t()
       cross_thread_database_watchables(get_num_threads())
 { }
 
+void rdb_context_t::help_construct_cross_thread_watchables() {
+    for (int thread = 0; thread < get_num_threads(); ++thread) {
+        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
+                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
+                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, cluster_metadata))), threadnum_t(thread)));
+
+        cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
+                                                    clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
+                                                        (new semilattice_watchable_t<databases_semilattice_metadata_t>(
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, cluster_metadata))), threadnum_t(thread)));
+
+    }
+}
+
 rdb_context_t::rdb_context_t(
-        extproc_pool_t *_extproc_pool)
+        extproc_pool_t *_extproc_pool,
+        boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata)
     : extproc_pool(_extproc_pool),
       ns_repo(NULL),
+      cluster_metadata(_cluster_metadata),
       directory_read_manager(NULL),
       manager(NULL),
       changefeed_client(NULL),
@@ -362,7 +379,9 @@ rdb_context_t::rdb_context_t(
       ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running"),
       reql_http_proxy(),
       cross_thread_namespace_watchables(get_num_threads()),
-      cross_thread_database_watchables(get_num_threads()) { }
+      cross_thread_database_watchables(get_num_threads()) {
+    help_construct_cross_thread_watchables();
+}
 
 rdb_context_t::rdb_context_t(
     extproc_pool_t *_extproc_pool,
@@ -393,18 +412,7 @@ rdb_context_t::rdb_context_t(
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads())
 {
-    for (int thread = 0; thread < get_num_threads(); ++thread) {
-        cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                                                    clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-                                                        (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
-
-        cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
-                                                    clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
-                                                        (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
-
-    }
+    help_construct_cross_thread_watchables();
 }
 
 rdb_context_t::~rdb_context_t() { }
