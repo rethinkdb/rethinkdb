@@ -202,15 +202,14 @@ public:
 
     cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_metadata();
 
-    // RSI: Drop or_null, add r_sanity_check.
     clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
-    get_namespaces_watchable_or_null();
+    get_namespaces_watchable();
 
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-    get_databases_watchable_or_null();
+    get_databases_watchable();
 
     extproc_pool_t *extproc_pool;
     base_namespace_repo_t *ns_repo;

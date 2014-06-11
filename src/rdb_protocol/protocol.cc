@@ -424,11 +424,10 @@ void copy_value(const T *in, T *out) {
 }
 
 clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
-rdb_context_t::get_namespaces_watchable_or_null() {
+rdb_context_t::get_namespaces_watchable() {
     int threadnum = get_thread_id().threadnum;
-    return cross_thread_namespace_watchables[threadnum].has()
-        ? cross_thread_namespace_watchables[threadnum]->get_watchable()
-        : clone_ptr_t< watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >();
+    r_sanity_check(cross_thread_namespace_watchables[threadnum].has());
+    return cross_thread_namespace_watchables[threadnum]->get_watchable();
 }
 
 cow_ptr_t<namespaces_semilattice_metadata_t> rdb_context_t::get_namespaces_metadata() {
@@ -442,11 +441,10 @@ cow_ptr_t<namespaces_semilattice_metadata_t> rdb_context_t::get_namespaces_metad
 }
 
 clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-rdb_context_t::get_databases_watchable_or_null() {
+rdb_context_t::get_databases_watchable() {
     int threadnum = get_thread_id().threadnum;
-    return cross_thread_database_watchables[threadnum].has()
-        ? cross_thread_database_watchables[threadnum]->get_watchable()
-        : clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >();
+    r_sanity_check(cross_thread_database_watchables[threadnum].has());
+    return cross_thread_database_watchables[threadnum]->get_watchable();
 }
 
 void rdb_context_t::get_databases_metadata(databases_semilattice_metadata_t *out) {

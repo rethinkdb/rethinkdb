@@ -130,8 +130,7 @@ void env_t::join_and_wait_to_propagate(
     {
         on_thread_t switcher(home_thread());
         clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
-            ns_watchable = rdb_ctx->get_namespaces_watchable_or_null();
-        r_sanity_check(ns_watchable.has());
+            ns_watchable = rdb_ctx->get_namespaces_watchable();
 
         ns_watchable->run_until_satisfied(
                 boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
@@ -140,8 +139,7 @@ void env_t::join_and_wait_to_propagate(
                 interruptor);
 
         clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
-            db_watchable = rdb_ctx->get_databases_watchable_or_null();
-        r_sanity_check(db_watchable.has());
+            db_watchable = rdb_ctx->get_databases_watchable();
         db_watchable->run_until_satisfied(
                 boost::bind(&is_joined<databases_semilattice_metadata_t>,
                             _1,
