@@ -139,16 +139,24 @@ void env_t::join_and_wait_to_propagate(
 
     {
         on_thread_t switcher(home_thread());
-        cluster_access.namespaces_semilattice_metadata->run_until_satisfied(
+        clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> > >
+            ns_watchable = rdb_ctx->get_namespaces_watchable_or_null();
+        r_sanity_check(ns_watchable.has());
+
+        ns_watchable->run_until_satisfied(
                 boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
                       _1,
                       sl_metadata.rdb_namespaces),
                 interruptor);
-        cluster_access.databases_semilattice_metadata->run_until_satisfied(
-            boost::bind(&is_joined<databases_semilattice_metadata_t>,
-                        _1,
-                        sl_metadata.databases),
-            interruptor);
+
+        clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
+            db_watchable = rdb_ctx->get_databases_watchable_or_null();
+        r_sanity_check(db_watchable.has());
+        db_watchable->run_until_satisfied(
+                boost::bind(&is_joined<databases_semilattice_metadata_t>,
+                            _1,
+                            sl_metadata.databases),
+                interruptor);
     }
 }
 

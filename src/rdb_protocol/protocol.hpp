@@ -201,6 +201,7 @@ public:
 
     cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_metadata();
 
+    // RSI: Drop or_null, add r_sanity_check.
     clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
     get_namespaces_watchable_or_null();
 
