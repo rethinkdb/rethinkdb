@@ -367,7 +367,7 @@ class skip_terminal_t : public terminal_t<T> {
 protected:
     skip_terminal_t(env_t *env, const skip_wire_func_t &wf, T &&t)
         : terminal_t<T>(std::move(t)),
-          f(wf.compile_wire_func(), env),
+          f(wf.compile_wire_func_or_null(), env),
           bt(wf.bt.get_bt()) { }
     virtual bool accumulate(const counted_t<const datum_t> &el, T *out) {
         try {

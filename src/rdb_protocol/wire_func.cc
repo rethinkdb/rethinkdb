@@ -157,16 +157,12 @@ archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-counted_t<func_t> maybe_wire_func_t::compile_wire_func() const {
+counted_t<func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
     if (wrapped.has()) {
         return wrapped.compile_wire_func();
     } else {
         return counted_t<func_t>();
     }
-}
-
-protob_t<const Backtrace> maybe_wire_func_t::get_bt() const {
-    return wrapped.get_bt();
 }
 
 

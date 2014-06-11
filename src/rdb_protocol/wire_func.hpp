@@ -57,9 +57,7 @@ public:
     void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
-    counted_t<func_t> compile_wire_func() const;
-    // RSI: Any callers?
-    protob_t<const Backtrace> get_bt() const;
+    counted_t<func_t> compile_wire_func_or_null() const;
 
 private:
     wire_func_t wrapped;
