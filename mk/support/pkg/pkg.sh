@@ -39,8 +39,15 @@ pkg_environment () {
         echo "export CXXFLAGS=\"\${CXXFLAGS:-} -isystem $(niceabspath "$install_dir/include")\""
         echo "export   CFLAGS=\"\${CFLAGS:-}   -isystem $(niceabspath "$install_dir/include")\""
     fi
-    test -d "$install_dir/lib" && echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\"" || :
+    if [[ -d "$install_dir/lib" ]]; then
+        echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\""
+        echo "export LD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${LD_LIBRARY_PATH:+:}\${LD_LIBRARY_PATH:-}\""
+    fi
     test -d "$install_dir/bin" && echo "export PATH=\"$(niceabspath "$install_dir/bin"):\$PATH\"" || :
+    local pcdir="$install_dir/lib/pkgconfig"
+    if [[ -e "$pcdir" ]]; then
+        echo "export PKG_CONFIG_PATH=\"$pcdir\${PKG_CONFIG_PATH:+:}\${PKG_CONFIG_PATH:-}\""
+    fi
 }
 
 pkg_make_tmp_fetch_dir () {
@@ -62,6 +69,7 @@ pkg_fetch_archive () {
         *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;
         *.tar.gz)  ext=tar.gz;  in_dir "$tmp_dir" tar -xzf "$archive" ;;
         *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
+        *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
         *) error "don't know how to extract $archive"
     esac
 
@@ -101,7 +109,7 @@ pkg_move_tmp_to_src () {
 
 pkg_copy_src_to_build () {
     mkdir -p "$build_dir"
-    cp -a "$src_dir/." "$build_dir"
+    cp -af "$src_dir/." "$build_dir"
 }
 
 pkg_install-include () {
@@ -139,6 +147,15 @@ pkg_depends_env () {
     done
 }
 
+pkg_link-flags () {
+    local lib="$install_dir/lib/lib$(lc $1).a"
+    if [[ ! -e "$lib" ]]; then
+        echo "pkg.sh: error: static library was not built: $lib" >&2
+        exit 1
+    fi
+    echo "$lib"
+}
+
 cross_build_env () {
     # Unsetting these variables will pick up the toolchain from PATH.
     # Assuming that cross-compilation is achieved by setting these variables,
@@ -168,7 +185,8 @@ niceabspath () {
     if [[ -d "$1" ]]; then
         (cd "$1" && pwd) && return
     fi
-    local dir=$(dirname "$1")
+    local dir
+    dir=$(dirname "$1")
     if [[ -d "$dir" ]] && dir=$(cd "$dir" && pwd); then
         echo "$dir/$(basename "$1")" | sed 's|^//|/|'
         return
@@ -236,6 +254,9 @@ geturl () {
         ${CURL:-curl} --silent --location "$@"
     fi
 }
+
+# lowercase
+lc () { echo "$*" | tr '[:upper:]' '[:lower:]'; }
 
 pkg_script=$(niceabspath "$0")
 
