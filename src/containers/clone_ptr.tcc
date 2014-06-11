@@ -71,17 +71,3 @@ template<class T>
 T *clone_ptr_t<T>::get() const THROWS_NOTHING {
     return object.get();
 }
-
-template<class T>
-clone_ptr_t<T>::operator booleanish_t() const THROWS_NOTHING {
-    if (object.has()) {
-        return &clone_ptr_t::truth_value_method_for_use_in_boolean_conversions;
-    } else {
-        return 0;
-    }
-}
-
-template<class T>
-void clone_ptr_t<T>::truth_value_method_for_use_in_boolean_conversions() {
-    unreachable();
-}

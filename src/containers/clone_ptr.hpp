@@ -42,20 +42,12 @@ public:
     T *operator->() const THROWS_NOTHING;
     T *get() const THROWS_NOTHING;
 
-    /* This mess is so that we can use `clone_ptr_t` in boolean contexts. */
-    // RSI: Drop this.
-    typedef void (clone_ptr_t::*booleanish_t)();
-    operator booleanish_t() const THROWS_NOTHING;
-
     bool has() const THROWS_NOTHING {
         return object.has();
     }
 
 private:
     template<class U> friend class clone_ptr_t;
-
-    // RSI: Drop this.
-    void truth_value_method_for_use_in_boolean_conversions();
 
     friend class write_message_t;
     void rdb_serialize(write_message_t *wm) const {
