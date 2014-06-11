@@ -173,10 +173,10 @@ public:
     private:
         dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
         extproc_pool_t extproc_pool;
-        rdb_context_t rdb_ctx;
-        scoped_ptr_t<ql::env_t> env;
         reactor_test_cluster_t test_cluster;
         mock_namespace_repo_t rdb_ns_repo;
+        rdb_context_t rdb_ctx;
+        scoped_ptr_t<ql::env_t> env;
         cond_t interruptor;
     };
 

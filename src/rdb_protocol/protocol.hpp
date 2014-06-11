@@ -185,6 +185,7 @@ public:
     rdb_context_t();
     // Also used by unit tests.
     rdb_context_t(extproc_pool_t *extproc_pool,
+                  base_namespace_repo_t *ns_repo,
                   boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata);
 
     // The "real" constructor used outside of unit tests.
@@ -212,7 +213,7 @@ public:
     get_databases_watchable_or_null();
 
     extproc_pool_t *extproc_pool;
-    namespace_repo_t *ns_repo;
+    base_namespace_repo_t *ns_repo;
 
     boost::shared_ptr< semilattice_readwrite_view_t<
                            cluster_semilattice_metadata_t> > cluster_metadata;

@@ -111,13 +111,11 @@ profile_bool_t env_t::profile() const {
 }
 
 cluster_access_t::cluster_access_t(
-        base_namespace_repo_t *_ns_repo,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine)
-    : ns_repo(_ns_repo),
-      semilattice_metadata(_semilattice_metadata),
+    : semilattice_metadata(_semilattice_metadata),
       directory_read_manager(_directory_read_manager),
       this_machine(_this_machine) { }
 
@@ -150,6 +148,10 @@ void env_t::join_and_wait_to_propagate(
                             sl_metadata.databases),
                 interruptor);
     }
+}
+
+base_namespace_repo_t *env_t::ns_repo() {
+    return rdb_ctx->ns_repo;
 }
 
 extproc_pool_t *env_t::get_extproc_pool() {
@@ -185,7 +187,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       changefeed_client(ctx->changefeed_client.get_or_null()),
       reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
-          ctx->ns_repo,
           ctx->cluster_metadata,
           ctx->directory_read_manager,
           ctx->machine_id),
@@ -204,7 +205,6 @@ env_t::env_t(signal_t *_interruptor)
       changefeed_client(NULL),
       reql_http_proxy(""),
       cluster_access(
-          NULL,
           boost::shared_ptr<
               semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
           NULL,
@@ -231,7 +231,6 @@ env_t::env_t(
     // This is a half-full rdb_context_t -- see rdb_env.hpp and rdb_env.cc.
     rdb_context_t *ctx,
     const std::string &_reql_http_proxy,
-    base_namespace_repo_t *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _semilattice_metadata,
     signal_t *_interruptor,
@@ -240,8 +239,7 @@ env_t::env_t(
     global_optargs(),
     changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
-    cluster_access(_ns_repo,
-                   _semilattice_metadata,
+    cluster_access(_semilattice_metadata,
                    NULL,
                    _this_machine),
     interruptor(_interruptor),

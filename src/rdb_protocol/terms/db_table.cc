@@ -253,7 +253,7 @@ private:
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
         try {
-            wait_for_rdb_table_readiness(env->env->cluster_access.ns_repo, namespace_id,
+            wait_for_rdb_table_readiness(env->env->ns_repo(), namespace_id,
                                          env->env->interruptor,
                                          env->env->cluster_access.semilattice_metadata);
         } catch (const interrupted_exc_t &e) {

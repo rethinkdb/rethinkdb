@@ -72,7 +72,7 @@ signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
 }
 
 rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
-    : internal_(env->cluster_access.ns_repo, id, env->interruptor)
+    : internal_(env->ns_repo(), id, env->interruptor)
 { }
 
 rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {

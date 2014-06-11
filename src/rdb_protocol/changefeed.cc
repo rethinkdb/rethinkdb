@@ -618,7 +618,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             if (feed_it == feeds.end()) {
                 spot.write_signal()->wait_lazily_unordered();
                 auto val = make_scoped<feed_t>(
-                    this, manager, env->cluster_access.ns_repo, uuid, &interruptor);
+                        this, manager, env->ns_repo(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -629,8 +629,7 @@ client_t::new_feed(const counted_t<table_t> &tbl, env_t *env) {
             addr = feed->get_addr();
             sub.init(new subscription_t(feed));
         }
-        base_namespace_repo_t::access_t access(
-            env->cluster_access.ns_repo, uuid, env->interruptor);
+        base_namespace_repo_t::access_t access(env->ns_repo(), uuid, env->interruptor);
         namespace_interface_t *nif = access.get_namespace_if();
         read_t read(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE);
         read_response_t read_resp;

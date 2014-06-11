@@ -45,13 +45,10 @@ private:
 class cluster_access_t {
 public:
     cluster_access_t(
-        base_namespace_repo_t *_ns_repo,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine);
-
-    base_namespace_repo_t *ns_repo;
 
     // This is a read-WRITE view because of things like table_create_term_t,
     // db_create_term_t, etc.  Its home thread might be different from ours.
@@ -79,7 +76,6 @@ public:
     env_t(
         rdb_context_t *ctx,
         const std::string &_reql_http_proxy,
-        base_namespace_repo_t *_ns_repo,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         signal_t *_interruptor,
@@ -111,6 +107,8 @@ public:
     void join_and_wait_to_propagate(
             const cluster_semilattice_metadata_t &metadata_to_join)
         THROWS_ONLY(interrupted_exc_t);
+
+    base_namespace_repo_t *ns_repo();
 
 
     // This is a callback used in unittests to control things during a query

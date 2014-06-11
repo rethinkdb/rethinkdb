@@ -320,13 +320,11 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     dummy_semilattice_controller(test_env->metadata),
     extproc_pool(2),
-    rdb_ctx(&extproc_pool, dummy_semilattice_controller.get_view()),
     test_cluster(0),
-    rdb_ns_repo()
-{
+    rdb_ns_repo(),
+    rdb_ctx(&extproc_pool, &rdb_ns_repo, dummy_semilattice_controller.get_view()) {
     env.init(new ql::env_t(&rdb_ctx,
                            std::string(),
-                           &rdb_ns_repo,
                            dummy_semilattice_controller.get_view(),
                            &interruptor,
                            test_env->machine_id));
