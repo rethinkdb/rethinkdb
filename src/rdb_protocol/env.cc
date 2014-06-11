@@ -130,15 +130,15 @@ cluster_access_t::cluster_access_t(
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
       databases_semilattice_metadata(_databases_semilattice_metadata) { }
 
-void cluster_access_t::join_and_wait_to_propagate(
-        const cluster_semilattice_metadata_t &metadata_to_join,
-        signal_t *interruptor)
+void env_t::join_and_wait_to_propagate(
+        const cluster_semilattice_metadata_t &metadata_to_join)
     THROWS_ONLY(interrupted_exc_t) {
+    // RSI: This function is f'd up because it causes too many thread switches.  No?
     cluster_semilattice_metadata_t sl_metadata;
     {
-        on_thread_t switcher(semilattice_metadata->home_thread());
-        semilattice_metadata->join(metadata_to_join);
-        sl_metadata = semilattice_metadata->get();
+        on_thread_t switcher(cluster_access.semilattice_metadata->home_thread());
+        cluster_access.semilattice_metadata->join(metadata_to_join);
+        sl_metadata = cluster_access.semilattice_metadata->get();
     }
 
     boost::function<bool (const cow_ptr_t<namespaces_semilattice_metadata_t> s)> p
@@ -147,10 +147,11 @@ void cluster_access_t::join_and_wait_to_propagate(
                       sl_metadata.rdb_namespaces);
 
     {
-        on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
-        namespaces_semilattice_metadata->run_until_satisfied(p,
-                                                             interruptor);
-        databases_semilattice_metadata->run_until_satisfied(
+        on_thread_t switcher(cluster_access.namespaces_semilattice_metadata->home_thread());
+        cluster_access.namespaces_semilattice_metadata->run_until_satisfied(
+                p,
+                interruptor);
+        cluster_access.databases_semilattice_metadata->run_until_satisfied(
             boost::bind(&is_joined<databases_semilattice_metadata_t>,
                         _1,
                         sl_metadata.databases),

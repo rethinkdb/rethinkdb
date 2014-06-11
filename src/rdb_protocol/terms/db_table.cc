@@ -146,7 +146,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "created";
     }
@@ -247,7 +247,7 @@ private:
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
-            env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+            env->env->join_and_wait_to_propagate(meta.metadata);
         }
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
@@ -305,7 +305,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }
@@ -356,7 +356,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->join_and_wait_to_propagate(meta.metadata);
 
         return "dropped";
     }

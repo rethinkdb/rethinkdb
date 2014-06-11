@@ -71,13 +71,6 @@ public:
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
 
 
-    // Semilattice modification functions
-    void join_and_wait_to_propagate(
-            const cluster_semilattice_metadata_t &metadata_to_join,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-
     const uuid_u this_machine;
 
     friend class env_t;
@@ -133,6 +126,12 @@ public:
 
     cow_ptr_t<namespaces_semilattice_metadata_t > get_namespaces_metadata();
     void get_databases_metadata(databases_semilattice_metadata_t *out);
+
+    // Semilattice modification functions
+    void join_and_wait_to_propagate(
+            const cluster_semilattice_metadata_t &metadata_to_join)
+        THROWS_ONLY(interrupted_exc_t);
+
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
