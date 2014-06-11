@@ -296,14 +296,14 @@ void store_t::reset_data(
 
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        done_erasing_t done =  rdb_erase_small_range(&key_tester,
-                                                     keyrange_left,
-                                                     superblock.get(),
-                                                     &deletion_context,
-                                                     interruptor,
-                                                     max_erased_per_pass,
-                                                     &highest_erased_key_so_far,
-                                                     &mod_reports);
+        done_erasing_t done = rdb_erase_small_range(&key_tester,
+                                                    keyrange_left,
+                                                    superblock.get(),
+                                                    &deletion_context,
+                                                    interruptor,
+                                                    max_erased_per_pass,
+                                                    &highest_erased_key_so_far,
+                                                    &mod_reports);
         keep_erasing = done != done_erasing_t::DONE;
         superblock.reset();
         if (!mod_reports.empty()) {
