@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-setup(name="rethinkdb"
+setup(name="rethinkdb", zip_safe=True
       ,version = "1.12.0-2"
       ,description = "This package provides the Python driver library for the RethinkDB database server."
       ,url = "http://rethinkdb.com"
