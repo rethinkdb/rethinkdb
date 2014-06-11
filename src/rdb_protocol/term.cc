@@ -372,7 +372,7 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     env->env->maybe_yield();
     INC_DEPTH;
 
-    // try {
+    try {
         try {
             counted_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;
@@ -383,11 +383,11 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
             DBG("%s THREW\n", name());
             rfail(e.get_type(), "%s", e.what());
         }
-    // } catch (...) {
-    //     DEC_DEPTH;
-    //     DBG("%s THREW OUTER\n", name());
-    //     throw;
-    // }
+    } catch (...) {
+        DEC_DEPTH;
+        DBG("%s THREW OUTER\n", name());
+        throw;
+    }
 }
 
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {

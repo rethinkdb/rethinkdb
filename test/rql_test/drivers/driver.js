@@ -1,4 +1,27 @@
-var r = require('../../../build/packages/js/rethinkdb');
+// -- load rethinkdb from the proper location
+rethinkdbLocation = '';
+var path = require('path');
+var fs = require('fs');
+try {
+    rethinkdbLocation = process.env.JAVASCRIPT_DRIVER_DIR;
+} catch(e) {
+    dirPath = path.resolve(__dirname)
+    while (dirPath != path.sep) {
+        if (fs.existsSync(path.resolve(dirPath, 'drivers', 'javascript'))) {
+            // TODO: try to compile the drivers
+            rethinkdbLocation = path.resolve(dirPath, 'build', 'packages', 'js');
+            break;
+        }
+        dirPath = path.dirname(targetPath)
+    }
+}
+if (fs.existsSync(path.resolve(rethinkdbLocation, 'rethinkdb.js')) == false) {
+    process.stdout.write('Could not locate the javascript drivers at the expected location: ' + rethinkdbLocation);
+    process.exit(1);
+}
+var r = require(path.resolve(rethinkdbLocation, 'rethinkdb'));
+
+// --
 
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
