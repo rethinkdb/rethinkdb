@@ -287,24 +287,52 @@ void store_t::reset_data(
                                      &superblock,
                                      interruptor);
 
+        key_range_t keyrange_left_to_erase = subregion.inner;
+        keyrange_left_to_erase.left = highest_erased_key_so_far;
+
+        // First we use an ordered depth-first-traversal to figure out the key range
+        // that corresponds to `max_erased_per_pass` keys. Then we use
+        // `rdb_erase_small_range()` to actually erase the keys in parallel.
+        struct counter_cb_t : public depth_first_traversal_callback_t {
+            counter_cb_t(unsigned int m) : max_erased_per_pass_(m), key_count_(0) { }
+            done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+                ++key_count_;
+                if (key_count_ > max_erased_per_pass_) {
+                    end_key_ = store_key_t(keyvalue.key());
+                    return done_traversing_t::YES;
+                }
+                return done_traversing_t::NO;
+            }
+            unsigned int max_erased_per_pass_;
+            unsigned int key_count_;
+            store_key_t end_key_;
+        };
+        counter_cb_t counter_cb(max_erased_per_pass);
+        keep_erasing = !btree_depth_first_traversal(superblock.get(),
+                                                    keyrange_left_to_erase,
+                                                    &counter_cb, direction_t::FORWARD,
+                                                    release_superblock_t::KEEP);
+
+        // Erase the determined range of `max_erased_per_pass` keys
+        key_range_t keyrange_this_pass = keyrange_left_to_erase;
+        if (keep_erasing) {
+            // `right` is exclusive
+            keyrange_this_pass.right = key_range_t::right_bound_t(counter_cb.end_key_);
+            highest_erased_key_so_far = counter_cb.end_key_;
+        }
+
         buf_lock_t sindex_block
             = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
 
-        key_range_t keyrange_left = subregion.inner;
-        keyrange_left.left = highest_erased_key_so_far;
-
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        done_erasing_t done = rdb_erase_small_range(&key_tester,
-                                                    keyrange_left,
-                                                    superblock.get(),
-                                                    &deletion_context,
-                                                    interruptor,
-                                                    max_erased_per_pass,
-                                                    &highest_erased_key_so_far,
-                                                    &mod_reports);
-        keep_erasing = done != done_erasing_t::DONE;
+        rdb_erase_small_range(&key_tester,
+                              keyrange_this_pass,
+                              superblock.get(),
+                              &deletion_context,
+                              interruptor,
+                              &mod_reports);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);
