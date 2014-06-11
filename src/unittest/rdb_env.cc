@@ -322,11 +322,11 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     extproc_pool(2),
     test_cluster(0),
     rdb_ns_repo(),
-    rdb_ctx(&extproc_pool, &rdb_ns_repo, dummy_semilattice_controller.get_view()) {
+    rdb_ctx(&extproc_pool, &rdb_ns_repo, dummy_semilattice_controller.get_view(),
+            test_env->machine_id) {
     env.init(new ql::env_t(&rdb_ctx,
                            std::string(),
-                           &interruptor,
-                           test_env->machine_id));
+                           &interruptor));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas

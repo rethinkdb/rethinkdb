@@ -368,11 +368,13 @@ void rdb_context_t::help_construct_cross_thread_watchables() {
 rdb_context_t::rdb_context_t(
         extproc_pool_t *_extproc_pool,
         base_namespace_repo_t *_ns_repo,
-        boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata)
+        boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
+        uuid_u _machine_id)
     : extproc_pool(_extproc_pool),
       ns_repo(_ns_repo),
       cluster_metadata(_cluster_metadata),
       directory_read_manager(NULL),
+      machine_id(_machine_id),
       manager(NULL),
       changefeed_client(NULL),
       ql_stats_membership(

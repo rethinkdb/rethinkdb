@@ -110,10 +110,6 @@ profile_bool_t env_t::profile() const {
     return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
-cluster_access_t::cluster_access_t(
-        uuid_u _this_machine)
-    : this_machine(_this_machine) { }
-
 void env_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join)
     THROWS_ONLY(interrupted_exc_t) {
@@ -165,8 +161,9 @@ env_t::directory_read_manager() {
 }
 
 uuid_u env_t::this_machine() {
-    // RSI: Sanity check non-nil?
-    return cluster_access.this_machine;
+    r_sanity_check(rdb_ctx != NULL);
+    r_sanity_check(!rdb_ctx->machine_id.is_unset());
+    return rdb_ctx->machine_id;
 }
 
 extproc_pool_t *env_t::get_extproc_pool() {
@@ -201,8 +198,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       global_optargs(std::move(optargs)),
       changefeed_client(ctx->changefeed_client.get_or_null()),
       reql_http_proxy(ctx->reql_http_proxy),
-      cluster_access(
-          ctx->machine_id),
       interruptor(_interruptor),
       rdb_ctx(ctx),
       eval_callback(NULL) {
@@ -217,8 +212,6 @@ env_t::env_t(signal_t *_interruptor)
       global_optargs(),
       changefeed_client(NULL),
       reql_http_proxy(""),
-      cluster_access(
-          uuid_u()),
       interruptor(_interruptor),
       rdb_ctx(NULL),
       eval_callback(NULL) {
@@ -241,13 +234,11 @@ env_t::env_t(
     // This is a half-full rdb_context_t -- see rdb_env.hpp and rdb_env.cc.
     rdb_context_t *ctx,
     const std::string &_reql_http_proxy,
-    signal_t *_interruptor,
-    uuid_u _this_machine)
+    signal_t *_interruptor)
   : evals_since_yield(0),
     global_optargs(),
     changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
-    cluster_access(_this_machine),
     interruptor(_interruptor),
     rdb_ctx(ctx),
     eval_callback(NULL) {
