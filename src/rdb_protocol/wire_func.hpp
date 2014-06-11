@@ -41,24 +41,28 @@ public:
     void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
-protected:
-    // Used by maybe_wire_func_t unfortunately.
-    bool has() const { return func.has(); }
 private:
+    friend class maybe_wire_func_t;  // for has().
+    bool has() const { return func.has(); }
+
     counted_t<func_t> func;
 };
 
-class maybe_wire_func_t : private wire_func_t {
+class maybe_wire_func_t {
 protected:
     template<class... Args>
-    explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit maybe_wire_func_t(Args... args) : wrapped(args...) { }
 
 public:
     void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
     counted_t<func_t> compile_wire_func() const;
-    using wire_func_t::get_bt;
+    // RSI: Any callers?
+    protob_t<const Backtrace> get_bt() const;
+
+private:
+    wire_func_t wrapped;
 };
 
 class map_wire_func_t : public wire_func_t {

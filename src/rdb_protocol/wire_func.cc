@@ -138,10 +138,10 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
 }
 
 void maybe_wire_func_t::rdb_serialize(write_message_t *wm) const {
-    bool has_value = has();
+    bool has_value = wrapped.has();
     serialize(wm, has_value);
     if (has_value) {
-        wire_func_t::rdb_serialize(wm);
+        serialize(wm, wrapped);
     }
 }
 
@@ -150,19 +150,25 @@ archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res = deserialize(s, &has_value);
     if (bad(res)) { return res; }
     if (has_value) {
-        return wire_func_t::rdb_deserialize(s);
+        return deserialize(s, &wrapped);
     } else {
+        wrapped = wire_func_t();
         return archive_result_t::SUCCESS;
     }
 }
 
 counted_t<func_t> maybe_wire_func_t::compile_wire_func() const {
-    if (has()) {
-        return wire_func_t::compile_wire_func();
+    if (wrapped.has()) {
+        return wrapped.compile_wire_func();
     } else {
         return counted_t<func_t>();
     }
 }
+
+protob_t<const Backtrace> maybe_wire_func_t::get_bt() const {
+    return wrapped.get_bt();
+}
+
 
 
 group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
