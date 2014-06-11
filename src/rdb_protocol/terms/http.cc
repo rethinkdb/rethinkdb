@@ -206,7 +206,7 @@ counted_t<val_t> http_term_t::eval_impl(scope_env_t *env,
                                         UNUSED eval_flags_t flags) {
     http_opts_t opts;
     opts.url.assign(arg(env, 0)->as_str().to_std());
-    opts.proxy.assign(env->env->reql_http_proxy);
+    opts.proxy.assign(env->env->get_reql_http_proxy());
     get_optargs(env, &opts);
 
     counted_t<func_t> depaginate_fn;

@@ -172,6 +172,11 @@ changefeed::client_t *env_t::get_changefeed_client() {
     return rdb_ctx->changefeed_client.get();
 }
 
+std::string env_t::get_reql_http_proxy() {
+    r_sanity_check(rdb_ctx != NULL);
+    return rdb_ctx->reql_http_proxy;
+}
+
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
     r_sanity_check(rdb_ctx != NULL);
@@ -202,7 +207,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      reql_http_proxy(ctx->reql_http_proxy),
       interruptor(_interruptor),
       rdb_ctx(ctx),
       eval_callback(NULL) {
@@ -215,7 +219,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
-      reql_http_proxy(""),
       interruptor(_interruptor),
       rdb_ctx(NULL),
       eval_callback(NULL) {
@@ -231,21 +234,6 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query) {
     } else {
         return profile_bool_t::DONT_PROFILE;
     }
-}
-
-// Called by unittest/rdb_env.cc.
-env_t::env_t(
-    // This is a half-full rdb_context_t -- see rdb_env.hpp and rdb_env.cc.
-    rdb_context_t *ctx,
-    const std::string &_reql_http_proxy,
-    signal_t *_interruptor)
-  : evals_since_yield(0),
-    global_optargs(),
-    reql_http_proxy(_reql_http_proxy),
-    interruptor(_interruptor),
-    rdb_ctx(ctx),
-    eval_callback(NULL) {
-    rassert(interruptor != NULL);
 }
 
 env_t::~env_t() { }

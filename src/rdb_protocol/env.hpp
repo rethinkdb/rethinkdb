@@ -49,12 +49,6 @@ profile_bool_t profile_bool_optarg(const protob_t<Query> &query);
 
 class env_t : public home_thread_mixin_t {
 public:
-    // Called by unittest/rdb_env.cc.
-    env_t(
-        rdb_context_t *ctx,
-        const std::string &_reql_http_proxy,
-        signal_t *_interruptor);
-
     env_t(rdb_context_t *ctx, signal_t *interruptor,
           std::map<std::string, wire_func_t> optargs);
 
@@ -93,6 +87,7 @@ public:
 
     changefeed::client_t *get_changefeed_client();
 
+    std::string get_reql_http_proxy();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
@@ -108,9 +103,6 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
-
-    // HTTP proxy to use when running `r.http(...)` queries
-    const std::string reql_http_proxy;
 
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;

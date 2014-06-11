@@ -325,8 +325,8 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     rdb_ctx(&extproc_pool, &rdb_ns_repo, dummy_semilattice_controller.get_view(),
             test_env->machine_id) {
     env.init(new ql::env_t(&rdb_ctx,
-                           std::string(),
-                           &interruptor));
+                           &interruptor,
+                           std::map<std::string, ql::wire_func_t>()));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas
