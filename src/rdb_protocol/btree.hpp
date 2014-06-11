@@ -180,7 +180,7 @@ void rdb_erase_small_range(key_tester_t *tester,
  * `highest_erased_key_out`.
  * Returns `true` if  all data in the range has been erased, or `false` if erasing
  * was terminated because of hitting the `max_entries_erased` parameter. */
-enum done_erasing_t { DONE, REACHED_MAX };
+enum class done_erasing_t { DONE, REACHED_MAX };
 done_erasing_t rdb_erase_small_range(
         key_tester_t *tester,
         const key_range_t &keys,

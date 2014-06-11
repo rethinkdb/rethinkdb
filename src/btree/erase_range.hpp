@@ -38,7 +38,8 @@ continues erasing more values (true) or not (false). */
 void btree_erase_range_generic(value_sizer_t *sizer, key_tester_t *tester,
         const value_deleter_t *deleter, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null, superblock_t *superblock,
-        signal_t *interruptor, release_superblock_t release_superblock = RELEASE,
+        signal_t *interruptor,
+        release_superblock_t release_superblock = release_superblock_t::RELEASE,
         const std::function<done_traversing_t(const store_key_t &,
                                               const char *,
                                               const buf_parent_t &)>

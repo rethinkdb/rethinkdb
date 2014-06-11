@@ -1,5 +1,7 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time, socket, signal, subprocess, shutil, tempfile, random, re
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+import atexit, os, random, re, shutil, signal, socket, subprocess, sys, tempfile, time
+
+import utils
 
 """`driver.py` is a module for starting groups of RethinkDB cluster nodes and
 connecting them to each other. It also supports netsplits.
@@ -47,6 +49,13 @@ def find_rethinkdb_executable(mode = ""):
             mode = 'debug'
     return find_subpath("build/%s/rethinkdb" % mode)
 
+def cleanupMetaclusterFolder(path):
+    if os.path.isdir(str(path)):
+        try:
+            shutil.rmtree(path)
+        except Exception, e:
+            print('Warning: unable to cleanup Metacluster folder: %s - got error: %s' % (str(path), str(e)))
+
 def get_table_host(processes):
     return ("localhost", random.choice(processes).driver_port)
 
@@ -54,11 +63,14 @@ class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
     `resunder` blocks between different clusters. It's also a context manager
     that cleans up all the processes and deletes all the files. """
-
+    
+    __unique_id_counter = None
+    
     def __init__(self):
         self.clusters = set()
         self.dbs_path = tempfile.mkdtemp()
-        self.files_counter = 0
+        atexit.register(cleanupMetaclusterFolder, self.dbs_path)
+        self.__unique_id_counter = 0
         self.closed = False
         try:
             self.port_offset = int(os.environ["RETHINKDB_PORT_OFFSET"])
@@ -82,6 +94,11 @@ class Metacluster(object):
     def __exit__(self, exc, etype, tb):
         self.close()
 
+    def get_new_unique_id(self):
+        returnValue = self.__unique_id_counter
+        self.__unique_id_counter += 1
+        return returnValue
+    
     def move_processes(self, source, dest, processes):
         """Moves a group of `Process`es from one `Cluster` to another. To split
         a cluster, create an empty cluster and use `move_processes()` to move
@@ -117,7 +134,10 @@ class Cluster(object):
     """A `Cluster` represents a group of `Processes` that are all connected to
     each other (ideally, anyway; see the note in `move_processes`). """
 
-    def __init__(self, metacluster):
+    def __init__(self, metacluster=None):
+        
+        if metacluster is None:
+            metacluster = Metacluster()
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
 
@@ -166,18 +186,23 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, machine_name = None, db_path = None, log_path = None, executable_path = None, command_prefix = []):
+    db_path = None
+    machine_name = None
+    
+    def __init__(self, metacluster, machine_name = None, db_path = None, log_path = None, executable_path = None, command_prefix=None):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert machine_name is None or isinstance(machine_name, str)
         assert db_path is None or isinstance(db_path, str)
 
+        if command_prefix is None:
+            command_prefix = []
+        
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
-        self.id_number = metacluster.files_counter
-        metacluster.files_counter += 1
+        self.id_number = metacluster.get_new_unique_id()
 
         if db_path is None:
             self.db_path = os.path.join(metacluster.dbs_path, str(self.id_number))
@@ -197,17 +222,32 @@ class Files(object):
         if log_path is None:
             print "setting log_path to /dev/null."
             log_path = "/dev/null"
-        with open(log_path, "w") as log_file:
+        with open(log_path, "a") as log_file:
             subprocess.check_call(create_args, stdout = log_file, stderr = log_file)
 
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
-    def __init__(self, cluster, options, log_path = None, executable_path = None, command_prefix = []):
+    
+    cluster = None
+    executable_path = None
+    
+    port_offset = None
+    logfile_path = None
+    
+    host = 'localhost'
+    cluster_port = None
+    driver_port = None
+    http_port = None
+    
+    def __init__(self, cluster, options, log_path = None, executable_path = None, command_prefix=None):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert all(hasattr(self, x) for x in
                    "local_cluster_port port_offset logfile_path".split())
 
+        if command_prefix is None:
+            command_prefix = []
+        
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
@@ -229,13 +269,13 @@ class _Process(object):
             if self.log_path is None:
                 self.log_file = sys.stdout
             else:
-                self.log_file = open(self.log_path, "w")
+                self.log_file = open(self.log_path, "a")
 
             if os.path.exists(self.logfile_path):
                 os.unlink(self.logfile_path)
 
-            print "Launching: "
-            print self.args
+            print "Launching:"
+            print(self.args)
             self.process = subprocess.Popen(self.args, stdout = self.log_file, stderr = self.log_file)
 
             self.read_ports_from_log()
@@ -273,7 +313,7 @@ class _Process(object):
         while time.time() < time_limit:
             self.check()
             try:
-                log = file(self.logfile_path).read()
+                log = open(self.logfile_path, 'r').read()
                 cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
                 http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
                 driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)",log)
@@ -344,11 +384,22 @@ class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, files, log_path = None, executable_path = None, command_prefix = [], extra_options = []):
+    def __init__(self, cluster=None, files=None, log_path=None, executable_path=None, command_prefix=None, extra_options=None):
+        
+        if cluster is None:
+            cluster = Cluster()
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
+        
+        if files is None:
+            files = Files(metacluster=cluster.metacluster, log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
         assert isinstance(files, Files)
-
+        
+        if command_prefix is None:
+            command_prefix = []
+        if extra_options is None:
+            extra_options = []
+        
         self.files = files
         self.logfile_path = os.path.join(files.db_path, "log_file")
 
@@ -371,18 +422,22 @@ class ProxyProcess(_Process):
     """A `ProxyProcess` object represents a running RethinkDB proxy. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix = [], extra_options = []):
+    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix=None, extra_options=None):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
 
+        if command_prefix is None:
+            command_prefix = []
+        if extra_options is None:
+            extra_options = []
+        
         # We grab a value from the files counter even though we don't have files, just to ensure
         # uniqueness. TODO: rename it something more appropriate, like uid_counter.
-        self.id_number = cluster.metacluster.files_counter
-        cluster.metacluster.files_counter += 1
+        self.id_number = cluster.metacluster.get_new_unique_id()
 
         self.logfile_path = logfile_path
 
-        self.port_offset = cluster.metacluster.port_offset + cluster.metacluster.files_counter
+        self.port_offset = cluster.metacluster.port_offset + self.id_number
         self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",

@@ -24,6 +24,6 @@ public:
     void delete_value(buf_parent_t, const void *) const { }
 };
 
-enum release_superblock_t {RELEASE, KEEP};
+enum class release_superblock_t {RELEASE, KEEP};
 
 #endif /* BTREE_TYPES_HPP_ */
