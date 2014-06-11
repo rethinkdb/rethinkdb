@@ -120,8 +120,6 @@ public:
     profile_bool_t profile() const;
 
 private:
-    profile_bool_t is_profile_requested;
-
     rdb_context_t *const rdb_ctx;
 
     js_runner_t js_runner;

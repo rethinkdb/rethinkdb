@@ -43,7 +43,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     try {
         // RSI: We never profile.
         env_t env(rdb_ctx, interruptor, entry->global_optargs,
-                  profile_bool_t::DONT_PROFILE);
+                  entry->profile);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
@@ -56,8 +56,8 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
-        if (entry->profile == profile_bool_t::PROFILE) {
-            datum_t(profile::NOT_SUPPORTED_MESSAGE).write_to_protobuf(
+        if (env.trace.has()) {
+            env.trace->as_datum()->write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {
