@@ -27,7 +27,7 @@ rb_build_files: | $(RB_BUILD_DIR)/lib/.
 $(RB_PROTO_BUILD_FILE) $(RB_PROTO_DEV_FILE): $(PROTO_FILE_SRC)
 	$P CONVERT_PROTOFILE
 	mkdir -p $(dir $@)
-	$(PYTHON) ../convert_protofile --language ruby --input-file $(PROTO_FILE_SRC) --output-file $@
+	$(PYTHON) $(TOP)/drivers/convert_protofile --language ruby --input-file $(PROTO_FILE_SRC) --output-file $@
 
 $(RB_SRC_DIR)/$(RB_GEMSPEC_FILE_NAME): $(RB_SRC_DIR)/$(RB_GEMSPEC_FILE_NAME)
 	cp $< $@

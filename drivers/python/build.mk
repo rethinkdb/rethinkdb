@@ -26,7 +26,7 @@ py_build_files: | $(PY_BUILD_DIR)/rethinkdb/.
 $(PY_PROTO_DEV_FILE) $(PY_PROTO_BUILD_FILE): $(PROTO_FILE_SRC)
 	$P CONVERT_PROTOFILE
 	mkdir -p $(dir $@)
-	$(PYTHON) ../convert_protofile --language python --input-file $(PROTO_FILE_SRC) --output-file $@
+	$(PYTHON) $(TOP)/drivers/convert_protofile --language python --input-file $(PROTO_FILE_SRC) --output-file $@
 
 $(PY_BUILD_DIR)/setup.py: $(PY_SRC_DIR)/setup.py | $(PY_BUILD_DIR)
 	$P CP
