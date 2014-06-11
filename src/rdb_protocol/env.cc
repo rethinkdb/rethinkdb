@@ -111,10 +111,8 @@ profile_bool_t env_t::profile() const {
 }
 
 cluster_access_t::cluster_access_t(
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine)
-    : directory_read_manager(_directory_read_manager),
-      this_machine(_this_machine) { }
+    : this_machine(_this_machine) { }
 
 void env_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join)
@@ -147,20 +145,23 @@ void env_t::join_and_wait_to_propagate(
 }
 
 base_namespace_repo_t *env_t::ns_repo() {
+    r_sanity_check(rdb_ctx != NULL);
     return rdb_ctx->ns_repo;
 }
 
 const boost::shared_ptr< semilattice_readwrite_view_t<
                              cluster_semilattice_metadata_t> > &
 env_t::cluster_metadata() {
+    r_sanity_check(rdb_ctx != NULL);
     r_sanity_check(rdb_ctx->cluster_metadata);
     return rdb_ctx->cluster_metadata;
 }
 
 directory_read_manager_t<cluster_directory_metadata_t> *
 env_t::directory_read_manager() {
-    r_sanity_check(cluster_access.directory_read_manager != NULL);
-    return cluster_access.directory_read_manager;
+    r_sanity_check(rdb_ctx != NULL);
+    r_sanity_check(rdb_ctx->directory_read_manager != NULL);
+    return rdb_ctx->directory_read_manager;
 }
 
 uuid_u env_t::this_machine() {
@@ -201,7 +202,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
       changefeed_client(ctx->changefeed_client.get_or_null()),
       reql_http_proxy(ctx->reql_http_proxy),
       cluster_access(
-          ctx->directory_read_manager,
           ctx->machine_id),
       interruptor(_interruptor),
       rdb_ctx(ctx),
@@ -218,7 +218,6 @@ env_t::env_t(signal_t *_interruptor)
       changefeed_client(NULL),
       reql_http_proxy(""),
       cluster_access(
-          NULL,
           uuid_u()),
       interruptor(_interruptor),
       rdb_ctx(NULL),
@@ -248,8 +247,7 @@ env_t::env_t(
     global_optargs(),
     changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
-    cluster_access(NULL,
-                   _this_machine),
+    cluster_access(_this_machine),
     interruptor(_interruptor),
     rdb_ctx(ctx),
     eval_callback(NULL) {

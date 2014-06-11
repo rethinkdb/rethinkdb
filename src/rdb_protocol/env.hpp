@@ -44,17 +44,9 @@ private:
 class cluster_access_t {
 public:
     cluster_access_t(
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine);
 
     friend class env_t;
-private:
-    // This field can be NULL.  Importantly, this field is NULL everywhere except in
-    // the parser's env_t.  This is because you "cannot nest meta operations inside
-    // queries" -- as meta_write_op_t will complain.  However, term_walker.cc is what
-    // actually enforces this property.
-    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-
 
     const uuid_u this_machine;
 };
