@@ -3138,6 +3138,7 @@ module 'DataExplorerView', ->
 
         json_to_tree: (result) =>
             result_json = JSON.stringify(result, null, 4)
+            # If the results are too large, we just display the raw indented JSON to avoid freezing the interface
             if result_json.length > @large_response_threshold
                 return @template_json_tree.large_container
                     json_data: result_json
