@@ -174,13 +174,13 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
-const clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > > &
-env_t::namespaces_semilattice_metadata() {
-    return cluster_access.namespaces_semilattice_metadata;
+cow_ptr_t<namespaces_semilattice_metadata_t>
+env_t::get_namespaces_metadata() {
+    return rdb_ctx->get_namespaces_metadata();
 }
-const clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > &
-env_t::databases_semilattice_metadata() {
-    return cluster_access.databases_semilattice_metadata;
+
+void env_t::get_databases_metadata(databases_semilattice_metadata_t *out) {
+    rdb_ctx->get_databases_metadata(out);
 }
 
 

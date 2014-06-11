@@ -131,10 +131,8 @@ public:
     // already been called.
     js_runner_t *get_js_runner();
 
-    const clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t > > > &
-    namespaces_semilattice_metadata();
-    const clone_ptr_t<watchable_t<databases_semilattice_metadata_t> > &
-    databases_semilattice_metadata();
+    cow_ptr_t<namespaces_semilattice_metadata_t > get_namespaces_metadata();
+    void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {

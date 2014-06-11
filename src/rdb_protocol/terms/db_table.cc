@@ -102,8 +102,8 @@ private:
         name_string_t db_name = get_name(arg(env, 0), this, "Database");
         uuid_u uuid;
         {
-            databases_semilattice_metadata_t db_metadata
-                = env->env->databases_semilattice_metadata()->get();
+            databases_semilattice_metadata_t db_metadata;
+            env->env->get_databases_metadata(&db_metadata);
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -371,8 +371,8 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            databases_semilattice_metadata_t db_metadata
-                = env->env->databases_semilattice_metadata()->get();
+            databases_semilattice_metadata_t db_metadata;
+            env->env->get_databases_metadata(&db_metadata);
             const_metadata_searcher_t<database_semilattice_metadata_t>
                 db_searcher(&db_metadata.databases);
 
@@ -416,7 +416,7 @@ private:
         namespace_predicate_t pred(&db_id);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata
-                = env->env->namespaces_semilattice_metadata()->get();
+                = env->env->get_namespaces_metadata();
             const_metadata_searcher_t<namespace_semilattice_metadata_t>
                 ns_searcher(&ns_metadata->namespaces);
 
