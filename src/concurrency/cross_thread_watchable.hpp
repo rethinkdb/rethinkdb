@@ -27,10 +27,11 @@ public:
 
     threadnum_t home_thread() { return watchable_thread; }
 
-    // RSI: templatize callable
-    void apply_read(const std::function<void(const value_t *)> &read) {
+    template <class Callable>
+    void apply_read(Callable &&read) {
         ASSERT_NO_CORO_WAITING;
-        read(&value);
+        const value_t *const_value = &value;
+        read(const_value);
     }
 
 private:
