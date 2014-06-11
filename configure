@@ -35,7 +35,7 @@ init () {
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
-    all_deps="$bin_deps $all_libs"
+    all_deps="$bin_deps $all_libs boost"
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
 }
@@ -718,7 +718,7 @@ pkg () {
     FETCH_LIST="$FETCH_LIST" bash $root/mk/support/pkg/pkg.sh "$@"
 }
 
-# add_fetch <name>
+# add_fetch <name> ["lib"]
 # Instruct make to fetch and build the dependency
 # Sets the pkg and version variables
 add_fetch () {
@@ -736,6 +736,9 @@ add_fetch () {
         var_append FETCH_LIST "$pkg"
         var "${pkg}_VERSION" "$version"
         var "${pkg}_DEPENDS" "$depends"
+    fi
+    if [[ "${2:-}" = lib ]]; then
+        var "$pkg"_LIB_NAME "$(uc "$1")"
     fi
 }
 
@@ -759,9 +762,8 @@ fetch_bin () {
 fetch_lib () {
     local pkg
     local version
-    add_fetch "$1"
+    add_fetch "$1" lib
     var "HAS_$(uc "$1")" 1
-    macro "$(uc "$1")_LIBS"             "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
     macro "$(uc "$1")_INCLUDE_DEP"      "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"

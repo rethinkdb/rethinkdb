@@ -95,6 +95,12 @@ build-$2_% $(foreach target,$1,$(subst _$3/,_%/,$(target))) $(SUPPORT_BUILD_DIR)
 	$(PKG_RECURSIVE_MARKER)$$(PKG_SCRIPT) install $2 $$(call SUPPORT_LOG_REDIRECT, $$(SUPPORT_LOG_DIR)/$2_$3_install.log)
 	touch $(SUPPORT_BUILD_DIR)/$2_$3/install.witness
 
+# Fetched packages need to be linked with flags that can only be
+# guessed after the package has been installed.
+ifneq (undefined,$$(origin $2_LIB_NAME))
+  $$($2_LIB_NAME)_LIBS = $$(shell $(PKG_SCRIPT) link-flags $2 $$($2_LIB_NAME))
+endif
+
 endef
 
 # For each package, list the target files and generate custom rules for that package
