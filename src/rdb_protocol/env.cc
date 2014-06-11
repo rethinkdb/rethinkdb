@@ -166,6 +166,12 @@ uuid_u env_t::this_machine() {
     return rdb_ctx->machine_id;
 }
 
+changefeed::client_t *env_t::get_changefeed_client() {
+    r_sanity_check(rdb_ctx != NULL);
+    r_sanity_check(rdb_ctx->changefeed_client.has());
+    return rdb_ctx->changefeed_client.get();
+}
+
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
     r_sanity_check(rdb_ctx != NULL);
@@ -196,7 +202,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
              std::map<std::string, wire_func_t> optargs)
     : evals_since_yield(0),
       global_optargs(std::move(optargs)),
-      changefeed_client(ctx->changefeed_client.get_or_null()),
       reql_http_proxy(ctx->reql_http_proxy),
       interruptor(_interruptor),
       rdb_ctx(ctx),
@@ -210,7 +215,6 @@ env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor,
 env_t::env_t(signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(),
-      changefeed_client(NULL),
       reql_http_proxy(""),
       interruptor(_interruptor),
       rdb_ctx(NULL),
@@ -237,7 +241,6 @@ env_t::env_t(
     signal_t *_interruptor)
   : evals_since_yield(0),
     global_optargs(),
-    changefeed_client(NULL),
     reql_http_proxy(_reql_http_proxy),
     interruptor(_interruptor),
     rdb_ctx(ctx),

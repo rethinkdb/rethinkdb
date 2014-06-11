@@ -91,6 +91,8 @@ public:
 
     uuid_u this_machine();
 
+    changefeed::client_t *get_changefeed_client();
+
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
@@ -106,9 +108,6 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
-
-    // Holds a bunch of mailboxes and maps them to streams.
-    changefeed::client_t *changefeed_client;
 
     // HTTP proxy to use when running `r.http(...)` queries
     const std::string reql_http_proxy;
