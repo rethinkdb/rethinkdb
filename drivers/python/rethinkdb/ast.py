@@ -14,6 +14,11 @@ from . import ql2_pb2 as p
 
 pTerm = p.Term.TermType
 
+try:
+    from itertools import imap
+except ImportError:
+    imap = map
+
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
 def expr(val, nesting_depth=20):
@@ -496,7 +501,12 @@ class RqlBoolOperQuery(RqlQuery):
         self.infix = True
 
     def compose(self, args, optargs):
-        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        t_args = list(imap(
+            lambda _arg, arg: (
+                T('r.expr(', arg, ')') if needs_wrap(_args) else arg
+            ),
+            self.args, args
+        ))
 
         if self.infix:
             return T('(', T(*t_args, intsp=[' ', self.st_infix, ' ']), ')')
@@ -505,7 +515,12 @@ class RqlBoolOperQuery(RqlQuery):
 
 class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
-        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        t_args = list(imap(
+            lambda _arg, arg: (
+                T('r.expr(', arg, ')') if needs_wrap(_args) else arg
+            ),
+            self.args, args
+        ))
         return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
 
 class RqlBiCompareOperQuery(RqlBiOperQuery):
@@ -637,8 +652,10 @@ def recursively_convert_pseudotypes(obj, format_opts):
             obj[key] = recursively_convert_pseudotypes(value, format_opts)
         obj = convert_pseudotype(obj, format_opts)
     elif isinstance(obj, list):
-        for i in xrange(len(obj)):
-            obj[i] = recursively_convert_pseudotypes(obj[i], format_opts)
+        obj = list(imap(
+            lambda o: recursively_convert_pseudotypes(o, format_opts),
+            obj
+        ))
     return obj
 
 # This class handles the conversion of RQL terminal types in both directions

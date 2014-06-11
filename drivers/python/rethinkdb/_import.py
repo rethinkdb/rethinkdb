@@ -2,11 +2,16 @@
 from __future__ import print_function
 import signal
 
-import sys, os, datetime, time, json, traceback, csv, cPickle
+import sys, os, datetime, time, json, traceback, csv, pickle
 import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
+
+try:
+    from itertools import imap
+except ImportError:
+    imap = map
 
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
@@ -243,8 +248,7 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
         # b) is exactly the same on the server
         task = progress[1]
         pkey = r.db(task[0]).table(task[1]).info().run(conn)["primary_key"]
-        for i in reversed(xrange(len(task[2]))):
-            obj = cPickle.loads(task[2][i])
+        for obj in imap(pickle.loads, reversed(task[2])):
             if pkey not in obj:
                 raise RuntimeError("Connection error while importing.  Current row has no specified primary key, so cannot guarantee absence of duplicates")
             row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
@@ -258,7 +262,7 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
     while len(task) == 3:
         try:
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
-            objs = [cPickle.loads(obj) for obj in task[2]]
+            objs = list(imap(pickle.loads, task[2]))
             res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
         except:
             progress[1] = task
@@ -309,7 +313,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
                 del obj[key]
 
     # Pickle the object here because we want an accurate size, and it'll pickle anyway for IPC
-    object_buffers.append(cPickle.dumps(obj))
+    object_buffers.append(pickle.dumps(obj))
     buffer_sizes.append(len(object_buffers[-1]))
     if len(object_buffers) >= batch_length_limit or sum(buffer_sizes) > batch_size_limit:
         task_queue.put((db, table, object_buffers))
@@ -493,7 +497,7 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
         exit_event.set()
 
         alive_clients = sum([client.is_alive() for client in clients])
-        for i in xrange(alive_clients):
+        for i in range(alive_clients):
             # TODO: this could theoretically block indefinitely if
             #   the queue is full and clients aren't reading
             task_queue.put("exit")
@@ -571,7 +575,7 @@ def spawn_import_clients(options, files_info):
 
         # Wait for all clients to finish
         alive_clients = sum([client.is_alive() for client in client_procs])
-        for i in xrange(alive_clients):
+        for i in range(alive_clients):
             task_queue.put("exit")
 
         while len(client_procs) > 0:
