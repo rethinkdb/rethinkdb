@@ -38,7 +38,7 @@ private:
 
     void apply_read(const std::function<void(const value_t*)> &read) {
         ASSERT_NO_CORO_WAITING;
-        read(const_cast<const value_t *>(&value));
+        read(&value);
     }
 
     class w_t : public watchable_t<value_t> {
