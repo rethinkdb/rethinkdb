@@ -2,6 +2,8 @@ from .ast import *
 from . import ql2_pb2 as p
 import datetime
 
+pTerm = p.Term.TermType
+
 """
 All top level functions defined here are the starting points for RQL queries
 """
@@ -142,26 +144,26 @@ class RqlTimeName(RqlQuery):
         return 'r.'+self.st
 
 # Time enum values
-monday      = type('', (RqlTimeName,), {'tt':p.Term.MONDAY, 'st': 'monday'})()
-tuesday     = type('', (RqlTimeName,), {'tt':p.Term.TUESDAY, 'st': 'tuesday'})()
-wednesday   = type('', (RqlTimeName,), {'tt':p.Term.WEDNESDAY, 'st': 'wednesday'})()
-thursday    = type('', (RqlTimeName,), {'tt':p.Term.THURSDAY, 'st': 'thursday'})()
-friday      = type('', (RqlTimeName,), {'tt':p.Term.FRIDAY, 'st': 'friday'})()
-saturday    = type('', (RqlTimeName,), {'tt':p.Term.SATURDAY, 'st': 'saturday'})()
-sunday      = type('', (RqlTimeName,), {'tt':p.Term.SUNDAY, 'st': 'sunday'})()
+monday      = type('', (RqlTimeName,), {'tt':pTerm.MONDAY, 'st': 'monday'})()
+tuesday     = type('', (RqlTimeName,), {'tt':pTerm.TUESDAY, 'st': 'tuesday'})()
+wednesday   = type('', (RqlTimeName,), {'tt':pTerm.WEDNESDAY, 'st': 'wednesday'})()
+thursday    = type('', (RqlTimeName,), {'tt':pTerm.THURSDAY, 'st': 'thursday'})()
+friday      = type('', (RqlTimeName,), {'tt':pTerm.FRIDAY, 'st': 'friday'})()
+saturday    = type('', (RqlTimeName,), {'tt':pTerm.SATURDAY, 'st': 'saturday'})()
+sunday      = type('', (RqlTimeName,), {'tt':pTerm.SUNDAY, 'st': 'sunday'})()
 
-january     = type('', (RqlTimeName,), {'tt':p.Term.JANUARY, 'st': 'january'})()
-february    = type('', (RqlTimeName,), {'tt':p.Term.FEBRUARY, 'st': 'february'})()
-march       = type('', (RqlTimeName,), {'tt': p.Term.MARCH, 'st': 'march'})()
-april       = type('', (RqlTimeName,), {'tt': p.Term.APRIL, 'st': 'april'})()
-may         = type('', (RqlTimeName,), {'tt': p.Term.MAY, 'st': 'may'})()
-june        = type('', (RqlTimeName,), {'tt': p.Term.JUNE, 'st': 'june'})()
-july        = type('', (RqlTimeName,), {'tt': p.Term.JULY, 'st': 'july'})()
-august      = type('', (RqlTimeName,), {'tt': p.Term.AUGUST, 'st': 'august'})()
-september   = type('', (RqlTimeName,), {'tt': p.Term.SEPTEMBER, 'st': 'september'})()
-october     = type('', (RqlTimeName,), {'tt': p.Term.OCTOBER, 'st': 'october'})()
-november    = type('', (RqlTimeName,), {'tt': p.Term.NOVEMBER, 'st': 'november'})()
-december    = type('', (RqlTimeName,), {'tt': p.Term.DECEMBER, 'st': 'december'})()
+january     = type('', (RqlTimeName,), {'tt':pTerm.JANUARY, 'st': 'january'})()
+february    = type('', (RqlTimeName,), {'tt':pTerm.FEBRUARY, 'st': 'february'})()
+march       = type('', (RqlTimeName,), {'tt': pTerm.MARCH, 'st': 'march'})()
+april       = type('', (RqlTimeName,), {'tt': pTerm.APRIL, 'st': 'april'})()
+may         = type('', (RqlTimeName,), {'tt': pTerm.MAY, 'st': 'may'})()
+june        = type('', (RqlTimeName,), {'tt': pTerm.JUNE, 'st': 'june'})()
+july        = type('', (RqlTimeName,), {'tt': pTerm.JULY, 'st': 'july'})()
+august      = type('', (RqlTimeName,), {'tt': pTerm.AUGUST, 'st': 'august'})()
+september   = type('', (RqlTimeName,), {'tt': pTerm.SEPTEMBER, 'st': 'september'})()
+october     = type('', (RqlTimeName,), {'tt': pTerm.OCTOBER, 'st': 'october'})()
+november    = type('', (RqlTimeName,), {'tt': pTerm.NOVEMBER, 'st': 'november'})()
+december    = type('', (RqlTimeName,), {'tt': pTerm.DECEMBER, 'st': 'december'})()
 
 def make_timezone(*args):
     return RqlTzinfo(*args)

@@ -19,6 +19,8 @@ init () {
     max_coffee_version=1.7.1
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
+    min_python_version=2.6.0
+    max_python_version=2.9.99
 
     must_fetch_list='bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
@@ -30,7 +32,7 @@ init () {
     default_static="tcmalloc_minimal"
 
     web_assets_deps="npm lessc coffee handlebars browserify bluebird"
-    required_bin_deps="protoc"
+    required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
@@ -81,8 +83,6 @@ configure () {
     var M_LIBS -lm
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
-    require "Build client drivers"
-    boolvar BUILD_DRIVERS $enable_drivers
     require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
@@ -214,7 +214,6 @@ read_args () {
     arg_sysconfdir=
     arg_localstatedir=
     with_tcmalloc=true
-    enable_drivers=false
     enable_precompiled_web=
     use_ccache=false
 
@@ -269,8 +268,6 @@ read_args () {
             --lib-path) $has_arg; lib_paths="$lib_paths $arg" ;;
             --with-tcmalloc) $no_arg; with_tcmalloc=true ;;
             --without-tcmalloc) $no_arg; with_tcmalloc=false ;;
-            --enable-drivers) $no_arg; enable_drivers=true ;;
-            --disable-drivers) $no_arg; enable_drivers=false ;;
             --enable-precompiled-web) $no_arg; enable_precompiled_web=true ;;
             --disable-precompiled-web) $no_arg; enable_precompiled_web=false ;;
             --ccache) $no_arg; use_ccache=true ;;
@@ -346,7 +343,6 @@ EOF
                             tcmalloc     Build with tcmalloc. (Default: enabled)
   --enable-<option>
   --disable-<option>      Enable or disable a build option
-                            drivers          Build the client drivers (default: false)
                             precompiled-web  Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
 EOF
@@ -618,7 +614,7 @@ test_bin_version () {
     test -z "$min$max$invalid" && return 0
     local output
     local ver
-    if output=$("$2" --version) &&
+    if output=$("$2" --version 2>&1) &&
        ver=$(echo "$output" | extract_version_string) &&
        test -n "$ver" ;
     then
