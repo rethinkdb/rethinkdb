@@ -1,4 +1,4 @@
-from . import ql2_pb2 as p
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
 class RqlError(Exception):
     def __init__(self, message, term, frames):

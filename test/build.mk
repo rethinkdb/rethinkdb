@@ -1,4 +1,6 @@
 
+include $(TOP)/test/protobuf_test/build.mk
+
 $/bench/stress-client/stress:
 	$P MAKE -C $/bench/stress-client
 	$(EXTERN_MAKE) -C $/bench/stress-client
