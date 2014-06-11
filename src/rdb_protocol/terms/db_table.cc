@@ -79,9 +79,8 @@ public:
 protected:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
-        r_sanity_check(env->cluster_access.directory_read_manager != NULL);
-        r_sanity_check(env->cluster_access.directory_read_manager->home_thread() == get_thread_id());
-        return env->cluster_access.directory_read_manager->get_root_view();
+        r_sanity_check(env->directory_read_manager()->home_thread() == get_thread_id());
+        return env->directory_read_manager()->get_root_view();
     }
 
 private:
@@ -135,13 +134,13 @@ private:
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(db_name, env->env->cluster_access.this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->env->this_machine());
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -225,8 +224,8 @@ private:
             // Create namespace (DB + table pair) and insert into metadata.
             namespace_semilattice_metadata_t ns =
                 new_namespace(
-                    env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
-                    primary_key);
+                        env->env->this_machine(), db_id, dc_id, tbl_name,
+                        primary_key);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =
@@ -235,14 +234,14 @@ private:
                 it->second = ack_expectation_t(
                     it->second.expectation(), hard_durability);
             }
-            ns.ack_expectations.upgrade_version(env->env->cluster_access.this_machine);
+            ns.ack_expectations.upgrade_version(env->env->this_machine());
 
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
                 fill_in_blueprints(&meta.metadata,
                                    directory_metadata(env->env)->get().get_inner(),
-                                   env->env->cluster_access.this_machine,
+                                   env->env->this_machine(),
                                    boost::optional<namespace_id_t>());
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -300,7 +299,7 @@ private:
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -351,7 +350,7 @@ private:
         try {
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
-                               env->env->cluster_access.this_machine,
+                               env->env->this_machine(),
                                boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());

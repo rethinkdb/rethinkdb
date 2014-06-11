@@ -157,6 +157,16 @@ env_t::cluster_metadata() {
     return rdb_ctx->cluster_metadata;
 }
 
+directory_read_manager_t<cluster_directory_metadata_t> *
+env_t::directory_read_manager() {
+    r_sanity_check(cluster_access.directory_read_manager != NULL);
+    return cluster_access.directory_read_manager;
+}
+
+uuid_u env_t::this_machine() {
+    // RSI: Sanity check non-nil?
+    return cluster_access.this_machine;
+}
 
 extproc_pool_t *env_t::get_extproc_pool() {
     assert_thread();
