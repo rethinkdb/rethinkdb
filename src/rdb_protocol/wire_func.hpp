@@ -26,7 +26,7 @@ class wire_func_t {
 public:
     wire_func_t();
     explicit wire_func_t(const counted_t<func_t> &f);
-    virtual ~wire_func_t();
+    ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
 
@@ -41,17 +41,24 @@ public:
     void rdb_serialize(write_message_t *wm) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 
+protected:
+    // Used by maybe_wire_func_t unfortunately.
+    bool has() const { return func.has(); }
 private:
-    virtual bool func_can_be_null() const { return false; }
     counted_t<func_t> func;
 };
 
-class maybe_wire_func_t : public wire_func_t {
+class maybe_wire_func_t : private wire_func_t {
 protected:
     template<class... Args>
     explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
-private:
-    virtual bool func_can_be_null() const { return true; }
+
+public:
+    void rdb_serialize(write_message_t *wm) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
+
+    counted_t<func_t> compile_wire_func() const;
+    using wire_func_t::get_bt;
 };
 
 class map_wire_func_t : public wire_func_t {

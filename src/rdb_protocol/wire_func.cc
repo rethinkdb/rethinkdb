@@ -35,7 +35,7 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
 wire_func_t::~wire_func_t() { }
 
 counted_t<func_t> wire_func_t::compile_wire_func() const {
-    r_sanity_check(func.has() || func_can_be_null());
+    r_sanity_check(func.has());
     return func;
 }
 
@@ -81,10 +81,6 @@ private:
 
 
 void wire_func_t::rdb_serialize(write_message_t *wm) const {
-    if (func_can_be_null()) {
-        serialize(wm, func.has());
-        if (!func.has()) return;
-    }
     r_sanity_check(func.has());
     wire_func_serialization_visitor_t v(wm);
     func->visit(&v);
@@ -92,13 +88,6 @@ void wire_func_t::rdb_serialize(write_message_t *wm) const {
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
-
-    if (func_can_be_null()) {
-        bool has;
-        res = deserialize(s, &has);
-        if (bad(res)) return res;
-        if (!has) return archive_result_t::SUCCESS;
-    }
 
     wire_func_type_t type;
     res = deserialize(s, &type);
@@ -147,6 +136,34 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         unreachable();
     }
 }
+
+void maybe_wire_func_t::rdb_serialize(write_message_t *wm) const {
+    bool has_value = has();
+    serialize(wm, has_value);
+    if (has_value) {
+        wire_func_t::rdb_serialize(wm);
+    }
+}
+
+archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
+    bool has_value;
+    archive_result_t res = deserialize(s, &has_value);
+    if (bad(res)) { return res; }
+    if (has_value) {
+        return wire_func_t::rdb_deserialize(s);
+    } else {
+        return archive_result_t::SUCCESS;
+    }
+}
+
+counted_t<func_t> maybe_wire_func_t::compile_wire_func() const {
+    if (has()) {
+        return wire_func_t::compile_wire_func();
+    } else {
+        return counted_t<func_t>();
+    }
+}
+
 
 group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
                                      bool _append_index, bool _multi)
