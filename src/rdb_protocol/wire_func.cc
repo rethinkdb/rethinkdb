@@ -201,16 +201,6 @@ RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
 
-map_wire_func_t map_wire_func_t::make_safely(
-    pb::dummy_var_t dummy_var,
-    const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-    protob_t<const Backtrace> backtrace) {
-    const sym_t varname = dummy_var_to_sym(dummy_var);
-    protob_t<Term> body = body_generator(varname);
-    propagate_backtrace(body.get(), backtrace.get());
-    return map_wire_func_t(body, make_vector(varname), backtrace);
-}
-
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {

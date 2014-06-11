@@ -67,13 +67,6 @@ class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    // Safely constructs a map wire func, that couldn't possibly capture any surprise
-    // variables.
-    static map_wire_func_t make_safely(
-        pb::dummy_var_t dummy_var,
-        const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-        protob_t<const Backtrace> backtrace);
 };
 
 class filter_wire_func_t {
