@@ -14,9 +14,6 @@
 
 namespace profile {
 
-const char *const NOT_SUPPORTED_MESSAGE
-    = "Query profiling is not supported in this version of RethinkDB.";
-
 start_t::start_t() { }
 
 start_t::start_t(const std::string &description)

@@ -53,7 +53,6 @@ public:
           std::map<std::string, wire_func_t> optargs,
           profile_bool_t is_profile_requested);
 
-    // RSI: profile_bool_t?
     explicit env_t(signal_t *interruptor);
 
     ~env_t();
@@ -109,12 +108,7 @@ public:
     // The interruptor signal while a query evaluates.
     signal_t *const interruptor;
 
-    // This is _always_ empty, because profiling is not supported in this release.
-    // (Unfortunately, all the profiling code expects this field to exist!  Letting
-    // this field be empty is the quickest way to disable profiling support in the
-    // 1.13 release.  When reintroducing profiling support, please make sure that
-    // every env_t constructor contains a profile parameter -- rdb_read_visitor_t in
-    // particular no longer passes its profile parameter along.
+    // This is non-empty when profiling is enabled.
     const scoped_ptr_t<profile::trace_t> trace;
 
     profile_bool_t profile() const;
