@@ -9,6 +9,9 @@ pkg_install-include () {
 }
 
 pkg_install () {
-    # RethinkDB only requires the boost include files
-    true
+    pkg_copy_src_to_build
+    in_dir "$build_dir" ./bootstrap.sh --with-libraries=system
+    in_dir "$build_dir" ./b2
+    mkdir -p "$install_dir/lib"
+    in_dir "$build_dir" cp "stage/lib/libboost_system.a" "$install_dir/lib"
 }
