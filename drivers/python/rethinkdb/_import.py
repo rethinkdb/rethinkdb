@@ -428,7 +428,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
         reader = csv.reader(file_in, delimiter=options["delimiter"])
 
         if not options["no_header"]:
-            fields_in = reader.next()
+            fields_in = next(reader)
 
         # Field names may override fields from the header
         if options["custom_header"] is not None:
