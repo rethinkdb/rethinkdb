@@ -303,7 +303,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
 
     # filter out fields
     if fields is not None:
-        for key in list(obj.iterkeys()):
+        for key in list(obj.keys()):
             if key not in fields:
                 del obj[key]
 
@@ -440,7 +440,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
                 raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, file_line))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
-            for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
+            for key in list(obj.keys()): # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)

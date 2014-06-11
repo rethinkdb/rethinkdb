@@ -201,7 +201,7 @@ def json_writer(filename, fields, task_queue, error_queue):
                 row = item[0]
 
                 if fields is not None:
-                    for item in list(row.iterkeys()):
+                    for item in list(row.keys()):
                         if item not in fields:
                             del row[item]
                 if first:

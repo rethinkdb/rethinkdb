@@ -30,7 +30,7 @@ class Query(object):
             res.append(self.term.build())
         if self.global_optargs is not None:
             optargs = { }
-            for (k,v) in self.global_optargs.iteritems():
+            for (k,v) in self.global_optargs.items():
                 optargs[k] = v.build() if isinstance(v, RqlQuery) else v
             res.append(optargs)
         return json.dumps(res, ensure_ascii=False, allow_nan=False)
@@ -157,7 +157,7 @@ class Connection(object):
                 pass
             self.socket.close()
             self.socket = None
-        for (token, cursor) in self.cursor_cache.iteritems():
+        for (token, cursor) in self.cursor_cache.items():
             cursor.end_flag = True
             cursor.connection_closed = True
         self.cursor_cache = { }
