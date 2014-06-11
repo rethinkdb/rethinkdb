@@ -56,7 +56,7 @@ bool btree_depth_first_traversal(superblock_t *superblock,
                                  release_superblock_t release_superblock) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID) {
-        if (release_superblock == RELEASE) {
+        if (release_superblock == release_superblock_t::RELEASE) {
             superblock->release();
         }
         return true;
@@ -70,7 +70,7 @@ bool btree_depth_first_traversal(superblock_t *superblock,
             root_block = make_counted<counted_buf_lock_t>(superblock->expose_buf(),
                                                           root_block_id,
                                                           access_t::read);
-            if (release_superblock == RELEASE) {
+            if (release_superblock == release_superblock_t::RELEASE) {
                 // Release the superblock ASAP because that's good.
                 superblock->release();
             }

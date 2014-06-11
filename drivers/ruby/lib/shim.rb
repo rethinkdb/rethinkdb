@@ -27,13 +27,13 @@ module RethinkDB
     end
 
     def self.load_json(target, opts=nil)
-      recursive_munge(JSON.parse(target),
+      recursive_munge(JSON.parse(target, max_nesting: false),
                       opts && opts[:time_format] != 'raw',
                       opts && opts[:group_format] != 'raw')
     end
 
-    def self.dump_json(*a, &b)
-      JSON.generate(*a, &b)
+    def self.dump_json(x)
+      JSON.generate(x, max_nesting: false)
     end
 
     def self.response_to_native(r, orig_term, opts)
