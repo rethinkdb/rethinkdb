@@ -22,6 +22,10 @@ testExtensions = ['test', 'yaml']
 class SrcLang:
     
     interpreter_path = None
+    driver_source_env_name = None
+    driver_source_path = None
+    driver_build_env_name = None
+    driver_build_path = None
     
     # Returns the approriate line comment string
     def comment(self):
@@ -58,6 +62,10 @@ class SrcLang:
 
 class PyLang(SrcLang):
     interpreter_path = os.getenv('PYTHON') or distutils.spawn.find_executable('python') or 'python'
+    driver_source_env_name = 'PYTHON_DRIVER_SRC_DIR'
+    driver_source_path = os.getenv('PYTHON_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
+    driver_build_env_name = 'PYTHON_DRIVER_DIR'
+    driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
     
     def langrepr(self, val):
         if not isinstance(val, types.UnicodeType):
@@ -70,6 +78,10 @@ class PyLang(SrcLang):
 
 class JsLang(SrcLang):
     interpreter_path = os.getenv('NODE') or distutils.spawn.find_executable('node') or 'node'
+    driver_source_env_name = 'JAVASCRIPT_DRIVER_SRC_DIR'
+    driver_source_path = os.getenv('JAVASCRIPT_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'javascript')
+    driver_build_env_name = 'JAVASCRIPT_DRIVER_DIR'
+    driver_build_path = os.getenv('JAVASCRIPT_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'build', 'packages', 'js')
     
     def comment(self):
         return "//"
@@ -93,6 +105,10 @@ class JsLang(SrcLang):
 
 class RbLang(SrcLang):
     interpreter_path = os.getenv('RUBY') or distutils.spawn.find_executable('ruby') or 'ruby'
+    driver_source_env_name = 'RUBY_DRIVER_SRC_DIR'
+    driver_source_path = os.getenv('RUBY_DRIVER_SRC_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby')
+    driver_build_env_name = 'RUBY_DRIVER_DIR'
+    driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby', 'lib')
     
     def rb_str_repr(self, string):
         return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
@@ -630,6 +646,8 @@ def main():
             outputFile.seek(0)
             print(outputFile.read())
             sys.exit(1)
+        
+        os.environ[Langs.langs[language].driver_build_env_name] = Langs.langs[language].driver_build_path
     
     # -- run the testing
     
