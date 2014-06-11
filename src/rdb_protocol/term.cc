@@ -193,7 +193,8 @@ void run(protob_t<Query> q,
     switch (q->type()) {
     case Query_QueryType_START: {
         const profile_bool_t profile = profile_bool_optarg(q);
-        env_t env(ctx, interruptor, global_optargs(q), profile);
+        env_t env(ctx, interruptor, global_optargs(q),
+                  profile_bool_t::DONT_PROFILE);
 
         counted_t<term_t> root_term;
         try {

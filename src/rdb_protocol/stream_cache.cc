@@ -41,7 +41,9 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        env_t env(rdb_ctx, interruptor, entry->global_optargs, entry->profile);
+        // RSI: We never profile.
+        env_t env(rdb_ctx, interruptor, entry->global_optargs,
+                  profile_bool_t::DONT_PROFILE);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
