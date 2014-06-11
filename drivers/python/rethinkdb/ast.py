@@ -503,7 +503,7 @@ class RqlBoolOperQuery(RqlQuery):
     def compose(self, args, optargs):
         t_args = list(imap(
             lambda _arg, arg: (
-                T('r.expr(', arg, ')') if needs_wrap(_args) else arg
+                T('r.expr(', arg, ')') if needs_wrap(_arg) else arg
             ),
             self.args, args
         ))
