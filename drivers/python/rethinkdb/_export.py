@@ -217,6 +217,14 @@ def json_writer(filename, fields, task_queue, error_queue):
 
 def csv_writer(filename, fields, task_queue, error_queue):
     try:
+        unicode
+    except NameError:
+        unicode = str
+    try:
+        long
+    except NameError:
+        long = int
+    try:
         with open(filename, "w") as out:
             out_writer = csv.writer(out)
             out_writer.writerow([s.encode('utf-8') for s in fields])
