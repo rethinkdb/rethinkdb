@@ -44,15 +44,8 @@ private:
 class cluster_access_t {
 public:
     cluster_access_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         uuid_u _this_machine);
-
-    // This is a read-WRITE view because of things like table_create_term_t,
-    // db_create_term_t, etc.  Its home thread might be different from ours.
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        semilattice_metadata;
 
     // This field can be NULL.  Importantly, this field is NULL everywhere except in
     // the parser's env_t.  This is because you "cannot nest meta operations inside
@@ -75,8 +68,6 @@ public:
     env_t(
         rdb_context_t *ctx,
         const std::string &_reql_http_proxy,
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-            _semilattice_metadata,
         signal_t *_interruptor,
         uuid_u _this_machine);
 
@@ -109,6 +100,8 @@ public:
 
     base_namespace_repo_t *ns_repo();
 
+    const boost::shared_ptr< semilattice_readwrite_view_t<
+                                 cluster_semilattice_metadata_t> > &cluster_metadata();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {

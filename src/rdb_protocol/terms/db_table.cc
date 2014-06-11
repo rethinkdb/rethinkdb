@@ -45,8 +45,8 @@ private:
 // `const_rethreading_metadata_accessor_t` instead which is more efficient.
 struct rethreading_metadata_accessor_t : public on_thread_t {
     explicit rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
-      metadata(env->env->cluster_access.semilattice_metadata->get()),
+    : on_thread_t(env->env->cluster_metadata()->home_thread()),
+      metadata(env->env->cluster_metadata()->get()),
       ns_change(&metadata.rdb_namespaces),
       ns_searcher(&ns_change.get()->namespaces),
       db_searcher(&metadata.databases.databases),
@@ -61,8 +61,8 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
 
 struct const_rethreading_metadata_accessor_t : public on_thread_t {
     explicit const_rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
-      metadata(env->env->cluster_access.semilattice_metadata->get()),
+    : on_thread_t(env->env->cluster_metadata()->home_thread()),
+      metadata(env->env->cluster_metadata()->get()),
       dc_searcher(&metadata.datacenters.datacenters)
     { }
     cluster_semilattice_metadata_t metadata;
@@ -255,7 +255,7 @@ private:
         try {
             wait_for_rdb_table_readiness(env->env->ns_repo(), namespace_id,
                                          env->env->interruptor,
-                                         env->env->cluster_access.semilattice_metadata);
+                                         env->env->cluster_metadata());
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
