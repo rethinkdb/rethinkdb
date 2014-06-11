@@ -3,7 +3,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/function.hpp>
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -141,15 +140,12 @@ void env_t::join_and_wait_to_propagate(
         sl_metadata = cluster_access.semilattice_metadata->get();
     }
 
-    boost::function<bool (const cow_ptr_t<namespaces_semilattice_metadata_t> s)> p
-        = boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
-                      _1,
-                      sl_metadata.rdb_namespaces);
-
     {
-        on_thread_t switcher(cluster_access.namespaces_semilattice_metadata->home_thread());
+        on_thread_t switcher(home_thread());
         cluster_access.namespaces_semilattice_metadata->run_until_satisfied(
-                p,
+                boost::bind(&is_joined<cow_ptr_t<namespaces_semilattice_metadata_t > >,
+                      _1,
+                      sl_metadata.rdb_namespaces),
                 interruptor);
         cluster_access.databases_semilattice_metadata->run_until_satisfied(
             boost::bind(&is_joined<databases_semilattice_metadata_t>,
@@ -264,7 +260,6 @@ env_t::env_t(
     interruptor(_interruptor),
     rdb_ctx(ctx),
     eval_callback(NULL) {
-    (void)rdb_ctx;  // RSI
     rassert(interruptor != NULL);
 }
 
