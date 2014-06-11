@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import signal
 
 # When running a subprocess, we may inherit the signal handler - remove it
@@ -16,38 +17,38 @@ usage = "\
       [--format (csv | json)] [--fields FIELD,FIELD...] [--clients NUM]"
 
 def print_export_help():
-    print info
-    print usage
-    print ""
-    print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect"
-    print "                                   to (defaults to localhost:28015)"
-    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  -d [ --directory ] DIR           directory to output to (defaults to"
-    print "                                   rethinkdb_export_DATE_TIME)"
-    print "  --format (csv | json)            format to write (defaults to json)"
-    print "  --fields FIELD,FIELD...          limit the exported fields to those specified"
-    print "                                   (required for CSV format)"
-    print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
-    print "                                   be specified multiple times)"
-    print "  --clients NUM                    number of tables to export simultaneously (defaults"
-    print "                                   to 3)"
-    print ""
-    print "EXAMPLES:"
-    print "rethinkdb export -c mnemosyne:39500"
-    print "  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500."
-    print ""
-    print "rethinkdb export -e test -d rdb_export"
-    print "  Export only the 'test' database on a local cluster into a named directory."
-    print ""
-    print "rethinkdb export -c hades -e test.subscribers -a hunter2"
-    print "  Export a specific table from a cluster running on host 'hades' which requires authorization."
-    print ""
-    print "rethinkdb export --format csv -e test.history --fields time,message"
-    print "  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'."
-    print ""
-    print "rethinkdb export --fields id,value -e test.data"
-    print "  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'."
+    print(info)
+    print(usage)
+    print("")
+    print("  -h [ --help ]                    print this help")
+    print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
+    print("                                   to (defaults to localhost:28015)")
+    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  -d [ --directory ] DIR           directory to output to (defaults to")
+    print("                                   rethinkdb_export_DATE_TIME)")
+    print("  --format (csv | json)            format to write (defaults to json)")
+    print("  --fields FIELD,FIELD...          limit the exported fields to those specified")
+    print("                                   (required for CSV format)")
+    print("  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may")
+    print("                                   be specified multiple times)")
+    print("  --clients NUM                    number of tables to export simultaneously (defaults")
+    print("                                   to 3)")
+    print("")
+    print("EXAMPLES:")
+    print("rethinkdb export -c mnemosyne:39500")
+    print("  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500.")
+    print("")
+    print("rethinkdb export -e test -d rdb_export")
+    print("  Export only the 'test' database on a local cluster into a named directory.")
+    print("")
+    print("rethinkdb export -c hades -e test.subscribers -a hunter2")
+    print("  Export a specific table from a cluster running on host 'hades' which requires authorization.")
+    print("")
+    print("rethinkdb export --format csv -e test.history --fields time,message")
+    print("  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'.")
+    print("")
+    print("rethinkdb export --fields id,value -e test.data")
+    print("  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'.")
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -359,9 +360,9 @@ def run_clients(options, db_table_set):
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
-        print ""
-        print "%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
-                                       plural(len(db_table_set), "table"))
+        print("")
+        print("%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
+                                       plural(len(db_table_set), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -372,17 +373,17 @@ def run_clients(options, db_table_set):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "%s" % (error[1])
+            print("%s" % (error[1]), file=sys.stderr)
             if options["debug"]:
-                print >> sys.stderr, "%s traceback: %s" % (error[0].__name__, error[2])
+                print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
             raise RuntimeError("Errors occurred during export")
 
 def main():
     try:
         options = parse_options()
     except RuntimeError as ex:
-        print >> sys.stderr, "Usage:\n%s" % usage
-        print >> sys.stderr, ex
+        print("Usage:\n%s" % usage, file=sys.stderr)
+        print(ex, file=sys.stderr)
         return 1
 
     try:
@@ -398,9 +399,9 @@ def main():
         run_clients(options, db_table_set)
         finalize_directory(options["directory"], options["directory_partial"])
     except RuntimeError as ex:
-        print >> sys.stderr, ex
+        print(ex, file=sys.stderr)
         return 1
-    print "  Done (%d seconds)" % (time.time() - start_time)
+    print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":
