@@ -56,12 +56,14 @@ std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q) {
 
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
-        if (optargs.count(ap.key())) {
+        auto insert_res
+            = optargs.insert(std::make_pair(ap.key(),
+                                            construct_optarg_wire_func(ap.val())));
+        if (!insert_res.second) {
             rfail_toplevel(
                     base_exc_t::GENERIC,
                     "Duplicate global optarg: %s", ap.key().c_str());
         }
-        optargs[ap.key()] = construct_optarg_wire_func(ap.val());
     }
 
     // Supply a default db of "test" if there is no "db" optarg.
