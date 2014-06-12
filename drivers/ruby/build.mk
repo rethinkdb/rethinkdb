@@ -17,7 +17,7 @@ RB_BUILD_FILES := $(patsubst $(RB_SRC_DIR)/lib/%,$(RB_BUILD_DIR)/lib/%,$(RB_SRC_
 .PHONY: rb-driver
 rb-driver: $(RB_BUILD_FILES) $(RB_PROTO_DEV_FILE)
 
-$(RB_BUILD_DIR)/lib/%: $(RB_SRC_DIR)/lib/% rb_build_files
+$(RB_BUILD_DIR)/lib/%.rb: $(RB_SRC_DIR)/lib/%.rb rb_build_files
 	cp $< $@
 
 .INTERMEDIATE: rb_build_files
