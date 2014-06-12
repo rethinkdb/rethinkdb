@@ -16,7 +16,7 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
+counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
     case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
@@ -195,7 +195,7 @@ void run(protob_t<Query> q,
         const profile_bool_t profile = profile_bool_optarg(q);
         env_t env(ctx, interruptor, global_optargs(q), profile);
 
-        counted_t<term_t> root_term;
+        counted_t<const term_t> root_term;
         try {
             Term *t = q->mutable_query();
             compile_env_t compile_env((var_visibility_t()));

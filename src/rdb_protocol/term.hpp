@@ -59,7 +59,7 @@ private:
     DISABLE_COPYING(term_t);
 };
 
-counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t);
+counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t);
 
 } // namespace ql
 

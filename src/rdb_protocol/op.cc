@@ -76,7 +76,7 @@ class args_t : public pb_rcheckable_t {
 public:
     args_t(protob_t<const Term> _src,
            argspec_t _argspec,
-           std::vector<counted_t<term_t> > _original_args);
+           std::vector<counted_t<const term_t> > _original_args);
     // Must be called before `eval_arg`.
     void start_eval(scope_env_t *env, eval_flags_t flags,
                     counted_t<val_t> _arg0 = counted_t<val_t>());
@@ -85,16 +85,16 @@ public:
 
     counted_t<grouped_data_t> maybe_grouped_data(
         scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags);
-    const std::vector<counted_t<term_t> > &get_original_args() {
+    const std::vector<counted_t<const term_t> > &get_original_args() {
         return original_args;
     }
 private:
-    counted_t<term_t> get(size_t i);
+    counted_t<const term_t> get(size_t i);
     protob_t<const Term> src;
     argspec_t argspec;
     counted_t<val_t> arg0;
-    std::vector<counted_t<term_t> > original_args;
-    std::vector<counted_t<term_t> > args;
+    std::vector<counted_t<const term_t> > original_args;
+    std::vector<counted_t<const term_t> > args;
 };
 
 counted_t<grouped_data_t> args_t::maybe_grouped_data(
@@ -116,7 +116,7 @@ counted_t<grouped_data_t> args_t::maybe_grouped_data(
 
 args_t::args_t(protob_t<const Term> _src,
                argspec_t _argspec,
-               std::vector<counted_t<term_t> > _original_args)
+               std::vector<counted_t<const term_t> > _original_args)
     : pb_rcheckable_t(get_backtrace(_src)),
       src(std::move(_src)),
       argspec(std::move(_argspec)),
@@ -144,7 +144,7 @@ void args_t::start_eval(scope_env_t *env, eval_flags_t flags,
             counted_t<val_t> v = (*it)->eval(env, new_flags);
             counted_t<const datum_t> d = v->as_datum();
             for (size_t i = 0; i < d->size(); ++i) {
-                args.push_back(counted_t<term_t>(new faux_term_t(src, d->get(i))));
+                args.push_back(make_counted<faux_term_t>(src, d->get(i)));
             }
         } else {
             args.push_back(*it);
@@ -170,10 +170,10 @@ counted_t<val_t> args_t::eval_arg(scope_env_t *env, size_t i, eval_flags_t flags
     }
 }
 
-counted_t<term_t> args_t::get(size_t i) {
+counted_t<const term_t> args_t::get(size_t i) {
     r_sanity_check(i < args.size());
     r_sanity_check(args[i].has());
-    counted_t<term_t> ret;
+    counted_t<const term_t> ret;
     ret.swap(args[i]);
     r_sanity_check(!args[i].has());
     return std::move(ret);
@@ -182,10 +182,11 @@ counted_t<term_t> args_t::get(size_t i) {
 op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(term) {
-    std::vector<counted_t<term_t> > original_args;
+    std::vector<counted_t<const term_t> > original_args;
     original_args.reserve(term->args_size());
     for (int i = 0; i < term->args_size(); ++i) {
-        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
+        counted_t<const term_t> t
+            = compile_term(env, term.make_child(&term->args(i)));
         original_args.push_back(t);
     }
     args.init(new args_t(term, std::move(argspec), std::move(original_args)));
@@ -204,7 +205,7 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
                          ap->key().c_str()));
-        counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()));
+        counted_t<const term_t> t = compile_term(env, term.make_child(&ap->val()));
         optargs.insert(std::make_pair(ap->key(), t));
     }
 }
@@ -240,7 +241,8 @@ bool op_term_t::can_be_grouped() const { return true; }
 bool op_term_t::is_grouped_seq_op() const { return false; }
 
 counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) const {
-    std::map<std::string, counted_t<term_t> >::const_iterator it = optargs.find(key);
+    std::map<std::string, counted_t<const term_t> >::const_iterator it
+        = optargs.find(key);
     if (it != optargs.end()) {
         return it->second->eval(env);
     }
@@ -248,8 +250,8 @@ counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) con
     return env->env->global_optargs.get_optarg(env->env, key);
 }
 
-counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const std::string &key) {
-    std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
+counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const std::string &key) const {
+    std::map<std::string, counted_t<const term_t> >::const_iterator it = optargs.find(key);
     if (it != optargs.end()) {
         protob_t<Term> func(make_counted_term());
         r::fun(r::expr(*it->second->get_src().get())).swap(*func.get());
@@ -259,7 +261,7 @@ counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const 
 }
 
 void op_term_t::accumulate_captures(var_captures_t *captures) const {
-    const std::vector<counted_t<term_t> > &original_args
+    const std::vector<counted_t<const term_t> > &original_args
         = args->get_original_args();
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         (*it)->accumulate_captures(captures);
@@ -272,7 +274,7 @@ void op_term_t::accumulate_captures(var_captures_t *captures) const {
 
 
 bool op_term_t::is_deterministic() const {
-    const std::vector<counted_t<term_t> > &original_args
+    const std::vector<counted_t<const term_t> > &original_args
         = args->get_original_args();
     for (size_t i = 0; i < original_args.size(); ++i) {
         if (!original_args[i]->is_deterministic()) {

@@ -70,7 +70,7 @@ public:
     reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
-                counted_t<term_t> body);
+                counted_t<const term_t> body);
     ~reql_func_t();
 
     counted_t<val_t> call(
@@ -94,7 +94,7 @@ private:
     std::vector<sym_t> arg_names;
 
     // The body of the function, which gets ->eval(...) called when call(...) is called.
-    counted_t<term_t> body;
+    counted_t<const term_t> body;
 
     DISABLE_COPYING(reql_func_t);
 };
@@ -193,7 +193,7 @@ private:
     virtual const char *name() const { return "func"; }
 
     std::vector<sym_t> arg_names;
-    counted_t<term_t> body;
+    counted_t<const term_t> body;
 
     var_captures_t external_captures;
 };

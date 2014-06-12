@@ -41,7 +41,7 @@ void func_t::assert_deterministic(const char *extra_msg) const {
 reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
-                         counted_t<term_t> _body)
+                         counted_t<const term_t> _body)
     : func_t(backtrace), captured_scope(_captured_scope),
       arg_names(std::move(_arg_names)), body(std::move(_body)) { }
 
@@ -179,7 +179,7 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     compile_env_t body_env(std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
-    counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
+    counted_t<const term_t> compiled_body = compile_term(&body_env, body_source);
     r_sanity_check(compiled_body.has());
 
     var_captures_t captures;

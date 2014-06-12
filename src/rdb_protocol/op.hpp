@@ -78,7 +78,7 @@ protected:
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
     counted_t<func_term_t> lazy_literal_optarg(
-        compile_env_t *env, const std::string &key);
+        compile_env_t *env, const std::string &key) const;
 
     // Provides a default implementation, passing off a call to arg terms and optarg
     // terms.  implicit_var_term_t overrides this.  (var_term_t does too, but it's not
@@ -100,12 +100,10 @@ private:
 
     virtual bool is_deterministic() const;
 
-    counted_t<term_t> consume(size_t i);
-
     scoped_ptr_t<args_t> args;
 
     friend class make_obj_term_t; // needs special access to optargs
-    std::map<std::string, counted_t<term_t> > optargs;
+    std::map<std::string, counted_t<const term_t> > optargs;
 };
 
 class grouped_seq_op_term_t : public op_term_t {
