@@ -57,7 +57,7 @@ std::map<std::string, wire_func_t> global_optargs(protob_t<Query> q) {
 
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
-        auto insert_res;
+        auto insert_res
             = optargs.insert(std::make_pair(ap.key(),
                                             construct_optarg_wire_func(ap.val())));
         if (!insert_res.second) {
