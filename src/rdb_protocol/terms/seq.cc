@@ -18,7 +18,7 @@ protected:
     map_acc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return num_args() == 1
             ? arg(env, 0)->as_seq(env->env)->run_terminal(env->env, T(backtrace()))
             : arg(env, 0)->as_seq(env->env)->run_terminal(
@@ -60,7 +60,7 @@ public:
     count_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<val_t> v0 = arg(env, 0);
         if (num_args() == 1) {
             return v0->as_seq(env->env)
@@ -93,7 +93,7 @@ public:
     map_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<datum_stream_t> stream = arg(env, 0)->as_seq(env->env);
         stream->add_transformation(
                 env->env, map_wire_func_t(arg(env, 1)->as_func()), backtrace());
@@ -107,7 +107,7 @@ public:
     concatmap_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<datum_stream_t> stream = arg(env, 0)->as_seq(env->env);
         stream->add_transformation(
                 env->env, concatmap_wire_func_t(arg(env, 1)->as_func()), backtrace());
@@ -121,7 +121,7 @@ public:
     group_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : grouped_seq_op_term_t(env, term, argspec_t(1, -1), optargspec_t({"index", "multi"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         std::vector<counted_t<func_t> > funcs;
         funcs.reserve(num_args() - 1);
         for (size_t i = 1; i < num_args(); ++i) {
@@ -169,7 +169,7 @@ public:
           default_filter_term(lazy_literal_optarg(env, "default")) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
@@ -202,7 +202,7 @@ public:
     reduce_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         grouped_seq_op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return arg(env, 0)->as_seq(env->env)->run_terminal(
             env->env, reduce_wire_func_t(arg(env, 1)->as_func()));
     }
@@ -214,7 +214,7 @@ public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> tbl = arg(env, 0)->as_table();
         changefeed::client_t *client = env->env->get_changefeed_client();
         return new_val(env->env, client->new_feed(tbl, env->env));
@@ -228,7 +228,7 @@ public:
     between_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> tbl = arg(env, 0)->as_table();
         bool left_open = is_left_open(env);
         counted_t<const datum_t> lb = arg(env, 1)->as_datum();
@@ -270,7 +270,7 @@ public:
     union_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < num_args(); ++i) {
             streams.push_back(arg(env, i)->as_seq(env->env));
@@ -287,7 +287,7 @@ public:
     zip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return new_val(env->env, arg(env, 0)->as_seq(env->env)->zip());
     }
     virtual const char *name() const { return "zip"; }

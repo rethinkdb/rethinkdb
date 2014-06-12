@@ -184,12 +184,12 @@ public:
 
     // eval(scope_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
     // going by way of val_t, and without requiring a full-blown env.
-    counted_t<func_t> eval_to_func(const var_scope_t &env_scope);
+    counted_t<func_t> eval_to_func(const var_scope_t &env_scope) const;
 
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
     virtual bool is_deterministic() const;
-    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags);
+    virtual counted_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
     virtual const char *name() const { return "func"; }
 
     std::vector<sym_t> arg_names;

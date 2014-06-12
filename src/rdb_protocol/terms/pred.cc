@@ -41,7 +41,7 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<const datum_t> lhs = arg(env, 0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<const datum_t> rhs = arg(env, i)->as_datum();
@@ -62,7 +62,7 @@ class not_term_t : public op_term_t {
 public:
     not_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return new_val_bool(!arg(env, 0)->as_bool());
     }
     virtual const char *name() const { return "not"; }

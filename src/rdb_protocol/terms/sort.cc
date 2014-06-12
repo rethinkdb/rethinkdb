@@ -28,7 +28,7 @@ public:
     asc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
@@ -39,7 +39,7 @@ public:
     desc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         return arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
@@ -107,7 +107,7 @@ private:
             comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
@@ -212,7 +212,7 @@ private:
                        counted_t<const datum_t> r) {
         return *l < *r;
     }
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<datum_stream_t> s = arg(env, 0)->as_seq(env->env);
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;

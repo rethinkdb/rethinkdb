@@ -202,11 +202,12 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
+counted_t<val_t> func_term_t::term_eval(scope_env_t *env,
+                                        UNUSED eval_flags_t flags) const {
     return new_val(eval_to_func(env->scope));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) {
+counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
     return make_counted<reql_func_t>(get_backtrace(get_src()),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);

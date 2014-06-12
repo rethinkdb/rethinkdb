@@ -18,7 +18,7 @@ public:
     all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         for (size_t i = 0; i < num_args(); ++i) {
             counted_t<val_t> v = arg(env, i);
             if (!v->as_bool() || i == num_args() - 1) {
@@ -35,7 +35,7 @@ public:
     any_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         for (size_t i = 0; i < num_args(); ++i) {
             counted_t<val_t> v = arg(env, i);
             if (v->as_bool()) {
@@ -51,7 +51,7 @@ class branch_term_t : public op_term_t {
 public:
     branch_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         bool b = arg(env, 0)->as_bool();
         return b ? arg(env, 1) : arg(env, 2);
     }
@@ -65,7 +65,7 @@ public:
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
         eval_flags_t flags = NO_FLAGS;
         if (counted_t<val_t> v = optarg(env, "_SHORTCUT_")) {

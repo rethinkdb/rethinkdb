@@ -12,7 +12,7 @@ public:
     error_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         if (num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
@@ -27,7 +27,7 @@ public:
     default_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<const datum_t> func_arg;
         scoped_ptr_t<exc_t> err;
         counted_t<val_t> v;
@@ -80,7 +80,7 @@ private:
         }
     }
     virtual const char *name() const { return "error"; }
-    virtual bool can_be_grouped() { return false; }
+    virtual bool can_be_grouped() const { return false; }
 };
 
 counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term) {

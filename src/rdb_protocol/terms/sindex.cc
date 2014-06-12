@@ -18,7 +18,7 @@ public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<const datum_t> name_datum = arg(env, 1)->as_datum();
         std::string name = name_datum->as_str().to_std();
@@ -70,7 +70,7 @@ public:
     sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::string name = arg(env, 1)->as_datum()->as_str().to_std();
         bool success = table->sindex_drop(env->env, name);
@@ -92,7 +92,7 @@ public:
     sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> table = arg(env, 0)->as_table();
 
         return new_val(table->sindex_list(env->env));
@@ -106,7 +106,7 @@ public:
     sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {
@@ -136,7 +136,7 @@ public:
     sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> table = arg(env, 0)->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < num_args(); ++i) {

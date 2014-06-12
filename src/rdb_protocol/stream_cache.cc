@@ -41,7 +41,6 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
 
     std::exception_ptr exc;
     try {
-        // RSI: We never profile.
         env_t env(rdb_ctx, interruptor, entry->global_optargs,
                   entry->profile);
 

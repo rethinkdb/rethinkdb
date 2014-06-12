@@ -13,7 +13,7 @@ public:
     match_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         std::string str = arg(env, 0)->as_str().to_std();
         RE2 regexp(arg(env, 1)->as_str().c_str());
         if (!regexp.ok()) {
@@ -73,7 +73,7 @@ public:
     split_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         std::string s = arg(env, 0)->as_str().to_std();
 
         boost::optional<std::string> delim;

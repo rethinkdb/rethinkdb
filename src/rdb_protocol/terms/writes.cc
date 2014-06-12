@@ -29,7 +29,7 @@ counted_t<const datum_t> new_stats_object() {
 }
 
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
-                                                 pb_rcheckable_t *target) {
+                                                 const pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
     const wire_string_t &str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
@@ -48,10 +48,10 @@ public:
                     optargspec_t({"upsert", "durability", "return_vals"})) { }
 
 private:
-    void maybe_generate_key(counted_t<table_t> tbl,
-                            std::vector<std::string> *generated_keys_out,
-                            size_t *keys_skipped_out,
-                            counted_t<const datum_t> *datum_out) {
+    static void maybe_generate_key(counted_t<table_t> tbl,
+                                   std::vector<std::string> *generated_keys_out,
+                                   size_t *keys_skipped_out,
+                                   counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(std::string(key)));
@@ -67,7 +67,7 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         counted_t<table_t> t = arg(env, 0)->as_table();
         counted_t<val_t> upsert_val = optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
@@ -165,7 +165,7 @@ public:
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
@@ -244,7 +244,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) const {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
