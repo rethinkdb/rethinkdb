@@ -95,6 +95,8 @@ private:
     counted_t<val_t> arg0;
     std::vector<counted_t<const term_t> > original_args;
     std::vector<counted_t<const term_t> > args;
+
+    DISABLE_COPYING(args_t);
 };
 
 counted_t<grouped_data_t> args_t::maybe_grouped_data(
