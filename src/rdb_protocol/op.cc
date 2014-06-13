@@ -85,7 +85,7 @@ public:
 
     counted_t<grouped_data_t> maybe_grouped_data(
         scope_env_t *env, bool is_grouped_seq_op, eval_flags_t flags);
-    const std::vector<counted_t<const term_t> > &get_original_args() {
+    const std::vector<counted_t<const term_t> > &get_original_args() const {
         return original_args;
     }
 private:
