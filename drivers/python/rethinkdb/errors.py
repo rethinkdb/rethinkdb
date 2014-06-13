@@ -43,7 +43,7 @@ class QueryPrinter(object):
     def compose_term(self, term):
         args = [self.compose_term(a) for a in term.args]
         optargs = {}
-        for (k,v) in term.optargs.iteritems():
+        for (k,v) in term.optargs.items():
             optargs[k] = self.compose_term(v)
         return term.compose(args, optargs)
 
@@ -56,7 +56,7 @@ class QueryPrinter(object):
         args = [self.compose_carrots(arg, frames[1:]) if cur_frame == i else self.compose_term(arg) for i,arg in enumerate(term.args)]
 
         optargs = {}
-        for (k,v) in term.optargs.iteritems():
+        for (k,v) in term.optargs.items():
             if cur_frame == k:
                 optargs[k] = self.compose_carrots(v, frames[1:])
             else:
