@@ -10,6 +10,21 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::ONLY_VERSION);
 
+// RSI: Remove this.
+// RSI: Rename vserialize to serialize.
+// RSI: Rename vdeserialize to deserialize.
+template <cluster_version_t V, class T>
+void vserialize(write_message_t *wm, const T &value) {
+    CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
+    serialize(wm, value);
+}
+
+template <cluster_version_t V, class T>
+archive_result_t vdeserialize(read_stream_t *wm, T *value) {
+    CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
+    return deserialize(wm, value);
+}
+
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
 void serialize_for_version(DEBUG_VAR cluster_version_t version, write_message_t *wm,
@@ -17,7 +32,10 @@ void serialize_for_version(DEBUG_VAR cluster_version_t version, write_message_t 
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
     rassert(version == cluster_version_t::ONLY_VERSION);
-    serialize(wm, value);
+    switch (version) {
+    case cluster_version_t::v1_13:
+        vserialize<cluster_version_t::v1_13>(wm, value);
+    }
 }
 
 // Deserializes a value, assuming it's serialized for a given version.  (This doesn't
@@ -29,7 +47,10 @@ archive_result_t deserialize_for_version(DEBUG_VAR cluster_version_t version,
     // Right now, since there's only one version number, we can just call the normal
     // serialization function.
     rassert(version == cluster_version_t::ONLY_VERSION);
-    return deserialize(s, thing);
+    switch (version) {
+    case cluster_version_t::v1_13:
+        return vdeserialize<cluster_version_t::v1_13>(s, thing);
+    }
 }
 
 
