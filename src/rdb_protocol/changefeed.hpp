@@ -6,7 +6,6 @@
 #include <map>
 
 #include "errors.hpp"
-
 #include <boost/variant.hpp>
 
 #include "concurrency/rwlock.hpp"

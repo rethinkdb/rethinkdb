@@ -6,7 +6,8 @@
 
 // For cluster_version_t.  Once we drop old gcc's, we can just declare "enum class
 // cluster_version_t;" in this header.
-#include "containers/archive/versioned.hpp"
+// RSI: Can we do that now?
+#include "version.hpp"
 
 class connectivity_service_t;
 class peer_id_t;

@@ -10,6 +10,7 @@
 #include "concurrency/wait_any.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
 #include "stl_utils.hpp"
 
 template<class metadata_t>

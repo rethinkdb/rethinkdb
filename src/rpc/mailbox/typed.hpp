@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RPC_MAILBOX_TYPED_HPP_
 #define RPC_MAILBOX_TYPED_HPP_
 
@@ -8,6 +8,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include <functional>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"

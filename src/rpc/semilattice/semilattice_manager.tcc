@@ -13,6 +13,7 @@
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/versioned.hpp"
 #include "logger.hpp"
 
 template<class metadata_t>

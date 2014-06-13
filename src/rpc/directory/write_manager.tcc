@@ -8,6 +8,7 @@
 #include <set>
 
 #include "arch/runtime/coroutines.hpp"
+#include "containers/archive/versioned.hpp"
 #include "rpc/connectivity/messages.hpp"
 
 template<class metadata_t>

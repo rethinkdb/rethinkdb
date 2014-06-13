@@ -1,8 +1,8 @@
 #ifndef CONTAINERS_ARCHIVE_VERSIONED_HPP_
 #define CONTAINERS_ARCHIVE_VERSIONED_HPP_
 
-#include "version.hpp"
 #include "containers/archive/archive.hpp"
+#include "version.hpp"
 
 // This defines how to serialize cluster_version_t (which conveniently has a
 // contiguous set of valid representation, from v1_13 to v1_13).
