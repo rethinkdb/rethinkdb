@@ -215,7 +215,7 @@ void wait_for_sindex(namespace_interface_t *nsi,
                           const std::string &id) {
     std::set<std::string> sindexes;
     sindexes.insert(id);
-    for (int attempts = 0; attempts < 25; ++attempts) {
+    for (int attempts = 0; attempts < 35; ++attempts) {
         sindex_status_t d(sindexes);
         read_t read(d, profile_bool_t::PROFILE);
         read_response_t response;

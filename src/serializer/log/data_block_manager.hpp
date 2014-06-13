@@ -197,7 +197,7 @@ private:
             : val(0), perfmon(_perfmon) { }
         void operator+=(int64_t num);
         void operator-=(int64_t num);
-        int get() const { return val; }
+        int64_t get() const { return val; }
     };
 
     /* The state of all currently active GC coroutines */
