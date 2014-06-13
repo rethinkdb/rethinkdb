@@ -13,6 +13,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
 // RSI: Remove this.
 // RSI: Rename vserialize to serialize.
 // RSI: Rename vdeserialize to deserialize.
+#if 1
 template <cluster_version_t V, class T>
 void vserialize(write_message_t *wm, const T &value) {
     CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
@@ -24,6 +25,7 @@ archive_result_t vdeserialize(read_stream_t *wm, T *value) {
     CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
     return deserialize(wm, value);
 }
+#endif  // RSI
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
