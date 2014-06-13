@@ -11,10 +11,6 @@ class peer_id_t;
 class read_stream_t;
 class write_stream_t;
 
-namespace boost {
-template <class> class function;
-}
-
 /* `message_service_t` is an abstract superclass for things that let you send
 messages to other nodes. `message_handler_t` is an abstract superclass for
 things that handle messages received from other nodes. The general pattern
