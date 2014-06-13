@@ -254,7 +254,7 @@ def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durab
             row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
             if row == obj:
                 progress[0] += 1
-                del task[2][i]
+                del task[2][-1]
             else:
                 raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (pkey, str(obj), str(row)))
 
