@@ -111,7 +111,7 @@ counted_t<grouped_data_t> args_t::maybe_grouped_data(
     if (gd.has()) {
         arg0.reset();
     }
-    return std::move(gd);
+    return gd;
 }
 
 args_t::args_t(protob_t<const Term> _src,
