@@ -13,6 +13,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
 // RSI: Remove this.
 // RSI: Rename vserialize to serialize.
 // RSI: Rename vdeserialize to deserialize.
+
 #if 1
 template <cluster_version_t V, class T>
 void vserialize(write_message_t *wm, const T &value) {
