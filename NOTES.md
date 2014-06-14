@@ -19,7 +19,7 @@ http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in the JavaScript driver.
 
-* The `hasNext` command for cursors has been removed.
+* The `hasNext` command for cursors has been removed. `next` can be used instead.
 
 ## New features ##
 
@@ -34,7 +34,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Added `r.args` to allow specifying a dynamic number of arguments to commands such as `get_all` (#1854)
   * Added `r.http` for interfacing with external APIs (#1383)
 * Server
-  * Added a JSON protocol as an alternative to the protobuf protocol (#1868)
+  * Added a JSON protocol to replace the protobuf protocol, which is now deprecated (#1868)
   * Added a README describing the structure of the `src/` folder (#2301)
   * Switched to manual versioning of the intra-cluster protocol (#2295)
   * Made the serialization format version-aware (#2308, #2353)
@@ -42,16 +42,16 @@ There are also some backwards incompatible changes in the JavaScript driver.
 * JavaScript driver
   * Added support for promises (using bluebird) (#1395)
   * Removed the `hasNext` command (#2497)
-  * Added the `on`, `once`, `removeListener` and `removeAllListeners` methods to feeds (#2223)
+  * Added the `on`, `once`, `removeListener` and `removeAllListeners` methods to cursors (#2223)
   * `r.connect` now supports being called with a single argument (#2273)
 * Tests
   * Improved the run-test script and ported it to Python (#2235)
   * Improved the ReQL tests (#1402)
 * Build
-  * Generate symbol files (#2330)
+  * Symbol files are now generated (#2330)
   * Build with debugging symbols by default (#2323)
-  * Sign the OS X package (#1565)
-  * Drop support for GCC 4.4 (#1748)
+  * Added a signature to the OS X package (#1565)
+  * Dropped support for GCC 4.4 (#1748)
   * Added an explicit dependency on Python 2 in the `configure` script (#2478)
   * Added a dependency on libcurl (#2400)
 
@@ -62,9 +62,9 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Reduce overhead by handling requests locally on the primary if possible (#2083)
   * Adjusted the value of `chunk_processing_semaphore` (#2392)
   * Improved backfilling on rotational drives (#2393)
-  * No longer copy the metadata when evaluating `r.db` (#1907)
+  * Metadata is no longer copied when evaluating `r.db` (#1907)
   * No longer update the stat block when updating secondary indexes (#2431)
-  * Better combine block writes in the cache (#2127)
+  * Block writes are better combined in the cache (#2127)
   * Concurrent garbage collection to improve disk space efficiency (#2457)
 * Testing
   * Added automated performance regression tests (#1963)
@@ -73,7 +73,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
 
 * Server
   * Fixed the threaded coroutine implementation (#2168, #2332)
-  * Now returns an error message with all HTTP 500 errors (#511)
+  * HTTP 500 errors are now accompanied by an error message (#511)
   * Got rid of vestigial memcache support (#803)
   * Made `order_by` and other sortings be stable (#2155)
   * Cleaned up blob_t code to make it more reliable (#2227)
@@ -81,7 +81,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Fixed a bug in the JSON parsing code that caused a crash (#2489)
   * Fixed a bug that could cause segfaults (#2491)
   * Avoid high memory consumption on startup (#2329)
-  * Disable Nagle algorithm for outgoing TCP connections (#2529)
+  * Disabled Nagle algorithm for outgoing TCP connections (#2529)
   * Remove some potentially objectionable server names (#2468)
   * Fixed a bug that caused `Callstack overflow in a coroutine` errors (#2357)
   * Merged upstream fixes to `cJSON` (#2496)
@@ -90,9 +90,9 @@ There are also some backwards incompatible changes in the JavaScript driver.
 * ReQL
   * Added the database name to error messages (#2280)
   * No longer report run-time errors as client errors (#1908)
-  * Properly validate the arguments to `r.expr`
+  * Arguments to `r.expr` are now properly validated (#2384)
   * No longer crash when `r.js` returns a bad datum (#2409)
-  * Fix handling of global optargs (#2525)
+  * Fixed handling of global optargs (#2525)
 * Ruby driver
   * Ignore `close` errors when reconnecting (#2276)
   * Fixed conflicts with active support (#2284)
@@ -103,18 +103,19 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Improved the variable names in error messages (#2461)
 * Web UI
   * Fixed a bug that caused JavaScript exceptions (#2503)
-  * Fixed the per server document count (#1836)
-  * Show the database name on the table page (#2366)
+  * Fixed the per-server document count (#1836)
+  * The database name is now shown on the table page (#2366)
   * Removed the inconsistent green tick next to the secondary index status (#2084)
   * Fixed email highlighting (#2378)
-  * No longer become unresponsive when receiving large responses (#2481)
-  * Fixed a bug triggered by clearing the data explorer history (#2389)
+  * Large responses no longer cause the Data Explorer to become unresponsive (#2481)
+  * Fixed a bug triggered by clearing the Data Explorer history (#2389)
 * Tests
   * Converted the memcache tests to use ReQL (#803)
 
 ## Contributors ##
 
-Many thanks to
+Many thanks to external contributors from the RethinkDB community for
+helping us ship RethinkDB 1.13. In no particular order:
 
 * Liu Aleaxander (@Aleaxander)
 * Nicolas Viennot (@nviennot)
