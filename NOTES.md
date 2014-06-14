@@ -31,8 +31,8 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Improved the `master not available` error message (#1811)
   * Switched to the JSON protocol in the Ruby, JavaScript and Python drivers (#2224, #2390)
   * Added the `changes` command for creating live change feeds (#997)
-  * Added `r.args` to allow specifying a dynamic number of arguments to commands such as `getAll` (#1854)
-  * Added `r.http` for retrieving data from the web (#1383)
+  * Added `r.args` to allow specifying a dynamic number of arguments to commands such as `get_all` (#1854)
+  * Added `r.http` for interfacing with external APIs (#1383)
 * Server
   * Added a JSON protocol as an alternative to the protobuf protocol (#1868)
   * Added a README describing the structure of the `src/` folder (#2301)
