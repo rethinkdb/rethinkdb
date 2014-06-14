@@ -1,9 +1,10 @@
-# Release 1.13.0 (My name is nobody)
+# Release 1.13.0 (My Name is Nobody)
 
 Released on 2014-06-13
 
-The highlights for this release are changes, support for JSON and the
-World Wide Web.
+The highlights of this release are the `r.http` command for external
+data access, change feed support via the new `changes` command, and
+full support for Node.js promises in the JavaScript driver.
 
 http://rethinkdb.com/blog/1.13-release/
 
@@ -18,7 +19,7 @@ http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in the JavaScript driver.
 
-* The `hasNext` method for cursors has been removed.
+* The `hasNext` command for cursors has been removed.
 
 ## New features ##
 
@@ -29,8 +30,8 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * `nth` can now return a selection, just like `get` (#348)
   * Improved the `master not available` error message (#1811)
   * Switched to the JSON protocol in the Ruby, JavaScript and Python drivers (#2224, #2390)
-  * Added the `changes` method for creating live change feeds (#997)
-  * Added `r.args` to allow specifying a dynamic number of arguments to methods such as `getAll` (#1854)
+  * Added the `changes` command for creating live change feeds (#997)
+  * Added `r.args` to allow specifying a dynamic number of arguments to commands such as `getAll` (#1854)
   * Added `r.http` for retrieving data from the web (#1383)
 * Server
   * Added a JSON protocol as an alternative to the protobuf protocol (#1868)
@@ -40,7 +41,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Improved the error message when running out of disk space (#1945)
 * JavaScript driver
   * Added support for promises (using bluebird) (#1395)
-  * Removed the `hasNext` method (#2497)
+  * Removed the `hasNext` command (#2497)
   * Added the `on`, `once`, `removeListener` and `removeAllListeners` methods to feeds (#2223)
   * `r.connect` now supports being called with a single argument (#2273)
 * Tests
@@ -58,13 +59,13 @@ There are also some backwards incompatible changes in the JavaScript driver.
 
 * Server
   * Allocate smaller pages in the cache (#2130)
-  * Fast local delivery of mailbox messages / Send up-to-date reads to the local replica / Prefer sending queries to the primary / ??? (#2083)
+  * Reduce overhead by handling requests locally on the primary if possible (#2083)
   * Adjusted the value of `chunk_processing_semaphore` (#2392)
   * Improved backfilling on rotational drives (#2393)
   * No longer copy the metadata when evaluating `r.db` (#1907)
   * No longer update the stat block when updating secondary indexes (#2431)
   * Better combine block writes in the cache (#2127)
-  * More effective garbage collection and tweaked `GC_HIGH_RATIO` (#2457)
+  * Concurrent garbage collection to improve disk space efficiency (#2457)
 * Testing
   * Added automated performance regression tests (#1963)
 
@@ -75,7 +76,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Now returns an error message with all HTTP 500 errors (#511)
   * Got rid of vestigial memcache support (#803)
   * Made `order_by` and other sortings be stable (#2155)
-  * Rip out and repair horrendous aspects of the blob_t code (#2227)
+  * Cleaned up blob_t code to make it more reliable (#2227)
   * Fixed a bug that caused crashes when dropping secondary indexes under load (#2251)
   * Fixed a bug in the JSON parsing code that caused a crash (#2489)
   * Fixed a bug that could cause segfaults (#2491)
