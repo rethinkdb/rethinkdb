@@ -43,7 +43,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Added support for promises (using bluebird) (#1395)
   * Removed the `hasNext` command (#2497)
   * Added the `on`, `once`, `removeListener` and `removeAllListeners` methods to cursors (#2223)
-  * `r.connect` now supports being called with a single argument (#2273)
+  * The first argument to `r.connect` has been made optional (#2273)
 * Tests
   * Improved the run-test script and ported it to Python (#2235)
   * Improved the ReQL tests (#1402)
