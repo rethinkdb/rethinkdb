@@ -1281,7 +1281,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
@@ -1650,7 +1650,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+            fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)\n", machine_name_str.c_str(), name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
 
