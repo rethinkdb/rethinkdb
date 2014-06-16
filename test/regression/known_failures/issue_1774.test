@@ -23,22 +23,22 @@ connection = r.connect(host=server.host, port=server.driver_port)
 # make sure we have a clean table with no shards
 
 if databaseName not in r.db_list().run(connection):
-	r.db_create(databaseName).run(connection)
+    r.db_create(databaseName).run(connection)
 
 try:
-	r.table_create(tableName).run(connection)
+    r.table_create(tableName).run(connection)
 except r.RqlRuntimeError:
-	r.table_drop(tableName).run(connection)
-	r.table_create(tableName).run(connection)
+    r.table_drop(tableName).run(connection)
+    r.table_create(tableName).run(connection)
 
 # -- thread methods
 
 class FillTable(utils.PerformContinuousAction):
-	def runAction(self):
-		tableName = os.path.splitext(os.path.basename(__file__))[0]
-		if 'tableName' in self.kwargs:
-			tableName = self.kwargs['tableName']
-		r.table(tableName).insert({'id':self.sucessCount + 1, 'data':self.sucessCount + 1}, durability='hard', upsert=False).run(self.connection)
+    def runAction(self):
+        tableName = os.path.splitext(os.path.basename(__file__))[0]
+        if 'tableName' in self.kwargs:
+            tableName = self.kwargs['tableName']
+        r.table(tableName).insert({'id': self.sucessCount + 1, 'data': self.sucessCount + 1}, durability='hard', upsert=False).run(self.connection)
 
 class WaitForTable(utils.PerformContinuousAction):
     def runAction(self):
@@ -87,7 +87,7 @@ waitTableProcess.join(timeout=waitTableTimeout)
 if waitTableProcess.errorCount != 0:
     allPassed = False
     for errorMessage in waitTableProcess.recordedErrors:
-    	sys.stderr.write('Failure waiting for table to shard: %s\n' % errorMessage)
+        sys.stderr.write('Failure waiting for table to shard: %s\n' % errorMessage)
 else:
     print('Success: %.2f seconds after shard command the table was ready' % ((waitTableProcess.startTime - shardStartTime) + waitTableProcess.durration))
 
@@ -106,24 +106,24 @@ allPassed = True;
 # - fill
 
 for errorMessage, errorCount in fillTableProcess.errorSummary().items():
-	allPassed = False
-	sys.stderr.write('Failure while writing: %s x %s\n' % (errorCount, errorMessage))
+    allPassed = False
+    sys.stderr.write('Failure while writing: %s x %s\n' % (errorCount, errorMessage))
 
 # - read
 
 for errorMessage, errorCount in readTableProcess.errorSummary().items():
-	allPassed = False
-	sys.stderr.write('Failure while reading: %s x %s\n' % (errorCount, errorMessage))
+    allPassed = False
+    sys.stderr.write('Failure while reading: %s x %s\n' % (errorCount, errorMessage))
 
 # - connection is still valid
 
 try:
-	r.db_list().run(connection)
-	print('Success: conection is still valid')
+    r.db_list().run(connection)
+    print('Success: conection is still valid')
 except r.errors.RqlDriverError:
-	allPassed = False
-	sys.stderr.write('Failure: The database connnection went stale\n')
-	r.connect(host=server.host, port=server.driver_port)
+    allPassed = False
+    sys.stderr.write('Failure: The database connnection went stale\n')
+    r.connect(host=server.host, port=server.driver_port)
 
 # - everything made it to the database that we expected
 
@@ -154,6 +154,6 @@ server.check_and_stop()
 # --
 
 if allPassed is False:
-	sys.exit('Test failed!')
+    sys.exit('Test failed!')
 
 print('Test passed')

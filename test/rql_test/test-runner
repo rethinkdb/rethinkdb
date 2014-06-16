@@ -376,8 +376,8 @@ class RethinkDBRunningServer:
 
 def check_language(option, opt_str, value, parser):
     if value not in option.choices:
-       raise optparse.OptionValueError('Invalid language: %s' % value) 
-    
+        raise optparse.OptionValueError('Invalid language: %s' % value)
+
     if not hasattr(parser.values, option.dest):
         setattr(parser.values, option.dest, [])
     selectedValues = getattr(parser.values, option.dest)
@@ -509,8 +509,8 @@ def main():
     parser = optparse.OptionParser(usage='usage: %prog [options] [patterns]')
 
     parser.add_option('-l', '--list', dest='list_mode', default=False, action='store_true', help='list the tests and exit')
-    
-    parser.add_option('-b', '--build-dir', dest='build_directory', default=None,  help='path to a specific build, usually starting with release_ or debug_')
+
+    parser.add_option('-b', '--build-dir', dest='build_directory', default=None, help='path to a specific build, usually starting with release_ or debug_')
     parser.add_option('--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
 
     parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=Langs.langs.keys() + ['all'], type='choice', default=None, help='the language to test')

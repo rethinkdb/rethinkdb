@@ -205,21 +205,21 @@ def test_verify():
 
 def main():
     tests = {
-             'verify': test_verify,
-             'get': test_get,
-             'head': test_head,
-             'params': test_params,
-             'headers': test_headers,
-             'post': test_post,
-             'put': test_put,
-             'patch': test_patch,
-             'delete': test_delete,
-             'redirects': test_redirects,
-             'gzip': test_gzip,
-             'failed_json_parse': test_failed_json_parse,
-             'digest_auth': test_digest_auth,
-             'basic_auth': test_basic_auth
-             }
+        'verify': test_verify,
+        'get': test_get,
+        'head': test_head,
+        'params': test_params,
+        'headers': test_headers,
+        'post': test_post,
+        'put': test_put,
+        'patch': test_patch,
+        'delete': test_delete,
+        'redirects': test_redirects,
+        'gzip': test_gzip,
+        'failed_json_parse': test_failed_json_parse,
+        'digest_auth': test_digest_auth,
+        'basic_auth': test_basic_auth
+    }
 
     # TODO: try/catch, print errors and continue?
     for name, fn in tests.iteritems():

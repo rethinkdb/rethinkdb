@@ -83,16 +83,26 @@ class Worker(object):
         self.internal_init()
 
     def __repr__(self):
-        if self.id and self.id != self.name:    id_str = '{%s}' % self.id # XXX
-        else:                                   id_str = ''
-        if self.ssh:   ssh_str = '%s:' % self.ssh
-        else:          ssh_str = ''
-        if self.path or self.ssh: path_str = '[%s%s]' % (ssh_str, (self.path or ''))
-        else:                     path_str = ''
-        if self.raw:   raw_str = ':'
-        else:          raw_str = ''
-        if self.param: param_str = ':%s%s' % (raw_str, self.param)
-        else:          param_str = ''
+        if self.id and self.id != self.name:
+            id_str = '{%s}' % self.id  # XXX
+        else:
+            id_str = ''
+        if self.ssh:
+            ssh_str = '%s:' % self.ssh
+        else:
+            ssh_str = ''
+        if self.path or self.ssh:
+            path_str = '[%s%s]' % (ssh_str, (self.path or ''))
+        else:
+            path_str = ''
+        if self.raw:
+            raw_str = ':'
+        else:
+            raw_str = ''
+        if self.param:
+            param_str = ':%s%s' % (raw_str, self.param)
+        else:
+            param_str = ''
         return '%s(%s%s%s%s)' % (self.argtype, id_str, self.name, path_str, param_str)
 
     # Note: start() and stop() are called on the same object once per run
@@ -134,8 +144,9 @@ class Worker(object):
 
         self.running = False
 
-    def internal_init(self): pass # Override this if needed.
-    def internal_start(self): # Override this.
+    def internal_init(self):
+        pass  # Override this if needed.
+    def internal_start(self):  # Override this.
         pass
     def internal_stop(self): # Override this, usually.
         self.stop_process()
@@ -408,9 +419,9 @@ class Stress(Client):
             host_args.append('sockmemcached,%s:%d' % (host, self.dbench.port))
 
         default_args = host_args + \
-                       ['-l', self.LATENCY_FILE,
-                        '-q', self.QPS_FILE,
-                        '--client-suffix']
+            ['-l', self.LATENCY_FILE,
+             '-q', self.QPS_FILE,
+             '--client-suffix']
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
@@ -427,9 +438,9 @@ class Stressinsert(Insert):
             host_args.append('sockmemcached,%s:%d' % (host, self.dbench.port))
 
         default_args = host_args + \
-                       ['-l', self.LATENCY_FILE,
-                        '-q', self.QPS_FILE,
-                        '--client-suffix']
+            ['-l', self.LATENCY_FILE,
+             '-q', self.QPS_FILE,
+             '--client-suffix']
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
@@ -442,8 +453,8 @@ class MySQLStress(Stress):
             host_args.append('mysql,%s/%s@%s:%d+%s' % (user, passwd, host, self.dbench.port, db))
 
         default_args = host_args + \
-                       ['-l', self.LATENCY_FILE,
-                        '-q', self.QPS_FILE]
+            ['-l', self.LATENCY_FILE,
+             '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
@@ -647,8 +658,10 @@ class DBench(object):
     log_depth = 0
     def log(self, str, term=sys.stdout, color=None):
         str = ' ' * self.log_depth + str
-        if color: print >> term, colored(str, color)
-        else:     print >> term, str
+        if color:
+            print >> term, colored(str, color)
+        else:
+            print >> term, str
         self.log_messages.append(str)
 
     # XXX: This isn't a good way of doing it.

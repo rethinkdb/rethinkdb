@@ -101,8 +101,8 @@ class VM():
 
 class target():
     def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f, vbox_username, vbox_hostname):
-        self.build_uuid = build_uuid 
-        self.build_hostname = build_hostname 
+        self.build_uuid = build_uuid
+        self.build_hostname = build_hostname
         self.username = username
         self.build_cl = build_cl
         self.res_ext = res_ext 

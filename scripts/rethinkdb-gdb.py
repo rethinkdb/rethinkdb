@@ -555,8 +555,8 @@ class Tr1HashtableIterator:
             self.bucket = self.bucket + 1
             self.node = self.bucket[0]
 
-       # If we advanced off the end of the bucket array, then
-       # we're done.
+        # If we advanced off the end of the bucket array, then
+        # we're done.
         if self.count == self.n_buckets:
             self.node = False
         else:

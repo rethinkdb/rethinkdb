@@ -16,8 +16,8 @@ driverPaths = {
 
 # non-printable ascii characters and invalid utf8 bytes
 non_text_bytes = \
-  range(0x00, 0x09+1) + [0x0B, 0x0C] + range(0x0F, 0x1F+1) + \
-  [0xC0, 0xC1] + range(0xF5, 0xFF+1)
+    range(0x00, 0x09 + 1) + [0x0B, 0x0C] + range(0x0F, 0x1F + 1) + \
+    [0xC0, 0xC1] + range(0xF5, 0xFF + 1)
 
 def guess_is_text_file(name):
     with file(name, 'rb') as f:
@@ -80,8 +80,8 @@ def build_in_folder(targetFolder, waitNotification=None, notificationTimeout=2, 
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
-           print(waitNotification)
-    
+            print(waitNotification)
+
     if makeProcess.wait() != 0:
         raise test_exceptions.NotBuildException(detail='Failed making: %s' % targetFolder, debugInfo=outputFile)
 
@@ -223,8 +223,8 @@ class PerformContinuousAction(threading.Thread):
         self.stopSignal = True
         self.join(timeout=.5)
         if self.isAlive():
-          raise Warning('performContinuousAction failed to stop when asked to, results might not be trustable')
-    
+            raise Warning('performContinuousAction failed to stop when asked to, results might not be trustable')
+
     def errorSummary(self):
         if self.isAlive():
             self.stop()

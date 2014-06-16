@@ -600,15 +600,15 @@ class dbench():
             print >>res, multirun_summary_table(summary_table_data, multirun.unit)
 
         # Add oprofile data
-#        print >> res, '<div class="oprofile">' 
-#        if self.prof_stats:
-#            prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
-#            ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
-#            print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
-#        else:
-#            print >>res, "<p>No oprofile data reported</p>"
-#        print >> res, '</div>' 
-          
+        # print >> res, '<div class="oprofile">'
+        # if self.prof_stats:
+        #     prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
+        #     ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
+        #     print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
+        # else:
+        #     print >>res, "<p>No oprofile data reported</p>"
+        # print >> res, '</div>'
+
 
         return res_html.getvalue(), res_email.getvalue()
 

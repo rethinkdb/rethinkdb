@@ -142,7 +142,7 @@ class TimeSeriesCollection():
             res.data[val[0]] = val[1]
         return res
 
-#limit the data to just the keys in keys
+    # limit the data to just the keys in keys
     def select(self, keys):
         copy = self.copy()
         for key in copy.data.keys():
@@ -167,7 +167,7 @@ class TimeSeriesCollection():
     def parse(self, data):
         pass
 
-#do post processing things on the data (ratios and derivatives and stuff)
+    # do post processing things on the data (ratios and derivatives and stuff)
     def process(self):
         pass
 
@@ -344,16 +344,16 @@ class TimeSeriesCollection():
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
-	    full_series = map(lambda x: x, val[1])
-	    full_series = full_series[(len(full_series) / 4):] # Cut off first quarter to get more reliable data
-	    full_series_sorted = full_series
-	    full_series_sorted.sort()
-	    steady_series = full_series[int(len(full_series) * 0.7):]
-            stat_report['mean'] = stats.mean(full_series)
-            try:
-                stat_report['stdev'] = stats.stdev(full_series)
-            except ZeroDivisionError:
-                stat_report['stdev'] = 0
+        full_series = map(lambda x: x, val[1])
+        full_series = full_series[(len(full_series) / 4):]  # Cut off first quarter to get more reliable data
+        full_series_sorted = full_series
+        full_series_sorted.sort()
+        steady_series = full_series[int(len(full_series) * 0.7):]
+        stat_report['mean'] = stats.mean(full_series)
+        try:
+            stat_report['stdev'] = stats.stdev(full_series)
+        except ZeroDivisionError:
+            stat_report['stdev'] = 0
             stat_report['upper_0.1_percentile'] = self.percentile(full_series_sorted, 0.999)
             stat_report['lower_0.1_percentile'] = self.percentile(full_series_sorted, 0.001)
             stat_report['upper_1_percentile'] = self.percentile(full_series_sorted, 0.99)
@@ -365,12 +365,12 @@ class TimeSeriesCollection():
                 stat_report['steady_stdev'] = stats.stdev(full_series)
             except ZeroDivisionError:
                 stat_report['steady_stdev'] = 0
-	    res[val[0]] = stat_report
+        res[val[0]] = stat_report
 
         return res
 
-#function : (serieses)*len(arg_keys) -> series
-#TODO this should return a copy with the changes
+    # function : (serieses)*len(arg_keys) -> series
+    # TODO this should return a copy with the changes
     def derive(self, name, arg_keys, function):
         args = []
         for key in arg_keys:
@@ -477,7 +477,7 @@ class SubplotCollection():
         for series,series_data in subplot.data.iteritems():
             y_values = []
             for y_value in series_data:
-            #     max_y_value = max(max_y_value, y_value)
+                # max_y_value = max(max_y_value, y_value)
                 y_values.append(y_value)
             #if normalize:
             #    y_values = normalize(y_values)
@@ -493,7 +493,7 @@ class SubplotCollection():
         #for tick in ax.yaxis.get_major_ticks():
         #   #tick.label1.set_fontproperties(font)
 
-       # ax.yaxis.set_major_formatter(queries_formatter)
+        # ax.yaxis.set_major_formatter(queries_formatter)
 
         ax.set_xlim(0, len(subplot.data[subplot.data.keys()[0]]) - 1)
         #if normalize:
@@ -549,7 +549,7 @@ class SubplotCollection():
         gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0,1])
 #        gs = gridspec.GridSpec(subplot_dim, subplot_dim)
 
-	    # Sort the data keys so that the subplots display in order.
+        # Sort the data keys so that the subplots display in order.
         sorted_data_keys = self.data.keys()
         sorted_data_keys.sort()
 
@@ -586,7 +586,7 @@ class TimeSeriesMeans():
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)
 def differentiate(series):
-#series will be a tuple
+    # series will be a tuple
     series = series[0]
     res = []
     for f_t, f_t_plus_one in zip(series[:len(series) - 1], series[1:]):
@@ -758,24 +758,24 @@ class RDBStats(TimeSeriesCollection):
                   ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
 
         slides = [('io_writes_started', 'io_writes_completed')]
-#        differences = [('io_reads_completed', 'io_reads_started'), 
-#                       ('io_writes_started', 'io_writes_completed'), 
-#                       ('transactions_started', 'transactions_ready'), 
-#                       ('transactions_ready', 'transactions_completed'),
-#                       ('bufs_acquired', 'bufs_ready'),
-#                       ('bufs_ready', 'bufs_released')]
-#        ratios = [('conns_in_btree_incomplete', 'conns_total'),
-#                  ('conns_in_outstanding_data', 'conns_total'),
-#                  ('conns_in_socket_connected', 'conns_total'),
-#                  ('conns_in_socket_recv_incomplete', 'conns_total'),
-#                  ('conns_in_socket_send_incomplete', 'conns_total'),
-#                  ('blocks_dirty', 'blocks_total'),
-#                  ('blocks_in_memory', 'blocks_total'),
-#                  ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
-#
-#        slides = [('flushes_started', 'flushes_acquired_lock'),
-#                  ('flushes_acquired_lock', 'flushes_completed'),
-#                  ('io_writes_started', 'io_writes_completed')]
+        # differences = [('io_reads_completed', 'io_reads_started'),
+        #                ('io_writes_started', 'io_writes_completed'),
+        #                ('transactions_started', 'transactions_ready'),
+        #                ('transactions_ready', 'transactions_completed'),
+        #                ('bufs_acquired', 'bufs_ready'),
+        #                ('bufs_ready', 'bufs_released')]
+        # ratios = [('conns_in_btree_incomplete', 'conns_total'),
+        #           ('conns_in_outstanding_data', 'conns_total'),
+        #           ('conns_in_socket_connected', 'conns_total'),
+        #           ('conns_in_socket_recv_incomplete', 'conns_total'),
+        #           ('conns_in_socket_send_incomplete', 'conns_total'),
+        #           ('blocks_dirty', 'blocks_total'),
+        #           ('blocks_in_memory', 'blocks_total'),
+        #           ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
+
+        # slides = [('flushes_started', 'flushes_acquired_lock'),
+        #           ('flushes_acquired_lock', 'flushes_completed'),
+        #           ('io_writes_started', 'io_writes_completed')]
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)

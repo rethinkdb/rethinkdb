@@ -28,7 +28,7 @@ def safe_div(x, y):
 #dict add requires that dictionaries have the same schema while dict union does not
 def dict_add(x, y):
     res = x.copy() #to make sure we get the same kind of dict
-#assert len(x) == len(y)
+    # assert len(x) == len(y)
     for keyy in y.keys():
         res[keyy] += y[keyy]
     return res
@@ -142,7 +142,7 @@ class Function_report():
         res.function_name = self.function_name
         res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
         res.source_file = max(self.source_file, other.source_file, key = lambda x: len(x))
-#res.lines = dict_merge(self.lines, other.lines)
+        # res.lines = dict_merge(self.lines, other.lines)
         return res
 
 class Line_report():
@@ -208,14 +208,14 @@ class Program_report():
             print >>res, "</table>"
             return res.getvalue()
 
-#program wide counter totals
+        # program wide counter totals
         print >>res, "<p>Program wide counter totals:</p>"
         counter_totals_table = []
         for counter in self.counter_names:
             counter_totals_table.append([counter, self.counter_totals[counter]])
         print >>res, table(counter_totals_table)
 
-# program wide ratios
+        # program wide ratios
         print >>res, "<p>Program wide ratios:</p>"
         global_rat_table = []
         for ratio in ratios:
@@ -224,7 +224,7 @@ class Program_report():
 
         print >>res, table(global_rat_table)
 
-#per function ratios
+        # per function ratios
         print >>res, "<p>Worst functions by %s</p>" % ordering_key.name
         function_table = []
         function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
@@ -302,8 +302,8 @@ class parser():
         if source:
             function_report.source_file = source['source_file']
 
-#for i in range(len(self.prog_report.counter_names)):
-#function_report.counter_totals[self.prog_report.counter_names[i]] = 0
+        # for i in range(len(self.prog_report.counter_names)):
+        #     function_report.counter_totals[self.prog_report.counter_names[i]] = 0
 
         samples = []
         while True:
@@ -377,7 +377,7 @@ class Profile():
         return res
 
 class Ratio():
-#_numerator and denominator should be Event()s
+    # _numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
         self.numerator = _numerator
         self.denominator = _denominator

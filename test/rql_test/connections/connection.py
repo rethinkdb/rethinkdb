@@ -342,7 +342,7 @@ class TestPrinting(unittest.TestCase):
     # An exhaustive test of the pretty printer would be, well, exhausing.
     def runTest(self):
         self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
-                            "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
+                         "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
 
 class TestBatching(TestWithConnection):
     def runTest(self):

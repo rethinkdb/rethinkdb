@@ -104,9 +104,9 @@ class Connection(object):
 
         # Try to convert the port to an integer
         try:
-          self.port = int(port)
+            self.port = int(port)
         except ValueError as err:
-          raise RqlDriverError("Could not convert port %s to an integer." % port)
+            raise RqlDriverError("Could not convert port %s to an integer." % port)
 
         self.reconnect(noreply_wait=False)
 
@@ -204,7 +204,7 @@ class Connection(object):
             global_optargs['db'] = DB(global_optargs['db'])
         else:
             if self.db:
-               global_optargs['db'] = DB(self.db)
+                global_optargs['db'] = DB(self.db)
 
         # Construct query
         query = Query(pQuery.START, self.next_token, term, global_optargs)

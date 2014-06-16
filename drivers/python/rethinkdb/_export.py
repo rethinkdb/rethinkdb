@@ -109,6 +109,7 @@ def parse_options():
     # Get number of clients
     if options.clients < 1:
        raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
+        raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
