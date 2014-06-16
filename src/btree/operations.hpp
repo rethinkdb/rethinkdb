@@ -226,10 +226,9 @@ void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const binary_blob_t &value);
 
-// TODO!
-/*void set_superblock_metainfo(buf_lock_t *superblock,
+void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<std::vector<char> > &keys,
-                             const std::vector<binary_blob_t> &values);*/
+                             const std::vector<binary_blob_t> &values);
 
 void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key);

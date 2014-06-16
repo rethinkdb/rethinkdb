@@ -1050,7 +1050,13 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     buf_lock_t *sb_buf = superblock->get();
     clear_superblock_metainfo(sb_buf);
 
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
+    std::vector<std::vector<char> > keys;
+    std::vector<binary_blob_t> values;
+    keys.reserve(updated_metadata.size());
+    values.reserve(updated_metadata.size());
+    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
+         i != updated_metadata.end();
+         ++i) {
         vector_stream_t key;
         write_message_t wm;
         // Versioning of this serialization will depend on the block magic.  But
@@ -1061,10 +1067,12 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
-        // TODO! Call this only once at the end.
-        // TODO! How to clean out old entries?
-        set_superblock_metainfo(sb_buf, key.vector(), i->second);
+        keys.push_back(std::move(key.vector()));
+        values.push_back(i->second);
     }
+
+    // TODO (daniel): How to clean out old entries?
+    set_superblock_metainfo(sb_buf, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
