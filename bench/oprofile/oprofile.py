@@ -244,14 +244,14 @@ class Program_report():
 
 class parser():
     positions_line = line("positions: (\w+) (\w+)\n", [('instr', 's'), ('line', 's')])
-    events_line     = line("events:\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)\n", [('event1', 's'), ('event2', 's'), ('event3', 's'), ('event4', 's')])
-    summary_line    = line("summary: (\d+) (\d+) (\d+) (\d+)\n", [('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
-    obj_line        = line("ob=(.+)\n", [('obj_file', 's')])
-    function_line   = line("fn=(.+)\n", [('function_name', 's')])
-    source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
-    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
-    fident_line     = line("fi=\(\d+\)", [])
-    prog_report     = None
+    events_line = line("events:\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)\n", [('event1', 's'), ('event2', 's'), ('event3', 's'), ('event4', 's')])
+    summary_line = line("summary: (\d+) (\d+) (\d+) (\d+)\n", [('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    obj_line = line("ob=(.+)\n", [('obj_file', 's')])
+    function_line = line("fn=(.+)\n", [('function_name', 's')])
+    source_line = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
+    sample_line = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    fident_line = line("fi=\(\d+\)", [])
+    prog_report = None
     def __init__(self):
         pass
 

@@ -103,7 +103,7 @@ class dbench():
         try:
             competitor_dirs = [name for name in os.listdir(self.competitor_dir) if os.path.isdir(os.path.join(self.competitor_dir, name))]
         except:
-            print 'No competitors found in: '+self.competitor_dir
+            print 'No competitors found in: ' + self.competitor_dir
 
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
@@ -115,16 +115,16 @@ class dbench():
         os.system('rm -rf %s' % self.out_dir)
 
     class bench_stats():
-        iostat_path     = 'iostat/output.txt'
-        vmstat_path     = 'vmstat/output.txt'
-        latency_path    = 'client/latency.txt'
-        qps_path        = 'client/qps.txt'
-        rdbstat_path    = 'rdbstat/output.txt'
-        server_meta_path= 'server/output.txt'
-        client_meta_path= 'client/output.txt'
-        description_path= 'DESCRIPTION'
-        description_run_path='DESCRIPTION_RUN'
-        multirun_flag   = 'multirun'        
+        iostat_path = 'iostat/output.txt'
+        vmstat_path = 'vmstat/output.txt'
+        latency_path = 'client/latency.txt'
+        qps_path = 'client/qps.txt'
+        rdbstat_path = 'rdbstat/output.txt'
+        server_meta_path = 'server/output.txt'
+        client_meta_path = 'client/output.txt'
+        description_path = 'DESCRIPTION'
+        description_run_path = 'DESCRIPTION_RUN'
+        multirun_flag = 'multirun'
 
         def __init__(self, dir):
             dir = os.path.normpath(dir)
@@ -153,7 +153,7 @@ class dbench():
 
             # Defined function: Collect data from the directory provided, store the data in the given parent (either generic runs or multiruns).
             def collect_run_data(run, run_dir, parent):
-                run_data  = [IOStat().read(os.path.join(run_dir, self.iostat_path)),
+                run_data = [IOStat().read(os.path.join(run_dir, self.iostat_path)),
                             VMStat().read(os.path.join(run_dir, self.vmstat_path)),
                             Latency().read(os.path.join(run_dir, self.latency_path)),
                             QPS().read(os.path.join(run_dir, self.qps_path)),
@@ -163,13 +163,13 @@ class dbench():
                     server_meta = (open(os.path.join(run_dir, self.server_meta_path)).read())
                 except IOError:
                     server_meta = ''
-                    print "No server metadata found for run: "+run.replace('_',' ')
+                    print "No server metadata found for run: " + run.replace('_', ' ')
 
                 try:
                     client_meta = (open(os.path.join(run_dir, self.client_meta_path)).read())
                 except IOError:
                     client_meta = ''
-                    print "No client metadata found for run: "+run.replace('_',' ')
+                    print "No client metadata found for run: " + run.replace('_', ' ')
 
                 parent[run] = Run(run, run_data, server_meta, client_meta)
 
@@ -190,7 +190,7 @@ class dbench():
                     unit = open(os.path.join(multirun_dir, self.multirun_flag)).readline()
                 except IOError:
                     unit = ''
-                    print "Could not read units for multirun: "+multirun
+                    print "Could not read units for multirun: " + multirun
 
                 # Each multirun consists of several runs. Read in each run's data, and add it to the given multirun.
                 run_dirs = []
@@ -199,7 +199,7 @@ class dbench():
                     # Make sure we only include directories
                     run_dirs = [name for name in os.listdir(multirun_dir) if os.path.isdir(os.path.join(multirun_dir,name))]
                 except:
-                    print 'Multirun has no valid runs: '+multirun_dir
+                    print 'Multirun has no valid runs: ' + multirun_dir
 
                 runs = {}
 
@@ -220,7 +220,7 @@ class dbench():
                 multirun_data = []
                 for run_name in self.multi_runs[multirun].runs:
                     run = self.multi_runs[multirun].runs[run_name]
-                    multirun_data.append(reduce(lambda x,y: x+y, run.data).select('qps').remap('qps',run.name))
+                    multirun_data.append(reduce(lambda x, y: x + y, run.data).select('qps').remap('qps', run.name))
 
                 if multirun_data == []:
                     print "Did not get multirun_data for %s" % multirun
@@ -240,10 +240,10 @@ class dbench():
             return "D/U/I/R = %d/%d/%d/%d Duration = %d" % (m['deletes'], m['updates'], m['inserts'], m['reads'], m['duration'])
 
     class oprofile_stats():
-        oprofile_path   = 'oprofile/oprof.out.rethinkdb'
+        oprofile_path = 'oprofile/oprof.out.rethinkdb'
 
         def __init__(self, dir):
-            self.oprofile  = parser().parse_file(dir + self.oprofile_path)
+            self.oprofile = parser().parse_file(dir + self.oprofile_path)
 
     def push_html_to_host(self):
         res = open(self.out_dir + '/index.html', 'w')
@@ -265,7 +265,7 @@ class dbench():
             small_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'.png')
             self.images_used.append(name)
             print >>html_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, small_img_path)
-            print >>email_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
+            print >>email_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:' + name)
 
         def hr():
             return '<hr style="height: 8px; width: 910px; background-color: #222; margin-top: 40px; margin-bottom: 15px; margin-left: 0; text-align: left;" />'
@@ -325,10 +325,10 @@ class dbench():
                            <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #333;">
                                <th style="padding: 0.5em 0.8em; font-size: small;"></th>"""
             for d in datatypes:
-                table +="""    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation for %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Lower 5%% for %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d,d,d,d)
+                table += """    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation for %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Lower 5%% for %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d, d, d, d)
             table += "     </tr>"
             for run_name, run in dataset.iteritems():
                 table += """<tr style="background: #E0E0E0; text-align: left; border-bottom: 2px solid #FFFFFF">
@@ -629,7 +629,7 @@ class dbench():
             fp = open(os.path.join(self.out_dir,self.dir_str,image+'.png'), 'rb')
             msg_img = MIMEImage(fp.read())
             fp.close()
-            msg_img.add_header('Content-ID', '<'+image+'>')
+            msg_img.add_header('Content-ID', '<' + image + '>')
             msg.attach(msg_img)
 
         num_tries = 10

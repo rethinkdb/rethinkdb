@@ -699,7 +699,7 @@ class Var(RqlQuery):
     tt = pTerm.VAR
 
     def compose(self, args, optargs):
-        return 'var_'+args[0]
+        return 'var_' + args[0]
 
 class JavaScript(RqlTopLevelQuery):
     tt = pTerm.JAVASCRIPT

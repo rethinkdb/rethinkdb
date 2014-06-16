@@ -194,7 +194,7 @@ class StdTuplePrinter:
                 raise ValueError("Top of tuple tree does not consist of a single node.")
 
             # Set the actual head to the first pair.
-            self.head  = self.head.cast (nodes[0].type)
+            self.head = self.head.cast(nodes[0].type)
             self.count = 0
 
         def __iter__(self):
@@ -216,7 +216,7 @@ class StdTuplePrinter:
             impl = self.head.cast(nodes[1].type)
 
             # Process left node and set it as head.
-            self.head  = self.head.cast (nodes[0].type)
+            self.head = self.head.cast(nodes[0].type)
             self.count = self.count + 1
 
             # Finally, check the implementation.  If it is

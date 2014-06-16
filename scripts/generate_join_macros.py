@@ -14,7 +14,7 @@ $ ../scripts/generate_join_macros.py > rpc/semilattice/joins/macros.hpp
 
 def help_generate_semilattice_joinable_macro(nfields, impl):
     print "#define RDB_%s_SEMILATTICE_JOINABLE_%d(type_t%s) \\" % \
-        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
     print "    %svoid semilattice_join(%stype_t *_a_, %sconst type_t &_b_) { \\" % ("" if impl else "inline ", unused, unused)
     for i in xrange(nfields):
@@ -31,7 +31,7 @@ def generate_impl_semilattice_joinable_macro(nfields):
 
 def help_generate_equality_comparable_macro(nfields, impl):
     print "#define RDB_%s_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
-        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+        (("IMPL" if impl else "MAKE"), nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
     print "    %sbool operator==(%sconst type_t &_a_, %sconst type_t &_b_) { \\" % ("" if impl else "inline ", unused, unused)
     if nfields == 0:
@@ -50,7 +50,7 @@ def generate_impl_equality_comparable_macro(nfields):
 
 def generate_make_me_equality_comparable_macro(nfields):
     print "#define RDB_MAKE_ME_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
+        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
     print "    bool operator==(%sconst type_t &_a_) const { \\" % (unused,)
     if nfields == 0:

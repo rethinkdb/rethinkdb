@@ -75,7 +75,7 @@ declare_fun("py_initialize_mysql_table", None, ctypes.c_char_p, ctypes.c_int, ct
 def distr_get(distr, i):
     if isinstance(distr, (int, float)):
         return distr
-    elif isinstance(distr, (list, tuple)) and len(distr)==2 and \
+    elif isinstance(distr, (list, tuple)) and len(distr) == 2 and \
             isinstance(distr[0], (int, float)) and isinstance(distr[1], (int, float)):
         return distr[i]
     else:

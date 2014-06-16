@@ -47,8 +47,8 @@ def latest_build_dir(check_executable=True):
 
     # -- find the build directory with the most recent mtime
     
-    canidatePath    = None
-    canidateMtime   = None
+    canidatePath = None
+    canidateMtime = None
     for name in os.listdir(masterBuildDir):
         path = os.path.join(masterBuildDir, name)
         if os.path.isdir(path) and (name in ('release', 'debug') or name.startswith('debug_') or name.startswith('release_')):

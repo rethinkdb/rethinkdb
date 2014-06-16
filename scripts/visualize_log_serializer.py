@@ -187,7 +187,7 @@ class Database(object):
 
         # Fill in empty extents with placeholders
         
-        for offset in xrange(0, max(self.extents.keys())+1, self.extent_size):
+        for offset in xrange(0, max(self.extents.keys()) + 1, self.extent_size):
             if offset not in self.extents:
                 self.add_extent(GoodChunk(offset, self.extent_size, "Unused Extent", UnusedExtent()))
 

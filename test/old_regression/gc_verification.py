@@ -32,8 +32,8 @@ def summarize(stats):
         (dblocks_total_min, dblocks_total_max,
          dblocks_live,
          dblocks_dead_min, dblocks_dead_max,
-         (dblocks_live/dblocks_total_max)*100, (dblocks_live/dblocks_total_min)*100)
-    
+         (dblocks_live / dblocks_total_max) * 100, (dblocks_live / dblocks_total_min) * 100)
+
     # Verify that LBA GC appears to be functioning
 
     lbaents_live = dblocks_live
@@ -48,7 +48,7 @@ def summarize(stats):
         (lbaents_total_min, lbaents_total_max,
          lbaents_live,
          lbaents_dead_min, lbaents_dead_max,
-         (lbaents_live/lbaents_total_max)*100, (lbaents_live/lbaents_total_min)*100)
+         (lbaents_live / lbaents_total_max) * 100, (lbaents_live / lbaents_total_min) * 100)
     print "LBA GCs: %d" % int(stats["serializer_lba_gcs"])
 
     assert (lbaents_live / lbaents_total_min) > (lba_gc_threshold - 0.05)

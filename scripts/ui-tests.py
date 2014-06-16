@@ -35,8 +35,8 @@ def print_available_tests():
     print 'Available tests:'
     print '\t- all: run all of the following tests'
     for test in tests:
-        print '\t- '+test
-    
+        print '\t- ' + test
+
 if args.list_tests:
     print_available_tests()
     exit(0)
@@ -58,7 +58,7 @@ successful_tests = 0
 os.chdir(test_file_dir)
 for test_name in test_list:
     # Look for a matching test among known tests
-    casper_script = os.path.join(test_file_dir,test_name+'.coffee')
+    casper_script = os.path.join(test_file_dir, test_name + '.coffee')
     try:
         with open(casper_script) as f: pass
     except IOError as e:
@@ -66,12 +66,12 @@ for test_name in test_list:
         continue
 
     # Build command with arguments for casperjs test
-    cl = ['casperjs', '--rdb-server=http://localhost:'+args.rdb_port+'/', casper_script]
+    cl = ['casperjs', '--rdb-server=http://localhost:' + args.rdb_port + '/', casper_script]
 
     # If the option to scrape images was specified, add it to the casperjs argument list
     if args.image_output_directory:
         image_dir = os.path.abspath(args.image_output_directory)
-        cl.extend(['--images='+image_dir])
+        cl.extend(['--images=' + image_dir])
 
     # Execute casperjs and pretty-print its output
     process = subprocess.Popen(cl,stdout=subprocess.PIPE)
@@ -94,7 +94,7 @@ for test_name in test_list:
     #   1: casper test failed
     process.poll()
     if process.returncode == 0:
-        successful_tests+=1
+        successful_tests += 1
 
     print
 

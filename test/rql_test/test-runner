@@ -111,7 +111,7 @@ class RbLang(SrcLang):
     driver_build_path = os.getenv('RUBY_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'ruby', 'lib')
 
     def rb_str_repr(self, string):
-        return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
+        return ('"' + re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string)) + '"')
 
     def langrepr(self, val):
         if isinstance(val, types.StringType):
@@ -265,17 +265,17 @@ class TestGroup:
             raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
         for test_case in code:
             try:
-                out.write("test("+test_case)
+                out.write("test(" + test_case)
                 expected = myClass.get_expected(test, lang)
                 if not expected:
                     expected = '""'
-                out.write(', '+expected)
+                out.write(', ' + expected)
                 out.write(', "' + testName + '"')
 
                 if runopts:
                     runoptsrepr = Langs.translate_query_for(lang, repr(runopts))
-                    out.write(', '+runoptsrepr)
-    
+                    out.write(', ' + runoptsrepr)
+
                 out.write(')\n')
 
                 # We want to auto-shard tables that we create. There is stil no
@@ -286,7 +286,7 @@ class TestGroup:
                     mo = re.search(pattern, test_case)
                     if mo:
                         table_name = mo.group(1)
-                        out.write('shard("'+table_name+'")\n')
+                        out.write('shard("' + table_name + '")\n')
             except Exception, e:
                 raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(code), str(e)))
 
@@ -294,7 +294,7 @@ class TestGroup:
     def write_def(myClass, out, defobj, lang, index):
         (code, runopts) = myClass.get_code(defobj, lang, index + '-def')
         if len(code) > 0:
-            out.write('define('+code[0]+')\n')
+            out.write('define(' + code[0] + ')\n')
 
     # Tests may specify generic test strings valid for all languages or language specific versions
     @classmethod
@@ -678,7 +678,7 @@ def main():
             executablePath = os.path.join(buildPath, test.name.replace('/', '.'))
 
             try:
-                TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards-1)
+                TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards - 1)
             except Exception, e:
                 failedTests.append(test.name)
                 sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s\n" % (test.name, str(e)))

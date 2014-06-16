@@ -134,8 +134,8 @@ try:
         sys.stderr.write('Failure: The count of records in the table (%d) does not match the number we added (%d)\n' % (actualRecordCount, fillTableProcess.sucessCount))
     else:
         print('Success: correct number of records: %d' % actualRecordCount)
-    
-    expectedSum = (fillTableProcess.sucessCount * (fillTableProcess.sucessCount + 1))/2
+
+    expectedSum = (fillTableProcess.sucessCount * (fillTableProcess.sucessCount + 1)) / 2
     actualSum = r.table(tableName).sum('data').run(connection)
     if expectedSum != actualSum:
         allPassed = False

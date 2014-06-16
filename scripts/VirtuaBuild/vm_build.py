@@ -156,7 +156,7 @@ class target():
         else:
             raise RunError("Invalid refspec type, must be branch or tag.")
 
-        run_checked("cd rethinkdb/src &&"+self.build_cl)
+        run_checked("cd rethinkdb/src &&" + self.build_cl)
 
         dir = build_vm.popen("pwd", 'r').readline().strip('\n')
         p = build_vm.popen("find rethinkdb/build/packages -regex .*\\\\\\\\.%s" % self.res_ext, 'r')

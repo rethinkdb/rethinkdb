@@ -27,11 +27,11 @@ def safe_div(x, y):
 
 def cull_outliers(data, n_sigma):
     mean = stats.mean(map(lambda x: x, data))
-    sigma  = stats.stdev(map(lambda x: x, data))
+    sigma = stats.stdev(map(lambda x: x, data))
     return filter(lambda x: abs(x - mean) < n_sigma * sigma, data)
 
 def clip(data, min, max):
-    return filter(lambda x: min<x<max, data)
+    return filter(lambda x: min < x < max, data)
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -49,7 +49,7 @@ class Scatter():
         self.data = list_of_tuples
         self.names = xnames
     def __str__(self):
-        return "self.data: " + str(self.data) + "\nself.names: " + str(self.names)+"\n\n"
+        return "self.data: " + str(self.data) + "\nself.names: " + str(self.names) + "\n\n"
 
 class default_empty_timeseries_dict(dict):
     units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
@@ -109,7 +109,7 @@ class TimeSeriesCollection():
         self.data = default_empty_timeseries_dict()
 
     def __str__(self):
-        return "TimeSeriesCollection data: " + str(self.data) +"\n"
+        return "TimeSeriesCollection data: " + str(self.data) + "\n"
 
     def read(self, file_name):
         try:
@@ -261,7 +261,7 @@ class TimeSeriesCollection():
         if all(len(x) == 0 for x in self.data.values()):
             self.data['Error: No data'] = [0]
 
-        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
@@ -331,14 +331,14 @@ class TimeSeriesCollection():
         """
         if not N:
             return None
-        k = (len(N)-1) * percent
+        k = (len(N) - 1) * percent
         f = math.floor(k)
         c = math.ceil(k)
         if f == c:
             return key(N[int(k)])
-        d0 = key(N[int(f)]) * (k-f)
-        d1 = key(N[int(c)]) * (c-k)
-        return d0+d1
+        d0 = key(N[int(f)]) * (k - f)
+        d1 = key(N[int(c)]) * (c - k)
+        return d0 + d1
 
     def stats(self):
         res = {}
@@ -394,7 +394,7 @@ class ScatterCollection():
         max_x_value = 0
         max_y_value = 0
 
-        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
@@ -506,7 +506,7 @@ class SubplotCollection():
     def plot(self, out_fname, large = False, normalize = False):
         assert self.data
 
-        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='xx-small',fname=FONT_FILE)
             ax_label_font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
@@ -617,7 +617,7 @@ def ratio(serieses):
         if y == 0:
             res += [None]
         else:
-            res += [float(x)/float(y)]
+            res += [float(x) / float(y)]
     return res
 
 #report the means of a list of runs
@@ -652,11 +652,11 @@ def smooth(serieses):
     return res
 
 class IOStat(TimeSeriesCollection):
-    file_hdr_line   = line("Linux.*", [])
-    avg_cpu_hdr_line= line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
-    avg_cpu_line    = line("^" + "\s+([\d\.]+)" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
-    dev_hdr_line    = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
-    dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
+    file_hdr_line = line("Linux.*", [])
+    avg_cpu_hdr_line = line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
+    avg_cpu_line = line("^" + "\s+([\d\.]+)" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'), ('steal', 'f'), ('idle', 'f')])
+    dev_hdr_line = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
+    dev_line = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
 
     def parse(self, data):
         res = default_empty_timeseries_dict()
@@ -685,9 +685,9 @@ class IOStat(TimeSeriesCollection):
         return res
 
 class VMStat(TimeSeriesCollection):
-    file_hdr_line   = line("^procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----$", [])
-    stats_hdr_line  = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
-    stats_line      = line("\s+(\d+)" * 16, [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
+    file_hdr_line = line("^procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----$", [])
+    stats_hdr_line = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
+    stats_line = line("\s+(\d+)" * 16, [('r', 'd'), ('b', 'd'), ('swpd', 'd'), ('free', 'd'), ('buff', 'd'), ('cache', 'd'), ('si', 'd'), ('so', 'd'), ('bi', 'd'), ('bo', 'd'), ('in', 'd'), ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
 
     def parse(self, data):
         res = default_empty_timeseries_dict()
@@ -701,7 +701,7 @@ class VMStat(TimeSeriesCollection):
             m = take_while([self.stats_line], data)
             for stat_line in m:
                 for val in stat_line.iteritems():
-                    res[val[0]]+= [val[1]]
+                    res[val[0]] += [val[1]]
         return res
 
 class Latency(TimeSeriesCollection):

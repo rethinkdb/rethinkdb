@@ -187,11 +187,11 @@ def redirect_fd_to_file(fd, file, tee=False):
 
 # The main logic for running the tests
 class TestRunner(object):
-    SUCCESS   = 'SUCCESS'
-    FAILED    = 'FAILED'
+    SUCCESS = 'SUCCESS'
+    FAILED = 'FAILED'
     TIMED_OUT = 'TIMED_OUT'
-    STARTED   = 'STARTED'
-    KILLED    = 'KILLED'
+    STARTED = 'STARTED'
+    KILLED = 'KILLED'
 
     def __init__(self, tests, conf, tasks=1, timeout=600, output_dir=None, verbose=False, repeat=1, kontinue=False, abort_fast = False, run_dir=None):
         self.tests = tests
@@ -254,7 +254,7 @@ class TestRunner(object):
                         break
                     if self.kontinue or name not in self.failed_set:
                         id = (name, i)
-                        subdir = name if self.repeat == 1 else name + '.' + str(i+1)
+                        subdir = name if self.repeat == 1 else name + '.' + str(i + 1)
                         dir = join(self.dir, subdir)
                         run_dir = join(self.run_dir, subdir) if self.run_dir else None
                         process = TestProcess(self, id, test, dir, run_dir)
@@ -540,7 +540,7 @@ class TestProcess(object):
                 file.write(str(self.test))
 
             self.supervisor = threading.Thread(target=self.supervise,
-                                               name="supervisor:"+self.name)
+                                               name="supervisor:" + self.name)
             self.supervisor.daemon = True
             self.supervisor.start()
         except Exception:
@@ -587,7 +587,7 @@ class TestProcess(object):
     def supervise(self):
         read_pipe, write_pipe = multiprocessing.Pipe(False)
         self.process = multiprocessing.Process(target=self.run, args=[write_pipe],
-                                               name="subprocess:"+self.name)
+                                               name="subprocess:" + self.name)
         self.process.start()
         self.process.join(self.timeout + 5)
         if self.terminate_thread:

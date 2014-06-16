@@ -37,7 +37,7 @@ with driver.Metacluster() as metacluster:
     with r.connect(host, port) as conn:
         batch = []
         for i in range(10000):
-            batch.append({'id': str(i) * 10, 'val': str(i)*20})
+            batch.append({'id': str(i) * 10, 'val': str(i) * 20})
             if (i + 1) % 100 == 0:
                 r.table(ns.name).insert(batch).run(conn)
                 batch = []
