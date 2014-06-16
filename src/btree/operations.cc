@@ -9,6 +9,7 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/binary_blob.hpp"
 #include "rdb_protocol/profile.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
@@ -214,7 +215,7 @@ void get_superblock_metainfo(
 
 void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
-                             const std::vector<char> &value) {
+                             const binary_blob_t &value) {
     buf_write_t write(superblock);
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write(BTREE_SUPERBLOCK_SIZE));
@@ -252,7 +253,8 @@ void set_superblock_metainfo(buf_lock_t *superblock,
 
         std::vector<char>::iterator p = metainfo.erase(beg, end);
 
-        metainfo.insert(p, value.begin(), value.end());
+        metainfo.insert(p, static_cast<const uint8_t *>(value.data()),
+                        static_cast<const uint8_t *>(value.data()) + value.size());
     } else {
         union {
             char x[sizeof(uint32_t)];
@@ -267,7 +269,8 @@ void set_superblock_metainfo(buf_lock_t *superblock,
 
         u.y = value.size();
         metainfo.insert(metainfo.end(), u.x, u.x + sizeof(uint32_t));
-        metainfo.insert(metainfo.end(), value.begin(), value.end());
+        metainfo.insert(metainfo.end(), static_cast<const uint8_t *>(value.data()),
+                        static_cast<const uint8_t *>(value.data()) + value.size());
     }
 
     blob.append_region(buf_parent_t(superblock), metainfo.size());

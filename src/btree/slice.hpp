@@ -12,6 +12,7 @@
 
 class cache_account_t;
 class backfill_callback_t;
+class binary_blob_t;
 class buf_lock_t;
 class buf_parent_t;
 class cache_t;
@@ -49,7 +50,7 @@ public:
     // metainfo (with a single key/value pair).
     static void init_superblock(buf_lock_t *superblock,
                                 const std::vector<char> &metainfo_key,
-                                const std::vector<char> &metainfo_value);
+                                const binary_blob_t &metainfo_value);
 
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
                   const std::string &identifier);
