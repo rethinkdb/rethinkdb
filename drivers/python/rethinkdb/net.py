@@ -16,6 +16,7 @@ pQuery = p.Query.QueryType
 from rethinkdb import repl # For the repl connection
 from rethinkdb.errors import *
 from rethinkdb.ast import RqlQuery, DB, recursively_convert_pseudotypes
+from ._compat import dict_items
 
 class Query(object):
     def __init__(self, type, token, term, global_optargs):
@@ -30,7 +31,7 @@ class Query(object):
             res.append(self.term.build())
         if self.global_optargs is not None:
             optargs = { }
-            for (k,v) in self.global_optargs.iteritems():
+            for (k,v) in dict_items(self.global_optargs):
                 optargs[k] = v.build() if isinstance(v, RqlQuery) else v
             res.append(optargs)
         return json.dumps(res, ensure_ascii=False, allow_nan=False)
@@ -157,7 +158,7 @@ class Connection(object):
                 pass
             self.socket.close()
             self.socket = None
-        for (token, cursor) in self.cursor_cache.iteritems():
+        for (token, cursor) in dict_items(self.cursor_cache):
             cursor.end_flag = True
             cursor.connection_closed = True
         self.cursor_cache = { }
