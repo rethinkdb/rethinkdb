@@ -6,7 +6,7 @@ class TestingFrameworkException(Exception):
     message = 'A generic testing framework error occured'
     detail = None
     debugInfo = None
-    
+
     def __init__(self, detail=None, debugInfo=None):
         if detail is not None:
             self.detail = str(detail)
@@ -16,7 +16,7 @@ class TestingFrameworkException(Exception):
                 self.debugInfo = debugInfo.read()
             else:
                 self.debugInfo = debugInfo
-    
+
     def __str__(self):
         if self.detail is not None:
             return "%s: %s" % (self.message, self.detail)

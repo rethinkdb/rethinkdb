@@ -71,4 +71,3 @@ def print_progress(ratio):
     undone_width = total_width - done_width
     print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
     sys.stdout.flush()
-

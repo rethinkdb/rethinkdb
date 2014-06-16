@@ -53,7 +53,7 @@ def rpm_install(path):
 def rpm_get_binary(path):
     return "rpm -qpil %s | grep /usr/bin" % path
 
-def rpm_uninstall(cmd_name): 
+def rpm_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 
 def deb_install(path):
@@ -62,7 +62,7 @@ def deb_install(path):
 def deb_get_binary(path):
     return "dpkg -c %s | grep /usr/bin/rethinkdb-.* | sed 's/^.*\(\/usr.*\)$/\\1/'" % path
 
-def deb_uninstall(cmd_name): 
+def deb_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
 class VM():
@@ -135,7 +135,7 @@ class target():
             for old_binary in old_binaries:
                 build_vm.command(self.uninstall_cl_f(old_binary), True)
 
-        if (not os.path.exists("Built_Packages")): 
+        if (not os.path.exists("Built_Packages")):
             os.mkdir("Built_Packages")
 
         build_vm = self.start_vm()
@@ -168,7 +168,7 @@ class target():
         for path in res_paths:
             purge_installed_packages()
 
-            if (not os.path.exists(os.path.join(dest, short_name))): 
+            if (not os.path.exists(os.path.join(dest, short_name))):
                 os.mkdir(os.path.join(dest, short_name))
 
             """

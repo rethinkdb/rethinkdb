@@ -72,7 +72,7 @@ except OptError:
 if opts["help"]:
     help()
     sys.exit(0)
-    
+
 if opts["branch"] and opts["tag"]:
     print >>sys.stderr, "Error cannot use --tag and --branch together."
     help()

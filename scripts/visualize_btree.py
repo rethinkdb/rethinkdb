@@ -76,16 +76,16 @@ class UnusedBlock(object):
         print """<p>This block is not reachable from the root.</p>"""
 
 def blocks_to_btree(blocks):
-    
+
     assert isinstance(blocks, dict)
-    
+
     bgrp = BlockGroup(blocks)
     superblock = bgrp.try_parse(0, Superblock)
-    
+
     for block_id in bgrp.blocks:
         if block_id not in bgrp.values:
             bgrp.values[block_id] = GoodBlock(block_id, UnusedBlock())
-    
+
     return (superblock, bgrp.values)
 
 
@@ -93,7 +93,7 @@ def blocks_to_btree(blocks):
 parse_block_id = parse_uint64_t
 
 class BtreeKey(object):
-    
+
     @classmethod
     def parse(cls, block, offset = 0):
         
@@ -101,10 +101,10 @@ class BtreeKey(object):
         value, offset = block[offset : offset + size], offset + size
         
         return cls(value), offset
-    
+
     def __init__(self, name):
         self.name = name
-    
+
     def print_html(self):
         if len(self.name) < 15:
             print """<code>%s</code>""" % escape(self.name.encode("string-escape"))
@@ -114,24 +114,24 @@ class BtreeKey(object):
                  escape(self.name[-8:].encode("string-escape")))
 
 class BtreeValue(object):
-    
+
     @classmethod
     def parse(cls, bgrp, block, offset = 0):
         
         size, offset = parse_uint8_t(block, offset)
         md_flags, offset = parse_uint8_t(block, offset)
-        
+
         value_start_offset = offset
-        
+
         if md_flags & 0x01: flags, offset = parse_uint32_t(block, offset)
         else: flags = None
-        
+
         if md_flags & 0x02: cas, offset = parse_uint64_t(block, offset)
         else: cas = None
-        
+
         if md_flags & 0x04: exptime, offset = parse_uint32_t(block, offset)
         else: exptime = None
-        
+
         if md_flags & 0x08:
             # Large value
             assert size == 8
@@ -139,23 +139,23 @@ class BtreeValue(object):
             superblock_id, offset = parse_block_id(block, offset)
             superblock = bgrp.try_parse(superblock_id, BtreeLargeValueSuperblock, large_value_size)
             return BtreeLargeValue(large_value_size, superblock, flags, cas, exptime)
-            
+
         else:
             # Small value
             value, offset = block[offset : value_start_offset + size], value_start_offset + size
             return BtreeSmallValue(value, cas, flags, exptime), offset
-    
+
     def __init__(self, flags, cas, exptime):
         self.flags = flags
         self.cas = cas
         self.exptime = exptime
 
 class BtreeSmallValue(BtreeValue):
-    
+
     def __init__(self, contents, flags, cas, exptime):
         BtreeValue.__init__(self, flags, cas, exptime)
         self.contents = contents
-    
+
     def print_html(self):
         # TODO: CAS, flags, and exptime.
         if len(self.contents) < 15:
@@ -166,33 +166,33 @@ class BtreeSmallValue(BtreeValue):
                  escape(self.contents[-8:].encode("string-escape")))
 
 class BtreeLargeValue(BtreeValue):
-    
+
     def __init__(self, size, superblock, flags, cas, exptime):
         BtreeValue.__init__(self, flags, cas, exptime)
         self.size = size
         self.superblock = superblock
-    
+
     def print_html(self):
         print """large value: %s""" % self.superblock.ref_as_html()
 
 class BtreeLargeValueSuperblock(object):
-    
+
     name = "Large Value Superblock"
-    
+
     @classmethod
     def from_block(cls, bgrp, block, size):
-        
+
         offset = 0
-        
+
         size2, offset = parse_uint32_t(block, offset)
         if size2 != size:
             raise ValueError("Leaf node said this large block was %d bytes, but the index block " \
                 "says it's %d bytes." % (size, size2))
-        
+
         num_segments, offset = parse_uint16_t(block, offset)
         first_block_offset, offset = parse_uint16_t(block, offset)
         segment_ids, offset = parse_array(parse_block_id, num_segments)
-        
+
         next_block_offset = first_block_offset
         size_left = size
         segments = []
@@ -202,14 +202,14 @@ class BtreeLargeValueSuperblock(object):
             size_left -= next_block_size
             next_block_offset = 0
         assert size_left == 0
-        
+
         return BtreeLargeValueSuperblock(size, first_block_offset, segments)
-    
+
     def __init__(self, size, first_block_offset, segments):
         self.size = size
         self.first_block_offset = first_block_offset
         self.segments = segments
-    
+
     def print_html(self):
         print """<p>Size: %d bytes</p>""" % self.size
         print """<p>Offset into first block: %d bytes</p>""" % self.first_block_offset
@@ -217,26 +217,26 @@ class BtreeLargeValueSuperblock(object):
             print """<p>Segment: %s</p>""" % segment.ref_as_html()
 
 class BtreeLargeValueBlock(object):
-    
+
     name = "Large Value Block"
-    
+
     @classmethod
     def from_block(cls, bgrp, block, start = 0, length = 0):
         return BtreeLargeValueBlock(block[start : start + length])
     
     def __init__(self, contents):
         self.contents = contents
-    
+
     def print_html(self):
         print """<code>%s</code>""" % escape(self.contents.encode("string-escape"))
 
 class BtreeNode(object):
-    
+
     name = "BTree Node"
-    
+
     @classmethod
     def from_block(cls, bgrp, block):
-        
+
         type = ord(block[0])
         if type == 1:
             return BtreeLeafNode.from_block(bgrp, block)
@@ -246,36 +246,36 @@ class BtreeNode(object):
             raise ValueError("First byte should be 1 or 2, got %d." % type)
 
 class BtreeLeafNode(BtreeNode):
-    
+
     name = "BTree Leaf Node"
-    
+
     @classmethod
     def from_block(cls, bgrp, block):
-        
+
         offset = 0
-        
+
         type, offset = parse_int(block, offset)
         assert type == 1
-        
+
         npairs, offset = parse_uint16_t(block, offset)
         frontmost_offset, offset = parse_uint16_t(block, offset)
         pair_offsets, offset = parse_array(parse_uint16_t, npairs)(block, offset)
-        
+
         pairs = []
         for offset in pair_offsets:
             key, offset = BtreeKey.parse(block, offset)
             value, offset = BtreeValue.parse(bgrp, block, offset)
             pairs.append((key, value))
-        
+
         return BtreeLeafNode(pairs)
-    
+
     def __init__(self, pairs):
         self.pairs = pairs
-    
+
     def print_html(self):
-        
+
         print """<p>%d key/value pairs</p>""" % len(self.pairs)
-        
+
         print """<div style="-webkit-column-width: 310px">"""
         print """<table>"""
         print """<tr><th>Key</th><th>Value</th></tr>"""
@@ -287,42 +287,42 @@ class BtreeLeafNode(BtreeNode):
             print """</td></tr>"""
         print """</table>"""
         print """</div>"""
-        
+
 class BtreeInternalNode(BtreeNode):
-    
+
     name = "BTree Internal Node"
-    
+
     @classmethod
     def from_block(cls, bgrp, block):
-        
+
         offset = 0
-            
+
         type, offset = parse_int(block, offset)
         assert type == 2
-        
+
         npairs, offset = parse_uint16_t(block, offset)
         frontmost_offset, offset = parse_uint16_t(block, offset)
         pair_offsets, offset = parse_array(parse_uint16_t, npairs)(block, offset)
-        
+
         pairs = []
         for offset in pair_offsets:
             subtree_id, offset = parse_block_id(block, offset)
             subtree = bgrp.try_parse(subtree_id, BtreeNode)
             key, offset = BtreeKey.parse(block, offset)
             pairs.append((key, subtree))
-        
+
         assert pairs[-1][0].name == ""   # Last pair is special
         pairs[-1] = (None, pairs[-1][1])
-        
+
         return BtreeInternalNode(pairs)
-    
+
     def __init__(self, pairs):
         self.pairs = pairs
-    
+
     def print_html(self):
-        
+
         print """<p>%d key/value pairs</p>""" % len(self.pairs)
-        
+
         print """<table>"""
         print """<tr><th>Keys</th><th>Subtree</th></tr>"""
         for key, subtree in self.pairs:
@@ -337,14 +337,14 @@ class BtreeInternalNode(BtreeNode):
         print """</table>"""
 
 class Superblock(object):
-    
+
     name = "Superblock"
-    
+
     @classmethod
     def from_block(cls, bgrp, block):
-        
+
         offset = 0
-    
+
         btree_superblock_t, parse_superblock = make_struct("Superblock", [
             ("database_exists", parse_int),
             (None, parse_padding(4)),
@@ -352,24 +352,24 @@ class Superblock(object):
             ])
         sb = parse_superblock(block)[0]
         assert sb.database_exists == 1
-        
+
         root = bgrp.try_parse(sb.root_id, BtreeNode)
-        
+
         return Superblock(root)
-    
+
     def __init__(self, root):
         self.root = root
-    
+
     def print_html(self):
-        
+
         print """<p>Root: %s</p>""" % self.root.ref_as_html()
 
 
 
 def btree_to_html(btree, filename):
-    
+
     superblock, values = btree
-    
+
     with file(filename, "w") as f:
         sys.stdout = f
         try:
@@ -397,14 +397,14 @@ td, th {
     </head>
     <body>
             """
-            
+
             print """<h1>BTree</h1>"""
-            
+
             print """<p>Superblock: %s</p>""" % superblock.ref_as_html()
-            
+
             for block_id in sorted(values.keys()):
                 values[block_id].block_print_html()
-            
+
             print """
     </body>
 </html>
@@ -413,10 +413,10 @@ td, th {
             sys.stdout = sys.__stdout__
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) == 3:
         from visualize_log_serializer import file_to_database, database_to_blocks
         btree_to_html(blocks_to_btree(database_to_blocks(file_to_database(sys.argv[1]))), sys.argv[2])
-    
+
     else:
         print "Usage: %s data_file output.html" % sys.argv[0]

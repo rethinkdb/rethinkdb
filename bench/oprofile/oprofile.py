@@ -129,7 +129,7 @@ class line():
             return result
         else:
             return False
-                    
+
 class Function_report():
     def __init__(self):
         self.function_name = ''
@@ -316,7 +316,7 @@ class parser():
             function_report.counter_totals = dict_add(function_report.counter_totals, line_report.counter_totals)
             function_report.lines[line_report.line_number] = line_report
         return function_report
-            
+
     def parse_file(self, file_name):
         self.prog_report = Program_report()
         file = open(file_name)
@@ -335,7 +335,7 @@ class parser():
         self.prog_report.counter_totals = {self.prog_report.counter_names[0] : summary['event1'], self.prog_report.counter_names[1] : summary['event2'], self.prog_report.counter_names[2] : summary['event3'], self.prog_report.counter_names[3] : summary['event4']}
         
         object_name = self.until(self.obj_line, data)
-        assert object_name 
+        assert object_name
         self.prog_report.object_name = object_name
 
         while True:
@@ -358,7 +358,7 @@ class Profile():
 
     def __repr__(self):
         res = StringIO.StringIO()
-        print >>res, "Profile: ", 
+        print >>res, "Profile: ",
         for event in self.events:
             print >>res, event,
         return res.getvalue()

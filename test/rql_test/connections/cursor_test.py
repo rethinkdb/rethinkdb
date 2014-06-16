@@ -35,9 +35,9 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
         print '.',
         stdout.flush()
     print "Done\n"
-    
+
     basedir = os.path.dirname(__file__)
-    
+
     if not lang or lang == 'py':
         print "Running Python"
         res = res | call(["python", os.path.join(basedir, "cursor.py"), str(port), str(num_rows)])

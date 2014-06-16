@@ -44,4 +44,3 @@ with driver.Metacluster() as metacluster:
         http.check_no_issues()
 
     cluster.check_and_stop()
-

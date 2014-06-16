@@ -35,7 +35,7 @@ def summarize(stats):
          (dblocks_live/dblocks_total_max)*100, (dblocks_live/dblocks_total_min)*100)
     
     # Verify that LBA GC appears to be functioning
-    
+
     lbaents_live = dblocks_live
     lbaextents_max = int(stats["serializer_lba_extents"])
     if lbaextents_max > lba_shard_factor: lbaextents_max -= lba_shard_factor   # Subtract the superblocks
@@ -50,13 +50,13 @@ def summarize(stats):
          lbaents_dead_min, lbaents_dead_max,
          (lbaents_live/lbaents_total_max)*100, (lbaents_live/lbaents_total_min)*100)
     print "LBA GCs: %d" % int(stats["serializer_lba_gcs"])
-    
+
     assert (lbaents_live / lbaents_total_min) > (lba_gc_threshold - 0.05)
     assert (dblocks_live / dblocks_total_min) > (dblock_gc_threshold - 0.05)
 
 def test_function(opts, port, test_dir):
     end_time = time.time() + opts["duration"]
-    
+
     inserts = 0
     inserts_per_round = 100000
     while time.time() < end_time:
@@ -65,7 +65,7 @@ def test_function(opts, port, test_dir):
         stress_client(port=port, workload={"inserts":1}, duration="%dq" % inserts_per_round, test_dir=test_dir)
         inserts += inserts_per_round
         print "Have inserted %d keys total up to this point." % inserts
-        
+
         print "Waiting for cache flush..."
         while True:
             stats = rdb_stats(port)
@@ -73,9 +73,9 @@ def test_function(opts, port, test_dir):
                 time.sleep(1)
             else:
                 break
-        
+
         summarize(stats)
-        
+
         if int(stats["blocks_evicted"]) > 0:
             raise RuntimeError("Server has gone out of memory. (blocks_total=%d, "
                 "blocks_in_memory=%d, blocks_evicted=%d) Aborting test because it would "

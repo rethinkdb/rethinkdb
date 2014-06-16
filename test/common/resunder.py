@@ -7,7 +7,7 @@ import socket
 import copy
 import re
 from signal import SIGTERM
- 
+
 class Daemon:
     """
     A generic daemon class. Taken from http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
@@ -68,7 +68,7 @@ class Daemon:
 
     def delpid(self):
         os.remove(self.pidfile)
- 
+
     def start(self):
         """
         Start the daemon
@@ -89,7 +89,7 @@ class Daemon:
         # Start the daemon
         self.daemonize()
         self.run()
- 
+
     def stop(self):
         """
         Stop the daemon
@@ -125,7 +125,7 @@ class Daemon:
             else:
                 print str(err)
                 sys.exit(1)
- 
+
     def restart(self):
         """
         Restart the daemon
@@ -138,7 +138,7 @@ class Daemon:
         You should override this method when you subclass Daemon. It will be called after the process has been
         daemonized by start() or restart().
         """
- 
+
 class ResunderDaemon(Daemon):
     def run(self):
         # TODO: keep a dict of blocked sockets and unblock them on shutdown
@@ -203,7 +203,7 @@ class ResunderDaemon(Daemon):
 
             if len(self.blocked_ports[source_port]) == 0:
                 del self.blocked_ports[source_port]
- 
+
 if __name__ == "__main__":
     daemon = ResunderDaemon('/tmp/resunder-daemon.pid')
     if len(sys.argv) == 2:
@@ -225,4 +225,3 @@ if __name__ == "__main__":
     else:
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
-

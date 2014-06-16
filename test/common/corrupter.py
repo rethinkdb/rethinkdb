@@ -32,5 +32,3 @@ def corrupt(filename, p):
 if __name__ == '__main__':
     print "Sorry, you can't do that."
     exit(2)
-
-

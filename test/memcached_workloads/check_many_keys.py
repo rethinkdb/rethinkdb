@@ -24,5 +24,5 @@ with memcached_workload_common.make_memcache_connection(opts) as mc:
         if value != key:
             raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))
         i += 1
-    
+
     print "Success"

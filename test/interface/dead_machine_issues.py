@@ -52,4 +52,3 @@ with driver.Metacluster() as metacluster:
     assert issues[0]["type"] == "MACHINE_GHOST"
     cluster.check_and_stop()
 print "Done."
-

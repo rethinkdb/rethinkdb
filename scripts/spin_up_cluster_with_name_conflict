@@ -150,7 +150,7 @@ else:
     time.sleep(1)
     print "CTRL-C to kill me http requests can be sent to ports:",
     for i in range(n_machines):
-        if i != 0: 
+        if i != 0:
             print ",",
 
         print port + (i * 2) + 1,

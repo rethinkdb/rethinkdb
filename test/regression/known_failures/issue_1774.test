@@ -49,7 +49,7 @@ class WaitForTable(utils.PerformContinuousAction):
         if 'timeout' in self.kwargs:
             timeout = self.kwargs['timeout']
         deadline = time.time() + timeout
-        
+
         while time.time() < deadline:
             try:
                 r.table(tableName).limit(1).run(self.connection)

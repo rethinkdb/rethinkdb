@@ -29,7 +29,7 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
     expected_val = ''.join([val_chunks[i % 3] for i in xrange(opts["n_appends"])])
 
     actual_val = table.get(key)['val'].run(conn)
-    
+
     if (expected_val != actual_val):
         print "Expected val: %s" % expected_val
         print "Incorrect val (len=%d): %s" % (len(actual_val), actual_val)

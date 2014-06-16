@@ -67,9 +67,9 @@ class TestNoConnection(unittest.TestCase):
             r.connect, host="0.0.0.0", port=28015, auth_key="hunter2")
 
 class TestConnectionDefaultPort(unittest.TestCase):
-    
+
     servers = None
-    
+
     def setUp(self):
         if not use_default_port:
             self.skipTest("Not testing default port")

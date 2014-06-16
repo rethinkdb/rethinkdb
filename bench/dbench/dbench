@@ -464,7 +464,7 @@ class StressFree(Stress): # Temporary.
 
 
 class Stat(Monitor):
-    # Runs a 
+    # Runs a
     def internal_start(self):
         args = self.compute_args(prefix=[], default=['1'])
         self.run_process(self.statcmd, args)
@@ -650,7 +650,7 @@ class DBench(object):
         if color: print >> term, colored(str, color)
         else:     print >> term, str
         self.log_messages.append(str)
-    
+
     # XXX: This isn't a good way of doing it.
     @safe_contextmanager
     def deeper_log(self, delta = 1):
@@ -706,7 +706,7 @@ class DBench(object):
             self.info('Waiting for client...')
             self.client.wait()
             self.info('Client completed')
-            
+
         for w in self.monitors + [self.client]:
             w.start()
             self.info('%s started' % w)

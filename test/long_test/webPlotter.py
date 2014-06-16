@@ -65,7 +65,7 @@ class PlotSelectHandler(PlotTemplate):
         self.write('</form>')
 
         self.tail()
-        
+
 class PlotConfigureHandler(PlotTemplate):
     stats_for_display = [
         'blocks_dirty[blocks]',
@@ -249,5 +249,3 @@ if __name__ == "__main__":
     http_server.listen(port)
     print "Listening on port %d" % port
     tornado.ioloop.IOLoop.instance().start()
-
-

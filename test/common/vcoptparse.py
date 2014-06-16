@@ -28,45 +28,45 @@ class Arg(object):
 
 class OptError(StandardError):
     pass
-    
+
 class OptParser(object):
 
     def __init__(self):
         self.parsers_by_key = {}
         self.parsers_in_order = []
-    
+
     def __setitem__(self, key, parser):
         assert isinstance(parser, Arg)
         if key in self.parsers_by_key: del self[key]
         assert parser not in self.parsers_by_key.values()
         self.parsers_by_key[key] = parser
         self.parsers_in_order.append((key, parser))
-    
+
     def __getitem__(self, key):
         return self.parsers_by_key[key]
-    
+
     def __delitem__(self, key):
         self.parsers_in_order.remove((key, self.parsers_by_key[key]))
         del self.parsers_by_key[key]
-        
+
     def parse(self, args):
-    
+
         args = args[1:]   # Cut off name of program
-        
+
         values = dict((key, NoValue) for key in self.parsers_by_key.keys())
-        
+
         def name_for_key(key):
             return getattr(self.parsers_by_key[key], "name", key)
-        
+
         def set_value(key, new_value):
             combiner = getattr(self.parsers_by_key[key], "combiner", enforce_one_combiner)
             try:
                 values[key] = combiner(values[key], new_value)
             except OptError, e:
                 raise OptError(str(e) % {"name": name_for_key(key)})
-        
+
         # Build flag table
-        
+
         flags = {}
         for (key, parser) in self.parsers_in_order:
             if hasattr(parser, "flags"):
@@ -75,11 +75,11 @@ class OptParser(object):
                     if flag in flags:
                         raise ValueError("The flag %r has two different meanings." % flag)
                     flags[flag] = (key, parser)
-        
+
         # Handle flag arguments and store positional arguments
-        
+
         positionals = []
-        
+
         while args:
             arg = args.pop(0)
             if arg.startswith("-"):
@@ -90,26 +90,26 @@ class OptParser(object):
                     raise OptError("Don't know how to handle flag %r" % arg)
             else:
                 positionals.append(arg)
-        
+
         # Handle positional arguments
-        
+
         for (key, parser) in self.parsers_in_order:
             if hasattr(parser, "positional"):
                 set_value(key, parser.positional(positionals))
-        
+
         if positionals:
             raise OptError("Unexpected extra positional argument(s): %s" % \
                 ", ".join(repr(x) for x in positionals))
-        
+
         # Apply defaults
-        
+
         for (key, parser) in self.parsers_by_key.iteritems():
             if values[key] is NoValue:
                 if hasattr(parser, "default") and parser.default is not NoValue:
                     values[key] = parser.default
                 else:
                     raise OptError("You need to specify a value for %r" % name_for_key(key))
-        
+
         return values
 
 
@@ -288,4 +288,3 @@ class ManyPositionalArgs(Arg):
                 else: raise OptError("For %r: %s" % (self.name, e))
         del args[:]   # We consume all arguments remaining
         return args2
-

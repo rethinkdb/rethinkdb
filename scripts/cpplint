@@ -140,7 +140,7 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
       the top-level categories like 'build' and 'whitespace' will
       also be printed. If 'detailed' is provided, then a count
       is provided for each category like 'build/class'.
-    
+
     project=PROJECT_NAME
       The name of the project that should be used at the beginning of the
       #ifdef header guards. For example, when using --project=FooBar, the

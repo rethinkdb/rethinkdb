@@ -182,7 +182,7 @@ class TimeSeriesCollection():
 
     def json(self, out_fname, meta_data):
         top_level = {}
-        top_level['date'] = time.asctime() 
+        top_level['date'] = time.asctime()
         top_level['meta'] = meta_data
         top_level['data'] = {}
         top_level['data']['rethinkdb'] = {}
@@ -272,7 +272,7 @@ class TimeSeriesCollection():
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 5
-        
+
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
@@ -287,7 +287,7 @@ class TimeSeriesCollection():
             labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index], linestyle="None", marker="."), series, 'bo'))
 
             color_index += 1
-         
+
         for tick in ax.xaxis.get_major_ticks():
             tick.label1.set_fontproperties(font)
         for tick in ax.yaxis.get_major_ticks():
@@ -317,7 +317,7 @@ class TimeSeriesCollection():
             fig.set_size_inches(20,14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
-            
+
     # This is from http://code.activestate.com/recipes/511478/
     def percentile(self, N, percent, key=lambda x:x):
         """
@@ -423,7 +423,7 @@ class ScatterCollection():
 
             labels.append((ax.plot(x_values, y_values, colors[color_index]), series))
             color_index += 1
-         
+
         for tick in ax.xaxis.get_major_ticks():
             tick.label1.set_fontproperties(font)
         for tick in ax.yaxis.get_major_ticks():
@@ -484,7 +484,7 @@ class SubplotCollection():
 
             labels.append((ax.plot(range(len(series_data)), y_values, colors[color_index]), series))
             color_index += 1
-         
+
         # Hide the x and y tick labels, but keep the actual ticks
         ax.set_xticklabels([])
         ax.set_yticklabels([])
@@ -727,11 +727,11 @@ class RDBStats(TimeSeriesCollection):
     flt_line = line("^STAT\s+([\w\[\]]+)\s+([\d\.]+|-)\r$", [('name', 's'), ('value', 'f')])
     str_line = line("^STAT\s+([\w\[\]]+)\s+(.+|-)\r$", [('name', 's'), ('value', 's')])
     end_line = line("END", [])
-    
+
     def parse(self, data):
         res = default_empty_timeseries_dict()
         data.reverse()
-        
+
         while True:
             m = take_while([self.int_line, self.flt_line, self.str_line], data)
             if not m:

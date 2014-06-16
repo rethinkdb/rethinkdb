@@ -23,9 +23,9 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
     c = r.connect(port=port)
     r.db_create('test').run(c)
     r.db('test').table_create('test').run(c)
-   
+
     basedir = os.path.dirname(__file__)
-   
+
     stdout.flush()
     if not lang or lang == 'js':
         print "Running JS feeds"

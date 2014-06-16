@@ -10,7 +10,7 @@ import StringIO
 from line import *
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
-from email.MIMEImage import MIMEImage  
+from email.MIMEImage import MIMEImage
 import pdb
 
 locale.setlocale(locale.LC_ALL, '')
@@ -150,7 +150,7 @@ class dbench():
 
             self.single_runs = {}
             self.multi_runs = {}
-            
+
             # Defined function: Collect data from the directory provided, store the data in the given parent (either generic runs or multiruns).
             def collect_run_data(run, run_dir, parent):
                 run_data  = [IOStat().read(os.path.join(run_dir, self.iostat_path)),
@@ -202,7 +202,7 @@ class dbench():
                     print 'Multirun has no valid runs: '+multirun_dir
 
                 runs = {}
-                
+
                 # Collect the run data across all multirun runs
                 for run in run_dirs:
                     collect_run_data(run,os.path.join(multirun_dir,run,'1'), runs)
@@ -235,7 +235,7 @@ class dbench():
 
         def parse_client_meta(self, data):
             client_line = line('\[host: [\d\.]+, port: \d+, clients: \d+, load: (\d+)/(\d+)/(\d+)/(\d+), keys: \d+-\d+, values: \d+-\d+ , duration: (\d+), batch factor: \d+-\d+, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
-            m = until(client_line, data) 
+            m = until(client_line, data)
             assert m != False
             return "D/U/I/R = %d/%d/%d/%d Duration = %d" % (m['deletes'], m['updates'], m['inserts'], m['reads'], m['duration'])
 
@@ -312,7 +312,7 @@ class dbench():
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
-                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>    
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                 </tr>""" % (competitor_name, mean_data, standard_dev, upper_percentile, lower_percentile)
             table += "</table>"
             return table
@@ -354,7 +354,7 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>""" % tuple(output)
-                    table += "</tr>"        
+                    table += "</tr>"
             table += "</table>"
             return table
 
@@ -389,7 +389,7 @@ class dbench():
             #if run_name != self.rdb_stats.single_runs.keys()[0]:
             print >>res, hr()
             print >>res, '<div class="run">'
-            print >>res, run_title(run.name) 
+            print >>res, run_title(run.name)
 
             # Accumulating data for the run
             data = {}
@@ -410,7 +410,7 @@ class dbench():
             # Add a link to the graph-viewer (flot)
             data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
-            
+
             # Print a description for this workload (first general, then for each competitor)
             print >>res, '<br><br>'
             print >>res, run.description.generateHtml()
@@ -434,7 +434,7 @@ class dbench():
 
             for competitor in data.iteritems():
                 lat_data += competitor[1].select('latency').remap('latency', competitor[0])
-            
+
             # Plot the latency histogram
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name + '_large'), True)
@@ -460,11 +460,11 @@ class dbench():
             print >>res, """        </td>
                                     <td>"""
             print >>res, summary_table('latency', data)
-            print >>res, """        </td> 
+            print >>res, """        </td>
                                 </tr>
                             </table>
                         </div>"""
-        
+
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
@@ -488,7 +488,7 @@ class dbench():
                     mean_data[competitor[0]] = competitor[1].multi_runs[multirun_name].data
                     per_competitor_descriptions.append((competitor_key, competitor[1].multi_runs[multirun_name].description_run))
                 except KeyError:
-                    print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
+                    print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name)
                 except AttributeError:
                     print 'Competitor: %s has no multiruns.' % competitor[0]
 
@@ -549,7 +549,7 @@ class dbench():
             image('mean' + multirun_name, res_html, res_email)
             print >>res, 'i         </td>'
 
-            # Plot the multiplot; each subplot shows one of the runs of the multirun 
+            # Plot the multiplot; each subplot shows one of the runs of the multirun
             multiplot_data = {}
             summary_table_data = {}
 
@@ -560,7 +560,7 @@ class dbench():
 
                 summary_table_data[run_name] = {}
                 summary_table_data[run_name]['RethinkDB'] = reduce(lambda x, y: x + y, run.data)
-                
+
             competitors_with_multiruns = {}
             for competitor_name, competitor in self.competitors.iteritems():
                 try:
@@ -581,7 +581,7 @@ class dbench():
                         multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps',competitor_name)
                         summary_table_data[run_name][competitor_name] = competitor_multirun_data
                     except KeyError:
-                        print 'Competitor: %s did not report run %s in its data for multirun %s' % (competitor_name, run_name, multirun.name) 
+                        print 'Competitor: %s did not report run %s in its data for multirun %s' % (competitor_name, run_name, multirun.name)
 
             # Create the multiplot and output a small and large version
             multiplot = SubplotCollection(multiplot_data)
@@ -596,7 +596,7 @@ class dbench():
                                      </tr>
                                 </table>
                             </div>"""
-            
+
             print >>res, multirun_summary_table(summary_table_data, multirun.unit)
 
         # Add oprofile data
@@ -614,7 +614,7 @@ class dbench():
 
     def send_email(self, recipient):
         print "Sending email to %r..." % recipient
-        
+
         # Build a basic MIME multipart message (html / text)
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Profiling results %s' % time.asctime()
@@ -635,7 +635,7 @@ class dbench():
         num_tries = 10
         try_interval = 10   # Seconds
         smtp_server, smtp_port = os.environ.get("RETESTER_SMTP", "smtp.gmail.com:587").split(":")
-        
+
         import smtplib
 
         for tries in range(num_tries):
@@ -648,12 +648,12 @@ class dbench():
                 break
         else:
             raise Exception("Cannot connect to SMTP server '%s'" % smtp_server)
-        
+
         sender, sender_pw = 'buildbot@rethinkdb.com', 'allspark'
-        
+
         s.starttls()
         s.login(sender, sender_pw)
         s.sendmail(sender, [recipient], msg.as_string())
         s.quit()
-        
+
         print "Email message sent."

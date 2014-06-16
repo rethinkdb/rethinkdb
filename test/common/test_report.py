@@ -94,9 +94,9 @@ test_report_template = """
                 }
             }
         }
-        
+
         pageData = %(pagedata)s;
-        
+
         function displayData() {
             var template = document.getElementById("handlebars-template").textContent;
             document.body.innerHTML = Mustache.to_html(template, pageData);

@@ -50,5 +50,3 @@ class StatsDBCollector(object):
     def stop(self):
         self.rdbstat.stop()
         self.db_conn.close()
-
-

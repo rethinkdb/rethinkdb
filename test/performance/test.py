@@ -130,7 +130,7 @@ def execute_read_write_queries(suffix):
         for i in xrange(num_writes):
             docs.append(gen_doc(table["size_doc"], i))
 
-        
+
         i = 0
 
         durations = []
@@ -185,9 +185,9 @@ def execute_read_write_queries(suffix):
                 "last_centile": durations[int(math.floor(len(durations)/100.*99))]
             }
 
-    
+
         table["ids"].sort()
-        
+
     print " Done."
     sys.stdout.flush()
 

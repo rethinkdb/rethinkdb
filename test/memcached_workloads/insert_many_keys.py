@@ -11,12 +11,12 @@ op["sequential"] = BoolFlag("--sequential")
 opts = op.parse(sys.argv)
 
 with memcached_workload_common.make_memcache_connection(opts) as mc:
-    
+
     print "Inserting"
     keys = [str(x) for x in xrange(opts["num_keys"])]
     if not opts["sequential"]:
         random.shuffle(keys)
-    
+
     i = 0
     for key in keys:
         # if (i % 500 == 0 or (i < 500 and (i & (i - 1)) == 0)):

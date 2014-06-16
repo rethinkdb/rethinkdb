@@ -81,4 +81,3 @@ class DBPlot(Plot):
             stats.append(current_sample) # Store the last sample
 
         return stats
-
