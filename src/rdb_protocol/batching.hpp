@@ -37,8 +37,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 class batcher_t {
 public:
-    template<class T>
-    bool note_el(const T &t) {
+    bool note_el(const counted_t<const datum_t> &t) {
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
