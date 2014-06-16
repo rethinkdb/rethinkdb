@@ -189,9 +189,8 @@ class IterableResult
                 else
                     stopFlag = cb(null, data) is false
                     @_next nextCb
-            else
-                if onFinished?
-                    onFinished()
+            else if onFinished?
+                onFinished()
         @_next nextCb
     )
 
