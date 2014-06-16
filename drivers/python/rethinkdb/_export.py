@@ -70,7 +70,7 @@ def parse_options():
         print_export_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -323,7 +323,7 @@ def run_clients(options, db_table_set):
     signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
 
         for (db, table) in db_table_set:
             progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),

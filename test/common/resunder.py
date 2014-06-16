@@ -170,7 +170,7 @@ class ResunderDaemon(Daemon):
                             self.unblock_port(source_port, dest_port)
                     return
             except socket.timeout:
-                unblock = [ ]
+                unblock = []
                 for source_port, dest_map in self.blocked_ports.iteritems():
                     for dest_port, creation_time in dest_map.iteritems():
                         if creation_time < time.time() - 864000: # find and remove rules older than 10 days
@@ -180,7 +180,7 @@ class ResunderDaemon(Daemon):
 
     def block_port(self, source_port, dest_port):
         if source_port not in self.blocked_ports:
-            self.blocked_ports[source_port] = { }
+            self.blocked_ports[source_port] = {}
 
         if dest_port not in self.blocked_ports[source_port]:
             self.blocked_ports[source_port][dest_port] = time.time()

@@ -53,7 +53,7 @@ try:
                 parts += tmp_parts
 
     # Now build parts corresponding to script tags.
-    named_parts = { }
+    named_parts = {}
     for part in parts:
         # We use the first line of the file to create the filename for
         # non-script-tag-led matches?  You could ask Michel why we do

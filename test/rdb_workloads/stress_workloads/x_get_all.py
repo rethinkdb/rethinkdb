@@ -17,4 +17,4 @@ class Workload:
         for row in cursor:
             pass
 
-        return { }
+        return {}

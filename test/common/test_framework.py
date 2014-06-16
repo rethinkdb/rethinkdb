@@ -108,7 +108,7 @@ def run(all_tests, all_groups, configure, args):
 # This mode just lists the tests
 def list_tests_mode(tests, verbose, all_groups):
     if all_groups:
-        groups = { name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items() }
+        groups = {name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items()}
     else:
         groups = False
     for name, test in tests:

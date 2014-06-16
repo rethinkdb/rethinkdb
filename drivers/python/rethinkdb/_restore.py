@@ -62,7 +62,7 @@ def parse_options():
     elif len(args) != 1:
         raise RuntimeError("Error: Only one positional argument supported")
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)

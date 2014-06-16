@@ -29,8 +29,8 @@ class Query(object):
         if self.term is not None:
             res.append(self.term.build())
         if self.global_optargs is not None:
-            optargs = { }
-            for (k,v) in self.global_optargs.iteritems():
+            optargs = {}
+            for (k, v) in self.global_optargs.iteritems():
                 optargs[k] = v.build() if isinstance(v, RqlQuery) else v
             res.append(optargs)
         return json.dumps(res, ensure_ascii=False, allow_nan=False)
@@ -50,14 +50,15 @@ class Cursor(object):
         self.conn = conn
         self.query = query
         self.opts = opts
-        self.responses = [ ]
+        self.responses = []
         self.outstanding_requests = 0
         self.end_flag = False
         self.connection_closed = False
 
     def _extend(self, response):
-        self.end_flag = response.type != pResponse.SUCCESS_PARTIAL and \
-                        response.type != pResponse.SUCCESS_FEED
+        self.end_flag = response.type not in (
+            pResponse.SUCCESS_PARTIAL, pResponse.SUCCESS_FEED
+        )
         self.responses.append(response)
 
         if len(self.responses) == 1 and not self.end_flag:
@@ -99,7 +100,7 @@ class Connection(object):
         self.db = db
         self.auth_key = auth_key
         self.timeout = timeout
-        self.cursor_cache = { }
+        self.cursor_cache = {}
 
         # Try to convert the port to an integer
         try:
@@ -160,7 +161,7 @@ class Connection(object):
         for (token, cursor) in self.cursor_cache.iteritems():
             cursor.end_flag = True
             cursor.connection_closed = True
-        self.cursor_cache = { }
+        self.cursor_cache = {}
 
     def noreply_wait(self):
         token = self.next_token

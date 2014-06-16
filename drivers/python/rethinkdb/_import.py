@@ -104,7 +104,7 @@ def parse_options():
         print_import_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -532,7 +532,7 @@ def spawn_import_clients(options, files_info):
     signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
         rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
 
         for i in range(options["clients"]):
@@ -609,7 +609,7 @@ def spawn_import_clients(options, files_info):
         raise RuntimeError("Errors occurred during import")
 
 def get_import_info_for_file(filename, db_table_filter):
-    file_info = { }
+    file_info = {}
     file_info["file"] = filename
     file_info["format"] = os.path.split(filename)[1].split(".")[-1]
     file_info["db"] = os.path.split(os.path.split(filename)[0])[1]
@@ -750,7 +750,7 @@ def import_file(options):
     file_info["format"] = options["import_format"]
     file_info["db"] = db
     file_info["table"] = table
-    file_info["info"] = { "primary_key": pkey }
+    file_info["info"] = {"primary_key": pkey}
 
     spawn_import_clients(options, [file_info])
 
