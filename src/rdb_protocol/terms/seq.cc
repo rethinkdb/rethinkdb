@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -9,6 +9,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/math_utils.hpp"
 
 namespace ql {
 
@@ -65,6 +66,13 @@ private:
                                        eval_flags_t) const {
         counted_t<val_t> v0 = args->arg(env, 0);
         if (args->num_args() == 1) {
+            if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
+                counted_t<const datum_t> d = v0->as_datum();
+                if (d->get_type() == datum_t::R_BINARY) {
+                    return new_val(make_counted<const datum_t>(
+                       safe_to_double(d->as_binary().size())));
+                }
+            }
             return v0->as_seq(env->env)
                 ->run_terminal(env->env, count_wire_func_t());
         } else {

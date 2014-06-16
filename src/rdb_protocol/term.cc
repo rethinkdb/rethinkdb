@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
 #include "containers/cow_ptr.hpp"
@@ -62,7 +62,6 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::MERGE:              return make_merge_term(env, t);
     case Term::LITERAL:            return make_literal_term(env, t);
     case Term::ARGS:               return make_args_term(env, t);
-    case Term::BINARY:             unreachable();
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::CHANGES:            return make_changes_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
