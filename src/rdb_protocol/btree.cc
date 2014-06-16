@@ -455,6 +455,8 @@ void rdb_set(const store_key_t &key,
         (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
 }
 
+// RSI: Don't we compute serialized_size of datums at some point for serializing them onto a blob?
+
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
@@ -491,7 +493,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                                  + serialized_size(atom.value);
+                + vserialized_size<cluster_version_t::ONLY_VERSION>(atom.value);  // RSI
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
@@ -704,7 +706,7 @@ void rdb_erase_small_range(key_tester_t *tester,
 // of a datum, not a whole rget, though it is used for that purpose (by summing
 // up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size(datum);
+    return vserialized_size<cluster_version_t::ONLY_VERSION>(datum);  // RSI
 }
 
 

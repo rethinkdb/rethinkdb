@@ -26,19 +26,24 @@ archive_result_t vdeserialize(read_stream_t *s, T *value) {
     CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
     return deserialize(s, value);
 }
+template <cluster_version_t V, class T>
+size_t vserialized_size(const T &thing) {
+    CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
+    return serialized_size(thing);
+}
 #else  // RSI
 template <cluster_version_t V>
 void vserialize(write_message_t *wm);
 template <cluster_version_t V>
 archive_result_t vdeserialize(read_stream_t *wm);
+template <cluster_version_t V>
+size_t vserialized_size();
 #endif  // RSI
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
-void serialize_for_version(DEBUG_VAR cluster_version_t version, write_message_t *wm,
+void serialize_for_version(cluster_version_t version, write_message_t *wm,
                            const T &value) {
-    // Right now, since there's only one version number, we can just call the normal
-    // serialization function.
     rassert(version == cluster_version_t::ONLY_VERSION);
     switch (version) {
     case cluster_version_t::v1_13:
@@ -49,11 +54,9 @@ void serialize_for_version(DEBUG_VAR cluster_version_t version, write_message_t 
 // Deserializes a value, assuming it's serialized for a given version.  (This doesn't
 // deserialize any version numbers.)
 template <class T>
-archive_result_t deserialize_for_version(DEBUG_VAR cluster_version_t version,
+archive_result_t deserialize_for_version(cluster_version_t version,
                                          read_stream_t *s,
                                          T *thing) {
-    // Right now, since there's only one version number, we can just call the normal
-    // serialization function.
     rassert(version == cluster_version_t::ONLY_VERSION);
     switch (version) {
     case cluster_version_t::v1_13:
@@ -61,6 +64,16 @@ archive_result_t deserialize_for_version(DEBUG_VAR cluster_version_t version,
     }
 }
 
+// RSI: This is completely unused right now.  (Should it be?)
+template <class T>
+size_t serialized_size_for_version(cluster_version_t version,
+                                   const T &thing) {
+    rassert(version == cluster_version_t::ONLY_VERSION);
+    switch (version) {
+    case cluster_version_t::v1_13:
+        return vserialized_size<cluster_version_t::v1_13>(thing);
+    }
+}
 
 
 #endif  // CONTAINERS_ARCHIVE_VERSIONED_HPP_

@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
@@ -41,7 +42,7 @@ public:
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
-        size_left -= serialized_size(t);
+        size_left -= vserialized_size<cluster_version_t::ONLY_VERSION>(t);  // RSI
         return should_send_batch();
     }
     bool should_send_batch() const;
