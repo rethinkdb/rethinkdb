@@ -384,6 +384,7 @@ module 'DataExplorerView', ->
             'next': true
             'collect': true
             'run': true
+            'EventEmitter\'s methods': true
 
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
