@@ -9,6 +9,9 @@ import test_exceptions, utils
 sys.path.insert(0, os.path.dirname(__file__))
 import test_util
 
+PY2 = sys.version_info[0] == 2
+str_types = basestring if sys.version_info[0] == 2 else str
+
 # -- settings
 
 testGroupSeperator = '/'
@@ -68,10 +71,10 @@ class PyLang(SrcLang):
     driver_build_path = os.getenv('PYTHON_DRIVER_DIR') or os.path.join(utils.project_root_dir(), 'drivers', 'python')
     
     def langrepr(self, val):
-        if not isinstance(val, types.UnicodeType):
-            return repr(str(val))
-        else:
+        if PY2 and isinstance(val, unicode):
             return repr(unicode(val))
+        else:
+            return repr(str(val))
     
     def nulltranslate(self, strng):
         return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
@@ -87,11 +90,11 @@ class JsLang(SrcLang):
         return "//"
 
     def langrepr(self, val):
-        if isinstance(val, types.StringType):
-            return repr(val)
-        elif isinstance(val, types.UnicodeType):
+        if PY2 and isinstance(val, unicode):
             return repr(val)[1:] # Get rid of the 'u'
-        elif isinstance(val, types.BooleanType):
+        elif isinstance(val, str):
+            return repr(val)
+        elif isinstance(val, bool):
             return ("true" if val else "false")
         else:
             return repr(str(val))
@@ -114,20 +117,20 @@ class RbLang(SrcLang):
         return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
 
     def langrepr(self, val):
-        if isinstance(val, types.StringType):
-            return self.rb_str_repr(val)
-        elif isinstance(val, types.UnicodeType):
+        if PY2 and isinstance(val, unicode):
             return re.sub("\\$","\\$", repr(val)[1:]) # Get rid of the 'u'
-        elif isinstance(val, types.BooleanType):
+        elif isinstance(val, str):
+            return self.rb_str_repr(val)
+        elif isinstance(val, bool):
             return ("true" if val else "false")
         else:
             return repr(str(val))
 
     def dicttranslate(self, dic):
-        # print dic
+        # print(dic)
         dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
-        # print dicnew
+        # print(dicnew)
         return dicnew
 
     def nulltranslate(self, strng):
@@ -189,7 +192,7 @@ class TestGroup:
             raise ValueError('buildYamlTest requires a language, got None')
         language = str(language).lower()
         if not language in Langs.langs:
-            raise ValueError('buildYamlTest requires a language from %s, got %s' % (str(Langs.langs).keys(), language))
+            raise ValueError('buildYamlTest requires a language from %s, got %s' % (str(list(Langs.langs.keys())), language))
         
         # outputPath
         
@@ -213,7 +216,7 @@ class TestGroup:
         parsed_data = None
         try:
             parsed_data = yaml.load(open(sourceFile))
-        except Exception, e:
+        except Exception as e:
             raise ValueError('buildYamlTest got a sourceFile (%s) that was unable to be parsed as Yaml: %s' % (sourceFile, str(e)))
         
         with open(outputPath, 'w') as outputFile:
@@ -261,7 +264,7 @@ class TestGroup:
         # See if this test even defines a test for our language
         try:
             (code, runopts) = myClass.get_code(test, lang, index)
-        except Exception, e:
+        except Exception as e:
             raise Exception("Error while processing test: %s\n%s" % (testName, str(e)))
         for test_case in code:
             try:
@@ -287,7 +290,7 @@ class TestGroup:
                     if mo:
                         table_name = mo.group(1)
                         out.write('shard("'+table_name+'")\n')
-            except Exception, e:
+            except Exception as e:
                 raise Exception("Error while processing test: %s\n%s\n%s" % (testName, str(code), str(e)))
     
     @classmethod
@@ -330,13 +333,13 @@ class TestGroup:
 
         # Code may be a string or a list of syntactic variants
         if code and not isinstance(code, list):
-            assert isinstance(code, types.StringTypes) or isinstance(code, types.IntType)
+            assert isinstance(code, str_types) or isinstance(code, int)
             code = [code]
         elif code == None:
             code = []
 
         # Construct the appropriate representation for each test in this language
-        return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)
+        return (list(map(lambda src: Langs.repr_query_for(lang, src), code)), runopts)
 
     # Get the expected result from the test object. Either a generic result or
     # a language specific result.
@@ -347,7 +350,7 @@ class TestGroup:
         elif 'ot' in obj:
             expected = obj['ot']
             if isinstance(expected, dict):
-                if expected.has_key(lang):
+                if lang in expected:
                     expected = expected[lang]
                 elif 'cd' not in expected:
                     raise Exception('There was not an expected value for language %s' % lang)
@@ -444,7 +447,7 @@ def getTestList(rootPath, testFilters=None, languages=None):
         
         for fileName in [x for x in files if x.count('.') > 0]:
             
-            testLanguages = Langs.langs.keys()
+            testLanguages = list(Langs.langs.keys())
             testName, extension = None, None
             if fileName.count('.') == 1:
                 testName, extension = os.path.splitext(fileName)
@@ -513,7 +516,7 @@ def main():
     parser.add_option('-b', '--build-dir', dest='build_directory', default=None,  help='path to a specific build, usually starting with release_ or debug_')
     parser.add_option('--clean', dest='clean_run_directory', default=False, action='store_true', help='clean the run directory before running')
     
-    parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=Langs.langs.keys() + ['all'], type='choice', default=None, help='the language to test')
+    parser.add_option('-i', '--interpreter', dest='languages', action='callback', callback=check_language, choices=list(Langs.langs.keys()) + ['all'], type='choice', default=None, help='the language to test')
     parser.add_option('-s', '--shards', dest='shards', type='int', default=1, help='number of shards to run (default 1)')
     
     parser.add_option('-j', '--javascript', dest='javascript_executable', default=None, help='use a specific node executbale')
@@ -546,7 +549,7 @@ def main():
     for newFilter in args:
         try:
             testFilters.append(re.compile(newFilter))
-        except Exception, e:
+        except Exception as e:
             parser.error('Invalid filter (regex) entry: %s' % newFilter)
     
     # - pull in environmental variables
@@ -566,7 +569,7 @@ def main():
     # - default options
     
     if options.languages is None:
-        options.languages = Langs.langs.keys()
+        options.languages = list(Langs.langs.keys())
     
     # -- get the list of tests
     
@@ -594,7 +597,7 @@ def main():
     if options.build_directory is None:
         try:
             build_directory = utils.latest_build_dir()
-        except test_exceptions.TestingFrameworkException, e:
+        except test_exceptions.TestingFrameworkException as e:
             sys.exit(str(e))
     else:
         build_directory = options.build_directory
@@ -644,7 +647,7 @@ def main():
         if makeProcess.wait() != 0:
             sys.stderr.write('Error making %s driver. Make output follows:\n\n' % os.path.basename(__file__))
             outputFile.seek(0)
-            print(outputFile.read())
+            print(outputFile.read().decode('utf-8'))
             sys.exit(1)
         
         os.environ[Langs.langs[language].driver_build_env_name] = Langs.langs[language].driver_build_path
@@ -679,7 +682,7 @@ def main():
             
             try:
                 TestGroup.buildYamlTest(test.name, test.path, test.language, executablePath, interpreter=None, shards=options.shards-1)
-            except Exception, e:
+            except Exception as e:
                 failedTests.append(test.name)
                 sys.stderr.write("Setup Failure: unable to create test executable for Yaml test %s:\n%s\n" % (test.name, str(e)))
                 continue
@@ -708,6 +711,7 @@ def main():
         testProcessGroupId = None
         print("\n== Running %s test" % test.name)
         try:
+            os.environ['INTERPRETER_PATH'] = Langs.langs[test.language].interpreter_path
             testProcess = subprocess.Popen([executablePath] + additionalArguments, stdout=outputChannel, stderr=outputChannel, preexec_fn=os.setpgrp)
             try:
                 testProcessGroupId = os.getpgid(testProcess.pid)
@@ -718,7 +722,7 @@ def main():
                 if servers is not None:
                     try:
                         servers.stop()
-                    except Exception, e:
+                    except Exception as e:
                         sys.stderr.write('RethinkDB server failed: %s' % str(e))
                     servers = None
                 
@@ -726,7 +730,7 @@ def main():
                 errorOutput = ''
                 if outputChannel is not None and os.path.getsize(outputChannel.name) > 0:
                     outputChannel.seek(0)
-                    errorOutput = ' Output:\n' + outputChannel.read()
+                    errorOutput = ' Output:\n' + outputChannel.read().decode('utf-8')
                 sys.stderr.write("== Failed %s test with result code %s (%s)%s\n" % (test.name, str(testProcess.returncode), test.path, errorOutput))
             else:
                 print("== Successfully passed %s test" % test.name)

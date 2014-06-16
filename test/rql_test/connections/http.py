@@ -3,6 +3,8 @@
 # Tests the http term
 ###
 
+from __future__ import print_function
+
 import sys, os, datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 import rethinkdb as r
@@ -15,7 +17,7 @@ def expect_error(query, err_type, err_info):
         res = query.run(conn)
     except err_type as ex:
         if ex.message.find(err_info) != 0:
-            print 'Expected:\n "%s"\nFound:\n "%s"' % (err_info, ex.message)
+            print('Expected:\n "%s"\nFound:\n "%s"' % (err_info, ex.message))
             raise
         return
     raise RuntimeError("Expected an error, but got success with result: %s" % str(res))
@@ -223,9 +225,9 @@ def main():
 
     # TODO: try/catch, print errors and continue?
     for name, fn in tests.iteritems():
-        print 'Running test: %s' % name
+        print('Running test: %s' % name)
         fn()
-        print ' - PASS'
+        print(' - PASS')
 
 
 if __name__ == '__main__':
