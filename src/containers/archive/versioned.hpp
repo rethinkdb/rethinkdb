@@ -22,10 +22,15 @@ void vserialize(write_message_t *wm, const T &value) {
 }
 
 template <cluster_version_t V, class T>
-archive_result_t vdeserialize(read_stream_t *wm, T *value) {
+archive_result_t vdeserialize(read_stream_t *s, T *value) {
     CT_ASSERT(V == cluster_version_t::ONLY_VERSION);  // RSI
-    return deserialize(wm, value);
+    return deserialize(s, value);
 }
+#else  // RSI
+template <cluster_version_t V>
+void vserialize(write_message_t *wm);
+template <cluster_version_t V>
+archive_result_t vdeserialize(read_stream_t *wm);
 #endif  // RSI
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
