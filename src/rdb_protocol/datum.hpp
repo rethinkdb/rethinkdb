@@ -19,6 +19,7 @@
 #include "containers/wire_string.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"
+#include "version.hpp"
 
 // Enough precision to reconstruct doubles from their decimal representations.
 // Unlike the late DBLPRI, this lacks a percent sign.
@@ -235,12 +236,17 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+template <cluster_version_t W>
 size_t serialized_size(const counted_t<const datum_t> &datum);
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const counted_t<const datum_t> &datum);
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.

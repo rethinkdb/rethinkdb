@@ -9,6 +9,7 @@ enum class cluster_version_t {
     // that implements serialization.
     v1_13 = 0,
 
+    // RSI: Rename to LATEST.
     // See CLUSTER_VERSION, which should always be the latest version.
     LATEST_VERSION = v1_13,
 

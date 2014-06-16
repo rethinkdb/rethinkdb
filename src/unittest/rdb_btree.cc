@@ -65,7 +65,7 @@ void insert_rows(int start, int finish, store_t *store) {
                 store->get_in_line_for_sindex_queue(&sindex_block);
 
             write_message_t wm;
-            serialize(&wm, mod_report);
+            serialize<cluster_version_t::LATEST_VERSION>(&wm, mod_report);
 
             store->sindex_queue_push(wm, acq.get());
         }

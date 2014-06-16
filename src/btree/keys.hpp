@@ -128,16 +128,17 @@ public:
         return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const {
         uint8_t sz = size();
-        serialize(wm, sz);
+        serialize<W>(wm, sz);
         wm->append(contents(), sz);
     }
 
-    template <class T> friend archive_result_t deserialize(read_stream_t *, T *);
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s) {
         uint8_t sz;
-        archive_result_t res = deserialize(s, &sz);
+        archive_result_t res = deserialize<W>(s, &sz);
         if (bad(res)) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {

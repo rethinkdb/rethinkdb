@@ -70,7 +70,9 @@ public:
 
     var_visibility_t compute_visibility() const;
 
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:

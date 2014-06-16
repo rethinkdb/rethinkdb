@@ -451,7 +451,8 @@ private:
 // should return.
 template<typename T>
 static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
-    archive_result_t res = deserialize(c, p);
+    // RSI: ONLY_VERSION here?  Again, wrong.
+    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(c, p);
     switch (res) {
     case archive_result_t::SUCCESS:
         return false;
@@ -492,7 +493,8 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
                                           std::string *str_out,
                                           const char *peer) {
     uint64_t raw_size;
-    archive_result_t res = deserialize(conn, &raw_size);
+    // RSI: Figure out wtf this should use.  Probably some bespoke serialization function.
+    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(conn, &raw_size);
     if (res != archive_result_t::SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
@@ -632,14 +634,15 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t wm;
         wm.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_version_string.length()));
+        // RSI: Call some bespoke serialization functions, idk.
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, static_cast<uint64_t>(cluster_version_string.length()));
         wm.append(cluster_version_string.data(), cluster_version_string.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
         wm.append(cluster_build_mode.data(), cluster_build_mode.length());
-        serialize(&wm, parent->me);
-        serialize(&wm, routing_table[parent->me].hosts());
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, parent->me);
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table[parent->me].hosts());
         if (send_write_message(conn, &wm))
             return; // network error.
     }
@@ -791,8 +794,9 @@ void connectivity_cluster_t::run_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         {
+            // RSI: ONLY_VERSION?  We need a way to do this... appropriately.
             write_message_t wm;
-            serialize(&wm, routing_table_to_send);
+            serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
             if (send_write_message(conn, &wm))
                 return;         // network error
         }
@@ -818,8 +822,9 @@ void connectivity_cluster_t::run_t::handle(
 
         /* Send our routing table to the leader */
         {
+            // RSI: ONLY_VERSION??  Do this appropriately.
             write_message_t wm;
-            serialize(&wm, routing_table_to_send);
+            serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
             if (send_write_message(conn, &wm))
                 return;         // network error
         }

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+#include "containers/archive/versioned.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -95,11 +96,13 @@ int send_write_message(write_stream_t *s, const write_message_t *wm) {
     return 0;
 }
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
     wm->append(uuid.data(), uuid_u::static_size());
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     int64_t sz = uuid_u::static_size();
     int64_t res = force_read(s, uuid->data(), sz);
@@ -110,10 +113,14 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return archive_result_t::SUCCESS;
 }
 
+INSTANTIATE_SINCE_v1_13(uuid_u);
+
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const in6_addr &addr) {
     wm->append(&addr.s6_addr, sizeof(addr.s6_addr));
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     int64_t sz = sizeof(addr->s6_addr);
     int64_t res = force_read(s, &addr->s6_addr, sz);
@@ -123,5 +130,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     rassert(res == sz);
     return archive_result_t::SUCCESS;
 }
+
+INSTANTIATE_SINCE_v1_13(in6_addr);
 
 RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

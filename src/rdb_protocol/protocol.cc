@@ -25,23 +25,26 @@ store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
 
-//TODO figure out how to do 0 copy serialization with this.
+// RSI: Figure this out.  Don't delete this RSI.  Figure this out.  The protobuf
+// format might change.  (Where is this used?)
 
-#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
-    isinline void serialize(write_message_t *wm, const pb_t &p) {       \
+#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
+    template <cluster_version_t W>                                      \
+    void serialize(write_message_t *wm, const pb_t &p) {                \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int size = p.ByteSize();                                        \
         scoped_array_t<char> data(size);                                \
         p.SerializeToArray(data.data(), size);                          \
         int32_t size32 = size;                                          \
-        serialize(wm, size32);                                          \
+        serialize<W>(wm, size32);                                       \
         wm->append(data.data(), data.size());                           \
     }                                                                   \
                                                                         \
-    isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
+    template <cluster_version_t W>                                      \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) {  \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
-        archive_result_t res = deserialize(s, &size);                   \
+        archive_result_t res = deserialize<W>(s, &size);                \
         if (bad(res)) { return res; }                                   \
         if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
         scoped_array_t<char> data(size);                                \
@@ -49,9 +52,15 @@ store_key_t key_max(sorting_t sorting) {
         if (read_res != size) { return archive_result_t::SOCK_ERROR; }  \
         p->ParseFromArray(data.data(), data.size());                    \
         return archive_result_t::SUCCESS;                               \
-    }
+    }                                                                   \
+    template void serialize<cluster_version_t::v1_13>(                  \
+            write_message_t *,                                          \
+            const pb_t &);                                              \
+    template archive_result_t deserialize<cluster_version_t::v1_13>(    \
+            read_stream_t *,                                            \
+            pb_t *)
 
-#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, )
+// RSI: Use v1_13_is_latest_version? ^^
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);

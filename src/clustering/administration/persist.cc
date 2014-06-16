@@ -45,7 +45,8 @@ template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
     write_message_t wm;
-    serialize(&wm, value);
+    // RSI: Deal with this.  ONLY_VERSION, versioning, etc.
+    serialize<cluster_version_t::ONLY_VERSION>(&wm, value);
     intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
@@ -73,7 +74,8 @@ static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
     buffer_group_t group;
     blob.expose_all(parent, access_t::read, &group, &acq_group);
     buffer_group_read_stream_t ss(const_view(&group));
-    archive_result_t res = deserialize(&ss, value_out);
+    // RSI: Deal with this.  ONLY_VERSION, versioning, etc.
+    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(&ss, value_out);
     guarantee_deserialization(res, "T (template code)");
 }
 

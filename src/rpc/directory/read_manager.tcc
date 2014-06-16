@@ -45,7 +45,8 @@ void directory_read_manager_t<metadata_t>::on_message(
     uint8_t code = 0;
     {
         // All cluster versions use the uint8_t code here.
-        archive_result_t res = deserialize(s, &code);
+        // RSI: ONLY_VERSION
+        archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(s, &code);
         if (res != archive_result_t::SUCCESS) { throw fake_archive_exc_t(); }
     }
 

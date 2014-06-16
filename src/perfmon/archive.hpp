@@ -13,7 +13,9 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(perfmon_result_t::perfmon_result_type_t, i
 // We have custom-implemented serialization functions because we don't
 // want to make a way to support serializing a pointer to
 // perfmon_result_t.
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const perfmon_result_t &x);
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing);
 
 
