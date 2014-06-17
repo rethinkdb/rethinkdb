@@ -1006,7 +1006,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    // RSI: Yeah, uh, no.
+    // At some point we'll have to look up the cluster version based on not a peer
+    // (right?) but rather, a _connection id_.  (The peer could get upgraded and then
+    // reconnect.)
     const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
 
     /* We currently write the message to a vector_stream_t, then
