@@ -169,8 +169,8 @@ class PerformContinuousAction(threading.Thread):
     durration = 0
     sucessCount = 0
     errorCount = 0
-    recordedErrors = None # error string => count
-    
+    recordedErrors = None  # error string => count
+
     daemon = True
     stopSignal = False
 

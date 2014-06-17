@@ -46,8 +46,8 @@ class PlotSelectHandler(PlotTemplate):
         self.write('<tr><td>End plot</td><td><input name="end_hours" value="0" size="3"> hours before the latest available data of the run</td></tr>')
         self.write('<tr><td>...and start</td><td><input name="duration" value="6" size="3"> hours before that point.</td></tr>')
 
-        #self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
-        #self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
+        # self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
+        # self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
         self.write('<tr><td>Plotter type:</td><td><select name="plotter_type"> \
             <option value="simple_plotter">simple plotter</option> \
             <option value="differential_plotter">differential plotter</option> \

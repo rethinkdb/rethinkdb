@@ -36,9 +36,9 @@ servers_data = [
 
 tables = [
     {
-        "name": "smalldoc", # Name of the table
-        "size_doc": "small", # Small docs
-        "ids": [] # Used to perform get
+        "name": "smalldoc",  # Name of the table
+        "size_doc": "small",  # Small docs
+        "ids": []  # Used to perform get
     },
     {
         "name": "bigdoc",

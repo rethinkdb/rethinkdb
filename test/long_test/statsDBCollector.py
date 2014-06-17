@@ -44,7 +44,7 @@ class StatsDBCollector(object):
 
         self.rdbstat = RDBStat(('localhost', server.port), interval=5, stats_callback=stats_aggregator)
         # For testing:
-        #self.rdbstat = RDBStat(('electro', 8952), interval=5, stats_callback=stats_aggregator)
+        # self.rdbstat = RDBStat(('electro', 8952), interval=5, stats_callback=stats_aggregator)
         self.rdbstat.start()
 
     def stop(self):

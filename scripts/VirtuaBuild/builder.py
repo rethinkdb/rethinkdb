@@ -59,8 +59,8 @@ o["threads"] = IntFlag("--threads", 3)
 o["clean-up"] = BoolFlag("--clean-up")
 o["interact"] = BoolFlag("--interact")
 o["debug"] = BoolFlag("--debug");
-o["username"] = StringFlag("--username", "rethinkdb") # For now, these default values should always be the ones you should use
-o["hostname"] = StringFlag("--hostname", "deadshot") # because the UUID values below are hard-coded to correspond with rethinkdb@deadshot
+o["username"] = StringFlag("--username", "rethinkdb")  # For now, these default values should always be the ones you should use
+o["hostname"] = StringFlag("--hostname", "deadshot")  # because the UUID values below are hard-coded to correspond with rethinkdb@deadshot
 
 try:
     opts = o.parse(sys.argv)

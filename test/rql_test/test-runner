@@ -219,9 +219,9 @@ class TestGroup:
         with open(outputPath, 'w') as outputFile:
 
             # - write the shebang line
-            
-            outputFile.write('#!%s\n\n' % interpreter) # TODO: add a comment block showing the start of the header/driver
-            
+
+            outputFile.write('#!%s\n\n' % interpreter)  # TODO: add a comment block showing the start of the header/driver
+
             # - insert a marker telling what test this is
 
             outputFile.write('%s Tests %s (%s): %s (%s)\n\n' % (Langs.comment_for(language), testName, language, parsed_data['desc'], sourceFile))
