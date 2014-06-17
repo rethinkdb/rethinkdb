@@ -94,8 +94,7 @@ public:
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_metadata;
-        // RSI: ONLY_VERSION
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, md);
         serialize_for_version(cluster_version, &wm, mdv);
         int res = send_write_message(stream, &wm);
@@ -116,8 +115,7 @@ public:
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_query;
-        // RSI: ONLY_VERSION
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
@@ -136,8 +134,7 @@ public:
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_from_reply;
-        // RSI: ONLY_VERSION
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, query_id);
         serialize_for_version(cluster_version, &wm, version);
         int res = send_write_message(stream, &wm);
@@ -158,8 +155,7 @@ public:
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_query;
-        // RSI: ONLY_VERSION
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, query_id);
         serialize_for_version(cluster_version, &wm, version);
         int res = send_write_message(stream, &wm);
@@ -180,8 +176,7 @@ public:
         write_message_t wm;
         // All cluster versions so far use a uint8_t code.
         uint8_t code = message_code_sync_to_reply;
-        // RSI: ONLY_VERSION
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, query_id);
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
@@ -241,8 +236,7 @@ void semilattice_manager_t<metadata_t>::on_message(
     uint8_t code;
     {
         // All cluster versions so far use a uint8_t code for this.
-        // RSI: ONLY_VERSION
-        archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(stream, &code);
+        archive_result_t res = deserialize_universal(stream, &code);
         if (bad(res)) { throw fake_archive_exc_t(); }
     }
 
