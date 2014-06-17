@@ -179,7 +179,5 @@ var_scope_t::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *
 template archive_result_t
 var_scope_t::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s);
 
-// RSI: Grep the project for 'serialize\('.
-
 
 }  // namespace ql
