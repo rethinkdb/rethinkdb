@@ -61,8 +61,8 @@ def test_function(opts, port, test_dir):
     inserts_per_round = 100000
     while time.time() < end_time:
         print "The current time is", time.strftime("%H:%M:%S")
-        
-        stress_client(port=port, workload={"inserts":1}, duration="%dq" % inserts_per_round, test_dir=test_dir)
+
+        stress_client(port=port, workload={"inserts": 1}, duration="%dq" % inserts_per_round, test_dir=test_dir)
         inserts += inserts_per_round
         print "Have inserted %d keys total up to this point." % inserts
 

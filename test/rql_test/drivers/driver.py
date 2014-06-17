@@ -231,7 +231,7 @@ class PyTestDriver:
         if runopts:
             runopts["profile"] = True
         else:
-            runopts = {"profile" : True}
+            runopts = {"profile": True}
 
         # Try to build the expected result
         if expected:

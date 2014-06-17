@@ -357,7 +357,7 @@ class TestBatching(TestWithConnection):
         else:
             batch_size = 1000
 
-        t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
+        t1.insert([{'id': i} for i in xrange(0, batch_size)]).run(c)
         cursor = t1.run(c)
 
         # We're going to have to inspect the state of the cursor object to ensure this worked right

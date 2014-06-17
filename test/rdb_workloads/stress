@@ -14,7 +14,7 @@ def call_ignore_interrupt(fun):
             if ex.errno != errno.EINTR:
                 raise
 
-def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed) :
+def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed):
     host_offset = host_offset % len(options["hosts"])
     host = options["hosts"][host_offset][0]
     port = options["hosts"][host_offset][1]

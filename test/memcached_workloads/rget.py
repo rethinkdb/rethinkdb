@@ -32,8 +32,8 @@ fop_count = 1000
 
 with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
     print "Creating test data"
-    data  = [{'id':gen_key('foo', i), 'val':gen_value('foo', i)} for i in range(0,foo_count)]
-    data += [{'id':gen_key('fop', i), 'val':gen_value('fop', i)} for i in range(0,fop_count)]
+    data = [{'id': gen_key('foo', i), 'val': gen_value('foo', i)} for i in range(0, foo_count)]
+    data += [{'id': gen_key('fop', i), 'val': gen_value('fop', i)} for i in range(0, fop_count)]
     res = table.insert(data).run(conn)
     assert res['inserted'] == foo_count + fop_count
 

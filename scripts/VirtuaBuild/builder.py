@@ -99,10 +99,10 @@ debian = vm_build.target('cc76e2a5-92c0-4208-be08-5c02429c2c50', '192.168.0.176'
 centos5_5 = vm_build.target('25710682-666f-4449-bd28-68b25abd8bea', '192.168.0.153', 'root', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
 centos6 = vm_build.target('d9058650-a45a-44a5-953f-c2402253a614', '192.168.0.178', 'rethinkdb', 'make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary, opts["username"], opts["hostname"])
 
-targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
+targets = {"suse": suse, "redhat5_1": redhat5_1, "ubuntu": ubuntu, "debian": debian, "centos5_5": centos5_5, "centos6": centos6}
 
 if (opts["target"]):
-    targets = {opts["target"] : targets[opts["target"]]}
+    targets = {opts["target"]: targets[opts["target"]]}
 
 if opts["clean-up"]:
     map(lambda x: x[1].clean_up(), targets.iteritems())

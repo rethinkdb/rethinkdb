@@ -7,9 +7,9 @@ import test_exceptions
 # -- constants
 
 driverPaths = {
-    'javascript': { 'extension':'js', 'relDriverPath':'build/packages/js', 'relSourcePath':'drivers/javascript' },
-    'python': { 'extension':'js', 'relDriverPath':'drivers/python/rethinkdb', 'relSourcePath':'drivers/python' },
-    'ruby': { 'extension':'js', 'relDriverPath':'drivers/ruby/lib', 'relSourcePath':'drivers/ruby' }
+    'javascript': {'extension': 'js', 'relDriverPath': 'build/packages/js', 'relSourcePath': 'drivers/javascript'},
+    'python': {'extension': 'js', 'relDriverPath': 'drivers/python/rethinkdb', 'relSourcePath': 'drivers/python'},
+    'ruby': {'extension': 'js', 'relDriverPath': 'drivers/ruby/lib', 'relSourcePath': 'drivers/ruby'}
 }
 
 # --

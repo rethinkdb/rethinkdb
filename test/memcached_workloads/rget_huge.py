@@ -25,11 +25,11 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
     print "Creating test data"
     for i, (key, value) in enumerate(pairs):
         if (i + 1) % print_interval == 0:
-            res = table.insert({'id':key, 'val': value}).run(conn)
+            res = table.insert({'id': key, 'val': value}).run(conn)
             assert res['inserted'] == 1
             print i + 1,
         else:
-            table.insert({'id':key, 'val': value}).run(conn, noreply=True)
+            table.insert({'id': key, 'val': value}).run(conn, noreply=True)
     conn.noreply_wait()
     print
     print "Testing rget"

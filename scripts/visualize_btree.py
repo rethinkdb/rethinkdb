@@ -98,8 +98,8 @@ class BtreeKey(object):
     def parse(cls, block, offset = 0):
         
         size, offset = parse_uint8_t(block, offset)
-        value, offset = block[offset : offset + size], offset + size
-        
+        value, offset = block[offset:offset + size], offset + size
+
         return cls(value), offset
 
     def __init__(self, name):
@@ -142,7 +142,7 @@ class BtreeValue(object):
 
         else:
             # Small value
-            value, offset = block[offset : value_start_offset + size], value_start_offset + size
+            value, offset = block[offset:value_start_offset + size], value_start_offset + size
             return BtreeSmallValue(value, cas, flags, exptime), offset
 
     def __init__(self, flags, cas, exptime):

@@ -47,7 +47,7 @@ with driver.Metacluster() as metacluster:
     print "Done with test queries."
 
     print "Adding a replica."
-    http.set_table_affinities(ns, {dc : 1})
+    http.set_table_affinities(ns, {dc: 1})
 
     time.sleep(1)
 

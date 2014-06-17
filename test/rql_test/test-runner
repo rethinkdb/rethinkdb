@@ -136,9 +136,9 @@ class RbLang(SrcLang):
 # Really just used as a namespace here
 class Langs:
     langs = {
-        'py':PyLang(),
-        'js':JsLang(),
-        'rb':RbLang()
+        'py': PyLang(),
+        'js': JsLang(),
+        'rb': RbLang()
     }
 
     @staticmethod

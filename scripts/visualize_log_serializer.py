@@ -117,7 +117,7 @@ def try_parse(db, offset, length, name, cls, *args):
         x = cls.from_data(db, offset, *args)
         assert isinstance(x, cls)
     except Exception:
-        chunk = BadChunk(offset, length, name, db.block[offset : offset + length], traceback.format_exc())
+        chunk = BadChunk(offset, length, name, db.block[offset:offset + length], traceback.format_exc())
     else:
         chunk = GoodChunk(offset, length, name, x)
 
@@ -629,7 +629,7 @@ class DataBlock(object):
 
     @classmethod
     def from_data(cls, db, offset):
-        contents = db.block[offset : offset + db.block_size]
+        contents = db.block[offset:offset + db.block_size]
         return DataBlock(contents)
 
     def __init__(self, contents):

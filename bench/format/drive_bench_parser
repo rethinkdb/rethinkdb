@@ -26,7 +26,7 @@ with open('stats', 'w') as outf:
     print >>outf, "Diff: %.2f%%" % (float(best_mean) / float(worst_mean) * 100.0)
 
 for ts in r.data.iteritems():
-    r.data[ts[0]] = ts[1][int(len(ts) * .7) :]
+    r.data[ts[0]] = ts[1][int(len(ts) * .7):]
 
 with open('steady_stats', 'w') as outf:
     best_mean = None

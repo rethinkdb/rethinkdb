@@ -45,7 +45,7 @@ def test_params():
     expect_eq(res['args']['things'], 'stuff')
     expect_eq(res['args']['nil'], '')
 
-    res = r.http(url + '?dummy=true', params={'fake':123}).run(conn)
+    res = r.http(url + '?dummy=true', params={'fake': 123}).run(conn)
     expect_eq(res['args']['fake'], '123')
     expect_eq(res['args']['dummy'], 'true')
 
@@ -79,7 +79,7 @@ def test_post():
 
     post_data = {'str': '%in fo+', 'number': 135.5, 'nil': None}
     res = r.http(url, method='POST', data=r.expr(post_data).coerce_to('string'),
-                 header={'Content-Type':'application/json'}).run(conn)
+                 header={'Content-Type': 'application/json'}).run(conn)
     expect_eq(res['json'], post_data)
 
     post_data = 'a=b&b=c'
@@ -88,12 +88,12 @@ def test_post():
 
     post_data = '<arbitrary>data</arbitrary>'
     res = r.http(url, method='POST', data=post_data,
-                 header={'Content-Type':'application/text/'}).run(conn)
+                 header={'Content-Type': 'application/text/'}).run(conn)
     expect_eq(res['data'], post_data)
 
 def test_put():
     url = 'httpbin.org/put'
-    put_data = {'nested':{'arr':[123.45, ['a', 555], 0.123], 'str':'info','number':135,'nil':None},'time':r.epoch_time(1000)}
+    put_data = {'nested': {'arr': [123.45, ['a', 555], 0.123], 'str': 'info', 'number': 135, 'nil': None}, 'time': r.epoch_time(1000)}
     res = r.http(url, method='PUT', data=put_data).run(conn)
     expect_eq(res['json']['nested'], put_data['nested'])
     expect_eq(res['json']['time'], datetime.datetime(1970, 1, 1, 0, 16, 40, tzinfo=res['json']['time'].tzinfo))
