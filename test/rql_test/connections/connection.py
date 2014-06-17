@@ -4,7 +4,8 @@
 
 import socket
 import threading
-import SocketServer
+try: import socketserver
+except ImportError: import SocketServer as socketserver
 import datetime
 import sys
 from time import sleep, time
@@ -20,6 +21,8 @@ sys.path.insert(0, os.path.join(utils.project_root_dir(), 'drivers', 'python'))
 # We import the module both ways because this used to crash and we need to test for it
 from rethinkdb import *
 import rethinkdb as r
+
+range_ = xrange if sys.version_info[0] == 2 else range
 
 server_build_dir = sys.argv[1]
 use_default_port = 0
@@ -101,11 +104,11 @@ class TestConnectionDefaultPort(unittest.TestCase):
             RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
             r.connect, auth_key="hunter2")
 
-class BlackHoleRequestHandler(SocketServer.BaseRequestHandler):
+class BlackHoleRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
         sleep(1)
 
-class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class ThreadedBlackHoleServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 class TestTimeout(unittest.TestCase):
@@ -143,20 +146,20 @@ class TestAuthConnection(unittest.TestCase):
 
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Incorrect authorization key.'?\"",
             r.connect, port=self.port)
 
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Incorrect authorization key.'?\"",
             r.connect, port=self.port, auth_key="")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Incorrect authorization key.'?\"",
             r.connect, port=self.port, auth_key="hunter3")
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Incorrect authorization key.'?\"",
             r.connect, port=self.port, auth_key="hunter22")
 
     def test_connect_long_auth(self):
@@ -164,11 +167,11 @@ class TestAuthConnection(unittest.TestCase):
         not_long_key = str("k") * 2048
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Client provided an authorization key that is too long.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Client provided an authorization key that is too long.'?\"",
             r.connect, port=self.port, auth_key=long_key)
 
         self.assertRaisesRegexp(
-            RqlDriverError, "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"",
+            RqlDriverError, "Server dropped connection with message: \"(b')?ERROR: Incorrect authorization key.'?\"",
             r.connect, port=self.port, auth_key=not_long_key)
 
     def test_connect_correct_auth(self):
@@ -357,7 +360,7 @@ class TestBatching(TestWithConnection):
         else:
             batch_size = 1000
 
-        t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
+        t1.insert([{'id':i} for i in range_(0, batch_size)]).run(c)
         cursor = t1.run(c)
 
         # We're going to have to inspect the state of the cursor object to ensure this worked right
@@ -374,8 +377,8 @@ class TestBatching(TestWithConnection):
             self.assertLess(len(cursor.responses[0].data), batch_size)
 
         itr = iter(cursor)
-        for i in xrange(0, batch_size - 1):
-            itr.next()
+        for i in range_(0, batch_size - 1):
+            next(itr)
 
         # In both cases now there should at least one element left in the last chunk
         self.assertTrue(cursor.end_flag)
@@ -408,7 +411,7 @@ class TestGroupWithTimeKey(TestWithConnection):
 
 
 if __name__ == '__main__':
-    print "Running py connection tests"
+    print("Running py connection tests")
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))

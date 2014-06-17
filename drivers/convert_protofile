@@ -116,7 +116,7 @@ if __name__ == '__main__':
 	# -- parse input
 	
 	parser = optparse.OptionParser()
-	parser.add_option("-l", "--language", dest="language", help="write output for language", metavar="LANG", choices=languageDefs.keys(), default=None)
+	parser.add_option("-l", "--language", dest="language", help="write output for language", metavar="LANG", choices=list(languageDefs.keys()), default=None)
 	parser.add_option("-i", "--input-file", dest="inputFile", help="read from FILE (default STDIN)", metavar="FILE", default=None)
 	parser.add_option("-o", "--output-file", dest="outputFile", help="write to FILE (default STDOUT)", metavar="FILE", default=None)
 	
@@ -128,13 +128,13 @@ if __name__ == '__main__':
 	if options.inputFile is not None:
 		try:
 			inputFile = open(options.inputFile, 'r')
-		except Exception, e:
+		except Exception as e:
 			parser.error("Unable to open the given input file <<%s>>, got error: %s" % (inputFile, str(e)))
 	
 	if options.outputFile is not None:
 		try:
 			outputFile = open(options.outputFile, 'w')
-		except Exception, e:
+		except Exception as e:
 			parser.error("Unable to open the given output file <<%s>>, got error: %s" % (outputFile, str(e)))
 	
 	# --

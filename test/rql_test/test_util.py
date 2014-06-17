@@ -8,6 +8,8 @@ import sys
 from time import sleep
 from subprocess import call, check_call, Popen, PIPE, STDOUT
 
+range_ = xrange if sys.version_info[0] == 2 else range
+
 runningServers = []
 def shutdown_servers():
     global runningServers
@@ -43,7 +45,7 @@ class RethinkDBTestServers(object):
 
     def start(self):
         self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port, self.cache_size, self.group_data_dir)
-                            for i in xrange(0, self.num_servers)]
+                            for i in range_(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
         for server in self.servers[1:]:
@@ -108,7 +110,7 @@ class RethinkDBTestServer(object):
     # Find a free port to bind to
     def find_available_port(self):
         max_loop = 10
-        for i in xrange(max_loop):
+        for i in range_(max_loop):
             port = random.randint(1025, 65535)
             if self.port_available(port):
                 return port

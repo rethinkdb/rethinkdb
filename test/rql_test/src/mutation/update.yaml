@@ -12,7 +12,7 @@ tests:
 
     - def: tbl2 = r.db('test').table('test2')
 
-    - py: tbl.insert([{'id':i} for i in xrange(100)])
+    - py: tbl.insert([{'id':i} for i in range_(100)])
       js: |
         tbl.insert(function(){
             var res = []
@@ -27,7 +27,7 @@ tests:
     - cd: tbl.count()
       ot: 100
 
-    - py: tbl2.insert([{'id':i, 'foo':{'bar':i}} for i in xrange(100)])
+    - py: tbl2.insert([{'id':i, 'foo':{'bar':i}} for i in range_(100)])
       js: |
         tbl2.insert(function(){
             var res = []

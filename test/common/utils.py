@@ -16,8 +16,8 @@ driverPaths = {
 
 # non-printable ascii characters and invalid utf8 bytes
 non_text_bytes = \
-  range(0x00, 0x09+1) + [0x0B, 0x0C] + range(0x0F, 0x1F+1) + \
-  [0xC0, 0xC1] + range(0xF5, 0xFF+1)
+  list(range(0x00, 0x09+1)) + [0x0B, 0x0C] + list(range(0x0F, 0x1F+1)) + \
+  [0xC0, 0xC1] + list(range(0xF5, 0xFF+1))
 
 def guess_is_text_file(name):
     with file(name, 'rb') as f:
@@ -136,7 +136,7 @@ def import_pyton_driver(targetDir=None, buildDriver=True):
     if buildDriver == True:
         try:
             build_in_folder(srcDir, waitNotification='Building the python drivers. This make take a few moments.')
-        except test_exceptions.NotBuiltException, e:
+        except test_exceptions.NotBuiltException as e:
             raise test_exceptions.NotBuildException(detail='Failed making Python driver from: %s' % srcDir, debugInfo=e.debugInfo)
     
     # --
@@ -213,7 +213,7 @@ class PerformContinuousAction(threading.Thread):
             try:
                 self.runAction()
                 self.sucessCount += 1
-            except Exception, e:
+            except Exception as e:
                 self.recordError(e)
                 errorString = str(e)
             time.sleep(self.delay)

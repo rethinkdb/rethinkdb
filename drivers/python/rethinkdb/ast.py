@@ -11,6 +11,7 @@ from threading import Lock
 from .errors import *
 from . import repl # For the repl connection
 from . import ql2_pb2 as p
+from ._compat import dict_items, str_types, range_
 
 pTerm = p.Term.TermType
 
@@ -20,11 +21,11 @@ def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
-    if nesting_depth <= 0:
-        raise RqlDriverError("Nesting depth limit exceeded")
-
     if not isinstance(nesting_depth, int):
         raise RqlDriverError("Second argument to `r.expr` must be a number.")
+
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
 
     if isinstance(val, RqlQuery):
         return val
@@ -35,7 +36,7 @@ def expr(val, nesting_depth=20):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
         obj = {}
-        for (k,v) in val.iteritems():
+        for (k,v) in dict_items(val):
             obj[k] = expr(v, nesting_depth - 1)
         return MakeObj(obj)
     elif isinstance(val, collections.Callable):
@@ -59,7 +60,7 @@ class RqlQuery(object):
         self.args = [expr(e) for e in args]
 
         self.optargs = {}
-        for (k,v) in optargs.iteritems():
+        for (k,v) in dict_items(optargs):
             if not isinstance(v, RqlQuery) and v == ():
                 continue
             self.optargs[k] = expr(v)
@@ -85,7 +86,7 @@ class RqlQuery(object):
     def build(self):
         res = [self.tt, [arg.build() for arg in self.args]]
         if len(self.optargs) > 0:
-            res.append(dict((k, v.build()) for (k,v) in self.optargs.iteritems()))
+            res.append(dict((k, v.build()) for (k,v) in dict_items(self.optargs)))
         return res
 
     # The following are all operators and methods that operate on
@@ -136,6 +137,12 @@ class RqlQuery(object):
         return Div(self, other)
 
     def __rdiv__(self, other):
+        return Div(other, self)
+
+    def __truediv__(self, other):
+        return Div(self, other)
+
+    def __rtruediv__(self, other):
         return Div(other, self)
 
     def __mod__(self, other):
@@ -298,7 +305,7 @@ class RqlQuery(object):
                 return Slice(self, index.start or 0, -1, right_bound='closed', bracket_operator=True)
         elif isinstance(index, int):
             return Nth(self, index, bracket_operator=True)
-        elif isinstance(index, types.StringTypes):
+        elif isinstance(index, str_types):
             return GetField(self, index, bracket_operator=True)
         elif isinstance(index, RqlQuery):
             raise RqlDriverError(
@@ -496,7 +503,7 @@ class RqlBoolOperQuery(RqlQuery):
         self.infix = True
 
     def compose(self, args, optargs):
-        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in range_(len(args))]
 
         if self.infix:
             return T('(', T(*t_args, intsp=[' ', self.st_infix, ' ']), ')')
@@ -505,7 +512,7 @@ class RqlBoolOperQuery(RqlQuery):
 
 class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
-        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in range_(len(args))]
         return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
 
 class RqlBiCompareOperQuery(RqlBiOperQuery):
@@ -526,7 +533,7 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        args.extend([T(k, '=', v) for (k,v) in dict_items(optargs)])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -538,7 +545,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([T(k, '=', v) for (k,v) in optargs.iteritems()])
+        restargs.extend([T(k, '=', v) for (k,v) in dict_items(optargs)])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
@@ -602,7 +609,7 @@ def recursively_make_hashable(obj):
     if isinstance(obj, list):
         return tuple([recursively_make_hashable(i) for i in obj])
     elif isinstance(obj, dict):
-        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in obj.iteritems()])
+        return frozenset([(k, recursively_make_hashable(v)) for (k,v) in dict_items(obj)])
     return obj
 
 def reql_type_grouped_data_to_object(obj):
@@ -633,11 +640,11 @@ def convert_pseudotype(obj, format_opts):
 
 def recursively_convert_pseudotypes(obj, format_opts):
     if isinstance(obj, dict):
-        for (key, value) in obj.iteritems():
+        for (key, value) in dict_items(obj):
             obj[key] = recursively_convert_pseudotypes(value, format_opts)
         obj = convert_pseudotype(obj, format_opts)
     elif isinstance(obj, list):
-        for i in xrange(len(obj)):
+        for i in range_(len(obj)):
             obj[i] = recursively_convert_pseudotypes(obj[i], format_opts)
     return obj
 
@@ -680,20 +687,20 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for (k,v) in obj_dict.iteritems():
-            if not isinstance(k, types.StringTypes):
+        for (k,v) in dict_items(obj_dict):
+            if not isinstance(k, str_types):
                 raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(v)
 
     def build(self):
         res = { }
-        for (k,v) in self.optargs.iteritems():
+        for (k,v) in dict_items(self.optargs):
             k = k.build() if isinstance(k, RqlQuery) else k
             res[k] = v.build() if isinstance(v, RqlQuery) else v
         return res
 
     def compose(self, args, optargs):
-        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in optargs.iteritems()], intsp=', '), '})')
+        return T('r.expr({', T(*[T(repr(k), ': ', v) for (k,v) in dict_items(optargs)], intsp=', '), '})')
 
 class Var(RqlQuery):
     tt = pTerm.VAR
@@ -1283,7 +1290,7 @@ def _ivar_scan(query):
         return True
     if any([_ivar_scan(arg) for arg in query.args]):
         return True
-    if any([_ivar_scan(arg) for k,arg in query.optargs.iteritems()]):
+    if any([_ivar_scan(arg) for k,arg in dict_items(query.optargs)]):
         return True
     return False
 
@@ -1302,7 +1309,7 @@ class Func(RqlQuery):
     def __init__(self, lmbd):
         vrs = []
         vrids = []
-        for i in range(lmbd.func_code.co_argcount):
+        for i in range_(lmbd.__code__.co_argcount):
             Func.lock.acquire()
             var_id = Func.nextVarId
             Func.nextVarId += 1
