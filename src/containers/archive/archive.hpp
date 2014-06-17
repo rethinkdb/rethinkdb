@@ -231,8 +231,7 @@ struct serialized_size_t;
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
-    template <cluster_version_t W>                                      \
-    void serialize(write_message_t *wm, typ x) {                        \
+    inline void serialize_raw(write_message_t *wm, typ x) {             \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -240,9 +239,13 @@ struct serialized_size_t;
         u.v = x;                                                        \
         wm->append(u.buf, sizeof(typ));                                 \
     }                                                                   \
-                                                                        \
     template <cluster_version_t W>                                      \
-    inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) { \
+    void serialize(write_message_t *wm, typ x) {                        \
+        serialize_raw(wm, x);                                           \
+    }                                                                   \
+                                                                        \
+    inline MUST_USE archive_result_t                                    \
+    deserialize_raw(read_stream_t *s, typ *x) {                         \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -258,6 +261,11 @@ struct serialized_size_t;
         }                                                               \
         *x = u.v;                                                       \
         return archive_result_t::SUCCESS;                               \
+    }                                                                   \
+                                                                        \
+    template <cluster_version_t W>                                      \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) {   \
+        return deserialize_raw(s, x);                                   \
     }                                                                   \
                                                                         \
     template <>                                                         \
