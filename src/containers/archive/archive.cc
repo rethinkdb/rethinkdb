@@ -96,14 +96,13 @@ int send_write_message(write_stream_t *s, const write_message_t *wm) {
     return 0;
 }
 
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const uuid_u &uuid) {
+// You MUST NOT change the behavior of serialize_universal and deserialize_universal
+// functions!  (You could find a way to remove their callers and remove them though.)
+void serialize_universal(write_message_t *wm, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
     wm->append(uuid.data(), uuid_u::static_size());
 }
-
-template <cluster_version_t W>
-MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, uuid_u *uuid) {
     int64_t sz = uuid_u::static_size();
     int64_t res = force_read(s, uuid->data(), sz);
 
@@ -111,6 +110,16 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     if (res < sz) { return archive_result_t::SOCK_EOF; }
     rassert(res == sz);
     return archive_result_t::SUCCESS;
+}
+
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const uuid_u &uuid) {
+    serialize_universal(wm, uuid);
+}
+
+template <cluster_version_t W>
+MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
+    return deserialize_universal(s, uuid);
 }
 
 INSTANTIATE_SINCE_v1_13(uuid_u);

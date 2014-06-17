@@ -637,12 +637,16 @@ void connectivity_cluster_t::run_t::handle(
         // deserialize_compatible_string).
         serialize_universal(&wm, static_cast<uint64_t>(cluster_version_string.length()));
         wm.append(cluster_version_string.data(), cluster_version_string.length());
+
+        // Everything after we send the version string COULD be moved _below_ the
+        // point where we resolve the version string.  That would mean adding another
+        // back and forth to the handshake?
         serialize_universal(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
         wm.append(cluster_build_mode.data(), cluster_build_mode.length());
-        // RSI: Call some bespoke serialization functions, idk.
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, parent->me);
+        serialize_universal(&wm, parent->me);
+        // RSI: Call some bespoke serialization function, idk.
         serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table[parent->me].hosts());
         if (send_write_message(conn, &wm)) {
             return; // network error.

@@ -297,6 +297,9 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 template <>
 struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 
+void serialize_universal(write_message_t *wm, const uuid_u &uuid);
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, uuid_u *uuid);
+
 template <cluster_version_t W>
 void serialize(write_message_t *wm, const uuid_u &uuid);
 template <cluster_version_t W>
