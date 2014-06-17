@@ -449,7 +449,7 @@ private:
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
-template<typename T>
+template <class T>
 static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
     // RSI: ONLY_VERSION here?  Again, wrong.
     archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(c, p);
@@ -656,8 +656,9 @@ void connectivity_cluster_t::run_t::handle(
         int64_t r;
         for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
             r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
-            if (-1 == r)
+            if (-1 == r) {
                 return; // network error.
+            }
             rassert(r >= 0);
             // If EOF or remote_header does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
@@ -723,8 +724,9 @@ void connectivity_cluster_t::run_t::handle(
     peer_id_t other_id;
     std::set<host_and_port_t> other_peer_addr_hosts;
     if (deserialize_and_check(conn, &other_id, peername) ||
-        deserialize_and_check(conn, &other_peer_addr_hosts, peername))
+        deserialize_and_check(conn, &other_peer_addr_hosts, peername)) {
         return;
+    }
 
     // Look up the ip addresses for the other host
     peer_address_t other_peer_addr(other_peer_addr_hosts);
@@ -799,20 +801,23 @@ void connectivity_cluster_t::run_t::handle(
             // RSI: ONLY_VERSION?  We need a way to do this... appropriately.
             write_message_t wm;
             serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
-            if (send_write_message(conn, &wm))
+            if (send_write_message(conn, &wm)) {
                 return;         // network error
+            }
         }
 
         /* Receive the follower's routing table */
-        if (deserialize_and_check(conn, &other_routing_table, peername))
+        if (deserialize_and_check(conn, &other_routing_table, peername)) {
             return;
+        }
 
     } else {
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        if (deserialize_and_check(conn, &other_routing_table, peername))
+        if (deserialize_and_check(conn, &other_routing_table, peername)) {
             return;
+        }
 
         std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
         if (!get_routing_table_to_send_and_add_peer(other_id,
@@ -827,8 +832,9 @@ void connectivity_cluster_t::run_t::handle(
             // RSI: ONLY_VERSION??  Do this appropriately.
             write_message_t wm;
             serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
-            if (send_write_message(conn, &wm))
+            if (send_write_message(conn, &wm)) {
                 return;         // network error
+            }
         }
     }
 
