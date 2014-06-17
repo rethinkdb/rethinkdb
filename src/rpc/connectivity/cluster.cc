@@ -472,6 +472,29 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
     }
 }
 
+template <class T>
+bool deserialize_universal_and_check(tcp_conn_stream_t *c,
+                                     T *p, const char *peer) {
+    archive_result_t res = deserialize_universal(c, p);
+    switch (res) {
+    case archive_result_t::SUCCESS:
+        return false;
+
+    case archive_result_t::SOCK_ERROR:
+    case archive_result_t::SOCK_EOF:
+        // Network error. Report nothing.
+        return true;
+
+    case archive_result_t::RANGE_ERROR:
+        logERR("could not deserialize data received from %s, closing connection", peer);
+        return true;
+
+    default:
+        logERR("unknown error occurred on connection from %s, closing connection", peer);
+        return true;
+    }
+}
+
 // Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
 //  available to write into
 static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
@@ -646,8 +669,7 @@ void connectivity_cluster_t::run_t::handle(
         serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
         wm.append(cluster_build_mode.data(), cluster_build_mode.length());
         serialize_universal(&wm, parent->me);
-        // RSI: Call some bespoke serialization function, idk.
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table[parent->me].hosts());
+        serialize_universal(&wm, routing_table[parent->me].hosts());
         if (send_write_message(conn, &wm)) {
             return; // network error.
         }
@@ -727,8 +749,8 @@ void connectivity_cluster_t::run_t::handle(
     // Receive id, host/ports.
     peer_id_t other_id;
     std::set<host_and_port_t> other_peer_addr_hosts;
-    if (deserialize_and_check(conn, &other_id, peername) ||
-        deserialize_and_check(conn, &other_peer_addr_hosts, peername)) {
+    if (deserialize_universal_and_check(conn, &other_id, peername) ||
+        deserialize_universal_and_check(conn, &other_peer_addr_hosts, peername)) {
         return;
     }
 

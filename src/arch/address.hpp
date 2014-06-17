@@ -159,6 +159,11 @@ private:
     std::set<ip_and_port_t> resolved_ips;
 };
 
+void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x);
+archive_result_t deserialize_universal(read_stream_t *s,
+                                       std::set<host_and_port_t> *thing);
+
+
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
 void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);
 void debug_print(printf_buffer_t *buf, const host_and_port_t &addr);
