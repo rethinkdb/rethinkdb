@@ -236,8 +236,7 @@ _STL_HEADERS = frozenset([
     'hash_set.h', 'initializer_list', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
     'pair.h', 'pthread_alloc', 'queue', 'set', 'set.h', 'sstream', 'stack',
     'stl_alloc.h', 'stl_relops.h', 'type_traits', 'type_traits.h',
-    'utility', 'vector', 'vector.h',
-    ])
+    'utility', 'vector', 'vector.h'])
 
 
 # Non-STL C++ system headers.
@@ -255,8 +254,7 @@ _CPP_HEADERS = frozenset([
     'rope.h',
     'ropeimpl.h', 'SFile.h', 'slist', 'slist.h', 'stack.h', 'stdexcept',
     'stdiostream.h', 'streambuf.h', 'stream.h', 'strfile.h', 'string',
-    'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray',
-    ])
+    'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray'])
 
 
 # Assertion macros.  These are defined in base/logging.h and
@@ -267,8 +265,7 @@ _CHECK_MACROS = [
     'EXPECT_TRUE_M', 'EXPECT_TRUE',
     'ASSERT_TRUE_M', 'ASSERT_TRUE',
     'EXPECT_FALSE_M', 'EXPECT_FALSE',
-    'ASSERT_FALSE_M', 'ASSERT_FALSE',
-    ]
+    'ASSERT_FALSE_M', 'ASSERT_FALSE']
 
 # Replacement macros for CHECK/DCHECK/EXPECT_TRUE/EXPECT_FALSE
 _CHECK_REPLACEMENT = dict([(m, {}) for m in _CHECK_MACROS])

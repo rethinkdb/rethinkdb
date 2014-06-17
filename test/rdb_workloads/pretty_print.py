@@ -26,7 +26,7 @@ class PrettyPrintTest(unittest.TestCase):
         cls.conn = connect(
             os.environ.get('HOST', 'localhost'),
             int(os.environ.get('PORT', 28015+2010))
-            )
+        )
         cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def test_pretty_print(self):

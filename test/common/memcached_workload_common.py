@@ -26,7 +26,7 @@ class MemcacheRdbShim(object):
                 'val': val
             },
             upsert=True
-            ).run(self.conn)
+        ).run(self.conn)
 
         error = response.get('first_error')
         if error:

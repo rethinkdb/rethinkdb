@@ -349,8 +349,7 @@ class Superblock(object):
         btree_superblock_t, parse_superblock = make_struct("Superblock", [
             ("database_exists", parse_int),
             (None, parse_padding(4)),
-            ("root_id", parse_block_id),
-            ])
+            ("root_id", parse_block_id)])
         sb = parse_superblock(block)[0]
         assert sb.database_exists == 1
 

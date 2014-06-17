@@ -330,9 +330,8 @@ class StaticHeader(object):
             (None, parse_constant("BTree Blocksize:\0")),
             ("btree_block_size", parse_uint64_t),
             (None, parse_constant("Extent Size:\0")),
-            ("extent_size", parse_uint64_t),
-            ])
-        
+            ("extent_size", parse_uint64_t)])
+
         sh = parse_static_header(db.block, offset)[0]
         return StaticHeader(sh)
 
@@ -359,30 +358,26 @@ class Metablock(object):
                 else: return parse_padding(0)
 
             extent_manager_mb, parse_extent_manager_mb = make_struct("extent_manager_mb", [
-                ("last_extent", parse_off64_t),
-                ])
-            
+                ("last_extent", parse_off64_t)])
+
             lba_index_mb, parse_lba_index_mb = make_struct("lba_index_mb", [
                 ("last_lba_extent_offset", parse_off64_t),
                 ("last_lba_extent_entries_count", parse_int),
                 (None, parse_padding(4)),
                 ("lba_superblock_offset", parse_off64_t),
                 ("lba_superblock_entries_count", parse_int),
-                (None, parse_padding(4)),
-                ])
-            
+                (None, parse_padding(4))])
+
             data_block_mb, parse_data_block_mb = make_struct("data_block_mb", [
                 ("last_data_extent", parse_off64_t),
                 ("blocks_in_last_data_extent", parse_int),
-                (None, parse_padding(4)),
-                ])
-            
+                (None, parse_padding(4))])
+
             metablock_t, parse_metablock = make_struct("metablock_t", [
                 ("extent_manager_part", parse_extent_manager_mb),
                 ("lba_index_part", parse_lba_index_mb),
-                ("data_block_manager_part", parse_data_block_mb),
-                ])
-            
+                ("data_block_manager_part", parse_data_block_mb)])
+
             crc_metablock_t, parse_crc_metablock = make_struct("crc_metablock_t", [
                 (None, maybe(parse_constant("metablock\xbd"))),
                 (None, maybe(parse_constant("crc:\xbd"))),
@@ -390,9 +385,8 @@ class Metablock(object):
                 (None, maybe(parse_padding(1))),
                 (None, maybe(parse_constant("version:"))),
                 ("version", parse_int),
-                ("metablock", parse_metablock),
-                ])
-            
+                ("metablock", parse_metablock)])
+
             c.crc_metablock_parser_cache[markers] = parse_crc_metablock
 
         return c.crc_metablock_parser_cache[markers]

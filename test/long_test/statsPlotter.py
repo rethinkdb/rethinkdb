@@ -67,7 +67,7 @@ class DBPlot(Plot):
     def load_stats_from_db(self, run, start_timestamp, end_timestamp):
         start_timestamp = self.db_conn.escape_string(start_timestamp)
         end_timestamp = self.db_conn.escape_string(end_timestamp)
-        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run) )
+        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run))
         result = self.db_conn.use_result()
         rows = result.fetch_row(maxrows=0)  # Fetch all rows
         last_ts = -1

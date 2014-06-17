@@ -115,31 +115,31 @@ class PlotConfigureHandler(PlotTemplate):
         if plotter_type == "simple_plotter":
             self.write('<tr><td>Stat:</td><td><select name="simple_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Multiplier:</td><td><input name="simple_plotter_multiplier" value="1" size="5"></td></tr>')
         elif plotter_type == "differential_plotter":
             self.write('<tr><td>Stat:</td><td><select name="differential_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_diff_plotter":
             self.write('<tr><td>Stat 1:</td><td><select name="two_stats_diff_plotter_stat1">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Stat 2:</td><td><select name="two_stats_diff_plotter_stat2">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_ratio_plotter":
             self.write('<tr><td>Dividend:</td><td><select name="two_stats_ratio_plotter_dividend">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Divisor:</td><td><select name="two_stats_ratio_plotter_divisor">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
 
         self.write('</table>')

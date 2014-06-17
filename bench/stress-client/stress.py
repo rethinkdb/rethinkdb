@@ -153,14 +153,12 @@ class OpGenerator(object):
             ctypes.byref(queries),
             ctypes.byref(worst_latency),
             ctypes.byref(samples_count),
-            samples,
-            )
+            samples)
 
         return {
             "queries": queries.value,
             "worst_latency": worst_latency.value,
-            "latency_samples": [samples[i] for i in xrange(samples_count.value)],
-            }
+            "latency_samples": [samples[i] for i in xrange(samples_count.value)]}
 
     def reset(self):
         assert self.locked or not self.client or not self.client.running, \
