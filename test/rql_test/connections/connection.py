@@ -339,7 +339,7 @@ class TestShutdown(TestWithConnection):
 class TestPrinting(unittest.TestCase):
 
     # Just test that RQL queries support __str__ using the pretty printer.
-    # An exhaustive test of the pretty printer would be, well, exhausing.
+    # An exhaustive test of the pretty printer would be, well, exhausting.
     def runTest(self):
         self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
                          "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
