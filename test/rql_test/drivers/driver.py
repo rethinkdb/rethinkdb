@@ -287,7 +287,7 @@ driver.connect()
 
 # Emitted test code will consist of calls to this function
 def test(query, expected, name, runopts={}):
-    for (k,v) in runopts.items():
+    for (k, v) in runopts.items():
         if isinstance(v, str):
             runopts[k] = eval(v)
     if 'batch_conf' not in runopts:

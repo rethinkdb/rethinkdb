@@ -395,16 +395,16 @@ class TestGroupWithTimeKey(TestWithConnection):
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
         dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
 
-        res = r.table('times').insert({'id':0,'time':rt1}).run(c)
+        res = r.table('times').insert({'id': 0, 'time': rt1}).run(c)
         self.assertEqual(res['inserted'], 1)
-        res = r.table('times').insert({'id':1,'time':rt2}).run(c)
+        res = r.table('times').insert({'id': 1, 'time': rt2}).run(c)
         self.assertEqual(res['inserted'], 1)
 
-        expected_row1 = {'id':0,'time':dt1}
-        expected_row2 = {'id':1,'time':dt2}
+        expected_row1 = {'id': 0, 'time': dt1}
+        expected_row2 = {'id': 1, 'time': dt2}
 
         groups = r.table('times').group('time').coerce_to('array').run(c)
-        self.assertEqual(groups, {dt1:[expected_row1],dt2:[expected_row2]})
+        self.assertEqual(groups, {dt1: [expected_row1], dt2: [expected_row2]})
 
 
 if __name__ == '__main__':

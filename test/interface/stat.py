@@ -35,7 +35,7 @@ with driver.Metacluster() as metacluster:
     host, port = driver.get_table_host(processes)
     access = http
 
-    invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]
+    invalid_requests = ["foo=bar", "filter=\|", "time0ut=1", "timeout=", "timeout=0"]
     for req in invalid_requests:
         failed = False
         try:

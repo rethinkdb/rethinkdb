@@ -10,8 +10,8 @@ tests = [
     'view-dashboard',
 ]
 
-git_root = subprocess.Popen(['git','rev-parse','--show-toplevel'],  stdout=subprocess.PIPE).communicate()[0].rstrip('\r\n')
-test_file_dir = os.path.join(git_root,'test/ui_test/')
+git_root = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'], stdout=subprocess.PIPE).communicate()[0].rstrip('\r\n')
+test_file_dir = os.path.join(git_root, 'test/ui_test/')
 cwd = os.getcwd()
 
 # Define and parse command-line arguments
@@ -79,7 +79,7 @@ for test_name in test_list:
         cl.extend(['--images=' + image_dir])
 
     # Execute casperjs and pretty-print its output
-    process = subprocess.Popen(cl,stdout=subprocess.PIPE)
+    process = subprocess.Popen(cl, stdout=subprocess.PIPE)
     stdout = process.stdout.readlines()
     for i, line in enumerate(stdout):
         cprint('[%s]' % test_name, attrs=['bold'], end=' ')
@@ -89,7 +89,7 @@ for test_name in test_list:
     if args.result_output_directory:
         result_dir = os.path.abspath(args.result_output_directory)
         result_filename = "casper-result_%s" % test_name
-        result_file = open(os.path.join(result_dir,result_filename),'w')
+        result_file = open(os.path.join(result_dir, result_filename), 'w')
         for line in stdout:
             result_file.write(line)
         result_file.close()

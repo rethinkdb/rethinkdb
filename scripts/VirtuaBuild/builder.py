@@ -130,7 +130,7 @@ else:
 
     print "Build summary:"
     from termcolor import colored
-    for name,val in success.iteritems():
+    for name, val in success.iteritems():
         print name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red")
         if (not val):
             print "Failed on: ", exception[name]

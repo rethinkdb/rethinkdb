@@ -118,7 +118,7 @@ class RethinkDBTestServer(object):
     def port_available(self, port):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind(("127.0.0.1",port))
+            s.bind(("127.0.0.1", port))
             s.close()
         except socket.error:
             return False

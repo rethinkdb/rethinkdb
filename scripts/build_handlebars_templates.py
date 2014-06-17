@@ -46,7 +46,7 @@ try:
     # Split all the html files by script tags.
     for root, dirnames, filenames in os.walk(HTML_INPUT_DIR):
         for filename in fnmatch.filter(filenames, "*.html"):
-            path = os.path.join(root,filename)
+            path = os.path.join(root, filename)
             with io.open(path, encoding='utf-8') as f:
                 text = f.read()
                 tmp_parts = split_by_script_tags(text)

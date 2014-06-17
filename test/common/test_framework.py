@@ -403,7 +403,7 @@ class TermView(TextView):
         self.printingQueue.put((args, kwargs))
 
     def close(self):
-        self.printingQueue.put(('EXIT',None))
+        self.printingQueue.put(('EXIT', None))
         self.thread.join()
 
     def run(self):

@@ -222,7 +222,7 @@ class SeedKeyGenerator(object):
     """SeedKeyGenerator determines the mapping from seeds to keys. Most Ops expect
     a SeedKeyGenerator."""
 
-    def __init__(self, shard=None, prefix="", keysize=(8,16)):
+    def __init__(self, shard=None, prefix="", keysize=(8, 16)):
         if shard is None:
             shard_id = shard_count = -1
         else:
@@ -342,7 +342,7 @@ class InsertOpGenerator(SimpleOpGenerator):
     5. A value size distribution, as a number or a tuple of (low, high)
     """
 
-    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8, 16)):
         SimpleOpGenerator.__init__(
             self, skgen, sch, vw, conn,
             libstress_op_generator_create_insert(
@@ -357,7 +357,7 @@ class UpdateOpGenerator(SimpleOpGenerator):
     key to be updated does not already exist. Its constructor has the same
     parameters."""
 
-    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8, 16)):
         SimpleOpGenerator.__init__(
             self, skgen, sch, vw, conn,
             libstress_op_generator_create_update(
@@ -394,7 +394,7 @@ class AppendPrependOpGenerator(SimpleOpGenerator):
        tuple of (low, high)
     """
 
-    def __init__(self, nops, skgen, sch, vw, conn, mode="append", size=(8,16)):
+    def __init__(self, nops, skgen, sch, vw, conn, mode="append", size=(8, 16)):
         if mode == "append": mode_int = 1
         elif mode == "prepend": mode_int = 0
         else: raise ValueError("'mode' should be 'append' or 'prepend'")
@@ -420,7 +420,7 @@ class PercentageRangeReadOpGenerator(SingleConnectionOpGenerator):
     PercentageRangeReadOpGenerator's constructor should be the same prefix you
     passed to the SeedKeyGenerator."""
 
-    def __init__(self, nops, conn, percentage=(10,50), limit=(16,128), prefix=""):
+    def __init__(self, nops, conn, percentage=(10, 50), limit=(16, 128), prefix=""):
         SingleConnectionOpGenerator.__init__(
             self, conn,
             libstress_op_generator_create_percentage_range_read(
@@ -448,7 +448,7 @@ class CalibratedRangeReadOpGenerator(SingleConnectionOpGenerator):
     pass to the CalibratedRangeReadOpGenerator constructor should be the same
     one passed to the SeedKeyGenerator."""
 
-    def __init__(self, nops, conn, rangesize=(10,50), limit=(16,128), prefix=""):
+    def __init__(self, nops, conn, rangesize=(10, 50), limit=(16, 128), prefix=""):
         SingleConnectionOpGenerator.__init__(
             self, conn,
             libstress_op_generator_create_calibrated_range_read(

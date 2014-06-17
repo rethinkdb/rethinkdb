@@ -28,7 +28,7 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
     num_rows = randint(1111, 2222)
 
     print "Inserting %d rows" % num_rows
-    documents = [{'id':i, 'nums':range(0, 500)} for i in xrange(0, num_rows)]
+    documents = [{'id': i, 'nums': range(0, 500)} for i in xrange(0, num_rows)]
     chunks = (documents[i: i + 100] for i in range(0, len(documents), 100))
     for chunk in chunks:
         tbl.insert(chunk).run(c)

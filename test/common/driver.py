@@ -315,9 +315,9 @@ class _Process(object):
             self.check()
             try:
                 log = open(self.logfile_path, 'r').read()
-                cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
-                http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
-                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)",log)
+                cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)", log)
+                http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)", log)
+                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)", log)
                 if cluster_ports == [] or http_ports == []:
                     time.sleep(1)
                 else:
@@ -408,9 +408,9 @@ class Process(_Process):
         self.local_cluster_port = 29015 + self.port_offset
 
         options = ["serve",
-                   "--directory",  self.files.db_path,
-                   "--port-offset",  str(self.port_offset),
-                   "--client-port",  str(self.local_cluster_port),
+                   "--directory", self.files.db_path,
+                   "--port-offset", str(self.port_offset),
+                   "--client-port", str(self.local_cluster_port),
                    "--cluster-port", "0",
                    "--driver-port", "0",
                    "--http-port", "0"
@@ -443,9 +443,9 @@ class ProxyProcess(_Process):
         self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",
-                   "--log-file",  self.logfile_path,
-                   "--port-offset",  str(self.port_offset),
-                   "--client-port",  str(self.local_cluster_port)
+                   "--log-file", self.logfile_path,
+                   "--port-offset", str(self.port_offset),
+                   "--client-port", str(self.local_cluster_port)
                    ] + extra_options
 
         _Process.__init__(

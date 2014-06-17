@@ -491,7 +491,7 @@ class LBASuperblockExtent(object):
 
     def print_html(self):
         
-        for child in sorted(self.children, lambda x,y: cmp(x.offset, y.offset)):
+        for child in sorted(self.children, lambda x, y: cmp(x.offset, y.offset)):
             child.chunk_print_html()
 
 class LBASuperblock(object):
@@ -622,7 +622,7 @@ class DataBlockExtent(object):
         self.children = set()
 
     def print_html(self):
-        for child in sorted(self.children, lambda x,y: cmp(x.offset, y.offset)):
+        for child in sorted(self.children, lambda x, y: cmp(x.offset, y.offset)):
             child.chunk_print_html()
 
 class DataBlock(object):

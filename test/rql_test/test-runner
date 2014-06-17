@@ -125,7 +125,7 @@ class RbLang(SrcLang):
 
     def dicttranslate(self, dic):
         # print dic
-        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\'\\1\'=>", dic)
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':", ":\'\\1\'=>", dic)
         dicnew = re.sub("\\\\n$", "\n", dicnew)
         # print dicnew
         return dicnew
@@ -229,7 +229,7 @@ class TestGroup:
             # - add the header/driver
 
             with open(os.path.join(os.path.dirname(__file__), 'drivers', 'driver.%s' % language)) as headerFile:
-                for chunk in iter((lambda:headerFile.read(1024)),''):
+                for chunk in iter((lambda: headerFile.read(1024)), ''):
                     outputFile.write(chunk)
 
             outputFile.write('\n\n')  # TODO: add a comment block showing the end of the header/driver
