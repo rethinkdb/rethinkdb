@@ -25,7 +25,7 @@ class RethinkDBTestServers(object):
 
     group_data_dir = None
     servers = None
-    
+
     def __init__(
             self, num_servers=4, server_build_dir=None, use_default_port=False,
             cache_size=1024, group_data_dir='./run'):
