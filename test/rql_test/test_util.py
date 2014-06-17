@@ -26,7 +26,9 @@ class RethinkDBTestServers(object):
     group_data_dir = None
     servers = None
     
-    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False, cache_size=1024, group_data_dir ='./run'):
+    def __init__(
+            self, num_servers=4, server_build_dir=None, use_default_port=False,
+            cache_size=1024, group_data_dir='./run'):
         assert num_servers >= 1
         self.num_servers = num_servers
         self.server_build_dir = server_build_dir
@@ -205,12 +207,27 @@ class RethinkDBTestServer(object):
 
 def shard_table(port, build, table_name):
     rtn_sum = 0
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc040800000000000\2333'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc048800000000000\2349'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc04f000000000000\2362'], stdout=null, stderr=null)
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc040800000000000\2333'
+        ],
+        stdout=null, stderr=null
+    )
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc048800000000000\2349'
+        ],
+        stdout=null, stderr=null
+    )
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc04f000000000000\2362'
+        ],
+        stdout=null, stderr=null
+    )
     sleep(3.0)
     return rtn_sum
 

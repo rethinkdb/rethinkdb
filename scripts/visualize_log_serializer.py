@@ -214,7 +214,8 @@ class Database(object):
         # Read the current LBA extent
 
         if lba_index_part.last_lba_extent_offset >= 0:
-            first_lba_extent = try_parse(self, lba_index_part.last_lba_extent_offset, self.extent_size, "LBA Extent", LBAExtent,
+            first_lba_extent = try_parse(
+                self, lba_index_part.last_lba_extent_offset, self.extent_size, "LBA Extent", LBAExtent,
                 lba_index_part.last_lba_extent_entries_count)
             first_lba_extent = try_store(first_lba_extent, self.add_extent)
         else:
@@ -226,8 +227,9 @@ class Database(object):
 
             size = lba_index_part.lba_superblock_entries_count * 16 + 1
             while size % self.device_block_size != 0: size += 1
-            
-            lba_superblock = try_parse(self, lba_index_part.lba_superblock_offset, size, "LBA Superblock", LBASuperblock,
+
+            lba_superblock = try_parse(
+                self, lba_index_part.lba_superblock_offset, size, "LBA Superblock", LBASuperblock,
                 lba_index_part.lba_superblock_entries_count)
             lba_superblock = try_store(lba_superblock, LBASuperblockExtent.store_superblock, self)
 
@@ -406,8 +408,9 @@ class Metablock(object):
                 assert mb.version > 0
             except Exception, e:
                 error2 = traceback.format_exc()
-                raise ValueError("Invalid metablock.\n\n" + \
-                    "Problem when trying to parse with markers:\n\n" + error1 + "\n" + \
+                raise ValueError(
+                    "Invalid metablock.\n\n" +
+                    "Problem when trying to parse with markers:\n\n" + error1 + "\n" +
                     "Problem when trying to parse without markers:\n\n" + error2)
 
         return Metablock(mb)
