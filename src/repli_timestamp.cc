@@ -12,9 +12,8 @@ void serialize(write_message_t *wm, repli_timestamp_t tstamp) {
     serialize<W>(wm, tstamp.longtime);
 }
 
-// RSI: Use v1_13_is_latest_version or something.
-template void serialize<cluster_version_t::v1_13>(write_message_t *wm,
-                                                  repli_timestamp_t tstamp);
+template void serialize<cluster_version_t::v1_13_is_latest>(write_message_t *wm,
+                                                            repli_timestamp_t tstamp);
 
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {

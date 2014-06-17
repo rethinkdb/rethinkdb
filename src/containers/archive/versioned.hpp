@@ -51,31 +51,26 @@ size_t serialized_size_for_version(cluster_version_t version,
     }
 }
 
-// RSI: use v1_13_is_latest_version or something, idk.
-#define INSTANTIATE_SERIALIZE_SINCE_v1_13(typ)          \
-    template void serialize<cluster_version_t::v1_13>(  \
+#define INSTANTIATE_SERIALIZE_SINCE_v1_13(typ)                 \
+    template void serialize<cluster_version_t::v1_13_is_latest>(  \
             write_message_t *, const typ &)
 
-// RSI: use v1_13_is_latest_version or something, idk.
 #define INSTANTIATE_DESERIALIZE_SINCE_v1_13(typ)                        \
-    template archive_result_t deserialize<cluster_version_t::v1_13>(    \
+    template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>( \
             read_stream_t *, typ *)
 
-// RSI: use v1_13_is_latest_version or something, idk.
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(typ) \
-    template size_t serialized_size<cluster_version_t::v1_13>(const typ &)
+    template size_t serialized_size<cluster_version_t::v1_13_is_latest>(const typ &)
 
 // RSI: Probably rename this?
-// RSI: use v1_13_is_latest_version or something, idk.
 #define INSTANTIATE_SINCE_v1_13(typ)            \
     INSTANTIATE_SERIALIZE_SINCE_v1_13(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v1_13(typ)
 
-// RSI: use v1_13_is_latest_version or something, idk.
 #define INSTANTIATE_SELF_SINCE_v1_13(typ)                               \
-    template void typ::rdb_serialize<cluster_version_t::v1_13>(         \
+    template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>( \
             write_message_t *) const;                                   \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13>( \
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>( \
             read_stream_t *s)
 
 

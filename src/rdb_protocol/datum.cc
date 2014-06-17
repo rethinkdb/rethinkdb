@@ -1400,7 +1400,6 @@ void serialize(write_message_t *wm,
     }
 }
 
-// RSI: use v1_13_is_latest_version or something, idk.
 INSTANTIATE_SERIALIZE_SINCE_v1_13(empty_ok_t<const counted_t<const datum_t> >);
 
 template <cluster_version_t W>
@@ -1422,8 +1421,7 @@ archive_result_t deserialize(read_stream_t *s,
     }
 }
 
-// RSI: Use v1_13_is_latest_version or something.
-template archive_result_t deserialize<cluster_version_t::v1_13>(
+template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(
         read_stream_t *s,
         empty_ok_ref_t<counted_t<const datum_t> > datum);
 

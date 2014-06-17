@@ -14,8 +14,6 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 """
 
-# RSI v1_13_is_latest_version, or something, I don't know.
-
 # RSI: Change RDB_IMPL_SERIALIZABLE_n to RDB_IMPL_SERIALIZABLE_n_SINCE_v1_13?
 def generate_make_serializable_macro(nfields):
     fields = "".join(", field%d" % (i + 1) for i in xrange(nfields))
@@ -38,8 +36,8 @@ def generate_make_serializable_macro(nfields):
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body"
     print "#define RDB_IMPL_SERIALIZABLE_%d(type_t%s) RDB_MAKE_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields, nfields, fields)
-    print "    template void serialize<cluster_version_t::v1_13>(write_message_t *, const type_t &); \\"
-    print "    template archive_result_t deserialize<cluster_version_t::v1_13>(read_stream_t *, type_t *)"
+    print "    template void serialize<cluster_version_t::v1_13_is_latest>(write_message_t *, const type_t &); \\"
+    print "    template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *, type_t *)"
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
@@ -79,8 +77,8 @@ def generate_impl_me_serializable_macro(nfields):
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
-    print "    template void typ::rdb_serialize<cluster_version_t::v1_13>(write_message_t *) const; \\"
-    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13>(read_stream_t *)"
+    print "    template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \\"
+    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)"
 
 if __name__ == "__main__":
 
