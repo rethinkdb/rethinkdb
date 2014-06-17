@@ -247,9 +247,10 @@ class PyTestDriver:
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                    (repr(err), repr(exp_val))
                 )
 
             return  # Can't continue with this test if there is no test query
@@ -265,18 +266,20 @@ class PyTestDriver:
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
-                        (repr(cppres), repr(exp_val))
+                    (repr(cppres), repr(exp_val))
                 )
 
         except Exception as err:
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), err.message))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                    (repr(err), repr(exp_val))
                 )
 
 driver = PyTestDriver()

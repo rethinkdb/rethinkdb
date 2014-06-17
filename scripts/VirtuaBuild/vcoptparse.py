@@ -98,7 +98,8 @@ class OptParser(object):
                 set_value(key, parser.positional(positionals))
 
         if positionals:
-            raise OptError("Unexpected extra positional argument(s): %s" % \
+            raise OptError(
+                "Unexpected extra positional argument(s): %s" %
                 ", ".join(repr(x) for x in positionals))
 
         # Apply defaults
@@ -186,7 +187,8 @@ class ValueFlag(Arg):
         args_gotten = 0
         try: value = args.pop(0)
         except IndexError:
-            raise OptError("Flag %r expects %d argument(s), but only got %d." % \
+            raise OptError(
+                "Flag %r expects %d argument(s), but only got %d." %
                 (flag, len(self.converters), args_gotten))
         try: value2 = self.converter(value)
         except OptError, e:
@@ -227,7 +229,8 @@ class MultiValueFlag(Arg):
         for converter in self.converters:
             try: value = args.pop(0)
             except IndexError:
-                raise OptError("Flag %r expects %d argument(s), but only got %d." % \
+                raise OptError(
+                    "Flag %r expects %d argument(s), but only got %d." %
                     (flag, len(self.converters), args_gotten))
             try: value2 = converter(value)
             except OptError, e:

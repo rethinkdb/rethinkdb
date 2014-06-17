@@ -197,7 +197,8 @@ class Database(object):
         assert extent.name.endswith("Extent")
 
         if extent.offset % self.extent_size != 0:
-            raise ValueError("Misaligned extent: 0x%x is not a multiple of 0x%x." % \
+            raise ValueError(
+                "Misaligned extent: 0x%x is not a multiple of 0x%x." %
                 (extent.offset, self.extent_size))
 
         if extent.offset in self.extents:

@@ -215,7 +215,8 @@ class Files(object):
         else:
             self.machine_name = machine_name
 
-        create_args = command_prefix + [executable_path, "create",
+        create_args = command_prefix + [
+            executable_path, "create",
             "--directory", self.db_path,
             "--machine-name", self.machine_name]
 
@@ -415,7 +416,8 @@ class Process(_Process):
                    "--http-port", "0"
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options,
+        _Process.__init__(
+            self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
 
 class ProxyProcess(_Process):
@@ -446,7 +448,8 @@ class ProxyProcess(_Process):
                    "--client-port",  str(self.local_cluster_port)
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options,
+        _Process.__init__(
+            self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
 
 if __name__ == "__main__":

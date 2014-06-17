@@ -43,7 +43,7 @@ class RethinkDBTestServers(object):
 
     def start(self):
         self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port, self.cache_size, self.group_data_dir)
-                            for i in xrange(0, self.num_servers)]
+                        for i in xrange(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
         for server in self.servers[1:]:

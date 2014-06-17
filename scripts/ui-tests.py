@@ -16,19 +16,24 @@ cwd = os.getcwd()
 
 # Define and parse command-line arguments
 parser = argparse.ArgumentParser(description='Run a set of UI tests using CasperJS / PhantomJS.')
-parser.add_argument('tests', nargs='*', 
-        help='List of tests to run. Specify \'all\' to run all tests.')
-parser.add_argument('-p','--rdb-port', nargs='?', 
-        dest='rdb_port', default='6001',
-        help='Port of the RethinkDB server to connect to (default is 6001).')
-parser.add_argument('-i','--output-images', nargs='?', 
-        dest='image_output_directory', const='./casper-results',
-        help='Include if images should be scraped and saved. Optionally specify the output directory (default is ./casper-results/).')
-parser.add_argument('-l','--list-tests', action='store_true',
-        help='List available tests to run.')
-parser.add_argument('-r','--output-results', nargs='?',
-        dest='result_output_directory', const='./casper-results',
-        help='Include if test results should be saved. Optionally specify the output directory (default is ./casper-results/).')
+parser.add_argument(
+    'tests', nargs='*',
+    help='List of tests to run. Specify \'all\' to run all tests.')
+parser.add_argument(
+    '-p', '--rdb-port', nargs='?',
+    dest='rdb_port', default='6001',
+    help='Port of the RethinkDB server to connect to (default is 6001).')
+parser.add_argument(
+    '-i', '--output-images', nargs='?',
+    dest='image_output_directory', const='./casper-results',
+    help='Include if images should be scraped and saved. Optionally specify the output directory (default is ./casper-results/).')
+parser.add_argument(
+    '-l', '--list-tests', action='store_true',
+    help='List available tests to run.')
+parser.add_argument(
+    '-r', '--output-results', nargs='?',
+    dest='result_output_directory', const='./casper-results',
+    help='Include if test results should be saved. Optionally specify the output directory (default is ./casper-results/).')
 args = parser.parse_args()
 
 def print_available_tests():

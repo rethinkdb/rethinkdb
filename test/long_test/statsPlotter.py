@@ -36,13 +36,16 @@ class Plot(object):
         zipped_stats = zip(all_stats, all_stats[1:])
         plot_instructions = ['-k', self.name, self.plot_style]
 
-        tplot = Popen(['tplot',
-            '-if', '-',
-            '-o', '/dev/stdout',
-            '-of', 'png',
-            '-tf', 'num',
-            '-or', '1024x%d' % (Plot.single_plot_height),
-            ] + plot_instructions, stdin=PIPE, stdout=PIPE)
+        tplot = Popen(
+            [
+                'tplot',
+                '-if', '-',
+                '-o', '/dev/stdout',
+                '-of', 'png',
+                '-tf', 'num',
+                '-or', '1024x%d' % (Plot.single_plot_height),
+            ] + plot_instructions,
+            stdin=PIPE, stdout=PIPE)
 
         for stats_pair in zipped_stats:
             val = self.plotter(stats_pair)

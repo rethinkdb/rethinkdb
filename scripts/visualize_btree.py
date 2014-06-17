@@ -186,7 +186,8 @@ class BtreeLargeValueSuperblock(object):
 
         size2, offset = parse_uint32_t(block, offset)
         if size2 != size:
-            raise ValueError("Leaf node said this large block was %d bytes, but the index block " \
+            raise ValueError(
+                "Leaf node said this large block was %d bytes, but the index block "
                 "says it's %d bytes." % (size, size2))
 
         num_segments, offset = parse_uint16_t(block, offset)

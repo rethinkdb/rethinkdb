@@ -159,7 +159,8 @@ class PlotConfigureHandler(PlotTemplate):
 class PlotGeneratorHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
-        pass_values = [("name", name),
+        pass_values = [
+            ("name", name),
             ("start_timestamp", self.get_argument("start_timestamp")),
             ("end_timestamp", self.get_argument("end_timestamp")),
             ("run", self.get_argument("run")),

@@ -216,9 +216,10 @@ def stress_controller(options):
 
     # Register interrupt, now that we're spawning client processes
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: interrupt_handler(a, b,
-                                                               exit_event,
-                                                               parent_pid))
+    signal.signal(
+        signal.SIGINT,
+        lambda a, b: interrupt_handler(a, b, exit_event, parent_pid)
+    )
 
     child_procs.extend(spawn_clients(options,
                                      start_event,

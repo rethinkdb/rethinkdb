@@ -47,7 +47,8 @@ class SubProcess(object):
 
         self.valgrind_tool = valgrind_tool
         if valgrind_tool is not None:
-            cmd_line = ["valgrind",
+            cmd_line = [
+                "valgrind",
                 "--log-file=%s" % test_dir.make_file(output_path + ".valgrind"),
                 "--tool=%s" % valgrind_tool,
                 "--error-exitcode=%d" % valgrind_error_code]
@@ -68,7 +69,8 @@ class SubProcess(object):
             self.output_path = test_dir.make_file(output_path)
             subprocess_stdout = file(self.output_path, "w")
 
-        self.sub = subprocess.Popen(command_line,
+        self.sub = subprocess.Popen(
+            command_line,
             stdout=subprocess_stdout, stderr=subprocess.STDOUT)
 
     def verify(self):
@@ -77,16 +79,20 @@ class SubProcess(object):
             return   # All is well
 
         if res == 0:
-            raise RuntimeError("%r shut down without being asked to, but return code was 0." % \
+            raise RuntimeError(
+                "%r shut down without being asked to, but return code was 0." %
                 self.summary)
         elif self.valgrind_tool is not None and res == valgrind_error_code:
-            raise RuntimeError("%r terminated unexpectedly with Valgrind errors. Output is at %r." % \
+            raise RuntimeError(
+                "%r terminated unexpectedly with Valgrind errors. Output is at %r." %
                 (self.summary, self.output_path))
         elif res > 0:
-            raise RuntimeError("%r terminated unexpectedly with return code %d. Output is at %r." % \
+            raise RuntimeError(
+                "%r terminated unexpectedly with return code %d. Output is at %r." %
                 (self.summary, res, self.output_path))
         elif res < 0:
-            raise RuntimeError("%r terminated unexpectedly with signal %s. Output is at %r." % \
+            raise RuntimeError(
+                "%r terminated unexpectedly with signal %s. Output is at %r." %
                 (self.summary, signal_with_number(-res), self.output_path))
 
     def interrupt(self, timeout = 5):
@@ -116,16 +122,20 @@ class SubProcess(object):
                 pass
 
         if res is None:
-            raise RuntimeError("%r took more than %d seconds to shut down. Output is at %r." % \
+            raise RuntimeError(
+                "%r took more than %d seconds to shut down. Output is at %r." %
                 (self.summary, timeout, self.output_path))
         elif self.valgrind_tool is not None and res == valgrind_error_code:
-            raise RuntimeError("Valgrind reported errors in %r. Output is at %r." % \
+            raise RuntimeError(
+                "Valgrind reported errors in %r. Output is at %r." %
                 (self.summary, self.output_path))
         elif res > 0:
-            raise RuntimeError("%r exited with exit status %d. Output is at %r." % \
+            raise RuntimeError(
+                "%r exited with exit status %d. Output is at %r." %
                 (self.summary, res, self.output_path))
         elif res < 0:
-            raise RuntimeError("%r exited with signal %s. Output is at %r." % \
+            raise RuntimeError(
+                "%r exited with signal %s. Output is at %r." %
                 (self.summary, signal_with_number(-res), self.output_path))
 
     def kill(self):

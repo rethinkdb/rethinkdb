@@ -79,7 +79,8 @@ def distr_get(distr, i):
             isinstance(distr[0], (int, float)) and isinstance(distr[1], (int, float)):
         return distr[i]
     else:
-        raise ValueError("Distribution should be either a number or a 2-element tuple. "
+        raise ValueError(
+            "Distribution should be either a number or a 2-element tuple. "
             "Instead got %r." % distr)
 
 def distr_min(distr):
@@ -147,7 +148,8 @@ class OpGenerator(object):
         samples_count = ctypes.c_int(100)
         samples = (ctypes.c_float * samples_count.value)()
 
-        libstress_op_generator_poll(self._opg,
+        libstress_op_generator_poll(
+            self._opg,
             ctypes.byref(queries),
             ctypes.byref(worst_latency),
             ctypes.byref(samples_count),
@@ -341,7 +343,8 @@ class InsertOpGenerator(SimpleOpGenerator):
     """
 
     def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_insert(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -355,7 +358,8 @@ class UpdateOpGenerator(SimpleOpGenerator):
     parameters."""
 
     def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_update(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -371,7 +375,8 @@ class DeleteOpGenerator(SimpleOpGenerator):
     """
 
     def __init__(self, nops, skgen, sch, vw, conn):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_delete(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -393,7 +398,8 @@ class AppendPrependOpGenerator(SimpleOpGenerator):
         if mode == "append": mode_int = 1
         elif mode == "prepend": mode_int = 0
         else: raise ValueError("'mode' should be 'append' or 'prepend'")
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_append_prepend(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -415,7 +421,8 @@ class PercentageRangeReadOpGenerator(SingleConnectionOpGenerator):
     passed to the SeedKeyGenerator."""
 
     def __init__(self, nops, conn, percentage=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOpGenerator.__init__(self, conn,
+        SingleConnectionOpGenerator.__init__(
+            self, conn,
             libstress_op_generator_create_percentage_range_read(
                 nops, conn._connection,
                 distr_min(percentage), distr_max(percentage),
@@ -442,7 +449,8 @@ class CalibratedRangeReadOpGenerator(SingleConnectionOpGenerator):
     one passed to the SeedKeyGenerator."""
 
     def __init__(self, nops, conn, rangesize=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOpGenerator.__init__(self, conn,
+        SingleConnectionOpGenerator.__init__(
+            self, conn,
             libstress_op_generator_create_calibrated_range_read(
                 nops, conn._connection,
                 distr_min(rangesize), distr_max(rangesize),

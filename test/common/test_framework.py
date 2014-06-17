@@ -599,12 +599,14 @@ class TestProcess(object):
         elif self.process.is_alive():
             self.terminate()
             self.terminate_thread.join()
-            self.write_fail_message("Test failed to exit after timeout of %d seconds"
-                                        % (self.timeout,))
+            self.write_fail_message(
+                "Test failed to exit after timeout of %d seconds" %
+                (self.timeout,))
             self.runner.tell(TestRunner.FAILED, self.id, self)
         elif self.process.exitcode:
-            self.write_fail_message("Test exited abnormally with error code %d"
-                                        % (self.process.exitcode,))
+            self.write_fail_message(
+                "Test exited abnormally with error code %d" %
+                (self.process.exitcode,))
             self.runner.tell(TestRunner.FAILED, self.id, self)
         else:
             try:
@@ -642,8 +644,9 @@ class TestProcess(object):
             self.gracefull_kill = True
         if self.terminate_thread:
             return
-        self.terminate_thread = threading.Thread(target=self.terminate_thorough,
-                                  name='terminate:'+self.name)
+        self.terminate_thread = threading.Thread(
+            target=self.terminate_thorough,
+            name='terminate:' + self.name)
         self.terminate_thread.start()
 
     def pid(self):

@@ -10,7 +10,8 @@ def random_key(opts):
     # this as a subroutine but wants to make sure that random keys don't collide with other random
     # keys.
     suf = opts.get("keysuffix", "")
-    return "".join(random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
+    return "".join(
+        random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
         for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):

@@ -146,19 +146,27 @@ def test_basic_auth():
     url = 'http://httpbin.org/basic-auth/azure/hunter2'
 
     # Wrong password
-    expect_error(r.http(url, auth={'type':'basic','user':'azure','pass':'wrong'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'basic', 'user': 'azure', 'pass': 'wrong'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Wrong username
-    expect_error(r.http(url, auth={'type':'basic','user':'fake','pass':'hunter2'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'basic', 'user': 'fake', 'pass': 'hunter2'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Wrong authentication type
-    expect_error(r.http(url, auth={'type':'digest','user':'azure','pass':'hunter2'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'digest', 'user': 'azure', 'pass': 'hunter2'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Correct credentials
-    res = r.http(url, auth={'type':'basic','user':'azure','pass':'hunter2'}).run(conn)
+    res = r.http(
+        url, auth={'type': 'basic', 'user': 'azure', 'pass': 'hunter2'}
+    ).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
     # Default auth type should be basic
@@ -171,9 +179,13 @@ def test_digest_auth():
     url = 'http://httpbin.org/digest-auth/auth/azure/hunter2'
 
     # Wrong password
-    expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-                        auth={'type':'digest','user':'azure','pass':'wrong'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(
+            url, header={'Cookie': 'dummy'}, redirects=5,
+            auth={'type': 'digest', 'user': 'azure', 'pass': 'wrong'}
+        ),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # httpbin apparently doesn't check the username, just the password
     # Wrong username
@@ -188,8 +200,10 @@ def test_digest_auth():
     #              r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
-    res = r.http(url, header={'Cookie':'dummy'}, redirects=5,
-                 auth={'type':'digest','user':'azure','pass':'hunter2'}).run(conn)
+    res = r.http(
+        url, header={'Cookie': 'dummy'}, redirects=5,
+        auth={'type': 'digest', 'user': 'azure', 'pass': 'hunter2'}
+    ).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
 def test_verify():
