@@ -5,7 +5,7 @@ import _mysql
 from datetime import datetime
 from subprocess import Popen, PIPE
 
-def simple_plotter(name, multiplier = 1):
+def simple_plotter(name, multiplier=1):
     return lambda (old, new): new[name] * multiplier if name in new and new[name] else None
 
 def differential_plotter(name):
