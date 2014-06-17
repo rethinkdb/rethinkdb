@@ -347,7 +347,7 @@ class TestGroup:
         elif 'ot' in obj:
             expected = obj['ot']
             if isinstance(expected, dict):
-                if expected.has_key(lang):
+                if lang in expected:
                     expected = expected[lang]
                 elif 'cd' not in expected:
                     raise Exception('There was not an expected value for language %s' % lang)

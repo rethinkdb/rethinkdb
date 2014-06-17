@@ -716,7 +716,7 @@ class TestFilter(object):
                 type = self.EXCLUDE
             else:
                 type = self.INCLUDE
-            if groups.has_key(arg):
+            if arg in groups:
                 group = self.parse(groups[arg], groups, group=arg)
                 filter.combine(type, group)
             else:
@@ -892,7 +892,7 @@ class TestTree(Test):
         return count
 
     def has_test(self, name):
-        return self.tests.has_key(name)
+        return name in self.tests
 
 # Used with `--load' to load old test results
 def load_test_results_as_tests(path):
