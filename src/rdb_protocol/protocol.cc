@@ -154,6 +154,7 @@ void bring_sindexes_up_to_date(
      * and perfmon_collection, so that is important. */
     auto_drainer_t::lock_t store_drainer_acq(&store->drainer);
 
+    // TODO: This can now be a disk_backed_queue_t<rdb_modification_report_t>.
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,
