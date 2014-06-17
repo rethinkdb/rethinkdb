@@ -230,8 +230,12 @@ struct serialized_size_t;
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
+//
+// serialize_universal and deserialize_universal are functions whose behavior must
+// never change: if you want to serialize values differently, make a different
+// function.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
-    inline void serialize_raw(write_message_t *wm, typ x) {             \
+    inline void serialize_universal(write_message_t *wm, typ x) {       \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -241,11 +245,11 @@ struct serialized_size_t;
     }                                                                   \
     template <cluster_version_t W>                                      \
     void serialize(write_message_t *wm, typ x) {                        \
-        serialize_raw(wm, x);                                           \
+        serialize_universal(wm, x);                                     \
     }                                                                   \
                                                                         \
     inline MUST_USE archive_result_t                                    \
-    deserialize_raw(read_stream_t *s, typ *x) {                         \
+    deserialize_universal(read_stream_t *s, typ *x) {                   \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -265,7 +269,7 @@ struct serialized_size_t;
                                                                         \
     template <cluster_version_t W>                                      \
     MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) {   \
-        return deserialize_raw(s, x);                                   \
+        return deserialize_universal(s, x);                             \
     }                                                                   \
                                                                         \
     template <>                                                         \
