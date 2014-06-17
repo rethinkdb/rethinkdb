@@ -490,7 +490,7 @@ class ClusterAccess(object):
     def remove_table_shard(self, table, split_point):
         table = self.find_table(table)
         table.remove_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid ,), table.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid,), table.shards_to_json())
         self.update_cluster_data(10)
 
     def change_table_shards(self, table, adds=[], removes=[]):

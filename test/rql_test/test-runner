@@ -117,7 +117,7 @@ class RbLang(SrcLang):
         if isinstance(val, types.StringType):
             return self.rb_str_repr(val)
         elif isinstance(val, types.UnicodeType):
-            return re.sub("\\$","\\$", repr(val)[1:]) # Get rid of the 'u'
+            return re.sub("\\$", "\\$", repr(val)[1:])  # Get rid of the 'u'
         elif isinstance(val, types.BooleanType):
             return ("true" if val else "false")
         else:
