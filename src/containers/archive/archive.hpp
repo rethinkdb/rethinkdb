@@ -195,23 +195,18 @@ empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
 template <class T>
 struct serialized_size_t;
 
-// Keep in sync with serialized_size_t defined below.
-#define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)   \
-    template <cluster_version_t W>                         \
-    void serialize(write_message_t *wm, typ1 x) {          \
-        union {                                            \
-            typ2 v;                                        \
-            char buf[sizeof(typ2)];                        \
-        } u;                                               \
-        u.v = static_cast<typ2>(x);                        \
-        wm->append(u.buf, sizeof(typ2));                   \
-    }
-
-
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
-    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
+    template <cluster_version_t W>                                      \
+    void serialize(write_message_t *wm, typ1 x) {                       \
+        union {                                                         \
+            typ2 v;                                                     \
+            char buf[sizeof(typ2)];                                     \
+        } u;                                                            \
+        u.v = static_cast<typ2>(x);                                     \
+        wm->append(u.buf, sizeof(typ2));                                \
+    }                                                                   \
                                                                         \
     template <cluster_version_t W>                                      \
     inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ1 *x) { \
@@ -236,7 +231,15 @@ struct serialized_size_t;
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
 // raw over the wire.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
-    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
+    template <cluster_version_t W>                                      \
+    void serialize(write_message_t *wm, typ x) {                        \
+        union {                                                         \
+            typ v;                                                      \
+            char buf[sizeof(typ)];                                      \
+        } u;                                                            \
+        u.v = x;                                                        \
+        wm->append(u.buf, sizeof(typ));                                 \
+    }                                                                   \
                                                                         \
     template <cluster_version_t W>                                      \
     inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) { \
