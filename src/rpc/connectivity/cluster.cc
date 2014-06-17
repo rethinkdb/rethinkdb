@@ -247,12 +247,12 @@ connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_
     guarantee(!send_mutex.is_locked());
 }
 
-static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
     rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_connect(peer);
 }
 
-static void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
     rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_disconnect(peer);
 }
@@ -450,7 +450,7 @@ private:
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
 template <class T>
-static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
+bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
     // RSI: ONLY_VERSION here?  Again, wrong.
     archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(c, p);
     switch (res) {
@@ -497,7 +497,7 @@ bool deserialize_universal_and_check(tcp_conn_stream_t *c,
 
 // Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
 //  available to write into
-static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
+bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
     int64_t r = conn->read(buffer, size);
     if (-1 == r) {
         logWRN("Network error while receiving clustering header from %s, closing connection.", peer);
@@ -512,9 +512,9 @@ static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t siz
 }
 
 // Reads a uint64_t for size, then the string data
-static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
-                                          std::string *str_out,
-                                          const char *peer) {
+bool deserialize_compatible_string(tcp_conn_stream_t *conn,
+                                   std::string *str_out,
+                                   const char *peer) {
     uint64_t raw_size;
     archive_result_t res = deserialize_universal(conn, &raw_size);
     if (res != archive_result_t::SUCCESS) {
