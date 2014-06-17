@@ -139,8 +139,11 @@ void kv_location_set(keyvalue_location_t *kv_location,
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
         // RSI: Uh.  What version to use here?
-        serialize_onto_blob<cluster_version_t::ONLY_VERSION>(
-                buf_parent_t(&kv_location->buf), &blob, data);
+        serialize_for_version_onto_blob(
+                cluster_version_t::ONLY_VERSION,
+                buf_parent_t(&kv_location->buf),
+                &blob,
+                data);
     }
 
     if (mod_info_out) {
