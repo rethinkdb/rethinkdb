@@ -87,8 +87,9 @@ public:
     virtual ~deserializing_viewer_t() { }
 
     virtual void view_buffer_group(const const_buffer_group_t *group) {
-        // RSI: We assume here that _other_ code uses LATEST.  We should
-        // instead templatize this type.
+        // TODO: We assume here that _other_ code uses LATEST.  That's just in
+        // btree_store.cc though, because it uses an internal_disk_backed_queue_t,
+        // because it was templatized on protocol_t before.
         deserialize_from_group<cluster_version_t::LATEST>(group, value_out_);
     }
 
@@ -107,7 +108,7 @@ public:
     void push(const T &t) {
         // TODO: There's an unnecessary copying of data here (which would require a
         // serialization_size overloaded function to be implemented in order to eliminate).
-        // RSI: We have such a serialization_size function.
+        // TODO: We have such a serialization_size function.
         write_message_t wm;
         serialize<cluster_version_t::LATEST>(&wm, t);
         internal_.push(wm);
