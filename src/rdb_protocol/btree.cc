@@ -1057,7 +1057,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 
     // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
-    serialize<cluster_version_t::LATEST_VERSION>(&wm, mod_report);
+    serialize<cluster_version_t::LATEST>(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
@@ -1087,10 +1087,10 @@ void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
     // RSI: Figure out what this is about.  What is it serialized towards?  (RSI:
-    // Just use serialize<cluster_version_t::LATEST_VERSION> in the latter two.)
-    serialize<cluster_version_t::ONLY_VERSION>(wm, cluster_version_t::LATEST_VERSION);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+    // Just use serialize<cluster_version_t::LATEST> in the latter two.)
+    serialize<cluster_version_t::ONLY_VERSION>(wm, cluster_version_t::LATEST);
+    serialize_for_version(cluster_version_t::LATEST, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,

@@ -99,7 +99,7 @@ js_result_t js_job_t::eval(const std::string &source) {
     js_task_t task = js_task_t::TASK_EVAL;
     write_message_t wm;
     wm.append(&task, sizeof(task));
-    serialize<cluster_version_t::LATEST_VERSION>(&wm, source);
+    serialize<cluster_version_t::LATEST>(&wm, source);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
@@ -107,7 +107,7 @@ js_result_t js_job_t::eval(const std::string &source) {
 
     js_result_t result;
     archive_result_t res
-        = deserialize<cluster_version_t::LATEST_VERSION>(extproc_job.read_stream(),
+        = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
         throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
@@ -120,8 +120,8 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     js_task_t task = js_task_t::TASK_CALL;
     write_message_t wm;
     wm.append(&task, sizeof(task));
-    serialize<cluster_version_t::LATEST_VERSION>(&wm, id);
-    serialize<cluster_version_t::LATEST_VERSION>(&wm, args);
+    serialize<cluster_version_t::LATEST>(&wm, id);
+    serialize<cluster_version_t::LATEST>(&wm, args);
     {
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
@@ -129,7 +129,7 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
 
     js_result_t result;
     archive_result_t res
-        = deserialize<cluster_version_t::LATEST_VERSION>(extproc_job.read_stream(),
+        = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
                                                          &result);
     if (bad(res)) {
         throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
@@ -142,7 +142,7 @@ void js_job_t::release(js_id_t id) {
     js_task_t task = js_task_t::TASK_RELEASE;
     write_message_t wm;
     wm.append(&task, sizeof(task));
-    serialize<cluster_version_t::LATEST_VERSION>(&wm, id);
+    serialize<cluster_version_t::LATEST>(&wm, id);
     int res = send_write_message(extproc_job.write_stream(), &wm);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 }
@@ -177,7 +177,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                 std::string source;
                 {
                     archive_result_t res
-                        = deserialize<cluster_version_t::LATEST_VERSION>(stream_in,
+                        = deserialize<cluster_version_t::LATEST>(stream_in,
                                                                          &source);
                     if (bad(res)) { return false; }
                 }
@@ -192,7 +192,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                 }
 
                 write_message_t wm;
-                serialize<cluster_version_t::LATEST_VERSION>(&wm, js_result);
+                serialize<cluster_version_t::LATEST>(&wm, js_result);
                 int res = send_write_message(stream_out, &wm);
                 if (res != 0) { return false; }
             }
@@ -203,9 +203,9 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                 std::vector<counted_t<const ql::datum_t> > args;
                 {
                     archive_result_t res
-                        = deserialize<cluster_version_t::LATEST_VERSION>(stream_in, &id);
+                        = deserialize<cluster_version_t::LATEST>(stream_in, &id);
                     if (bad(res)) { return false; }
-                    res = deserialize<cluster_version_t::LATEST_VERSION>(stream_in, &args);
+                    res = deserialize<cluster_version_t::LATEST>(stream_in, &args);
                     if (bad(res)) { return false; }
                 }
 
@@ -219,7 +219,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                 }
 
                 write_message_t wm;
-                serialize<cluster_version_t::LATEST_VERSION>(&wm, js_result);
+                serialize<cluster_version_t::LATEST>(&wm, js_result);
                 int res = send_write_message(stream_out, &wm);
                 if (res != 0) { return false; }
             }
@@ -228,7 +228,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
             {
                 js_id_t id;
                 archive_result_t res
-                    = deserialize<cluster_version_t::LATEST_VERSION>(stream_in, &id);
+                    = deserialize<cluster_version_t::LATEST>(stream_in, &id);
                 if (bad(res)) { return false; }
                 js_env.release(id);
             }

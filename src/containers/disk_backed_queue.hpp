@@ -89,9 +89,9 @@ public:
     virtual ~deserializing_viewer_t() { }
 
     virtual void view_buffer_group(const const_buffer_group_t *group) {
-        // RSI: We assume here that _other_ code uses LATEST_VERSION.  We should
+        // RSI: We assume here that _other_ code uses LATEST.  We should
         // instead templatize this type.
-        deserialize_from_group<cluster_version_t::LATEST_VERSION>(group, value_out_);
+        deserialize_from_group<cluster_version_t::LATEST>(group, value_out_);
     }
 
 private:
@@ -110,10 +110,10 @@ public:
         // TODO: There's an unnecessary copying of data here (which would require a
         // serialization_size overloaded function to be implemented in order to eliminate).
         // RSI: We have such a serialization_size function.
-        // RSI: LATEST_VERSION?  Who are we to assume this is correct or wanted?
+        // RSI: LATEST?  Who are we to assume this is correct or wanted?
         // (RSI: Double-check that _all_ disk backed queues are ephemeral.)
         write_message_t wm;
-        serialize<cluster_version_t::LATEST_VERSION>(&wm, t);
+        serialize<cluster_version_t::LATEST>(&wm, t);
         internal_.push(wm);
     }
 

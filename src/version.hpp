@@ -9,9 +9,8 @@ enum class cluster_version_t {
     // that implements serialization.
     v1_13 = 0,
 
-    // RSI: Rename to LATEST.
     // See CLUSTER_VERSION, which should always be the latest version.
-    LATEST_VERSION = v1_13,
+    LATEST = v1_13,
 
     // ONLY_VERSION should only exist as long as there's only one version.  A few
     // assertions check it -- that code should be fixed to explicitly handle multiple

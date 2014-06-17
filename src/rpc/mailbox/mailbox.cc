@@ -145,7 +145,7 @@ void mailbox_manager_t::on_local_message(peer_id_t source_peer,
                                          cluster_version_t cluster_version,
                                          std::vector<char> &&data) {
     // This is only sensible:
-    rassert(cluster_version == cluster_version_t::LATEST_VERSION);
+    rassert(cluster_version == cluster_version_t::LATEST);
 
     vector_read_stream_t stream(std::move(data));
 
