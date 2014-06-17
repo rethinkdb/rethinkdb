@@ -43,7 +43,6 @@ private:
     DISABLE_COPYING(buffer_group_write_stream_t);
 };
 
-// RSI: Does anybody use this?
 template <cluster_version_t W, class T>
 void deserialize_from_group(const const_buffer_group_t *group, T *value_out) {
     buffer_group_read_stream_t stream(group);
