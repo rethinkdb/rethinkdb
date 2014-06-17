@@ -45,10 +45,10 @@ def check_pp(src, query):
     # But it will at least make sure that we don't crash when trying to print a query
     printer = r.errors.QueryPrinter(query)
     composed = printer.print_query()
-    #if composed != src:
-    #    print('Warning, pretty printing inconsistency:')
-    #    print("Source code: %s", src)
-    #    print("Printed query: %s", composed)
+    # if composed != src:
+    #     print('Warning, pretty printing inconsistency:')
+    #     print("Source code: %s", src)
+    #     print("Printed query: %s", composed)
 
 class Lst:
     def __init__(self, lst):
@@ -214,8 +214,8 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
-        #print 'Connecting to JS server on port ' + str(JSPORT)
-        #self.js_conn = r.connect(host='localhost', port=JSPORT)
+        # print 'Connecting to JS server on port ' + str(JSPORT)
+        # self.js_conn = r.connect(host='localhost', port=JSPORT)
 
         print('Connecting to CPP server on port ' + str(CPPPORT))
         print('')

@@ -32,12 +32,12 @@ def gen_doc(size_doc, i):
 
 def gen_num_docs(size_doc):
     if size_doc == "small":
-        #335.000 fits in memory for the table with the small cache
-        #21.000.000 fits in memory for the table with the big cache
+        # 335.000 fits in memory for the table with the small cache
+        # 21.000.000 fits in memory for the table with the big cache
         return 1000000
     else:
-        #1000 fits in memory for the table with the small cache
-        #58000 fits in memory for the table with the big cache
+        # 1000 fits in memory for the table with the small cache
+        # 58000 fits in memory for the table with the big cache
         return 30000
 
 def compare(new_results, previous_results):

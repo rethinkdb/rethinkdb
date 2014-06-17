@@ -50,10 +50,10 @@ class RDBStat():
 
         # assert self.limits
 
-        #send the stat request
+        # send the stat request
         self.socket.send("rdb stats\r\n")
 
-        #recv the response
+        # recv the response
         data = ''
         while True:
             try:

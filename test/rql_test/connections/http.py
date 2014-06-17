@@ -177,15 +177,15 @@ def test_digest_auth():
 
     # httpbin apparently doesn't check the username, just the password
     # Wrong username
-    #expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-    #                    auth={'type':'digest','user':'fake','pass':'hunter2'}),
-    #             r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    # expect_error(r.http(url, header={'Cookie': 'dummy'}, redirects=5,
+    #                     auth={'type': 'digest', 'user': 'fake', 'pass': 'hunter2'}),
+    #              r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # httpbin has a 500 error on this
     # Wrong authentication type
-    #expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-    #                    auth={'type':'basic','user':'azure','pass':'hunter2'}),
-    #             r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    # expect_error(r.http(url, header={'Cookie': 'dummy'}, redirects=5,
+    #                     auth={'type': 'basic', 'user': 'azure', 'pass': 'hunter2'}),
+    #              r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
     res = r.http(url, header={'Cookie':'dummy'}, redirects=5,

@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-#these colors will all look good on a white background (taken from colourlovers.org)
+# these colors will all look good on a white background (taken from colourlovers.org)
 colors = [
     '#9F111B',  # redder state
     '#A8D46F',  # and trembling hands

@@ -85,8 +85,8 @@ elif opts["tag"]:
 else:
     rspec = vm_build.Branch("master")
 
-#Prepare the build flags
-flags = "" #this will be given to the makefile
+# Prepare the build flags
+flags = ""  # this will be given to the makefile
 if opts["debug"]:
     flags += " DEBUG=1 UNIT_TESTS=0"
 else:

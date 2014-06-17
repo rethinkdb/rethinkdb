@@ -3,7 +3,7 @@
 import array
 import random
 
-#p is the probability of flipping a bit
+# p is the probability of flipping a bit
 def corrupt(filename, p):
 
     if p == 0.0:
