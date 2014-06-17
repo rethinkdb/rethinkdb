@@ -40,7 +40,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         buf_write_t sb_write(&superblock);
         btree_slice_t::init_superblock(&superblock,
-                                       std::vector<char>(), std::vector<char>());
+                                       std::vector<char>(), binary_blob_t());
     }
 
     order_source_t order_source;
