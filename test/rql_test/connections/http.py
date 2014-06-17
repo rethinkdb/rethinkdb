@@ -126,7 +126,7 @@ def test_delete():
 
 def test_redirects():
     url = 'httpbin.org/redirect/2'
-    expect_error(r.http(url),
+    expect_error(r.http(url, redirects=0),
                  r.RqlRuntimeError, err_string('GET', url, 'status code 302'))
     expect_error(r.http(url, redirects=1),
                  r.RqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
