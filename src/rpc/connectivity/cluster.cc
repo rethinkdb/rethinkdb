@@ -16,6 +16,7 @@
 #include "concurrency/semaphore.hpp"
 #include "config/args.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
@@ -450,9 +451,9 @@ private:
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
 template <class T>
-bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
-    // RSI: ONLY_VERSION here?  Again, wrong.
-    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(c, p);
+bool deserialize_and_check(cluster_version_t cluster_version,
+                           tcp_conn_stream_t *c, T *p, const char *peer) {
+    archive_result_t res = deserialize_for_version(cluster_version, c, p);
     switch (res) {
     case archive_result_t::SUCCESS:
         return false;
@@ -824,16 +825,16 @@ void connectivity_cluster_t::run_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         {
-            // RSI: ONLY_VERSION?  We need a way to do this... appropriately.
             write_message_t wm;
-            serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
+            serialize_for_version(resolved_version, &wm, routing_table_to_send);
             if (send_write_message(conn, &wm)) {
                 return;         // network error
             }
         }
 
         /* Receive the follower's routing table */
-        if (deserialize_and_check(conn, &other_routing_table, peername)) {
+        if (deserialize_and_check(resolved_version, conn,
+                                  &other_routing_table, peername)) {
             return;
         }
 
@@ -841,7 +842,8 @@ void connectivity_cluster_t::run_t::handle(
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        if (deserialize_and_check(conn, &other_routing_table, peername)) {
+        if (deserialize_and_check(resolved_version, conn,
+                                  &other_routing_table, peername)) {
             return;
         }
 
@@ -855,9 +857,8 @@ void connectivity_cluster_t::run_t::handle(
 
         /* Send our routing table to the leader */
         {
-            // RSI: ONLY_VERSION??  Do this appropriately.
             write_message_t wm;
-            serialize<cluster_version_t::ONLY_VERSION>(&wm, routing_table_to_send);
+            serialize_for_version(resolved_version, &wm, routing_table_to_send);
             if (send_write_message(conn, &wm)) {
                 return;         // network error
             }
@@ -1005,6 +1006,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
+    // RSI: Yeah, uh, no.
     const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
 
     /* We currently write the message to a vector_stream_t, then
