@@ -45,11 +45,9 @@ public:
     internal_disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
 
-    // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t &value);
     void push(const scoped_array_t<write_message_t> &values);
 
-    // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(buffer_group_viewer_t *viewer);
 
     bool empty();
@@ -110,8 +108,6 @@ public:
         // TODO: There's an unnecessary copying of data here (which would require a
         // serialization_size overloaded function to be implemented in order to eliminate).
         // RSI: We have such a serialization_size function.
-        // RSI: LATEST?  Who are we to assume this is correct or wanted?
-        // (RSI: Double-check that _all_ disk backed queues are ephemeral.)
         write_message_t wm;
         serialize<cluster_version_t::LATEST>(&wm, t);
         internal_.push(wm);
