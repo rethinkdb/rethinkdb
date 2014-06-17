@@ -60,7 +60,7 @@ class StdListPrinter:
         elif self.typename == "std::__debug::list":
             nodetype = gdb.lookup_type('std::__norm::_List_node<%s>' % itype).pointer()
         else:
-            raise ValueError, "Cannot cast list node for list printer."
+            raise ValueError("Cannot cast list node for list printer.")
         return self._iterator(nodetype, self.val['_M_impl']['_M_node'])
 
     def to_string(self):
@@ -84,7 +84,7 @@ class StdListIteratorPrinter:
         elif self.typename == "std::__norm::_List_iterator" or self.typename == "std::__norm::_List_const_iterator":
             nodetype = gdb.lookup_type('std::__norm::_List_node<%s>' % itype).pointer()
         else:
-            raise ValueError, "Cannot cast list node for list iterator printer."
+            raise ValueError("Cannot cast list node for list iterator printer.")
         return self.val['_M_node'].cast(nodetype).dereference()['_M_data']
 
 class StdSlistPrinter:
