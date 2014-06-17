@@ -14,7 +14,6 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 """
 
-# RSI: Change RDB_IMPL_SERIALIZABLE_n to RDB_IMPL_SERIALIZABLE_n_SINCE_v1_13?
 def generate_make_serializable_macro(nfields):
     fields = "".join(", field%d" % (i + 1) for i in xrange(nfields))
     print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
