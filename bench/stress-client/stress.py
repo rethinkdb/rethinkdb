@@ -413,7 +413,7 @@ class PercentageRangeReadOpGenerator(SingleConnectionOpGenerator):
     3. The maximum number of keys to request at a time, as a number or as a
        distribution of (low, high)
     4. Optionally, a prefix to put on the keys
-    PercentageRangeReadOpGenerator assumes that the database has been populated 
+    PercentageRangeReadOpGenerator assumes that the database has been populated
     by keys from one or more SeedKeyGenerators. The prefix you pass to
     PercentageRangeReadOpGenerator's constructor should be the same prefix you
     passed to the SeedKeyGenerator."""

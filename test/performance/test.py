@@ -405,7 +405,7 @@ def save_compare_results():
     for root, directories, files in os.walk("results/"):
         for filename in files:
             # Join the two strings in order to form the full filepath.
-            filepath = os.path.join(root, filename) 
+            filepath = os.path.join(root, filename)
             file_paths.append(filepath)  # Add it to the list.
 
     # Sort files, we just need the last one (the most recent one)

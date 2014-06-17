@@ -186,7 +186,7 @@ class Database(object):
             self.metablock = None
 
         # Fill in empty extents with placeholders
-        
+
         for offset in xrange(0, max(self.extents.keys()) + 1, self.extent_size):
             if offset not in self.extents:
                 self.add_extent(GoodChunk(offset, self.extent_size, "Unused Extent", UnusedExtent()))
@@ -484,7 +484,7 @@ class LBASuperblockExtent(object):
         self.children = set()
 
     def print_html(self):
-        
+
         for child in sorted(self.children, lambda x, y: cmp(x.offset, y.offset)):
             child.chunk_print_html()
 

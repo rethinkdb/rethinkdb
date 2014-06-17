@@ -46,7 +46,7 @@ def latest_build_dir(check_executable=True):
         raise test_exceptions.NotBuiltException(detail='no version of this project have yet been built')
 
     # -- find the build directory with the most recent mtime
-    
+
     canidatePath = None
     canidateMtime = None
     for name in os.listdir(masterBuildDir):
