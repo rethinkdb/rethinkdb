@@ -189,7 +189,7 @@ std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_reg
                 const std::vector<inner_region_t> lr_inner =
                     region_subtract_many(m->inner, s_vec);
 
-                for (auto it = w_inner.begin(); it != w_inner.end(); ++it) {
+                for (auto it = lr_inner.begin(); it != lr_inner.end(); ++it) {
                     temp_result_buf.push_back(
                         hash_region_t<inner_region_t>(isect_beg, isect_end, *it));
                 }
