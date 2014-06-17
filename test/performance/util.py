@@ -43,7 +43,7 @@ def gen_num_docs(size_doc):
 def compare(new_results, previous_results):
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
 
-    f = open("comparisons/comparison_"+str_date+".html", "w")
+    f = open("comparisons/comparison_" + str_date + ".html", "w")
     f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body>")
     if "hash" in previous_results:
         f.write("Previous hash: " + previous_results["hash"] + "<br/>")
