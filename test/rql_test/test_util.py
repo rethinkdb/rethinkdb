@@ -57,7 +57,7 @@ class RethinkDBTestServers(object):
         self.clear_data()
 
     def clear_data(self):
-        pass # TODO: figure out when to clear the data
+        pass  # TODO: figure out when to clear the data
 
     def restart(self, clear_data=False):
         self.stop()
@@ -164,7 +164,7 @@ class RethinkDBTestServer(object):
         self.server_data_dir = os.path.join(self.group_data_dir, 'server_%s' % self.driver_port)
         self.rdbfile_path = os.path.join(self.server_data_dir, 'rdb')
         
-        if os.path.exists(self.server_data_dir): # we need a clean data directory TODO: evaluate moving this to a tempfile folder
+        if os.path.exists(self.server_data_dir):  # we need a clean data directory TODO: evaluate moving this to a tempfile folder
             # TODO: log that we are cleaning off this directory
             if os.path.isdir(self.server_data_dir) and not os.path.islink(self.server_data_dir):
                 shutil.rmtree(self.server_data_dir)

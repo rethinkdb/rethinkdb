@@ -55,7 +55,7 @@ class Plot(object):
 
 class DBPlot(Plot):
     def __init__(self, run, start_timestamp, end_timestamp, name, plot_style, plotter):
-        self.db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        self.db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest")  # TODO
         stats = self.load_stats_from_db(run, start_timestamp, end_timestamp)
         self.db_conn.close()
 
@@ -66,18 +66,18 @@ class DBPlot(Plot):
         end_timestamp = self.db_conn.escape_string(end_timestamp)
         self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run) )
         result = self.db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         last_ts = -1
         stats = []
         current_sample = {}
         for row in rows:
             if row[0] != last_ts and len(current_sample) > 0:
-                stats.append(current_sample) # Store the previous sample
+                stats.append(current_sample)  # Store the previous sample
                 current_sample = {}
             current_sample[row[1]] = float(row[2])
             last_ts = row[0]
 
         if len(current_sample) > 0:
-            stats.append(current_sample) # Store the last sample
+            stats.append(current_sample)  # Store the last sample
 
         return stats

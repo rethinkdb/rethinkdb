@@ -34,10 +34,10 @@ class PlotSelectHandler(PlotTemplate):
 
         self.write('<tr><td>Name of plot:</td><td><input name="name" value="plot"></td></tr>')
         self.write('<tr><td>Test run:</td><td><select name="run">')
-        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest")  # TODO
         db_conn.query("SELECT `run` FROM `stats` GROUP BY `run` ORDER BY `run` DESC")
         result = db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         for row in rows:
             run_timestamp = int(row[0])
             self.write('<option value="%d">%s</option>' % (run_timestamp, str(datetime.datetime.fromtimestamp(run_timestamp))))
@@ -92,10 +92,10 @@ class PlotConfigureHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
         run = self.get_argument("run")
-        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest")  # TODO
         db_conn.query("SELECT `timestamp` FROM `stats` WHERE `run` = '%s' ORDER BY `timestamp` DESC LIMIT 1" % db_conn.escape_string(run))
         result = db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         latest_timestamp = int(rows[0][0])
         db_conn.close()
         end_timestamp = str(int(latest_timestamp) - int(float(self.get_argument("end_hours")) * 3600.0))
@@ -150,7 +150,7 @@ class PlotConfigureHandler(PlotTemplate):
                 ("start_timestamp", start_timestamp),
                 ("run", run),
                 ("end_timestamp", end_timestamp)]:
-            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value) ); # Cross site scripting vulnerability! ;-)
+            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value));  # Cross site scripting vulnerability! ;-)
         self.write('<br><input type="submit" value="Generate">')
         self.write('</form>')
 

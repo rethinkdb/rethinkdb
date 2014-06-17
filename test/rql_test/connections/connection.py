@@ -110,7 +110,7 @@ class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServe
 
 class TestTimeout(unittest.TestCase):
     def setUp(self):
-        import random # importing here to avoid issue #2343
+        import random  # importing here to avoid issue #2343
         self.timeout = 0.5
         self.port = random.randint(1025, 65535)
 
@@ -303,7 +303,7 @@ class TestConnection(TestWithConnection):
 
         r.expr(1).run()
 
-        c.repl() # is idempotent
+        c.repl()  # is idempotent
 
         r.expr(1).run()
 

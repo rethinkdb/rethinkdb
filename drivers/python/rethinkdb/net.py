@@ -13,7 +13,7 @@ from rethinkdb import ql2_pb2 as p
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from rethinkdb import repl # For the repl connection
+from rethinkdb import repl  # For the repl connection
 from rethinkdb.errors import *
 from rethinkdb.ast import RqlQuery, DB, recursively_convert_pseudotypes
 
@@ -255,7 +255,7 @@ class Connection(object):
 
                 # The first 8 bytes given the corresponding query token of this response
                 # The next 4 bytes give the expected length of this response
-                (response_token,response_len,) = struct.unpack("<qL", response_header)
+                (response_token, response_len,) = struct.unpack("<qL", response_header)
 
                 while len(response_buf) < response_len:
                     chunk = self._sock_recv(response_len - len(response_buf))

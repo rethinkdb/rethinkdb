@@ -15,7 +15,7 @@ class StatsDBCollector(object):
         self.monitoring = []
         self.db_conn.query("SELECT `name` FROM `stat_names`")
         result = self.db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         for row in rows:
             self.monitoring.append(row[0])
 
@@ -32,7 +32,7 @@ class StatsDBCollector(object):
             ts = time.time()
             for k in self.monitoring:
                 if k in stats:
-                    self.insert_stat(ts, k, stats[k]) # TODO: Use timestamp from stats
+                    self.insert_stat(ts, k, stats[k])  # TODO: Use timestamp from stats
 
 
         self.opts = opts

@@ -11,11 +11,11 @@ from vcoptparse import *
 op = OptParser()
 op["num_keys"] = IntFlag("--num-keys", 500)
 op["mode"] = StringFlag("--mode", "debug")
-op["pkg_type"] = StringFlag("--pkg-type", "deb") # "deb" or "rpm"
+op["pkg_type"] = StringFlag("--pkg-type", "deb")  # "deb" or "rpm"
 opts = op.parse(sys.argv)
 
 num_keys = opts["num_keys"]
-base_port = 11213 # port that RethinkDB runs from by default
+base_port = 11213  # port that RethinkDB runs from by default
 
 if opts["pkg_type"] == "rpm":
     def install(path):
@@ -160,7 +160,7 @@ for path in res_paths:
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
 
-    timeout = 60 # 1 minute to shut down
+    timeout = 60  # 1 minute to shut down
     time_limit = time.time() + timeout
     while proc.poll() is None and time.time() < time_limit:
         pass

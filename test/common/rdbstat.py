@@ -68,7 +68,7 @@ class RDBStat():
                 self.keep_going = False
                 return
 
-        assert data #make sure the server actually gave us back something
+        assert data  # make sure the server actually gave us back something
 
         data = data.splitlines()
         data.reverse()

@@ -118,7 +118,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = None #err_frames # TODO: test frames
+        self.frames = None  # err_frames # TODO: test frames
         self.regex = regex
 
     def __eq__(self, other):
@@ -252,7 +252,7 @@ class PyTestDriver:
                         (repr(err), repr(exp_val))
                 )
 
-            return # Can't continue with this test if there is no test query
+            return  # Can't continue with this test if there is no test query
 
         # Check pretty-printing
         check_pp(src, query)

@@ -342,7 +342,7 @@ def read_json_array(json_data, file_in, callback, progress_info):
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if json_data[offset] == "]": # End of JSON
+            if json_data[offset] == "]":  # End of JSON
                 break
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
@@ -440,7 +440,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
                 raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, file_line))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
-            for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
+            for key in list(obj.iterkeys()):  # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
@@ -480,7 +480,7 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         else:
             raise RuntimeError("Error: Unknown file format specified")
     except InterruptedError:
-        pass # Don't save interrupted errors, they are side-effects
+        pass  # Don't save interrupted errors, they are side-effects
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
@@ -529,7 +529,7 @@ def spawn_import_clients(options, files_info):
     client_procs = []
 
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
         progress_info = []
@@ -548,8 +548,8 @@ def spawn_import_clients(options, files_info):
             client_procs[-1].start()
 
         for file_info in files_info:
-            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1), # Current lines/bytes processed
-                                  multiprocessing.Value(ctypes.c_longlong, 0))) # Total lines/bytes to process
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),  # Current lines/bytes processed
+                                  multiprocessing.Value(ctypes.c_longlong, 0)))  # Total lines/bytes to process
             reader_procs.append(multiprocessing.Process(target=table_reader,
                                                         args=(options,
                                                               file_info,
@@ -672,7 +672,7 @@ def import_directory(options):
                 if len(split_file) != 2 or split_file[1] not in ["json", "csv", "info"]:
                     files_ignored.append(os.path.join(root, f))
                 elif split_file[1] == "info":
-                    pass # Info files are included based on the data files
+                    pass  # Info files are included based on the data files
                 elif not os.access(os.path.join(root, split_file[0] + ".info"), os.F_OK):
                     files_ignored.append(os.path.join(root, f))
                 else:

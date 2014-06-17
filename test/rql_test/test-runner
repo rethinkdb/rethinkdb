@@ -90,7 +90,7 @@ class JsLang(SrcLang):
         if isinstance(val, types.StringType):
             return repr(val)
         elif isinstance(val, types.UnicodeType):
-            return repr(val)[1:] # Get rid of the 'u'
+            return repr(val)[1:]  # Get rid of the 'u'
         elif isinstance(val, types.BooleanType):
             return ("true" if val else "false")
         else:
@@ -488,12 +488,12 @@ def cleanup(*args):
 
     for processGroupId in runningProcessGroupsIds:
         try:
-            os.killpg(processGroupId, signal.SIGKILL) # TODO: police this
+            os.killpg(processGroupId, signal.SIGKILL)  # TODO: police this
         except: pass
     if len(args) == 2 and args[0] == signal.SIGINT:
-        sys.exit(130) # standard signal.SIGINT exit code
+        sys.exit(130)  # standard signal.SIGINT exit code
 atexit.register(cleanup)
-signal.signal(signal.SIGINT, cleanup) # TODO: cover all relevent signals
+signal.signal(signal.SIGINT, cleanup)  # TODO: cover all relevent signals
 
 def main():
     global runningProcessGroups
@@ -690,8 +690,8 @@ def main():
                 if options.cluster_port is not None:
                     sys.exit('Internal failure: we somehow lost track of the already running server!')
                 servers = test_util.RethinkDBTestServers(num_servers=1, server_build_dir=build_directory)
-                servers.start() # TODO: handle server failures
-            
+                servers.start()  # TODO: handle server failures
+
             # --
 
             additionalArguments = ['UNUSED', str(servers.driver_port()), str(servers.cluster_port()), servers.executable()]
@@ -734,7 +734,7 @@ def main():
             outputChannel = None
             if testProcessGroupId is not None:
                 try:
-                    os.killpg(testProcessGroupId, signal.CTRL_C_EVENT) # TODO: police this
+                    os.killpg(testProcessGroupId, signal.CTRL_C_EVENT)  # TODO: police this
                 except: pass
             if testProcessGroupId in runningProcessGroupsIds:
                 runningProcessGroupsIds.remove(testProcessGroupId)

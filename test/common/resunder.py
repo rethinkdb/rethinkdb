@@ -105,8 +105,8 @@ class Daemon:
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
             sys.stderr.write(message % self.pidfile)
-            return # not an error in a restart
- 
+            return  # not an error in a restart
+
         # Try killing the daemon process
         try:
             # first attempt to shutdown the daemon by issuing a shutdown command
@@ -145,8 +145,8 @@ class ResunderDaemon(Daemon):
         listener = socket.socket()
         listener.bind(("localhost", 46594))
         listener.listen(3)
-        listener.settimeout(3600) # Wake up every hour to clear out old rules
-        self.blocked_ports = { }
+        listener.settimeout(3600)  # Wake up every hour to clear out old rules
+        self.blocked_ports = {}
         while True:
             try:
                 client, addr = listener.accept()
@@ -173,7 +173,7 @@ class ResunderDaemon(Daemon):
                 unblock = []
                 for source_port, dest_map in self.blocked_ports.iteritems():
                     for dest_port, creation_time in dest_map.iteritems():
-                        if creation_time < time.time() - 864000: # find and remove rules older than 10 days
+                        if creation_time < time.time() - 864000:  # find and remove rules older than 10 days
                             unblock.append((source_port, dest_port))
                 for block in unblock:
                     self.unblock_port(block[0], block[1])

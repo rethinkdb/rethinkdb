@@ -48,11 +48,11 @@ tables = [
 ]
 
 # We execute each query for 60 seconds or 1000 times, whatever comes first
-time_per_query = 60 # 1 minute max per query
-executions_per_query = 1000 # 1000 executions max per query
+time_per_query = 60  # 1 minute max per query
+executions_per_query = 1000  # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
-results = {} # Save the time per query (average, min, max etc.)
+results = {}  # Save the time per query (average, min, max etc.)
 connection = None
 
 def run_tests(build="../../build/release", data_dir='./'):
@@ -221,7 +221,7 @@ def execute_read_write_queries(suffix):
                 "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
-            i -= 1 # We need i in write_queries[p]["clean"] (to revert only the document we updated)
+            i -= 1  # We need i in write_queries[p]["clean"] (to revert only the document we updated)
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
@@ -411,7 +411,7 @@ def save_compare_results():
     # Sort files, we just need the last one (the most recent one)
     file_paths.sort()
     if len(file_paths) > 1:
-        last_file = file_paths[-2] #The last file is the one we just saved
+        last_file = file_paths[-2]  # The last file is the one we just saved
 
         f = open(last_file, "r")
         previous_results = json.loads(f.read())

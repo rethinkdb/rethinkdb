@@ -2,7 +2,7 @@
 import os, sys
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg') # can't use tk since we don't have X11
+mpl.use('Agg')  # can't use tk since we don't have X11
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.font_manager as fm
@@ -128,7 +128,7 @@ class TimeSeriesCollection():
             print "Processing failed on %s" % file_name
             return self
 
-        return self #this just lets you do initialization in one line
+        return self  # this just lets you do initialization in one line
 
     def copy(self):
         copy = self.__class__()
@@ -200,22 +200,22 @@ class TimeSeriesCollection():
 
         # Hacky workaround in the case that a run had no data.
         for x in self.data.values():
-            if len(x) == 0: x.extend([0,0])
+            if len(x) == 0: x.extend([0, 0])
 
         if not large:
-            font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size='small', fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
             mpl.rcParams['ytick.major.pad'] = 4
             mpl.rcParams['lines.linewidth'] = 1
         else:
-            font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size=36, fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 5
 
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
-        ax = plt.axes([0.12,0.12,0.85,0.85])
+        ax = plt.axes([0.12, 0.12, 0.85, 0.85])
 
         data = map(lambda x: x[1], self.data.iteritems())
         mean = stats.mean(map(lambda x: x, reduce(lambda x, y: x + y, data)))
@@ -244,13 +244,13 @@ class TimeSeriesCollection():
             plt.legend(map(lambda x: x[0], hists), labels, loc=1, prop = font)
         
         if not large:
-            fig.set_size_inches(5,3.7)
+            fig.set_size_inches(5, 3.7)
             fig.set_dpi(90)
             plt.savefig(out_fname, bbox_inches="tight")
         else:
             ax.yaxis.LABELPAD = 40
             ax.xaxis.LABELPAD = 40
-            fig.set_size_inches(20,14.8)
+            fig.set_size_inches(20, 14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
 
@@ -263,19 +263,19 @@ class TimeSeriesCollection():
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
-            font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size='small', fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
             mpl.rcParams['ytick.major.pad'] = 4
             mpl.rcParams['lines.linewidth'] = 1
         else:
-            font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size=36, fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 5
 
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
-        ax = plt.axes([0.13,0.12,0.85,0.85])
+        ax = plt.axes([0.13, 0.12, 0.85, 0.85])
         labels = []
         color_index = 0
         for series, series_data in self.data.iteritems():
@@ -283,7 +283,7 @@ class TimeSeriesCollection():
                 data_to_use = normalize(series_data)
             else:
                 data_to_use = series_data
-            #labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index]), series, 'bo'))
+            # labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index]), series, 'bo'))
             labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index], linestyle="None", marker="."), series, 'bo'))
 
             color_index += 1
@@ -294,32 +294,32 @@ class TimeSeriesCollection():
             tick.label1.set_fontproperties(font)
 
         ax.yaxis.set_major_formatter(queries_formatter)
-        ax.set_ylabel('Queries', fontproperties = font)
-        ax.set_xlabel('Time (seconds)', fontproperties = font)
+        ax.set_ylabel('Queries', fontproperties=font)
+        ax.set_xlabel('Time (seconds)', fontproperties=font)
 
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
             ax.set_ylim(0, 1.2)
         else:
-            reduced_list = reduce(lambda x,y: x + y, self.data.values())
-            max_relevant_value = max(reduced_list[(len(reduced_list) / 10):]) # Ignore first 10% of the data for ylim calculation, as they might contain high peaks
+            reduced_list = reduce(lambda x, y: x + y, self.data.values())
+            max_relevant_value = max(reduced_list[(len(reduced_list) / 10):])  # Ignore first 10% of the data for ylim calculation, as they might contain high peaks
             ax.set_ylim(0, 1.2 * max_relevant_value)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
 
         if not large:
-            fig.set_size_inches(5,3.7)
+            fig.set_size_inches(5, 3.7)
             fig.set_dpi(90)
             plt.savefig(out_fname, bbox_inches="tight")
         else:
             ax.yaxis.LABELPAD = 40
             ax.xaxis.LABELPAD = 40
-            fig.set_size_inches(20,14.8)
+            fig.set_size_inches(20, 14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
 
     # This is from http://code.activestate.com/recipes/511478/
-    def percentile(self, N, percent, key=lambda x:x):
+    def percentile(self, N, percent, key=lambda x: x):
         """
         Find the percentile of a list of values.
 
@@ -396,21 +396,21 @@ class ScatterCollection():
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
-            font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size='small', fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
             mpl.rcParams['ytick.major.pad'] = 4
             mpl.rcParams['lines.linewidth'] = 1
         else:
-            font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size=36, fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 5
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
-        ax = plt.axes([0.13,0.12,0.85,0.85])
+        ax = plt.axes([0.13, 0.12, 0.85, 0.85])
         labels = []
         color_index = 0
-        for series,series_data in self.data.iteritems():
+        for series, series_data in self.data.iteritems():
             x_values = []
             y_values = []
             for (x_value, y_value) in series_data:
@@ -446,17 +446,17 @@ class ScatterCollection():
         else:
             ax.set_ylim(0, 1.2 * max_y_value)
         ax.grid(True)
-        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
-        fig.set_size_inches(5,3.7)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop=font)
+        fig.set_size_inches(5, 3.7)
 
         if not large:
-            fig.set_size_inches(5,3.7)
+            fig.set_size_inches(5, 3.7)
             fig.set_dpi(90)
             plt.savefig(out_fname, bbox_inches="tight")
         else:
             ax.yaxis.LABELPAD = 40
             ax.xaxis.LABELPAD = 40
-            fig.set_size_inches(20,14.8)
+            fig.set_size_inches(20, 14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
 
@@ -474,13 +474,13 @@ class SubplotCollection():
         # Set the margins for the plot to ensure a minimum of whitespace
         labels = []
         color_index = 0
-        for series,series_data in subplot.data.iteritems():
+        for series, series_data in subplot.data.iteritems():
             y_values = []
             for y_value in series_data:
                 # max_y_value = max(max_y_value, y_value)
                 y_values.append(y_value)
-            #if normalize:
-            #    y_values = normalize(y_values)
+            # if normalize:
+            #     y_values = normalize(y_values)
 
             labels.append((ax.plot(range(len(series_data)), y_values, colors[color_index]), series))
             color_index += 1
@@ -488,18 +488,18 @@ class SubplotCollection():
         # Hide the x and y tick labels, but keep the actual ticks
         ax.set_xticklabels([])
         ax.set_yticklabels([])
-        #for tick in ax.xaxis.get_major_ticks():
-        #    tick.label1.set_fontproperties(font)
-        #for tick in ax.yaxis.get_major_ticks():
-        #   #tick.label1.set_fontproperties(font)
+        # for tick in ax.xaxis.get_major_ticks():
+        #     tick.label1.set_fontproperties(font)
+        # for tick in ax.yaxis.get_major_ticks():
+        #     tick.label1.set_fontproperties(font)
 
         # ax.yaxis.set_major_formatter(queries_formatter)
 
         ax.set_xlim(0, len(subplot.data[subplot.data.keys()[0]]) - 1)
-        #if normalize:
-        #    ax.set_ylim(0, 1.0)
-        #else:
-        #    ax.set_ylim(0, max_y_value)
+        # if normalize:
+        #     ax.set_ylim(0, 1.0)
+        # else:
+        #     ax.set_ylim(0, max_y_value)
         ax.grid(True)
 
     # Plots a given set of subplots onto a figure
@@ -508,14 +508,14 @@ class SubplotCollection():
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x * 1e-3))
         if not large:
-            font = fm.FontProperties(family=['sans-serif'],size='xx-small',fname=FONT_FILE)
-            ax_label_font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size='xx-small', fname=FONT_FILE)
+            ax_label_font = fm.FontProperties(family=['sans-serif'], size='small', fname=FONT_FILE)
 #            mpl.rcParams['xtick.major.pad'] = 4
 #            mpl.rcParams['ytick.major.pad'] = 4
             mpl.rcParams['lines.linewidth'] = 1
         else:
-            font = fm.FontProperties(family=['sans-serif'],size='medium',fname=FONT_FILE)
-            ax_label_font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            font = fm.FontProperties(family=['sans-serif'], size='medium', fname=FONT_FILE)
+            ax_label_font = fm.FontProperties(family=['sans-serif'], size=36, fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 3
@@ -531,10 +531,10 @@ class SubplotCollection():
 
         # x_title_ax and y_title_ax are empty plots to ensure we always have a common x and y axis label for all subplots
         # We have to hide the grid, ticks, and border, so only the labels remain.
-        x_title_ax = plt.subplot(gs_wrapper[1,:])
-        x_title_ax.set_xlabel('Times (seconds)', fontproperties = ax_label_font)
-        y_title_ax = plt.subplot(gs_wrapper[0,0])
-        y_title_ax.set_ylabel('Queries', fontproperties = ax_label_font) 
+        x_title_ax = plt.subplot(gs_wrapper[1, :])
+        x_title_ax.set_xlabel('Times (seconds)', fontproperties=ax_label_font)
+        y_title_ax = plt.subplot(gs_wrapper[0, 0])
+        y_title_ax.set_ylabel('Queries', fontproperties=ax_label_font)
         for title_ax in [x_title_ax, y_title_ax]:
             title_ax.grid(False)
             title_ax.set_xticks([])
@@ -546,7 +546,7 @@ class SubplotCollection():
                 tick.set_visible(False)
 
         # This GridSpec defines the layout of the subplots
-        gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0,1])
+        gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0, 1])
 #        gs = gridspec.GridSpec(subplot_dim, subplot_dim)
 
         # Sort the data keys so that the subplots display in order.
@@ -557,25 +557,25 @@ class SubplotCollection():
             for j in range(subplot_dim):
                 subplot_num = i * subplot_dim + j
                 if subplot_num < num_subplots:
-                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[sorted_data_keys[subplot_num]], queries_formatter, font)
-        
+                    self.plot_subplot(plt.subplot(gs[i, j]), self.data[sorted_data_keys[subplot_num]], queries_formatter, font)
+
         if not large:
-            fig.set_size_inches(5,3.7)
+            fig.set_size_inches(5, 3.7)
             fig.set_dpi(90)
             plt.savefig(out_fname, bbox_inches="tight")
         else:
-            #ax.yaxis.LABELPAD = 40
-            #ax.xaxis.LABELPAD = 40
-            fig.set_size_inches(20,14.8)
+            # ax.yaxis.LABELPAD = 40
+            # ax.xaxis.LABELPAD = 40
+            fig.set_size_inches(20, 14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
 
 class TimeSeriesMeans():
     def __init__(self, TimeSeriesCollections):
-        TS = reduce(lambda x,y: x + y, TimeSeriesCollections)
+        TS = reduce(lambda x, y: x + y, TimeSeriesCollections)
         series_means = means(TS.data.values())
         names = {}
-        for i,key in zip(range(len(TS.data.keys())), TS.data.keys()):
+        for i, key in zip(range(len(TS.data.keys())), TS.data.keys()):
             names[i] = key
 
         self.scatter = Scatter(zip(range(len(series_means)), series_means), names)
@@ -583,8 +583,8 @@ class TimeSeriesMeans():
     def __str__(self):
         return self.scatter.__str__() + self.TimeSeriesCollections.__str__()
 
-#A few useful derivation functions
-#take discret derivative of a series (shorter by 1)
+# A few useful derivation functions
+# take discret derivative of a series (shorter by 1)
 def differentiate(series):
     # series will be a tuple
     series = series[0]
@@ -597,7 +597,7 @@ def differentiate(series):
 def difference(serieses):
     assert serieses[0].units == serieses[1].units
     res = TimeSeries(serieses[0].units)
-    for x,y in zip(serieses[0], serieses[1]):
+    for x, y in zip(serieses[0], serieses[1]):
         res.append(x - y)
 
     return res
@@ -613,14 +613,14 @@ def slide(serieses):
 
 def ratio(serieses):
     res = TimeSeries(serieses[0].units + '/' + serieses[1].units)
-    for x,y in zip(serieses[0], serieses[1]):
+    for x, y in zip(serieses[0], serieses[1]):
         if y == 0:
             res += [None]
         else:
             res += [float(x) / float(y)]
     return res
 
-#report the means of a list of runs
+# report the means of a list of runs
 def means(serieses):
     res = []
     for series in serieses:
@@ -740,7 +740,7 @@ class RDBStats(TimeSeriesCollection):
                 res[match['name']] += [match['value']]
 
             m = take(self.end_line, data)
-	    if m == False: # Incomplete stats, might happen if monitor was killes while retrieving stats response
+        if m == False:  # Incomplete stats, might happen if monitor was killes while retrieving stats response
                 break
 
             if res:
@@ -749,7 +749,7 @@ class RDBStats(TimeSeriesCollection):
         return res
 
     def process(self):
-        differences = [('io_reads_completed', 'io_reads_started'), 
+        differences = [('io_reads_completed', 'io_reads_started'),
                        ('io_writes_started', 'io_writes_completed')]
         ratios = [('conns_reading_total', 'conns_total'),
                   ('conns_writing_total', 'conns_total'),
@@ -795,7 +795,7 @@ class RDBStats(TimeSeriesCollection):
 
         self.drop(keys_to_drop)
 
-ncolumns = 37 #TODO man this is awful
+ncolumns = 37 # TODO man this is awful
 class RunStats(TimeSeriesCollection):
     name_line = line("^" + "([\#\d_]+)[\t\n]+"* ncolumns, [('col%d' % i, 's') for i in range(ncolumns)])
     data_line = line("^" + "(\d+)[\t\n]+"* ncolumns, [('col%d' % i, 'd') for i in range(ncolumns)])

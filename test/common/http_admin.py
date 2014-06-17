@@ -478,7 +478,7 @@ class ClusterAccess(object):
         info = self.do_query("POST", "/ajax/semilattice/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
         # Remove the conflict and update the field in the target
         self.conflicts.remove(conflict)
-        setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
+        setattr(conflict.target, conflict.field, value)  # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
         self.update_cluster_data(10)
 
     def add_table_shard(self, table, split_point):

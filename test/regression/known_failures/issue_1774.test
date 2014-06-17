@@ -67,7 +67,7 @@ class WaitForTable(utils.PerformContinuousAction):
 # - start filling the table
 
 fillTableProcess = FillTable(connection=r.connect(host=server.host, port=server.driver_port))
-time.sleep(3) # give it a moment to have something
+time.sleep(3)  # give it a moment to have something
 
 # - start reading the table
 
@@ -93,7 +93,7 @@ else:
 
 # -- wind down the processes
 
-time.sleep(1) # another second to add more data
+time.sleep(1)  # another second to add more data
 
 fillTableProcess.stop()
 readTableProcess.stop()

@@ -122,7 +122,7 @@ class Worker(object):
         assert self.running
         self.internal_stop()
 
-        if self.ssh: self.copy_ssh() # XXX: Will this ever need to be overridden?
+        if self.ssh: self.copy_ssh()  # XXX: Will this ever need to be overridden?
 
         print >> self.status_file, 'stop: %d' % int(time.time())
         if self.process:
@@ -148,7 +148,7 @@ class Worker(object):
         pass  # Override this if needed.
     def internal_start(self):  # Override this.
         pass
-    def internal_stop(self): # Override this, usually.
+    def internal_stop(self):  # Override this, usually.
         self.stop_process()
         self.finished = True
 
@@ -178,11 +178,11 @@ class Worker(object):
             assert self.ssh_unique_path
             # XXX: Doing this synchronously will probably cause the rest of the monitors to terminate too late, which might cause some trouble.
             cmdline = ['scp', '-pr', '%s:%s/*' % (self.ssh, self.ssh_unique_path), self.worker_current_dir]
-            ret = subprocess.call(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE) # XXX: Will =subprocess.PIPE block if too much output is printed? Maybe this output should be logged too?
+            ret = subprocess.call(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # XXX: Will =subprocess.PIPE block if too much output is printed? Maybe this output should be logged too?
             if ret != 0:
                 self.dbench.warn('Failed to copy SSH files from %s:%s.' % (self.ssh, self.ssh_unique_path))
             ret = subprocess.call(['ssh', self.ssh, 'rm', '-rf', "'%s'" % sh_escape_within_single_quotes(self.ssh_unique_path)],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE) # Note: Still needs escaping.
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # Note: Still needs escaping.
             if ret != 0:
                 self.dbench.warn('Failed to delete temporary directory %s:%s.' % (self.ssh, self.ssh_unique_path))
 
@@ -213,14 +213,14 @@ class Worker(object):
     def find_binary(self, default):
         # TODO: This can be much more intelligent.
         if self.path != None or self.ssh != None:
-            return default # If the path is given, run_process will just use the binary from the path; if we're using SSH we can't easily check if a file exists.
+            return default  # If the path is given, run_process will just use the binary from the path; if we're using SSH we can't easily check if a file exists.
         for bin in self.binary_paths:
-            if os.path.exists(bin): # Relative to current directory.
+            if os.path.exists(bin):  # Relative to current directory.
                 return bin
             rel_to_script = os.path.abspath(os.path.join(self.dbench.script_path, bin))
-            if os.path.exists(rel_to_script): # Relative to dbench executable.
+            if os.path.exists(rel_to_script):  # Relative to dbench executable.
                 return rel_to_script
-        return default # Will look in $PATH
+        return default  # Will look in $PATH
 
     def compute_args(self, prefix=[], default = None):
         args = shlex.split(self.param or '')
@@ -257,7 +257,7 @@ class Server(Worker):
         while time.time() < bound:
             s = socket.socket()
             try:
-                s.connect(('localhost', self.dbench.port)) # XXX: Change this when/if we support running the server on a different host.
+                s.connect(('localhost', self.dbench.port))  # XXX: Change this when/if we support running the server on a different host.
             except socket.error, e:
                 # Couldn't connect; retry.
                 time.sleep(self.WAIT_INTERVAL)
@@ -271,7 +271,7 @@ class Server(Worker):
             # fixed, but until then, this works well enough.
             print "Done waiting: %d\n" % time.time()
             return
-        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port))  # XXX: This too.
 
 class Client(Worker): argtype = 'Client'
 class Insert(Worker): argtype = 'Insert'
@@ -327,12 +327,12 @@ class MemcacheDB(MemcachedLikeServer):
     def internal_start(self):
         args = self.compute_args(['-p', str(self.dbench.port),
                                   '-H', 'memcachedb_data',
-                                  '-N'              # enable DB_TXN_NOSYNC to gain big performance improved, default is off
-                                  #'-t', '<num>'    # number of threads to use, default 4
-                                  #'-v'             # verbose (print errors/warnings while in event loop)
-                                  #'-m', '<num>'    # in-memmory cache size of BerkeleyDB in megabytes, default is 64MB
-                                  #'-B' '<db_type>' # type of database, 'btree' or 'hash'. default is 'btree'
-                                 ])
+                                  '-N'  # enable DB_TXN_NOSYNC to gain big performance improved, default is off
+                                  # '-t', '<num>'  # number of threads to use, default 4
+                                  # '-v'  # verbose (print errors/warnings while in event loop)
+                                  # '-m', '<num>'  # in-memmory cache size of BerkeleyDB in megabytes, default is 64MB
+                                  # '-B' '<db_type>'  # type of database, 'btree' or 'hash'. default is 'btree'
+                                  ])
         self.run_process(self.find_binary('memcachedb'), args)
         self.wait_for_server_ready()
 
@@ -363,7 +363,7 @@ class Membase(MemcachedLikeServer):
         while time.time() < bound:
             try:
                 s = socket.socket()
-                s.connect(('localhost', self.dbench.port)) # XXX: Change this when/if we support running the server on a different host.
+                s.connect(('localhost', self.dbench.port))  # XXX: Change this when/if we support running the server on a different host.
                 s.send('set test 0 0 0\r\n\r\n')
                 res = s.makefile().readline()
                 if res == 'STORED\r\n':
@@ -376,7 +376,7 @@ class Membase(MemcachedLikeServer):
             finally:
                 s.close()
             time.sleep(self.WAIT_INTERVAL)
-        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port))  # XXX: This too.
 
     # XXX: This shouldn't be necessary when we're smarter about killing children.
     def stop_process(self):
@@ -446,7 +446,7 @@ class Stressinsert(Insert):
 
 class MySQLStress(Stress):
     def internal_start(self):
-        user, passwd, db = 'teapot', 'teapot', 'bench' # XXX: This shouldn't be hard-wired.
+        user, passwd, db = 'teapot', 'teapot', 'bench'  # XXX: This shouldn't be hard-wired.
         host_args = []
         for host in self.dbench.hosts:
             host_args.append('-s')
@@ -458,7 +458,7 @@ class MySQLStress(Stress):
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
-class StressFree(Stress): # Temporary.
+class StressFree(Stress):  # Temporary.
     # A hacky version of wait() that restarts if the client has an error.
     def wait(self):
         assert self.process
@@ -486,8 +486,8 @@ class IFStat(Stat):
     statcmd = 'ifstat'
 
     def internal_start(self):
-        prefix = ['-n', # Display header only once.
-                  '-t'] # Timestamps.
+        prefix = ['-n',  # Display header only once.
+                  '-t']  # Timestamps.
         args = self.compute_args(prefix=prefix, default=prefix + ['1'])
         self.run_process(self.statcmd, args)
 
@@ -495,7 +495,7 @@ class RDBStat(Stat):
     statcmd = 'rdbstat'
 
     def internal_start(self):
-        if self.ssh: self.dbench.die("Can't run rdbstat over SSH yet.") # XXX: Figure out what to do regarding hosts.
+        if self.ssh: self.dbench.die("Can't run rdbstat over SSH yet.")  # XXX: Figure out what to do regarding hosts.
         prefix = ['-p', str(self.dbench.port)]
         args = self.compute_args(prefix=prefix, default=prefix + ['1'])
         self.run_process(self.statcmd, args)
@@ -597,7 +597,7 @@ class DBench(object):
         so.bind(('localhost', 0))
         port = so.getsockname()[1]
         so.close()
-        time.sleep(0.5) # XXX: To make sure the socket is really closed. Surely there's a better way to do this.
+        time.sleep(0.5)  # XXX: To make sure the socket is really closed. Surely there's a better way to do this.
         return port
 
     def parse_args(self):
@@ -683,7 +683,7 @@ class DBench(object):
         self.info('Start time: %d' % int(time.time()))
         self.parse_args()
         self.info('(Port: %d)' % self.port)
-        self.script_path = os.path.abspath(os.path.dirname(__file__)) # XXX: This is a hack.
+        self.script_path = os.path.abspath(os.path.dirname(__file__))  # XXX: This is a hack.
         signal.signal(signal.SIGINT, self.sig_handler)
         signal.signal(signal.SIGTERM, self.sig_handler)
         if self.args.force and os.path.exists(self.args.output_directory):
@@ -710,8 +710,8 @@ class DBench(object):
             self.insert.start()
             self.insert.wait()
             self.info('Client completed')
-            time.sleep(180) # Wait a bit for the database to be able to flush stuff...
-    
+            time.sleep(180)  # Wait a bit for the database to be able to flush stuff...
+
         if self.args.prime_caches:
             # Run client twice to prime caches of the server
             self.client.start()
