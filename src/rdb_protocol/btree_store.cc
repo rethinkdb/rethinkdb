@@ -1048,6 +1048,11 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     rassert(updated_metadata.get_domain() == region_t::universe());
 
     buf_lock_t *sb_buf = superblock->get();
+    // Clear the existing metainfo. This makes sure that we completely rewrite
+    // the metainfo. That avoids two issues:
+    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
+    // - `set_superblock_metainfo()` is more efficient if we don't do any
+    //   in-place updates in its current implementation.
     clear_superblock_metainfo(sb_buf);
 
     std::vector<std::vector<char> > keys;
@@ -1071,7 +1076,6 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
         values.push_back(i->second);
     }
 
-    // TODO (daniel): How to clean out old entries?
     set_superblock_metainfo(sb_buf, keys, values);
 }
 
