@@ -90,8 +90,7 @@ public:
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'I';
-        // RSI: Handle ONLY_VERSION>
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, initial_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_state);
         int res = send_write_message(stream, &wm);
@@ -115,8 +114,7 @@ public:
         write_message_t wm;
         // All cluster versions use a uint8_t code.
         const uint8_t code = 'U';
-        // RSI: Handle ONLY_VERSION.
-        serialize<cluster_version_t::ONLY_VERSION>(&wm, code);
+        serialize_universal(&wm, code);
         serialize_for_version(cluster_version, &wm, new_value);
         serialize_for_version(cluster_version, &wm, metadata_fifo_token);
         int res = send_write_message(stream, &wm);
