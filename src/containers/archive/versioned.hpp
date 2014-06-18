@@ -7,13 +7,13 @@
 namespace archive_internal {
 
 // This is just used to implement serialize_cluster_version and
-// deserialize_cluster_version.
-
-// This defines how to serialize cluster_version_t (which conveniently has a
-// contiguous set of valid representation, from v1_13 to v1_13_is_latest).
+// deserialize_cluster_version.  (cluster_version_t conveniently has a contiguous set
+// of valid representation, from v1_13 to v1_13_is_latest).
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::v1_13_is_latest);
+
+class bogus_made_up_type_t;
 
 }  // namespace archive_details
 
@@ -56,10 +56,10 @@ archive_result_t deserialize_for_version(cluster_version_t version,
 }
 
 
-// RSI: Remove this, or something.
-struct bogus_made_up_struct_t;
+// Some serialized_size needs to be visible, apparently, so that
+// serialized_size_for_version will actually parse.
 template <cluster_version_t W>
-size_t serialized_size(const bogus_made_up_struct_t &);
+size_t serialized_size(const archive_internal::bogus_made_up_type_t &);
 
 // RSI: This is completely unused right now.  (Should it be?)
 template <class T>
