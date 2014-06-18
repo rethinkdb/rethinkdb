@@ -44,6 +44,8 @@ js-publish: $(JS_PKG_DIR)
 js-clean:
 	$P RM $(JS_BUILD_DIR)
 	rm -rf $(JS_BUILD_DIR)
+	$P RM $(JS_PKG_DIR)
+	rm -rf $(JS_PKG_DIR)
 
 .PHONY: js-install
 js-install: NPM_PREFIX=.
