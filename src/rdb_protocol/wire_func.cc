@@ -61,9 +61,9 @@ public:
         const std::vector<sym_t> &arg_names = reql_func->arg_names;
         serialize<W>(wm, arg_names);
         const protob_t<const Term> &body = reql_func->body->get_src();
-        serialize<W>(wm, *body);
+        serialize_protobuf(wm, *body);
         const protob_t<const Backtrace> &backtrace = reql_func->backtrace();
-        serialize<W>(wm, *backtrace);
+        serialize_protobuf(wm, *backtrace);
     }
 
     void on_js_func(const js_func_t *js_func) {
@@ -73,7 +73,7 @@ public:
         const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
         serialize<W>(wm, js_timeout_ms);
         const protob_t<const Backtrace> &backtrace = js_func->backtrace();
-        serialize<W>(wm, *backtrace);
+        serialize_protobuf(wm, *backtrace);
     }
 
 private:
@@ -116,11 +116,11 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         if (bad(res)) { return res; }
 
         protob_t<Term> body = make_counted_term();
-        res = deserialize<W>(s, &*body);
+        res = deserialize_protobuf(s, &*body);
         if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize<W>(s, &*backtrace);
+        res = deserialize_protobuf(s, &*backtrace);
         if (bad(res)) { return res; }
 
         compile_env_t env(
@@ -139,7 +139,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         if (bad(res)) { return res; }
 
         protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize<W>(s, &*backtrace);
+        res = deserialize_protobuf(s, &*backtrace);
         if (bad(res)) { return res; }
 
         func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
@@ -200,13 +200,16 @@ RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 
 template <cluster_version_t W>
 void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
-    serialize<W>(wm, *bt);
+    serialize_protobuf(wm, *bt);
 }
 
 template <cluster_version_t W>
 archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
-    // It's OK to cheat on const-ness during deserialization.
-    return deserialize<W>(s, const_cast<Backtrace *>(&*bt));
+    protob_t<Backtrace> backtrace = make_counted_backtrace();
+    archive_result_t res = deserialize_protobuf(s, const_cast<Backtrace *>(&*bt));
+    if (bad(res)) { return res; }
+    bt = backtrace;
+    return archive_result_t::SUCCESS;
 }
 
 INSTANTIATE_SELF_SINCE_v1_13(bt_wire_func_t);
