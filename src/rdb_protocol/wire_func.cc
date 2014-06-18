@@ -206,9 +206,9 @@ void bt_wire_func_t::rdb_serialize(write_message_t *wm) const {
 template <cluster_version_t W>
 archive_result_t bt_wire_func_t::rdb_deserialize(read_stream_t *s) {
     protob_t<Backtrace> backtrace = make_counted_backtrace();
-    archive_result_t res = deserialize_protobuf(s, const_cast<Backtrace *>(&*bt));
+    archive_result_t res = deserialize_protobuf(s, backtrace.get());
     if (bad(res)) { return res; }
-    bt = backtrace;
+    bt = std::move(backtrace);
     return archive_result_t::SUCCESS;
 }
 
