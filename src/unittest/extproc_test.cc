@@ -43,7 +43,7 @@ public:
         uint64_t result;
         archive_result_t res
             = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                             &result);
+                                                     &result);
         guarantee(res == archive_result_t::SUCCESS);
         return result;
     }
@@ -91,7 +91,7 @@ public:
         {
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                                 &last_value);
+                                                         &last_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
@@ -106,7 +106,7 @@ public:
         {
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                                 &last_value);
+                                                         &last_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
@@ -125,7 +125,7 @@ private:
         {
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST>(stream_in,
-                                                                 &current_value);
+                                                         &current_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
@@ -224,8 +224,7 @@ public:
     void read() {
         int data;
         archive_result_t res
-            = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                             &data);
+            = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(), &data);
         if (bad(res)) {
             throw std::runtime_error("read failed");
         }

@@ -182,7 +182,7 @@ void http_job_t::http(const http_opts_t &opts,
 
     archive_result_t res
         = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                         res_out);
+                                                 res_out);
     if (bad(res)) {
         throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
                                           "(%s)", archive_result_as_str(res)));

@@ -108,7 +108,7 @@ js_result_t js_job_t::eval(const std::string &source) {
     js_result_t result;
     archive_result_t res
         = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                         &result);
+                                                 &result);
     if (bad(res)) {
         throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
                                         archive_result_as_str(res)));
@@ -130,7 +130,7 @@ js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::dat
     js_result_t result;
     archive_result_t res
         = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
-                                                         &result);
+                                                 &result);
     if (bad(res)) {
         throw js_worker_exc_t(strprintf("failed to deserialize result from worker (%s)",
                                         archive_result_as_str(res)));
@@ -177,8 +177,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
                 std::string source;
                 {
                     archive_result_t res
-                        = deserialize<cluster_version_t::LATEST>(stream_in,
-                                                                         &source);
+                        = deserialize<cluster_version_t::LATEST>(stream_in, &source);
                     if (bad(res)) { return false; }
                 }
 

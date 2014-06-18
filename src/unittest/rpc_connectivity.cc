@@ -640,7 +640,7 @@ TPTEST(RPCConnectivityTest, DifferentVersion) {
     std::string bad_version_str("0.1.1b");
     write_message_t bad_version_msg;
     serialize<cluster_version_t::LATEST>(&bad_version_msg,
-                                                 bad_version_str.length());
+                                         bad_version_str.length());
     bad_version_msg.append(bad_version_str.data(), bad_version_str.length());
     serialize<cluster_version_t::LATEST>(
             &bad_version_msg,
@@ -749,7 +749,7 @@ TPTEST(RPCConnectivityTest, DifferentBuildMode) {
     bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
                               connectivity_cluster_t::cluster_arch_bitsize.length());
     serialize<cluster_version_t::LATEST>(&bad_build_mode_msg,
-                                                 bad_build_mode_str.length());
+                                         bad_build_mode_str.length());
     bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
     let_stuff_happen();

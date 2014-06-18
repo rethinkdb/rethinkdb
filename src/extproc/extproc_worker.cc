@@ -16,7 +16,7 @@ const uint64_t extproc_worker_t::worker_to_parent_magic = 0x9aa9a30dc74f9da1LL;
 NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
     int exit_code;
     archive_result_t res = deserialize<cluster_version_t::LATEST>(stream_in,
-                                                                          &exit_code);
+                                                                  &exit_code);
     if (bad(res)) { exit_code = EXIT_FAILURE; }
     ::_exit(exit_code);
 }
@@ -96,7 +96,7 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
             uint64_t magic_from_child;
             archive_result_t res
                 = deserialize<cluster_version_t::LATEST>(socket_stream.get(),
-                                                                 &magic_from_child);
+                                                         &magic_from_child);
             if (bad(res) || magic_from_child != worker_to_parent_magic) {
                 throw std::runtime_error("did not receive magic number");
             }
