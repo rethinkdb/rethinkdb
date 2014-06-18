@@ -42,7 +42,7 @@ public:
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
-        size_left -= serialized_size<cluster_version_t::ONLY_VERSION>(t);  // RSI
+        size_left -= serialized_size<cluster_version_t::ONLY_VERSION>(t);
         return should_send_batch();
     }
     bool should_send_batch() const;

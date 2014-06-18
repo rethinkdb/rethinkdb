@@ -29,7 +29,6 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source,
                                               cluster_version_t version,
                                               read_stream_t *stream) {
     // All cluster versions currently use the same kinds of tags.
-    // RSI: Figure out what to use here instead of ONLY_VERSION.
     tag_t tag;
     archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(stream, &tag);
     if (bad(res)) { throw fake_archive_exc_t(); }
@@ -84,7 +83,6 @@ public:
 
     void write(cluster_version_t cluster_version, write_stream_t *os) {
         // All cluster versions use a uint8_t tag here.
-        // RSI: Figure out precisely what to use here instead of ONLY_VERSION.
         write_message_t wm;
         serialize<cluster_version_t::ONLY_VERSION>(&wm, tag);
         int res = send_write_message(os, &wm);
