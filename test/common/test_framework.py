@@ -349,6 +349,11 @@ class TextView(object):
             self.green = curses.tparm(setf, 2) + bold
             self.yellow = curses.tparm(setf, 3) + bold
             self.nocolor = curses.tigetstr('sgr0')
+        else:
+            self.red = ''
+            self.green = ''
+            self.yellow = ''
+            self.nocolor = ''
 
     def tell(self, event, name, **args):
         if event not in ['STARTED', 'CANCEL']:

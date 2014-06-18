@@ -109,6 +109,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
             logWRN("Failed to set socket reuse to true: %s", errno_string(get_errno()).c_str());
     }
+    {
+        // Disable Nagle algorithm just as in the listener case
+        int sockoptval = 1;
+        int res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+        guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+    }
 
     int res;
     if (peer.is_ipv4()) {

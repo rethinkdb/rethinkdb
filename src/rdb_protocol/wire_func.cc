@@ -35,7 +35,7 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
 wire_func_t::~wire_func_t() { }
 
 counted_t<func_t> wire_func_t::compile_wire_func() const {
-    r_sanity_check(func.has() || func_can_be_null());
+    r_sanity_check(func.has());
     return func;
 }
 
@@ -81,10 +81,6 @@ private:
 
 
 void wire_func_t::rdb_serialize(write_message_t *wm) const {
-    if (func_can_be_null()) {
-        serialize(wm, func.has());
-        if (!func.has()) return;
-    }
     r_sanity_check(func.has());
     wire_func_serialization_visitor_t v(wm);
     func->visit(&v);
@@ -92,13 +88,6 @@ void wire_func_t::rdb_serialize(write_message_t *wm) const {
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
-
-    if (func_can_be_null()) {
-        bool has;
-        res = deserialize(s, &has);
-        if (bad(res)) return res;
-        if (!has) return archive_result_t::SUCCESS;
-    }
 
     wire_func_type_t type;
     res = deserialize(s, &type);
@@ -148,6 +137,36 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
+void maybe_wire_func_t::rdb_serialize(write_message_t *wm) const {
+    bool has_value = wrapped.has();
+    serialize(wm, has_value);
+    if (has_value) {
+        serialize(wm, wrapped);
+    }
+}
+
+archive_result_t maybe_wire_func_t::rdb_deserialize(read_stream_t *s) {
+    bool has_value;
+    archive_result_t res = deserialize(s, &has_value);
+    if (bad(res)) { return res; }
+    if (has_value) {
+        return deserialize(s, &wrapped);
+    } else {
+        wrapped = wire_func_t();
+        return archive_result_t::SUCCESS;
+    }
+}
+
+counted_t<func_t> maybe_wire_func_t::compile_wire_func_or_null() const {
+    if (wrapped.has()) {
+        return wrapped.compile_wire_func();
+    } else {
+        return counted_t<func_t>();
+    }
+}
+
+
+
 group_wire_func_t::group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
                                      bool _append_index, bool _multi)
     : append_index(_append_index), multi(_multi) {
@@ -181,16 +200,6 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
 RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
 RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
-
-map_wire_func_t map_wire_func_t::make_safely(
-    pb::dummy_var_t dummy_var,
-    const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-    protob_t<const Backtrace> backtrace) {
-    const sym_t varname = dummy_var_to_sym(dummy_var);
-    protob_t<Term> body = body_generator(varname);
-    propagate_backtrace(body.get(), backtrace.get());
-    return map_wire_func_t(body, make_vector(varname), backtrace);
-}
 
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 

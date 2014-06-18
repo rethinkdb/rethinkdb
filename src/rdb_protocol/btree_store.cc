@@ -92,7 +92,7 @@ store_t::store_t(serializer_t *serializer,
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
+        btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
         real_superblock_t sb(std::move(superblock));
         create_stat_block(&sb);
     }
@@ -287,24 +287,52 @@ void store_t::reset_data(
                                      &superblock,
                                      interruptor);
 
+        key_range_t keyrange_left_to_erase = subregion.inner;
+        keyrange_left_to_erase.left = highest_erased_key_so_far;
+
+        // First we use an ordered depth-first-traversal to figure out the key range
+        // that corresponds to `max_erased_per_pass` keys. Then we use
+        // `rdb_erase_small_range()` to actually erase the keys in parallel.
+        struct counter_cb_t : public depth_first_traversal_callback_t {
+            counter_cb_t(unsigned int m) : max_erased_per_pass_(m), key_count_(0) { }
+            done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+                ++key_count_;
+                if (key_count_ > max_erased_per_pass_) {
+                    end_key_ = store_key_t(keyvalue.key());
+                    return done_traversing_t::YES;
+                }
+                return done_traversing_t::NO;
+            }
+            unsigned int max_erased_per_pass_;
+            unsigned int key_count_;
+            store_key_t end_key_;
+        };
+        counter_cb_t counter_cb(max_erased_per_pass);
+        keep_erasing = !btree_depth_first_traversal(superblock.get(),
+                                                    keyrange_left_to_erase,
+                                                    &counter_cb, direction_t::FORWARD,
+                                                    release_superblock_t::KEEP);
+
+        // Erase the determined range of `max_erased_per_pass` keys
+        key_range_t keyrange_this_pass = keyrange_left_to_erase;
+        if (keep_erasing) {
+            // `right` is exclusive
+            keyrange_this_pass.right = key_range_t::right_bound_t(counter_cb.end_key_);
+            highest_erased_key_so_far = counter_cb.end_key_;
+        }
+
         buf_lock_t sindex_block
             = acquire_sindex_block_for_write(superblock->expose_buf(),
                                          superblock->get_sindex_block_id());
 
-        key_range_t keyrange_left = subregion.inner;
-        keyrange_left.left = highest_erased_key_so_far;
-
         rdb_live_deletion_context_t deletion_context;
         std::vector<rdb_modification_report_t> mod_reports;
-        done_erasing_t done = rdb_erase_small_range(&key_tester,
-                                                    keyrange_left,
-                                                    superblock.get(),
-                                                    &deletion_context,
-                                                    interruptor,
-                                                    max_erased_per_pass,
-                                                    &highest_erased_key_so_far,
-                                                    &mod_reports);
-        keep_erasing = done != done_erasing_t::DONE;
+        rdb_erase_small_range(&key_tester,
+                              keyrange_this_pass,
+                              superblock.get(),
+                              &deletion_context,
+                              interruptor,
+                              &mod_reports);
         superblock.reset();
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);
@@ -470,7 +498,8 @@ bool store_t::add_sindex(
              * it... on the other hand this code isn't exactly idiot proof even
              * with that. */
             btree_slice_t::init_superblock(&sindex_superblock,
-                                           std::vector<char>(), std::vector<char>());
+                                           std::vector<char>(),
+                                           binary_blob_t());
         }
 
         secondary_index_slices.insert(
@@ -711,7 +740,7 @@ void store_t::set_sindexes(
                 sindex.superblock = sindex_superblock.block_id();
                 btree_slice_t::init_superblock(&sindex_superblock,
                                                std::vector<char>(),
-                                               std::vector<char>());
+                                               binary_blob_t());
             }
 
             secondary_index_slices.insert(it->second.id,
@@ -1019,9 +1048,20 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     rassert(updated_metadata.get_domain() == region_t::universe());
 
     buf_lock_t *sb_buf = superblock->get();
+    // Clear the existing metainfo. This makes sure that we completely rewrite
+    // the metainfo. That avoids two issues:
+    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
+    // - `set_superblock_metainfo()` is more efficient if we don't do any
+    //   in-place updates in its current implementation.
     clear_superblock_metainfo(sb_buf);
 
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
+    std::vector<std::vector<char> > keys;
+    std::vector<binary_blob_t> values;
+    keys.reserve(updated_metadata.size());
+    values.reserve(updated_metadata.size());
+    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
+         i != updated_metadata.end();
+         ++i) {
         vector_stream_t key;
         write_message_t wm;
         // Versioning of this serialization will depend on the block magic.  But
@@ -1032,11 +1072,11 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
-        std::vector<char> value(static_cast<const char*>(i->second.data()),
-                                static_cast<const char*>(i->second.data()) + i->second.size());
-
-        set_superblock_metainfo(sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
+        keys.push_back(std::move(key.vector()));
+        values.push_back(i->second);
     }
+
+    set_superblock_metainfo(sb_buf, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO

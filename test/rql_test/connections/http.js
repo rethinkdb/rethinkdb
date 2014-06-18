@@ -235,7 +235,7 @@ function test_delete(conn) {
 
 function test_redirects(conn) {
     var url = 'httpbin.org/redirect/2'
-    r.http(url).run(conn, function(err, res) {
+    r.http(url, {redirects:0}).run(conn, function(err, res) {
             expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 302'));
         });
 

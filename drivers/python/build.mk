@@ -16,7 +16,7 @@ PY_BUILD_FILES := $(patsubst $(PY_SRC_DIR)/rethinkdb/%,$(PY_BUILD_DIR)/rethinkdb
 .PHONY: py-driver
 py-driver: $(PY_BUILD_FILES) $(PY_PROTO_DEV_FILE) | $(PY_BUILD_DIR)/.
 
-$(PY_BUILD_DIR)/rethinkdb/%: $(PY_SRC_DIR)/rethinkdb/% py_build_files
+$(PY_BUILD_DIR)/rethinkdb/%.py: $(PY_SRC_DIR)/rethinkdb/%.py py_build_files
 	cp $< $@
 
 .INTERMEDIATE: py_build_files

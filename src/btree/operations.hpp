@@ -21,6 +21,7 @@ class trace_t;
 }
 
 class btree_slice_t;
+class binary_blob_t;
 class value_deleter_t;
 
 template <class> class promise_t;
@@ -223,7 +224,11 @@ void get_superblock_metainfo(
 
 void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
-                             const std::vector<char> &value);
+                             const binary_blob_t &value);
+
+void set_superblock_metainfo(buf_lock_t *superblock,
+                             const std::vector<std::vector<char> > &keys,
+                             const std::vector<binary_blob_t> &values);
 
 void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key);
