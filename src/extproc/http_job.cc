@@ -243,6 +243,19 @@ std::string exc_encode(CURL *curl_handle, const std::string &str) {
     return res;
 }
 
+// We may get multiple headers due to authentication or redirection.  Filter out all but
+// the last response's header, which is all we care about.
+void truncate_header_data(std::string *header_data) {
+    size_t last_crlf = header_data->rfind("\r\n\r\n");
+
+    if (last_crlf != std::string::npos || last_crlf > 0) {
+        size_t second_to_last_crlf = header_data->rfind("\r\n\r\n", last_crlf - 1);
+        if (second_to_last_crlf != std::string::npos) {
+            header_data->erase(0, second_to_last_crlf + 4);
+        }
+    }
+}
+
 template <class T>
 void exc_setopt(CURL *curl_handle, CURLoption opt, T val, const char *info) {
     CURLcode curl_res = curl_easy_setopt(curl_handle, opt, val);
@@ -546,6 +559,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
     std::string body_data(curl_data.steal_body_data());
     std::string header_data(curl_data.steal_header_data());
+    truncate_header_data(&header_data);
 
     if (opts->attempts == 0) {
         res_out->error.assign("could not perform, no attempts allowed");
@@ -636,7 +650,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 class header_parser_singleton_t {
 public:
     static counted_t<const ql::datum_t> parse(const std::string &header);
-    
+
 private:
     static void initialize();
     static header_parser_singleton_t *instance;
@@ -673,7 +687,7 @@ header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
 //  - for the second, there is only one string, the link 'http://example.org',
 //     this will be stored in the result with an empty key.  If more than one of
 //     these is given in the response, the last one will take precedence.
-// 
+//
 // The link_parser regular expression consists of two main chunks, with gratuitous
 // whitespace padding:
 // <([^>]*)> - this is the first capture group, for the link portion.  Since the URL
@@ -691,7 +705,7 @@ header_parser_singleton_t::header_parser_singleton_t() :
     settings.on_header_value = &header_parser_singleton_t::on_header_value;
     settings.on_headers_complete = &header_parser_singleton_t::on_headers_complete;
 }
-    
+
 void header_parser_singleton_t::initialize() {
     if (instance == NULL) {
         instance = new header_parser_singleton_t();
@@ -714,7 +728,8 @@ header_parser_singleton_t::parse(const std::string &header) {
         // Upgrade header was present - error
         throw curl_exc_t("upgrade header present in response headers");
     } else if (res != header.length()) {
-        throw curl_exc_t("unknown error when parsing response headers");
+        throw curl_exc_t(strprintf("unknown error when parsing response headers:\n%s\n",
+                                   header.c_str()));
     }
 
     // Return an empty object if we didn't receive any headers

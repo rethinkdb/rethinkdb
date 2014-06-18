@@ -39,7 +39,7 @@ prepare_deb_package_dirs:
 DIST_SUPPORT_PACKAGES := re2 gtest handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind
+  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind boost
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))

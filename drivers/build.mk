@@ -10,4 +10,8 @@ include $(DRIVERS_DIR)/ruby/build.mk
 drivers: js-driver rb-driver py-driver
 
 .PHONY: $(DRIVERS_DIR)/all
-$(DRIVERS_DIR)/all: drivers
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+  $(DRIVERS_DIR)/all: rb-driver py-driver
+else
+  $(DRIVERS_DIR)/all: drivers
+endif

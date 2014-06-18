@@ -189,6 +189,8 @@ class IterableResult
                 else
                     stopFlag = cb(null, data) is false
                     @_next nextCb
+            else if onFinished?
+                onFinished()
         @_next nextCb
     )
 
@@ -231,7 +233,7 @@ class IterableResult
     addListener: (args...) ->
         if not @emitter?
             @_makeEmitter()
-            @_each @_eachCb
+            setImmediate => @_each @_eachCb
         @emitter.addListener(args...)
 
     on: (args...) ->
