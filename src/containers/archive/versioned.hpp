@@ -61,7 +61,6 @@ archive_result_t deserialize_for_version(cluster_version_t version,
 template <cluster_version_t W>
 size_t serialized_size(const archive_internal::bogus_made_up_type_t &);
 
-// RSI: This is completely unused right now.  (Should it be?)
 template <class T>
 size_t serialized_size_for_version(cluster_version_t version,
                                    const T &thing) {
@@ -83,7 +82,6 @@ size_t serialized_size_for_version(cluster_version_t version,
 #define INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(typ) \
     template size_t serialized_size<cluster_version_t::v1_13_is_latest>(const typ &)
 
-// RSI: Probably rename this?
 #define INSTANTIATE_SINCE_v1_13(typ)            \
     INSTANTIATE_SERIALIZE_SINCE_v1_13(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v1_13(typ)
