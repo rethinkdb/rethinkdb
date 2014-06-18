@@ -39,6 +39,7 @@ void serialize_for_version(cluster_version_t version, write_message_t *wm,
     switch (version) {
     case cluster_version_t::v1_13:
         serialize<cluster_version_t::v1_13>(wm, value);
+        break;
     }
 }
 
