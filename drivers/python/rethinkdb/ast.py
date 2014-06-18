@@ -681,7 +681,7 @@ class MakeObj(RqlQuery):
         self.args = []
 
         self.optargs = {}
-        for (k,v) in obj_dict.iteritems():
+        for (k, v) in obj_dict.iteritems():
             if not isinstance(k, types.StringTypes):
                 raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(v)
