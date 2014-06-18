@@ -459,8 +459,6 @@ void rdb_set(const store_key_t &key,
         (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
 }
 
-// RSI: Don't we compute serialized_size of datums at some point for serializing them onto a blob?
-
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
