@@ -138,7 +138,6 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        // RSI: Uh.  What version to use here?
         serialize_for_version_onto_blob(
                 cluster_version_t::ONLY_VERSION,
                 buf_parent_t(&kv_location->buf),
@@ -498,7 +497,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                + serialized_size<cluster_version_t::ONLY_VERSION>(atom.value);  // RSI
+                + serialized_size<cluster_version_t::ONLY_VERSION>(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
@@ -711,7 +710,7 @@ void rdb_erase_small_range(key_tester_t *tester,
 // of a datum, not a whole rget, though it is used for that purpose (by summing
 // up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size<cluster_version_t::ONLY_VERSION>(datum);  // RSI
+    return serialized_size<cluster_version_t::ONLY_VERSION>(datum);
 }
 
 
@@ -1089,9 +1088,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
-    // RSI: Figure out what this is about.  What is it serialized towards?  (RSI:
-    // Just use serialize<cluster_version_t::LATEST> in the latter two.)
-    serialize<cluster_version_t::ONLY_VERSION>(wm, cluster_version_t::LATEST);
+    serialize_cluster_version(wm, cluster_version_t::LATEST);
     serialize_for_version(cluster_version_t::LATEST, wm, mapping);
     serialize_for_version(cluster_version_t::LATEST, wm, multi);
 }
@@ -1101,9 +1098,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
                              sindex_multi_bool_t *multi) {
     inplace_vector_read_stream_t read_stream(&data);
     cluster_version_t cluster_version;
-    // RSI: Ugh, remove the cluster_version_t serialization function, use a different name?
     archive_result_t success
-        = deserialize<cluster_version_t::ONLY_VERSION>(&read_stream, &cluster_version);
+        = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
     success = deserialize_for_version(cluster_version, &read_stream, mapping);
     guarantee_deserialization(success, "sindex description");
