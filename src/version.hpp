@@ -17,7 +17,7 @@ enum class cluster_version_t {
     // See CLUSTER_VERSION, which should always be the latest version.
     LATEST = v1_13,
 
-    // RSI: Remove this.
+    // TODO: Remove ONLY_VERSION entirely.
     // ONLY_VERSION should only exist as long as there's only one version.  A few
     // assertions check it -- that code should be fixed to explicitly handle multiple
     // versions, but we're procrastinating that for now.
