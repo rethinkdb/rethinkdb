@@ -192,20 +192,8 @@ void run(protob_t<Query> q,
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        threadnum_t th = get_thread_id();
-        scoped_ptr_t<ql::env_t> env(
-            new ql::env_t(
-                ctx->extproc_pool,
-                ctx->changefeed_client.get(),
-                ctx->reql_http_proxy,
-                ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
-                ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
-                ctx->cluster_metadata,
-                ctx->directory_read_manager,
-                interruptor,
-                ctx->machine_id,
-                q));
+        const profile_bool_t profile = profile_bool_optarg(q);
+        env_t env(ctx, interruptor, global_optargs(q), profile);
 
         counted_t<term_t> root_term;
         try {
@@ -234,14 +222,14 @@ void run(protob_t<Query> q,
         }
 
         try {
-            scope_env_t scope_env(env.get(), var_scope_t());
+            scope_env_t scope_env(&env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (env.trace.has()) {
+                    env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (counted_t<grouped_data_t> gd
@@ -249,21 +237,25 @@ void run(protob_t<Query> q,
                 res->set_type(Response::SUCCESS_ATOM);
                 datum_t d(std::move(*gd));
                 d.write_to_protobuf(res->add_response(), use_json);
-                if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(
+                if (env.trace.has()) {
+                    env.trace->as_datum()->write_to_protobuf(
                         res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                counted_t<datum_stream_t> seq = val->as_seq(env.get());
-                if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
+                counted_t<datum_stream_t> seq = val->as_seq(&env);
+                if (counted_t<const datum_t> arr = seq->as_array(&env)) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response(), use_json);
-                    if (env->trace.has()) {
-                        env->trace->as_datum()->write_to_protobuf(
+                    if (env.trace.has()) {
+                        env.trace->as_datum()->write_to_protobuf(
                             res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache->insert(token, use_json, std::move(env), seq);
+                    stream_cache->insert(token,
+                                         use_json,
+                                         env.global_optargs.get_all_optargs(),
+                                         profile,
+                                         seq);
                     bool b = stream_cache->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
@@ -368,7 +360,9 @@ counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
-    env->env->throw_if_interruptor_pulsed();
+    if (env->env->interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
     env->env->maybe_yield();
     INC_DEPTH;
 

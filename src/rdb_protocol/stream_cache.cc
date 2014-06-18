@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/stream_cache.hpp"
 
 #include "rdb_protocol/env.hpp"
@@ -12,12 +12,17 @@ bool stream_cache_t::contains(int64_t key) {
 }
 
 void stream_cache_t::insert(int64_t key,
-                             use_json_t use_json,
-                             scoped_ptr_t<env_t> &&val_env,
-                             counted_t<datum_stream_t> val_stream) {
+                            use_json_t use_json,
+                            std::map<std::string, wire_func_t> global_optargs,
+                            profile_bool_t profile_requested,
+                            counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
-        key, new entry_t(time(0), use_json, std::move(val_env), val_stream));
+            key, new entry_t(time(0),
+                             use_json,
+                             std::move(global_optargs),
+                             profile_requested,
+                             val_stream));
     guarantee(res.second);
 }
 
@@ -28,30 +33,31 @@ void stream_cache_t::erase(int64_t key) {
 
 bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
-    if (it == streams.end()) return false;
-    entry_t *entry = it->second;
+    if (it == streams.end()) {
+        return false;
+    }
+    entry_t *const entry = it->second;
     entry->last_activity = time(0);
 
     std::exception_ptr exc;
     try {
-        // Reset the env_t's interruptor to a good one before we use it.  This may be a
-        // hack.  (I'd rather not have env_t be mutable this way -- could we construct
-        // a new env_t instead?  Why do we keep env_t's around anymore?)
-        entry->env->interruptor = interruptor;
+        // RSI: We never profile.
+        env_t env(rdb_ctx, interruptor, entry->global_optargs,
+                  entry->profile);
 
         batch_type_t batch_type = entry->has_sent_batch
                                       ? batch_type_t::NORMAL
                                       : batch_type_t::NORMAL_FIRST;
         std::vector<counted_t<const datum_t> > ds
             = entry->stream->next_batch(
-                entry->env.get(),
-                batchspec_t::user(batch_type, entry->env.get()));
+                &env,
+                batchspec_t::user(batch_type, &env));
         entry->has_sent_batch = true;
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
-        if (entry->env->trace.has()) {
-            entry->env->trace->as_datum()->write_to_protobuf(
+        if (env.trace.has()) {
+            env.trace->as_datum()->write_to_protobuf(
                 res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {
@@ -65,7 +71,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         std::rethrow_exception(exc);
     }
 
-    bool cfeed = entry->stream->is_cfeed();
+    const bool cfeed = entry->stream->is_cfeed();
     if (cfeed && reject_cfeeds == reject_cfeeds_t::YES) {
         erase(key);
         rfail_toplevel(base_exc_t::GENERIC,
@@ -84,12 +90,14 @@ void stream_cache_t::maybe_evict() {
 }
 
 stream_cache_t::entry_t::entry_t(time_t _last_activity,
-                                  use_json_t _use_json,
-                                  scoped_ptr_t<env_t> &&env_ptr,
-                                  counted_t<datum_stream_t> _stream)
+                                 use_json_t _use_json,
+                                 std::map<std::string, wire_func_t> _global_optargs,
+                                 profile_bool_t _profile,
+                                 counted_t<datum_stream_t> _stream)
     : last_activity(_last_activity),
       use_json(_use_json),
-      env(std::move(env_ptr)),
+      global_optargs(std::move(_global_optargs)),
+      profile(_profile),
       stream(_stream),
       max_age(DEFAULT_MAX_AGE),
       has_sent_batch(false) { }

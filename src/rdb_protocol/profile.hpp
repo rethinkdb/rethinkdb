@@ -64,7 +64,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     trace_t();
-    counted_t<const ql::datum_t> as_datum();
+    counted_t<const ql::datum_t> as_datum() const;
     event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
@@ -88,8 +88,10 @@ private:
     /* redirected_event_log_ is used during sampling to send the events to the
      * sampler to be processed. */
     event_log_t *redirected_event_log_;
-    size_t disabled_ref_count;
+    size_t disabled_ref_count_;
     bool disabled();
+
+    DISABLE_COPYING(trace_t);
 };
 
 /* These are the instruments for adding profiling to code. You construct this

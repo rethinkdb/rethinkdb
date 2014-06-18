@@ -22,7 +22,9 @@
 #include "logger.hpp"
 #include "store_view.hpp"
 
-broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
+broadcaster_t::broadcaster_t(
+        mailbox_manager_t *mm,
+        rdb_context_t *_rdb_context,
         branch_history_manager_t *bhm,
         store_view_t *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
@@ -30,11 +32,11 @@ broadcaster_t::broadcaster_t(mailbox_manager_t *mm,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
+      rdb_context(_rdb_context),
       mailbox_manager(mm),
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
       registrar(mailbox_manager, this)
-
 {
     order_checkpoint.set_tagappend("broadcaster_t");
 
@@ -700,15 +702,8 @@ void broadcaster_t::all_read(
                           enforcer_tokens[i], &interruptor2);
         }
 
-        /* Note this is a bit of a hack. We're passing a NULL
-         * context to the UNSHARD function. This only works if the unsharding
-         * of all_reads doesn't require anything fancy like reads to other
-         * databases. Should we ever have need for a real context here it's
-         * not too hard to add but for the time being I can't see an actual use
-         * case so I'm not adding it.*/
         read.unshard(responses.data(), responses.size(), response,
-                     static_cast<rdb_context_t *>(NULL),
-                     &interruptor2);
+                     rdb_context, &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;

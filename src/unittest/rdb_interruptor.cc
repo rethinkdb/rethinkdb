@@ -140,8 +140,7 @@ public:
 
 void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
                  verify_callback_t *verify_callback) {
-    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
-    test_env->make_env(&env_instance);
+    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     count_callback_t callback(count_out);
     env_instance->get()->set_eval_callback(&callback);
@@ -159,8 +158,7 @@ void interrupt_test(test_rdb_env_t *test_env,
                     ql::protob_t<const Term> term,
                     uint32_t interrupt_phase,
                     verify_callback_t *verify_callback) {
-    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
-    test_env->make_env(&env_instance);
+    scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
     env_instance->get()->set_eval_callback(&callback);

@@ -28,6 +28,7 @@
 
 class store_t;
 class buf_lock_t;
+template <class> class clone_ptr_t;
 class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -40,6 +41,7 @@ class namespaces_semilattice_metadata_t;
 struct secondary_index_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+template <class> class watchable_t;
 class Term;
 class Datum;
 class Backtrace;
@@ -179,7 +181,15 @@ class mailbox_manager_t;
 
 class rdb_context_t {
 public:
+    // Used by unit tests.
     rdb_context_t();
+    // Also used by unit tests.
+    rdb_context_t(extproc_pool_t *extproc_pool,
+                  base_namespace_repo_t *ns_repo,
+                  boost::shared_ptr< semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata,
+                  uuid_u machine_id);
+
+    // The "real" constructor used outside of unit tests.
     rdb_context_t(extproc_pool_t *_extproc_pool,
                   mailbox_manager_t *mailbox_manager,
                   namespace_repo_t *_ns_repo,
@@ -191,24 +201,25 @@ public:
                   const std::string &_reql_http_proxy);
     ~rdb_context_t();
 
-    extproc_pool_t *extproc_pool;
-    namespace_repo_t *ns_repo;
+    cow_ptr_t<namespaces_semilattice_metadata_t> get_namespaces_metadata();
 
-    /* These arrays contain a watchable for each thread.
-     * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > >
-    cross_thread_namespace_watchables;
-    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
-                                      databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+    clone_ptr_t< watchable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > >
+    get_namespaces_watchable();
+
+    // This could soooo be optimized if you don't want to copy the whole thing.
+    void get_databases_metadata(databases_semilattice_metadata_t *out);
+
+    clone_ptr_t< watchable_t<databases_semilattice_metadata_t> >
+    get_databases_watchable();
+
+    extproc_pool_t *extproc_pool;
+    base_namespace_repo_t *ns_repo;
+
     boost::shared_ptr< semilattice_readwrite_view_t<
                            cluster_semilattice_metadata_t> > cluster_metadata;
     boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
     auth_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-    // TODO figure out where we're going to want to interrupt this from and
-    // put this there instead
-    cond_t interruptor;
-    scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
     uuid_u machine_id;
 
     mailbox_manager_t *manager;
@@ -220,6 +231,18 @@ public:
     perfmon_membership_t ql_ops_running_membership;
 
     const std::string reql_http_proxy;
+
+private:
+    void help_construct_cross_thread_watchables();
+
+    /* These arrays contain a watchable for each thread.
+       i.e. cross_thread_namespace_watchables[0] is a watchable for thread 0.  (In
+       the bogus unit testing default-constructed rdb_context_t, these are arrays
+       with empty scoped pointers.) */
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<namespaces_semilattice_metadata_t> > > > cross_thread_namespace_watchables;
+
+    scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+
     DISABLE_COPYING(rdb_context_t);
 };
 
@@ -338,8 +361,6 @@ struct sindex_rangespec_t {
 };
 
 class rget_read_t {
-    typedef ql::transform_variant_t transform_variant_t;
-    typedef ql::terminal_variant_t terminal_variant_t;
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
@@ -347,8 +368,8 @@ public:
                 const std::map<std::string, ql::wire_func_t> &_optargs,
                 const std::string _table_name,
                 const ql::batchspec_t &_batchspec,
-                const std::vector<transform_variant_t> &_transforms,
-                boost::optional<terminal_variant_t> &&_terminal,
+                const std::vector<ql::transform_variant_t> &_transforms,
+                boost::optional<ql::terminal_variant_t> &&_terminal,
                 boost::optional<sindex_rangespec_t> &&_sindex,
                 sorting_t _sorting)
         : region(_region),

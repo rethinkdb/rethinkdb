@@ -13,51 +13,51 @@
 namespace ql {
 
 rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t *internal, env_t *env)
-    : internal_(internal), env_(env) { }
+        namespace_interface_t *internal)
+    : internal_(internal) { }
 
 void rdb_namespace_interface_t::read(
+        env_t *env,
         const read_t &read,
         read_response_t *response,
-        order_token_t tok,
-        signal_t *interruptor)
+        order_token_t tok)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform read.", env_->trace);
-    profile::splitter_t splitter(env_->trace);
-    r_sanity_check(read.profile == env_->profile());
+    profile::starter_t starter("Perform read.", env->trace);
+    profile::splitter_t splitter(env->trace);
+    r_sanity_check(read.profile == env->profile());
     /* Do the actual read. */
-    internal_->read(read, response, tok, interruptor);
+    internal_->read(read, response, tok, env->interruptor);
     /* Append the results of the parallel tasks to the current trace */
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
 void rdb_namespace_interface_t::read_outdated(
+        env_t *env,
         const read_t &read,
-        read_response_t *response,
-        signal_t *interruptor)
+        read_response_t *response)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform outdated read.", env_->trace);
-    profile::splitter_t splitter(env_->trace);
+    profile::starter_t starter("Perform outdated read.", env->trace);
+    profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
-    r_sanity_check(read.profile == env_->profile());
+    r_sanity_check(read.profile == env->profile());
     /* Do the actual read. */
-    internal_->read_outdated(read, response, interruptor);
+    internal_->read_outdated(read, response, env->interruptor);
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
 void rdb_namespace_interface_t::write(
+        env_t *env,
         write_t *write,
         write_response_t *response,
-        order_token_t tok,
-        signal_t *interruptor)
+        order_token_t tok)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform write", env_->trace);
-    profile::splitter_t splitter(env_->trace);
+    profile::starter_t starter("Perform write", env->trace);
+    profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
-    write->profile = env_->profile();
+    write->profile = env->profile();
     /* Do the actual read. */
-    internal_->write(*write, response, tok, interruptor);
+    internal_->write(*write, response, tok, env->interruptor);
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
@@ -71,17 +71,12 @@ signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
     return internal_->get_initial_ready_signal();
 }
 
-bool rdb_namespace_interface_t::has() {
-    return internal_;
-}
-
 rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
-    : internal_(env->cluster_access.ns_repo, id, env->interruptor),
-      env_(env)
+    : internal_(env->ns_repo(), id, env->interruptor)
 { }
 
 rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
-    return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
+    return rdb_namespace_interface_t(internal_.get_namespace_if());
 }
 
 template<class T>
@@ -140,10 +135,9 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     try {
         if (use_outdated) {
-            ns_access.get_namespace_if().read_outdated(read, &res, env->interruptor);
+            ns_access.get_namespace_if().read_outdated(env, read, &res);
         } else {
-            ns_access.get_namespace_if().read(
-                read, &res, order_token_t::ignore, env->interruptor);
+            ns_access.get_namespace_if().read(env, read, &res, order_token_t::ignore);
         }
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
@@ -363,6 +357,7 @@ primary_readgen_t::primary_readgen_t(
     profile_bool_t profile,
     sorting_t sorting)
     : readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
+
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
     std::string table_name,
@@ -534,7 +529,7 @@ counted_t<val_t> datum_stream_t::run_terminal(
 }
 
 counted_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc(make_to_array());
+    scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped());
 }
@@ -554,12 +549,12 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
     : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
 }
 
-counted_t<datum_stream_t> datum_stream_t::add_grouping(
+void datum_stream_t::add_grouping(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     check_not_grouped("Cannot call `group` on the output of `group` "
                       "(did you mean to `ungroup`?).");
     grouped = true;
-    return add_transformation(env, std::move(tv), bt);
+    add_transformation(env, std::move(tv), bt);
 }
 void datum_stream_t::check_not_grouped(const char *msg) {
     rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
@@ -568,7 +563,9 @@ void datum_stream_t::check_not_grouped(const char *msg) {
 std::vector<counted_t<const datum_t> >
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
-    env->throw_if_interruptor_pulsed();
+    if (env->interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
     // Cannot mix `next` and `next_batch`.
     r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
     check_not_grouped("Cannot treat the output of `group` as a stream "
@@ -608,11 +605,10 @@ bool datum_stream_t::batch_cache_exhausted() const {
     return batch_cache_index >= batch_cache.size();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::add_transformation(
+void eager_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    ops.emplace_back(make_op(env, tv));
+    ops.push_back(make_op(env, std::move(tv)));
     update_bt(bt);
-    return counted_from_this();
 }
 
 eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
@@ -682,12 +678,10 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       current_batch_offset(0),
       reader(*ns_access, use_outdated, std::move(readgen)) { }
 
-counted_t<datum_stream_t>
-lazy_datum_stream_t::add_transformation(
+void lazy_datum_stream_t::add_transformation(
     env_t *, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
     update_bt(bt);
-    return counted_from_this();
 }
 
 void lazy_datum_stream_t::accumulate(
@@ -896,13 +890,12 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::add_transformation(
+void union_datum_stream_t::add_transformation(
     env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->add_transformation(env, transform_variant_t(tv), bt);
+        (*it)->add_transformation(env, transform_variant_t(std::move(tv)), bt);
     }
     update_bt(bt);
-    return counted_from_this();
 }
 
 void union_datum_stream_t::accumulate(

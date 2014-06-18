@@ -42,12 +42,8 @@ TEST(ClonePtrTest, MakeAndCopy) {
 
 TEST(ClonePtrTest, BooleanConversion) {
     clone_ptr_t<thing_t> p(new thing_t(3));
-    if (!p) {
-        ADD_FAILURE() << "boolean operator broken";
-    }
-    if (clone_ptr_t<thing_t>()) {
-        ADD_FAILURE() << "boolean operator broken";
-    }
+    EXPECT_TRUE(p.has());
+    EXPECT_FALSE(clone_ptr_t<thing_t>().has());
 }
 
 TEST(ClonePtrTest, Casting) {

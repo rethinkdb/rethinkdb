@@ -8,7 +8,6 @@
 #include <limits>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
@@ -153,16 +152,19 @@ public:
     }
 };
 
-query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
+query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
+                               const std::set<ip_address_t> &local_addresses,
                                int port,
                                query_handler_t *_handler,
                                boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata) :
+        rdb_ctx(_rdb_ctx),
         handler(_handler),
         auth_metadata(_auth_metadata),
         shutting_down_conds(get_num_threads()),
         pulse_sdc_on_shutdown(&main_shutting_down_cond),
         next_thread(0)
 {
+    rassert(rdb_ctx != NULL);
     for (int i = 0; i < get_num_threads(); ++i) {
         cross_thread_signal_t *s =
             new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
@@ -172,8 +174,8 @@ query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
 
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
-            boost::bind(&query_server_t::handle_conn,
-                        this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+            std::bind(&query_server_t::handle_conn,
+                      this, ph::_1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
@@ -221,7 +223,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     // This must be read here because of home threads and stuff
     const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
 
-    threadnum_t chosen_thread = threadnum_t((next_thread++) % get_num_db_threads());
+    threadnum_t chosen_thread = threadnum_t(next_thread);
+    next_thread = (next_thread + 1) % get_num_db_threads();
+
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
 
@@ -236,7 +240,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 #else
     wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
 #endif  // __linux
-    client_context_t client_ctx(&interruptor, ql::reject_cfeeds_t::NO);
+    client_context_t client_ctx(rdb_ctx, ql::reject_cfeeds_t::NO, &interruptor);
 
     std::string init_error;
     int32_t client_magic_number = -1;
@@ -326,6 +330,7 @@ public:
     interruptor_mixer_t(client_context_t *_client_ctx, signal_t *new_interruptor) :
         client_ctx(_client_ctx), old_interruptor(client_ctx->interruptor),
         combined_interruptor(old_interruptor, new_interruptor) {
+        // TODO: This is fucking insane.
         client_ctx->interruptor = &combined_interruptor;
     }
 
@@ -367,7 +372,7 @@ void query_server_t::handle(const http_req_t &req,
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == GET &&
         req.resource.as_string().find("open-new-connection")) {
-        int32_t conn_id = http_conn_cache.create();
+        int32_t conn_id = http_conn_cache.create(rdb_ctx);
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));

@@ -32,6 +32,13 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &x) THROWS_NOTHING {
     return *this;
 }
 
+template<class T>
+clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &&x) THROWS_NOTHING {
+    clone_ptr_t tmp(std::move(x));
+    object = std::move(tmp.object);
+    return *this;
+}
+
 template<class T> template<class U>
 clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &x) THROWS_NOTHING {
     if (&x != this) {
@@ -40,6 +47,13 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &x) THROWS_NOTHIN
             object.init(x.object->clone());
         }
     }
+    return *this;
+}
+
+template<class T> template<class U>
+clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &&x) THROWS_NOTHING {
+    clone_ptr_t tmp(std::move(x));
+    object = std::move(tmp.object);
     return *this;
 }
 
@@ -56,18 +70,4 @@ T *clone_ptr_t<T>::operator->() const THROWS_NOTHING {
 template<class T>
 T *clone_ptr_t<T>::get() const THROWS_NOTHING {
     return object.get();
-}
-
-template<class T>
-clone_ptr_t<T>::operator booleanish_t() const THROWS_NOTHING {
-    if (object.has()) {
-        return &clone_ptr_t::truth_value_method_for_use_in_boolean_conversions;
-    } else {
-        return 0;
-    }
-}
-
-template<class T>
-void clone_ptr_t<T>::truth_value_method_for_use_in_boolean_conversions() {
-    unreachable();
 }

@@ -44,7 +44,7 @@ stop_t::stop_t()
 RDB_IMPL_ME_SERIALIZABLE_1(stop_t, when_);
 
 counted_t<const ql::datum_t> construct_start(
-        ticks_t duration, std::string &&description,
+        ticks_t duration, std::string description,
         counted_t<const ql::datum_t> sub_tasks) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
     res["duration(ms)"] = make_counted<const ql::datum_t>(safe_to_double(duration) / MILLION);
@@ -61,34 +61,34 @@ counted_t<const ql::datum_t> construct_split(
 }
 
 counted_t<const ql::datum_t> construct_sample(
-        sample_t *sample) {
+        const sample_t *sample) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
     double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
     double n_samples = safe_to_double(sample->n_samples_);
     res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
     res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
-    res["description"] = make_counted<const ql::datum_t>(std::move(sample->description_));
+    res["description"] = make_counted<const ql::datum_t>(std::string(sample->description_));
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
 counted_t<const ql::datum_t> construct_datum(
-        event_log_t::iterator *begin,
-        event_log_t::iterator end);
+        event_log_t::const_iterator *begin,
+        event_log_t::const_iterator end);
 
 class construct_datum_visitor_t : public boost::static_visitor<void> {
 public:
     construct_datum_visitor_t(
-        event_log_t::iterator *begin, event_log_t::iterator end,
+        event_log_t::const_iterator *begin, event_log_t::const_iterator end,
         std::vector<counted_t<const ql::datum_t> > *res)
         : begin_(begin), end_(end), res_(res) { }
 
-    void operator()(start_t &start) const {  // NOLINT(runtime/references)
+    void operator()(const start_t &start) const {
         (*begin_)++;
         counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_);
         auto stop = boost::get<stop_t>(&**begin_);
         guarantee(stop);
         res_->push_back(construct_start(
-            stop->when_ - start.when_, std::move(start.description_), sub_tasks));
+            stop->when_ - start.when_, start.description_, sub_tasks));
         (*begin_)++;
     }
     void operator()(const split_t &split) const {
@@ -102,7 +102,7 @@ public:
         res_->push_back(construct_split(
             make_counted<const ql::datum_t>(std::move(parallel_tasks))));
     }
-    void operator()(sample_t &sample) const {  // NOLINT(runtime/references)
+    void operator()(const sample_t &sample) const {
         (*begin_)++;
         res_->push_back(construct_sample(&sample));
     }
@@ -111,14 +111,14 @@ public:
     }
 
 private:
-    event_log_t::iterator *begin_;
-    event_log_t::iterator end_;
+    event_log_t::const_iterator *begin_;
+    event_log_t::const_iterator end_;
     std::vector<counted_t<const ql::datum_t> > *res_;
 };
 
 counted_t<const ql::datum_t> construct_datum(
-        event_log_t::iterator *begin,
-        event_log_t::iterator end) {
+        event_log_t::const_iterator *begin,
+        event_log_t::const_iterator end) {
     std::vector<counted_t<const ql::datum_t> > res;
 
     construct_datum_visitor_t visitor(begin, end, &res);
@@ -275,11 +275,11 @@ void disabler_t::init(trace_t *parent) {
 }
 
 trace_t::trace_t()
-    : redirected_event_log_(NULL), disabled_ref_count(0) { }
+    : redirected_event_log_(NULL), disabled_ref_count_(0) { }
 
-counted_t<const ql::datum_t> trace_t::as_datum() {
+counted_t<const ql::datum_t> trace_t::as_datum() const {
     guarantee(!redirected_event_log_);
-    event_log_t::iterator begin = event_log_.begin();
+    event_log_t::const_iterator begin = event_log_.begin();
     return construct_datum(&begin, event_log_.end());
 }
 
@@ -287,7 +287,7 @@ event_log_t trace_t::extract_event_log() RVALUE_THIS {
     // These guarantees imply that this trace_t gets left in a default-constructed
     // state (which is valid, thereby acceptable for an RVALUE_THIS function).
     guarantee(redirected_event_log_ == NULL);
-    guarantee(disabled_ref_count == 0);
+    guarantee(disabled_ref_count_ == 0);
     return std::move(event_log_);
 }
 
@@ -355,14 +355,14 @@ void trace_t::stop_sample(event_log_t *event_log) {
 }
 
 void trace_t::disable() {
-    disabled_ref_count++;
+    disabled_ref_count_++;
 }
 void trace_t::enable() {
-    disabled_ref_count--;
+    disabled_ref_count_--;
 }
 
 bool trace_t::disabled() {
-    return disabled_ref_count > 0;
+    return disabled_ref_count_ > 0;
 }
 
 event_log_t *trace_t::event_log_target() {

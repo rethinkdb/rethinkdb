@@ -27,9 +27,12 @@ template <class> class semilattice_readwrite_view_t;
 
 class client_context_t {
 public:
-    explicit client_context_t(signal_t *_interruptor, ql::reject_cfeeds_t reject_cfeeds)
+    explicit client_context_t(rdb_context_t *rdb_ctx,
+                              ql::reject_cfeeds_t reject_cfeeds,
+                              signal_t *_interruptor)
         : interruptor(_interruptor),
-          stream_cache(reject_cfeeds) { }
+          stream_cache(rdb_ctx, reject_cfeeds) { }
+    // Holy shit, this field gets MODIFIED!
     signal_t *interruptor;
     ql::stream_cache_t stream_cache;
 };
@@ -38,10 +41,11 @@ class http_conn_cache_t : public repeating_timer_callback_t {
 public:
     class http_conn_t {
     public:
-        http_conn_t() :
+        explicit http_conn_t(rdb_context_t *rdb_ctx) :
             in_use(false),
             last_accessed(time(0)),
-            client_ctx(&interruptor, ql::reject_cfeeds_t::YES) { }
+            client_ctx(rdb_ctx, ql::reject_cfeeds_t::YES, &interruptor) {
+        }
 
         client_context_t *get_ctx() {
             last_accessed = time(0);
@@ -89,10 +93,10 @@ public:
         if (it == cache.end()) return boost::shared_ptr<http_conn_t>();
         return it->second;
     }
-    int32_t create() {
+    int32_t create(rdb_context_t *rdb_ctx) {
         int32_t key = next_id++;
         cache.insert(
-            std::make_pair(key, boost::shared_ptr<http_conn_t>(new http_conn_t())));
+            std::make_pair(key, boost::make_shared<http_conn_t>(rdb_ctx)));
         return key;
     }
     void erase(int32_t key) {
@@ -136,13 +140,15 @@ public:
 
 class query_server_t : public http_app_t {
 public:
-    query_server_t(const std::set<ip_address_t> &local_addresses,
+    query_server_t(rdb_context_t *rdb_ctx,
+                   const std::set<ip_address_t> &local_addresses,
                    int port,
                    query_handler_t *_handler,
                    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata);
     ~query_server_t();
 
     int get_port() const;
+
 private:
     static std::string read_sized_string(tcp_conn_t *conn,
                                          size_t max_size,
@@ -164,7 +170,9 @@ private:
                 http_res_t *result,
                 signal_t *interruptor);
 
-    query_handler_t *handler;
+    rdb_context_t *const rdb_ctx;
+
+    query_handler_t *const handler;
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
         auth_metadata;
@@ -174,18 +182,22 @@ private:
     signal_t *shutdown_signal() {
         return &shutting_down_conds[get_thread_id().threadnum];
     }
+
     boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
+
     auto_drainer_t auto_drainer;
+
     struct pulse_on_destruct_t {
         explicit pulse_on_destruct_t(cond_t *_cond) : cond(_cond) { }
         ~pulse_on_destruct_t() { cond->pulse(); }
         cond_t *cond;
     } pulse_sdc_on_shutdown;
+
     http_conn_cache_t http_conn_cache;
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
-    unsigned next_thread;
+    int next_thread;
 };
 
 #endif /* PROTOB_PROTOB_HPP_ */

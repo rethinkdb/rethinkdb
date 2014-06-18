@@ -738,7 +738,7 @@ public:
                       ? ql::make_terminal(env, *_terminal)
                       : ql::make_append(sorting, &batcher)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers.emplace_back(ql::make_op(env, _transforms[i]));
+            transformers.push_back(ql::make_op(env, _transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }
@@ -1117,13 +1117,12 @@ void rdb_update_single_sindex(
     sindex_multi_bool_t multi;
     deserialize_sindex_info(sindex->sindex.opaque_definition, &mapping, &multi);
 
-    // TODO we just use a NULL environment here. People should not be able
-    // to do anything that requires an environment like gets from other
-    // tables etc. but we don't have a nice way to disallow those things so
-    // for now we pass null and it will segfault if an illegal sindex
-    // mapping is passed.
+    // TODO we have no rdb context here. People should not be able to do anything
+    // that requires an environment like gets from other tables etc. but we don't
+    // have a nice way to disallow those things so for now we pass null and it will
+    // segfault if an illegal sindex mapping is passed.
     cond_t non_interruptor;
-    ql::env_t env(NULL, &non_interruptor);
+    ql::env_t env(&non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
