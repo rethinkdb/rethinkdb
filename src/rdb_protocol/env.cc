@@ -164,6 +164,13 @@ js_runner_t *env_t::get_js_runner() {
     return &js_runner;
 }
 
+void env_t::clear_js_runner() {
+    assert_thread();
+    if (js_runner.connected()) {
+        js_runner.end();
+    }
+}
+
 env_t::env_t(rdb_context_t *ctx, signal_t *_interruptor)
     : evals_since_yield(0),
       global_optargs(protob_t<Query>()),
