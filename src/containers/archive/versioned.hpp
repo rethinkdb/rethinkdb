@@ -39,6 +39,9 @@ void serialize_for_version(cluster_version_t version, write_message_t *wm,
     switch (version) {
     case cluster_version_t::v1_13:
         serialize<cluster_version_t::v1_13>(wm, value);
+        break;
+    default:
+        unreachable();
     }
 }
 
@@ -52,6 +55,8 @@ archive_result_t deserialize_for_version(cluster_version_t version,
     switch (version) {
     case cluster_version_t::v1_13:
         return deserialize<cluster_version_t::v1_13>(s, thing);
+    default:
+        unreachable();
     }
 }
 
@@ -68,6 +73,8 @@ size_t serialized_size_for_version(cluster_version_t version,
     switch (version) {
     case cluster_version_t::v1_13:
         return serialized_size<cluster_version_t::v1_13>(thing);
+    default:
+        unreachable();
     }
 }
 

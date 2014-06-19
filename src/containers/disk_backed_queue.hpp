@@ -87,9 +87,11 @@ public:
     virtual ~deserializing_viewer_t() { }
 
     virtual void view_buffer_group(const const_buffer_group_t *group) {
-        // TODO: We assume here that _other_ code uses LATEST.  That's just in
-        // btree_store.cc though, because it uses an internal_disk_backed_queue_t,
-        // because it was templatized on protocol_t before.
+        // TODO: We assume here that the data was serialized by _other_ code using
+        // LATEST -- some in disk_backed_queue_t::push, but also in btree_store.cc,
+        // which uses internal_disk_backed_queue_t directly.  (There's no good reason
+        // for this today: it needed to be generic when that code was templatized on
+        // protocol_t.)
         deserialize_from_group<cluster_version_t::LATEST>(group, value_out_);
     }
 

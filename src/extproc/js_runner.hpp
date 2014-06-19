@@ -55,6 +55,8 @@ public:
     void begin(extproc_pool_t *pool,
                signal_t *interruptor);
 
+    void end();
+
     // Evalute JS source string to either a value or a function ID to call later
     js_result_t eval(const std::string &source,
                      const req_config_t &config);

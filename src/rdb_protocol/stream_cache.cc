@@ -57,6 +57,10 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     } catch (const std::exception &e) {
         exc = std::current_exception();
     }
+
+    // Release any extprocs we may still be holding onto
+    entry->env->clear_js_runner();
+
     if (exc) {
         // We can't do this in the `catch` statement because erase may trigger
         // destructors that might need to switch coroutines to do some bookkeeping,
@@ -92,7 +96,11 @@ stream_cache_t::entry_t::entry_t(time_t _last_activity,
       env(std::move(env_ptr)),
       stream(_stream),
       max_age(DEFAULT_MAX_AGE),
-      has_sent_batch(false) { }
+      has_sent_batch(false)
+{
+    // We should not hold onto any extprocs in the stream cache
+    env->clear_js_runner();
+}
 
 stream_cache_t::entry_t::~entry_t() { }
 
