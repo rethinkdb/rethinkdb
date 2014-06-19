@@ -174,13 +174,15 @@ http_job_t::http_job_t(extproc_pool_t *pool, signal_t *interruptor) :
 void http_job_t::http(const http_opts_t &opts,
                       http_result_t *res_out) {
     write_message_t msg;
-    serialize(&msg, opts);
+    serialize<cluster_version_t::LATEST>(&msg, opts);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
     }
 
-    archive_result_t res = deserialize(extproc_job.read_stream(), res_out);
+    archive_result_t res
+        = deserialize<cluster_version_t::LATEST>(extproc_job.read_stream(),
+                                                 res_out);
     if (bad(res)) {
         throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
                                           "(%s)", archive_result_as_str(res)));
@@ -195,7 +197,8 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     static bool curl_initialized(false);
     http_opts_t opts;
     {
-        archive_result_t res = deserialize(stream_in, &opts);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST>(stream_in, &opts);
         if (bad(res)) { return false; }
     }
 
@@ -221,7 +224,7 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     }
 
     write_message_t msg;
-    serialize(&msg, result);
+    serialize<cluster_version_t::LATEST>(&msg, result);
     int res = send_write_message(stream_out, &msg);
     if (res != 0) { return false; }
 

@@ -73,9 +73,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         point_delete_result_t, int8_t,
         point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
-RDB_DECLARE_SERIALIZABLE(Term);
-RDB_DECLARE_SERIALIZABLE(Datum);
-RDB_DECLARE_SERIALIZABLE(Backtrace);
+#define RDB_DECLARE_PROTOB_SERIALIZABLE(pb_t) \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p); \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p)
+
+RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
+RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
 
 class key_le_t {
 public:

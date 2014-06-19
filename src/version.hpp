@@ -9,9 +9,15 @@ enum class cluster_version_t {
     // that implements serialization.
     v1_13 = 0,
 
-    // See CLUSTER_VERSION, which should always be the latest version.
-    LATEST_VERSION = v1_13,
+    // This is used in places where _something_ needs to change when a new cluster
+    // version is created.  (Template instantiations, in particular, will need the
+    // new version number.)
+    v1_13_is_latest = v1_13,
 
+    // See CLUSTER_VERSION, which should always be the latest version.
+    LATEST = v1_13,
+
+    // TODO: Remove ONLY_VERSION entirely.
     // ONLY_VERSION should only exist as long as there's only one version.  A few
     // assertions check it -- that code should be fixed to explicitly handle multiple
     // versions, but we're procrastinating that for now.

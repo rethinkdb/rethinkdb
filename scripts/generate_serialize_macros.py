@@ -15,38 +15,44 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 """
 
 def generate_make_serializable_macro(nfields):
-    print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
+    fields = "".join(", field%d" % (i + 1) for i in xrange(nfields))
+    print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
+        (nfields, fields)
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
+    print "    template <cluster_version_t W> \\"
+    print "    void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
-        print "        serialize(wm, thing.field%d); \\" % (i + 1)
+        print "        serialize<W>(wm, thing.field%d); \\" % (i + 1)
     print "    } \\"
-    print "    function_attr archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
+    print "    template <cluster_version_t W> \\"
+    print "    archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
+        print "        res = deserialize<W>(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
     # See the note in the comment below.
-    print "    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body"
-    print "#define RDB_MAKE_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(inline, __VA_ARGS__)" % (nfields, nfields)
-    print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(, __VA_ARGS__)" % (nfields, nfields)
+    print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body"
+    print "#define RDB_IMPL_SERIALIZABLE_%d(type_t%s) RDB_MAKE_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields, nfields, fields)
+    print "    template void serialize<cluster_version_t::v1_13_is_latest>(write_message_t *, const type_t &); \\"
+    print "    template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *, type_t *)"
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
         (nfields, ", ".join("field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    friend class write_message_t; \\"
+    print "    template <cluster_version_t W> \\"
     print "    void rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        serialize(wm, field%d); \\" % (i + 1)
+        print "        serialize<W>(wm, field%d); \\" % (i + 1)
     print "    } \\"
+    print "    template <cluster_version_t W> \\"
     print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
+        print "        res = deserialize<W>(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
@@ -57,21 +63,25 @@ def generate_impl_me_serializable_macro(nfields):
     print "#define RDB_IMPL_ME_SERIALIZABLE_%d(typ%s) \\" % \
         (nfields, "".join(", field%d" % (i + 1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
+    print "    template <cluster_version_t W> \\"
     print "    void typ::rdb_serialize(%swrite_message_t *wm) const { \\" % zeroarg
     for i in xrange(nfields):
-        print "        serialize(wm, field%d); \\" % (i + 1)
+        print "        serialize<W>(wm, field%d); \\" % (i + 1)
     print "    } \\"
+    print "    template <cluster_version_t W> \\"
     print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
+        print "        res = deserialize<W>(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (bad(res)) { return res; } \\"
     print "        return res; \\"
-    print "    }"
+    print "    } \\"
+    print "    template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \\"
+    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)"
 
 if __name__ == "__main__":
 
-    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
+    print "// Copyright 2010-2014 RethinkDB, all rights reserved."
     print "#ifndef RPC_SERIALIZE_MACROS_HPP_"
     print "#define RPC_SERIALIZE_MACROS_HPP_"
     print
@@ -102,13 +112,17 @@ the class scope. */
     """.strip()
     print
     print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
+    print "    template <cluster_version_t W> \\"
     print "    void serialize(write_message_t *, const type_t &); \\"
+    print "    template <cluster_version_t W> \\"
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
     print "    friend class write_message_t; \\"
+    print "    template <cluster_version_t W> \\"
     print "    void rdb_serialize(write_message_t *wm) const; \\"
     print "    friend class archive_deserializer_t; \\"
+    print "    template <cluster_version_t W> \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"
     print
 

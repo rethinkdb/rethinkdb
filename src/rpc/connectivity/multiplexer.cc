@@ -30,7 +30,7 @@ void message_multiplexer_t::run_t::on_message(peer_id_t source,
                                               read_stream_t *stream) {
     // All cluster versions currently use the same kinds of tags.
     tag_t tag;
-    archive_result_t res = deserialize(stream, &tag);
+    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(stream, &tag);
     if (bad(res)) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
     guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
@@ -84,7 +84,7 @@ public:
     void write(cluster_version_t cluster_version, write_stream_t *os) {
         // All cluster versions use a uint8_t tag here.
         write_message_t wm;
-        serialize(&wm, tag);
+        serialize<cluster_version_t::ONLY_VERSION>(&wm, tag);
         int res = send_write_message(os, &wm);
         if (res) { throw fake_archive_exc_t(); }
         subwriter->write(cluster_version, os);

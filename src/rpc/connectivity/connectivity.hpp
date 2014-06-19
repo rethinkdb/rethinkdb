@@ -43,8 +43,11 @@ private:
 
     uuid_u uuid;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(uuid);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+void serialize_universal(write_message_t *wm, const peer_id_t &peer_id);
+archive_result_t deserialize_universal(read_stream_t *s, peer_id_t *peer_id);
 
 void debug_print(printf_buffer_t *buf, const peer_id_t &peer_id);
 
