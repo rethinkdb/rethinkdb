@@ -15,6 +15,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -411,7 +412,6 @@ void store_t::update_sindexes(
             bool release_sindex_block) {
     scoped_ptr_t<new_mutex_in_line_t> acq =
             get_in_line_for_sindex_queue(sindex_block);
-    scoped_array_t<write_message_t> queue_wms(mod_reports.size());
     {
         sindex_access_vector_t sindexes;
         acquire_post_constructed_sindex_superblocks_for_write(
@@ -422,37 +422,49 @@ void store_t::update_sindexes(
 
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
-            // This is for a disk backed queue so there's no versioning issues.
-            // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
-            // LATEST version, and such queues are ephemeral).
-            serialize<cluster_version_t::LATEST>(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }
 
     // Write mod reports onto the sindex queue. We are in line for the
     // sindex_queue mutex and can already release all other locks.
-    sindex_queue_push(queue_wms, acq.get());
+    sindex_queue_push(mod_reports, acq.get());
 }
 
-void store_t::sindex_queue_push(const write_message_t &value,
+void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,
                                 const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(value);
+    if (!sindex_queues.empty()) {
+        // This is for a disk backed queue so there's no versioning issues.
+        // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
+        // LATEST version, and such queues are ephemeral).
+        write_message_t wm;
+        serialize<cluster_version_t::LATEST>(&wm, mod_report);
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wm);
+        }
     }
 }
 
 void store_t::sindex_queue_push(
-        const scoped_array_t<write_message_t> &values,
+        const std::vector<rdb_modification_report_t> &mod_reports,
         const new_mutex_in_line_t *acq) {
     assert_thread();
     acq->acq_signal()->wait_lazily_unordered();
 
-    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
-        (*it)->push(values);
+    if (!sindex_queues.empty()) {
+        scoped_array_t<write_message_t> wms(mod_reports.size());
+        for (size_t i = 0; i < mod_reports.size(); ++i) {
+            // This is for a disk backed queue so there are no versioning issues.
+            serialize<cluster_version_t::LATEST>(&wms[i], mod_reports[i]);
+        }
+
+        for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+            (*it)->push(wms);
+        }
     }
 }
 

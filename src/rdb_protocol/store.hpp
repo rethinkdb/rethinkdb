@@ -171,10 +171,10 @@ public:
             bool release_sindex_block);
 
     void sindex_queue_push(
-            const write_message_t &value,
+            const rdb_modification_report_t &mod_report,
             const new_mutex_in_line_t *acq);
     void sindex_queue_push(
-            const scoped_array_t<write_message_t> &values,
+            const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
     void add_progress_tracker(

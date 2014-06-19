@@ -1055,10 +1055,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     scoped_ptr_t<new_mutex_in_line_t> acq =
         store_->get_in_line_for_sindex_queue(sindex_block_);
 
-    // This is for a disk backed queue so there are no versioning issues.
-    write_message_t wm;
-    serialize<cluster_version_t::LATEST>(&wm, mod_report);
-    store_->sindex_queue_push(wm, acq.get());
+    store_->sindex_queue_push(mod_report, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn(),
