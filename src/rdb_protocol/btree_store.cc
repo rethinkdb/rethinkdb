@@ -419,7 +419,9 @@ void store_t::update_sindexes(
         rdb_live_deletion_context_t deletion_context;
         for (size_t i = 0; i < mod_reports.size(); ++i) {
             // This is for a disk backed queue so there's no versioning issues.
-            serialize(&queue_wms[i], mod_reports[i]);
+            // (deserializating_viewer_t in disk_backed_queue.hpp also uses the
+            // LATEST version, and such queues are ephemeral).
+            serialize<cluster_version_t::LATEST>(&queue_wms[i], mod_reports[i]);
             rdb_update_sindexes(sindexes, &mod_reports[i], txn, &deletion_context);
         }
     }

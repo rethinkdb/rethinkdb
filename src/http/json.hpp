@@ -151,7 +151,9 @@ public:
 };
 
 /* Json serialization */
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const cJSON &cjson);
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 
 #endif /* HTTP_JSON_HPP_ */

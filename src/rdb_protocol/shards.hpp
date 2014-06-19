@@ -59,23 +59,25 @@ public:
     counted_t<const datum_t> row, val;
 };
 
-static inline void serialize_grouped(write_message_t *wm, const optimizer_t &o) {
-    serialize(wm, o.row.has());
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm, const optimizer_t &o) {
+    serialize<W>(wm, o.row.has());
     if (o.row.has()) {
         r_sanity_check(o.val.has());
-        serialize(wm, o.row);
-        serialize(wm, o.val);
+        serialize<W>(wm, o.row);
+        serialize<W>(wm, o.val);
     }
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t *o) {
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t *o) {
     archive_result_t res;
     bool has;
-    res = deserialize(s, &has);
+    res = deserialize<W>(s, &has);
     if (bad(res)) { return res; }
     if (has) {
-        res = deserialize(s, &o->row);
+        res = deserialize<W>(s, &o->row);
         if (bad(res)) { return res; }
-        res = deserialize(s, &o->val);
+        res = deserialize<W>(s, &o->val);
         if (bad(res)) { return res; }
     }
     return archive_result_t::SUCCESS;
@@ -84,60 +86,72 @@ static inline archive_result_t deserialize_grouped(read_stream_t *s, optimizer_t
 // We write all of these serializations and deserializations explicitly because:
 // * It stops people from inadvertently using a new `grouped_t<T>` without thinking.
 // * Some grouped elements need specialized serialization.
-static inline void serialize_grouped(
+template <cluster_version_t W>
+void serialize_grouped(
     write_message_t *wm, const counted_t<const datum_t> &d) {
-    serialize(wm, d.has());
+    serialize<W>(wm, d.has());
     if (d.has()) {
-        serialize(wm, d);
+        serialize<W>(wm, d);
     }
 }
-static inline void serialize_grouped(write_message_t *wm, uint64_t sz) {
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm, uint64_t sz) {
     serialize_varint_uint64(wm, sz);
 }
-static inline void serialize_grouped(write_message_t *wm, double d) {
-    serialize(wm, d);
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm, double d) {
+    serialize<W>(wm, d);
 }
-static inline void serialize_grouped(write_message_t *wm,
-                                     const std::pair<double, uint64_t> &p) {
-    serialize(wm, p.first);
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm,
+                       const std::pair<double, uint64_t> &p) {
+    serialize<W>(wm, p.first);
     serialize_varint_uint64(wm, p.second);
 }
-static inline void serialize_grouped(write_message_t *wm, const stream_t &sz) {
-    serialize(wm, sz);
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm, const stream_t &sz) {
+    serialize<W>(wm, sz);
 }
-static inline void serialize_grouped(write_message_t *wm, const datums_t &ds) {
-    serialize(wm, ds);
+template <cluster_version_t W>
+void serialize_grouped(write_message_t *wm, const datums_t &ds) {
+    serialize<W>(wm, ds);
 }
 
-static inline archive_result_t deserialize_grouped(
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(
     read_stream_t *s, counted_t<const datum_t> *d) {
     bool has;
-    archive_result_t res = deserialize(s, &has);
+    archive_result_t res = deserialize<W>(s, &has);
     if (bad(res)) { return res; }
     if (has) {
-        return deserialize(s, d);
+        return deserialize<W>(s, d);
     } else {
         d->reset();
         return archive_result_t::SUCCESS;
     }
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, uint64_t *sz) {
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s, uint64_t *sz) {
     return deserialize_varint_uint64(s, sz);
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, double *d) {
-    return deserialize(s, d);
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s, double *d) {
+    return deserialize<W>(s, d);
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s,
-                                                   std::pair<double, uint64_t> *p) {
-    archive_result_t res = deserialize(s, &p->first);
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s,
+                                     std::pair<double, uint64_t> *p) {
+    archive_result_t res = deserialize<W>(s, &p->first);
     if (bad(res)) { return res; }
     return deserialize_varint_uint64(s, &p->second);
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
-    return deserialize(s, sz);
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s, stream_t *sz) {
+    return deserialize<W>(s, sz);
 }
-static inline archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
-    return deserialize(s, ds);
+template <cluster_version_t W>
+archive_result_t deserialize_grouped(read_stream_t *s, datums_t *ds) {
+    return deserialize<W>(s, ds);
 }
 
 // This is basically a templated typedef with special serialization.
@@ -145,13 +159,15 @@ template<class T>
 class grouped_t {
 public:
     virtual ~grouped_t() { } // See grouped_data_t below.
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const {
         serialize_varint_uint64(wm, m.size());
         for (auto it = m.begin(); it != m.end(); ++it) {
-            serialize_grouped(wm, it->first);
-            serialize_grouped(wm, it->second);
+            serialize_grouped<W>(wm, it->first);
+            serialize_grouped<W>(wm, it->second);
         }
     }
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s) {
         guarantee(m.empty());
 
@@ -164,9 +180,9 @@ public:
         auto pos = m.begin();
         for (uint64_t i = 0; i < sz; ++i) {
             std::pair<counted_t<const datum_t>, T> el;
-            res = deserialize_grouped(s, &el.first);
+            res = deserialize_grouped<W>(s, &el.first);
             if (bad(res)) { return res; }
-            res = deserialize_grouped(s, &el.second);
+            res = deserialize_grouped<W>(s, &el.second);
             if (bad(res)) { return res; }
             pos = m.insert(pos, std::move(el));
         }

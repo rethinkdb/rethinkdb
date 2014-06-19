@@ -16,6 +16,7 @@
 #include "concurrency/semaphore.hpp"
 #include "config/args.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
@@ -247,12 +248,12 @@ connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_
     guarantee(!send_mutex.is_locked());
 }
 
-static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
     rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_connect(peer);
 }
 
-static void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
+void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
     rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_disconnect(peer);
 }
@@ -449,9 +450,10 @@ private:
 
 // Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
 // should return.
-template<typename T>
-static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
-    archive_result_t res = deserialize(c, p);
+template <class T>
+bool deserialize_and_check(cluster_version_t cluster_version,
+                           tcp_conn_stream_t *c, T *p, const char *peer) {
+    archive_result_t res = deserialize_for_version(cluster_version, c, p);
     switch (res) {
     case archive_result_t::SUCCESS:
         return false;
@@ -471,9 +473,32 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
     }
 }
 
+template <class T>
+bool deserialize_universal_and_check(tcp_conn_stream_t *c,
+                                     T *p, const char *peer) {
+    archive_result_t res = deserialize_universal(c, p);
+    switch (res) {
+    case archive_result_t::SUCCESS:
+        return false;
+
+    case archive_result_t::SOCK_ERROR:
+    case archive_result_t::SOCK_EOF:
+        // Network error. Report nothing.
+        return true;
+
+    case archive_result_t::RANGE_ERROR:
+        logERR("could not deserialize data received from %s, closing connection", peer);
+        return true;
+
+    default:
+        logERR("unknown error occurred on connection from %s, closing connection", peer);
+        return true;
+    }
+}
+
 // Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
 //  available to write into
-static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
+bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
     int64_t r = conn->read(buffer, size);
     if (-1 == r) {
         logWRN("Network error while receiving clustering header from %s, closing connection.", peer);
@@ -488,11 +513,11 @@ static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t siz
 }
 
 // Reads a uint64_t for size, then the string data
-static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
-                                          std::string *str_out,
-                                          const char *peer) {
+bool deserialize_compatible_string(tcp_conn_stream_t *conn,
+                                   std::string *str_out,
+                                   const char *peer) {
     uint64_t raw_size;
-    archive_result_t res = deserialize(conn, &raw_size);
+    archive_result_t res = deserialize_universal(conn, &raw_size);
     if (res != archive_result_t::SUCCESS) {
         logWRN("Network error while receiving clustering header from %s, closing connection", peer);
         return false;
@@ -632,16 +657,23 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t wm;
         wm.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_version_string.length()));
+        // TODO: Make some serialize_compatible_string function (matching the name of
+        // deserialize_compatible_string).
+        serialize_universal(&wm, static_cast<uint64_t>(cluster_version_string.length()));
         wm.append(cluster_version_string.data(), cluster_version_string.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
+
+        // Everything after we send the version string COULD be moved _below_ the
+        // point where we resolve the version string.  That would mean adding another
+        // back and forth to the handshake?
+        serialize_universal(&wm, static_cast<uint64_t>(cluster_arch_bitsize.length()));
         wm.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
-        serialize(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
+        serialize_universal(&wm, static_cast<uint64_t>(cluster_build_mode.length()));
         wm.append(cluster_build_mode.data(), cluster_build_mode.length());
-        serialize(&wm, parent->me);
-        serialize(&wm, routing_table[parent->me].hosts());
-        if (send_write_message(conn, &wm))
+        serialize_universal(&wm, parent->me);
+        serialize_universal(&wm, routing_table[parent->me].hosts());
+        if (send_write_message(conn, &wm)) {
             return; // network error.
+        }
     }
 
     // Receive & check header.
@@ -651,8 +683,9 @@ void connectivity_cluster_t::run_t::handle(
         int64_t r;
         for (uint64_t i = 0; i < cluster_proto_header.length(); i += r) {
             r = conn->read(buffer, std::min(buffer_size, int64_t(cluster_proto_header.length() - i)));
-            if (-1 == r)
+            if (-1 == r) {
                 return; // network error.
+            }
             rassert(r >= 0);
             // If EOF or remote_header does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header.c_str() + i, buffer, r) != 0) {
@@ -717,9 +750,10 @@ void connectivity_cluster_t::run_t::handle(
     // Receive id, host/ports.
     peer_id_t other_id;
     std::set<host_and_port_t> other_peer_addr_hosts;
-    if (deserialize_and_check(conn, &other_id, peername) ||
-        deserialize_and_check(conn, &other_peer_addr_hosts, peername))
+    if (deserialize_universal_and_check(conn, &other_id, peername) ||
+        deserialize_universal_and_check(conn, &other_peer_addr_hosts, peername)) {
         return;
+    }
 
     // Look up the ip addresses for the other host
     peer_address_t other_peer_addr(other_peer_addr_hosts);
@@ -792,21 +826,26 @@ void connectivity_cluster_t::run_t::handle(
         knows we're in. */
         {
             write_message_t wm;
-            serialize(&wm, routing_table_to_send);
-            if (send_write_message(conn, &wm))
+            serialize_for_version(resolved_version, &wm, routing_table_to_send);
+            if (send_write_message(conn, &wm)) {
                 return;         // network error
+            }
         }
 
         /* Receive the follower's routing table */
-        if (deserialize_and_check(conn, &other_routing_table, peername))
+        if (deserialize_and_check(resolved_version, conn,
+                                  &other_routing_table, peername)) {
             return;
+        }
 
     } else {
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        if (deserialize_and_check(conn, &other_routing_table, peername))
+        if (deserialize_and_check(resolved_version, conn,
+                                  &other_routing_table, peername)) {
             return;
+        }
 
         std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
         if (!get_routing_table_to_send_and_add_peer(other_id,
@@ -819,9 +858,10 @@ void connectivity_cluster_t::run_t::handle(
         /* Send our routing table to the leader */
         {
             write_message_t wm;
-            serialize(&wm, routing_table_to_send);
-            if (send_write_message(conn, &wm))
+            serialize_for_version(resolved_version, &wm, routing_table_to_send);
+            if (send_write_message(conn, &wm)) {
                 return;         // network error
+            }
         }
     }
 
@@ -966,6 +1006,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
+    // At some point we'll have to look up the cluster version based on not a peer
+    // (right?) but rather, a _connection id_.  (The peer could get upgraded and then
+    // reconnect.)
     const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
 
     /* We currently write the message to a vector_stream_t, then

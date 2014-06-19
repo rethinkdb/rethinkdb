@@ -38,7 +38,9 @@ public:
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
@@ -54,7 +56,9 @@ protected:
     explicit maybe_wire_func_t(Args... args) : wrapped(args...) { }
 
 public:
+    template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s);
 
     counted_t<func_t> compile_wire_func_or_null() const;
@@ -109,9 +113,12 @@ public:
     bt_wire_func_t() : bt(make_counted_backtrace()) { }
     explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
 
-    void rdb_serialize(write_message_t *wm) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
     protob_t<const Backtrace> get_bt() const { return bt; }
+
+    template <cluster_version_t W>
+    void rdb_serialize(write_message_t *wm) const;
+    template <cluster_version_t W>
+    archive_result_t rdb_deserialize(read_stream_t *s);
 private:
     protob_t<const Backtrace> bt;
 };

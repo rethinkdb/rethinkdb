@@ -25,23 +25,21 @@ store_key_t key_max(sorting_t sorting) {
     return !reversed(sorting) ? store_key_t::max() : store_key_t::min();
 }
 
-//TODO figure out how to do 0 copy serialization with this.
-
-#define RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, isinline)             \
-    isinline void serialize(write_message_t *wm, const pb_t &p) {       \
+#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t)                              \
+    void serialize_protobuf(write_message_t *wm, const pb_t &p) {       \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int size = p.ByteSize();                                        \
         scoped_array_t<char> data(size);                                \
         p.SerializeToArray(data.data(), size);                          \
         int32_t size32 = size;                                          \
-        serialize(wm, size32);                                          \
+        serialize_universal(wm, size32);                                \
         wm->append(data.data(), data.size());                           \
     }                                                                   \
                                                                         \
-    isinline MUST_USE archive_result_t deserialize(read_stream_t *s, pb_t *p) { \
+    MUST_USE archive_result_t deserialize_protobuf(read_stream_t *s, pb_t *p) { \
         CT_ASSERT(sizeof(int) == sizeof(int32_t));                      \
         int32_t size;                                                   \
-        archive_result_t res = deserialize(s, &size);                   \
+        archive_result_t res = deserialize_universal(s, &size);         \
         if (bad(res)) { return res; }                                   \
         if (size < 0) { return archive_result_t::RANGE_ERROR; }         \
         scoped_array_t<char> data(size);                                \
@@ -50,8 +48,6 @@ store_key_t key_max(sorting_t sorting) {
         p->ParseFromArray(data.data(), data.size());                    \
         return archive_result_t::SUCCESS;                               \
     }
-
-#define RDB_IMPL_PROTOB_SERIALIZABLE(pb_t) RDB_MAKE_PROTOB_SERIALIZABLE_HELPER(pb_t, )
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
@@ -145,6 +141,7 @@ void bring_sindexes_up_to_date(
      * and perfmon_collection, so that is important. */
     auto_drainer_t::lock_t store_drainer_acq(&store->drainer);
 
+    // TODO: This can now be a disk_backed_queue_t<rdb_modification_report_t>.
     scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,

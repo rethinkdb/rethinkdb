@@ -5,21 +5,25 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const std::shared_ptr<const scoped_cJSON_t> &cjson) {
     rassert(NULL != cjson.get() && NULL != cjson->get());
-    serialize(wm, *cjson->get());
+    serialize<W>(wm, *cjson->get());
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const scoped_cJSON_t> *cjson) {
     cJSON *data = cJSON_CreateBlank();
 
-    archive_result_t res = deserialize(s, data);
+    archive_result_t res = deserialize<W>(s, data);
     if (bad(res)) { return res; }
 
     *cjson = std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(data));
 
     return archive_result_t::SUCCESS;
 }
+
+INSTANTIATE_SERIALIZE_SINCE_v1_13(std::shared_ptr<const scoped_cJSON_t>);
 
 namespace query_language {
 

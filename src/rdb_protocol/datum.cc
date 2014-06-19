@@ -1194,12 +1194,14 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
 
 // This must be kept in sync with serialize(write_message_t *, const counted_t<const
 // datum_t> &).
-size_t serialized_size(const counted_t<const datum_t> &datum) {
+template <cluster_version_t W>
+size_t serialized_size(
+        const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     size_t sz = 1; // 1 byte for the type
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        sz += serialized_size(datum->as_array());
+        sz += serialized_size<W>(datum->as_array());
     } break;
     case datum_t::R_BOOL: {
         sz += serialized_size_t<bool>::value;
@@ -1215,10 +1217,10 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += serialized_size(datum->as_object());
+        sz += serialized_size<W>(datum->as_object());
     } break;
     case datum_t::R_STR: {
-        sz += serialized_size(datum->as_str());
+        sz += serialized_size<W>(datum->as_str());
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
@@ -1227,21 +1229,24 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     return sz;
 }
 
+INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(counted_t<const datum_t>);
+
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
     switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        serialize(wm, datum_serialized_type_t::R_ARRAY);
+        serialize<W>(wm, datum_serialized_type_t::R_ARRAY);
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
-        serialize(wm, value);
+        serialize<W>(wm, value);
     } break;
     case datum_t::R_BOOL: {
-        serialize(wm, datum_serialized_type_t::R_BOOL);
+        serialize<W>(wm, datum_serialized_type_t::R_BOOL);
         bool value = datum->as_bool();
-        serialize(wm, value);
+        serialize<W>(wm, value);
     } break;
     case datum_t::R_NULL: {
-        serialize(wm, datum_serialized_type_t::R_NULL);
+        serialize<W>(wm, datum_serialized_type_t::R_NULL);
     } break;
     case datum_t::R_NUM: {
         double value = datum->as_num();
@@ -1252,25 +1257,25 @@ void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
             // so we can use `signbit` in a GCC 4.4.3-compatible way
             using namespace std;  // NOLINT(build/namespaces)
             if (signbit(value)) {
-                serialize(wm, datum_serialized_type_t::INT_NEGATIVE);
+                serialize<W>(wm, datum_serialized_type_t::INT_NEGATIVE);
                 serialize_varint_uint64(wm, -i);
             } else {
-                serialize(wm, datum_serialized_type_t::INT_POSITIVE);
+                serialize<W>(wm, datum_serialized_type_t::INT_POSITIVE);
                 serialize_varint_uint64(wm, i);
             }
         } else {
-            serialize(wm, datum_serialized_type_t::DOUBLE);
-            serialize(wm, value);
+            serialize<W>(wm, datum_serialized_type_t::DOUBLE);
+            serialize<W>(wm, value);
         }
     } break;
     case datum_t::R_OBJECT: {
-        serialize(wm, datum_serialized_type_t::R_OBJECT);
-        serialize(wm, datum->as_object());
+        serialize<W>(wm, datum_serialized_type_t::R_OBJECT);
+        serialize<W>(wm, datum->as_object());
     } break;
     case datum_t::R_STR: {
-        serialize(wm, datum_serialized_type_t::R_STR);
+        serialize<W>(wm, datum_serialized_type_t::R_STR);
         const wire_string_t &value = datum->as_str();
-        serialize(wm, value);
+        serialize<W>(wm, value);
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
@@ -1278,9 +1283,10 @@ void serialize(write_message_t *wm, const counted_t<const datum_t> &datum) {
     }
 }
 
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
     datum_serialized_type_t type;
-    archive_result_t res = deserialize(s, &type);
+    archive_result_t res = deserialize<W>(s, &type);
     if (bad(res)) {
         return res;
     }
@@ -1288,7 +1294,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     switch (type) {
     case datum_serialized_type_t::R_ARRAY: {
         std::vector<counted_t<const datum_t> > value;
-        res = deserialize(s, &value);
+        res = deserialize<W>(s, &value);
         if (bad(res)) {
             return res;
         }
@@ -1300,7 +1306,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     } break;
     case datum_serialized_type_t::R_BOOL: {
         bool value;
-        res = deserialize(s, &value);
+        res = deserialize<W>(s, &value);
         if (bad(res)) {
             return res;
         }
@@ -1315,7 +1321,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     } break;
     case datum_serialized_type_t::DOUBLE: {
         double value;
-        res = deserialize(s, &value);
+        res = deserialize<W>(s, &value);
         if (bad(res)) {
             return res;
         }
@@ -1351,7 +1357,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     } break;
     case datum_serialized_type_t::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > value;
-        res = deserialize(s, &value);
+        res = deserialize<W>(s, &value);
         if (bad(res)) {
             return res;
         }
@@ -1363,7 +1369,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     } break;
     case datum_serialized_type_t::R_STR: {
         scoped_ptr_t<wire_string_t> value;
-        res = deserialize(s, &value);
+        res = deserialize<W>(s, &value);
         if (bad(res)) {
             return res;
         }
@@ -1381,20 +1387,26 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return archive_result_t::SUCCESS;
 }
 
+INSTANTIATE_SINCE_v1_13(counted_t<const datum_t>);
+
+template <cluster_version_t W>
 void serialize(write_message_t *wm,
                const empty_ok_t<const counted_t<const datum_t> > &datum) {
     const counted_t<const datum_t> *pointer = datum.get();
     const bool has = pointer->has();
-    serialize(wm, has);
+    serialize<W>(wm, has);
     if (has) {
-        serialize(wm, *pointer);
+        serialize<W>(wm, *pointer);
     }
 }
 
+INSTANTIATE_SERIALIZE_SINCE_v1_13(empty_ok_t<const counted_t<const datum_t> >);
+
+template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s,
                              empty_ok_ref_t<counted_t<const datum_t> > datum) {
     bool has;
-    archive_result_t res = deserialize(s, &has);
+    archive_result_t res = deserialize<W>(s, &has);
     if (bad(res)) {
         return res;
     }
@@ -1405,9 +1417,14 @@ archive_result_t deserialize(read_stream_t *s,
         pointer->reset();
         return archive_result_t::SUCCESS;
     } else {
-        return deserialize(s, pointer);
+        return deserialize<W>(s, pointer);
     }
 }
+
+template archive_result_t deserialize<cluster_version_t::v1_13_is_latest>(
+        read_stream_t *s,
+        empty_ok_ref_t<counted_t<const datum_t> > datum);
+
 
 // `key` is unused because this is passed to `datum_t::merge`, which takes a
 // generic conflict resolution function, but this particular conflict resolution

@@ -138,7 +138,11 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
+        serialize_for_version_onto_blob(
+                cluster_version_t::ONLY_VERSION,
+                buf_parent_t(&kv_location->buf),
+                &blob,
+                data);
     }
 
     if (mod_info_out) {
@@ -491,7 +495,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                                  + serialized_size(atom.value);
+                + serialized_size<cluster_version_t::ONLY_VERSION>(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks
@@ -704,7 +708,7 @@ void rdb_erase_small_range(key_tester_t *tester,
 // of a datum, not a whole rget, though it is used for that purpose (by summing
 // up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size(datum);
+    return serialized_size<cluster_version_t::ONLY_VERSION>(datum);
 }
 
 
@@ -966,39 +970,41 @@ void rdb_distribution_get(int max_depth,
 static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
+template <cluster_version_t W>
 void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
     if (!deleted.first.get()) {
         guarantee(deleted.second.empty());
-        serialize(wm, HAS_NO_VALUE);
+        serialize<W>(wm, HAS_NO_VALUE);
     } else {
-        serialize(wm, HAS_VALUE);
-        serialize(wm, deleted);
+        serialize<W>(wm, HAS_VALUE);
+        serialize<W>(wm, deleted);
     }
 
     if (!added.first.get()) {
         guarantee(added.second.empty());
-        serialize(wm, HAS_NO_VALUE);
+        serialize<W>(wm, HAS_NO_VALUE);
     } else {
-        serialize(wm, HAS_VALUE);
-        serialize(wm, added);
+        serialize<W>(wm, HAS_VALUE);
+        serialize<W>(wm, added);
     }
 }
 
+template <cluster_version_t W>
 archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     int8_t has_value;
-    archive_result_t res = deserialize(s, &has_value);
+    archive_result_t res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize(s, &deleted);
+        res = deserialize<W>(s, &deleted);
         if (bad(res)) { return res; }
     }
 
-    res = deserialize(s, &has_value);
+    res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize(s, &added);
+        res = deserialize<W>(s, &added);
         if (bad(res)) { return res; }
     }
 
@@ -1051,7 +1057,7 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
 
     // This is for a disk backed queue so there are no versioning issues.
     write_message_t wm;
-    serialize(&wm, mod_report);
+    serialize<cluster_version_t::LATEST>(&wm, mod_report);
     store_->sindex_queue_push(wm, acq.get());
 
     rdb_live_deletion_context_t deletion_context;
@@ -1080,9 +1086,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
                            const sindex_multi_bool_t &multi) {
-    serialize(wm, cluster_version_t::LATEST_VERSION);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, mapping);
-    serialize_for_version(cluster_version_t::LATEST_VERSION, wm, multi);
+    serialize_cluster_version(wm, cluster_version_t::LATEST);
+    serialize_for_version(cluster_version_t::LATEST, wm, mapping);
+    serialize_for_version(cluster_version_t::LATEST, wm, multi);
 }
 
 void deserialize_sindex_info(const std::vector<char> &data,
@@ -1090,7 +1096,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
                              sindex_multi_bool_t *multi) {
     inplace_vector_read_stream_t read_stream(&data);
     cluster_version_t cluster_version;
-    archive_result_t success = deserialize(&read_stream, &cluster_version);
+    archive_result_t success
+        = deserialize_cluster_version(&read_stream, &cluster_version);
     guarantee_deserialization(success, "sindex description");
     success = deserialize_for_version(cluster_version, &read_stream, mapping);
     guarantee_deserialization(success, "sindex description");
