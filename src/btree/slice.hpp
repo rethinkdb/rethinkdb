@@ -18,12 +18,21 @@ class buf_parent_t;
 class cache_t;
 class key_tester_t;
 
+enum class index_type_t {
+    PRIMARY,
+    SECONDARY
+};
 
 class btree_stats_t {
 public:
-    explicit btree_stats_t(perfmon_collection_t *parent, const std::string &identifier)
+    explicit btree_stats_t(perfmon_collection_t *parent,
+                           const std::string &identifier,
+                           index_type_t index_type)
         : btree_collection(),
-          btree_collection_membership(parent, &btree_collection, "btree-" + identifier),
+          btree_collection_membership(parent,
+                                      &btree_collection,
+                                      (index_type == index_type_t::PRIMARY ?
+                                       "btree-" : "btree-index-") + identifier),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_membership(&btree_collection,
@@ -52,8 +61,10 @@ public:
                                 const std::vector<char> &metainfo_key,
                                 const binary_blob_t &metainfo_value);
 
-    btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
-                  const std::string &identifier);
+    btree_slice_t(cache_t *cache,
+                  perfmon_collection_t *parent,
+                  const std::string &identifier,
+                  index_type_t index_type);
 
     ~btree_slice_t();
 
