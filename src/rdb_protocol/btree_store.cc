@@ -97,7 +97,10 @@ store_t::store_t(serializer_t *serializer,
         create_stat_block(&sb);
     }
 
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
+    btree.init(new btree_slice_t(cache.get(),
+                                 &perfmon_collection,
+                                 "primary",
+                                 index_type_t::PRIMARY));
 
     // Initialize sindex slices
     {
@@ -124,7 +127,8 @@ store_t::store_t(serializer_t *serializer,
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
         }
     }
 
@@ -503,7 +507,10 @@ bool store_t::add_sindex(
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, name.name));
+            sindex.id, new btree_slice_t(cache.get(),
+                                         &perfmon_collection,
+                                         name.name,
+                                         index_type_t::SECONDARY));
 
         sindex.post_construction_complete = false;
 
@@ -746,7 +753,8 @@ void store_t::set_sindexes(
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
 
             sindex.post_construction_complete = false;
 
