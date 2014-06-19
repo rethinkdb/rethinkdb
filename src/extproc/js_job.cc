@@ -231,7 +231,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         default:
             return false;
         }
-        v8::V8::IdleNotification(200);
+        v8::V8::IdleNotification();
     }
     unreachable();
 }
