@@ -65,6 +65,7 @@ struct msg_t {
     boost::variant<stop_t, change_t> op;
 };
 
+RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
 RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
 RDB_DECLARE_SERIALIZABLE(msg_t);
 

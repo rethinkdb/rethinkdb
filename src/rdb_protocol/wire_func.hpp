@@ -135,6 +135,8 @@ private:
     bt_wire_func_t bt;
 };
 
+RDB_SERIALIZE_OUTSIDE(group_wire_func_t);
+
 template <class T>
 class skip_terminal_t;
 

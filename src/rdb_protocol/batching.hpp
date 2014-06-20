@@ -96,6 +96,8 @@ private:
     microtime_t end_time;
 };
 
+RDB_SERIALIZE_OUTSIDE(batchspec_t);
+
 // TODO: make user-tunable.
 size_t array_size_limit();
 

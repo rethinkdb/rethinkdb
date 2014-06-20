@@ -636,3 +636,6 @@ void listener_t::advance_current_timestamp_and_pulse_waiters(transition_timestam
         }
     }
 }
+
+RDB_IMPL_SERIALIZABLE_4(listener_t::write_queue_entry_t,
+                        write, order_token, transition_timestamp, fifo_token);

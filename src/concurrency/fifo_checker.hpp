@@ -52,6 +52,8 @@ public:
     void assert_read_mode() const;
     void assert_write_mode() const;
     const std::string &tag() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
@@ -74,8 +76,6 @@ private:
     // This tag would be inefficient on VC++ or some other non-GNU
     // std::string implementation, since we copy by value.
     std::string tag_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
@@ -84,7 +84,9 @@ private:
     friend class plain_sink_t;
 };
 
-#ifdef NDEBUG  // yes, ifdef.
+#ifndef NDEBUG
+RDB_SERIALIZE_OUTSIDE(order_token_t);
+#else
 RDB_MAKE_SERIALIZABLE_0(order_token_t);
 #endif
 

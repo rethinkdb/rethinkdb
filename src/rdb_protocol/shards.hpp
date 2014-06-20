@@ -44,6 +44,9 @@ struct rget_item_t {
     counted_t<const ql::datum_t> sindex_key, data;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(rget_item_t);
+
 typedef std::vector<rget_item_t> stream_t;
 
 class optimizer_t {

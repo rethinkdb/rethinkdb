@@ -24,6 +24,8 @@ struct http_result_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+RDB_SERIALIZE_OUTSIDE(http_result_t);
+
 class extproc_pool_t;
 class http_runner_t;
 class http_job_t;
@@ -116,6 +118,8 @@ struct http_opts_t {
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(http_opts_t);
 
 RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
 

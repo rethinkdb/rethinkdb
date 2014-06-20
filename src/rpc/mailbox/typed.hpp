@@ -76,6 +76,8 @@ private:
     raw_mailbox_t::address_t addr;
 };
 
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t);
+
 template<>
 class mailbox_t< void() > {
     class write_impl_t : public mailbox_write_callback_t {

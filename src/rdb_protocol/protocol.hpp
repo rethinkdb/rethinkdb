@@ -130,6 +130,8 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
+RDB_SERIALIZE_OUTSIDE(datum_range_t);
+
 struct backfill_atom_t {
     store_key_t key;
     counted_t<const ql::datum_t> value;
