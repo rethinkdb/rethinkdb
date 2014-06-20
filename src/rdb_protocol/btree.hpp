@@ -216,9 +216,9 @@ struct rdb_modification_info_t {
                       std::vector<char> > data_pair_t;
     data_pair_t deleted;
     data_pair_t added;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rdb_modification_info_t);
 
 struct rdb_modification_report_t {
     rdb_modification_report_t() { }
@@ -227,9 +227,9 @@ struct rdb_modification_report_t {
 
     store_key_t primary_key;
     rdb_modification_info_t info;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(rdb_modification_report_t);
 
 void serialize_sindex_info(write_message_t *wm,
                            const ql::map_wire_func_t &mapping,
