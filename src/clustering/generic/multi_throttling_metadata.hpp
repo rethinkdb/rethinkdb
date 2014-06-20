@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_
 #define CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_
 
@@ -19,6 +19,8 @@ public:
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(multi_throttling_server_business_card_t,
                                       request_addr, relinquish_tickets_addr);
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_server_business_card_t);
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_client_business_card_t {
@@ -50,6 +52,8 @@ public:
     }
 };
 
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_client_business_card_t);
+
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_business_card_t {
 public:
@@ -68,5 +72,7 @@ public:
         return registrar == other.registrar;
     }
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_business_card_t);
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_ */
