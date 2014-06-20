@@ -54,6 +54,8 @@ private:
     bool hard_durability_;
 };
 
+RDB_SERIALIZE_OUTSIDE(ack_expectation_t);
+
 void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
 class namespace_semilattice_metadata_t {

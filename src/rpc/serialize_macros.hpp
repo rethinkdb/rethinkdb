@@ -8,20 +8,16 @@ Please modify '../scripts/generate_serialize_macros.py' instead of modifying thi
 #include "containers/archive/archive.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
-unserialize data types that consist of a simple series of fields, each of which
-is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
-want to be able to serialize. To make it serializable automatically, either
-write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.  The second
-form can be more performant for types whose fields are private.
+unserialize data types that consist of a simple series of fields, each
+of which is serializable. Suppose we have a type "struct point_t {
+int32_t x, y; }" that we want to be able to serialize. To make it
+serializable automatically, either write
+RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type and
+RDB_SERIALIZE_OUTSIDE(point_t) in the global scope.
 
-A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
-to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
-invoke it at global scope after the class declaration, or use
-RDB_MAKE_ME_SERIALIZABLE_*() instead. In order to force the compiler to catch
-this error, we declare a dummy "extern int" in RDB_MAKE_ME_SERIALIZABLE_*().
-This is a noop at the global scope, but produces a (somewhat weird) error in
-the class scope. */
+We use dummy "extern int" declarations to force a compile error in
+macros that should not be used inside of class bodies. */
 
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     template <cluster_version_t W> \
@@ -37,6 +33,16 @@ the class scope. */
     template <cluster_version_t W> \
     archive_result_t rdb_deserialize(read_stream_t *s)
 
+#define RDB_SERIALIZE_OUTSIDE(type_t) \
+    template <cluster_version_t W> \
+    void serialize(write_message_t *wm, const type_t &thing) { \
+        thing.rdb_serialize<W>(wm); \
+    } \
+    template <cluster_version_t W> \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
+        return thing->rdb_deserialize<W>(s); \
+    } \
+    extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
     template <cluster_version_t W> \
     void serialize(UNUSED write_message_t *wm, UNUSED const type_t &thing) { \
