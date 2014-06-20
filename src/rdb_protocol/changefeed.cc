@@ -82,8 +82,9 @@ struct stamped_msg_t {
     uuid_u server_uuid;
     uint64_t stamp;
     msg_t submsg;
-    RDB_MAKE_ME_SERIALIZABLE_3(server_uuid, stamp, submsg);
 };
+
+RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 
 // This function takes a `lock_t` to make sure you have one.  (We can't just
 // always ackquire a drainer lock before sending because we sometimes send a
