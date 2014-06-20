@@ -92,9 +92,9 @@ struct http_opts_t {
         http_auth_type_t type;
         std::string username;
         std::string password;
+    };
 
-        RDB_DECLARE_ME_SERIALIZABLE;
-    } auth;
+    http_auth_t auth;
 
     http_method_t method;
     http_result_format_t result_format;
@@ -116,6 +116,9 @@ struct http_opts_t {
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
+
 
 // A handle to a running "javascript evaluator" job.
 class http_runner_t : public home_thread_mixin_t {
