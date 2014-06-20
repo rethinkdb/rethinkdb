@@ -63,4 +63,5 @@ public:
         return registrar == other.registrar;
     }
 };
+
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_ */
