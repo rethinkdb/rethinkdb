@@ -87,8 +87,8 @@ test_report_template = """
         function toggleVisibility(targetId) {
             var target = document.getElementById(targetId);
             if (target != null) {
-                if (target.style.display != "inline") {
-                    target.style.display = "inline";
+                if (target.style.display == "none") {
+                    target.style.display = null;
                 } else {
                     target.style.display = "none";
                 }
