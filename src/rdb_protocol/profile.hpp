@@ -24,18 +24,18 @@ struct start_t {
     explicit start_t(const std::string &description);
     std::string description_;
     ticks_t when_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(start_t);
 
 struct split_t {
     split_t();
     explicit split_t(size_t n_parallel_jobs);
 
     size_t n_parallel_jobs_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(split_t);
 
 struct sample_t {
     sample_t();
@@ -44,16 +44,16 @@ struct sample_t {
     std::string description_;
     ticks_t mean_duration_;
     size_t n_samples_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sample_t);
 
 struct stop_t {
     stop_t();
     ticks_t when_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(stop_t);
 
 typedef boost::variant<start_t, split_t, sample_t, stop_t> event_t;
 
