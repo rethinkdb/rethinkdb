@@ -36,11 +36,22 @@ macros that should not be used inside of class bodies. */
 #define RDB_SERIALIZE_OUTSIDE(type_t) \
     template <cluster_version_t W> \
     void serialize(write_message_t *wm, const type_t &thing) { \
-        thing.rdb_serialize<W>(wm); \
+        thing.template rdb_serialize<W>(wm); \
     } \
     template <cluster_version_t W> \
     MUST_USE archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
-        return thing->rdb_deserialize<W>(s); \
+        return thing->template rdb_deserialize<W>(s); \
+    } \
+    extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
+
+#define RDB_SERIALIZE_TEMPLATED_OUTSIDE(type_t) \
+    template <cluster_version_t W, class T> \
+    void serialize(write_message_t *wm, const type_t<T> &thing) { \
+        thing.template rdb_serialize<W>(wm); \
+    } \
+    template <cluster_version_t W, class T> \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t<T> *thing) { \
+        return thing->template rdb_deserialize<W>(s); \
     } \
     extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
