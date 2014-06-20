@@ -49,9 +49,9 @@ public:
 
     branch_id_t branch;
     state_timestamp_t timestamp;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
 };
+
+RDB_MAKE_SERIALIZABLE_2(version_t, branch, timestamp);
 
 inline void debug_print(printf_buffer_t *buf, const version_t& v) {
     buf->appendf("v{");
@@ -91,9 +91,9 @@ public:
     }
 
     version_t earliest, latest;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
+
+RDB_MAKE_SERIALIZABLE_2(version_range_t, earliest, latest);
 
 inline void debug_print(printf_buffer_t *buf, const version_range_t& vr) {
     buf->appendf("vr{earliest=");
@@ -137,9 +137,10 @@ public:
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
     constructed. `origin.get_region()` will be the same as `region`. */
     region_map_t<version_range_t> origin;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
 };
+
+RDB_MAKE_SERIALIZABLE_3(branch_birth_certificate_t,
+                        region, initial_timestamp, origin);
 
 RDB_MAKE_EQUALITY_COMPARABLE_3(
     branch_birth_certificate_t, region, initial_timestamp, origin);
@@ -164,9 +165,9 @@ destination before trying to use the `branch_id_t` for anything. */
 class branch_history_t {
 public:
     std::map<branch_id_t, branch_birth_certificate_t> branches;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
+
+RDB_MAKE_SERIALIZABLE_1(branch_history_t, branches);
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 

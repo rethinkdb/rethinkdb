@@ -21,10 +21,10 @@ struct order_bucket_t {
 
     bool valid() const;
 private:
-    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
-
     explicit order_bucket_t(uuid_u uuid) : uuid_(uuid) { }
 };
+
+RDB_MAKE_SERIALIZABLE_1(order_bucket_t, uuid_);
 
 
 
@@ -76,8 +76,6 @@ private:
     std::string tag_;
 
     RDB_DECLARE_ME_SERIALIZABLE;
-#else
-    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
@@ -85,6 +83,10 @@ private:
     friend class order_checkpoint_t;
     friend class plain_sink_t;
 };
+
+#ifdef NDEBUG  // yes, ifdef.
+RDB_MAKE_SERIALIZABLE_0(order_token_t);
+#endif
 
 
 /* Order sources create order tokens with increasing values for a

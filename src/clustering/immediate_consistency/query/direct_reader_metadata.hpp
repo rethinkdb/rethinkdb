@@ -19,9 +19,9 @@ public:
     explicit direct_reader_business_card_t(const read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
 
     read_mailbox_t::address_t read_mailbox;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(read_mailbox);
 };
+
+RDB_MAKE_SERIALIZABLE_1(direct_reader_business_card_t, read_mailbox);
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(direct_reader_business_card_t, read_mailbox);
 
