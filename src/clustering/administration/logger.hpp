@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_LOGGER_HPP_
 #define CLUSTERING_ADMINISTRATION_LOGGER_HPP_
 
@@ -30,7 +30,7 @@ public:
     std::string message;
 };
 
-RDB_MAKE_SERIALIZABLE_4(log_message_t, timestamp, uptime, level, message);
+RDB_DECLARE_SERIALIZABLE(log_message_t);
 
 std::string format_log_level(log_level_t l);
 log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error);

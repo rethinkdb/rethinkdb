@@ -16,10 +16,6 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/reactor_json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "containers/archive/archive.hpp"
-#include "containers/archive/boost_types.hpp"
-#include "containers/archive/cow_ptr_type.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
@@ -76,10 +72,7 @@ public:
     vclock_t<database_id_t> database;
 };
 
-RDB_MAKE_SERIALIZABLE_10(namespace_semilattice_metadata_t,
-                         blueprint, primary_datacenter, replica_affinities,
-                         ack_expectations, shards, name, primary_pinnings,
-                         secondary_pinnings, primary_key, database);
+RDB_DECLARE_SERIALIZABLE(namespace_semilattice_metadata_t);
 
 
 namespace_semilattice_metadata_t new_namespace(
@@ -111,8 +104,7 @@ public:
     namespace_map_t namespaces;
 };
 
-RDB_MAKE_SERIALIZABLE_1(namespaces_semilattice_metadata_t, namespaces);
-
+RDB_DECLARE_SERIALIZABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
 
@@ -153,9 +145,8 @@ public:
     reactor_bcards_map_t reactor_bcards;
 };
 
-RDB_MAKE_SERIALIZABLE_1(namespaces_directory_metadata_t, reactor_bcards);
-
-RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
+RDB_DECLARE_SERIALIZABLE(namespaces_directory_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_directory_metadata_t);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t *target);

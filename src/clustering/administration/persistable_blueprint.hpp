@@ -33,7 +33,7 @@ public:
     }
 };
 
-RDB_MAKE_SERIALIZABLE_1(persistable_blueprint_t, machines_roles);
+RDB_DECLARE_SERIALIZABLE(persistable_blueprint_t);
 
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t &x);
 
