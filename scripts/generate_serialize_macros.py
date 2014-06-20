@@ -25,7 +25,7 @@ def generate_make_serializable_macro(nfields):
         print "        serialize<W>(wm, thing.field%d); \\" % (i + 1)
     print "    } \\"
     print "    template <cluster_version_t W> \\"
-    print "    archive_result_t deserialize(read_stream_t *s, %stype_t *thing) { \\" % zeroarg
+    print "    archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
     print "        archive_result_t res = archive_result_t::SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize<W>(s, deserialize_deref(thing->field%d)); \\" % (i + 1)

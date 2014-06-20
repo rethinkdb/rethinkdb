@@ -42,7 +42,7 @@ the class scope. */
     void serialize(UNUSED write_message_t *wm, UNUSED const type_t &thing) { \
     } \
     template <cluster_version_t W> \
-    archive_result_t deserialize(read_stream_t *s, UNUSED type_t *thing) { \
+    archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         return res; \
     } \

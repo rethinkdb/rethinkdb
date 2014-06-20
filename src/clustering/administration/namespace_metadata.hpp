@@ -74,11 +74,13 @@ public:
     vclock_t<region_map_t<std::set<machine_id_t> > > secondary_pinnings;
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
-
-    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities,
-                                ack_expectations, shards, name, primary_pinnings,
-                                secondary_pinnings, primary_key, database);
 };
+
+RDB_MAKE_SERIALIZABLE_10(namespace_semilattice_metadata_t,
+                         blueprint, primary_datacenter, replica_affinities,
+                         ack_expectations, shards, name, primary_pinnings,
+                         secondary_pinnings, primary_key, database);
+
 
 namespace_semilattice_metadata_t new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
@@ -107,9 +109,9 @@ class namespaces_semilattice_metadata_t {
 public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> > namespace_map_t;
     namespace_map_t namespaces;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
+
+RDB_MAKE_SERIALIZABLE_1(namespaces_semilattice_metadata_t, namespaces);
 
 RDB_DECLARE_SEMILATTICE_JOINABLE(namespaces_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(namespaces_semilattice_metadata_t);
@@ -149,9 +151,9 @@ public:
     typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> > > reactor_bcards_map_t;
 
     reactor_bcards_map_t reactor_bcards;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
+
+RDB_MAKE_SERIALIZABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
 RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t, reactor_bcards);
 
