@@ -1,6 +1,8 @@
 #include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
+#include "containers/archive/stl_types.hpp"
+
 RDB_IMPL_SERIALIZABLE_1(direct_reader_business_card_t, read_mailbox);
 RDB_IMPL_EQUALITY_COMPARABLE_1(direct_reader_business_card_t, read_mailbox);
 

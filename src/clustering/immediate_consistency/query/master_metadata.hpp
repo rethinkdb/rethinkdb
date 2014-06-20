@@ -11,7 +11,6 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
