@@ -69,17 +69,13 @@ public:
     multi_throttling_business_card_t<request_t, inner_client_business_card_t> multi_throttling;
 };
 
-RDB_MAKE_SERIALIZABLE_4(master_business_card_t::read_request_t,
-                        read, order_token, fifo_token, cont_addr);
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::read_request_t);
 
-RDB_MAKE_SERIALIZABLE_4(master_business_card_t::write_request_t,
-                        write, order_token, fifo_token, cont_addr);
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::write_request_t);
 
-RDB_MAKE_SERIALIZABLE_0(master_business_card_t::inner_client_business_card_t);
+RDB_DECLARE_SERIALIZABLE(master_business_card_t::inner_client_business_card_t);
 
-RDB_MAKE_SERIALIZABLE_2(master_business_card_t, region, multi_throttling);
-
-RDB_MAKE_EQUALITY_COMPARABLE_2(master_business_card_t,
-    region, multi_throttling);
+RDB_DECLARE_SERIALIZABLE(master_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(master_business_card_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_ */
