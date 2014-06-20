@@ -1144,7 +1144,6 @@ RDB_IMPL_SERIALIZABLE_1(sync_t, region);
 
 RDB_IMPL_SERIALIZABLE_3(write_t,
                         write, durability_requirement, profile);
-// RSI: Wtf?  recency is not being serialized.  Make a github issue.
 RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_SERIALIZABLE_1(backfill_chunk_t::delete_range_t, range);
