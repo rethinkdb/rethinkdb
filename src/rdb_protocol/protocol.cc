@@ -1103,7 +1103,6 @@ RDB_IMPL_SERIALIZABLE_1(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_3(sindex_rangespec_t,
                         id, region, original_range);
 
-// RSI: Is this not duplicating some other thing?
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
 RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
