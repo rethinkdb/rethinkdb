@@ -52,7 +52,7 @@ public:
     }
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_client_business_card_t);
+RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_client_business_card_t);
 
 template <class request_t, class inner_client_business_card_t>
 class multi_throttling_business_card_t {
@@ -73,6 +73,6 @@ public:
     }
 };
 
-RDB_SERIALIZE_TEMPLATED_OUTSIDE(multi_throttling_business_card_t);
+RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_business_card_t);
 
 #endif /* CLUSTERING_GENERIC_MULTI_THROTTLING_METADATA_HPP_ */
