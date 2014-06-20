@@ -156,6 +156,8 @@ private:
     char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
 };
 
+RDB_SERIALIZE_OUTSIDE(store_key_t);
+
 inline bool operator==(const store_key_t &k1, const store_key_t &k2) {
     return k1.size() == k2.size() && memcmp(k1.contents(), k2.contents(), k1.size()) == 0;
 }

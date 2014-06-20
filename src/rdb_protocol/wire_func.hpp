@@ -48,6 +48,8 @@ private:
     counted_t<func_t> func;
 };
 
+RDB_SERIALIZE_OUTSIDE(wire_func_t);
+
 class maybe_wire_func_t : public wire_func_t {
 protected:
     template<class... Args>
@@ -118,6 +120,8 @@ public:
 private:
     protob_t<const Backtrace> bt;
 };
+
+RDB_SERIALIZE_OUTSIDE(bt_wire_func_t);
 
 class group_wire_func_t {
 public:

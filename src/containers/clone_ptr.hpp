@@ -4,6 +4,7 @@
 
 #include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
+#include "rpc/serialize_macros.hpp"
 
 /* `clone_ptr_t` is a smart pointer that calls the `clone()` method on its
 underlying object whenever the `clone_ptr_t`'s copy constructor is called. It's
@@ -40,7 +41,6 @@ private:
 
     void truth_value_method_for_use_in_boolean_conversions();
 
-    friend class write_message_t;
     template <cluster_version_t W>
     void rdb_serialize(write_message_t *wm) const {
         // clone pointers own their pointees exclusively, so we don't
@@ -53,7 +53,6 @@ private:
         }
     }
 
-    friend class archive_deserializer_t;
     template <cluster_version_t W>
     archive_result_t rdb_deserialize(read_stream_t *s) {
         rassert(!object.has());
@@ -66,6 +65,8 @@ private:
 
     scoped_ptr_t<T> object;
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(clone_ptr_t);
 
 #include "containers/clone_ptr.tcc"
 

@@ -219,6 +219,8 @@ private:
     std::map<counted_t<const datum_t>, T> m;
 };
 
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
+
 // We need a separate class for this because inheriting from
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants
 // want us to have a copy constructor.

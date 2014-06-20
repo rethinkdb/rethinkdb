@@ -85,7 +85,7 @@ private:
     counted_t<const datum_t> maybe_implicit;
 };
 
-
+RDB_SERIALIZE_OUTSIDE(var_scope_t);
 
 }  // namespace ql
 
