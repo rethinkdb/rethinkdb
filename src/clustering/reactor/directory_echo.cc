@@ -160,6 +160,8 @@ template class directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_writer_t<cow_ptr_t<reactor_business_card_t> >;
 template class directory_echo_mirror_t<cow_ptr_t<reactor_business_card_t> >;
 
+#include <string>  // NOLINT(build/include_order)
+
 template class directory_echo_wrapper_t<std::string>;
 template class directory_echo_writer_t<std::string>;
 template class directory_echo_mirror_t<std::string>;
