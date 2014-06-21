@@ -77,7 +77,7 @@ def generate_impl_me_serializable_macro(nfields):
     print "        return res; \\"
     print "    } \\"
     print "    template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \\"
-    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)"
+    print "    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)"
 
 if __name__ == "__main__":
 

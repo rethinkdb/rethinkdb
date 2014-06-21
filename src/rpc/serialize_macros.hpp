@@ -102,7 +102,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
     template <cluster_version_t W> \
@@ -149,7 +149,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
     template <cluster_version_t W> \
@@ -205,7 +205,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
     template <cluster_version_t W> \
@@ -270,7 +270,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
     template <cluster_version_t W> \
@@ -344,7 +344,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
     template <cluster_version_t W> \
@@ -427,7 +427,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     template <cluster_version_t W> \
@@ -519,7 +519,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     template <cluster_version_t W> \
@@ -620,7 +620,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     template <cluster_version_t W> \
@@ -730,7 +730,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     template <cluster_version_t W> \
@@ -849,7 +849,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     template <cluster_version_t W> \
@@ -977,7 +977,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     template <cluster_version_t W> \
@@ -1114,7 +1114,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     template <cluster_version_t W> \
@@ -1260,7 +1260,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     template <cluster_version_t W> \
@@ -1415,7 +1415,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     template <cluster_version_t W> \
@@ -1579,7 +1579,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     template <cluster_version_t W> \
@@ -1752,7 +1752,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     template <cluster_version_t W> \
@@ -1934,7 +1934,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     template <cluster_version_t W> \
@@ -2125,7 +2125,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     template <cluster_version_t W> \
@@ -2325,7 +2325,7 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     template <cluster_version_t W> \
@@ -2534,6 +2534,6 @@ macros that should not be used inside of class bodies. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #endif // RPC_SERIALIZE_MACROS_HPP_
