@@ -43,13 +43,6 @@ public:
             multi_throttling_client_business_card_t,
             inner_client_business_card, intro_addr, give_tickets_addr,
             reclaim_tickets_addr);
-    // RSI: Wtf?
-    bool operator==(const multi_throttling_server_business_card_t<request_t> &other) const {
-        return inner_client_business_card == other.inner_client_business_card &&
-            intro_addr == other.intro_addr &&
-            give_tickets_addr == other.give_tickets_addr &&
-            reclaim_tickets_addr == other.reclaim_tickets_addr;
-    }
 };
 
 RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(multi_throttling_client_business_card_t);
