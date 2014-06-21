@@ -9,8 +9,6 @@
 #include "utils.hpp"
 #include "clustering/administration/main/names.hpp"
 
-static const int RAND_SEQ_LEN = 3;
-
 static const char* names[] = {
     "Akasha",
     "Alchemist",
@@ -104,32 +102,25 @@ std::string get_random_machine_name() {
 }
 
 bool is_invalid_char(char ch) {
-    return ! (isalpha(ch) || isdigit(ch) || ch == '_');
+    return !(isalpha(ch) || isdigit(ch) || ch == '_');
+}
+
+char rand_alnum() {
+    int rand_val = randint(10 + 26);
+    return (rand_val < 10) ? ('0' + rand_val) : ('a' + rand_val - 10);
 }
 
 std::string get_machine_name() {
     char h[64];
+    h[sizeof(h) - 1] = '\0';
 
-    h[0] = '\0';
-    if (gethostname(h, sizeof(h) - 1) < 0 || strlen(h) == 0) {
+    if (gethostname(h, sizeof(h) - 1) != 0 || strlen(h) == 0) {
         return get_random_machine_name();
     }
 
     std::string sanitized(h);
     std::replace_if(sanitized.begin(), sanitized.end(), is_invalid_char, '_');
-    if (isdigit(sanitized[0])) {
-        sanitized[0] = '_';
-    }
 
-    std::stringstream ss;
-    for (int i=0;i<RAND_SEQ_LEN;i++) {
-        int ch = randint(10 + 26);
-        ss << (char)(ch < 10 ? '0' + ch : 'a' + ch - 10);
-    }
-    if (sanitized[sanitized.size() - 1] != '_') {
-        sanitized += '_';
-    }
-    sanitized += ss.str();
-
-    return sanitized;
+    return strprintf("%s_%c%c%c", sanitized.c_str(),
+                     rand_alnum(), rand_alnum(), rand_alnum());
 }
