@@ -6,7 +6,7 @@
 #include "arch/timing.hpp"
 
 RDB_IMPL_ME_SERIALIZABLE_3(http_result_t, empty_ok(header), empty_ok(body), error);
-RDB_IMPL_ME_SERIALIZABLE_3(http_opts_t::http_auth_t, type, username, password);
+RDB_IMPL_SERIALIZABLE_3(http_opts_t::http_auth_t, type, username, password);
 RDB_IMPL_ME_SERIALIZABLE_13(http_opts_t, auth, method, result_format, url,
                             proxy, empty_ok(url_params), header, data, form_data,
                             timeout_ms, attempts, max_redirects, verify);

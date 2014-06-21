@@ -44,11 +44,14 @@ public:
 
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
+    RDB_MAKE_ME_SERIALIZABLE_1(num);
+
 private:
     friend class transition_timestamp_t;
     uint64_t num;
-    RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
+
+RDB_SERIALIZE_OUTSIDE(state_timestamp_t);
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
@@ -83,10 +86,13 @@ public:
         return before.to_repli_timestamp();
     }
 
+    RDB_MAKE_ME_SERIALIZABLE_1(before);
+
 private:
     state_timestamp_t before;
-    RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
+
+RDB_SERIALIZE_OUTSIDE(transition_timestamp_t);
 
 
 #endif /* TIMESTAMPS_HPP_ */

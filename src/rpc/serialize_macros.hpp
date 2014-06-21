@@ -8,20 +8,16 @@ Please modify '../scripts/generate_serialize_macros.py' instead of modifying thi
 #include "containers/archive/archive.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
-unserialize data types that consist of a simple series of fields, each of which
-is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
-want to be able to serialize. To make it serializable automatically, either
-write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.  The second
-form can be more performant for types whose fields are private.
+unserialize data types that consist of a simple series of fields, each
+of which is serializable. Suppose we have a type "struct point_t {
+int32_t x, y; }" that we want to be able to serialize. To make it
+serializable automatically, either write
+RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type and
+RDB_SERIALIZE_OUTSIDE(point_t) in the global scope.
 
-A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
-to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
-invoke it at global scope after the class declaration, or use
-RDB_MAKE_ME_SERIALIZABLE_*() instead. In order to force the compiler to catch
-this error, we declare a dummy "extern int" in RDB_MAKE_ME_SERIALIZABLE_*().
-This is a noop at the global scope, but produces a (somewhat weird) error in
-the class scope. */
+We use dummy "extern int" declarations to force a compile error in
+macros that should not be used inside of class bodies. */
 
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     template <cluster_version_t W> \
@@ -37,12 +33,45 @@ the class scope. */
     template <cluster_version_t W> \
     archive_result_t rdb_deserialize(read_stream_t *s)
 
+#define RDB_SERIALIZE_OUTSIDE(type_t) \
+    template <cluster_version_t W> \
+    void serialize(write_message_t *wm, const type_t &thing) { \
+        thing.template rdb_serialize<W>(wm); \
+    } \
+    template <cluster_version_t W> \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
+        return thing->template rdb_deserialize<W>(s); \
+    } \
+    extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
+
+#define RDB_SERIALIZE_TEMPLATED_OUTSIDE(type_t) \
+    template <cluster_version_t W, class T> \
+    void serialize(write_message_t *wm, const type_t<T> &thing) { \
+        thing.template rdb_serialize<W>(wm); \
+    } \
+    template <cluster_version_t W, class T> \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t<T> *thing) { \
+        return thing->template rdb_deserialize<W>(s); \
+    } \
+    extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
+
+#define RDB_SERIALIZE_TEMPLATED_2_OUTSIDE(type_t) \
+    template <cluster_version_t W, class T, class U> \
+    void serialize(write_message_t *wm, const type_t<T, U> &thing) { \
+        thing.template rdb_serialize<W>(wm); \
+    } \
+    template <cluster_version_t W, class T, class U> \
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t<T, U> *thing) { \
+        return thing->template rdb_deserialize<W>(s); \
+    } \
+    extern int dont_use_RDB_SERIALIZE_OUTSIDE_within_a_class_body
+
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
     template <cluster_version_t W> \
     void serialize(UNUSED write_message_t *wm, UNUSED const type_t &thing) { \
     } \
     template <cluster_version_t W> \
-    archive_result_t deserialize(read_stream_t *s, UNUSED type_t *thing) { \
+    archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
         archive_result_t res = archive_result_t::SUCCESS; \
         return res; \
     } \
@@ -73,7 +102,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
     template <cluster_version_t W> \
@@ -120,7 +149,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
     template <cluster_version_t W> \
@@ -176,7 +205,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
     template <cluster_version_t W> \
@@ -241,7 +270,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
     template <cluster_version_t W> \
@@ -315,7 +344,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
     template <cluster_version_t W> \
@@ -398,7 +427,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     template <cluster_version_t W> \
@@ -490,7 +519,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     template <cluster_version_t W> \
@@ -591,7 +620,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     template <cluster_version_t W> \
@@ -701,7 +730,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     template <cluster_version_t W> \
@@ -820,7 +849,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     template <cluster_version_t W> \
@@ -948,7 +977,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     template <cluster_version_t W> \
@@ -1085,7 +1114,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     template <cluster_version_t W> \
@@ -1231,7 +1260,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     template <cluster_version_t W> \
@@ -1386,7 +1415,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     template <cluster_version_t W> \
@@ -1550,7 +1579,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     template <cluster_version_t W> \
@@ -1723,7 +1752,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     template <cluster_version_t W> \
@@ -1905,7 +1934,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     template <cluster_version_t W> \
@@ -2096,7 +2125,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     template <cluster_version_t W> \
@@ -2296,7 +2325,7 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     template <cluster_version_t W> \
@@ -2505,6 +2534,6 @@ the class scope. */
         return res; \
     } \
     template void typ::rdb_serialize<cluster_version_t::v1_13_is_latest>(write_message_t *) const; \
-    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *)
+    template archive_result_t typ::rdb_deserialize<cluster_version_t::v1_13_is_latest>(read_stream_t *s)
 
 #endif // RPC_SERIALIZE_MACROS_HPP_

@@ -48,10 +48,13 @@ public:
         return storage.data();
     }
 
+    RDB_DECLARE_ME_SERIALIZABLE;
+
 private:
     std::vector<uint8_t> storage;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(binary_blob_t);
 
 inline bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
     return left.size() == right.size() && memcmp(left.data(), right.data(), left.size()) == 0;

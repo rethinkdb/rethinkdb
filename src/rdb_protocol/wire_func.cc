@@ -206,7 +206,7 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
 
 RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
+RDB_IMPL_SERIALIZABLE_0(count_wire_func_t);
 
 RDB_IMPL_SERIALIZABLE_2(filter_wire_func_t, filter_func, default_filter_val);
 

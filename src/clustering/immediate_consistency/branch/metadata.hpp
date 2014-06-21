@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
 
@@ -23,7 +23,6 @@ class listener_intro_t;
 the `broadcaster_t`. */
 
 class listener_business_card_t {
-
 public:
     /* These are the types of mailboxes that the master uses to communicate with
     the mirrors. */
@@ -66,9 +65,9 @@ public:
 
     intro_mailbox_t::address_t intro_mailbox;
     write_mailbox_t::address_t write_mailbox;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
 };
+
+RDB_DECLARE_SERIALIZABLE(listener_business_card_t);
 
 
 class listener_intro_t {
@@ -86,12 +85,9 @@ public:
         : broadcaster_begin_timestamp(_broadcaster_begin_timestamp),
           upgrade_mailbox(_upgrade_mailbox), downgrade_mailbox(_downgrade_mailbox),
           listener_id(_listener_id) { }
-
-
-
-    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster_begin_timestamp,
-                               upgrade_mailbox, downgrade_mailbox, listener_id);
 };
+
+RDB_DECLARE_SERIALIZABLE(listener_intro_t);
 
 
 /* `backfiller_business_card_t` represents a thing that is willing to serve
@@ -129,12 +125,10 @@ struct backfiller_business_card_t {
     backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
     request_progress_mailbox_t::address_t request_progress_mailbox;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_3(backfiller_business_card_t, backfill_mailbox,
-    cancel_backfill_mailbox, request_progress_mailbox);
+RDB_DECLARE_SERIALIZABLE(backfiller_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(backfiller_business_card_t);
 
 /* `broadcaster_business_card_t` is the way that listeners find the broadcaster.
 It appears in the directory. */
@@ -152,12 +146,10 @@ struct broadcaster_business_card_t {
     branch_history_t branch_id_associated_branch_history;
 
     registrar_business_card_t<listener_business_card_t> registrar;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, branch_id_associated_branch_history, registrar);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_3(broadcaster_business_card_t, branch_id,
-    branch_id_associated_branch_history, registrar);
+RDB_DECLARE_SERIALIZABLE(broadcaster_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(broadcaster_business_card_t);
 
 struct replier_business_card_t {
     /* This mailbox is used to check that the replier is at least as up to date
@@ -174,11 +166,9 @@ struct replier_business_card_t {
     replier_business_card_t(const synchronize_mailbox_t::address_t &_synchronize_mailbox, const backfiller_business_card_t &_backfiller_bcard)
         : synchronize_mailbox(_synchronize_mailbox), backfiller_bcard(_backfiller_bcard)
     { }
-
-    RDB_MAKE_ME_SERIALIZABLE_2(synchronize_mailbox, backfiller_bcard);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_2(replier_business_card_t,
-    synchronize_mailbox, backfiller_bcard);
+RDB_DECLARE_SERIALIZABLE(replier_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(replier_business_card_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */

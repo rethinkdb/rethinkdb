@@ -50,6 +50,8 @@ private:
     counted_t<func_t> func;
 };
 
+RDB_SERIALIZE_OUTSIDE(wire_func_t);
+
 class maybe_wire_func_t {
 protected:
     template<class... Args>
@@ -66,6 +68,8 @@ public:
 private:
     wire_func_t wrapped;
 };
+
+RDB_SERIALIZE_OUTSIDE(maybe_wire_func_t);
 
 class map_wire_func_t : public wire_func_t {
 public:
@@ -105,8 +109,8 @@ public:
 // These are fake functions because we don't need to send anything.
 // TODO: make `count` behave like `sum`, `avg`, etc.
 struct count_wire_func_t {
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+RDB_DECLARE_SERIALIZABLE(count_wire_func_t);
 
 class bt_wire_func_t {
 public:
@@ -123,6 +127,8 @@ private:
     protob_t<const Backtrace> bt;
 };
 
+RDB_SERIALIZE_OUTSIDE(bt_wire_func_t);
+
 class group_wire_func_t {
 public:
     group_wire_func_t() : bt(make_counted_backtrace()) { }
@@ -138,6 +144,8 @@ private:
     bool append_index, multi;
     bt_wire_func_t bt;
 };
+
+RDB_SERIALIZE_OUTSIDE(group_wire_func_t);
 
 template <class T>
 class skip_terminal_t;

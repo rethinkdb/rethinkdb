@@ -55,26 +55,6 @@ const char *archive_result_as_str(archive_result_t archive_result);
                   archive_result_as_str(result));                       \
     } while (0)
 
-// We wrap things in this class for making friend declarations more
-// compilable under gcc-4.5.
-class archive_deserializer_t {
-private:
-    template <cluster_version_t W, class T>
-    friend archive_result_t deserialize(read_stream_t *s, T *thing);
-
-    template <cluster_version_t W, class T>
-    static MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
-        return thing->template rdb_deserialize<W>(s);
-    }
-
-    archive_deserializer_t();
-};
-
-template <cluster_version_t W, class T>
-MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
-    return archive_deserializer_t::deserialize<W>(s, thing);
-}
-
 // Returns the number of bytes written, or -1.  Returns a
 // non-negative value less than n upon EOF.
 MUST_USE int64_t force_read(read_stream_t *s, void *p, int64_t n);
@@ -119,11 +99,6 @@ public:
 
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
-    template <cluster_version_t W, class T>
-    void append_value(const T &x) {
-        x.template rdb_serialize<W>(this);
-    }
-
 private:
     friend int send_write_message(write_stream_t *s, const write_message_t *wm);
 
@@ -131,11 +106,6 @@ private:
 
     DISABLE_COPYING(write_message_t);
 };
-
-template <cluster_version_t W, class T>
-void serialize(write_message_t *wm, const T &x) {
-    wm->template append_value<W>(x);
-}
 
 // Returns 0 upon success, -1 upon failure.
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *wm);

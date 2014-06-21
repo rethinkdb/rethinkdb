@@ -44,6 +44,9 @@ struct rget_item_t {
     counted_t<const ql::datum_t> sindex_key, data;
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(rget_item_t);
+
 typedef std::vector<rget_item_t> stream_t;
 
 class optimizer_t {
@@ -215,6 +218,8 @@ public:
 private:
     std::map<counted_t<const datum_t>, T> m;
 };
+
+RDB_SERIALIZE_TEMPLATED_OUTSIDE(grouped_t);
 
 // We need a separate class for this because inheriting from
 // `slow_atomic_countable_t` deletes our copy constructor, but boost variants

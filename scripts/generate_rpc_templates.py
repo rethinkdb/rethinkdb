@@ -157,6 +157,8 @@ if __name__ == "__main__":
     print
     print "    raw_mailbox_t::address_t addr;"
     print "};"
+    print
+    print "RDB_SERIALIZE_TEMPLATED_OUTSIDE(mailbox_addr_t);"
 
     for nargs in xrange(15):
         generate_async_message_template(nargs)

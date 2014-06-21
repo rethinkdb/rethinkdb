@@ -34,6 +34,8 @@ private:
     std::string str_;
 };
 
+RDB_SERIALIZE_OUTSIDE(name_string_t);
+
 inline bool operator==(const name_string_t& x, const name_string_t& y) {
     return x.str() == y.str();
 }

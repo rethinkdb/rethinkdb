@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_
 
@@ -19,10 +19,9 @@ public:
     explicit direct_reader_business_card_t(const read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
 
     read_mailbox_t::address_t read_mailbox;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(read_mailbox);
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_1(direct_reader_business_card_t, read_mailbox);
+RDB_DECLARE_SERIALIZABLE(direct_reader_business_card_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(direct_reader_business_card_t);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_ */

@@ -80,14 +80,16 @@ public:
     const struct in6_addr &get_ipv6_addr() const;
     uint32_t get_ipv6_scope_id() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
+
 private:
     addr_type_t addr_type;
     in_addr ipv4_addr;
     in6_addr ipv6_addr;
     uint32_t ipv6_scope_id;
-
-    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 };
+
+RDB_SERIALIZE_OUTSIDE(ip_address_t);
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all);
@@ -96,10 +98,13 @@ class port_t {
 public:
     explicit port_t(int _port);
     int value() const;
+    RDB_MAKE_ME_SERIALIZABLE_1(value_);
+
 private:
     int value_;
-    RDB_MAKE_ME_SERIALIZABLE_1(value_);
 };
+
+RDB_SERIALIZE_OUTSIDE(port_t);
 
 class ip_and_port_t {
 public:
@@ -112,12 +117,14 @@ public:
     const ip_address_t &ip() const;
     port_t port() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
+
 private:
     ip_address_t ip_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 };
+
+RDB_SERIALIZE_OUTSIDE(ip_and_port_t);
 
 class host_and_port_t {
 public:
@@ -132,12 +139,14 @@ public:
     const std::string &host() const;
     port_t port() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
+
 private:
     std::string host_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
 };
+
+RDB_SERIALIZE_OUTSIDE(host_and_port_t);
 
 class peer_address_t {
 public:
