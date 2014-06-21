@@ -9,7 +9,9 @@
 #include "utils.hpp"
 #include "clustering/administration/main/names.hpp"
 
-const char* names[] = {
+static const int RAND_SEQ_LEN = 3;
+
+static const char* names[] = {
     "Akasha",
     "Alchemist",
     "Azwraith",
@@ -105,14 +107,13 @@ bool is_invalid_char(char ch) {
     return ! (isalpha(ch) || isdigit(ch) || ch == '_');
 }
 
-std::string get_machine_name(const int port_offset) {
+std::string get_machine_name() {
     char h[64];
 
     h[0] = '\0';
     if (gethostname(h, sizeof(h) - 1) < 0 || strlen(h) == 0) {
         return get_random_machine_name();
     }
-    h[sizeof(h) - 1] = '\0';
 
     std::string sanitized(h);
     std::replace_if(sanitized.begin(), sanitized.end(), is_invalid_char, '_');
@@ -120,13 +121,15 @@ std::string get_machine_name(const int port_offset) {
         sanitized[0] = '_';
     }
 
-    if (port_offset > 0) {
-        std::stringstream ss;
-        ss << port_offset;
-        if (sanitized[sanitized.size() - 1] != '_') {
-            sanitized += '_';
-        }
-        sanitized += ss.str();
+    std::stringstream ss;
+    for (int i=0;i<RAND_SEQ_LEN;i++) {
+        int ch = randint(10 + 26);
+        ss << (char)(ch < 10 ? '0' + ch : 'a' + ch - 10);
     }
+    if (sanitized[sanitized.size() - 1] != '_') {
+        sanitized += '_';
+    }
+    sanitized += ss.str();
+
     return sanitized;
 }
