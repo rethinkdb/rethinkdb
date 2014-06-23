@@ -21,6 +21,10 @@ cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     }
 }
 
+void sindex_block_initialize(btree_sindex_block_t *data) {
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
+}
 
 void btree_superblock_ct_asserts() {
     // Just some place to put the CT_ASSERTs
