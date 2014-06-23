@@ -62,7 +62,8 @@ cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) 
     }
 }
 
-// This only takes a cluster_version_t parameter to get people thinking.
+// This only takes a cluster_version_t parameter to get people thinking -- you have
+// to use LATEST_VERSION.
 template <cluster_version_t W, class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
@@ -71,6 +72,7 @@ static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                   "the rest of the blob, too!");
     write_message_t wm;
     serialize<W>(&wm, value);
+    // RSI: This code is redundant with serialize_onto_blob, etc.
     intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
@@ -101,6 +103,78 @@ static void read_blob(cluster_version_t cluster_version,
     buffer_group_read_stream_t ss(const_view(&group));
     archive_result_t res = deserialize_for_version(cluster_version, &ss, value_out);
     guarantee_deserialization(res, "T (template code)");
+}
+
+
+cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t *sb) {
+    if (sb->magic
+        == cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value) {
+        return cluster_version_t::v1_13_is_latest;
+    } else {
+        crash("cluster_metadata_superblock_t has invalid magic.");
+    }
+}
+
+void read_metadata_blob(buf_parent_t sb_buf,
+                        const cluster_metadata_superblock_t *sb,
+                        cluster_semilattice_metadata_t *out) {
+    read_blob(cluster_superblock_version(sb),
+              sb_buf,
+              sb->metadata_blob,
+              cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
+              out);
+}
+
+template <cluster_version_t W>
+void write_metadata_blob(buf_parent_t sb_buf,
+                         cluster_metadata_superblock_t *sb,
+                         const cluster_semilattice_metadata_t &metadata) {
+    write_blob<W>(sb_buf,
+                  sb->metadata_blob,
+                  cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
+                  metadata);
+}
+
+void read_branch_history_blob(buf_parent_t sb_buf,
+                              const cluster_metadata_superblock_t *sb,
+                              branch_history_t *out) {
+    read_blob(cluster_superblock_version(sb),
+              sb_buf,
+              sb->rdb_branch_history_blob,
+              cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+              out);
+}
+
+template <cluster_version_t W>
+void write_branch_history_blob(buf_parent_t sb_buf,
+                               cluster_metadata_superblock_t *sb,
+                               const branch_history_t &history) {
+    write_blob<W>(sb_buf,
+                  sb->rdb_branch_history_blob,
+                  cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+                  history);
+}
+
+
+void bring_up_to_date(
+        buf_parent_t sb_buf,
+        cluster_metadata_superblock_t *sb) {
+    if (cluster_superblock_version(sb) == cluster_version_t::LATEST) {
+        // Usually we're already up to date.
+        return;
+    }
+
+    cluster_semilattice_metadata_t metadata;
+    read_metadata_blob(sb_buf, sb, &metadata);
+
+    branch_history_t branch_history;
+    read_branch_history_blob(sb_buf, sb, &branch_history);
+
+    // Now that we've read everything, do writes of anything whose serialization may
+    // have changed between versions.
+    write_metadata_blob<cluster_version_t::LATEST>(sb_buf, sb, metadata);
+    write_branch_history_blob<cluster_version_t::LATEST>(sb_buf, sb, branch_history);
+    sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST>::value;
 }
 
 template <class metadata_t>
@@ -275,15 +349,11 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
     memset(sb, 0, get_cache_block_size().value());
     sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST>::value;
     sb->machine_id = machine_id;
-    write_blob<cluster_version_t::LATEST>(
+    write_metadata_blob<cluster_version_t::LATEST>(
+            buf_parent_t(&superblock), sb, initial_metadata);
+    write_branch_history_blob<cluster_version_t::LATEST>(
             buf_parent_t(&superblock),
-            sb->metadata_blob,
-            cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            initial_metadata);
-    write_blob<cluster_version_t::LATEST>(
-            buf_parent_t(&superblock),
-            sb->rdb_branch_history_blob,
-            cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+            sb,
             branch_history_t());
 
     construct_branch_history_managers(true);
@@ -303,9 +373,7 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
     const cluster_metadata_superblock_t *sb
         = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
     cluster_semilattice_metadata_t metadata;
-    read_blob(cluster_version_t::ONLY_VERSION,
-              buf_parent_t(&superblock), sb->metadata_blob,
-              cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, &metadata);
+    read_metadata_blob(buf_parent_t(&superblock), sb, &metadata);
     return metadata;
 }
 
@@ -317,9 +385,8 @@ void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metada
     buf_write_t sb_write(&superblock);
     cluster_metadata_superblock_t *sb
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
-    write_blob<cluster_version_t::LATEST>(
-            buf_parent_t(&superblock), sb->metadata_blob,
-            cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
+    write_metadata_blob<cluster_version_t::LATEST>(
+            buf_parent_t(&superblock), sb, metadata);
 }
 
 machine_id_t cluster_persistent_file_t::read_machine_id() {
@@ -348,11 +415,9 @@ public:
             buf_read_t sb_read(&superblock);
             const cluster_metadata_superblock_t *sb
                 = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
-            read_blob(cluster_version_t::ONLY_VERSION,
-                      buf_parent_t(&superblock),
-                      sb->rdb_branch_history_blob,
-                      cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-                      &bh);
+            read_branch_history_blob(buf_parent_t(&superblock),
+                                     sb,
+                                     &bh);
         }
     }
 
@@ -425,13 +490,11 @@ private:
         buf_write_t sb_write(&superblock);
         cluster_metadata_superblock_t *sb
             = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
-        write_blob<cluster_version_t::LATEST>(
-                buf_parent_t(&superblock), sb->*field_name,
-                cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
+        write_branch_history_blob<cluster_version_t::LATEST>(
+                buf_parent_t(&superblock), sb, bh);
     }
 
     cluster_persistent_file_t *parent;
-    char (cluster_metadata_superblock_t::*field_name)[cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN];
     branch_history_t bh;
 };
 
