@@ -64,15 +64,13 @@ struct btree_sindex_block_t {
 
     block_magic_t magic;
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
-
-    // Right now there's only one version.
-    static const block_magic_t expected_magic;
 } __attribute__ ((__packed__));
 
-inline cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
-    guarantee(data->magic == btree_sindex_block_t::expected_magic);
-    return cluster_version_t::ONLY_VERSION;
-}
+// RSI: Can this be in the .cc file?
+template <cluster_version_t W>
+struct btree_sindex_block_magic_t { static const block_magic_t value; };
+
+cluster_version_t sindex_block_version(const btree_sindex_block_t *data);
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {

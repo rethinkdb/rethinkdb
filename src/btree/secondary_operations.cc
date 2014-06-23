@@ -44,7 +44,7 @@ void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
-    data->magic = btree_sindex_block_t::expected_magic;
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(sindex_block,
