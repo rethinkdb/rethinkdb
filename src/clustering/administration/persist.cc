@@ -54,6 +54,14 @@ template <>
 const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
     = { { 'R', 'D', 'm', 'd' } };
 
+cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) {
+    if (sb->magic == auth_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value) {
+        return cluster_version_t::v1_13_is_latest;
+    } else {
+        crash("auth_metadata_superblock_t has invalid magic.");
+    }
+}
+
 // This only takes a cluster_version_t parameter to get people thinking.
 template <cluster_version_t W, class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
@@ -197,6 +205,8 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             initial_metadata);
+
+    rassert(auth_superblock_version(sb) == cluster_version_t::LATEST);
 }
 
 auth_persistent_file_t::~auth_persistent_file_t() {
@@ -212,7 +222,7 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     const auth_metadata_superblock_t *sb
         = static_cast<const auth_metadata_superblock_t *>(sb_read.get_data_read());
     auth_semilattice_metadata_t metadata;
-    read_blob(cluster_version_t::ONLY_VERSION,
+    read_blob(auth_superblock_version(sb),
               buf_parent_t(&superblock), sb->metadata_blob,
               auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, &metadata);
     return metadata;
@@ -231,8 +241,8 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
 
     auth_metadata_superblock_t *sb
         = static_cast<auth_metadata_superblock_t *>(sb_write.get_data_write());
-    // There is just one metadata_blob in auth_metadata_superblock_t, so it suffices
-    // to serialize with the latest version.
+    // There is just one metadata_blob in auth_metadata_superblock_t (for now), so it
+    // suffices to serialize with the latest version.
     sb->magic = auth_metadata_magic_t<cluster_version_t::LATEST>::value;
 
     write_blob<cluster_version_t::LATEST>(
