@@ -63,7 +63,7 @@ cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) 
 }
 
 // This only takes a cluster_version_t parameter to get people thinking -- you have
-// to use LATEST_VERSION.
+// to use LATEST.
 template <cluster_version_t W, class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
@@ -72,7 +72,6 @@ static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                   "the rest of the blob, too!");
     write_message_t wm;
     serialize<W>(&wm, value);
-    // RSI: This code is redundant with serialize_onto_blob, etc.
     intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
