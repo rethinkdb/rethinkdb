@@ -19,7 +19,6 @@ struct btree_sindex_block_t {
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 } __attribute__((__packed__));
 
-// RSI: Can this be in the .cc file?
 template <cluster_version_t W>
 struct btree_sindex_block_magic_t { static const block_magic_t value; };
 
