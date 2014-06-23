@@ -28,18 +28,10 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
 
 // The cluster communication protocol version.
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v1_13_is_latest,
+              "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
+              "version.");
 #define CLUSTER_VERSION_STRING "1.13"
-
-const cluster_version_t CLUSTER_VERSION = cluster_version_t::v1_13;
-
-// Returns the version string ("1.13", "1.55", etc) for a given recognized version number.
-std::string cluster_version_string(cluster_version_t version_number) {
-    switch (version_number) {
-    case cluster_version_t::v1_13:
-        return "1.13";
-    }
-    unreachable();
-}
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -48,8 +40,9 @@ const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION
 // version_string is a recognized version and the same or earlier than our version.
 bool version_number_recognized_compatible(const std::string &version_string,
                                           cluster_version_t *out) {
-    if (version_string == "1.13") {
-        *out = cluster_version_t::v1_13;
+    // Right now, we only support one cluster version -- ours.
+    if (version_string == CLUSTER_VERSION_STRING) {
+        *out = cluster_version_t::CLUSTER;
         return true;
     }
     return false;
@@ -95,7 +88,7 @@ bool resolve_protocol_version(const std::string &remote_version_string,
         return true;
     }
     if (version_number_unrecognized_greater(remote_version_string)) {
-        *out = CLUSTER_VERSION;
+        *out = cluster_version_t::LATEST;
         return true;
     }
     return false;
@@ -711,7 +704,7 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         // In the future we'll need to support multiple cluster versions.
-        guarantee(resolved_version == cluster_version_t::ONLY_VERSION);
+        guarantee(resolved_version == cluster_version_t::CLUSTER);
     }
 
     // Check bitsize (e.g. 32bit or 64bit)
@@ -1009,7 +1002,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     // At some point we'll have to look up the cluster version based on not a peer
     // (right?) but rather, a _connection id_.  (The peer could get upgraded and then
     // reconnect.)
-    const cluster_version_t cluster_version = cluster_version_t::ONLY_VERSION;
+    const cluster_version_t cluster_version = cluster_version_t::CLUSTER;
 
     /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
