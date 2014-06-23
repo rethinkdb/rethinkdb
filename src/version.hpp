@@ -17,11 +17,17 @@ enum class cluster_version_t {
     // See CLUSTER_VERSION, which should always be the latest version.
     LATEST = v1_13,
 
+    // This exists as long as the clustering code only supports the use of one
+    // version.  It uses cluster_version_t::CLUSTER wherever it uses this.  (LATEST
+    // is correct wherever it seems like it's *always* going to be appropriate for
+    // the code to use the latest version.
+    CLUSTER = LATEST,
+
     // TODO: Remove ONLY_VERSION entirely.
     // ONLY_VERSION should only exist as long as there's only one version.  A few
     // assertions check it -- that code should be fixed to explicitly handle multiple
     // versions, but we're procrastinating that for now.
-    ONLY_VERSION = v1_13,
+    ONLY_VERSION = v1_13_is_latest,
 };
 
 // We will not (barring a bug) even attempt to deserialize a version number that we
