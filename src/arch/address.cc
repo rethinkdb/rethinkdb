@@ -13,12 +13,17 @@
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
-host_lookup_exc_t::host_lookup_exc_t(const std::string &_host, int _errno_val)
+host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
+                                     int _res, int _errno_res)
     : host(_host),
-      errno_val(_errno_val),
-      error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d",
-                             host.c_str(), errno_val)) { }
-
+      res(_res),
+      errno_res(_errno_res) {
+    std::string info = (res == EAI_SYSTEM) ?
+        strprintf("%s (errno %d)", errno_string(errno_res).c_str(), errno_res) :
+        strprintf("%s (gai_errno %d)", gai_strerror(res), res);
+    error_string = strprintf("getaddrinfo() failed for hostname '%s': %s",
+                             host.c_str(), info.c_str());
+}
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
@@ -40,7 +45,7 @@ void do_getaddrinfo(const char *node,
                     int *errno_res) {
     *errno_res = 0;
     *retval = getaddrinfo(node, service, hints, res);
-    if (*retval < 0) {
+    if (*retval != 0) {
         *errno_res = get_errno();
     }
 }
@@ -72,7 +77,7 @@ void hostname_to_ips_internal(const std::string &host,
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {
-        throw host_lookup_exc_t(host, errno_res);
+        throw host_lookup_exc_t(host, res, errno_res);
     }
 
     guarantee(addrs);

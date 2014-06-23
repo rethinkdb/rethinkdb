@@ -22,14 +22,15 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string &_host, int _errno_val);
+    host_lookup_exc_t(const std::string &_host, int _res, int _errno_res);
     ~host_lookup_exc_t() throw () { }
     const char *what() const throw () {
         return error_string.c_str();
     }
     const std::string host;
-    const int errno_val;
-    const std::string error_string;
+    const int res;
+    const int errno_res;
+    std::string error_string;
 };
 
 class invalid_address_exc_t : public std::exception {
