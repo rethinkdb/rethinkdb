@@ -58,7 +58,7 @@ template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
                        const T &value) {
     write_message_t wm;
-    serialize<cluster_version_t::ONLY_VERSION>(&wm, value);
+    serialize<cluster_version_t::LATEST>(&wm, value);
     intrusive_list_t<write_buffer_t> *buffers = wm.unsafe_expose_buffers();
     size_t slen = 0;
     for (write_buffer_t *p = buffers->head(); p != NULL; p = buffers->next(p)) {
@@ -78,7 +78,8 @@ static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
 }
 
 template<class T>
-static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
+static void read_blob(cluster_version_t cluster_version,
+                      buf_parent_t parent, const char *ref, int maxreflen,
                       T *value_out) {
     blob_t blob(parent.cache()->max_block_size(),
                 const_cast<char *>(ref), maxreflen);
@@ -86,7 +87,7 @@ static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
     buffer_group_t group;
     blob.expose_all(parent, access_t::read, &group, &acq_group);
     buffer_group_read_stream_t ss(const_view(&group));
-    archive_result_t res = deserialize<cluster_version_t::ONLY_VERSION>(&ss, value_out);
+    archive_result_t res = deserialize_for_version(cluster_version, &ss, value_out);
     guarantee_deserialization(res, "T (template code)");
 }
 
@@ -185,7 +186,7 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
     auth_metadata_superblock_t *sb
         = static_cast<auth_metadata_superblock_t *>(sb_write.get_data_write());
     memset(sb, 0, get_cache_block_size().value());
-    sb->magic = auth_metadata_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    sb->magic = auth_metadata_magic_t<cluster_version_t::LATEST>::value;
 
     write_blob(buf_parent_t(&superblock),
                sb->metadata_blob,
@@ -206,7 +207,8 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     const auth_metadata_superblock_t *sb
         = static_cast<const auth_metadata_superblock_t *>(sb_read.get_data_read());
     auth_semilattice_metadata_t metadata;
-    read_blob(buf_parent_t(&superblock), sb->metadata_blob,
+    read_blob(cluster_version_t::ONLY_VERSION,
+              buf_parent_t(&superblock), sb->metadata_blob,
               auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, &metadata);
     return metadata;
 }
@@ -224,6 +226,10 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
 
     auth_metadata_superblock_t *sb
         = static_cast<auth_metadata_superblock_t *>(sb_write.get_data_write());
+    // There is just one metadata_blob in auth_metadata_superblock_t, so it suffices
+    // to serialize with the latest version.
+    sb->magic = auth_metadata_magic_t<cluster_version_t::LATEST>::value;
+
     write_blob(buf_parent_t(&superblock), sb->metadata_blob,
                auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
 }
@@ -251,7 +257,7 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
 
     memset(sb, 0, get_cache_block_size().value());
-    sb->magic = cluster_metadata_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST>::value;
     sb->machine_id = machine_id;
     write_blob(buf_parent_t(&superblock),
                sb->metadata_blob,
@@ -279,7 +285,8 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
     const cluster_metadata_superblock_t *sb
         = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
     cluster_semilattice_metadata_t metadata;
-    read_blob(buf_parent_t(&superblock), sb->metadata_blob,
+    read_blob(cluster_version_t::ONLY_VERSION,
+              buf_parent_t(&superblock), sb->metadata_blob,
               cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, &metadata);
     return metadata;
 }
@@ -324,7 +331,9 @@ public:
             buf_read_t sb_read(&superblock);
             const cluster_metadata_superblock_t *sb
                 = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
-            read_blob(buf_parent_t(&superblock), sb->*field_name,
+            // RSI: Who uses this field name?
+            read_blob(cluster_version_t::ONLY_VERSION,
+                      buf_parent_t(&superblock), sb->*field_name,
                       cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
                       &bh);
         }
