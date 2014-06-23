@@ -84,7 +84,7 @@ class mailbox_t< void() > {
     public:
         write_impl_t() { }
         void write(DEBUG_VAR cluster_version_t cluster_version, write_message_t *) {
-            rassert(cluster_version == cluster_version_t::ONLY_VERSION);
+            rassert(cluster_version == cluster_version_t::CLUSTER);
         }
     };
 
@@ -92,7 +92,7 @@ class mailbox_t< void() > {
     public:
         explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
         void read(DEBUG_VAR cluster_version_t cluster_version, UNUSED read_stream_t *stream) {
-            rassert(cluster_version == cluster_version_t::ONLY_VERSION);
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             parent->fun();
         }
     private:
@@ -140,6 +140,7 @@ class mailbox_t< void(arg0_t) > {
             arg0(_arg0)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
         }
     };
@@ -148,6 +149,7 @@ class mailbox_t< void(arg0_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -201,6 +203,7 @@ class mailbox_t< void(arg0_t, arg1_t) > {
             arg0(_arg0), arg1(_arg1)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
         }
@@ -210,6 +213,7 @@ class mailbox_t< void(arg0_t, arg1_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -267,6 +271,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -277,6 +282,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -338,6 +344,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -349,6 +356,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -414,6 +422,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -426,6 +435,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -495,6 +505,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -508,6 +519,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -581,6 +593,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -595,6 +608,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -672,6 +686,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -687,6 +702,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -768,6 +784,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -784,6 +801,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -869,6 +887,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -886,6 +905,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -975,6 +995,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -993,6 +1014,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -1086,6 +1108,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -1105,6 +1128,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -1202,6 +1226,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -1222,6 +1247,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
@@ -1323,6 +1349,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             arg0(_arg0), arg1(_arg1), arg2(_arg2), arg3(_arg3), arg4(_arg4), arg5(_arg5), arg6(_arg6), arg7(_arg7), arg8(_arg8), arg9(_arg9), arg10(_arg10), arg11(_arg11), arg12(_arg12), arg13(_arg13)
         { }
         void write(cluster_version_t cluster_version, write_message_t *wm) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             serialize_for_version(cluster_version, wm, arg0);
             serialize_for_version(cluster_version, wm, arg1);
             serialize_for_version(cluster_version, wm, arg2);
@@ -1344,6 +1371,7 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
         void read(cluster_version_t cluster_version, read_stream_t *stream) {
+            rassert(cluster_version == cluster_version_t::CLUSTER);
             arg0_t arg0;
             archive_result_t res = deserialize_for_version(cluster_version, stream, &arg0);
             if (bad(res)) { throw fake_archive_exc_t(); }
