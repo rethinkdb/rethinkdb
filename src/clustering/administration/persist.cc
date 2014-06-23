@@ -125,6 +125,8 @@ void read_metadata_blob(buf_parent_t sb_buf,
               out);
 }
 
+// As with write_blob, the template parameter must be cluster_version_t::LATEST.  Use
+// bring_up_to_date before calling this.
 template <cluster_version_t W>
 void write_metadata_blob(buf_parent_t sb_buf,
                          cluster_metadata_superblock_t *sb,
@@ -145,6 +147,8 @@ void read_branch_history_blob(buf_parent_t sb_buf,
               out);
 }
 
+// As with write_blob, the template parameter must be cluster_version_t::LATEST.  Use
+// bring_up_to_date before calling this.
 template <cluster_version_t W>
 void write_branch_history_blob(buf_parent_t sb_buf,
                                cluster_metadata_superblock_t *sb,
@@ -385,6 +389,7 @@ void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metada
     buf_write_t sb_write(&superblock);
     cluster_metadata_superblock_t *sb
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
+    bring_up_to_date(buf_parent_t(&superblock), sb);
     write_metadata_blob<cluster_version_t::LATEST>(
             buf_parent_t(&superblock), sb, metadata);
 }
@@ -490,6 +495,7 @@ private:
         buf_write_t sb_write(&superblock);
         cluster_metadata_superblock_t *sb
             = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
+        bring_up_to_date(buf_parent_t(&superblock), sb);
         write_branch_history_blob<cluster_version_t::LATEST>(
                 buf_parent_t(&superblock), sb, bh);
     }
