@@ -326,10 +326,8 @@ machine_id_t cluster_persistent_file_t::read_machine_id() {
 class cluster_persistent_file_t::persistent_branch_history_manager_t : public branch_history_manager_t {
 public:
     persistent_branch_history_manager_t(cluster_persistent_file_t *p,
-                                        char (cluster_metadata_superblock_t::*fn)[cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN],
-                                        bool create) :
-        parent(p), field_name(fn)
-    {
+                                        bool create)
+        : parent(p) {
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
@@ -342,7 +340,8 @@ public:
                 = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
             // RSI: Who uses this field name?
             read_blob(cluster_version_t::ONLY_VERSION,
-                      buf_parent_t(&superblock), sb->*field_name,
+                      buf_parent_t(&superblock),
+                      sb->rdb_branch_history_blob,
                       cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
                       &bh);
         }
@@ -438,7 +437,7 @@ branch_history_manager_t *cluster_persistent_file_t::get_rdb_branch_history_mana
 
 void cluster_persistent_file_t::construct_branch_history_managers(bool create) {
     rdb_branch_history_manager.init(new persistent_branch_history_manager_t(
-        this, &cluster_metadata_superblock_t::rdb_branch_history_blob, create));
+        this, create));
 }
 
 template <class metadata_t>
