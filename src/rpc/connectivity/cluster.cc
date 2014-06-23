@@ -88,7 +88,10 @@ bool resolve_protocol_version(const std::string &remote_version_string,
         return true;
     }
     if (version_number_unrecognized_greater(remote_version_string)) {
-        *out = cluster_version_t::LATEST;
+        static_assert(cluster_version_t::CLUSTER == cluster_version_t::LATEST,
+                      "If you've made CLUSTER != LATEST, presumably you know how to "
+                      "change this code.");
+        *out = cluster_version_t::CLUSTER;
         return true;
     }
     return false;
