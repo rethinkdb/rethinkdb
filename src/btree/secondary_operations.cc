@@ -61,7 +61,10 @@ void set_secondary_indexes_internal(
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-    serialize_for_version_onto_blob(sindex_block_version(data),
+    // There's just one field in btree_sindex_block_t, sindex_blob.  So we set
+    // the magic to the latest value and serialize with the latest version.
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST>::value;
+    serialize_for_version_onto_blob(cluster_version_t::LATEST,
                                     buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
@@ -69,7 +72,7 @@ void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
-    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST>::value;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(sindex_block,
