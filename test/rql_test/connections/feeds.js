@@ -64,6 +64,9 @@ function test1() {
                     else if (count === 3) {
                         assert.deepEqual(data.old_val, {id: idValue, value: 'replace'});
                         assert.equal(data.new_val, null);
+                        r.tableDrop('test').run(conn).then(function(err) {
+                            if (err) throw err;
+                        }).error(function(err) { throw err});
                     }
                     count++;
                     feed.next(fn);
@@ -80,8 +83,6 @@ function test1() {
                     return r.table('test').get(idValue).replace({id: idValue, value: 'replace'}).run(conn);
                 }).then(function() {
                     return r.table('test').get(idValue).delete().run(conn);
-                }).then(function() {
-                    return r.tableDrop('test').run(conn);
                 }).error(function(err) {
                     throw err;
                 });

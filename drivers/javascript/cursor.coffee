@@ -100,11 +100,6 @@ class IterableResult
                     # We're low on data, prebuffer
                     @_promptCont()
 
-                    if !@_endFlag && response.r? && @_responseIndex is response.r.length - 1
-                        # Only one row left and we aren't at the end of the stream, we have to hold
-                        #  onto this so we know if there's more data for hasNext
-                        return
-
                 # Error responses are not discarded, and the error will be sent to all future callbacks
                 switch response.t
                     when protoResponseType.SUCCESS_PARTIAL
