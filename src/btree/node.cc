@@ -7,25 +7,6 @@
 const block_magic_t btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
 const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } };
 
-template <>
-const block_magic_t
-btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value
-    = { { 's', 'i', 'n', 'd' } };
-
-cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
-    if (data->magic
-        == btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value) {
-        return cluster_version_t::v1_13_is_latest;
-    } else {
-        crash("Unexpected magic in btree_sindex_block_t.");
-    }
-}
-
-void sindex_block_initialize(btree_sindex_block_t *data) {
-    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
-    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-}
-
 void btree_superblock_ct_asserts() {
     // Just some place to put the CT_ASSERTs
     CT_ASSERT(btree_superblock_t::METAINFO_BLOB_MAXREFLEN > 0);

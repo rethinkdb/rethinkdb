@@ -59,20 +59,6 @@ struct btree_statblock_t {
 } __attribute__((__packed__));
 static const uint32_t BTREE_STATBLOCK_SIZE = sizeof(btree_statblock_t);
 
-struct btree_sindex_block_t {
-    static const int SINDEX_BLOB_MAXREFLEN = 4076;
-
-    block_magic_t magic;
-    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
-} __attribute__((__packed__));
-
-// RSI: Can this be in the .cc file?
-template <cluster_version_t W>
-struct btree_sindex_block_magic_t { static const block_magic_t value; };
-
-cluster_version_t sindex_block_version(const btree_sindex_block_t *data);
-void sindex_block_initialize(btree_sindex_block_t *data);
-
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {

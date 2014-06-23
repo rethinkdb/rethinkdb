@@ -12,6 +12,39 @@ RDB_IMPL_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
 
 RDB_IMPL_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
 
+struct btree_sindex_block_t {
+    static const int SINDEX_BLOB_MAXREFLEN = 4076;
+
+    block_magic_t magic;
+    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
+} __attribute__((__packed__));
+
+// RSI: Can this be in the .cc file?
+template <cluster_version_t W>
+struct btree_sindex_block_magic_t { static const block_magic_t value; };
+
+cluster_version_t sindex_block_version(const btree_sindex_block_t *data);
+void sindex_block_initialize(btree_sindex_block_t *data);
+
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value
+    = { { 's', 'i', 'n', 'd' } };
+
+cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
+    if (data->magic
+        == btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value) {
+        return cluster_version_t::v1_13_is_latest;
+    } else {
+        crash("Unexpected magic in btree_sindex_block_t.");
+    }
+}
+
+void sindex_block_initialize(btree_sindex_block_t *data) {
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
+}
+
 void get_secondary_indexes_internal(
         buf_lock_t *sindex_block,
         std::map<sindex_name_t, secondary_index_t> *sindexes_out) {
