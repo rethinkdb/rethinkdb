@@ -23,9 +23,6 @@ struct btree_sindex_block_t {
 template <cluster_version_t W>
 struct btree_sindex_block_magic_t { static const block_magic_t value; };
 
-cluster_version_t sindex_block_version(const btree_sindex_block_t *data);
-void sindex_block_initialize(btree_sindex_block_t *data);
-
 template <>
 const block_magic_t
 btree_sindex_block_magic_t<cluster_version_t::v1_13_is_latest>::value
@@ -38,11 +35,6 @@ cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     } else {
         crash("Unexpected magic in btree_sindex_block_t.");
     }
-}
-
-void sindex_block_initialize(btree_sindex_block_t *data) {
-    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
-    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 }
 
 void get_secondary_indexes_internal(
@@ -77,7 +69,8 @@ void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
-    sindex_block_initialize(data);
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::ONLY_VERSION>::value;
+    memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(sindex_block,
                                    std::map<sindex_name_t, secondary_index_t>());
