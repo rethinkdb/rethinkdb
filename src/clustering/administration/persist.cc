@@ -38,8 +38,29 @@ struct cluster_metadata_superblock_t {
     char rdb_branch_history_blob[BRANCH_HISTORY_BLOB_MAXREFLEN];
 };
 
-/* Etymology: (R)ethink(D)B (m)eta(d)ata */
-const block_magic_t expected_magic = { { 'R', 'D', 'm', 'd' } };
+// Etymology: (R)ethink(D)B (m)eta(d)ata
+// Yes, v1_13 magic is the same for both cluster and auth metadata.
+template <cluster_version_t>
+struct cluster_metadata_magic_t;
+
+template <> struct cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest> {
+    static const block_magic_t value;
+};
+
+const block_magic_t
+cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
+    = { { 'R', 'D', 'm', 'd' } };
+
+template <cluster_version_t>
+struct auth_metadata_magic_t;
+
+template <> struct auth_metadata_magic_t<cluster_version_t::v1_13_is_latest> {
+    static const block_magic_t value;
+};
+
+const block_magic_t
+auth_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
+    = { { 'R', 'D', 'm', 'd' } };
 
 template <class T>
 static void write_blob(buf_parent_t parent, char *ref, int maxreflen,
@@ -172,7 +193,7 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
     auth_metadata_superblock_t *sb
         = static_cast<auth_metadata_superblock_t *>(sb_write.get_data_write());
     memset(sb, 0, get_cache_block_size().value());
-    sb->magic = expected_magic;
+    sb->magic = auth_metadata_magic_t<cluster_version_t::ONLY_VERSION>::value;
 
     write_blob(buf_parent_t(&superblock),
                sb->metadata_blob,
@@ -238,7 +259,7 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
 
     memset(sb, 0, get_cache_block_size().value());
-    sb->magic = expected_magic;
+    sb->magic = cluster_metadata_magic_t<cluster_version_t::ONLY_VERSION>::value;
     sb->machine_id = machine_id;
     write_blob(buf_parent_t(&superblock),
                sb->metadata_blob,
