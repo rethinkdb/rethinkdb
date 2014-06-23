@@ -41,25 +41,17 @@ struct cluster_metadata_superblock_t {
 // Etymology: (R)ethink(D)B (m)eta(d)ata
 // Yes, v1_13 magic is the same for both cluster and auth metadata.
 template <cluster_version_t>
-struct cluster_metadata_magic_t;
+struct cluster_metadata_magic_t { static const block_magic_t value; };
 
-template <> struct cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest> {
-    static const block_magic_t value;
-};
-
-const block_magic_t
-cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
+template <>
+const block_magic_t cluster_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
     = { { 'R', 'D', 'm', 'd' } };
 
 template <cluster_version_t>
-struct auth_metadata_magic_t;
+struct auth_metadata_magic_t { static const block_magic_t value; };
 
-template <> struct auth_metadata_magic_t<cluster_version_t::v1_13_is_latest> {
-    static const block_magic_t value;
-};
-
-const block_magic_t
-auth_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
+template <>
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_13_is_latest>::value
     = { { 'R', 'D', 'm', 'd' } };
 
 template <class T>
