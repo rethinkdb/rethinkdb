@@ -338,7 +338,6 @@ public:
             buf_read_t sb_read(&superblock);
             const cluster_metadata_superblock_t *sb
                 = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
-            // RSI: Who uses this field name?
             read_blob(cluster_version_t::ONLY_VERSION,
                       buf_parent_t(&superblock),
                       sb->rdb_branch_history_blob,
