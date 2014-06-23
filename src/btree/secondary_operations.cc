@@ -7,10 +7,10 @@
 #include "buffer_cache/alt/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
-                           post_construction_complete, being_deleted, id);
+RDB_IMPL_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
+                        post_construction_complete, being_deleted, id);
 
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
+RDB_IMPL_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
 
 void get_secondary_indexes_internal(
         buf_lock_t *sindex_block,

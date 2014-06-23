@@ -59,12 +59,9 @@ public:
     // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
-
-private:
-    RDB_MAKE_ME_SERIALIZABLE_3(beg, end, inner);
-
-    // This is a copyable type.
 };
+
+RDB_DECLARE_SERIALIZABLE(hash_region_t<key_range_t>);
 
 template <class inner_region_t>
 bool region_is_empty(const hash_region_t<inner_region_t> &r) {

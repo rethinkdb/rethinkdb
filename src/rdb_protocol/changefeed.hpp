@@ -44,7 +44,6 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     struct stop_t {
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     msg_t() { }
@@ -64,9 +63,11 @@ struct msg_t {
 
     // Starts with STOP to avoid doing work for default initialization.
     boost::variant<stop_t, change_t> op;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_SERIALIZE_OUTSIDE(msg_t::change_t);
+RDB_DECLARE_SERIALIZABLE(msg_t::stop_t);
+RDB_DECLARE_SERIALIZABLE(msg_t);
 
 class feed_t;
 struct stamped_msg_t;

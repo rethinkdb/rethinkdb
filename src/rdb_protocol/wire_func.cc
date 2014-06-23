@@ -184,7 +184,7 @@ protob_t<const Backtrace> group_wire_func_t::get_bt() const {
 
 RDB_IMPL_ME_SERIALIZABLE_4(group_wire_func_t, funcs, append_index, multi, bt);
 
-RDB_IMPL_ME_SERIALIZABLE_0(count_wire_func_t);
+RDB_IMPL_SERIALIZABLE_0(count_wire_func_t);
 
 map_wire_func_t map_wire_func_t::make_safely(
     pb::dummy_var_t dummy_var,

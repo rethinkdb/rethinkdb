@@ -238,3 +238,6 @@ bool region_contains_key(const hash_region_t<key_range_t> &region, const store_k
     const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
     return region_contains_key_with_precomputed_hash(region, key, hash_value);
 }
+
+
+RDB_IMPL_SERIALIZABLE_3(hash_region_t<key_range_t>, beg, end, inner);

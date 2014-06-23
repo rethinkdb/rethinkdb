@@ -971,32 +971,32 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 template <cluster_version_t W>
-void rdb_modification_info_t::rdb_serialize(write_message_t *wm) const {
-    if (!deleted.first.get()) {
-        guarantee(deleted.second.empty());
+void serialize(write_message_t *wm, const rdb_modification_info_t &info) {
+    if (!info.deleted.first.get()) {
+        guarantee(info.deleted.second.empty());
         serialize<W>(wm, HAS_NO_VALUE);
     } else {
         serialize<W>(wm, HAS_VALUE);
-        serialize<W>(wm, deleted);
+        serialize<W>(wm, info.deleted);
     }
 
-    if (!added.first.get()) {
-        guarantee(added.second.empty());
+    if (!info.added.first.get()) {
+        guarantee(info.added.second.empty());
         serialize<W>(wm, HAS_NO_VALUE);
     } else {
         serialize<W>(wm, HAS_VALUE);
-        serialize<W>(wm, added);
+        serialize<W>(wm, info.added);
     }
 }
 
 template <cluster_version_t W>
-archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t deserialize(read_stream_t *s, rdb_modification_info_t *info) {
     int8_t has_value;
     archive_result_t res = deserialize<W>(s, &has_value);
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize<W>(s, &deleted);
+        res = deserialize<W>(s, &info->deleted);
         if (bad(res)) { return res; }
     }
 
@@ -1004,14 +1004,16 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     if (bad(res)) { return res; }
 
     if (has_value == HAS_VALUE) {
-        res = deserialize<W>(s, &added);
+        res = deserialize<W>(s, &info->added);
         if (bad(res)) { return res; }
     }
 
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+INSTANTIATE_SINCE_v1_13(rdb_modification_info_t);
+
+RDB_IMPL_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         store_t *store,

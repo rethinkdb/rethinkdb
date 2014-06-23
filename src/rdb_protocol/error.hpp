@@ -206,6 +206,9 @@ public:
         bool is_stream_funcall_frame() {
             return type == POS && pos != 0;
         }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+
     private:
         enum special_frames {
             INVALID = -1,
@@ -216,9 +219,6 @@ public:
         int32_t type; // serialize macros didn't like `type_t` for some reason
         int32_t pos;
         std::string opt;
-
-    public:
-        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     void fill_bt(Backtrace *bt) const;
@@ -241,6 +241,9 @@ public:
 private:
     std::list<frame_t> frames;
 };
+
+RDB_SERIALIZE_OUTSIDE(backtrace_t::frame_t);
+RDB_SERIALIZE_OUTSIDE(backtrace_t);
 
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
@@ -277,6 +280,8 @@ private:
     std::string exc_msg_;
 };
 
+RDB_SERIALIZE_OUTSIDE(exc_t);
+
 // A datum exception is like a normal RQL exception, except it doesn't
 // correspond to part of the source tree.  It's usually thrown from inside
 // datum.{hpp,cc} and must be caught by the enclosing term/stream/whatever and
@@ -293,6 +298,8 @@ public:
 private:
     std::string exc_msg;
 };
+
+RDB_SERIALIZE_OUTSIDE(datum_exc_t);
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,
                 const backtrace_t &bt = backtrace_t());
