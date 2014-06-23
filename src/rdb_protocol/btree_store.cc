@@ -162,7 +162,7 @@ void store_t::read(
 
 void store_t::write(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t& new_metainfo,
+        const region_map_t<binary_blob_t>& new_metainfo,
         const write_t &write,
         write_response_t *response,
         const write_durability_t durability,
@@ -1025,15 +1025,16 @@ bool store_t::acquire_sindex_superblocks_for_write(
 
 void store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const metainfo_t &new_metainfo,
+        const region_map_t<binary_blob_t> &new_metainfo,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
+    region_map_t<binary_blob_t> old_metainfo
+        = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
     update_metainfo(old_metainfo, new_metainfo, superblock);
 }
 
-metainfo_t
+region_map_t<binary_blob_t>
 store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
         real_superblock_t *superblock) const
@@ -1047,8 +1048,8 @@ store_t::check_metainfo(
     return old_metainfo;
 }
 
-void store_t::update_metainfo(const metainfo_t &old_metainfo,
-                              const metainfo_t &new_metainfo,
+void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
+                              const region_map_t<binary_blob_t> &new_metainfo,
                               real_superblock_t *superblock)
     const THROWS_NOTHING {
     assert_thread();
@@ -1092,7 +1093,8 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                               object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                               signal_t *interruptor,
-                              metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
+                              region_map_t<binary_blob_t> *out)
+    THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -1133,7 +1135,7 @@ get_metainfo_internal(buf_lock_t *sb_buf,
     *out = res;
 }
 
-void store_t::set_metainfo(const metainfo_t &new_metainfo,
+void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
                            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
