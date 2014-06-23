@@ -70,7 +70,7 @@ def parse_options():
         print_export_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -108,7 +108,7 @@ def parse_options():
 
     # Get number of clients
     if options.clients < 1:
-       raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
+        raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
@@ -129,9 +129,9 @@ def get_tables(progress, conn, tables):
         if db_table[0] not in dbs:
             raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
-        if db_table[1] is None: # This is just a db name
+        if db_table[1] is None:  # This is just a db name
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
-        else: # This is db and table name
+        else:  # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
                 raise RuntimeError("Error: Table not found: '%s.%s'" % tuple(db_table))
             res.append(tuple(db_table))
@@ -282,7 +282,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
     finally:
         if writer is not None and writer.is_alive():
-            task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
+            task_queue.put(("exit", "event"))  # Exit is triggered by sending a message with two objects
             writer.join()
         else:
             error_queue.put((RuntimeError, RuntimeError("writer unexpectedly stopped"),
@@ -320,10 +320,10 @@ def run_clients(options, db_table_set):
     interrupt_event = multiprocessing.Event()
     stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
 
         for (db, table) in db_table_set:
             progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
@@ -346,7 +346,7 @@ def run_clients(options, db_table_set):
         while len(processes) > 0:
             time.sleep(0.1)
             if not error_queue.empty():
-                exit_event.set() # Stop rather immediately if an error occurs
+                exit_event.set()  # Stop rather immediately if an error occurs
             processes = [process for process in processes if process.is_alive()]
             update_progress(progress_info)
 
@@ -388,7 +388,7 @@ def main():
     try:
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
         db_table_set = rdb_call_wrapper(conn_fn, "table list", get_tables, options["db_tables"])
-        del options["db_tables"] # This is not needed anymore, db_table_set is more useful
+        del options["db_tables"]  # This is not needed anymore, db_table_set is more useful
 
         # Determine the actual number of client processes we'll have
         options["clients"] = min(options["clients"], len(db_table_set))

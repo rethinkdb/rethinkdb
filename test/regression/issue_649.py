@@ -15,8 +15,8 @@ with driver.Metacluster() as metacluster:
     processes = [driver.Process(
             cluster,
             files[i],
-            log_path = "serve-output-%d" % i,
-            executable_path = driver.find_rethinkdb_executable())
+            log_path="serve-output-%d" % i,
+            executable_path=driver.find_rethinkdb_executable())
         for i in xrange(num_nodes)]
     time.sleep(10)
     print "Creating table..."

@@ -45,10 +45,10 @@ def check_pp(src, query):
     # But it will at least make sure that we don't crash when trying to print a query
     printer = r.errors.QueryPrinter(query)
     composed = printer.print_query()
-    #if composed != src:
-    #    print('Warning, pretty printing inconsistency:')
-    #    print("Source code: %s", src)
-    #    print("Printed query: %s", composed)
+    # if composed != src:
+    #     print('Warning, pretty printing inconsistency:')
+    #     print("Source code: %s", src)
+    #     print("Printed query: %s", composed)
 
 class Lst:
     def __init__(self, lst):
@@ -118,7 +118,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = None #err_frames # TODO: test frames
+        self.frames = None  # err_frames # TODO: test frames
         self.regex = regex
 
     def __eq__(self, other):
@@ -214,8 +214,8 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
-        #print 'Connecting to JS server on port ' + str(JSPORT)
-        #self.js_conn = r.connect(host='localhost', port=JSPORT)
+        # print 'Connecting to JS server on port ' + str(JSPORT)
+        # self.js_conn = r.connect(host='localhost', port=JSPORT)
 
         print('Connecting to CPP server on port ' + str(CPPPORT))
         print('')
@@ -231,7 +231,7 @@ class PyTestDriver:
         if runopts:
             runopts["profile"] = True
         else:
-            runopts = {"profile" : True}
+            runopts = {"profile": True}
 
         # Try to build the expected result
         if expected:
@@ -247,12 +247,13 @@ class PyTestDriver:
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                    (repr(err), repr(exp_val))
                 )
 
-            return # Can't continue with this test if there is no test query
+            return  # Can't continue with this test if there is no test query
 
         # Check pretty-printing
         check_pp(src, query)
@@ -265,18 +266,20 @@ class PyTestDriver:
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
-                        (repr(cppres), repr(exp_val))
+                    (repr(cppres), repr(exp_val))
                 )
 
         except Exception as err:
             if not isinstance(exp_val, Err):
                 print_test_failure(name, src, "Error running test on CPP server:\n\t%s %s" % (repr(err), err.message))
             elif not eq(exp_val)(err):
-                print_test_failure(name, src,
+                print_test_failure(
+                    name, src,
                     "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
+                    (repr(err), repr(exp_val))
                 )
 
 driver = PyTestDriver()
@@ -284,7 +287,7 @@ driver.connect()
 
 # Emitted test code will consist of calls to this function
 def test(query, expected, name, runopts={}):
-    for (k,v) in runopts.items():
+    for (k, v) in runopts.items():
         if isinstance(v, str):
             runopts[k] = eval(v)
     if 'batch_conf' not in runopts:

@@ -89,10 +89,10 @@ def parse_options():
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
     parser.add_option("--format", dest="import_format", metavar="json | csv", default=None, type="string")
     parser.add_option("--table", dest="import_table", metavar="DB.TABLE", default=None, type="string")
-    parser.add_option("--pkey", dest="primary_key", metavar="KEY", default = None, type="string")
-    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default = None, type="string")
-    parser.add_option("--no-header", dest="no_header", action="store_true", default = False)
-    parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default = None, type="string")
+    parser.add_option("--pkey", dest="primary_key", metavar="KEY", default=None, type="string")
+    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
+    parser.add_option("--no-header", dest="no_header", action="store_true", default=False)
+    parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -104,7 +104,7 @@ def parse_options():
         print_import_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -342,7 +342,7 @@ def read_json_array(json_data, file_in, callback, progress_info):
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if json_data[offset] == "]": # End of JSON
+            if json_data[offset] == "]":  # End of JSON
                 break
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
@@ -440,7 +440,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
                 raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, file_line))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
-            for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
+            for key in list(obj.iterkeys()):  # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
@@ -480,7 +480,7 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         else:
             raise RuntimeError("Error: Unknown file format specified")
     except InterruptedError:
-        pass # Don't save interrupted errors, they are side-effects
+        pass  # Don't save interrupted errors, they are side-effects
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
@@ -529,10 +529,10 @@ def spawn_import_clients(options, files_info):
     client_procs = []
 
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
         rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
 
         for i in range(options["clients"]):
@@ -548,8 +548,8 @@ def spawn_import_clients(options, files_info):
             client_procs[-1].start()
 
         for file_info in files_info:
-            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1), # Current lines/bytes processed
-                                  multiprocessing.Value(ctypes.c_longlong, 0))) # Total lines/bytes to process
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),  # Current lines/bytes processed
+                                  multiprocessing.Value(ctypes.c_longlong, 0)))  # Total lines/bytes to process
             reader_procs.append(multiprocessing.Process(target=table_reader,
                                                         args=(options,
                                                               file_info,
@@ -609,7 +609,7 @@ def spawn_import_clients(options, files_info):
         raise RuntimeError("Errors occurred during import")
 
 def get_import_info_for_file(filename, db_table_filter):
-    file_info = { }
+    file_info = {}
     file_info["file"] = filename
     file_info["format"] = os.path.split(filename)[1].split(".")[-1]
     file_info["db"] = os.path.split(os.path.split(filename)[0])[1]
@@ -672,7 +672,7 @@ def import_directory(options):
                 if len(split_file) != 2 or split_file[1] not in ["json", "csv", "info"]:
                     files_ignored.append(os.path.join(root, f))
                 elif split_file[1] == "info":
-                    pass # Info files are included based on the data files
+                    pass  # Info files are included based on the data files
                 elif not os.access(os.path.join(root, split_file[0] + ".info"), os.F_OK):
                     files_ignored.append(os.path.join(root, f))
                 else:
@@ -750,7 +750,7 @@ def import_file(options):
     file_info["format"] = options["import_format"]
     file_info["db"] = db
     file_info["table"] = table
-    file_info["info"] = { "primary_key": pkey }
+    file_info["info"] = {"primary_key": pkey}
 
     spawn_import_clients(options, [file_info])
 

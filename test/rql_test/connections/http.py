@@ -40,23 +40,23 @@ def test_get():
 def test_params():
     url = 'httpbin.org/get'
 
-    res = r.http(url, params={'fake':123,'things':'stuff','nil':None}).run(conn)
+    res = r.http(url, params={'fake': 123, 'things': 'stuff', 'nil': None}).run(conn)
     expect_eq(res['args']['fake'], '123')
     expect_eq(res['args']['things'], 'stuff')
     expect_eq(res['args']['nil'], '')
 
-    res = r.http(url + '?dummy=true', params={'fake':123}).run(conn)
+    res = r.http(url + '?dummy=true', params={'fake': 123}).run(conn)
     expect_eq(res['args']['fake'], '123')
     expect_eq(res['args']['dummy'], 'true')
 
 def test_headers():
     url = 'httpbin.org/headers'
 
-    res = r.http(url, header={'Test':'entry','Accept-Encoding':'override'}).run(conn)
+    res = r.http(url, header={'Test': 'entry', 'Accept-Encoding': 'override'}).run(conn)
     expect_eq(res['headers']['Test'], 'entry')
     expect_eq(res['headers']['Accept-Encoding'], 'override')
 
-    res = r.http(url, header=['Test: entry','Accept-Encoding: override']).run(conn)
+    res = r.http(url, header=['Test: entry', 'Accept-Encoding: override']).run(conn)
     expect_eq(res['headers']['Test'], 'entry')
     expect_eq(res['headers']['Accept-Encoding'], 'override')
 
@@ -71,29 +71,29 @@ def test_head():
 
 def test_post():
     url = 'httpbin.org/post'
-    post_data = {'str':'%in fo+','number':135.5,'nil':None}
+    post_data = {'str': '%in fo+', 'number': 135.5, 'nil': None}
     res = r.http(url, method='POST', data=post_data).run(conn)
     post_data['number'] = str(post_data['number'])
     post_data['nil'] = ''
     expect_eq(res['form'], post_data)
 
-    post_data = {'str':'%in fo+','number':135.5,'nil':None}
+    post_data = {'str': '%in fo+', 'number': 135.5, 'nil': None}
     res = r.http(url, method='POST', data=r.expr(post_data).coerce_to('string'),
-                 header={'Content-Type':'application/json'}).run(conn)
+                 header={'Content-Type': 'application/json'}).run(conn)
     expect_eq(res['json'], post_data)
 
     post_data = 'a=b&b=c'
     res = r.http(url, method='POST', data=post_data).run(conn)
-    expect_eq(res['form'], {'a':'b','b':'c'})
+    expect_eq(res['form'], {'a': 'b', 'b': 'c'})
 
     post_data = '<arbitrary>data</arbitrary>'
     res = r.http(url, method='POST', data=post_data,
-                 header={'Content-Type':'application/text/'}).run(conn)
+                 header={'Content-Type': 'application/text/'}).run(conn)
     expect_eq(res['data'], post_data)
 
 def test_put():
     url = 'httpbin.org/put'
-    put_data = {'nested':{'arr':[123.45, ['a', 555], 0.123], 'str':'info','number':135,'nil':None},'time':r.epoch_time(1000)}
+    put_data = {'nested': {'arr': [123.45, ['a', 555], 0.123], 'str': 'info', 'number': 135, 'nil': None}, 'time': r.epoch_time(1000)}
     res = r.http(url, method='PUT', data=put_data).run(conn)
     expect_eq(res['json']['nested'], put_data['nested'])
     expect_eq(res['json']['time'], datetime.datetime(1970, 1, 1, 0, 16, 40, tzinfo=res['json']['time'].tzinfo))
@@ -104,7 +104,7 @@ def test_put():
 
 def test_patch():
     url = 'httpbin.org/patch'
-    patch_data = {'nested':{'arr':[123.45, ['a', 555], 0.123], 'str':'info','number':135},'time':r.epoch_time(1000),'nil':None}
+    patch_data = {'nested': {'arr': [123.45, ['a', 555], 0.123], 'str': 'info', 'number': 135}, 'time': r.epoch_time(1000), 'nil': None}
     res = r.http(url, method='PATCH', data=patch_data).run(conn)
     expect_eq(res['json']['nested'], patch_data['nested'])
     expect_eq(res['json']['time'], datetime.datetime(1970, 1, 1, 0, 16, 40, tzinfo=res['json']['time'].tzinfo))
@@ -115,7 +115,7 @@ def test_patch():
 
 def test_delete():
     url = 'httpbin.org/delete'
-    delete_data = {'nested':{'arr':[123.45, ['a', 555], 0.123], 'str':'info','number':135},'time':r.epoch_time(1000),'nil':None}
+    delete_data = {'nested': {'arr': [123.45, ['a', 555], 0.123], 'str': 'info', 'number': 135}, 'time': r.epoch_time(1000), 'nil': None}
     res = r.http(url, method='DELETE', data=delete_data).run(conn)
     expect_eq(res['json']['nested'], delete_data['nested'])
     expect_eq(res['json']['time'], datetime.datetime(1970, 1, 1, 0, 16, 40, tzinfo=res['json']['time'].tzinfo))
@@ -146,23 +146,31 @@ def test_basic_auth():
     url = 'http://httpbin.org/basic-auth/azure/hunter2'
 
     # Wrong password
-    expect_error(r.http(url, auth={'type':'basic','user':'azure','pass':'wrong'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'basic', 'user': 'azure', 'pass': 'wrong'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Wrong username
-    expect_error(r.http(url, auth={'type':'basic','user':'fake','pass':'hunter2'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'basic', 'user': 'fake', 'pass': 'hunter2'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Wrong authentication type
-    expect_error(r.http(url, auth={'type':'digest','user':'azure','pass':'hunter2'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(url, auth={'type': 'digest', 'user': 'azure', 'pass': 'hunter2'}),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # Correct credentials
-    res = r.http(url, auth={'type':'basic','user':'azure','pass':'hunter2'}).run(conn)
+    res = r.http(
+        url, auth={'type': 'basic', 'user': 'azure', 'pass': 'hunter2'}
+    ).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
     # Default auth type should be basic
-    res = r.http(url, auth={'user':'azure','pass':'hunter2'}).run(conn)
+    res = r.http(url, auth={'user': 'azure', 'pass': 'hunter2'}).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
 # This test requires us to set a cookie (any cookie) due to a bug in httpbin.org
@@ -171,25 +179,31 @@ def test_digest_auth():
     url = 'http://httpbin.org/digest-auth/auth/azure/hunter2'
 
     # Wrong password
-    expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-                        auth={'type':'digest','user':'azure','pass':'wrong'}),
-                 r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    expect_error(
+        r.http(
+            url, header={'Cookie': 'dummy'}, redirects=5,
+            auth={'type': 'digest', 'user': 'azure', 'pass': 'wrong'}
+        ),
+        r.RqlRuntimeError, err_string('GET', url, 'status code 401')
+    )
 
     # httpbin apparently doesn't check the username, just the password
     # Wrong username
-    #expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-    #                    auth={'type':'digest','user':'fake','pass':'hunter2'}),
-    #             r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    # expect_error(r.http(url, header={'Cookie': 'dummy'}, redirects=5,
+    #                     auth={'type': 'digest', 'user': 'fake', 'pass': 'hunter2'}),
+    #              r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # httpbin has a 500 error on this
     # Wrong authentication type
-    #expect_error(r.http(url, header={'Cookie':'dummy'}, redirects=5,
-    #                    auth={'type':'basic','user':'azure','pass':'hunter2'}),
-    #             r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
+    # expect_error(r.http(url, header={'Cookie': 'dummy'}, redirects=5,
+    #                     auth={'type': 'basic', 'user': 'azure', 'pass': 'hunter2'}),
+    #              r.RqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
-    res = r.http(url, header={'Cookie':'dummy'}, redirects=5,
-                 auth={'type':'digest','user':'azure','pass':'hunter2'}).run(conn)
+    res = r.http(
+        url, header={'Cookie': 'dummy'}, redirects=5,
+        auth={'type': 'digest', 'user': 'azure', 'pass': 'hunter2'}
+    ).run(conn)
     expect_eq(res, {'authenticated': True, 'user': 'azure'})
 
 def test_verify():
@@ -205,21 +219,21 @@ def test_verify():
 
 def main():
     tests = {
-             'verify': test_verify,
-             'get': test_get,
-             'head': test_head,
-             'params': test_params,
-             'headers': test_headers,
-             'post': test_post,
-             'put': test_put,
-             'patch': test_patch,
-             'delete': test_delete,
-             'redirects': test_redirects,
-             'gzip': test_gzip,
-             'failed_json_parse': test_failed_json_parse,
-             'digest_auth': test_digest_auth,
-             'basic_auth': test_basic_auth
-             }
+        'verify': test_verify,
+        'get': test_get,
+        'head': test_head,
+        'params': test_params,
+        'headers': test_headers,
+        'post': test_post,
+        'put': test_put,
+        'patch': test_patch,
+        'delete': test_delete,
+        'redirects': test_redirects,
+        'gzip': test_gzip,
+        'failed_json_parse': test_failed_json_parse,
+        'digest_auth': test_digest_auth,
+        'basic_auth': test_basic_auth
+    }
 
     # TODO: try/catch, print errors and continue?
     for name, fn in tests.iteritems():

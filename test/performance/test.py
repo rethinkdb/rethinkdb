@@ -36,9 +36,9 @@ servers_data = [
 
 tables = [
     {
-        "name": "smalldoc", # Name of the table
-        "size_doc": "small", # Small docs
-        "ids": [] # Used to perform get
+        "name": "smalldoc",  # Name of the table
+        "size_doc": "small",  # Small docs
+        "ids": []  # Used to perform get
     },
     {
         "name": "bigdoc",
@@ -48,11 +48,11 @@ tables = [
 ]
 
 # We execute each query for 60 seconds or 1000 times, whatever comes first
-time_per_query = 60 # 1 minute max per query
-executions_per_query = 1000 # 1000 executions max per query
+time_per_query = 60  # 1 minute max per query
+executions_per_query = 1000  # 1000 executions max per query
 
 # Global variables -- so we don't have to pass them around
-results = {} # Save the time per query (average, min, max etc.)
+results = {}  # Save the time per query (average, min, max etc.)
 connection = None
 
 def run_tests(build="../../build/release", data_dir='./'):
@@ -60,7 +60,7 @@ def run_tests(build="../../build/release", data_dir='./'):
     for i in range(0, len(servers_data)):
         server_data = servers_data[i]
 
-        print "Starting server with cache_size "+str(server_data["cache_size"])+" MB...",
+        print "Starting server with cache_size " + str(server_data["cache_size"]) + " MB...",
         sys.stdout.flush()
 
         with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"], data_dir=data_dir) as servers:
@@ -130,27 +130,27 @@ def execute_read_write_queries(suffix):
         for i in xrange(num_writes):
             docs.append(gen_doc(table["size_doc"], i))
 
-        
+
         i = 0
 
         durations = []
         start = time.time()
-        while (time.time()-start < time_per_query) & (i < num_writes):
+        while (time.time() - start < time_per_query) & (i < num_writes):
             start_query = time.time()
             result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
-            durations.append(time.time()-start_query)
+            durations.append(time.time() - start_query)
 
             if "generated_keys" in result:
                 table["ids"].append(result["generated_keys"][0])
             i += 1
 
         durations.sort()
-        results["single-inserts-"+table["name"]+"-"+suffix] = {
-            "average": (time.time()-start)/i,
+        results["single-inserts-" + table["name"] + "-" + suffix] = {
+            "average": (time.time() - start) / i,
             "min": durations[0],
-            "max": durations[len(durations)-1],
-            "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-            "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            "max": durations[len(durations) - 1],
+            "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+            "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
         }
 
         # Save it to know how many batch inserts we did
@@ -162,10 +162,10 @@ def execute_read_write_queries(suffix):
         start = time.time()
         count_batch_insert = 0;
         if i < num_writes:
-            while i+size_batch < num_writes:
+            while i + size_batch < num_writes:
                 start_query = time.time()
-                resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
-                durations.append(time.time()-start_query)
+                resutl = r.db('test').table(table['name']).insert(docs[i:i + size_batch]).run(connection)
+                durations.append(time.time() - start_query)
                 end = time.time()
                 count_batch_insert += 1
 
@@ -175,19 +175,19 @@ def execute_read_write_queries(suffix):
             if i < num_writes:
                 result = r.db('test').table(table['name']).insert(docs[i:len(docs)]).run(connection)
                 table["ids"] += result["generated_keys"]
-        
-        if num_writes-single_inserts != 0:
-            results["batch-inserts-"+table["name"]+"-"+suffix] = {
-                "average": (end-start)/(count_batch_insert*size_batch),
+
+        if num_writes - single_inserts != 0:
+            results["batch-inserts-" + table["name"] + "-" + suffix] = {
+                "average": (end - start) / (count_batch_insert * size_batch),
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
-    
+
         table["ids"].sort()
-        
+
     print " Done."
     sys.stdout.flush()
 
@@ -206,22 +206,22 @@ def execute_read_write_queries(suffix):
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+            while (time.time() - start < time_per_query) & (i < len(table["ids"])):
                 start_query = time.time()
                 eval(write_queries[p]["query"]).run(connection)
-                durations.append(time.time()-start_query)
+                durations.append(time.time() - start_query)
                 i += 1
 
             durations.sort()
-            results[write_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/i,
+            results[write_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / i,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
-            i -= 1 # We need i in write_queries[p]["clean"] (to revert only the document we updated)
+            i -= 1  # We need i in write_queries[p]["clean"] (to revert only the document we updated)
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
@@ -237,13 +237,13 @@ def execute_read_write_queries(suffix):
             count = 0
             i = 0
             if "imax" in table_queries[p]:
-                max_i = table_queries[p]["imax"]+1
+                max_i = table_queries[p]["imax"] + 1
             else:
                 max_i = 1
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (count < executions_per_query):
+            while (time.time() - start < time_per_query) & (count < executions_per_query):
                 start_query = time.time()
                 try:
                     cursor = eval(table_queries[p]["query"]).run(connection)
@@ -251,25 +251,25 @@ def execute_read_write_queries(suffix):
                         list(cursor)
                         cursor.close()
 
-                    if i >= len(table["ids"])-max_i:
+                    if i >= len(table["ids"]) - max_i:
                         i = 0
                     else:
-                         i+= 1
+                        i += 1
                 except:
                     print "Query failed"
                     print constant_queries[p]
                     sys.stdout.flush()
                     break
-                durations.append(time.time()-start_query)
-                count+=1
+                durations.append(time.time() - start_query)
+                count += 1
 
             durations.sort()
-            results[table_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/count,
+            results[table_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
 
@@ -288,20 +288,20 @@ def execute_read_write_queries(suffix):
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+            while (time.time() - start < time_per_query) & (i < len(table["ids"])):
                 start_query = time.time()
                 eval(delete_queries[p]["query"]).run(connection)
-                durations.append(time.time()-start_query)
+                durations.append(time.time() - start_query)
 
                 i += 1
 
             durations.sort()
-            results[delete_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/i,
+            results[delete_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / i,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
 
@@ -318,7 +318,7 @@ def execute_constant_queries():
         count = 0
         durations = []
         start = time.time()
-        while (time.time()-start < time_per_query) & (count < executions_per_query):
+        while (time.time() - start < time_per_query) & (count < executions_per_query):
             start_query = time.time()
             if type(constant_queries[p]) == type(""):
                 try:
@@ -335,26 +335,26 @@ def execute_constant_queries():
                 if isinstance(cursor, r.net.Cursor):
                     list(cursor)
                     cursor.close()
-            durations.append(time.time()-start_query)
-            
-            count+=1
+            durations.append(time.time() - start_query)
+
+            count += 1
 
         durations.sort()
         if type(constant_queries[p]) == type(""):
             results[constant_queries[p]] = {
-                "average": (time.time()-start)/count,
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
         else:
             results[constant_queries[p]["tag"]] = {
-                "average": (time.time()-start)/count,
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
     print " Done."
@@ -394,7 +394,7 @@ def save_compare_results():
         os.makedirs("results")
 
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
-    f = open("results/result_"+str_date+".txt", "w")
+    f = open("results/result_" + str_date + ".txt", "w")
 
     str_res = json.dumps(results, indent=2)
     f.write(str_res)
@@ -405,13 +405,13 @@ def save_compare_results():
     for root, directories, files in os.walk("results/"):
         for filename in files:
             # Join the two strings in order to form the full filepath.
-            filepath = os.path.join(root, filename) 
+            filepath = os.path.join(root, filename)
             file_paths.append(filepath)  # Add it to the list.
 
     # Sort files, we just need the last one (the most recent one)
     file_paths.sort()
     if len(file_paths) > 1:
-        last_file = file_paths[-2] #The last file is the one we just saved
+        last_file = file_paths[-2]  # The last file is the one we just saved
 
         f = open(last_file, "r")
         previous_results = json.loads(f.read())

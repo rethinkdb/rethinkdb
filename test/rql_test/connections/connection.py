@@ -67,9 +67,9 @@ class TestNoConnection(unittest.TestCase):
             r.connect, host="0.0.0.0", port=28015, auth_key="hunter2")
 
 class TestConnectionDefaultPort(unittest.TestCase):
-    
+
     servers = None
-    
+
     def setUp(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
@@ -110,7 +110,7 @@ class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServe
 
 class TestTimeout(unittest.TestCase):
     def setUp(self):
-        import random # importing here to avoid issue #2343
+        import random  # importing here to avoid issue #2343
         self.timeout = 0.5
         self.port = random.randint(1025, 65535)
 
@@ -303,7 +303,7 @@ class TestConnection(TestWithConnection):
 
         r.expr(1).run()
 
-        c.repl() # is idempotent
+        c.repl()  # is idempotent
 
         r.expr(1).run()
 
@@ -339,10 +339,10 @@ class TestShutdown(TestWithConnection):
 class TestPrinting(unittest.TestCase):
 
     # Just test that RQL queries support __str__ using the pretty printer.
-    # An exhaustive test of the pretty printer would be, well, exhausing.
+    # An exhaustive test of the pretty printer would be, well, exhausting.
     def runTest(self):
         self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
-                            "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
+                         "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
 
 class TestBatching(TestWithConnection):
     def runTest(self):
@@ -357,7 +357,7 @@ class TestBatching(TestWithConnection):
         else:
             batch_size = 1000
 
-        t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
+        t1.insert([{'id': i} for i in xrange(0, batch_size)]).run(c)
         cursor = t1.run(c)
 
         # We're going to have to inspect the state of the cursor object to ensure this worked right
@@ -395,16 +395,16 @@ class TestGroupWithTimeKey(TestWithConnection):
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
         dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
 
-        res = r.table('times').insert({'id':0,'time':rt1}).run(c)
+        res = r.table('times').insert({'id': 0, 'time': rt1}).run(c)
         self.assertEqual(res['inserted'], 1)
-        res = r.table('times').insert({'id':1,'time':rt2}).run(c)
+        res = r.table('times').insert({'id': 1, 'time': rt2}).run(c)
         self.assertEqual(res['inserted'], 1)
 
-        expected_row1 = {'id':0,'time':dt1}
-        expected_row2 = {'id':1,'time':dt2}
+        expected_row1 = {'id': 0, 'time': dt1}
+        expected_row2 = {'id': 1, 'time': dt2}
 
         groups = r.table('times').group('time').coerce_to('array').run(c)
-        self.assertEqual(groups, {dt1:[expected_row1],dt2:[expected_row2]})
+        self.assertEqual(groups, {dt1: [expected_row1], dt2: [expected_row2]})
 
 
 if __name__ == '__main__':

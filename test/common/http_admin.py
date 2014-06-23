@@ -50,7 +50,7 @@ class ValueConflict(object):
     def __init__(self, target, field, resolve_data):
         self.target = target
         self.field = field
-        self.values = [ ]
+        self.values = []
         for value_data in resolve_data:
             self.values.append(value_data[1])
         print self.values
@@ -70,7 +70,7 @@ class Datacenter(object):
         return data[u"name"] == self.name
 
     def to_json(self):
-        return { u"name": self.name }
+        return {u"name": self.name}
 
     def __str__(self):
         return "Datacenter(name:%s)" % (self.name)
@@ -84,7 +84,7 @@ class Database(object):
         return data[u"name"] == self.name
 
     def to_json(self):
-        return { u"name": self.name }
+        return {u"name": self.name}
 
     def __str__(self):
         return "Database(name:%s)" % (self.name)
@@ -94,7 +94,7 @@ class Blueprint(object):
         self.peers_roles = json_data[u"peers_roles"]
 
     def to_json(self):
-        return { u"peers_roles": self.peers_roles }
+        return {u"peers_roles": self.peers_roles}
 
     def __str__(self):
         return "Blueprint(%r)" % self.to_json()
@@ -137,8 +137,7 @@ class Table(object):
             unicode("shards"): self.shards_to_json(),
             unicode("primary_pinnings"): self.primary_pinnings,
             unicode("secondary_pinnings"): self.secondary_pinnings,
-            unicode("database"): self.database_uuid
-            }
+            unicode("database"): self.database_uuid}
 
     def __str__(self):
         affinities = ""
@@ -166,10 +165,10 @@ class Table(object):
 
     def parse_shards(self, shards):
         # Build the ridiculously formatted shard data
-        splits = [ ]
+        splits = []
         last_split = u""
         matches = None
-        parsed_shards = [ ]
+        parsed_shards = []
         for shard in shards:
             left, right = json.loads(shard)
             assert isinstance(left, basestring)
@@ -209,7 +208,7 @@ class Machine(object):
         return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name
 
     def to_json(self):
-        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name }
+        return {u"datacenter_uuid": self.datacenter_uuid, u"name": self.name}
 
     def __str__(self):
         return "Server(uuid:%s, name:%s, datacenter:%s)" % (self.uuid, self.name, self.datacenter_uuid)
@@ -221,11 +220,11 @@ class ClusterAccess(object):
             assert isinstance(http_port, int)
         self.addresses = addresses
 
-        self.machines = { }
-        self.datacenters = { }
-        self.tables = { }
-        self.databases = { }
-        self.conflicts = [ ]
+        self.machines = {}
+        self.datacenters = {}
+        self.tables = {}
+        self.databases = {}
+        self.conflicts = []
 
         self.update_cluster_data(0)
 
@@ -290,8 +289,7 @@ class ClusterAccess(object):
         if name is None:
             name = str(random.randint(0, 1000000))
         info = self.do_query("POST", "/ajax/semilattice/datacenters/new", {
-            "name": name
-            })
+            "name": name})
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         datacenter = Datacenter(uuid, json_data)
@@ -304,8 +302,7 @@ class ClusterAccess(object):
             name = "test_" + str(random.randint(0, 1000000))
         assert '-' not in name
         info = self.do_query("POST", "/ajax/semilattice/databases/new", {
-            "name": name
-            })
+            "name": name})
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         database = Database(uuid, json_data)
@@ -380,7 +377,7 @@ class ClusterAccess(object):
 
     def set_table_affinities(self, table, affinities = { }):
         table = self.find_table(table)
-        aff_dict = { }
+        aff_dict = {}
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
         table.replica_affinities.update(aff_dict)
@@ -389,16 +386,16 @@ class ClusterAccess(object):
 
     def set_table_ack_expectations(self, table, ack_expectations = { }):
         table = self.find_table(table)
-        ae_dict = { }
+        ae_dict = {}
         for datacenter, count in ack_expectations.iteritems():
             dc = self.find_datacenter(datacenter)
-            ae_dict[dc.uuid] = { "expectation": count }
+            ae_dict[dc.uuid] = {"expectation": count}
             print "current AE", table.ack_expectations
             print "dc uuid", dc.uuid
             if dc.uuid in table.ack_expectations:
-                table.ack_expectations[dc.uuid].update({ "expectation": count })
+                table.ack_expectations[dc.uuid].update({"expectation": count})
             else:
-                table.ack_expectations[dc.uuid] = { "expectation": count,  "hard_durability": True }
+                table.ack_expectations[dc.uuid] = {"expectation": count, "hard_durability": True}
         self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/ack_expectations" % (table.uuid), ae_dict)
         self.update_cluster_data(10)
 
@@ -409,12 +406,12 @@ class ClusterAccess(object):
             primary = self.find_datacenter(primary).uuid
         else:
             primary = "00000000-0000-0000-0000-000000000000"
-        aff_dict = { }
+        aff_dict = {}
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
-        ack_dict = { }
+        ack_dict = {}
         for datacenter, count in ack_expectations.iteritems():
-            ack_dict[self.find_datacenter(datacenter).uuid] = { 'expectation': count }
+            ack_dict[self.find_datacenter(datacenter).uuid] = {'expectation': count}
         if database:
             database_uuid = self.find_database(database).uuid
         else:
@@ -427,8 +424,7 @@ class ClusterAccess(object):
             "primary_uuid": primary,
             "replica_affinities": aff_dict,
             "ack_expectations": ack_dict,
-            "database": database_uuid
-            }
+            "database": database_uuid}
 
         if primary_key is None:
             primary_key = "id"
@@ -461,8 +457,7 @@ class ClusterAccess(object):
         types = {
             Table: (self.tables, "rdb_namespaces"),
             Machine: (self.machines, "machines"),
-            Datacenter: (self.datacenters, "datacenters")
-            }
+            Datacenter: (self.datacenters, "datacenters")}
         assert types[type(target)][0][target.uuid] is target
         object_type = types[type(target)][1]
         target.name = name
@@ -477,14 +472,13 @@ class ClusterAccess(object):
         types = {
             Table: (self.tables, "rdb_namespaces"),
             Machine: (self.machines, "machines"),
-            Datacenter: (self.datacenters, "datacenters")
-            }
+            Datacenter: (self.datacenters, "datacenters")}
         assert types[type(conflict.target)][conflict.target.uuid] is conflict.target
         object_type = types[type(conflict.target)]
         info = self.do_query("POST", "/ajax/semilattice/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
         # Remove the conflict and update the field in the target
         self.conflicts.remove(conflict)
-        setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
+        setattr(conflict.target, conflict.field, value)  # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
         self.update_cluster_data(10)
 
     def add_table_shard(self, table, split_point):
@@ -496,7 +490,7 @@ class ClusterAccess(object):
     def remove_table_shard(self, table, split_point):
         table = self.find_table(table)
         table.remove_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid ,), table.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid,), table.shards_to_json())
         self.update_cluster_data(10)
 
     def change_table_shards(self, table, adds=[], removes=[]):
@@ -505,7 +499,7 @@ class ClusterAccess(object):
             table.add_shard(split_point)
         for split_point in removes:
             table.remove_shard(split_point)
-        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid, ), table.shards_to_json())
+        info = self.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/shards" % (table.uuid,), table.shards_to_json())
         self.update_cluster_data(10)
 
     def get_datacenter_in_table(self, table, primary = None):
@@ -514,7 +508,7 @@ class ClusterAccess(object):
             return self.datacenters[table.primary_uuid]
 
         # Build a list of datacenters in the given table
-        datacenters = [ self.datacenters[table.primary_uuid] ]
+        datacenters = [self.datacenters[table.primary_uuid]]
         for uuid in table.replica_affinities.iterkeys():
             datacenters.append(self.datacenters[uuid])
         return random.choice(datacenters)

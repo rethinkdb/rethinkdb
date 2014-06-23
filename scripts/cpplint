@@ -140,7 +140,7 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
       the top-level categories like 'build' and 'whitespace' will
       also be printed. If 'detailed' is provided, then a count
       is provided for each category like 'build/class'.
-    
+
     project=PROJECT_NAME
       The name of the project that should be used at the beginning of the
       #ifdef header guards. For example, when using --project=FooBar, the
@@ -159,66 +159,65 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
 # here!  cpplint_unittest.py should tell you if you forget to do this.
 # \ used for clearer layout -- pylint: disable-msg=C6013
 _ERROR_CATEGORIES = [
-  'build/class',
-  'build/deprecated',
-  'build/endif_comment',
-  'build/explicit_make_pair',
-  'build/forward_decl',
-  'build/header_guard',
-  'build/include',
-  'build/include_alpha',
-  'build/include_order',
-  'build/include_what_you_use',
-  'build/namespaces',
-  'build/printf_format',
-  'build/storage_class',
-  'legal/copyright',
-  'readability/braces',
-  'readability/casting',
-  'readability/check',
-  'readability/constructors',
-  'readability/fn_size',
-  'readability/function',
-  'readability/multiline_comment',
-  'readability/multiline_string',
-  'readability/nolint',
-  'readability/streams',
-  'readability/todo',
-  'readability/utf8',
-  'runtime/arrays',
-  'runtime/casting',
-  'runtime/explicit',
-  'runtime/int',
-  'runtime/init',
-  'runtime/invalid_increment',
-  'runtime/member_string_references',
-  'runtime/memset',
-  'runtime/operator',
-  'runtime/printf',
-  'runtime/printf_format',
-  'runtime/references',
-  'runtime/rtti',
-  'runtime/sizeof',
-  'runtime/string',
-  'runtime/threadsafe_fn',
-  'runtime/rethinkdb_fn',
-  'runtime/virtual',
-  'whitespace/blank_line',
-  'whitespace/braces',
-  'whitespace/comma',
-  'whitespace/comments',
-  'whitespace/end_of_line',
-  'whitespace/ending_newline',
-  'whitespace/indent',
-  'whitespace/labels',
-  'whitespace/line_length',
-  'whitespace/newline',
-  'whitespace/operators',
-  'whitespace/parens',
-  'whitespace/semicolon',
-  'whitespace/tab',
-  'whitespace/todo'
-  ]
+    'build/class',
+    'build/deprecated',
+    'build/endif_comment',
+    'build/explicit_make_pair',
+    'build/forward_decl',
+    'build/header_guard',
+    'build/include',
+    'build/include_alpha',
+    'build/include_order',
+    'build/include_what_you_use',
+    'build/namespaces',
+    'build/printf_format',
+    'build/storage_class',
+    'legal/copyright',
+    'readability/braces',
+    'readability/casting',
+    'readability/check',
+    'readability/constructors',
+    'readability/fn_size',
+    'readability/function',
+    'readability/multiline_comment',
+    'readability/multiline_string',
+    'readability/nolint',
+    'readability/streams',
+    'readability/todo',
+    'readability/utf8',
+    'runtime/arrays',
+    'runtime/casting',
+    'runtime/explicit',
+    'runtime/int',
+    'runtime/init',
+    'runtime/invalid_increment',
+    'runtime/member_string_references',
+    'runtime/memset',
+    'runtime/operator',
+    'runtime/printf',
+    'runtime/printf_format',
+    'runtime/references',
+    'runtime/rtti',
+    'runtime/sizeof',
+    'runtime/string',
+    'runtime/threadsafe_fn',
+    'runtime/rethinkdb_fn',
+    'runtime/virtual',
+    'whitespace/blank_line',
+    'whitespace/braces',
+    'whitespace/comma',
+    'whitespace/comments',
+    'whitespace/end_of_line',
+    'whitespace/ending_newline',
+    'whitespace/indent',
+    'whitespace/labels',
+    'whitespace/line_length',
+    'whitespace/newline',
+    'whitespace/operators',
+    'whitespace/parens',
+    'whitespace/semicolon',
+    'whitespace/tab',
+    'whitespace/todo']
 
 # The default state of the category filter. This is overrided by the --filter=
 # flag. By default all errors are on, so only add here categories that should be
@@ -237,8 +236,7 @@ _STL_HEADERS = frozenset([
     'hash_set.h', 'initializer_list', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
     'pair.h', 'pthread_alloc', 'queue', 'set', 'set.h', 'sstream', 'stack',
     'stl_alloc.h', 'stl_relops.h', 'type_traits', 'type_traits.h',
-    'utility', 'vector', 'vector.h',
-    ])
+    'utility', 'vector', 'vector.h'])
 
 
 # Non-STL C++ system headers.
@@ -256,8 +254,7 @@ _CPP_HEADERS = frozenset([
     'rope.h',
     'ropeimpl.h', 'SFile.h', 'slist', 'slist.h', 'stack.h', 'stdexcept',
     'stdiostream.h', 'streambuf.h', 'stream.h', 'strfile.h', 'string',
-    'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray',
-    ])
+    'strstream', 'strstream.h', 'tempbuf.h', 'tree.h', 'typeinfo', 'valarray'])
 
 
 # Assertion macros.  These are defined in base/logging.h and
@@ -268,8 +265,7 @@ _CHECK_MACROS = [
     'EXPECT_TRUE_M', 'EXPECT_TRUE',
     'ASSERT_TRUE_M', 'ASSERT_TRUE',
     'EXPECT_FALSE_M', 'EXPECT_FALSE',
-    'ASSERT_FALSE_M', 'ASSERT_FALSE',
-    ]
+    'ASSERT_FALSE_M', 'ASSERT_FALSE']
 
 # Replacement macros for CHECK/DCHECK/EXPECT_TRUE/EXPECT_FALSE
 _CHECK_REPLACEMENT = dict([(m, {}) for m in _CHECK_MACROS])
@@ -277,20 +273,20 @@ _CHECK_REPLACEMENT = dict([(m, {}) for m in _CHECK_MACROS])
 for op, replacement in [('==', 'EQ'), ('!=', 'NE'),
                         ('>=', 'GE'), ('>', 'GT'),
                         ('<=', 'LE'), ('<', 'LT')]:
-  _CHECK_REPLACEMENT['DCHECK'][op] = 'DCHECK_%s' % replacement
-  _CHECK_REPLACEMENT['CHECK'][op] = 'CHECK_%s' % replacement
-  _CHECK_REPLACEMENT['EXPECT_TRUE'][op] = 'EXPECT_%s' % replacement
-  _CHECK_REPLACEMENT['ASSERT_TRUE'][op] = 'ASSERT_%s' % replacement
-  _CHECK_REPLACEMENT['EXPECT_TRUE_M'][op] = 'EXPECT_%s_M' % replacement
-  _CHECK_REPLACEMENT['ASSERT_TRUE_M'][op] = 'ASSERT_%s_M' % replacement
+    _CHECK_REPLACEMENT['DCHECK'][op] = 'DCHECK_%s' % replacement
+    _CHECK_REPLACEMENT['CHECK'][op] = 'CHECK_%s' % replacement
+    _CHECK_REPLACEMENT['EXPECT_TRUE'][op] = 'EXPECT_%s' % replacement
+    _CHECK_REPLACEMENT['ASSERT_TRUE'][op] = 'ASSERT_%s' % replacement
+    _CHECK_REPLACEMENT['EXPECT_TRUE_M'][op] = 'EXPECT_%s_M' % replacement
+    _CHECK_REPLACEMENT['ASSERT_TRUE_M'][op] = 'ASSERT_%s_M' % replacement
 
 for op, inv_replacement in [('==', 'NE'), ('!=', 'EQ'),
                             ('>=', 'LT'), ('>', 'LE'),
                             ('<=', 'GT'), ('<', 'GE')]:
-  _CHECK_REPLACEMENT['EXPECT_FALSE'][op] = 'EXPECT_%s' % inv_replacement
-  _CHECK_REPLACEMENT['ASSERT_FALSE'][op] = 'ASSERT_%s' % inv_replacement
-  _CHECK_REPLACEMENT['EXPECT_FALSE_M'][op] = 'EXPECT_%s_M' % inv_replacement
-  _CHECK_REPLACEMENT['ASSERT_FALSE_M'][op] = 'ASSERT_%s_M' % inv_replacement
+    _CHECK_REPLACEMENT['EXPECT_FALSE'][op] = 'EXPECT_%s' % inv_replacement
+    _CHECK_REPLACEMENT['ASSERT_FALSE'][op] = 'ASSERT_%s' % inv_replacement
+    _CHECK_REPLACEMENT['EXPECT_FALSE_M'][op] = 'EXPECT_%s_M' % inv_replacement
+    _CHECK_REPLACEMENT['ASSERT_FALSE_M'][op] = 'ASSERT_%s_M' % inv_replacement
 
 
 # These constants define types of headers for use with

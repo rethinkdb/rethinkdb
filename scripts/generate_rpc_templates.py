@@ -150,7 +150,7 @@ if __name__ == "__main__":
     print
     print "private:"
     print "    friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);"
-    for nargs in xrange(1,15):
+    for nargs in xrange(1, 15):
         print "    template <%s>" % ncsep("class a#_t", nargs)
         print "    friend void send(mailbox_manager_t *,"
         print "                     typename mailbox_t< void(%s) >::address_t%s);" % (ncsep("a#_t", nargs), ncpre("const a#_t&", nargs))

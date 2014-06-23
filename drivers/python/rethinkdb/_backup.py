@@ -19,7 +19,7 @@ def os_call_wrapper(fn, filename, error_str):
 def parse_connect_option(connect):
     host_port = connect.split(":")
     if len(host_port) == 1:
-        host_port = (host_port[0], "28015") # If just a host, use the default port
+        host_port = (host_port[0], "28015")  # If just a host, use the default port
     if len(host_port) != 2:
         raise RuntimeError("Error: Invalid 'host:port' format: %s" % connect)
     return host_port
@@ -71,4 +71,3 @@ def print_progress(ratio):
     undone_width = total_width - done_width
     print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
     sys.stdout.flush()
-

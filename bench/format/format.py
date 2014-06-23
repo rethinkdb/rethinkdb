@@ -10,7 +10,7 @@ import StringIO
 from line import *
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
-from email.MIMEImage import MIMEImage  
+from email.MIMEImage import MIMEImage
 import pdb
 
 locale.setlocale(locale.LC_ALL, '')
@@ -70,8 +70,8 @@ class dbench():
     log_file = 'bench_log.txt'
     hostname = 'newton'
     www_dir = '/var/www/code.rethinkdb.com/htdocs/'
-    prof_dir = 'prof_data' #directory on host where prof data goes
-    out_dir = 'bench_html' #local directory to use for data
+    prof_dir = 'prof_data'  # directory on host where prof data goes
+    out_dir = 'bench_html'  # local directory to use for data
     bench_dir = 'bench_output'
     oprofile_dir = 'prof_output'
     flot_script_location = '/graph_viewer/index.html'
@@ -103,7 +103,7 @@ class dbench():
         try:
             competitor_dirs = [name for name in os.listdir(self.competitor_dir) if os.path.isdir(os.path.join(self.competitor_dir, name))]
         except:
-            print 'No competitors found in: '+self.competitor_dir
+            print 'No competitors found in: ' + self.competitor_dir
 
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
@@ -115,16 +115,16 @@ class dbench():
         os.system('rm -rf %s' % self.out_dir)
 
     class bench_stats():
-        iostat_path     = 'iostat/output.txt'
-        vmstat_path     = 'vmstat/output.txt'
-        latency_path    = 'client/latency.txt'
-        qps_path        = 'client/qps.txt'
-        rdbstat_path    = 'rdbstat/output.txt'
-        server_meta_path= 'server/output.txt'
-        client_meta_path= 'client/output.txt'
-        description_path= 'DESCRIPTION'
-        description_run_path='DESCRIPTION_RUN'
-        multirun_flag   = 'multirun'        
+        iostat_path = 'iostat/output.txt'
+        vmstat_path = 'vmstat/output.txt'
+        latency_path = 'client/latency.txt'
+        qps_path = 'client/qps.txt'
+        rdbstat_path = 'rdbstat/output.txt'
+        server_meta_path = 'server/output.txt'
+        client_meta_path = 'client/output.txt'
+        description_path = 'DESCRIPTION'
+        description_run_path = 'DESCRIPTION_RUN'
+        multirun_flag = 'multirun'
 
         def __init__(self, dir):
             dir = os.path.normpath(dir)
@@ -135,7 +135,7 @@ class dbench():
 
             # Get the current list of just subdirectories (each representing a run / multirun)
             try:
-                dir_listing = [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir,name))]
+                dir_listing = [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
             except:
                 print 'No bench runs found in: %s' % dir
 
@@ -143,17 +143,17 @@ class dbench():
             for curr_dir in dir_listing:
 
                 # Check if the current directory has run or multirun data
-                if os.path.isfile(os.path.join(dir,curr_dir,self.multirun_flag)):
+                if os.path.isfile(os.path.join(dir, curr_dir, self.multirun_flag)):
                     multirun_dirs.append(curr_dir)
                 else:
                     singlerun_dirs.append(curr_dir)
 
             self.single_runs = {}
             self.multi_runs = {}
-            
+
             # Defined function: Collect data from the directory provided, store the data in the given parent (either generic runs or multiruns).
             def collect_run_data(run, run_dir, parent):
-                run_data  = [IOStat().read(os.path.join(run_dir, self.iostat_path)),
+                run_data = [IOStat().read(os.path.join(run_dir, self.iostat_path)),
                             VMStat().read(os.path.join(run_dir, self.vmstat_path)),
                             Latency().read(os.path.join(run_dir, self.latency_path)),
                             QPS().read(os.path.join(run_dir, self.qps_path)),
@@ -163,23 +163,23 @@ class dbench():
                     server_meta = (open(os.path.join(run_dir, self.server_meta_path)).read())
                 except IOError:
                     server_meta = ''
-                    print "No server metadata found for run: "+run.replace('_',' ')
+                    print "No server metadata found for run: " + run.replace('_', ' ')
 
                 try:
                     client_meta = (open(os.path.join(run_dir, self.client_meta_path)).read())
                 except IOError:
                     client_meta = ''
-                    print "No client metadata found for run: "+run.replace('_',' ')
+                    print "No client metadata found for run: " + run.replace('_', ' ')
 
                 parent[run] = Run(run, run_data, server_meta, client_meta)
 
             # Collect and built single data and metadata
             for singlerun in singlerun_dirs:
-                collect_run_data(singlerun, os.path.join(dir,singlerun,'1'), self.single_runs)
+                collect_run_data(singlerun, os.path.join(dir, singlerun, '1'), self.single_runs)
                 self.single_runs[singlerun].description = Description()
-                self.single_runs[singlerun].description.read(os.path.join(dir,singlerun,self.description_path))
+                self.single_runs[singlerun].description.read(os.path.join(dir, singlerun, self.description_path))
                 self.single_runs[singlerun].description_run = Description()
-                self.single_runs[singlerun].description_run.read(os.path.join(dir,singlerun,self.description_run_path))
+                self.single_runs[singlerun].description_run.read(os.path.join(dir, singlerun, self.description_run_path))
 
             # Collect and built multirun data and metadata
             for multirun in multirun_dirs:
@@ -190,37 +190,37 @@ class dbench():
                     unit = open(os.path.join(multirun_dir, self.multirun_flag)).readline()
                 except IOError:
                     unit = ''
-                    print "Could not read units for multirun: "+multirun
+                    print "Could not read units for multirun: " + multirun
 
                 # Each multirun consists of several runs. Read in each run's data, and add it to the given multirun.
                 run_dirs = []
 
                 try:
                     # Make sure we only include directories
-                    run_dirs = [name for name in os.listdir(multirun_dir) if os.path.isdir(os.path.join(multirun_dir,name))]
+                    run_dirs = [name for name in os.listdir(multirun_dir) if os.path.isdir(os.path.join(multirun_dir, name))]
                 except:
-                    print 'Multirun has no valid runs: '+multirun_dir
+                    print 'Multirun has no valid runs: ' + multirun_dir
 
                 runs = {}
-                
+
                 # Collect the run data across all multirun runs
                 for run in run_dirs:
-                    collect_run_data(run,os.path.join(multirun_dir,run,'1'), runs)
+                    collect_run_data(run, os.path.join(multirun_dir, run, '1'), runs)
 
                 # Create a new Multirun with the collected data
                 self.multi_runs[multirun] = Multirun(multirun, runs, unit)
 
                 # Read description files
                 self.multi_runs[multirun].description = Description()
-                self.multi_runs[multirun].description.read(os.path.join(dir,singlerun,self.description_path))
+                self.multi_runs[multirun].description.read(os.path.join(dir, singlerun, self.description_path))
                 self.multi_runs[multirun].description_run = Description()
-                self.multi_runs[multirun].description_run.read(os.path.join(dir,singlerun,self.description_run_path))
-                
+                self.multi_runs[multirun].description_run.read(os.path.join(dir, singlerun, self.description_run_path))
+
                 # Determine the mean of each run, create a new TimeSeriesMeans object so we can plot the means later
                 multirun_data = []
                 for run_name in self.multi_runs[multirun].runs:
                     run = self.multi_runs[multirun].runs[run_name]
-                    multirun_data.append(reduce(lambda x,y: x+y, run.data).select('qps').remap('qps',run.name))
+                    multirun_data.append(reduce(lambda x, y: x + y, run.data).select('qps').remap('qps', run.name))
 
                 if multirun_data == []:
                     print "Did not get multirun_data for %s" % multirun
@@ -235,15 +235,15 @@ class dbench():
 
         def parse_client_meta(self, data):
             client_line = line('\[host: [\d\.]+, port: \d+, clients: \d+, load: (\d+)/(\d+)/(\d+)/(\d+), keys: \d+-\d+, values: \d+-\d+ , duration: (\d+), batch factor: \d+-\d+, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
-            m = until(client_line, data) 
+            m = until(client_line, data)
             assert m != False
             return "D/U/I/R = %d/%d/%d/%d Duration = %d" % (m['deletes'], m['updates'], m['inserts'], m['reads'], m['duration'])
 
     class oprofile_stats():
-        oprofile_path   = 'oprofile/oprof.out.rethinkdb'
+        oprofile_path = 'oprofile/oprof.out.rethinkdb'
 
         def __init__(self, dir):
-            self.oprofile  = parser().parse_file(dir + self.oprofile_path)
+            self.oprofile = parser().parse_file(dir + self.oprofile_path)
 
     def push_html_to_host(self):
         res = open(self.out_dir + '/index.html', 'w')
@@ -251,9 +251,9 @@ class dbench():
         print >>res, self.html
         res.close()
 
-        #send stuff to host
+        # send stuff to host
         os.system('scp -r "%s" "%s:%s"' % (self.out_dir + '/' + self.dir_str, self.hostname, self.www_dir + self.prof_dir))
-        #os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir))
+        # os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir))
         print 'scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str + "/index.html")
         os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str + "/index.html"))
         os.system('ssh "%s" ln -s -f "%s" "%s"' % (self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str, self.www_dir + self.prof_dir + "/" + "latest"))
@@ -261,11 +261,11 @@ class dbench():
     def report_as_html(self):
         def image(name, html_output, email_output):
             # Construct the path to the high-resolution version of the plot, append the plot image to the list of images to be attached.
-            large_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'_large.png')
-            small_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'.png')
+            large_img_path = 'http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, name + '_large.png')
+            small_img_path = 'http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, name + '.png')
             self.images_used.append(name)
             print >>html_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, small_img_path)
-            print >>email_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
+            print >>email_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:' + name)
 
         def hr():
             return '<hr style="height: 8px; width: 910px; background-color: #222; margin-top: 40px; margin-bottom: 15px; margin-left: 0; text-align: left;" />'
@@ -312,23 +312,23 @@ class dbench():
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                     <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
-                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>    
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
                                 </tr>""" % (competitor_name, mean_data, standard_dev, upper_percentile, lower_percentile)
             table += "</table>"
             return table
 
         def multirun_summary_table(dataset, unit):
             datatypes = ['qps', 'latency']
-            stat_types = ['mean','stdev','upper_5_percentile','lower_5_percentile']
+            stat_types = ['mean', 'stdev', 'upper_5_percentile', 'lower_5_percentile']
 
             table = """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: 30px; margin-right: 30px; margin-top: 20px;">
                            <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #333;">
                                <th style="padding: 0.5em 0.8em; font-size: small;"></th>"""
             for d in datatypes:
-                table +="""    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation for %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Lower 5%% for %s</th>
-                               <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d,d,d,d)
+                table += """    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation for %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Lower 5%% for %s</th>
+                                <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d, d, d, d)
             table += "     </tr>"
             for run_name, run in dataset.iteritems():
                 table += """<tr style="background: #E0E0E0; text-align: left; border-bottom: 2px solid #FFFFFF">
@@ -354,18 +354,18 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>""" % tuple(output)
-                    table += "</tr>"        
+                    table += "</tr>"
             table += "</table>"
             return table
 
         res_html = StringIO.StringIO()
         res_email = StringIO.StringIO()
-        res = tee(res_html,res_email)
+        res = tee(res_html, res_email)
 
 
         # Set up basic html, and body tags. Note that the style tag must be under the body tag for email clients to parse it (head gets stripped by most clients).
 
-        report_date = strptime(self.dir_str.replace('_',' '),'%a %b %d %H %M %S %Y')
+        report_date = strptime(self.dir_str.replace('_', ' '), '%a %b %d %H %M %S %Y')
 
         print >>res, """<table style="width: 910px; margin-top: 20px; margin-bottom: 20px;">
                             <tr>
@@ -386,10 +386,10 @@ class dbench():
             server_meta = run.server_meta
             client_meta = run.client_meta
 
-            #if run_name != self.rdb_stats.single_runs.keys()[0]:
+            # if run_name != self.rdb_stats.single_runs.keys()[0]:
             print >>res, hr()
             print >>res, '<div class="run">'
-            print >>res, run_title(run.name) 
+            print >>res, run_title(run.name)
 
             # Accumulating data for the run
             data = {}
@@ -408,9 +408,9 @@ class dbench():
                     print 'Competitor: %s did not report data for run %s' % (competitor[0], run.name)
 
             # Add a link to the graph-viewer (flot)
-            data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
+            data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name, 'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
-            
+
             # Print a description for this workload (first general, then for each competitor)
             print >>res, '<br><br>'
             print >>res, run.description.generateHtml()
@@ -434,7 +434,7 @@ class dbench():
 
             for competitor in data.iteritems():
                 lat_data += competitor[1].select('latency').remap('latency', competitor[0])
-            
+
             # Plot the latency histogram
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name + '_large'), True)
@@ -460,11 +460,11 @@ class dbench():
             print >>res, """        </td>
                                     <td>"""
             print >>res, summary_table('latency', data)
-            print >>res, """        </td> 
+            print >>res, """        </td>
                                 </tr>
                             </table>
                         </div>"""
-        
+
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
@@ -488,7 +488,7 @@ class dbench():
                     mean_data[competitor[0]] = competitor[1].multi_runs[multirun_name].data
                     per_competitor_descriptions.append((competitor_key, competitor[1].multi_runs[multirun_name].description_run))
                 except KeyError:
-                    print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
+                    print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name)
                 except AttributeError:
                     print 'Competitor: %s has no multiruns.' % competitor[0]
 
@@ -497,8 +497,8 @@ class dbench():
             # Add a link to each run in the multirun
             for run_name in multirun.runs.keys():
                 flot_data_filename = flot_data + multirun.name + run_name
-                current_run_data = reduce(lambda x, y: x + y, multirun.runs[run_name].data) 
-                current_run_data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data_filename,'Server:' + server_meta + 'Client:' + client_meta)
+                current_run_data = reduce(lambda x, y: x + y, multirun.runs[run_name].data)
+                current_run_data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data_filename, 'Server:' + server_meta + 'Client:' + client_meta)
                 print >>res, flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data_filename + '.js', run_name)
 
                 if run_name != multirun.runs.keys()[-1]:
@@ -549,22 +549,22 @@ class dbench():
             image('mean' + multirun_name, res_html, res_email)
             print >>res, 'i         </td>'
 
-            # Plot the multiplot; each subplot shows one of the runs of the multirun 
+            # Plot the multiplot; each subplot shows one of the runs of the multirun
             multiplot_data = {}
             summary_table_data = {}
 
             # Build the intial set of run data with just RethinkDB's run used in multiruns. In the meantime, build RethinkDB's data for the summary table.
             for run_name, run in multirun.runs.iteritems():
                 multiplot_data[run_name] = {}
-                multiplot_data[run_name] = reduce(lambda x, y: x + y, run.data).select('qps').remap('qps','RethinkDB')
+                multiplot_data[run_name] = reduce(lambda x, y: x + y, run.data).select('qps').remap('qps', 'RethinkDB')
 
                 summary_table_data[run_name] = {}
                 summary_table_data[run_name]['RethinkDB'] = reduce(lambda x, y: x + y, run.data)
-                
+
             competitors_with_multiruns = {}
             for competitor_name, competitor in self.competitors.iteritems():
                 try:
-                    #pdb.set_trace()
+                    # pdb.set_trace()
                     competitors_with_multiruns[competitor_name] = competitor.multi_runs[multirun_name]
                 except AttributeError:
                     print 'Competitor: %s has no multiruns.' % competitor_name
@@ -578,10 +578,10 @@ class dbench():
                     competitor_multirun = competitors_with_multiruns[competitor_name]
                     try:
                         competitor_multirun_data = reduce(lambda x, y: x + y, competitor_multirun.runs[run_name].data)
-                        multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps',competitor_name)
+                        multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps', competitor_name)
                         summary_table_data[run_name][competitor_name] = competitor_multirun_data
                     except KeyError:
-                        print 'Competitor: %s did not report run %s in its data for multirun %s' % (competitor_name, run_name, multirun.name) 
+                        print 'Competitor: %s did not report run %s in its data for multirun %s' % (competitor_name, run_name, multirun.name)
 
             # Create the multiplot and output a small and large version
             multiplot = SubplotCollection(multiplot_data)
@@ -596,25 +596,25 @@ class dbench():
                                      </tr>
                                 </table>
                             </div>"""
-            
+
             print >>res, multirun_summary_table(summary_table_data, multirun.unit)
 
         # Add oprofile data
-#        print >> res, '<div class="oprofile">' 
-#        if self.prof_stats:
-#            prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
-#            ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
-#            print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
-#        else:
-#            print >>res, "<p>No oprofile data reported</p>"
-#        print >> res, '</div>' 
-          
+        # print >> res, '<div class="oprofile">'
+        # if self.prof_stats:
+        #     prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
+        #     ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
+        #     print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
+        # else:
+        #     print >>res, "<p>No oprofile data reported</p>"
+        # print >> res, '</div>'
+
 
         return res_html.getvalue(), res_email.getvalue()
 
     def send_email(self, recipient):
         print "Sending email to %r..." % recipient
-        
+
         # Build a basic MIME multipart message (html / text)
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Profiling results %s' % time.asctime()
@@ -626,16 +626,16 @@ class dbench():
         msg.attach(MIMEText(self.email, 'html'))
 
         for image in self.images_used:
-            fp = open(os.path.join(self.out_dir,self.dir_str,image+'.png'), 'rb')
+            fp = open(os.path.join(self.out_dir, self.dir_str, image + '.png'), 'rb')
             msg_img = MIMEImage(fp.read())
             fp.close()
-            msg_img.add_header('Content-ID', '<'+image+'>')
+            msg_img.add_header('Content-ID', '<' + image + '>')
             msg.attach(msg_img)
 
         num_tries = 10
         try_interval = 10   # Seconds
         smtp_server, smtp_port = os.environ.get("RETESTER_SMTP", "smtp.gmail.com:587").split(":")
-        
+
         import smtplib
 
         for tries in range(num_tries):
@@ -648,12 +648,12 @@ class dbench():
                 break
         else:
             raise Exception("Cannot connect to SMTP server '%s'" % smtp_server)
-        
+
         sender, sender_pw = 'buildbot@rethinkdb.com', 'allspark'
-        
+
         s.starttls()
         s.login(sender, sender_pw)
         s.sendmail(sender, [recipient], msg.as_string())
         s.quit()
-        
+
         print "Email message sent."

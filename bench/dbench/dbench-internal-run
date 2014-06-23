@@ -9,7 +9,7 @@ if len(sys.argv) < 3:
 
 temp_path_id = sys.argv[1]
 executable = sys.argv[2]
-new_argv = sys.argv[2:] # Includes executable as new_argv[0].
+new_argv = sys.argv[2:]  # Includes executable as new_argv[0].
 
 try: os.makedirs(temp_path_id)
 except OSError, e:

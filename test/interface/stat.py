@@ -35,13 +35,13 @@ with driver.Metacluster() as metacluster:
     host, port = driver.get_table_host(processes)
     access = http
 
-    invalid_requests = ["foo=bar","filter=\|","time0ut=1","timeout=","timeout=0"]
+    invalid_requests = ["foo=bar", "filter=\|", "time0ut=1", "timeout=", "timeout=0"]
     for req in invalid_requests:
-        failed=False
+        failed = False
         try:
             access.get_stat(req)
         except http_admin.BadServerResponse:
-            failed=True
+            failed = True
         assert failed, "Request '%s' should have failed!" % req
 
     all_stats = access.get_stat("")
@@ -52,7 +52,7 @@ with driver.Metacluster() as metacluster:
         machine_stats = access.get_stat(machine_query)
 
         other_machines = [x for x in machines if x != machine]
-        other_machines_query="machine_whitelist=" + ",".join(other_machines)
+        other_machines_query = "machine_whitelist=" + ",".join(other_machines)
         other_machine_stats = access.get_stat(other_machines_query)
 
         assert machine_stats.keys().count(machine) == 1
@@ -63,7 +63,7 @@ with driver.Metacluster() as metacluster:
 
         filter_query = "filter=.*/parser/cmd_get"
         filtered_machine_query = "%s&%s" % (machine_query, filter_query)
-        filtered_machine_stats=access.get_stat(filtered_machine_query)
+        filtered_machine_stats = access.get_stat(filtered_machine_query)
         stats_top = machine_stats
         for i in [x for x in stats_top.keys() if x != "machines"]:
             machine_top = stats_top[i]

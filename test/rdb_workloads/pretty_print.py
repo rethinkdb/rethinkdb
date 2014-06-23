@@ -25,8 +25,8 @@ class PrettyPrintTest(unittest.TestCase):
     def setUpClass(cls):
         cls.conn = connect(
             os.environ.get('HOST', 'localhost'),
-            int(os.environ.get('PORT', 28015+2010))
-            )
+            int(os.environ.get('PORT', 28015 + 2010))
+        )
         cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def test_pretty_print(self):
@@ -34,7 +34,7 @@ class PrettyPrintTest(unittest.TestCase):
         self.assertEqual(str(expr([expr(2)])), "expr([2])")
 
         # Make sure this doesn't crash
-        str(expr([1,2,3]).array_to_stream().map(fn("x", R("$x") * 2)))
+        str(expr([1, 2, 3]).array_to_stream().map(fn("x", R("$x") * 2)))
 
     def test_backtraces(self):
         try:

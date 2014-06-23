@@ -108,7 +108,7 @@ def run(all_tests, all_groups, configure, args):
 # This mode just lists the tests
 def list_tests_mode(tests, verbose, all_groups):
     if all_groups:
-        groups = { name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items() }
+        groups = {name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items()}
     else:
         groups = False
     for name, test in tests:
@@ -187,11 +187,11 @@ def redirect_fd_to_file(fd, file, tee=False):
 
 # The main logic for running the tests
 class TestRunner(object):
-    SUCCESS   = 'SUCCESS'
-    FAILED    = 'FAILED'
+    SUCCESS = 'SUCCESS'
+    FAILED = 'FAILED'
     TIMED_OUT = 'TIMED_OUT'
-    STARTED   = 'STARTED'
-    KILLED    = 'KILLED'
+    STARTED = 'STARTED'
+    KILLED = 'KILLED'
 
     def __init__(self, tests, conf, tasks=1, timeout=600, output_dir=None, verbose=False, repeat=1, kontinue=False, abort_fast = False, run_dir=None):
         self.tests = tests
@@ -254,7 +254,7 @@ class TestRunner(object):
                         break
                     if self.kontinue or name not in self.failed_set:
                         id = (name, i)
-                        subdir = name if self.repeat == 1 else name + '.' + str(i+1)
+                        subdir = name if self.repeat == 1 else name + '.' + str(i + 1)
                         dir = join(self.dir, subdir)
                         run_dir = join(self.run_dir, subdir) if self.run_dir else None
                         process = TestProcess(self, id, test, dir, run_dir)
@@ -403,7 +403,7 @@ class TermView(TextView):
         self.printingQueue.put((args, kwargs))
 
     def close(self):
-        self.printingQueue.put(('EXIT',None))
+        self.printingQueue.put(('EXIT', None))
         self.thread.join()
 
     def run(self):
@@ -540,7 +540,7 @@ class TestProcess(object):
                 file.write(str(self.test))
 
             self.supervisor = threading.Thread(target=self.supervise,
-                                               name="supervisor:"+self.name)
+                                               name="supervisor:" + self.name)
             self.supervisor.daemon = True
             self.supervisor.start()
         except Exception:
@@ -587,7 +587,7 @@ class TestProcess(object):
     def supervise(self):
         read_pipe, write_pipe = multiprocessing.Pipe(False)
         self.process = multiprocessing.Process(target=self.run, args=[write_pipe],
-                                               name="subprocess:"+self.name)
+                                               name="subprocess:" + self.name)
         self.process.start()
         self.process.join(self.timeout + 5)
         if self.terminate_thread:
@@ -599,12 +599,14 @@ class TestProcess(object):
         elif self.process.is_alive():
             self.terminate()
             self.terminate_thread.join()
-            self.write_fail_message("Test failed to exit after timeout of %d seconds"
-                                        % (self.timeout,))
+            self.write_fail_message(
+                "Test failed to exit after timeout of %d seconds" %
+                (self.timeout,))
             self.runner.tell(TestRunner.FAILED, self.id, self)
         elif self.process.exitcode:
-            self.write_fail_message("Test exited abnormally with error code %d"
-                                        % (self.process.exitcode,))
+            self.write_fail_message(
+                "Test exited abnormally with error code %d" %
+                (self.process.exitcode,))
             self.runner.tell(TestRunner.FAILED, self.id, self)
         else:
             try:
@@ -642,8 +644,9 @@ class TestProcess(object):
             self.gracefull_kill = True
         if self.terminate_thread:
             return
-        self.terminate_thread = threading.Thread(target=self.terminate_thorough,
-                                  name='terminate:'+self.name)
+        self.terminate_thread = threading.Thread(
+            target=self.terminate_thorough,
+            name='terminate:' + self.name)
         self.terminate_thread.start()
 
     def pid(self):
@@ -713,7 +716,7 @@ class TestFilter(object):
                 type = self.EXCLUDE
             else:
                 type = self.INCLUDE
-            if groups.has_key(arg):
+            if arg in groups:
                 group = self.parse(groups[arg], groups, group=arg)
                 filter.combine(type, group)
             else:
@@ -889,7 +892,7 @@ class TestTree(Test):
         return count
 
     def has_test(self, name):
-        return self.tests.has_key(name)
+        return name in self.tests
 
 # Used with `--load' to load old test results
 def load_test_results_as_tests(path):

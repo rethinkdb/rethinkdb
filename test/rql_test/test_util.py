@@ -22,17 +22,19 @@ null = open('/dev/null', 'w')
 
 # Manages a cluster of RethinkDB servers
 class RethinkDBTestServers(object):
-    
+
     group_data_dir = None
     servers = None
-    
-    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False, cache_size=1024, group_data_dir ='./run'):
+
+    def __init__(
+            self, num_servers=4, server_build_dir=None, use_default_port=False,
+            cache_size=1024, group_data_dir='./run'):
         assert num_servers >= 1
         self.num_servers = num_servers
         self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
         self.cache_size = cache_size
-        self. group_data_dir = os.path.realpath(group_data_dir) 
+        self. group_data_dir = os.path.realpath(group_data_dir)
 
     def __enter__(self):
         self.start()
@@ -43,7 +45,7 @@ class RethinkDBTestServers(object):
 
     def start(self):
         self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port, self.cache_size, self.group_data_dir)
-                            for i in xrange(0, self.num_servers)]
+                        for i in xrange(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
         for server in self.servers[1:]:
@@ -57,7 +59,7 @@ class RethinkDBTestServers(object):
         self.clear_data()
 
     def clear_data(self):
-        pass # TODO: figure out when to clear the data
+        pass  # TODO: figure out when to clear the data
 
     def restart(self, clear_data=False):
         self.stop()
@@ -82,15 +84,15 @@ class RethinkDBTestServers(object):
 
 # Manages starting and stopping an instance of the Rethindb server
 class RethinkDBTestServer(object):
-    
+
     group_data_dir = None
     server_data_dir = None
-    
+
     driver_port = None
     cluster_port = None
     log_file = None
     rdbfile_path = None
-    
+
     def __init__(self, server_build_dir=None, use_default_port=False, cache_size=1024, group_data_dir='./run'):
         self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
@@ -118,7 +120,7 @@ class RethinkDBTestServer(object):
     def port_available(self, port):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind(("127.0.0.1",port))
+            s.bind(("127.0.0.1", port))
             s.close()
         except socket.error:
             return False
@@ -149,7 +151,7 @@ class RethinkDBTestServer(object):
         self.driver_port = self.find_available_port()
         self.cluster_port = self.find_available_port()
         self.create()
-        
+
         self.cpp_server = Popen([self.executable, 'serve',
                                  '--driver-port', str(self.driver_port),
                                  '--cluster-port', str(self.cluster_port),
@@ -163,17 +165,17 @@ class RethinkDBTestServer(object):
     def create(self):
         self.server_data_dir = os.path.join(self.group_data_dir, 'server_%s' % self.driver_port)
         self.rdbfile_path = os.path.join(self.server_data_dir, 'rdb')
-        
-        if os.path.exists(self.server_data_dir): # we need a clean data directory TODO: evaluate moving this to a tempfile folder
+
+        if os.path.exists(self.server_data_dir):  # we need a clean data directory TODO: evaluate moving this to a tempfile folder
             # TODO: log that we are cleaning off this directory
-            if os.path.isdir(self.server_data_dir) and not os.path.islink(self.server_data_dir):    
+            if os.path.isdir(self.server_data_dir) and not os.path.islink(self.server_data_dir):
                 shutil.rmtree(self.server_data_dir)
             else:
                 os.unlink(self.server_data_dir)
         os.makedirs(self.server_data_dir)
-        
+
         self.log_file = open(os.path.join(self.server_data_dir, 'server-log.txt'), 'a+')
-        
+
         self.executable = os.path.join(self.server_build_dir or os.getenv('RETHINKDB_BUILD_DIR') or '../../build/debug', 'rethinkdb')
         check_call([self.executable, 'create', '--directory', self.rdbfile_path], stdout=self.log_file, stderr=STDOUT)
 
@@ -189,7 +191,7 @@ class RethinkDBTestServer(object):
             try:
                 logOutput = open(logFilePath).read()
             except: pass
-            
+
             raise Exception("Error: rethinkdb process %d failed with error code %d\n%s" % (self.cpp_server.pid, code, logOutput))
         self.cpp_server = None
         self.log_file = None
@@ -205,12 +207,27 @@ class RethinkDBTestServer(object):
 
 def shard_table(port, build, table_name):
     rtn_sum = 0
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc040800000000000\2333'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc048800000000000\2349'], stdout=null, stderr=null)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc04f000000000000\2362'], stdout=null, stderr=null)
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc040800000000000\2333'
+        ],
+        stdout=null, stderr=null
+    )
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc048800000000000\2349'
+        ],
+        stdout=null, stderr=null
+    )
+    rtn_sum += call(
+        [
+            build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard',
+            table_name, 'Nc04f000000000000\2362'
+        ],
+        stdout=null, stderr=null
+    )
     sleep(3.0)
     return rtn_sum
 

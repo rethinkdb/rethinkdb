@@ -34,10 +34,10 @@ class PlotSelectHandler(PlotTemplate):
 
         self.write('<tr><td>Name of plot:</td><td><input name="name" value="plot"></td></tr>')
         self.write('<tr><td>Test run:</td><td><select name="run">')
-        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest")  # TODO
         db_conn.query("SELECT `run` FROM `stats` GROUP BY `run` ORDER BY `run` DESC")
         result = db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         for row in rows:
             run_timestamp = int(row[0])
             self.write('<option value="%d">%s</option>' % (run_timestamp, str(datetime.datetime.fromtimestamp(run_timestamp))))
@@ -46,8 +46,8 @@ class PlotSelectHandler(PlotTemplate):
         self.write('<tr><td>End plot</td><td><input name="end_hours" value="0" size="3"> hours before the latest available data of the run</td></tr>')
         self.write('<tr><td>...and start</td><td><input name="duration" value="6" size="3"> hours before that point.</td></tr>')
 
-        #self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
-        #self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
+        # self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
+        # self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
         self.write('<tr><td>Plotter type:</td><td><select name="plotter_type"> \
             <option value="simple_plotter">simple plotter</option> \
             <option value="differential_plotter">differential plotter</option> \
@@ -65,7 +65,7 @@ class PlotSelectHandler(PlotTemplate):
         self.write('</form>')
 
         self.tail()
-        
+
 class PlotConfigureHandler(PlotTemplate):
     stats_for_display = [
         'blocks_dirty[blocks]',
@@ -92,10 +92,10 @@ class PlotConfigureHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
         run = self.get_argument("run")
-        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest")  # TODO
         db_conn.query("SELECT `timestamp` FROM `stats` WHERE `run` = '%s' ORDER BY `timestamp` DESC LIMIT 1" % db_conn.escape_string(run))
         result = db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         latest_timestamp = int(rows[0][0])
         db_conn.close()
         end_timestamp = str(int(latest_timestamp) - int(float(self.get_argument("end_hours")) * 3600.0))
@@ -115,31 +115,31 @@ class PlotConfigureHandler(PlotTemplate):
         if plotter_type == "simple_plotter":
             self.write('<tr><td>Stat:</td><td><select name="simple_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Multiplier:</td><td><input name="simple_plotter_multiplier" value="1" size="5"></td></tr>')
         elif plotter_type == "differential_plotter":
             self.write('<tr><td>Stat:</td><td><select name="differential_plotter_stat">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_diff_plotter":
             self.write('<tr><td>Stat 1:</td><td><select name="two_stats_diff_plotter_stat1">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Stat 2:</td><td><select name="two_stats_diff_plotter_stat2">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
         elif plotter_type == "two_stats_ratio_plotter":
             self.write('<tr><td>Dividend:</td><td><select name="two_stats_ratio_plotter_dividend">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
             self.write('<tr><td>Divisor:</td><td><select name="two_stats_ratio_plotter_divisor">')
             for stat in self.stats_for_display:
-                self.write('<option value="%s">%s</option>' % (stat, stat) )
+                self.write('<option value="%s">%s</option>' % (stat, stat))
             self.write('</select></td></tr>')
 
         self.write('</table>')
@@ -150,7 +150,7 @@ class PlotConfigureHandler(PlotTemplate):
                 ("start_timestamp", start_timestamp),
                 ("run", run),
                 ("end_timestamp", end_timestamp)]:
-            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value) ); # Cross site scripting vulnerability! ;-)
+            self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value));  # Cross site scripting vulnerability! ;-)
         self.write('<br><input type="submit" value="Generate">')
         self.write('</form>')
 
@@ -159,7 +159,8 @@ class PlotConfigureHandler(PlotTemplate):
 class PlotGeneratorHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
-        pass_values = [("name", name),
+        pass_values = [
+            ("name", name),
             ("start_timestamp", self.get_argument("start_timestamp")),
             ("end_timestamp", self.get_argument("end_timestamp")),
             ("run", self.get_argument("run")),
@@ -249,5 +250,3 @@ if __name__ == "__main__":
     http_server.listen(port)
     print "Listening on port %d" % port
     tornado.ioloop.IOLoop.instance().start()
-
-

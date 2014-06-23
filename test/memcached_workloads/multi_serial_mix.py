@@ -69,9 +69,11 @@ try:
         if tr <= 0: tr = shutdown_grace_period
         process.join(tr)
 
-    stuck = sorted(id for (process, id) in processes
+    stuck = sorted(
+        id for (process, id) in processes
         if process.is_alive())
-    failed = sorted(id for (process, id) in processes
+    failed = sorted(
+        id for (process, id) in processes
         if not process.is_alive() and process.exitcode != 0)
 
     if stuck or failed:
@@ -84,7 +86,8 @@ try:
         elif len(failed) == opts["num_testers"]:
             raise ValueError("All %d processes failed." % opts["num_testers"])
         else:
-            raise ValueError("Of processes [1 ... %d], the following did not finish in time: " \
+            raise ValueError(
+                "Of processes [1 ... %d], the following did not finish in time: "
                 "%s and the following failed: %s" % (opts["num_testers"], stuck, failed))
 
 finally:

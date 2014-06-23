@@ -10,7 +10,8 @@ def random_key(opts):
     # this as a subroutine but wants to make sure that random keys don't collide with other random
     # keys.
     suf = opts.get("keysuffix", "")
-    return "".join(random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
+    return "".join(
+        random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
         for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):
@@ -21,7 +22,7 @@ def random_value(opts):
     else:
         return random.randint(0, min(200, opts["valuesize"])) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-def fail(k,v,v2):
+def fail(k, v, v2):
     raise ValueError("Key %r should have value %r, but had value %r." % (k, v, v2))
 
 def verify_all(opts, mc, clone, deleted):

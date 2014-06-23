@@ -1,4 +1,5 @@
-for interface_test_name in ['detect_dead', 'distribution', 'log', 'progress',
+for interface_test_name in [
+        'detect_dead', 'distribution', 'log', 'progress',
         'dead_machine_issues', 'unsatisfiable_goals_issue', 'name_conflict_issue',
         'net_corruption', 'resources', 'large_branch_history',
         'metadata_persistence', 'stat']:

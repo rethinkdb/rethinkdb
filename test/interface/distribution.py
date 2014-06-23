@@ -39,7 +39,7 @@ with driver.Metacluster() as metacluster:
         r.table_create('distribution').run(conn)
         batch = []
         for i in range(10000):
-            batch.append({'id': str(i) * 10, 'val': str(i)*20})
+            batch.append({'id': str(i) * 10, 'val': str(i) * 20})
             if (i + 1) % 100 == 0:
                 r.table('distribution').insert(batch).run(conn)
                 batch = []

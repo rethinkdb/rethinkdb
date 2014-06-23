@@ -26,14 +26,14 @@ def get_devs():
     return set(glob.glob('/dev/sd?'))
 
 def run_cmd(*args):
-    assert args # Empty list would start interactive shell.
+    assert args  # Empty list would start interactive shell.
     log('Running command: %s' % ' '.join(args))
     p = subprocess.Popen(('tw_cli',) + args, stdout=subprocess.PIPE)
     out, err = p.communicate()
     if p.poll() == 0:
         return out
     else:
-        raise RuntimeError, 'run_cmd failed with status %r' % (p.poll())
+        raise RuntimeError('run_cmd failed with status %r' % (p.poll()))
 
 def get_ids(prefix, out):
     ids = []
@@ -56,11 +56,11 @@ def del_units(controller):
 def mk_units(controller, mode):
     # Sanity check, really.
     ports = get_ids('p', run_cmd('/%s show' % controller))
-    ports = [p[1:] for p in ports] # Get rid of the initial 'p'.
-    assert sorted(ports) == ['0','1','2','3']
+    ports = [p[1:] for p in ports]  # Get rid of the initial 'p'.
+    assert sorted(ports) == ['0', '1', '2', '3']
 
     if mode == 'raid0':
-        #run_cmd('/%s add type=raid0 disk=%d-%d' % (controller, min(ports), max(ports)))
+        # run_cmd('/%s add type=raid0 disk=%d-%d' % (controller, min(ports), max(ports)))
         run_cmd('/%s add type=raid0 disk=%s' % (controller, ':'.join(ports)))
     elif mode == 'single':
         for port in ports:

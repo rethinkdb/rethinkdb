@@ -15,12 +15,12 @@ outputFile = tempfile.NamedTemporaryFile()
 compileProcess = subprocess.Popen(['make', 'protobuf-test-output-location'], stdout=outputFile, stderr=subprocess.STDOUT, cwd=thisDir)
 reportDeadline = time.time() + 2
 while compileProcess.poll() == None and reportDeadline > time.time():
-	time.sleep(.1)
+    time.sleep(.1)
 if compileProcess.poll() is None:
-	print('Compiling the test, this make take some time')
+    print('Compiling the test, this make take some time')
 if compileProcess.wait() != 0:
-	outputFile.seek(0)
-	sys.exit('Failed comiling test, got error code %d and output:\n%s\n' % (compileProcess.returncode, outputFile.read()))
+    outputFile.seek(0)
+    sys.exit('Failed comiling test, got error code %d and output:\n%s\n' % (compileProcess.returncode, outputFile.read()))
 
 # - find the executable path from the output
 
@@ -29,11 +29,11 @@ testExecutable = None
 prefixString = 'protobuff-test executable location: '
 outputFile.seek(0)
 for line in outputFile:
-	if line.startswith(prefixString):
-		testExecutable = line[len(prefixString):].strip()
+    if line.startswith(prefixString):
+        testExecutable = line[len(prefixString):].strip()
 
 if testExecutable is None or not os.access(testExecutable, os.X_OK):
-	sys.exit('Unable to find the protobuff-test executable: %s' % str(testExecutable))
+    sys.exit('Unable to find the protobuff-test executable: %s' % str(testExecutable))
 
 # -- start the server
 

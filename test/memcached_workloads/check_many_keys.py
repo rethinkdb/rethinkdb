@@ -15,14 +15,14 @@ with memcached_workload_common.make_memcache_connection(opts) as mc:
     # Verify everything
     print "Verifying"
     i = 0
-    values = mc.get_multi(keys[i:i+16])
+    values = mc.get_multi(keys[i:i + 16])
     for key in keys:
         if i % 16 == 0:
-            values = mc.get_multi(keys[i:i+16])
-            
+            values = mc.get_multi(keys[i:i + 16])
+
         value = values[key]
         if value != key:
             raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))
         i += 1
-    
+
     print "Success"

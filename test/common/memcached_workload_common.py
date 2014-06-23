@@ -20,12 +20,13 @@ class MemcacheRdbShim(object):
             return response['val']
 
     def set(self, key, val):
-        response = self.table.insert({
-            'id': key,
-            'val': val
+        response = self.table.insert(
+            {
+                'id': key,
+                'val': val
             },
             upsert=True
-            ).run(self.conn)
+        ).run(self.conn)
 
         error = response.get('first_error')
         if error:

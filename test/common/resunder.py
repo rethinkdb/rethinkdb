@@ -7,7 +7,7 @@ import socket
 import copy
 import re
 from signal import SIGTERM
- 
+
 class Daemon:
     """
     A generic daemon class. Taken from http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
@@ -64,18 +64,18 @@ class Daemon:
         # write pidfile
         atexit.register(self.delpid)
         pid = str(os.getpid())
-        file(self.pidfile,'w+').write("%s\n" % pid)
+        file(self.pidfile, 'w+').write("%s\n" % pid)
 
     def delpid(self):
         os.remove(self.pidfile)
- 
+
     def start(self):
         """
         Start the daemon
         """
         # Check for a pidfile to see if the daemon already runs
         try:
-            pf = file(self.pidfile,'r')
+            pf = file(self.pidfile, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
@@ -89,14 +89,14 @@ class Daemon:
         # Start the daemon
         self.daemonize()
         self.run()
- 
+
     def stop(self):
         """
         Stop the daemon
         """
         # Get the pid from the pidfile
         try:
-            pf = file(self.pidfile,'r')
+            pf = file(self.pidfile, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
@@ -105,8 +105,8 @@ class Daemon:
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
             sys.stderr.write(message % self.pidfile)
-            return # not an error in a restart
- 
+            return  # not an error in a restart
+
         # Try killing the daemon process
         try:
             # first attempt to shutdown the daemon by issuing a shutdown command
@@ -125,7 +125,7 @@ class Daemon:
             else:
                 print str(err)
                 sys.exit(1)
- 
+
     def restart(self):
         """
         Restart the daemon
@@ -138,15 +138,15 @@ class Daemon:
         You should override this method when you subclass Daemon. It will be called after the process has been
         daemonized by start() or restart().
         """
- 
+
 class ResunderDaemon(Daemon):
     def run(self):
         # TODO: keep a dict of blocked sockets and unblock them on shutdown
         listener = socket.socket()
         listener.bind(("localhost", 46594))
         listener.listen(3)
-        listener.settimeout(3600) # Wake up every hour to clear out old rules
-        self.blocked_ports = { }
+        listener.settimeout(3600)  # Wake up every hour to clear out old rules
+        self.blocked_ports = {}
         while True:
             try:
                 client, addr = listener.accept()
@@ -170,17 +170,17 @@ class ResunderDaemon(Daemon):
                             self.unblock_port(source_port, dest_port)
                     return
             except socket.timeout:
-                unblock = [ ]
+                unblock = []
                 for source_port, dest_map in self.blocked_ports.iteritems():
                     for dest_port, creation_time in dest_map.iteritems():
-                        if creation_time < time.time() - 864000: # find and remove rules older than 10 days
+                        if creation_time < time.time() - 864000:  # find and remove rules older than 10 days
                             unblock.append((source_port, dest_port))
                 for block in unblock:
                     self.unblock_port(block[0], block[1])
 
     def block_port(self, source_port, dest_port):
         if source_port not in self.blocked_ports:
-            self.blocked_ports[source_port] = { }
+            self.blocked_ports[source_port] = {}
 
         if dest_port not in self.blocked_ports[source_port]:
             self.blocked_ports[source_port][dest_port] = time.time()
@@ -203,7 +203,7 @@ class ResunderDaemon(Daemon):
 
             if len(self.blocked_ports[source_port]) == 0:
                 del self.blocked_ports[source_port]
- 
+
 if __name__ == "__main__":
     daemon = ResunderDaemon('/tmp/resunder-daemon.pid')
     if len(sys.argv) == 2:
@@ -225,4 +225,3 @@ if __name__ == "__main__":
     else:
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
-

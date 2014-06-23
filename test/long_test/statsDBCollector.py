@@ -15,7 +15,7 @@ class StatsDBCollector(object):
         self.monitoring = []
         self.db_conn.query("SELECT `name` FROM `stat_names`")
         result = self.db_conn.use_result()
-        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        rows = result.fetch_row(maxrows=0)  # Fetch all rows
         for row in rows:
             self.monitoring.append(row[0])
 
@@ -23,7 +23,7 @@ class StatsDBCollector(object):
         timestamp = self.db_conn.escape_string(str(timestamp))
         stat = self.db_conn.escape_string(stat)
         value = self.db_conn.escape_string(str(value))
-        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s', '%d')" % (timestamp, stat, value, self.run_timestamp) )
+        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s', '%d')" % (timestamp, stat, value, self.run_timestamp))
         if self.db_conn.affected_rows() != 1:
             raise Exception("Cannot insert stat %s into database" % stat)
 
@@ -32,7 +32,7 @@ class StatsDBCollector(object):
             ts = time.time()
             for k in self.monitoring:
                 if k in stats:
-                    self.insert_stat(ts, k, stats[k]) # TODO: Use timestamp from stats
+                    self.insert_stat(ts, k, stats[k])  # TODO: Use timestamp from stats
 
 
         self.opts = opts
@@ -44,11 +44,9 @@ class StatsDBCollector(object):
 
         self.rdbstat = RDBStat(('localhost', server.port), interval=5, stats_callback=stats_aggregator)
         # For testing:
-        #self.rdbstat = RDBStat(('electro', 8952), interval=5, stats_callback=stats_aggregator)
+        # self.rdbstat = RDBStat(('electro', 8952), interval=5, stats_callback=stats_aggregator)
         self.rdbstat.start()
 
     def stop(self):
         self.rdbstat.stop()
         self.db_conn.close()
-
-

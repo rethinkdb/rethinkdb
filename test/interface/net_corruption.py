@@ -24,7 +24,7 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     print "Generating garbage traffic..."
     for i in xrange(30):
-        print i+1,
+        print i + 1,
         sys.stdout.flush()
         s = socket.socket()
         s.connect(("localhost", proc.cluster_port))

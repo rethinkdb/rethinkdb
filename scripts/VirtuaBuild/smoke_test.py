@@ -11,11 +11,11 @@ from vcoptparse import *
 op = OptParser()
 op["num_keys"] = IntFlag("--num-keys", 500)
 op["mode"] = StringFlag("--mode", "debug")
-op["pkg_type"] = StringFlag("--pkg-type", "deb") # "deb" or "rpm"
+op["pkg_type"] = StringFlag("--pkg-type", "deb")  # "deb" or "rpm"
 opts = op.parse(sys.argv)
 
 num_keys = opts["num_keys"]
-base_port = 11213 # port that RethinkDB runs from by default
+base_port = 11213  # port that RethinkDB runs from by default
 
 if opts["pkg_type"] == "rpm":
     def install(path):
@@ -24,7 +24,7 @@ if opts["pkg_type"] == "rpm":
     def get_binary(path):
         return "rpm -qpil %s | grep /usr/bin" % path
 
-    def uninstall(cmd_name): 
+    def uninstall(cmd_name):
         return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 elif opts["pkg_type"] == "deb":
     def install(path):
@@ -33,7 +33,7 @@ elif opts["pkg_type"] == "deb":
     def get_binary(path):
         return "dpkg -c %s | grep /usr/bin/rethinkdb-.* | sed 's/^.*\(\/usr.*\)$/\\1/'" % path
 
-    def uninstall(cmd_name): 
+    def uninstall(cmd_name):
         return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 else:
     print >>sys.stderr, "Error: Unknown package type."
@@ -115,7 +115,7 @@ def test_against(host, port, timeout = 600):
                     goodgets += 1
             except:
                 pass
-        
+
         return goodsets, goodgets
 
 cur_dir = exec_command("pwd").stdout.readline().strip('\n')
@@ -160,7 +160,7 @@ for path in res_paths:
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
 
-    timeout = 60 # 1 minute to shut down
+    timeout = 60  # 1 minute to shut down
     time_limit = time.time() + timeout
     while proc.poll() is None and time.time() < time_limit:
         pass

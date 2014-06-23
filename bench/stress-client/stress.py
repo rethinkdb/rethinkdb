@@ -75,11 +75,12 @@ declare_fun("py_initialize_mysql_table", None, ctypes.c_char_p, ctypes.c_int, ct
 def distr_get(distr, i):
     if isinstance(distr, (int, float)):
         return distr
-    elif isinstance(distr, (list, tuple)) and len(distr)==2 and \
+    elif isinstance(distr, (list, tuple)) and len(distr) == 2 and \
             isinstance(distr[0], (int, float)) and isinstance(distr[1], (int, float)):
         return distr[i]
     else:
-        raise ValueError("Distribution should be either a number or a 2-element tuple. "
+        raise ValueError(
+            "Distribution should be either a number or a 2-element tuple. "
             "Instead got %r." % distr)
 
 def distr_min(distr):
@@ -147,18 +148,17 @@ class OpGenerator(object):
         samples_count = ctypes.c_int(100)
         samples = (ctypes.c_float * samples_count.value)()
 
-        libstress_op_generator_poll(self._opg,
+        libstress_op_generator_poll(
+            self._opg,
             ctypes.byref(queries),
             ctypes.byref(worst_latency),
             ctypes.byref(samples_count),
-            samples,
-            )
+            samples)
 
         return {
             "queries": queries.value,
             "worst_latency": worst_latency.value,
-            "latency_samples": [samples[i] for i in xrange(samples_count.value)],
-            }
+            "latency_samples": [samples[i] for i in xrange(samples_count.value)]}
 
     def reset(self):
         assert self.locked or not self.client or not self.client.running, \
@@ -220,7 +220,7 @@ class SeedKeyGenerator(object):
     """SeedKeyGenerator determines the mapping from seeds to keys. Most Ops expect
     a SeedKeyGenerator."""
 
-    def __init__(self, shard=None, prefix="", keysize=(8,16)):
+    def __init__(self, shard=None, prefix="", keysize=(8, 16)):
         if shard is None:
             shard_id = shard_count = -1
         else:
@@ -340,8 +340,9 @@ class InsertOpGenerator(SimpleOpGenerator):
     5. A value size distribution, as a number or a tuple of (low, high)
     """
 
-    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8, 16)):
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_insert(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -354,8 +355,9 @@ class UpdateOpGenerator(SimpleOpGenerator):
     key to be updated does not already exist. Its constructor has the same
     parameters."""
 
-    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8, 16)):
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_update(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -371,7 +373,8 @@ class DeleteOpGenerator(SimpleOpGenerator):
     """
 
     def __init__(self, nops, skgen, sch, vw, conn):
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_delete(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -389,11 +392,12 @@ class AppendPrependOpGenerator(SimpleOpGenerator):
        tuple of (low, high)
     """
 
-    def __init__(self, nops, skgen, sch, vw, conn, mode="append", size=(8,16)):
+    def __init__(self, nops, skgen, sch, vw, conn, mode="append", size=(8, 16)):
         if mode == "append": mode_int = 1
         elif mode == "prepend": mode_int = 0
         else: raise ValueError("'mode' should be 'append' or 'prepend'")
-        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+        SimpleOpGenerator.__init__(
+            self, skgen, sch, vw, conn,
             libstress_op_generator_create_append_prepend(
                 nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
@@ -409,13 +413,14 @@ class PercentageRangeReadOpGenerator(SingleConnectionOpGenerator):
     3. The maximum number of keys to request at a time, as a number or as a
        distribution of (low, high)
     4. Optionally, a prefix to put on the keys
-    PercentageRangeReadOpGenerator assumes that the database has been populated 
+    PercentageRangeReadOpGenerator assumes that the database has been populated
     by keys from one or more SeedKeyGenerators. The prefix you pass to
     PercentageRangeReadOpGenerator's constructor should be the same prefix you
     passed to the SeedKeyGenerator."""
 
-    def __init__(self, nops, conn, percentage=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOpGenerator.__init__(self, conn,
+    def __init__(self, nops, conn, percentage=(10, 50), limit=(16, 128), prefix=""):
+        SingleConnectionOpGenerator.__init__(
+            self, conn,
             libstress_op_generator_create_percentage_range_read(
                 nops, conn._connection,
                 distr_min(percentage), distr_max(percentage),
@@ -441,8 +446,9 @@ class CalibratedRangeReadOpGenerator(SingleConnectionOpGenerator):
     pass to the CalibratedRangeReadOpGenerator constructor should be the same
     one passed to the SeedKeyGenerator."""
 
-    def __init__(self, nops, conn, rangesize=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOpGenerator.__init__(self, conn,
+    def __init__(self, nops, conn, rangesize=(10, 50), limit=(16, 128), prefix=""):
+        SingleConnectionOpGenerator.__init__(
+            self, conn,
             libstress_op_generator_create_calibrated_range_read(
                 nops, conn._connection,
                 distr_min(rangesize), distr_max(rangesize),

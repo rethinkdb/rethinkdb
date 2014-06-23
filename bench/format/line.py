@@ -2,7 +2,7 @@
 import re
 class line():
     regex = ""
-    fields = [] #tuples of form name, type
+    fields = []  # tuples of form name, type
     def __init__(self, _regex, _fields):
         self.regex = _regex
         self.fields = _fields
@@ -45,7 +45,7 @@ def take_maybe(line, data):
     if matches != False: data.pop()
     return matches
 
-#look through an array of data until you get a match (or run out of data)
+# look through an array of data until you get a match (or run out of data)
 def until(line, data):
     while len(data) > 0:
         matches = line.parse_line(data[len(data) - 1])
@@ -54,7 +54,7 @@ def until(line, data):
             return matches
     return False
 
-#iterate through lines while they match (and there's data)
+# iterate through lines while they match (and there's data)
 def take_while(lines, data):
     res = []
     while len(data) > 0:

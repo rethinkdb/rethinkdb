@@ -34,4 +34,3 @@ with driver.Metacluster() as metacluster:
     assert any('nonwhitelisted' in entry['message'] for entry in log)
     cluster.check_and_stop()
 print "Done."
-

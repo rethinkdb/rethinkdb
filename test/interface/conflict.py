@@ -56,4 +56,3 @@ with driver.Metacluster() as metacluster:
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
     time.sleep(1000000)
 print "Done."
-

@@ -14,4 +14,4 @@ class Workload:
         host = random.choice(self.hosts)
         with r.connect(host[0], host[1]) as conn:
             pass
-        return { }
+        return {}

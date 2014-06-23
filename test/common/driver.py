@@ -63,9 +63,9 @@ class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
     `resunder` blocks between different clusters. It's also a context manager
     that cleans up all the processes and deletes all the files. """
-    
+
     __unique_id_counter = None
-    
+
     def __init__(self):
         self.clusters = set()
         self.dbs_path = tempfile.mkdtemp()
@@ -98,7 +98,7 @@ class Metacluster(object):
         returnValue = self.__unique_id_counter
         self.__unique_id_counter += 1
         return returnValue
-    
+
     def move_processes(self, source, dest, processes):
         """Moves a group of `Process`es from one `Cluster` to another. To split
         a cluster, create an empty cluster and use `move_processes()` to move
@@ -135,7 +135,7 @@ class Cluster(object):
     each other (ideally, anyway; see the note in `move_processes`). """
 
     def __init__(self, metacluster=None):
-        
+
         if metacluster is None:
             metacluster = Metacluster()
         assert isinstance(metacluster, Metacluster)
@@ -197,7 +197,7 @@ class Files(object):
 
         if command_prefix is None:
             command_prefix = []
-        
+
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
@@ -215,7 +215,8 @@ class Files(object):
         else:
             self.machine_name = machine_name
 
-        create_args = command_prefix + [executable_path, "create",
+        create_args = command_prefix + [
+            executable_path, "create",
             "--directory", self.db_path,
             "--machine-name", self.machine_name]
 
@@ -227,13 +228,13 @@ class Files(object):
 
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
-    
+
     cluster = None
     executable_path = None
-    
+
     port_offset = None
     logfile_path = None
-    
+
     host = 'localhost'
     cluster_port = None
     driver_port = None
@@ -247,7 +248,7 @@ class _Process(object):
 
         if command_prefix is None:
             command_prefix = []
-        
+
         if executable_path is None:
             executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
@@ -314,9 +315,9 @@ class _Process(object):
             self.check()
             try:
                 log = open(self.logfile_path, 'r').read()
-                cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
-                http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
-                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)",log)
+                cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)", log)
+                http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)", log)
+                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)", log)
                 if cluster_ports == [] or http_ports == []:
                     time.sleep(1)
                 else:
@@ -385,21 +386,21 @@ class Process(_Process):
     restarted; stop it and then create a new one instead. """
 
     def __init__(self, cluster=None, files=None, log_path=None, executable_path=None, command_prefix=None, extra_options=None):
-        
+
         if cluster is None:
             cluster = Cluster()
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
-        
+
         if files is None:
             files = Files(metacluster=cluster.metacluster, log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
         assert isinstance(files, Files)
-        
+
         if command_prefix is None:
             command_prefix = []
         if extra_options is None:
             extra_options = []
-        
+
         self.files = files
         self.logfile_path = os.path.join(files.db_path, "log_file")
 
@@ -407,15 +408,16 @@ class Process(_Process):
         self.local_cluster_port = 29015 + self.port_offset
 
         options = ["serve",
-                   "--directory",  self.files.db_path,
-                   "--port-offset",  str(self.port_offset),
-                   "--client-port",  str(self.local_cluster_port),
+                   "--directory", self.files.db_path,
+                   "--port-offset", str(self.port_offset),
+                   "--client-port", str(self.local_cluster_port),
                    "--cluster-port", "0",
                    "--driver-port", "0",
                    "--http-port", "0"
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options,
+        _Process.__init__(
+            self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
 
 class ProxyProcess(_Process):
@@ -430,7 +432,7 @@ class ProxyProcess(_Process):
             command_prefix = []
         if extra_options is None:
             extra_options = []
-        
+
         # We grab a value from the files counter even though we don't have files, just to ensure
         # uniqueness. TODO: rename it something more appropriate, like uid_counter.
         self.id_number = cluster.metacluster.get_new_unique_id()
@@ -441,12 +443,13 @@ class ProxyProcess(_Process):
         self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",
-                   "--log-file",  self.logfile_path,
-                   "--port-offset",  str(self.port_offset),
-                   "--client-port",  str(self.local_cluster_port)
+                   "--log-file", self.logfile_path,
+                   "--port-offset", str(self.port_offset),
+                   "--client-port", str(self.local_cluster_port)
                    ] + extra_options
 
-        _Process.__init__(self, cluster, options,
+        _Process.__init__(
+            self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)
 
 if __name__ == "__main__":
@@ -456,4 +459,3 @@ if __name__ == "__main__":
         p = Process(c, f)
         time.sleep(3)
         p.check_and_stop()
-

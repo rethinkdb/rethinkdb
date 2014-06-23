@@ -46,9 +46,8 @@ with driver.Metacluster() as metacluster:
     cluster1.check()
     cluster2.check()
     issues = access1.get_issues()
-    #assert issues[0]["type"] == "VCLOCK_CONFLICT"
-    #assert len(access1.get_directory()) == len(access2.get_directory()) == 2
+    # assert issues[0]["type"] == "VCLOCK_CONFLICT"
+    # assert len(access1.get_directory()) == len(access2.get_directory()) == 2
 
     time.sleep(1000000)
 print "Done."
-

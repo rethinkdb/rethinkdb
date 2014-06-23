@@ -25,10 +25,10 @@ def safe_div(x, y):
     else:
         return x / y
 
-#dict add requires that dictionaries have the same schema while dict union does not
+# dict add requires that dictionaries have the same schema while dict union does not
 def dict_add(x, y):
-    res = x.copy() #to make sure we get the same kind of dict
-#assert len(x) == len(y)
+    res = x.copy()  # to make sure we get the same kind of dict
+    # assert len(x) == len(y)
     for keyy in y.keys():
         res[keyy] += y[keyy]
     return res
@@ -36,18 +36,18 @@ def dict_add(x, y):
 def dict_merge(x, y):
     res = x.copy()
     for key in y.keys():
-        if x.has_key(key):
+        if key in x:
             res[key] = x[key] + y[key]
         else:
             res[key] = y[key]
     return res
 
-#for counter totals
+# for counter totals
 def dict_union(x, y):
     res = x.copy()
     for key in y.keys():
-        if x.has_key(key):
-            res[key] = max(x[key], y[key]) #no good reason this has to be max (maybe it should be avg, or maybe we should scale them to be the same
+        if key in x:
+            res[key] = max(x[key], y[key])  # no good reason this has to be max (maybe it should be avg, or maybe we should scale them to be the same
         else:
             res[key] = y[key]
     return res
@@ -105,10 +105,10 @@ class OProfile():
     def clean(self):
         os.system('rm oprof.out.*')
 
-#Parsing code
+# Parsing code
 class line():
     regex = ""
-    fields = [] #tuples of form name, type
+    fields = []  # tuples of form name, type
     def __init__(self, _regex, _fields):
         self.regex = _regex
         self.fields = _fields
@@ -129,20 +129,20 @@ class line():
             return result
         else:
             return False
-                    
+
 class Function_report():
     def __init__(self):
         self.function_name = ''
-        self.counter_totals = default_zero_dict() #string -> int
+        self.counter_totals = default_zero_dict()  # string -> int
         self.source_file = ''
-        self.lines = {} #number -> line_report
+        self.lines = {}  # number -> line_report
     def __add__(self, other):
         res = Function_report()
         assert self.function_name == other.function_name
         res.function_name = self.function_name
         res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
-        res.source_file = max(self.source_file, other.source_file, key = lambda x: len(x))
-#res.lines = dict_merge(self.lines, other.lines)
+        res.source_file = max(self.source_file, other.source_file, key=lambda x: len(x))
+        # res.lines = dict_merge(self.lines, other.lines)
         return res
 
 class Line_report():
@@ -157,8 +157,8 @@ class Program_report():
     def __init__(self):
         self.object_name = ''
         self.counter_totals = default_zero_dict()
-        self.counter_names = ('','','','')
-        self.functions = {} #string -> function_report
+        self.counter_names = ('', '', '', '')
+        self.functions = {}  # string -> function_report
     def __repr__(self):
         res = ''
         for name, total in zip(self.counter_names, self.counter_totals):
@@ -167,7 +167,7 @@ class Program_report():
         res += str(self.functions)
         return res
     def __add__(self, other):
-        assert  self.object_name == other.object_name or self.object_name == '' or other.object_name == '' #let's us add empty Program reports to anything
+        assert self.object_name == other.object_name or self.object_name == '' or other.object_name == ''  # let's us add empty Program reports to anything
         res = Program_report()
         res.object_name = max(self.object_name, other.object_name, key = lambda x:len(x))
         res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
@@ -208,14 +208,14 @@ class Program_report():
             print >>res, "</table>"
             return res.getvalue()
 
-#program wide counter totals
+        # program wide counter totals
         print >>res, "<p>Program wide counter totals:</p>"
         counter_totals_table = []
         for counter in self.counter_names:
             counter_totals_table.append([counter, self.counter_totals[counter]])
         print >>res, table(counter_totals_table)
 
-# program wide ratios
+        # program wide ratios
         print >>res, "<p>Program wide ratios:</p>"
         global_rat_table = []
         for ratio in ratios:
@@ -224,7 +224,7 @@ class Program_report():
 
         print >>res, table(global_rat_table)
 
-#per function ratios
+        # per function ratios
         print >>res, "<p>Worst functions by %s</p>" % ordering_key.name
         function_table = []
         function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
@@ -244,19 +244,19 @@ class Program_report():
 
 class parser():
     positions_line = line("positions: (\w+) (\w+)\n", [('instr', 's'), ('line', 's')])
-    events_line     = line("events:\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)\n", [('event1', 's'), ('event2', 's'), ('event3', 's'), ('event4', 's')])
-    summary_line    = line("summary: (\d+) (\d+) (\d+) (\d+)\n", [('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
-    obj_line        = line("ob=(.+)\n", [('obj_file', 's')])
-    function_line   = line("fn=(.+)\n", [('function_name', 's')])
-    source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
-    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
-    fident_line     = line("fi=\(\d+\)", [])
-    prog_report     = None
+    events_line = line("events:\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)\n", [('event1', 's'), ('event2', 's'), ('event3', 's'), ('event4', 's')])
+    summary_line = line("summary: (\d+) (\d+) (\d+) (\d+)\n", [('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    obj_line = line("ob=(.+)\n", [('obj_file', 's')])
+    function_line = line("fn=(.+)\n", [('function_name', 's')])
+    source_line = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
+    sample_line = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    fident_line = line("fi=\(\d+\)", [])
+    prog_report = None
     def __init__(self):
         pass
 
-    #data should be an array of strings
-    #pop the first line off the data and try to match it 
+    # data should be an array of strings
+    # pop the first line off the data and try to match it
     def take(self, line, data):
         if len(data) == 0:
             return False
@@ -264,7 +264,7 @@ class parser():
         data.pop()
         return matches
 
-    #look through an array of data until you get a match (or run out of data)
+    # look through an array of data until you get a match (or run out of data)
     def until(self, line, data):
         while len(data) > 0:
             matches = line.parse_line(data[len(data) - 1])
@@ -272,7 +272,7 @@ class parser():
             if matches:
                 return matches
 
-    #iterate through lines while they match (and there's data)
+    # iterate through lines while they match (and there's data)
     def read_while(self, lines, data):
         res = []
         while len(data) > 0:
@@ -302,8 +302,8 @@ class parser():
         if source:
             function_report.source_file = source['source_file']
 
-#for i in range(len(self.prog_report.counter_names)):
-#function_report.counter_totals[self.prog_report.counter_names[i]] = 0
+        # for i in range(len(self.prog_report.counter_names)):
+        #     function_report.counter_totals[self.prog_report.counter_names[i]] = 0
 
         samples = []
         while True:
@@ -312,16 +312,16 @@ class parser():
             if not res:
                 break
         for sample in samples:
-            line_report = Line_report(sample['line_number'], default_zero_dict({self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']}))
+            line_report = Line_report(sample['line_number'], default_zero_dict({self.prog_report.counter_names[0]: sample['event1'], self.prog_report.counter_names[1]: sample['event2'], self.prog_report.counter_names[2]: sample['event3'], self.prog_report.counter_names[3]: sample['event4']}))
             function_report.counter_totals = dict_add(function_report.counter_totals, line_report.counter_totals)
             function_report.lines[line_report.line_number] = line_report
         return function_report
-            
+
     def parse_file(self, file_name):
         self.prog_report = Program_report()
         file = open(file_name)
         data = file.readlines()
-        data.reverse() #for some reason pop takes things off the back (it's shit like this Guido, shit like this)
+        data.reverse()  # for some reason pop takes things off the back (it's shit like this Guido, shit like this)
 
         positions = self.until(self.positions_line, data)
         assert positions['instr'] == 'instr' and positions['line'] == 'line'
@@ -332,10 +332,10 @@ class parser():
 
         summary = self.take(self.summary_line, data)
         assert summary
-        self.prog_report.counter_totals = {self.prog_report.counter_names[0] : summary['event1'], self.prog_report.counter_names[1] : summary['event2'], self.prog_report.counter_names[2] : summary['event3'], self.prog_report.counter_names[3] : summary['event4']}
-        
+        self.prog_report.counter_totals = {self.prog_report.counter_names[0]: summary['event1'], self.prog_report.counter_names[1]: summary['event2'], self.prog_report.counter_names[2]: summary['event3'], self.prog_report.counter_names[3]: summary['event4']}
+
         object_name = self.until(self.obj_line, data)
-        assert object_name 
+        assert object_name
         self.prog_report.object_name = object_name
 
         while True:
@@ -358,7 +358,7 @@ class Profile():
 
     def __repr__(self):
         res = StringIO.StringIO()
-        print >>res, "Profile: ", 
+        print >>res, "Profile: ",
         for event in self.events:
             print >>res, event,
         return res.getvalue()
@@ -377,7 +377,7 @@ class Profile():
         return res
 
 class Ratio():
-#_numerator and denominator should be Event()s
+    # _numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
         self.numerator = _numerator
         self.denominator = _denominator
