@@ -35,10 +35,9 @@ inline archive_result_t deserialize_cluster_version(read_stream_t *s,
 template <class T>
 void serialize_for_version(cluster_version_t version, write_message_t *wm,
                            const T &value) {
-    rassert(version == cluster_version_t::ONLY_VERSION);
     switch (version) {
-    case cluster_version_t::v1_13:
-        serialize<cluster_version_t::v1_13>(wm, value);
+    case cluster_version_t::v1_13_is_latest:
+        serialize<cluster_version_t::v1_13_is_latest>(wm, value);
         break;
     default:
         unreachable();
@@ -51,10 +50,9 @@ template <class T>
 archive_result_t deserialize_for_version(cluster_version_t version,
                                          read_stream_t *s,
                                          T *thing) {
-    rassert(version == cluster_version_t::ONLY_VERSION);
     switch (version) {
-    case cluster_version_t::v1_13:
-        return deserialize<cluster_version_t::v1_13>(s, thing);
+    case cluster_version_t::v1_13_is_latest:
+        return deserialize<cluster_version_t::v1_13_is_latest>(s, thing);
     default:
         unreachable();
     }
@@ -69,10 +67,9 @@ size_t serialized_size(const archive_internal::bogus_made_up_type_t &);
 template <class T>
 size_t serialized_size_for_version(cluster_version_t version,
                                    const T &thing) {
-    rassert(version == cluster_version_t::ONLY_VERSION);
     switch (version) {
-    case cluster_version_t::v1_13:
-        return serialized_size<cluster_version_t::v1_13>(thing);
+    case cluster_version_t::v1_13_is_latest:
+        return serialized_size<cluster_version_t::v1_13_is_latest>(thing);
     default:
         unreachable();
     }
