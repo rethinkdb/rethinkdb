@@ -97,16 +97,21 @@ int json_cmp(cJSON *l, cJSON *r) {
             break;
         case cJSON_Array:
             {
-                int lsize = cJSON_GetArraySize(l),
-                    rsize = cJSON_GetArraySize(r);
+                int lsize = cJSON_slow_GetArraySize(l),
+                    rsize = cJSON_slow_GetArraySize(r);
+                cJSON *left_item = l->head;
+                cJSON *right_item = r->head;
                 for (int i = 0; i < lsize; ++i) {
                     if (i >= rsize) {
                         return 1;  // e.g. cmp([0, 1], [0])
                     }
-                    int cmp = json_cmp(cJSON_GetArrayItem(l, i), cJSON_GetArrayItem(r, i));
+                    rassert(left_item != NULL && right_item != NULL);
+                    int cmp = json_cmp(left_item, right_item);
                     if (cmp != 0) {
                         return cmp;
                     }
+                    left_item = left_item->next;
+                    right_item = right_item->next;
                 }
                 if (rsize > lsize) return -1;  // e.g. cmp([0], [0, 1]);
                 return 0;
