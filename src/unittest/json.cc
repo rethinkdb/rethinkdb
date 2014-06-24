@@ -7,7 +7,6 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-
 using query_language::json_cmp;
 
 int sign(int x) {
