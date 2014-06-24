@@ -329,10 +329,8 @@ module RethinkDB
           }
         end
       end
-      @socket.write([@@magic_number].pack('L<'))
-
-      @socket.write([@auth_key.size].pack('L<') + @auth_key)
-      @socket.write([@@wire_protocol].pack('L<'))
+      @socket.write([@@magic_number, @auth_key.size].pack('L<L<') +
+                    @auth_key + [@@wire_protocol].pack('L<'))
       response = ""
       while response[-1..-1] != "\0"
         response += @socket.read_exn(1, 20)
