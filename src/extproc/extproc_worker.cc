@@ -128,6 +128,11 @@ void extproc_worker_t::kill_process() {
     socket.reset();
 }
 
+bool extproc_worker_t::is_process_alive()
+{
+    return (worker_pid != -1);
+}
+
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {
     write_message_t wm;
     wm.append(&fn, sizeof(fn));
