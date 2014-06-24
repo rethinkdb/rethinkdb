@@ -13,4 +13,19 @@
 void serialize(write_message_t *wm, const std::shared_ptr<const scoped_cJSON_t> &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::shared_ptr<const scoped_cJSON_t> *cjson);
 
+namespace query_language {
+
+int json_cmp(cJSON *l, cJSON *r);
+
+class shared_scoped_less_t {
+public:
+    shared_scoped_less_t() { }
+    bool operator()(const counted_t<const ql::datum_t> &a,
+                    const counted_t<const ql::datum_t> &b) const {
+        return *a < *b;
+    }
+};
+
+} // namespace query_language
+
 #endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */
