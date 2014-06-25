@@ -153,7 +153,7 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
         test_report.gen_report(load_path, tests)
         return
     if list_tests:
-        list_tests_mode(tests, verbose)
+        list_tests_mode(tests, verbose, False)
         return
     view = TextView()
     for name, test in tests:
@@ -349,6 +349,11 @@ class TextView(object):
             self.green = curses.tparm(setf, 2) + bold
             self.yellow = curses.tparm(setf, 3) + bold
             self.nocolor = curses.tigetstr('sgr0')
+        else:
+            self.red = ''
+            self.green = ''
+            self.yellow = ''
+            self.nocolor = ''
 
     def tell(self, event, name, **args):
         if event not in ['STARTED', 'CANCEL']:

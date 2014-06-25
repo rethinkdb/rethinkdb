@@ -92,12 +92,15 @@ store_t::store_t(serializer_t *serializer,
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        btree_slice_t::init_superblock(&superblock, key.vector(), std::vector<char>());
+        btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
         real_superblock_t sb(std::move(superblock));
         create_stat_block(&sb);
     }
 
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
+    btree.init(new btree_slice_t(cache.get(),
+                                 &perfmon_collection,
+                                 "primary",
+                                 index_type_t::PRIMARY));
 
     // Initialize sindex slices
     {
@@ -124,7 +127,8 @@ store_t::store_t(serializer_t *serializer,
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
         }
     }
 
@@ -498,11 +502,15 @@ bool store_t::add_sindex(
              * it... on the other hand this code isn't exactly idiot proof even
              * with that. */
             btree_slice_t::init_superblock(&sindex_superblock,
-                                           std::vector<char>(), std::vector<char>());
+                                           std::vector<char>(),
+                                           binary_blob_t());
         }
 
         secondary_index_slices.insert(
-            sindex.id, new btree_slice_t(cache.get(), &perfmon_collection, name.name));
+            sindex.id, new btree_slice_t(cache.get(),
+                                         &perfmon_collection,
+                                         name.name,
+                                         index_type_t::SECONDARY));
 
         sindex.post_construction_complete = false;
 
@@ -739,13 +747,14 @@ void store_t::set_sindexes(
                 sindex.superblock = sindex_superblock.block_id();
                 btree_slice_t::init_superblock(&sindex_superblock,
                                                std::vector<char>(),
-                                               std::vector<char>());
+                                               binary_blob_t());
             }
 
             secondary_index_slices.insert(it->second.id,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
-                                                            it->first.name));
+                                                            it->first.name,
+                                                            index_type_t::SECONDARY));
 
             sindex.post_construction_complete = false;
 
@@ -1047,9 +1056,20 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
     rassert(updated_metadata.get_domain() == region_t::universe());
 
     buf_lock_t *sb_buf = superblock->get();
+    // Clear the existing metainfo. This makes sure that we completely rewrite
+    // the metainfo. That avoids two issues:
+    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
+    // - `set_superblock_metainfo()` is more efficient if we don't do any
+    //   in-place updates in its current implementation.
     clear_superblock_metainfo(sb_buf);
 
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
+    std::vector<std::vector<char> > keys;
+    std::vector<binary_blob_t> values;
+    keys.reserve(updated_metadata.size());
+    values.reserve(updated_metadata.size());
+    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
+         i != updated_metadata.end();
+         ++i) {
         vector_stream_t key;
         write_message_t wm;
         // Versioning of this serialization will depend on the block magic.  But
@@ -1060,11 +1080,11 @@ void store_t::update_metainfo(const metainfo_t &old_metainfo,
         DEBUG_VAR int res = send_write_message(&key, &wm);
         rassert(!res);
 
-        std::vector<char> value(static_cast<const char*>(i->second.data()),
-                                static_cast<const char*>(i->second.data()) + i->second.size());
-
-        set_superblock_metainfo(sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
+        keys.push_back(std::move(key.vector()));
+        values.push_back(i->second);
     }
+
+    set_superblock_metainfo(sb_buf, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO

@@ -27,8 +27,7 @@ cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs) {
     guarantee(rhs->type == cJSON_Object);
     cJSON *obj = cJSON_DeepCopy(lhs);
 
-    for (int i = 0; i < cJSON_GetArraySize(rhs); ++i) {
-        cJSON *item = cJSON_GetArrayItem(rhs, i);
+    for (cJSON *item = rhs->head; item != NULL; item = item->next) {
         cJSON_DeleteItemFromObject(obj, item->string);
         cJSON_AddItemToObject(obj, item->string, cJSON_DeepCopy(item));
     }
@@ -214,7 +213,9 @@ cJSON *merge(cJSON *x, cJSON *y) {
                                          it != keys.end();
                                          ++it) {
         // TODO: Make this a guarantee, or have a new cJSON_AddItemToObject implementation that checks this.
-        rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
+        rassert(!cJSON_slow_GetObjectItem(res, it->c_str()),
+                                          "Overlapping names in merge, name was: %s\n",
+                                          it->c_str());
         cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
     }
 
@@ -254,7 +255,7 @@ void serialize(write_message_t *wm, const cJSON &cjson) {
     } break;
     case cJSON_Array:
     case cJSON_Object: {
-        serialize(wm, cJSON_GetArraySize(&cjson));
+        serialize(wm, cJSON_slow_GetArraySize(&cjson));
 
         cJSON *hd = cjson.head;
         while (hd) {
