@@ -33,7 +33,7 @@ void extproc_pool_t::on_ring() {
 }
 
 void extproc_pool_t::coro_pool_callback(extproc_pool_dummy_value_t,
-                                        UNUSED signal_t *interruptor) {
+                                        signal_t *) {
     int cur_worker_cnt = worker_cnt;
     int dealloc_cnt = (prev_worker_cnt - cur_worker_cnt) / 2;
     prev_worker_cnt = cur_worker_cnt;
