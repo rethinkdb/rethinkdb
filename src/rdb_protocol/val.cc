@@ -72,17 +72,17 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
+    write_t write(std::move(t), durability_requirement, env->profile());
+    write_response_t response;
     try {
-        write_t write(std::move(t), durability_requirement, env->profile());
-        write_response_t response;
         access->get_namespace_if().write(env, &write, &response,
                                          order_token_t::ignore);
-        auto dp = boost::get<counted_t<const datum_t> >(&response.response);
-        r_sanity_check(dp != NULL);
-        return *dp;
     } catch (const cannot_perform_query_exc_t &e) {
-        rfail(base_exc_t::GENERIC, "Cannot perform query: %s", e.what());
+        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
     }
+    auto dp = boost::get<counted_t<const datum_t> >(&response.response);
+    r_sanity_check(dp != NULL);
+    return *dp;
 }
 
 counted_t<const datum_t> table_t::batched_replace(
@@ -184,7 +184,11 @@ MUST_USE bool table_t::sindex_create(env_t *env,
     write_t write(sindex_create_t(id, wire_func, multi), env->profile());
 
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    try {
+        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
+    }
 
     sindex_create_response_t *response =
         boost::get<sindex_create_response_t>(&res.response);
@@ -196,7 +200,11 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     write_t write(sindex_drop_t(id), env->profile());
 
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    try {
+        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
+    }
 
     sindex_drop_response_t *response =
         boost::get<sindex_drop_response_t>(&res.response);
@@ -207,63 +215,64 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     sindex_list_t sindex_list;
     read_t read(sindex_list, env->profile());
+    read_response_t res;
     try {
-        read_response_t res;
         access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
-        sindex_list_response_t *s_res =
-            boost::get<sindex_list_response_t>(&res.response);
-        r_sanity_check(s_res);
-
-        std::vector<counted_t<const datum_t> > array;
-        array.reserve(s_res->sindexes.size());
-
-        for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
-             it != s_res->sindexes.end(); ++it) {
-            array.push_back(make_counted<datum_t>(std::string(*it)));
-        }
-        return make_counted<datum_t>(std::move(array));
-
     } catch (const cannot_perform_query_exc_t &ex) {
-        rfail(ql::base_exc_t::GENERIC, "cannot perform read: %s", ex.what());
+        rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
     }
+
+    sindex_list_response_t *s_res =
+        boost::get<sindex_list_response_t>(&res.response);
+    r_sanity_check(s_res);
+
+    std::vector<counted_t<const datum_t> > array;
+    array.reserve(s_res->sindexes.size());
+
+    for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
+         it != s_res->sindexes.end(); ++it) {
+        array.push_back(make_counted<datum_t>(std::string(*it)));
+    }
+    return make_counted<datum_t>(std::move(array));
 }
 
 counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
     sindex_status_t sindex_status(sindexes);
     read_t read(sindex_status, env->profile());
+    read_response_t res;
     try {
-        read_response_t res;
         access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
-        auto s_res = boost::get<sindex_status_response_t>(&res.response);
-        r_sanity_check(s_res);
-
-        std::vector<counted_t<const datum_t> > array;
-        for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
-            r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
-            sindexes.erase(it->first);
-            std::map<std::string, counted_t<const datum_t> > status;
-            if (it->second.blocks_processed != 0) {
-                status["blocks_processed"] =
-                    make_counted<const datum_t>(
-                        safe_to_double(it->second.blocks_processed));
-                status["blocks_total"] =
-                    make_counted<const datum_t>(
-                        safe_to_double(it->second.blocks_total));
-            }
-            status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL,
-                                                          it->second.ready);
-            std::string index_name = it->first;
-            status["index"] = make_counted<const datum_t>(std::move(index_name));
-            array.push_back(make_counted<const datum_t>(std::move(status)));
-        }
-        rcheck(sindexes.empty(), base_exc_t::GENERIC,
-               strprintf("Index `%s` was not found on table `%s`.",
-                         sindexes.begin()->c_str(),
-                         display_name().c_str()));
-        return make_counted<const datum_t>(std::move(array));
     } catch (const cannot_perform_query_exc_t &ex) {
-        rfail(ql::base_exc_t::GENERIC, "cannot perform read %s", ex.what());
+        rfail(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
     }
+
+    auto s_res = boost::get<sindex_status_response_t>(&res.response);
+    r_sanity_check(s_res);
+
+    std::vector<counted_t<const datum_t> > array;
+    for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
+        r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
+        sindexes.erase(it->first);
+        std::map<std::string, counted_t<const datum_t> > status;
+        if (it->second.blocks_processed != 0) {
+            status["blocks_processed"] =
+                make_counted<const datum_t>(
+                    safe_to_double(it->second.blocks_processed));
+            status["blocks_total"] =
+                make_counted<const datum_t>(
+                    safe_to_double(it->second.blocks_total));
+        }
+        status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL,
+                                                      it->second.ready);
+        std::string index_name = it->first;
+        status["index"] = make_counted<const datum_t>(std::move(index_name));
+        array.push_back(make_counted<const datum_t>(std::move(status)));
+    }
+    rcheck(sindexes.empty(), base_exc_t::GENERIC,
+           strprintf("Index `%s` was not found on table `%s`.",
+                     sindexes.begin()->c_str(),
+                     display_name().c_str()));
+    return make_counted<const datum_t>(std::move(array));
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
@@ -279,7 +288,11 @@ MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
     write_t write(sync_t(), durability_requirement, env->profile());
     write_response_t res;
-    access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    try {
+        access->get_namespace_if().write(env, &write, &res, order_token_t::ignore);
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail(base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
+    }
 
     sync_response_t *response = boost::get<sync_response_t>(&res.response);
     r_sanity_check(response);
@@ -292,10 +305,14 @@ counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> p
     std::string pks = pval->print_primary();
     read_t read(point_read_t(store_key_t(pks)), env->profile());
     read_response_t res;
-    if (use_outdated) {
-        access->get_namespace_if().read_outdated(env, read, &res);
-    } else {
-        access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
+    try {
+        if (use_outdated) {
+            access->get_namespace_if().read_outdated(env, read, &res);
+        } else {
+            access->get_namespace_if().read(env, read, &res, order_token_t::ignore);
+        }
+    } catch (const cannot_perform_query_exc_t &e) {
+        rfail(base_exc_t::GENERIC, "Cannot perform read: %s", e.what());
     }
     point_read_response_t *p_res =
         boost::get<point_read_response_t>(&res.response);
