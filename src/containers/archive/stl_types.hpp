@@ -53,10 +53,6 @@ size_t serialized_size(const std::map<K, V, C> &m) {
 // Keep in sync with serialized_size.
 template <cluster_version_t W, class K, class V, class C>
 void serialize(write_message_t *wm, const std::map<K, V, C> &m) {
-    // RSI: Git blame this comment: there's nothing extreme about this paranoia at all.
-    // Extreme platform paranoia: It could become important that we
-    // use something consistent like uint64_t for the size, not some
-    // platform-specific size type such as std::map<K, V>::size_type.
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         serialize<W>(wm, *it);
