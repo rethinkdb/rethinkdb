@@ -900,6 +900,7 @@ void find_keyvalue_location_for_read(
         keyvalue_location_t *keyvalue_location_out,
         btree_stats_t *stats, profile::trace_t *trace) {
     stats->pm_keys_read.record();
+    stats->pm_total_keys_read += 1;
 
     const block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
@@ -1020,6 +1021,7 @@ void apply_keyvalue_change(
         }
 
         kv_loc->stats->pm_keys_set.record();
+        kv_loc->stats->pm_total_keys_set += 1;
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
@@ -1035,6 +1037,7 @@ void apply_keyvalue_change(
             }
             population_change = -1;
             kv_loc->stats->pm_keys_set.record();
+            kv_loc->stats->pm_total_keys_set += 1;
         } else {
             population_change = 0;
         }
