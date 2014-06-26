@@ -89,7 +89,7 @@ private:
             const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
-    void on_namespaces_change();
+    void on_namespaces_change(auto_drainer_t::lock_t keepalive);
 
     base_namespace_repo_t::namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id);
 
@@ -97,7 +97,6 @@ private:
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t> > > namespaces_directory_metadata;
     rdb_context_t *ctx;
-    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 
     one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, machine_id_t> > >
         region_to_primary_maps;
@@ -106,6 +105,9 @@ private:
     DISABLE_COPYING(namespace_repo_t);
 
     auto_drainer_t drainer;
+
+    // We must destroy the subscription before the drainer
+    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */

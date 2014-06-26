@@ -30,7 +30,7 @@ void combining_http_app_t::handle(const http_req_t &req, http_res_t *result, sig
             return;
         }
         for (components_iterator it = components.begin(); it != components.end(); ++it) {
-            cJSON *subpost = cJSON_GetObjectItem(req_json.get(), it->first.c_str());
+            cJSON *subpost = cJSON_slow_GetObjectItem(req_json.get(), it->first.c_str());
             if (subpost) {
                 http_req_t subreq = req;
                 subreq.body = cJSON_PrintUnformatted(subpost);

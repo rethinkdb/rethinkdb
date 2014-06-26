@@ -60,9 +60,8 @@ template<class T, class U>
 void transfer_arr(cJSON *arr, T *dest, U *(T::*adder)()) {
     if (arr != NULL) {
         if (arr->type != cJSON_Object && arr->type != cJSON_Array) throw exc_t();
-        int sz = cJSON_GetArraySize(arr);
-        for (int i = 0; i < sz; ++i) {
-            safe_extract(cJSON_GetArrayItem(arr, i), (dest->*adder)());
+        for (cJSON *item = arr->head; item != NULL; item = item->next) {
+            safe_extract(item, (dest->*adder)());
         }
     }
 }
@@ -87,9 +86,10 @@ void extract(cJSON *field, bool *dest) {
 template<>
 void extract(cJSON *json, Term *t) {
     if (json->type == cJSON_Array) {
-        transfer(cJSON_GetArrayItem(json, 0), t, &Term::set_type);
-        transfer_arr(cJSON_GetArrayItem(json, 1), t, &Term::add_args);
-        transfer_arr(cJSON_GetArrayItem(json, 2), t, &Term::add_optargs);
+        // It's ok to use the slow functions here, because the indexes are small
+        transfer(cJSON_slow_GetArrayItem(json, 0), t, &Term::set_type);
+        transfer_arr(cJSON_slow_GetArrayItem(json, 1), t, &Term::add_args);
+        transfer_arr(cJSON_slow_GetArrayItem(json, 2), t, &Term::add_optargs);
     } else if (json->type == cJSON_Object) {
         t->set_type(Term::MAKE_OBJ);
         transfer_arr(json, t, &Term::add_optargs);
@@ -124,9 +124,7 @@ void extract(cJSON *json, Datum *d) {
     case cJSON_Array:
         {
             d->set_type(Datum::R_ARRAY);
-            int sz = cJSON_GetArraySize(json);
-            for (int i = 0; i < sz; ++i) {
-                cJSON *item = cJSON_GetArrayItem(json, i);
+            for (cJSON *item = json->head; item != NULL; item = item->next) {
                 extract(item, d->add_r_array());
             }
         }
@@ -134,9 +132,7 @@ void extract(cJSON *json, Datum *d) {
     case cJSON_Object:
         {
             d->set_type(Datum::R_OBJECT);
-            int sz = cJSON_GetArraySize(json);
-            for (int i = 0; i < sz; ++i) {
-                cJSON *item = cJSON_GetArrayItem(json, i);
+            for (cJSON *item = json->head; item != NULL; item = item->next) {
                 Datum::AssocPair *ap = d->add_r_object();
                 ap->set_key(item->string);
                 extract(item, ap->mutable_val());
@@ -171,10 +167,11 @@ void extract(cJSON *json, Datum::AssocPair *ap) {
 
 template<>
 void extract(cJSON *json, Query *q) {
-    transfer(cJSON_GetArrayItem(json, 0), q, &Query::set_type);
-    transfer(cJSON_GetArrayItem(json, 1), q, &Query::mutable_query);
+    // It's ok to use the slow functions here, because the indexes are small
+    transfer(cJSON_slow_GetArrayItem(json, 0), q, &Query::set_type);
+    transfer(cJSON_slow_GetArrayItem(json, 1), q, &Query::mutable_query);
     q->set_accepts_r_json(true);
-    transfer_arr(cJSON_GetArrayItem(json, 2), q, &Query::add_global_optargs);
+    transfer_arr(cJSON_slow_GetArrayItem(json, 2), q, &Query::add_global_optargs);
 }
 
 bool parse_json_pb(Query *q, int64_t token, const char *str) THROWS_NOTHING {

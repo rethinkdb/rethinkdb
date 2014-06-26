@@ -35,7 +35,7 @@ TEST(JSON, ArrayInsertDelete) {
 
     //Remove objects from the array at random
     for (int i = 0; i < 10; ++i) {
-        ASSERT_EQ(cJSON_GetArraySize(array), 10 - i);
+        ASSERT_EQ(cJSON_slow_GetArraySize(array), 10 - i);
         cJSON_DeleteItemFromArray(array, randint(10 - i));
         //This line is basically there to segfault if we have corrupted structure.
         free(cJSON_PrintUnformatted(array));
@@ -49,7 +49,7 @@ TEST(JSON, ArrayInsertDelete) {
             for (int j = 0; j < change; ++j) {
                 cJSON_DeleteItemFromArray(array, randint(count));
                 count--;
-                ASSERT_EQ(cJSON_GetArraySize(array), count);
+                ASSERT_EQ(cJSON_slow_GetArraySize(array), count);
                 //This line is basically there to segfault if we have corrupted structure.
                 free(cJSON_PrintUnformatted(array));
             }
@@ -57,7 +57,7 @@ TEST(JSON, ArrayInsertDelete) {
             for (int j = 0; j < change; ++j) {
                 cJSON_AddItemToArray(array, cJSON_CreateNumber(j));
                 count++;
-                ASSERT_EQ(cJSON_GetArraySize(array), count);
+                ASSERT_EQ(cJSON_slow_GetArraySize(array), count);
                 //This line is basically there to segfault if we have corrupted structure.
                 free(cJSON_PrintUnformatted(array));
             }
@@ -70,11 +70,11 @@ TEST(JSON, ArrayInsertDelete) {
 TEST(JSON, ArrayParseThenInsert) {
     /* Make sure that parsed arrays are ready to be appended to. */
     cJSON *array = cJSON_Parse("[1,2,3]");
-    ASSERT_EQ(cJSON_GetArraySize(array), 3);
+    ASSERT_EQ(cJSON_slow_GetArraySize(array), 3);
 
     cJSON_AddItemToArray(array, cJSON_CreateNumber(4));
 
-    ASSERT_EQ(cJSON_GetArraySize(array), 4);
+    ASSERT_EQ(cJSON_slow_GetArraySize(array), 4);
     cJSON_Delete(array);
 }
 
@@ -83,7 +83,7 @@ TEST(JSON, ObjectInsertDelete) {
     std::set<std::string> keys;
 
     for (int i = 0; i < 5; ++i) {
-        ASSERT_EQ(cJSON_GetArraySize(obj), i);
+        ASSERT_EQ(cJSON_slow_GetArraySize(obj), i);
         std::string key;
         for (;;) {
             key = rand_string(40);
@@ -100,7 +100,7 @@ TEST(JSON, ObjectInsertDelete) {
 
     int count = 5;
     for (std::set<std::string>::iterator it = keys.begin(); it != keys.end(); ++it) {
-        ASSERT_EQ(cJSON_GetArraySize(obj), count);
+        ASSERT_EQ(cJSON_slow_GetArraySize(obj), count);
         cJSON_DeleteItemFromObject(obj, it->c_str());
         count--;
 

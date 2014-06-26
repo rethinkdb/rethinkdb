@@ -348,39 +348,25 @@ class TestBatching(TestWithConnection):
     def runTest(self):
         c = r.connect(port=self.port)
 
-        # Test the cursor API when there is exactly mod batch size elements in the result stream
         r.db('test').table_create('t1').run(c)
         t1 = r.table('t1')
 
-        if server_build_dir.find('debug') != -1:
-            batch_size = 5
-        else:
-            batch_size = 1000
+        batch_size = 3
+        count = 500
 
-        t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
-        cursor = t1.run(c)
+        ids = set(range(0, count))
 
-        # We're going to have to inspect the state of the cursor object to ensure this worked right
-        # If this test fails in the future check first if the structure of the object has changed.
-
-        # Only the first chunk (of either 1 or 2) should have loaded
-        self.assertEqual(len(cursor.responses), 1)
-
-        # Either the whole stream should have loaded in one batch or the server reserved at least
-        # one element in the stream for the second batch.
-        if cursor.end_flag:
-            self.assertEqual(len(cursor.responses[0].data), batch_size)
-        else:
-            self.assertLess(len(cursor.responses[0].data), batch_size)
+        t1.insert([{'id':i} for i in ids]).run(c)
+        cursor = t1.run(c, batch_conf={'max_els': batch_size})
 
         itr = iter(cursor)
-        for i in xrange(0, batch_size - 1):
-            itr.next()
+        for i in xrange(0, count - 1):
+            row = itr.next()
+            ids.remove(row['id'])
 
-        # In both cases now there should at least one element left in the last chunk
+        self.assertEqual(itr.next()['id'], ids.pop())
+        self.assertRaises(StopIteration, lambda: itr.next())
         self.assertTrue(cursor.end_flag)
-        self.assertGreaterEqual(len(cursor.responses), 1)
-        self.assertGreaterEqual(len(cursor.responses[0].response), 1)
 
 class TestGroupWithTimeKey(TestWithConnection):
     def runTest(self):
