@@ -63,8 +63,8 @@ void set_secondary_indexes_internal(
     // There's just one field in btree_sindex_block_t, sindex_blob.  So we set
     // the magic to the latest value and serialize with the latest version.
     data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST>::value;
-    serialize_for_version_onto_blob(cluster_version_t::LATEST,
-                                    buf_parent_t(sindex_block), &sindex_blob, sindexes);
+    serialize_onto_blob<cluster_version_t::LATEST>(
+            buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
 void initialize_secondary_indexes(buf_lock_t *sindex_block) {
