@@ -60,37 +60,14 @@ private:
 
 scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &b);
 
-
-template <cluster_version_t W>
-size_t serialized_size(const wire_string_t &s);
-
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const wire_string_t &s);
+size_t datum_serialized_size(const wire_string_t &s);
+void datum_serialize(write_message_t *wm, const wire_string_t &s);
 
 // The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
 // functions, the value of `*out` is left in an unspecified state, should
 // deserialization fail.
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out);
-
-// RSI: Don't inline these, put these in .cc file, possibly remove the versioned
-// version, definitely make these not call the versioned version.
-inline size_t datum_serialized_size(const wire_string_t &s) {
-    return serialized_size<cluster_version_t::LATEST>(s);
-}
-
-inline void datum_serialize(write_message_t *wm, const wire_string_t &s) {
-    return serialize<cluster_version_t::LATEST>(wm, s);
-}
-
-// The deserialized value cannot be an empty scoped_ptr_t.  As with all deserialize
-// functions, the value of `*out` is left in an unspecified state, should
-// deserialization fail.
-inline MUST_USE archive_result_t datum_deserialize(
-        read_stream_t *s,
-        scoped_ptr_t<wire_string_t> *out) {
-    return deserialize<cluster_version_t::LATEST>(s, out);
-}
+MUST_USE archive_result_t datum_deserialize(read_stream_t *s,
+                                            scoped_ptr_t<wire_string_t> *out);
 
 
 #endif  // CONTAINERS_WIRE_STRING_HPP_

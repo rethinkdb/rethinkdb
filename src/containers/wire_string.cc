@@ -101,23 +101,18 @@ scoped_ptr_t<wire_string_t> concat(const wire_string_t &a, const wire_string_t &
     return result;
 }
 
-template <cluster_version_t W>
-size_t serialized_size(const wire_string_t &s) {
+size_t datum_serialized_size(const wire_string_t &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(wire_string_t);
-
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const wire_string_t &s) {
+void datum_serialize(write_message_t *wm, const wire_string_t &s) {
     serialize_varint_uint64(wm, static_cast<uint64_t>(s.size()));
     wm->append(s.data(), s.size());
 }
 
-INSTANTIATE_SERIALIZE_SINCE_v1_13(wire_string_t);
-
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out) {
+MUST_USE archive_result_t datum_deserialize(
+        read_stream_t *s,
+        scoped_ptr_t<wire_string_t> *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res != archive_result_t::SUCCESS) { return res; }
@@ -140,5 +135,3 @@ archive_result_t deserialize(read_stream_t *s, scoped_ptr_t<wire_string_t> *out)
 
     return archive_result_t::SUCCESS;
 }
-
-INSTANTIATE_DESERIALIZE_SINCE_v1_13(scoped_ptr_t<wire_string_t>);
