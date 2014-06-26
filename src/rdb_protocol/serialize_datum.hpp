@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_SERIALIZE_DATUM_HPP_
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 #include "containers/counted.hpp"
 
 namespace ql {

@@ -22,6 +22,7 @@
 #include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
+#include "rdb_protocol/serialize_datum_onto_blob.hpp"
 #include "rdb_protocol/shards.hpp"
 
 #include "debug.hpp"
@@ -138,8 +139,7 @@ void kv_location_set(keyvalue_location_t *kv_location,
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_for_version_onto_blob(
-                cluster_version_t::ONLY_VERSION,
+        datum_serialize_onto_blob(
                 buf_parent_t(&kv_location->buf),
                 &blob,
                 data);
@@ -495,7 +495,7 @@ public:
             atom.recency = recencies[i];
             chunk_atoms.push_back(atom);
             current_chunk_size += static_cast<size_t>(atom.key.size())
-                + serialized_size<cluster_version_t::ONLY_VERSION>(atom.value);
+                + serialized_size<cluster_version_t::CLUSTER>(atom.value);
 
             if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
                 // To avoid flooding the receiving node with overly large chunks

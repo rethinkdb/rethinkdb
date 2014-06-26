@@ -25,6 +25,8 @@ void serialize_for_version_onto_blob(cluster_version_t cluster_version,
     write_onto_blob(parent, blob, wm);
 }
 
+
+
 template <class T>
 void deserialize_for_version_from_blob(cluster_version_t cluster_version,
                                        buf_parent_t parent, blob_t *blob,
