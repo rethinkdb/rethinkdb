@@ -18,8 +18,6 @@ Bug fix update.
 * Fixed a bug that caused `Failed to parse  as valid uuid` errors (#2401)
 * Improved the `bad magic number` error message (#2302)
 * `default` now catches index out of bounds errors on streams (#1922)
-* Fixed slow intra-cluster communication depending on the order in which nodes connect to each other (#2529)
-
 
 --
 
@@ -106,6 +104,7 @@ There are also some backwards incompatible changes in the JavaScript driver.
   * Fixed a bug in the JSON parsing code that caused a crash (#2489)
   * Fixed a bug that could cause segfaults (#2491)
   * Avoid high memory consumption on startup (#2329)
+  * Disabled Nagle algorithm for outgoing TCP connections (#2529)
   * Remove some potentially objectionable server names (#2468)
   * Fixed a bug that caused `Callstack overflow in a coroutine` errors (#2357)
   * Merged upstream fixes to `cJSON` (#2496)
