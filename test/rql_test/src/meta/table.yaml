@@ -70,7 +70,7 @@ tests:
 
     - cd: db.table_create('nonsense', 'foo')
       ot:
-        cd: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
+        js: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.', [])
         rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         py: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
