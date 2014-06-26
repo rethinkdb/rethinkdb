@@ -99,7 +99,7 @@ tests:
 
     - js: tbl.get(1).replace({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).replace({}, {'foo':'bar'})
       cd: []
