@@ -130,6 +130,7 @@ template <cluster_version_t W>
 void write_metadata_blob(buf_parent_t sb_buf,
                          cluster_metadata_superblock_t *sb,
                          const cluster_semilattice_metadata_t &metadata) {
+    guarantee(cluster_superblock_version(sb) == W);
     write_blob<W>(sb_buf,
                   sb->metadata_blob,
                   cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
@@ -152,6 +153,7 @@ template <cluster_version_t W>
 void write_branch_history_blob(buf_parent_t sb_buf,
                                cluster_metadata_superblock_t *sb,
                                const branch_history_t &history) {
+    guarantee(cluster_superblock_version(sb) == W);
     write_blob<W>(sb_buf,
                   sb->rdb_branch_history_blob,
                   cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
@@ -175,9 +177,13 @@ void bring_up_to_date(
 
     // Now that we've read everything, do writes of anything whose serialization may
     // have changed between versions.
+
+    // (We must write the magic _first_ to appease the assertions in
+    // write_metadata_blob and write_branch_history_blob that check we've called
+    // bring_up_to_date.)
+    sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST>::value;
     write_metadata_blob<cluster_version_t::LATEST>(sb_buf, sb, metadata);
     write_branch_history_blob<cluster_version_t::LATEST>(sb_buf, sb, branch_history);
-    sb->magic = cluster_metadata_magic_t<cluster_version_t::LATEST>::value;
 }
 
 template <class metadata_t>

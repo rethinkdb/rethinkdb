@@ -67,21 +67,6 @@ public:
        be a number or a string. */
     std::string PrintLexicographic() const THROWS_NOTHING;
 
-    /* Returns the number of items in an array (or object). */
-    int GetArraySize() const {
-        return cJSON_GetArraySize(val);
-    }
-    /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
-    cJSON* GetArrayItem(int item) const {
-        guarantee(item >= 0);
-        return cJSON_GetArrayItem(val, item);
-    }
-    /* Get item "string" from object. Case insensitive. Returns NULL if unsuccessful. */
-    cJSON* GetObjectItem(const char *string) const {
-        guarantee(string);
-        return cJSON_GetObjectItem(val, string);
-    }
-
     /* Append item to the specified array/object. */
     void AddItemToArray(cJSON *item) {
         guarantee(item);
