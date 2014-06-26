@@ -1256,9 +1256,6 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) 
 }
 
 
-// RSI: Move vector, map, string, and pair datum serialization functions to a
-// separate file.
-
 size_t datum_serialized_size(
         const std::map<std::string, counted_t<const datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
