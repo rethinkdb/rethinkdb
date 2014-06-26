@@ -53,6 +53,7 @@ size_t serialized_size(const std::map<K, V, C> &m) {
 // Keep in sync with serialized_size.
 template <cluster_version_t W, class K, class V, class C>
 void serialize(write_message_t *wm, const std::map<K, V, C> &m) {
+    // RSI: Git blame this comment: there's nothing extreme about this paranoia at all.
     // Extreme platform paranoia: It could become important that we
     // use something consistent like uint64_t for the size, not some
     // platform-specific size type such as std::map<K, V>::size_type.
@@ -126,6 +127,7 @@ template <cluster_version_t W>
 void serialize(write_message_t *wm, const std::string &s);
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
+
 
 // Think twice before using this function on vectors containing a primitive type --
 // it'll take O(n) time!
