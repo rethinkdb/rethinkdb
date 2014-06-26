@@ -182,12 +182,33 @@ void send_backfill_requests_t::operator()<reactor_business_card_t::secondary_bac
     handle_request_internal(secondary_backfilling.backfill);
 }
 
-static const char *any_machine_id_wildcard = "_";
+static const char *any_id_wildcard = "_";
 
 //TODO why is this not const?
 progress_app_t::progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager)
     : directory_metadata(_directory_metadata), mbox_manager(_mbox_manager)
 { }
+
+
+boost::optional<uuid_u> parse_resource_uuid(const std::string &resource) {
+    boost::optional<uuid_u> res;
+    if (resource != any_id_wildcard) {
+        try {
+            res = str_to_uuid(resource);
+        } catch (const std::runtime_error &e) {
+            throw schema_mismatch_exc_t(strprintf("Failed to parse filter resource '%s' "
+                                                  "as valid uuid\n",
+                                                  resource.c_str()));
+        }
+
+        if (res->is_nil()) {
+            throw schema_mismatch_exc_t(strprintf("Failed to parse filter resource '%s' "
+                                                  "as valid non-nil uuid\n",
+                                                  resource.c_str()));
+        }
+    }
+    return res;
+}
 
 void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t *interruptor) {
     if (req.method != GET) {
@@ -219,41 +240,22 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
     machine_id_map_t promise_map;
     boost::ptr_vector<request_record_t> things_to_destroy;
 
-    http_req_t::resource_t::iterator it = req.resource.begin();
-
     /* Check to see if we're only requesting the backfills happening on a
-     * particular machine. */
+     * particular machine or for a particular namespace. */
     boost::optional<machine_id_t> requested_machine_id;
-    if (it != req.resource.end()) {
-        if (*it != any_machine_id_wildcard) {
-            try {
-                requested_machine_id = str_to_uuid(*it);
-            } catch (const std::runtime_error &e) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
-            }
-
-            if (requested_machine_id->is_nil()) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid non nil uuid\n", it->c_str()));
-            }
-        }
-        ++it;
-    }
-
-    /* Check to see if we're only requesting the backfills happening for a
-     * particular namespace. */
     boost::optional<namespace_id_t> requested_namespace_id;
-    if (it != req.resource.end()) {
-        if (*it != any_machine_id_wildcard) {
-            try {
-                requested_namespace_id = str_to_uuid(*it);
-            } catch (const std::runtime_error &e) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
-            }
-            if (requested_namespace_id->is_nil()) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as non nil uuid\n", it->c_str()));
-            }
+    try {
+        http_req_t::resource_t::iterator it = req.resource.begin();
+
+        if (it != req.resource.end()) {
+            requested_machine_id = parse_resource_uuid(*it++);
         }
-        ++it;
+        if (it != req.resource.end()) {
+            requested_namespace_id = parse_resource_uuid(*it++);
+        }
+    } catch (const schema_mismatch_exc_t &ex) {
+        *result = http_error_res(ex.what(), HTTP_BAD_REQUEST);
+        return;
     }
 
     boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory(
@@ -313,7 +315,9 @@ void progress_app_t::handle(const http_req_t &req, http_res_t *result, signal_t 
     boost::optional<std::string> timeout_param = req.find_query_param(PROGRESS_REQ_TIMEOUT_PARAM);
     uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
     if (timeout_param) {
-        if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
+        if (!strtou64_strict(timeout_param.get(), 10, &timeout) ||
+            timeout == 0 ||
+            timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
             *result = http_error_res("Invalid timeout value.");
             return;
         }

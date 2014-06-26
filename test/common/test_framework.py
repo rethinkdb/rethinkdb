@@ -153,7 +153,7 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
         test_report.gen_report(load_path, tests)
         return
     if list_tests:
-        list_tests_mode(tests, verbose)
+        list_tests_mode(tests, verbose, False)
         return
     view = TextView()
     for name, test in tests:
