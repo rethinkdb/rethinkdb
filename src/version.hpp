@@ -21,12 +21,6 @@ enum class cluster_version_t {
     // is correct wherever it seems like it's *always* going to be appropriate for
     // the code to use the latest version.
     CLUSTER = LATEST,
-
-    // TODO: Remove ONLY_VERSION entirely.
-    // ONLY_VERSION should only exist as long as there's only one version.  A few
-    // assertions check it -- that code should be fixed to explicitly handle multiple
-    // versions, but we're procrastinating that for now.
-    ONLY_VERSION = v1_13_is_latest,
 };
 
 // We will not (barring a bug) even attempt to deserialize a version number that we
