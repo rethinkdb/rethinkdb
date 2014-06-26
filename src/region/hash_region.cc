@@ -246,8 +246,7 @@ bool region_contains_key(const hash_region_t<key_range_t> &region, const store_k
 void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h) {
     serialize_universal(wm, h.beg);
     serialize_universal(wm, h.end);
-    // RSI: No.
-    serialize<cluster_version_t::v1_13_is_latest>(wm, h.inner);
+    serialize_for_metainfo(wm, h.inner);
 }
 archive_result_t deserialize_for_metainfo(read_stream_t *s,
                                           hash_region_t<key_range_t> *out) {
@@ -258,8 +257,7 @@ archive_result_t deserialize_for_metainfo(read_stream_t *s,
     if (!((0 == out->end && 0 == out->beg) || out->beg < out->end)) {
         return archive_result_t::RANGE_ERROR;
     }
-    // RSI: Don't do this.
-    res = deserialize<cluster_version_t::v1_13_is_latest>(s, &out->inner);
+    res = deserialize_for_metainfo(s, &out->inner);
     return res;
 }
 
