@@ -230,7 +230,7 @@ private:
     };
 
 public:
-    static const char* const reql_type_string;
+    static const char *const reql_type_string;
 
 private:
     DISABLE_COPYING(datum_t);
