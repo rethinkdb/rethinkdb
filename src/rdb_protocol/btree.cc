@@ -708,7 +708,7 @@ void rdb_erase_small_range(key_tester_t *tester,
 // of a datum, not a whole rget, though it is used for that purpose (by summing
 // up these responses).
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size<cluster_version_t::ONLY_VERSION>(datum);
+    return serialized_size<cluster_version_t::CLUSTER>(datum);
 }
 
 
