@@ -121,12 +121,22 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     return archive_result_t::SUCCESS;
 }
 
+size_t serialize_universal_size(const std::string &s);
+void serialize_universal(write_message_t *wm, const std::string &s);
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, std::string *out);
+
 template <cluster_version_t W>
-size_t serialized_size(const std::string &s);
+size_t serialized_size(const std::string &s) {
+    return serialize_universal_size(s);
+}
 template <cluster_version_t W>
-void serialize(write_message_t *wm, const std::string &s);
+void serialize(write_message_t *wm, const std::string &s) {
+    serialize_universal(wm, s);
+}
 template <cluster_version_t W>
-MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
+    return deserialize_universal(s, out);
+}
 
 
 // Think twice before using this function on vectors containing a primitive type --

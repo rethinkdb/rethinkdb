@@ -1246,16 +1246,13 @@ datum_deserialize(read_stream_t *s, std::vector<counted_t<const datum_t> > *v) {
 }
 
 size_t datum_serialized_size(const std::string &s) {
-    // RSI: Don't do this.
-    return serialized_size<cluster_version_t::LATEST>(s);
+    return serialize_universal_size(s);
 }
 void datum_serialize(write_message_t *wm, const std::string &s) {
-    // RSI: Don't do this.
-    serialize<cluster_version_t::LATEST>(wm, s);
+    serialize_universal(wm, s);
 }
 MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) {
-    // RSI: Don't.
-    return deserialize<cluster_version_t::LATEST>(s, out);
+    return deserialize_universal(s, out);
 }
 
 

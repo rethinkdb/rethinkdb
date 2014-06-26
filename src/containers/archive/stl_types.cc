@@ -4,21 +4,16 @@
 
 namespace std {
 
-template <cluster_version_t W>
-size_t serialized_size(const std::string &s) {
+size_t serialize_universal_size(const std::string &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
-INSTANTIATE_SERIALIZED_SIZE_SINCE_v1_13(std::string);
-
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const std::string &s) {
+void serialize_universal(write_message_t *wm, const std::string &s) {
     serialize_varint_uint64(wm, s.size());
     wm->append(s.data(), s.size());
 }
 
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, std::string *out) {
+archive_result_t deserialize_universal(read_stream_t *s, std::string *out) {
     out->clear();
 
     uint64_t sz;
@@ -45,7 +40,5 @@ archive_result_t deserialize(read_stream_t *s, std::string *out) {
 
     return archive_result_t::SUCCESS;
 }
-
-INSTANTIATE_SINCE_v1_13(std::string);
 
 }  // namespace std
