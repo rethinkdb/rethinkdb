@@ -704,13 +704,6 @@ void rdb_erase_small_range(key_tester_t *tester,
                   ph::_1, ph::_2, ph::_3, mod_reports_out));
 }
 
-// This is actually a kind of misleading name. This function estimates the size
-// of a datum, not a whole rget, though it is used for that purpose (by summing
-// up these responses).
-size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
-    return serialized_size<cluster_version_t::CLUSTER>(datum);
-}
-
 
 typedef ql::transform_variant_t transform_variant_t;
 typedef ql::terminal_variant_t terminal_variant_t;

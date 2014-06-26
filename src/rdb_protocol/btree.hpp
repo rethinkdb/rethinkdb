@@ -175,9 +175,6 @@ void rdb_erase_small_range(key_tester_t *tester,
                            signal_t *interruptor,
                            std::vector<rdb_modification_report_t> *mod_reports_out);
 
-/* RGETS */
-size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
-
 void rdb_rget_slice(
     btree_slice_t *slice,
     const key_range_t &range,
