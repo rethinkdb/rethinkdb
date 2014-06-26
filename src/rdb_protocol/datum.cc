@@ -1278,8 +1278,8 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::pair<T, U> *p
     return res;
 }
 
-template <class K, class V, class C>
-size_t datum_serialized_size(const std::map<K, V, C> &m) {
+size_t datum_serialized_size(
+        const std::map<std::string, counted_t<const datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += datum_serialized_size(*it);
@@ -1287,16 +1287,17 @@ size_t datum_serialized_size(const std::map<K, V, C> &m) {
     return ret;
 }
 
-template <class K, class V, class C>
-void datum_serialize(write_message_t *wm, const std::map<K, V, C> &m) {
+void datum_serialize(write_message_t *wm,
+                     const std::map<std::string, counted_t<const datum_t> > &m) {
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         datum_serialize(wm, *it);
     }
 }
 
-template <class K, class V, class C>
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::map<K, V, C> *m) {
+MUST_USE archive_result_t datum_deserialize(
+        read_stream_t *s,
+        std::map<std::string, counted_t<const datum_t> > *m) {
     m->clear();
 
     uint64_t sz;
@@ -1309,10 +1310,10 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::map<K, V, C> 
 
     // Using position should make this function take linear time, not
     // sz*log(sz) time.
-    typename std::map<K, V, C>::iterator position = m->begin();
+    auto position = m->begin();
 
     for (uint64_t i = 0; i < sz; ++i) {
-        std::pair<K, V> p;
+        std::pair<std::string, counted_t<const datum_t> > p;
         res = datum_deserialize(s, &p);
         if (bad(res)) { return res; }
         position = m->insert(position, p);
