@@ -1259,30 +1259,12 @@ MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::string *out) 
 // RSI: Move vector, map, string, and pair datum serialization functions to a
 // separate file.
 
-template <class T, class U>
-size_t datum_serialized_size(const std::pair<T, U> &p) {
-    return datum_serialized_size(p.first) + datum_serialized_size(p.second);
-}
-
-template <class T, class U>
-void datum_serialize(write_message_t *wm, const std::pair<T, U> &p) {
-    datum_serialize(wm, p.first);
-    datum_serialize(wm, p.second);
-}
-
-template <class T, class U>
-MUST_USE archive_result_t datum_deserialize(read_stream_t *s, std::pair<T, U> *p) {
-    archive_result_t res = datum_deserialize(s, &p->first);
-    if (bad(res)) { return res; }
-    res = datum_deserialize(s, &p->second);
-    return res;
-}
-
 size_t datum_serialized_size(
         const std::map<std::string, counted_t<const datum_t> > &m) {
     size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
-        ret += datum_serialized_size(*it);
+        ret += datum_serialized_size(it->first);
+        ret += datum_serialized_size(it->second);
     }
     return ret;
 }
@@ -1291,7 +1273,8 @@ void datum_serialize(write_message_t *wm,
                      const std::map<std::string, counted_t<const datum_t> > &m) {
     serialize_varint_uint64(wm, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
-        datum_serialize(wm, *it);
+        datum_serialize(wm, it->first);
+        datum_serialize(wm, it->second);
     }
 }
 
@@ -1314,9 +1297,11 @@ MUST_USE archive_result_t datum_deserialize(
 
     for (uint64_t i = 0; i < sz; ++i) {
         std::pair<std::string, counted_t<const datum_t> > p;
-        res = datum_deserialize(s, &p);
+        res = datum_deserialize(s, &p.first);
         if (bad(res)) { return res; }
-        position = m->insert(position, p);
+        res = datum_deserialize(s, &p.second);
+        if (bad(res)) { return res; }
+        position = m->insert(position, std::move(p));
     }
 
     return archive_result_t::SUCCESS;
