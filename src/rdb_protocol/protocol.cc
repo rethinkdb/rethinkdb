@@ -751,9 +751,9 @@ void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
 
     // Unshard and finish up.
     scoped_ptr_t<ql::accumulator_t> acc(rg.terminal
-        ? ql::make_terminal(&env, *rg.terminal)
+        ? ql::make_terminal(*rg.terminal)
         : ql::make_append(rg.sorting, NULL));
-    acc->unshard(out->last_key, results);
+    acc->unshard(&env, out->last_key, results);
     acc->finish(&out->result);
 }
 

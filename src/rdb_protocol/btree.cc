@@ -739,10 +739,10 @@ public:
           batcher(batchspec.to_batcher()),
           sorting(_sorting),
           accumulator(_terminal
-                      ? ql::make_terminal(env, *_terminal)
+                      ? ql::make_terminal(*_terminal)
                       : ql::make_append(sorting, &batcher)) {
         for (size_t i = 0; i < _transforms.size(); ++i) {
-            transformers.push_back(ql::make_op(env, _transforms[i]));
+            transformers.push_back(ql::make_op(_transforms[i]));
         }
         guarantee(transformers.size() == _transforms.size());
     }
@@ -873,13 +873,15 @@ THROWS_ONLY(interrupted_exc_t) {
         ql::groups_t data = {{counted_t<const ql::datum_t>(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
-            (**it)(&data, sindex_val);
-            //            ^^^^^^^^^^ NULL if no sindex
+            (**it)(job.env, &data, sindex_val);
+            //                     ^^^^^^^^^^ NULL if no sindex
         }
         // We need lots of extra data for the accumulation because we might be
         // accumulating `rget_item_t`s for a batch.
-        return (*job.accumulator)(&data, std::move(key), std::move(sindex_val));
-        //                                       NULL if no sindex ^^^^^^^^^^
+        return (*job.accumulator)(job.env,
+                                  &data,
+                                  std::move(key),
+                                  std::move(sindex_val)); // NULL if no sindex
     } catch (const ql::exc_t &e) {
         io.response->result = e;
         return done_traversing_t::YES;

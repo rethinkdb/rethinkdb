@@ -112,7 +112,7 @@ void reader_t::accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     read_t read = readgen->terminal_read(transforms, tv, batchspec);
     result_t res = do_read(env, std::move(read)).result;
-    acc->add_res(&res);
+    acc->add_res(env, &res);
 }
 
 void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
@@ -128,7 +128,7 @@ void reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!resp.truncated);
     shards_exhausted = true;
 
-    acc->add_res(&resp.result);
+    acc->add_res(env, &resp.result);
 }
 
 rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
@@ -523,7 +523,7 @@ std::string sindex_readgen_t::sindex_name() const {
 
 counted_t<val_t> datum_stream_t::run_terminal(
     env_t *env, const terminal_variant_t &tv) {
-    scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(env, tv));
+    scoped_ptr_t<eager_acc_t> acc(make_eager_terminal(tv));
     accumulate(env, acc.get(), tv);
     return acc->finish_eager(backtrace(), is_grouped());
 }
@@ -549,12 +549,12 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
     : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
 }
 
-void datum_stream_t::add_grouping(
-    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+void datum_stream_t::add_grouping(transform_variant_t &&tv,
+                                  const protob_t<const Backtrace> &bt) {
     check_not_grouped("Cannot call `group` on the output of `group` "
                       "(did you mean to `ungroup`?).");
     grouped = true;
-    add_transformation(env, std::move(tv), bt);
+    add_transformation(std::move(tv), bt);
 }
 void datum_stream_t::check_not_grouped(const char *msg) {
     rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
@@ -606,8 +606,8 @@ bool datum_stream_t::batch_cache_exhausted() const {
 }
 
 void eager_datum_stream_t::add_transformation(
-    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
-    ops.push_back(make_op(env, std::move(tv)));
+    transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+    ops.push_back(make_op(std::move(tv)));
     update_bt(bt);
 }
 
@@ -621,7 +621,7 @@ eager_datum_stream_t::done_t eager_datum_stream_t::next_grouped_batch(
         }
         (*out)[counted_t<const datum_t>()] = std::move(v);
         for (auto it = ops.begin(); it != ops.end(); ++it) {
-            (**it)(out, counted_t<const datum_t>());
+            (**it)(env, out, counted_t<const datum_t>());
         }
     }
     return done_t::NO;
@@ -632,14 +632,14 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     groups_t data;
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
-        (*acc)(&data);
+        (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     groups_t data;
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
-    (*acc)(&data);
+    (*acc)(env, &data);
     if (done == done_t::NO) {
         done_t must_be_yes = next_grouped_batch(env, batchspec_t::all(), &data);
         r_sanity_check(data.size() == 0);
@@ -678,8 +678,8 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       current_batch_offset(0),
       reader(*ns_access, use_outdated, std::move(readgen)) { }
 
-void lazy_datum_stream_t::add_transformation(
-    env_t *, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
+                                             const protob_t<const Backtrace> &bt) {
     reader.add_transformation(std::move(tv));
     update_bt(bt);
 }
@@ -890,10 +890,10 @@ zip_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
 }
 
 // UNION_DATUM_STREAM_T
-void union_datum_stream_t::add_transformation(
-    env_t *env, transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
+                                              const protob_t<const Backtrace> &bt) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        (*it)->add_transformation(env, transform_variant_t(std::move(tv)), bt);
+        (*it)->add_transformation(transform_variant_t(std::move(tv)), bt);
     }
     update_bt(bt);
 }
