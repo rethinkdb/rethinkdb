@@ -241,3 +241,16 @@ bool region_contains_key(const hash_region_t<key_range_t> &region, const store_k
 
 
 RDB_IMPL_SERIALIZABLE_3(hash_region_t<key_range_t>, beg, end, inner);
+
+// The wire format of serialize_for_metainfo and deserialize_for_metainfo must not
+// change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h) {
+    // RSI: Don't do this.
+    serialize<cluster_version_t::v1_13_is_latest>(wm, h);
+}
+archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                          hash_region_t<key_range_t> *out) {
+    // RSI: Don't do this.
+    return deserialize<cluster_version_t::v1_13_is_latest>(s, out);
+}
+
