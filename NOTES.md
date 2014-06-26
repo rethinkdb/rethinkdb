@@ -6,10 +6,10 @@ Bug fix update.
 
 * Fixed a bug that caused `Assertion failed: [ptr_]` errors when shutting down (#2594)
 * Fixed a performance issue in the JSON parser (#2585)
-* The javascript driver no longer buffers change feeds (#2582)
+* The JavaScript driver no longer buffers change feeds (#2582)
 * Fixed a bug that caused `Uncaught exception of type "cannot_perform_query_exc_t"` errors (#2576)
 * No longer crash when a secondary index is named `primary` (#2575)
-* Queries that return `null` are now handled correctly inthe Data Explorer (#2573)
+* Queries that return `null` are now handled correctly in the Data Explorer (#2573)
 * `r.http` now properly parses headers when following a redirection (#2556)
 * Improved the performance of write operations on sharded tables (#2551)
 * Fixed a bug that caused `r.js` to crash in certain circumstances (#2435)
