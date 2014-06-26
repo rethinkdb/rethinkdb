@@ -29,7 +29,7 @@ module.exports.aropt = (fun) -> (args...) ->
     numPosArgs = args.length - (if perhapsOptDict? then 1 else 0)
 
     if expectedPosArgs isnt numPosArgs
-        if expectedPosArgs > 1
+        if expectedPosArgs != 1
             throw new err.RqlDriverError "Expected #{expectedPosArgs} arguments (not including options) but found #{numPosArgs}."
         else
             throw new err.RqlDriverError "Expected #{expectedPosArgs} argument (not including options) but found #{numPosArgs}."

@@ -23,7 +23,7 @@ tests:
       - obj.keys(1)
 
     - ot:
-        js: err("RqlDriverError", "Expected 0 argument (not including options) but found 1.", [])
+        js: err("RqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
         py: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
       cd:
