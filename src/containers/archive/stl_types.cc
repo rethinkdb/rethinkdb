@@ -4,6 +4,8 @@
 
 namespace std {
 
+// You're not allowed to change the wire format of serialize_universal
+// implementations.
 size_t serialize_universal_size(const std::string &s) {
     return varint_uint64_serialized_size(s.size()) + s.size();
 }
