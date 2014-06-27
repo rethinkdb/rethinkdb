@@ -503,6 +503,7 @@ public:
                 // cases), pass on what we have got so far. Then continue
                 // with the remaining values.
                 slice_->stats.pm_keys_read.record(chunk_atoms.size());
+                slice_->stats.pm_total_keys_read += chunk_atoms.size();
                 cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
                 chunk_atoms = std::vector<backfill_atom_t>();
                 chunk_atoms.reserve(keys.size() - (i+1));
@@ -512,6 +513,7 @@ public:
         if (!chunk_atoms.empty()) {
             // Pass on the final chunk
             slice_->stats.pm_keys_read.record(chunk_atoms.size());
+            slice_->stats.pm_total_keys_read += chunk_atoms.size();
             cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
         }
     }
@@ -840,6 +842,7 @@ THROWS_ONLY(interrupted_exc_t) {
     if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
         io.slice->stats.pm_keys_read.record();
+        io.slice->stats.pm_total_keys_read += 1;
     } else {
         row.reset();
     }
@@ -1314,6 +1317,7 @@ public:
             }
 
             store_->btree->stats.pm_keys_read.record();
+            store_->btree->stats.pm_total_keys_read += 1;
 
             /* Grab relevant values from the leaf node. */
             const btree_key_t *key = (*it).first;
@@ -1332,6 +1336,7 @@ public:
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get(), &deletion_context);
             store_->btree->stats.pm_keys_set.record();
+            store_->btree->stats.pm_total_keys_set += 1;
 
             ++current_chunk_size;
             if (current_chunk_size >= MAX_CHUNK_SIZE) {
